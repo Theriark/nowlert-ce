@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Restore the comprehensive README and update its existing sections for v2.5.2 without removing the detailed project, architecture, deployment, roadmap, and contribution documentation.
+
 ### Documentation
 
 - Replace legacy v1.9.6 previews with current v2.5.2 WebUI, Discord, and
