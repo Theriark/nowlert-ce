@@ -1,8 +1,13 @@
-# Notifinho v2.5 process bootstrap configuration.
+# Notifinho v2.5.2 process bootstrap configuration.
 #
-# Destinations, routes, application tokens, regional preferences, backup
-# schedules, integration policies, aliases, and Redfish deduplication are stored
-# in private platform state and managed from the WebUI.
+# This file intentionally contains only listener, bootstrap, and security
+# settings. Destinations, routes, Event API tokens, regional preferences,
+# backup schedules, integration policies, categories, aliases, Redfish
+# deduplication, users, notices, and history are stored in private platform
+# state and managed from the WebUI.
+#
+# Keep /notifinho/state on a persistent private mount. Back up config, state,
+# and secrets together before upgrades.
 
 smtp:
   enabled: true
@@ -23,6 +28,8 @@ http:
   host: 0.0.0.0
   port: 8080
   max_body_bytes: 1048576
+  # Optional legacy/dedicated-webhook shared secret. Prefer scoped Event API
+  # tokens where an external application submits /api/v2/events.
   shared_secret: ""
 
 api:
@@ -31,11 +38,18 @@ api:
 platform:
   enabled: true
   configuration_model: platform_database_v1
-  state_dir: /notifinho/config/platform-state
+  state_dir: /notifinho/state
   backup_retention: 20
+
+  # false permits direct HTTP login only on a trusted private network.
+  # Set true when a trusted reverse proxy provides HTTPS.
   secure_cookies: false
 
 webui:
   enabled: true
+
+  # For reverse-proxied HTTPS, set the canonical URL and enable enforcement:
+  # public_url: "https://notifinho.example.com"
+  # enforce_https: true
   public_url: ""
   enforce_https: false

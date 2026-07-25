@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Documentation
+
+- Replace legacy v1.9.6 previews with current v2.5.2 WebUI, Discord, and
+  Microsoft Teams screenshots.
+- Align README, Docker Hub, WebUI, integration, roadmap, and public
+  configuration guidance with the schema-8 database-authoritative model.
+- Align the public platform state path with the production `/notifinho/state`
+  mount and add the v2.3.3-to-v2.5.2 implementation sequence.
+
 ## 2.5.2 - 2026-07-25
 
 ### Fixed
