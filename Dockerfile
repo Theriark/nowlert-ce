@@ -23,6 +23,8 @@ COPY assets /notifinho/assets
 COPY tools /notifinho/tools
 COPY start.sh /notifinho/start.sh
 
+RUN python3 /notifinho/tools/validate_packaged_icons.py
+
 RUN chmod +x /notifinho/start.sh
 
 EXPOSE 8025 8080

@@ -1,4 +1,4 @@
-/* Notifinho WebUI v2.5.1 fallback routing and fixed-box icon styling. */
+/* Notifinho WebUI v2.5.2 routing labels and notification icon polish. */
 #restart-header-button {
   display: none !important;
 }
@@ -255,4 +255,14 @@
 /* Separate the Integration Behavior heading from the first settings card. */
 #integration-settings-list {
   margin-top: 1.5rem;
+}
+
+
+/* Disabled flow uses a monochrome symbol so warning colour is not replaced by emoji artwork. */
+.flow-arrow.flow-disabled {
+  color: var(--warning);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
 }

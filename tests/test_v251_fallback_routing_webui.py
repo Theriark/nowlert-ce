@@ -284,7 +284,7 @@ def test_overview_flow_uses_independent_input_route_and_destination_states():
     script = (ROOT / "src/webui/app.js").read_text(encoding="utf-8")
     styles = (ROOT / "src/webui/styles.css").read_text(encoding="utf-8")
 
-    assert 'symbols = { active: "➜", disabled: "⛔", error: "✕" }' in script
+    assert 'symbols = { active: "➜", disabled: "⊘︎", error: "✕" }' in script
     assert "inputFlowState" in script
     assert "routeFlowState" in script
     assert "destinationFlowState" in script

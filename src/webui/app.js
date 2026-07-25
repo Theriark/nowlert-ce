@@ -851,6 +851,17 @@ function destinationFlowState(destination) {
   return { state: "active", detail: "Destination is enabled and configured" };
 }
 
+function destinationFlowLabels(destination) {
+  if (!destination) return { name: "Missing destination", detail: "Configuration error" };
+  const platform = OUTPUT_NAMES[destination.output_type] || friendlyName(destination.output_type);
+  const settings = destination.settings || {};
+  const channel = String(settings.channel_name || settings.channel || "").trim();
+  return {
+    name: destination.name,
+    detail: channel ? `${platform} · ${channel}` : platform,
+  };
+}
+
 function combinedFlowState(...states) {
   if (states.some((item) => item.state === "error")) return "error";
   if (states.some((item) => item.state === "disabled")) return "disabled";
@@ -858,7 +869,7 @@ function combinedFlowState(...states) {
 }
 
 function flowSignal(status, detail, delayed = false) {
-  const symbols = { active: "➜", disabled: "⛔", error: "✕" };
+  const symbols = { active: "➜", disabled: "⊘︎", error: "✕" };
   return element("span", {
     className: `flow-arrow flow-${status}${delayed ? " delayed" : ""}`,
     text: symbols[status] || symbols.error,
@@ -875,6 +886,7 @@ function renderFlow() {
     const inputStatus = inputFlowState(route.input_type || "http");
     const routeStatus = routeFlowState(route);
     const destinationStatus = destinationFlowState(destination);
+    const destinationLabels = destinationFlowLabels(destination);
     const firstStatus = combinedFlowState(inputStatus, routeStatus);
     const descriptor = routeSourceDescriptor(route.source, route.input_type);
     const integration = integrationBySource(route.source);
@@ -896,7 +908,7 @@ function renderFlow() {
       element("div", {
         className: `flow-node destination-node state-${destinationStatus.state}`,
         title: destinationStatus.detail,
-      }, [outputIcon(destination && destination.output_type), element("div", {}, [element("strong", { text: destination ? (OUTPUT_NAMES[destination.output_type] || friendlyName(destination.output_type)) : "Missing destination" }), element("small", { text: destination ? (destination.settings.channel_name || destination.name) : "Configuration error" })])]),
+      }, [outputIcon(destination && destination.output_type), element("div", {}, [element("strong", { text: destinationLabels.name }), element("small", { text: destinationLabels.detail })])]),
     ]));
   }
   if (!container.children.length) empty(container, "No routing flow", "Create a destination and route to display it here.");
