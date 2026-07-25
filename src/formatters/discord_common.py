@@ -176,7 +176,7 @@ class DiscordCardFormatter(BaseFormatter):
             f"-# {data.integration} • {status_icon} **{state}** • "
             f"{data.source_area_icon} {source_area}"
         )
-        icon_url = self._product_icon_url(data.source)
+        icon_url = self._discord_product_icon_url(data.source)
         if icon_url:
             header = {
                 "type": self.COMPONENT_TYPE_SECTION,

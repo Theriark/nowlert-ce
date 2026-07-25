@@ -30,6 +30,8 @@ class PresentationMixin:
 
     PRODUCT_ICONS = {
         "xo": "xen-orchestra.png",
+        "xen_orchestra": "xen-orchestra.png",
+        "xenorchestra": "xen-orchestra.png",
         "zabbix": "zabbix.png",
         "qnap": "qnap.png",
         "grafana": "grafana.png",
@@ -47,6 +49,21 @@ class PresentationMixin:
         "dell_idrac": "dell-idrac.png",
         "home_assistant": "home-assistant.png",
         "notifinho": "notifinho.png",
+    }
+
+    # Discord controls thumbnail layout and does not accept explicit pixel sizes.
+    # These variants retain the official artwork on a larger transparent canvas,
+    # reducing only the visible mark inside Discord cards.
+    DISCORD_PRODUCT_ICONS = {
+        "xo": "discord/xen-orchestra.png",
+        "xen_orchestra": "discord/xen-orchestra.png",
+        "xenorchestra": "discord/xen-orchestra.png",
+        "grafana": "discord/grafana.png",
+        "truenas": "discord/truenas.png",
+        "portainer": "discord/portainer.png",
+        "home_assistant": "discord/home-assistant.png",
+        "supermicro": "discord/supermicro.png",
+        "zabbix": "discord/zabbix.png",
     }
 
     # Wide vendor wordmarks need a larger square render area than compact
@@ -119,8 +136,16 @@ class PresentationMixin:
         filename = self.PRODUCT_ICONS.get(normalized)
         return f"{self.ICON_BASE_URL}/{filename}" if filename else ""
 
+    def _discord_product_icon_url(self, source: str) -> str:
+        normalized = str(source or "").strip().casefold()
+        filename = self.DISCORD_PRODUCT_ICONS.get(
+            normalized,
+            self.PRODUCT_ICONS.get(normalized),
+        )
+        return f"{self.ICON_BASE_URL}/{filename}" if filename else ""
+
     def _set_discord_thumbnail(self, embed: dict, source: str) -> None:
-        url = self._product_icon_url(source)
+        url = self._discord_product_icon_url(source)
         if url:
             embed["thumbnail"] = {"url": url}
 

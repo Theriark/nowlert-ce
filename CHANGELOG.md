@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 2.5.2 - 2026-07-25
+
+### Fixed
+
+- Render disabled Overview flow signals as a yellow typographic prohibition symbol instead of a red emoji.
+- Show the destination name on the primary Routing Flow line and the platform plus channel below it.
+- Reduce the visible Discord thumbnail size for Xen Orchestra, Grafana, TrueNAS, Portainer, Home Assistant, Supermicro, and Zabbix without changing Microsoft Teams sizing.
+- Add immutable release icon URLs, padded Discord variants, and build-time checks proving WebUI and outbound notification assets are present in the published image.
+
+
 ## 2.5.1 - 2026-07-25
 
 ### Changed
