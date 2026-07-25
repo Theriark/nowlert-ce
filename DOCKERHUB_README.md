@@ -1,249 +1,142 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/FortPT/notifinho/main/docs/images/logo.png" width="220" alt="Notifinho Logo">
+  <img src="https://raw.githubusercontent.com/FortPT/notifinho/main/docs/images/logo.png" width="210" alt="Notifinho logo">
 </p>
 
 <h1 align="center">Notifinho</h1>
 
 <p align="center">
-<strong>Infrastructure Notification Engine</strong>
+  <strong>Infrastructure Notification Engine</strong><br>
+  Built for homelabs · ready for enterprise
 </p>
 
-<p align="center">
-Transform infrastructure events into rich, actionable notifications.
-</p>
+Notifinho receives infrastructure events over **SMTP**, **HTTP**, and
+**Redfish**, normalizes them, applies database-backed routes, and sends rich
+notifications to Discord, Microsoft Teams, Slack, generic webhooks, MQTT, and
+ntfy.
 
-<p align="center">
-Built for Homelabs • Ready for Enterprise
-</p>
+The current stable release is **v2.5.2**. The corresponding image is **`fortpt/notifinho:2.5.2`**.
 
----
+## Highlights
 
-## Overview
+- Authenticated same-origin WebUI and `/api/v2`
+- Database-authoritative destinations, routes, Event API tokens, settings, and aliases
+- Built-in integration catalogue with standardized SMTP, HTTP, and Redfish inputs
+- Dedicated-first routing with fallback-only wildcard routes
+- Include/exclude filters and duplicate-delivery suppression
+- Source-aware Discord and Microsoft Teams cards
+- Packaged and build-validated vendor icons
+- Local users, private/shared destinations, audit history, and delivery history
+- Scheduled local, NFS, or SMB private-state backups
+- Hardened production Compose deployment
 
-Notifinho is an Infrastructure Notification Engine that transforms traditional infrastructure notifications into rich, actionable collaboration messages.
+![Notifinho v2.5.2 Routing Flow](https://raw.githubusercontent.com/FortPT/notifinho/main/docs/images/v2.5.2-routing-flow.png)
 
-The current stable release is **v2.5.2**.
-
-Instead of receiving plain text emails, your infrastructure platforms can deliver beautiful notifications to collaboration tools such as Discord and Microsoft Teams.
-
-Current features include:
-
-- Database-authoritative destinations, routes, applications, settings, and aliases
-- Normalized core-only `config.yaml` with one-way v2.4 migration
-- Per-resource fault isolation and reference-coded API errors
-- Built-in integrations with expandable SMTP, HTTP, and Redfish inputs
-- Input-aware route selection and safe dynamic destination type changes
-- Xen Orchestra parser
-- Zabbix, QNAP, Grafana Alerting, and TrueNAS notification support
-- UniFi Network, Protect, and Drive native HTTP webhooks
-- UniFi Drive delivered-email parsing remains supported
-- Portainer Business Edition Alerting webhooks
-- Fixture-validated Proxmox VE SMTP and native webhook ingestion
-- Fixture-validated Synology DSM SMTP plus JSON/form custom webhooks
-- Shared Redfish Event Service ingestion with duplicate suppression
-- Fixture-validated Supermicro BMC/IPMI, HPE iLO, and Dell iDRAC adapters
-- Authenticated Home Assistant and generic source-scoped event submission
-- Session- or token-protected health, masked configuration, validation, log,
-  preview, and test-send API foundations
-- Environment-, owner-only file-, or SHA-256-backed API tokens, rate limits,
-  private audit logs, and atomic configuration backups
-- Rich Discord notifications
-- Immutable, image-validated vendor icon assets for WebUI, Discord, and Microsoft Teams
-- Microsoft Teams Adaptive Cards
-- SMTP gateway input
-- Optional STARTTLS and SMTP AUTH security
-- Native HTTP webhook input enabled for the same-origin WebUI
-- Docker deployment
-- Parser-driven architecture
-- Repository and transfer statistics
-- VM-level backup reporting
-- Extensible formatter/output system
-- Local accounts, scoped application tokens, owned destinations and routes
-- Authenticated same-origin WebUI and `/api/v2` management/event API
-- Discord, Teams, Slack, generic webhook, MQTT, and ntfy platform destinations
-- Credential-free import/export, live mounted-YAML synchronization, and private state recovery
-
----
-
-## Quick Start
+## Quick start
 
 ```bash
-docker pull fortpt/notifinho:latest
-```
+git clone https://github.com/FortPT/notifinho.git
+cd notifinho
 
-The repository provides `compose.production.yaml`, `.env.example`, and a
-development-only `docker-compose.yml`. Production uses a versioned image,
-non-root deployment identity, read-only root filesystem, dropped capabilities,
-and persistent configuration/log mounts.
-
-```bash
 cp .env.example .env
 cp config/config.example.yaml config/config.yaml
+
 mkdir -p logs/emails secrets state external-backups
+mkdir -p config
 chmod 600 .env config/config.yaml
 chmod 700 logs logs/emails secrets state external-backups
+
 docker compose -f compose.production.yaml config
 docker compose -f compose.production.yaml up -d
+docker logs -f notifinho
 ```
 
-Set `NOTIFINHO_UID` and `NOTIFINHO_GID` in `.env` from `id -u` and `id -g`.
-Portainer deployments should replace relative mount paths with absolute host
-paths. Full deployment and rollback guidance is in `docs/deployment.md`.
+Set `NOTIFINHO_UID` and `NOTIFINHO_GID` in `.env` to the numeric identity that
+owns the mounted directories.
 
-The container exposes two independent ports:
+On first start, the container log prints a short-lived, single-use setup token.
+Open the WebUI and choose the first administrator credentials. No default
+password exists.
 
-- `8025/tcp` for the existing SMTP listener;
-- `8080/tcp` for the native HTTP webhook listener.
+## Ports
 
-SMTP STARTTLS and authentication remain disabled by default. Deployment and
-rollout guidance is available in the repository's `docs/smtp-security.md`.
+- `8025/tcp` — SMTP input
+- `8080/tcp` — WebUI and HTTP/Redfish input inside the container
+- the supplied Compose file maps host port `18080` to container port `8080`
 
-The HTTP listener, platform, API, and WebUI are enabled by default. Publishing
-port `8080` remains an explicit deployment choice. On first start, copy the
-short-lived setup token from container output and use it in the HTTPS WebUI to
-choose the first administrator credentials. No default password exists.
+## Persistent mounts
 
-Existing YAML installations are visible immediately after login. In v2.2.0,
-the mounted `config.yaml` is the single configuration authority: valid external
-edits appear in the WebUI, and administrator WebUI edits are validated, backed
-up, and written atomically to the same file. SQLite remains a private mirror
-for history, preview/test delivery, and retries; it is not a competing fallback
+| Container path | Purpose |
+|---|---|
+| `/notifinho/config` | Bootstrap `config.yaml` and optional TLS files |
+| `/notifinho/state` | SQLite state, private database backups, and managed secrets |
+| `/notifinho/logs` | Application and optional retained-email logs |
+| `/run/secrets` | Read-only externally managed secrets |
+| `/notifinho/external-backups` | Host-mounted external backup target |
+
+Keep `config`, `state`, and `secrets` together when backing up or rolling back.
+
+## Current configuration model
+
+`config.yaml` contains only listener, bootstrap, and security settings.
+Destinations, routes, Event API tokens, regional preferences, backup schedules,
+integration behavior, aliases, users, notices, and history are managed from the
+WebUI and stored in private platform state.
+
+Do not add the legacy `outputs`, `routing`, `notifications`,
+`presentation`, `home_assistant`, `redfish`, `api.tokens`,
+`platform.backups`, or `webui.language` sections to a fresh v2.5
 configuration.
 
-The v2.3.4 WebUI finalizes the requested presentation and lifecycle fixes:
-Notifinho is slightly larger, Dell iDRAC, UniFi Network, UniFi Protect, and
-QNAP are much larger, Synology is larger, F5 returns to the current page,
-inactive-source removal accepts the browser payload shape, and the bounded
-GitHub update checks, source-aware destination tests, and regional backup-clock
-behaviour continue unchanged.
+The first successful v2.5 start can import a supported v2.4 YAML installation,
+preserve IDs and credentials, and atomically normalize the mounted file.
 
-The v2.3.2 WebUI uses official vendor source icons, purpose-specific source
-categories, safe inactive-source removal, wildcard-aware activity, generic
-Notifinho destination tests, and a top-right restart control. It also resolves
-HTTP/HTTPS cookie migration and makes the managed NFS/SMB Compose override
-directly usable with existing UID-owned mounts. NFS backups disable remote
-locking so NFSv3 does not need `rpc.statd` inside the read-only container.
+## Built-in integrations
 
-```yaml
-http:
-  enabled: true
-  host: "0.0.0.0"
-  port: 8080
-  max_body_bytes: 1048576
-  shared_secret: ""
-```
+Xen Orchestra, Zabbix, Grafana, Portainer, Proxmox, QNAP, Synology, TrueNAS,
+UniFi Network, UniFi Protect, UniFi Drive, Supermicro, HPE iLO, Dell iDRAC, and
+Home Assistant.
 
-UniFi Network, Protect, and Drive send JSON to `/unifi/network`,
-`/unifi/protect`, and `/unifi/drive`. All three endpoints can use the same
-`X-Notifinho-Token`. Drive delivered-email parsing remains supported; Notifinho
-does not poll IMAP, Microsoft Graph, Gmail, or other mailbox providers.
+Zabbix supports SMTP and HTTP. Hardware management integrations use Redfish.
+The Sources page lists the complete catalogue even before an integration has
+sent an event.
 
-v1.8.x also provides `/portainer/alerts`, `/proxmox/events`, and
-`/synology/events`. Portainer Alerting has real firing/resolved validation.
-Synology DSM has real JSON webhook and SMTP/STARTTLS validation. Proxmox VE
-remains fixture-validated pending real-system compatibility testing.
+## Security
 
-v1.9.0 adds `/redfish/events`, `/redfish/supermicro`, `/redfish/hpe`,
-`/redfish/dell`, `/home-assistant/events`, and the disabled-by-default `/api/*`
-backend. Hardware adapters remain fixture-validated pending representative
-real systems. See the repository integration and API guides before enabling
-these endpoints.
+The production Compose file uses a non-root UID/GID, read-only root filesystem,
+dropped capabilities, `no-new-privileges`, a PID limit, and private persistent
+state.
 
-v1.9.1 adds dedicated generic API event presentation and concise,
-service-aware Home Assistant cards. It preserves all v1.9.0 configuration,
-token, routing, and endpoint contracts.
+Direct HTTP is appropriate only on a trusted private network. For public or
+untrusted access, terminate TLS at a trusted reverse proxy, set a canonical
+HTTPS `webui.public_url`, enable HTTPS enforcement, and enable secure cookies.
 
-v1.9.2 adds optional Home Assistant endpoint/component aliases, bare IPv4
-endpoint extraction, structured integration error codes, and concise Tapo/Kasa
-and IPP cards. Existing configurations and Home Assistant payloads remain
-compatible; aliases are optional.
+SMTP STARTTLS and SMTP AUTH are optional and disabled by default.
 
-v1.9.3 presents the Redfish subscription Context as Host, scopes duplicate
-suppression by host and origin, and omits empty recommended actions. Existing
-Redfish endpoints, tokens, routes, and payloads remain compatible.
+## Upgrade and rollback
 
-v1.9.4 standardizes every Microsoft Teams formatter on one shared card
-hierarchy and preserves the wall-clock timestamp emitted by each source in
-both Teams and Discord. Existing configuration, routes, endpoints, targets,
-and secrets remain compatible.
+Before upgrading:
 
-v1.9.6 replaces generated initial badges with documented official vendor
-assets across all Teams and Discord integrations. It gives Discord the same
-device/event hierarchy, source-time metrics, and status semantics as Teams
-while retaining richer source details and enforcing Discord embed limits. It
-also omits missing Xen Orchestra Duration/Result facts, preserves identifier
-casing, removes duplicated UniFi details, and rejects malformed Teams webhook
-placeholders before delivery. Existing valid webhooks and routing remain
-compatible.
+1. Back up `config`, `state`, and `secrets` as one matched set.
+2. Test the new image against a copy of production.
+3. Deploy the versioned image, not only `latest`.
+4. Verify schema, resource counts, token use, and real delivery.
+5. Keep the backup until acceptance passes.
 
-A shared Discord target can receive all three normalized UniFi sources:
-
-```yaml
-outputs:
-  discord:
-    enabled: true
-    unifi:
-      webhook: "PASTE_UNIFI_DISCORD_WEBHOOK_HERE"
-
-routing:
-  unifi_network:
-    outputs:
-      - output: discord
-        target: unifi
-  unifi_protect:
-    outputs:
-      - output: discord
-        target: unifi
-  unifi_drive:
-    outputs:
-      - output: discord
-        target: unifi
-```
-
----
+Rollback across a schema boundary requires restoring the matched pre-upgrade
+backup before starting the older image.
 
 ## Documentation
 
-GitHub Repository
+Repository: https://github.com/FortPT/notifinho
 
-https://github.com/FortPT/notifinho
+- deployment and Portainer guide
+- WebUI guide
+- integration and input catalogue
+- routing and delivery model
+- platform API and state model
+- release notes and acceptance checklists
+- v2.3.3 → v2.5.2 implementation sequence
 
----
+![Notifinho v2.5.2 Discord card](https://raw.githubusercontent.com/FortPT/notifinho/main/docs/images/v2.5.2-discord-zabbix.png)
 
-## v2.0 platform
-
-- Migration-aware SQLite state, local account/login protection, hashed
-  sessions/CSRF, ownership records, and owner-only secret rotation
-- Source-scoped tokens, private/shared destinations, user route filters,
-  bounded delivery retries, audit events, and safe delivery history
-- Ownership-safe preview/test contracts and adapters for Discord,
-  Teams, Slack, generic webhooks, MQTT, and ntfy
-- Authenticated `/api/v2` sessions, CSRF, owned-resource management,
-  preview/test endpoints, and source-scoped platform event submission
-- Responsive, same-origin v2.0 WebUI for accounts, destinations, routes,
-  application tokens, preview/test delivery, history, and audit
-- Digest-only, expiring, single-use first-run administrator setup without a
-  shared password or account-management shell command
-- Local administrator and user accounts
-- User- and application-scoped event endpoints and API tokens
-- Private/shared destinations and user-owned routing
-- Searchable delivery history, safe errors, and audit events
-- Preview, test delivery, credential-free configuration import/export,
-  integrity-checked private backup/restore, and v1.x YAML migration previews
-- Slack output
-- Generic outbound webhook output
-- MQTT output
-- ntfy output
-- Previewed v1.x Discord/Teams YAML import
-- Production Docker Compose, Portainer, and reverse-proxy examples
-- Broader real-system Redfish compatibility validation
-- Additional UniFi event variants
-
-Telegram and other destination adapters remain candidates for later v2.x
-releases.
-
----
-
-⚡ Powered by FortPT
-
-Copyright © 2026 FortPT
+MIT License · Powered by FortPT

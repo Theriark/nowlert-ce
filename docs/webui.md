@@ -1,21 +1,14 @@
-# v2 WebUI
+# WebUI
 
-Phase 5 packages a responsive, dependency-free browser interface in the
-Notifinho image. It uses the authenticated `/api/v2` contract over the same
-origin. The backend manages destinations, routes, applications, preferences, aliases,
-and integration behavior in isolated SQLite resources; secret values never
-enter the browser. The mounted YAML contains only process bootstrap, listeners,
-and transport security.
+Notifinho v2.5.2 packages a responsive, dependency-free management interface in
+the image. It uses the authenticated `/api/v2` contract over the same origin.
 
-## Default activation
-
-The WebUI is enabled by default and remains gated by four switches so an
-operator can explicitly disable any layer:
+## Activation
 
 ```yaml
 http:
   enabled: true
-  host: "0.0.0.0"
+  host: 0.0.0.0
   port: 8080
 
 api:
@@ -23,8 +16,8 @@ api:
 
 platform:
   enabled: true
-  state_dir: "/notifinho/state"
-  configuration_model: "platform_database_v1"
+  state_dir: /notifinho/state
+  configuration_model: platform_database_v1
   secure_cookies: false
 
 webui:
@@ -33,62 +26,105 @@ webui:
   enforce_https: false
 ```
 
-On the first start, read the single-use setup token from container output and
-open the HTTP URL for port 8080 on the trusted LAN. The first-run screen lets you choose the
-administrator username and password. No default account exists, and no shell
-command is required. The interface is served at `/`; packaged assets live
-below `/ui/`.
+On first start, read the short-lived setup token from the container log and
+open the WebUI. Choose the first administrator credentials. No default account
+exists.
 
-`webui.public_url` is optional. A plain-HTTP WebUI request receives a 308
-redirect only when the canonical URL is set and `webui.enforce_https: true`.
-Notifinho does not provision a certificate or HTTPS listener; the configured
-reverse proxy must terminate TLS at that URL.
+Use direct HTTP only on a trusted private network. A public or untrusted
+deployment must terminate TLS at a trusted reverse proxy and enable secure
+cookies and HTTPS enforcement.
 
-Use `platform.secure_cookies: false` only on a trusted private network. Set it
-to `true` with HTTPS enforcement for Internet-facing or reverse-proxied access.
-The login session is intentionally unusable over plain HTTP when Secure cookies
-are enabled.
+## Navigation
 
-## Included workflows
+### Overview
 
-- local login, logout, current-session status, and password change;
-- administrator notice publishing, per-user ordinary-notice dismissal, and
-  lifecycle-bound system error/update notices;
-- a profile-picture dropdown for Security and Sign out, plus dedicated Sources
-  and Updates views;
-- packaged vendor icons, built-in integrations, expandable SMTP/HTTP/Redfish
-  inputs, and integration-level categories;
-- responsive overview with every active, disabled, or unhealthy source → route
-  → destination path, five server-side history ranges, and recent deliveries;
-- private/shared destination creation, editing, enable/disable, deletion,
-  preview, and explicit test delivery;
-- output-specific settings and write-only credential forms for Discord,
-  Microsoft Teams, Slack, generic webhooks, MQTT, and ntfy;
-- user-owned route creation, filtering, semantic-priority editing,
-  enable/disable, and
-  deletion;
-- one-time application-token creation and rotation plus enable/disable and
-  deletion for database-managed applications, including safely migrated values;
-- searchable semantic device/event/input delivery history, audit events with
-  selectable 25–500-row page sizes, and operational health checks;
-- administrator account creation, enable/disable, and password reset plus a
-  resiliently decoded, movable, zoomable circular crop for account pictures;
-- separate administrator Inputs and Backups views, named Local/NFS/SMB backup
-  targets, private state backup, scheduled or manual copies, safe JSON
-  export/import, database resource backups, and confirmed restore;
-- a top-right administrator-only, reasoned, audited process restart (the
-  container supervisor performs the actual restart; no shutdown action exists);
-- English/Portuguese, IANA timezone, and 12/24-hour global presentation
-  settings; and
-- account-aware navigation that hides administrator controls from users.
+- administrator notices
+- routed integrations, destinations, routes, token, request, and success metrics
+- complete Integration/Input → Route → Destination flow
+- independent working, disabled, and error indicators
+- recent deliveries
 
-Destination secrets and application-token values are never loaded back into
-forms. Token values exist in the page only until the one-time value dialog is
-closed. The application does not persist credentials, CSRF values, or API
-responses in `localStorage` or `sessionStorage`.
+### Sources
 
-Existing v2.4 installations do not appear empty. On the first v2.5 start,
-Notifinho imports mounted YAML destinations, routes, API applications, aliases,
-notification preferences, regional settings, and backup scheduling into schema
-8. The YAML file is then normalized atomically and all later edits happen in the
-WebUI.
+The complete built-in integration catalogue. Integrations are always present
+and are not runtime records. Categories are editable at integration level.
+Available input badges are only SMTP, HTTP, and Redfish.
+
+### Destinations
+
+Create, edit, preview, test, enable/disable, share/private, and delete
+destinations. Credentials are write-only. A positive test result reflects a
+real destination test; merely storing a credential is not presented as a
+successful validation.
+
+### Routes
+
+Create routes from an integration/input pair to a destination. Routes support
+semantic priority and include/exclude filters for hosts, events, severities,
+and statuses. Wildcard routes are labelled Fallback and are evaluated only
+when no dedicated route matches.
+
+### API access
+
+Event API tokens authorize external applications to submit
+`POST /api/v2/events`. They are not required for SMTP, dedicated HTTP webhook
+endpoints, Redfish subscriptions, WebUI login, or destination delivery.
+
+Token values are displayed only once. The list shows scopes, rate limit, last
+use, and status. Rotate or revoke a token instead of trying to retrieve it.
+
+### Delivery history and Audit log
+
+Delivery history shows normalized event identity, input, attempts, destination,
+status, and safe errors. Audit history records protected mutations without
+secret values. Users see the resources allowed by the platform ownership model;
+administrators can review all activity.
+
+### Users
+
+Administrators can create users, enable/disable accounts, and reset another
+user's password. The last enabled administrator is protected.
+
+### Settings
+
+- language, IANA timezone, and 12/24-hour clock
+- Xen Orchestra job/run ID visibility
+- Zabbix problem ID visibility
+- Dell iDRAC trusted management clients
+- UniFi Protect device aliases
+- Home Assistant endpoint/component aliases
+- Redfish deduplication window
+
+Each settings record has an independent error boundary.
+
+### Inputs
+
+SMTP, HTTP, and Redfish are managed independently. Changing their enabled
+state requires a Notifinho restart because listener and transport startup are
+process-level operations.
+
+### Backups and Data tools
+
+- local snapshots
+- named Local/NFS/SMB backup destinations
+- daily, weekly, or monthly scheduled backups
+- manual scheduled-backup execution
+- credential-free export/import
+- guarded private-state restore
+
+## Browser security
+
+- HttpOnly, SameSite session cookies
+- optional Secure cookie mode
+- CSRF protection for unsafe session requests
+- restrictive content security policy and frame protection
+- no credential, CSRF, token, or API-response storage in localStorage
+- write-only destination secrets
+- one-time token display
+
+## Migration
+
+On the first v2.5 start, supported v2.4 destinations, routes, API applications,
+regional preferences, backup scheduling, integration behavior, aliases, and
+deduplication settings are imported into schema 8. The mounted YAML is then
+normalized atomically. Later WebUI edits use isolated database resources.
