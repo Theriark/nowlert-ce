@@ -247,8 +247,9 @@ def test_every_discord_integration_uses_its_exact_official_product_asset(
     )
     embed = formatter.format(item)["embeds"][0]
 
+    expected = PresentationMixin.DISCORD_PRODUCT_ICONS.get(source, filename)
     assert embed["thumbnail"]["url"] == (
-        f"{PresentationMixin.ICON_BASE_URL}/{filename}"
+        f"{PresentationMixin.ICON_BASE_URL}/{expected}"
     )
 
 

@@ -973,7 +973,9 @@ h3 {
 }
 
 .settings-card {
-  max-width: 900px;
+  box-sizing: border-box;
+  max-width: none;
+  width: 100%;
 }
 
 .settings-card + .settings-card {
