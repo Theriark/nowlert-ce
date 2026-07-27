@@ -11,7 +11,13 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import (
+    parse_qsl,
+    unquote,
+    urlencode,
+    urlsplit,
+    urlunsplit,
+)
 
 import requests
 
@@ -265,41 +271,231 @@ class DiscordOutput:
         filename = Path(relative).name
         return filename, path, thumbnail
 
-    @classmethod
-    def _attachment_verified(cls, response, filename):
-        """Confirm Discord retained and linked one uploaded thumbnail."""
+    @staticmethod
+    def _returned_message(response):
+        """Return only a decoded Discord message object."""
 
         try:
             message = response.json()
         except (TypeError, ValueError, AttributeError):
-            return False
-        if not isinstance(message, dict):
-            return False
+            return None
+        return message if isinstance(message, dict) else None
+
+    @staticmethod
+    def _component_types(value):
+        """Collect only numeric component types from returned message JSON."""
+
+        types = []
+
+        def visit(item):
+            if isinstance(item, dict):
+                component_type = item.get("type")
+                if isinstance(component_type, int):
+                    types.append(component_type)
+                for child in item.values():
+                    visit(child)
+            elif isinstance(item, list):
+                for child in item:
+                    visit(child)
+
+        visit(value)
+        return types
+
+    @staticmethod
+    def _discord_media_url_kind(value):
+        """Classify a media URL without retaining or logging its value."""
+
+        url = str(value or "")
+        if url.startswith("attachment://"):
+            return "attachment"
+        try:
+            parts = urlsplit(url)
+        except ValueError:
+            return "other"
+        host = str(parts.hostname or "").casefold()
+        if (
+            parts.scheme.casefold() == "https"
+            and host in {"cdn.discordapp.com", "media.discordapp.net"}
+            and parts.path.startswith(
+                ("/attachments/", "/ephemeral-attachments/")
+            )
+        ):
+            return "discord_cdn"
+        return "other" if url else "none"
+
+    @classmethod
+    def _discord_attachment_identity(cls, value):
+        """Return an attachment id and filename from a Discord CDN URL."""
+
+        if cls._discord_media_url_kind(value) != "discord_cdn":
+            return None
+        parts = urlsplit(str(value))
+        path = [unquote(item) for item in parts.path.split("/") if item]
+        if len(path) < 4:
+            return None
+        return path[-2], path[-1]
+
+    @classmethod
+    def _attachment_inspection(cls, response, filename):
+        """Verify and summarize one returned Discord thumbnail attachment."""
+
+        message = cls._returned_message(response)
+        attachments = (
+            message.get("attachments", [])
+            if isinstance(message, dict)
+            else []
+        )
+        if not isinstance(attachments, list):
+            attachments = []
+
+        safe_attachments = [
+            {
+                "id": str(item.get("id") or ""),
+                "filename": str(item.get("filename") or ""),
+                "content_type": str(item.get("content_type") or ""),
+                "url_present": bool(item.get("url")),
+                "proxy_url_present": bool(item.get("proxy_url")),
+            }
+            for item in attachments
+            if isinstance(item, dict)
+        ]
+        media = (
+            cls._thumbnail_media(message)
+            if isinstance(message, dict)
+            else None
+        )
+        media = media if isinstance(media, dict) else {}
+        diagnostics = {
+            "response_status": int(
+                getattr(response, "status_code", 0) or 0
+            ),
+            "attachments": safe_attachments,
+            "component_types": cls._component_types(
+                message.get("components", [])
+                if isinstance(message, dict)
+                else []
+            ),
+            "thumbnail_media_keys": sorted(
+                str(key) for key in media
+            ),
+            "media_attachment_id": str(
+                media.get("attachment_id") or ""
+            ),
+            "media_url_kind": cls._discord_media_url_kind(
+                media.get("url")
+            ),
+            "media_proxy_url_kind": cls._discord_media_url_kind(
+                media.get("proxy_url")
+            ),
+        }
+
+        media_url = str(media.get("url") or "")
+        media_proxy_url = str(media.get("proxy_url") or "")
+        media_url_kind = cls._discord_media_url_kind(media_url)
+        media_proxy_url_kind = cls._discord_media_url_kind(
+            media_proxy_url
+        )
+        media_attachment_id = str(media.get("attachment_id") or "")
+        media_content_type = str(
+            media.get("content_type") or ""
+        ).casefold()
+        media_identities = {
+            identity
+            for identity in (
+                cls._discord_attachment_identity(media_url),
+                cls._discord_attachment_identity(media_proxy_url),
+            )
+            if identity is not None
+        }
+        media_identity_verified = any(
+            item_id == media_attachment_id
+            and item_filename == str(filename)
+            for item_id, item_filename in media_identities
+        )
+
+        # Components V2 may return the uploaded thumbnail exclusively as an
+        # unfurled media item and leave the top-level attachments array empty.
+        # In that response shape, fail closed unless Discord supplied a PNG,
+        # a Discord-hosted attachment URL, and an attachment id that matches
+        # both the CDN path and the exact packaged filename.
+        if not attachments:
+            return (
+                bool(media)
+                and media_content_type == "image/png"
+                and bool(media_attachment_id)
+                and media_identity_verified
+            ), diagnostics
 
         attachment = next(
             (
                 item
-                for item in message.get("attachments", [])
+                for item in attachments
                 if isinstance(item, dict)
                 and str(item.get("filename") or "") == str(filename)
             ),
             None,
         )
-        if attachment is None:
-            return False
-
-        media = cls._thumbnail_media(message)
-        if not isinstance(media, dict):
-            return False
+        if attachment is None or not media:
+            return False, diagnostics
 
         attachment_id = str(attachment.get("id") or "")
-        media_attachment_id = str(media.get("attachment_id") or "")
-        if attachment_id and media_attachment_id == attachment_id:
-            return True
+        content_type = str(
+            attachment.get("content_type") or ""
+        ).casefold()
+        attachment_urls = [
+            attachment.get("url"),
+            attachment.get("proxy_url"),
+        ]
+        valid_attachment_urls = [
+            url
+            for url in attachment_urls
+            if cls._discord_media_url_kind(url) == "discord_cdn"
+        ]
+        if (
+            not attachment_id
+            or content_type != "image/png"
+            or not valid_attachment_urls
+        ):
+            return False, diagnostics
 
-        attachment_url = str(attachment.get("url") or "")
-        media_url = str(media.get("url") or "")
-        return bool(attachment_url and media_url == attachment_url)
+        if not (
+            media_url_kind in {"attachment", "discord_cdn"}
+            or media_proxy_url_kind == "discord_cdn"
+        ):
+            return False, diagnostics
+
+        if attachment_id and media_attachment_id == attachment_id:
+            return True, diagnostics
+
+        if media_url == f"attachment://{filename}":
+            return True, diagnostics
+
+        attachment_identities = {
+            identity
+            for identity in (
+                cls._discord_attachment_identity(url)
+                for url in valid_attachment_urls
+            )
+            if identity is not None
+        }
+        linked = any(
+            item_id == attachment_id
+            and item_filename == str(filename)
+            for item_id, item_filename in (
+                attachment_identities & media_identities
+            )
+        )
+        return linked, diagnostics
+
+    @classmethod
+    def _attachment_verified(cls, response, filename):
+        """Confirm Discord retained and linked one uploaded thumbnail."""
+
+        verified, _diagnostics = cls._attachment_inspection(
+            response,
+            filename,
+        )
+        return verified
 
     @classmethod
     def _thumbnail_media(cls, payload):
