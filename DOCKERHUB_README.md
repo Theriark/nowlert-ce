@@ -14,7 +14,7 @@ Notifinho receives infrastructure events over **SMTP**, **HTTP**, and
 notifications to Discord, Microsoft Teams, Slack, generic webhooks, MQTT, and
 ntfy.
 
-The current stable release is **v2.5.2**. The corresponding image is **`fortpt/notifinho:2.5.2`**.
+The current stable release is **v2.5.3**. The corresponding image is **`fortpt/notifinho:2.5.3`**.
 
 ## Highlights
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from urllib.parse import parse_qsl, urlencode, urlparse, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import requests
 
@@ -227,23 +227,40 @@ class DiscordOutput:
         ))
 
     def _local_icon(self, payload, formatter):
-        """Resolve a packaged icon and its mutable thumbnail media object."""
+        """Resolve an exact packaged icon and its thumbnail media object."""
 
         thumbnail = self._thumbnail_media(payload)
         if thumbnail is None:
             return None
+
         url = str(thumbnail.get("url") or "")
-        filename = Path(urlparse(url).path).name
-        allowed = set(formatter.PRODUCT_ICONS.values())
-        if filename not in allowed:
+        prefix = "notifinho-asset://"
+        if not url.startswith(prefix):
             return None
-        path = self.ICON_DIR / filename
+
+        relative = url[len(prefix):].lstrip("/")
+        allowed = (
+            set(formatter.PRODUCT_ICONS.values())
+            | set(formatter.DISCORD_PRODUCT_ICONS.values())
+        )
+        if relative not in allowed:
+            return None
+
+        root = self.ICON_DIR.resolve()
+        path = (root / relative).resolve()
+        try:
+            path.relative_to(root)
+        except ValueError:
+            return None
+
         if not path.is_file():
             log.warning(
                 "Packaged Discord icon is unavailable: %s",
-                filename,
+                relative,
             )
             return None
+
+        filename = Path(relative).name
         return filename, path, thumbnail
 
     @classmethod

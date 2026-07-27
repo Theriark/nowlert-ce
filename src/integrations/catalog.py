@@ -80,7 +80,7 @@ _CATALOGUE = (
         "name": "Synology",
         "category": "storage",
         "icon_key": "synology",
-        "inputs": ("http",),
+        "inputs": ("smtp", "http"),
         "aliases": (),
     },
     {
@@ -235,8 +235,8 @@ def infer_input_type(source: str) -> str:
     item = _BY_SOURCE.get(normalized)
     if item is None:
         return ""
-    # Zabbix routes in releases through 2.3 were SMTP routes.
-    if normalized == "zabbix":
+    # Zabbix and Synology routes in releases through 2.3 were SMTP routes.
+    if normalized in {"zabbix", "synology"}:
         return "smtp"
     return item["inputs"][0] if len(item["inputs"]) == 1 else ""
 

@@ -13,6 +13,21 @@
 - Align the public platform state path with the production `/notifinho/state`
   mount and add the v2.3.3-to-v2.5.2 implementation sequence.
 
+## 2.5.3 - 2026-07-27
+
+### Fixed
+
+- Expose Synology through SMTP and HTTP while preserving SMTP inference for
+  legacy routes that do not store an input type.
+- Accept valid UniFi Protect Alarm Manager webhook payloads when the optional
+  outer `alarm_id` field is absent.
+- Upload Discord thumbnails from the exact packaged root or padded asset
+  selected by the formatter.
+- Embed Microsoft Teams notification icons from packaged image files and remove
+  the GitHub raw-content runtime dependency.
+- Remove the obsolete notification-icon build argument while retaining
+  build-time validation of every referenced asset.
+
 ## 2.5.2 - 2026-07-25
 
 ### Fixed
