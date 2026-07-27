@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import json
 from pathlib import Path
 
@@ -87,16 +86,12 @@ def test_protect_rejects_malformed_nested_lists(field):
         ("unifi_protect", "unifi-protect.png"),
     ],
 )
-def test_teams_icons_are_packaged_data_uris(source, relative):
-    uri = PresentationMixin()._product_icon_url(source)
+def test_teams_icons_use_public_https_urls(source, relative):
+    url = PresentationMixin()._product_icon_url(source)
 
-    assert uri.startswith("data:image/png;base64,")
-    assert "github.com" not in uri
-    assert "http://" not in uri
-    assert "https://" not in uri
-    assert base64.b64decode(uri.split(",", 1)[1]) == (
-        ROOT / "assets" / "icons" / relative
-    ).read_bytes()
+    assert url.startswith("https://")
+    assert url.endswith(f"/{relative}")
+    assert "data:image/" not in url
 
 
 def _components_thumbnail(url: str) -> dict:
@@ -164,7 +159,7 @@ def test_discord_rejects_unmapped_and_traversal_assets():
     ) is None
 
 
-def test_runtime_and_release_build_have_no_github_icon_dependency():
+def test_release_build_pins_teams_icons_while_discord_stays_packaged():
     presentation = (
         ROOT / "src" / "formatters" / "presentation.py"
     ).read_text(encoding="utf-8")
@@ -173,19 +168,20 @@ def test_runtime_and_release_build_have_no_github_icon_dependency():
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
 
-    for document in (presentation, dockerfile, workflow):
-        assert "NOTIFINHO_ICON_BASE_URL" not in document
-        assert "raw.githubusercontent.com/FortPT/notifinho" not in document
-
     assert "NOTIFINHO_ICON_DIR" in presentation
+    assert "NOTIFINHO_TEAMS_ICON_BASE_URL" in presentation
     assert "notifinho-asset://" in presentation
-    assert "data:{mime_type};base64," in presentation
+    assert "data:{mime_type};base64," not in presentation
+    assert "ARG NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
+    assert "NOTIFINHO_TEAMS_ICON_BASE_URL=" in workflow
+    assert "${{ steps.release.outputs.commit_sha }}" in workflow
 
 
-def test_missing_packaged_teams_icon_fails_closed(monkeypatch, tmp_path):
-    monkeypatch.setattr(PresentationMixin, "ICON_DIR", tmp_path)
-    PresentationMixin._icon_data_uri.cache_clear()
+def test_invalid_teams_icon_base_url_fails_closed(monkeypatch):
+    monkeypatch.setattr(
+        PresentationMixin,
+        "TEAMS_ICON_BASE_URL",
+        "http://example.invalid/icons",
+    )
 
     assert PresentationMixin()._product_icon_url("synology") == ""
-
-    PresentationMixin._icon_data_uri.cache_clear()

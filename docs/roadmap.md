@@ -45,14 +45,23 @@
 - build-time packaged icon validation
 - full-width Settings layout
 
+### v2.5.3–v2.5.5 — Compatibility and destination delivery corrections
+
+- Synology SMTP/HTTP and UniFi Protect payload compatibility
+- packaged Discord image attachments and response verification
+- persistent schema-9 destination-test health
+- Microsoft Teams public HTTPS source icons
+- Microsoft Teams 28 KiB pre-send payload guard
+- accurate HTTP 202 accepted-versus-delivered wording
+
 ## Current maintenance priorities
 
 1. Keep README, Docker Hub, configuration examples, release notes, and
    screenshots synchronized with the stable image.
 2. Expand real-system validation for integrations that began as
    fixture-validated candidates.
-3. Preserve migration and rollback coverage from schema 6 and schema 7 to
-   schema 8.
+3. Preserve migration and rollback coverage from schema 6, schema 7, and
+   schema 8 to schema 9.
 4. Keep the production image non-root, read-only, capability-minimal, and
    reproducible.
 5. Add new integrations and outputs only behind explicit contracts, tests, and

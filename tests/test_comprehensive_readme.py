@@ -32,8 +32,8 @@ def test_readme_remains_comprehensive_and_current():
         assert heading in readme
 
     for value in (
-        "stable-v2.5.4-blue",
-        "| **Current Stable Release** | **v2.5.4** |",
+        "stable-v2.5.5-blue",
+        "| **Current Stable Release** | **v2.5.5** |",
         "| **Next Planned Release** | **v2.x** |",
         "v2.5.2-overview.png",
         "v2.5.2-routing-flow.png",

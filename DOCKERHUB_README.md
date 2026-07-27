@@ -14,7 +14,7 @@ Notifinho receives infrastructure events over **SMTP**, **HTTP**, and
 notifications to Discord, Microsoft Teams, Slack, generic webhooks, MQTT, and
 ntfy.
 
-The current stable release is **v2.5.4**. The corresponding image is **`fortpt/notifinho:2.5.4`**.
+The current stable release is **v2.5.5**. The corresponding image is **`fortpt/notifinho:2.5.5`**.
 
 ## Highlights
 
@@ -24,7 +24,8 @@ The current stable release is **v2.5.4**. The corresponding image is **`fortpt/n
 - Dedicated-first routing with fallback-only wildcard routes
 - Include/exclude filters and duplicate-delivery suppression
 - Source-aware Discord and Microsoft Teams cards
-- Packaged and build-validated vendor icons
+- Packaged Discord icons and commit-pinned HTTPS Microsoft Teams icons
+- 28 KiB Microsoft Teams payload guard with accurate HTTP 202 wording
 - Local users, private/shared destinations, audit history, and delivery history
 - Scheduled local, NFS, or SMB private-state backups
 - Hardened production Compose deployment

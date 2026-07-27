@@ -859,6 +859,9 @@ function destinationTestResult(destination) {
 function destinationTestDetail(result) {
   if (!result) return "";
   if (result.safe_error) return result.safe_error;
+  if (result.response_status === 202) {
+    return "Destination accepted the request with HTTP 202; delivery is not confirmed";
+  }
   if (result.response_status) return `Destination returned HTTP ${result.response_status}`;
   if (result.error_code) return friendlyName(result.error_code);
   return result.success ? "Destination test passed" : "Destination test failed";
@@ -878,12 +881,40 @@ function destinationFlowState(destination) {
     };
   }
   if (testResult && testResult.success) {
+    if (destination.output_type === "teams" && testResult.response_status === 202) {
+      return {
+        state: "active",
+        detail: "Last Microsoft Teams test was accepted with HTTP 202; confirm it appeared in the channel",
+      };
+    }
     return {
       state: "active",
       detail: `Last destination test passed${testResult.response_status ? ` with HTTP ${testResult.response_status}` : ""}`,
     };
   }
   return { state: "active", detail: "Destination is enabled and configured" };
+}
+
+function destinationTestToast(delivery, outputType) {
+  const detail = delivery.response_status
+    ? `HTTP ${delivery.response_status}`
+    : delivery.safe_error || delivery.error_code || "No status returned";
+  if (!delivery.success) {
+    return {
+      message: `Test delivery failed (${detail}).`,
+      style: "error",
+    };
+  }
+  if (outputType === "teams" && delivery.response_status === 202) {
+    return {
+      message: "Microsoft Teams accepted the test (HTTP 202). Delivery is not confirmed; check the channel.",
+      style: "",
+    };
+  }
+  return {
+    message: `Test delivery sent successfully (${detail}).`,
+    style: "success",
+  };
 }
 
 function destinationFlowLabels(destination) {
@@ -2537,8 +2568,8 @@ async function runPreview(event) {
       }
       renderDestinations();
       renderFlow();
-      const detail = delivery.response_status ? `HTTP ${delivery.response_status}` : delivery.safe_error || delivery.error_code || "No status returned";
-      toast(delivery.success ? `Test delivery sent successfully (${detail}).` : `Test delivery failed (${detail}).`, delivery.success ? "success" : "error");
+      const notification = destinationTestToast(delivery, outputType);
+      toast(notification.message, notification.style);
     }
   } catch (error) {
     showError("preview-error", error);
@@ -2675,8 +2706,11 @@ async function resourceAction(action, id) {
       }
       renderDestinations();
       renderFlow();
-      const detail = delivery.response_status ? `HTTP ${delivery.response_status}` : delivery.safe_error || delivery.error_code || "No status returned";
-      toast(delivery.success ? `Test delivery sent successfully (${detail}).` : `Test delivery failed (${detail}).`, delivery.success ? "success" : "error");
+      const notification = destinationTestToast(
+        delivery,
+        destination.output_type,
+      );
+      toast(notification.message, notification.style);
       return;
     } else if (action === "delete-destination") {
       const accepted = await confirmAction("Delete destination?", "Deletion is permanent and is rejected while a route still uses this destination.", "Delete");

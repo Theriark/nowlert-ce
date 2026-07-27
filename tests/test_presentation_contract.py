@@ -296,7 +296,8 @@ def test_every_teams_integration_uses_its_exact_product_asset(source, filename):
 
     urls = _image_urls(header)
     assert len(urls) == 1
-    assert urls[0].startswith("data:image/png;base64,")
+    assert urls[0].startswith("https://")
+    assert urls[0].endswith(f"/{filename}")
 
 
 @pytest.mark.parametrize(

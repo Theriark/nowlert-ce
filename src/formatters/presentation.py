@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import base64
 from datetime import datetime, timezone
-from functools import lru_cache
 import os
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote, urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 try:
@@ -36,6 +35,13 @@ class PresentationMixin:
             ),
         )
     )
+    TEAMS_ICON_BASE_URL = os.environ.get(
+        "NOTIFINHO_TEAMS_ICON_BASE_URL",
+        (
+            "https://raw.githubusercontent.com/FortPT/notifinho/"
+            "main/assets/icons"
+        ),
+    ).rstrip("/")
 
     PRODUCT_ICONS = {
         "xo": "xen-orchestra.png",
@@ -140,48 +146,26 @@ class PresentationMixin:
             return text[:limit]
         return text[: limit - 1].rstrip() + "…"
 
-    @classmethod
-    @lru_cache(maxsize=64)
-    def _icon_data_uri(cls, relative_path: str) -> str:
-        # Return a bounded data URI for one packaged notification icon.
-
-        raw = str(relative_path or "").strip()
-        relative = Path(raw)
-        if (
-            not raw
-            or relative.is_absolute()
-            or ".." in relative.parts
-        ):
-            return ""
-
-        root = cls.ICON_DIR.resolve()
-        path = (root / relative).resolve()
-        try:
-            path.relative_to(root)
-        except ValueError:
-            return ""
-
-        if not path.is_file():
-            return ""
-
-        mime_type = {
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".gif": "image/gif",
-            ".webp": "image/webp",
-            ".svg": "image/svg+xml",
-        }.get(path.suffix.casefold())
-        if not mime_type:
-            return ""
-
-        encoded = base64.b64encode(path.read_bytes()).decode("ascii")
-        return f"data:{mime_type};base64,{encoded}"
-
     def _product_icon_url(self, source: str) -> str:
         normalized = str(source or "").strip().casefold()
         filename = self.PRODUCT_ICONS.get(normalized)
-        return self._icon_data_uri(filename) if filename else ""
+        base_url = str(self.TEAMS_ICON_BASE_URL or "").strip().rstrip("/")
+        if not filename or not base_url:
+            return ""
+        try:
+            parsed = urlsplit(base_url)
+        except ValueError:
+            return ""
+        if (
+            parsed.scheme.casefold() != "https"
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.query
+            or parsed.fragment
+        ):
+            return ""
+        return f"{base_url}/{quote(filename, safe='')}"
 
     def _discord_product_icon_url(self, source: str) -> str:
         normalized = str(source or "").strip().casefold()

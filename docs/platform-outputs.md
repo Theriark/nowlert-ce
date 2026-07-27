@@ -64,6 +64,20 @@ source/severity/host context, credential sanitization, and an optional safe
 HTTPS action. Delivery accepts official `hooks.slack.com` and
 `hooks.slack-gov.com` incoming-webhook hosts.
 
+## Microsoft Teams
+
+Microsoft Teams cards use public HTTPS source-image URLs because Teams clients
+do not reliably render Base64 data URIs. Published images pin
+`NOTIFINHO_TEAMS_ICON_BASE_URL` to the immutable release commit. A deployment
+may override it with another credential-free public HTTPS directory containing
+the mapped icon filenames.
+
+Notifinho measures each serialized Teams payload and rejects messages larger
+than 28 KiB before making a webhook request. Platform destination tests persist
+the safe `teams_payload_too_large` error. HTTP 202 means the Teams Workflow
+accepted the request; the WebUI does not claim channel delivery and asks the
+operator to confirm that the card appeared.
+
 ## Generic outbound webhook
 
 The default body is the versioned `notifinho.event.v1` JSON envelope. Metadata

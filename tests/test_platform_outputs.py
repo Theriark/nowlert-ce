@@ -154,6 +154,7 @@ def test_discord_and_teams_previews_reuse_source_specific_formatters():
 
     assert discord.metadata["formatter"] == "GrafanaDiscordFormatter"
     assert teams.metadata["formatter"] == "GrafanaTeamsFormatter"
+    assert teams.metadata["payload_bytes"] <= teams.metadata["payload_limit_bytes"]
     assert "private-token" not in json.dumps(discord.payload)
     assert "private-token" not in json.dumps(teams.payload)
 

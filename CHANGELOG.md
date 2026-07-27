@@ -13,6 +13,25 @@
 - Align the public platform state path with the production `/notifinho/state`
   mount and add the v2.3.3-to-v2.5.2 implementation sequence.
 
+## 2.5.5 - 2026-07-27
+
+### Fixed
+
+- Restore Microsoft Teams source images through configurable public HTTPS URLs
+  while retaining packaged multipart image delivery for Discord.
+- Pin release-image Teams icon URLs to the immutable tagged commit.
+- Reject Microsoft Teams messages larger than 28 KiB before sending and persist
+  the safe `teams_payload_too_large` destination-test result.
+- Describe HTTP 202 Teams workflow responses as accepted rather than delivered
+  and ask operators to confirm that the card appeared in the channel.
+- Preserve HPE iLO source branding and keep generic destination-test payloads
+  below the Microsoft Teams webhook limit.
+
+### Migration
+
+- No database migration is required. v2.5.5 continues to use schema 9 and the
+  `platform_database_v1` configuration model.
+
 ## 2.5.4 - 2026-07-27
 
 ### Fixed

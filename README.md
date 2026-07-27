@@ -15,7 +15,7 @@ Built for Homelabs • Ready for Enterprise
 <p align="center">
 
 <a href="https://github.com/FortPT/notifinho/releases">
-  <img src="https://img.shields.io/badge/stable-v2.5.4-blue" alt="Stable release v2.5.4">
+  <img src="https://img.shields.io/badge/stable-v2.5.5-blue" alt="Stable release v2.5.5">
 </a>
 
 <a href="https://www.python.org/">
@@ -49,7 +49,7 @@ Built for Homelabs • Ready for Enterprise
 | Property | Value |
 |----------|-------|
 | **Status** | 🚀 Stable – Production Ready |
-| **Current Stable Release** | **v2.5.4** |
+| **Current Stable Release** | **v2.5.5** |
 | **Next Planned Release** | **v2.x** |
 | **License** | MIT |
 | **Python** | 3.13 |
@@ -57,7 +57,10 @@ Built for Homelabs • Ready for Enterprise
 Notifinho is stable and production ready. New parsers, notification platforms
 and integrations remain planned with backwards compatibility as a priority.
 
-See the [v2.5.4 release notes](docs/releases/v2.5.4.md) for Synology input compatibility, UniFi Protect payload compatibility, and self-contained notification icons. The complete operator walkthrough is in the [v2.5.4 acceptance checklist](docs/v2.5.4-acceptance-checklist.md).
+See the [v2.5.5 release notes](docs/releases/v2.5.5.md) for reliable
+Microsoft Teams test delivery, public HTTPS source icons, the 28 KiB payload
+guard, and accurate HTTP 202 status wording. The complete operator walkthrough
+is in the [v2.5.5 acceptance checklist](docs/v2.5.5-acceptance-checklist.md).
 
 Notifinho v2 adds a self-hosted notification platform with local accounts,
 database-authoritative destinations, routes, application tokens, regional
@@ -257,8 +260,10 @@ and hardware-management products rather than replacing them.
 - Severity colour coding
 - Structured information blocks
 - Consistent event, device, status, and source-time fields
-- Packaged official vendor assets
+- Packaged official vendor assets for Discord and public HTTPS source images
+  for Microsoft Teams
 - Destination-specific icon sizing where platform rendering differs
+- 28 KiB Microsoft Teams payload guard and explicit HTTP 202 accepted status
 - Preview and explicit test delivery before operational use
 
 ---
@@ -677,8 +682,8 @@ The same release source is published to Docker Hub and GitHub Container
 Registry:
 
 ```bash
-docker pull fortpt/notifinho:2.5.4
-docker pull ghcr.io/fortpt/notifinho:2.5.4
+docker pull fortpt/notifinho:2.5.5
+docker pull ghcr.io/fortpt/notifinho:2.5.5
 ```
 
 Use a versioned image for production. The `latest` tag follows the current
