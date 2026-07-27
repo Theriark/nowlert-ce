@@ -74,6 +74,23 @@ def notification(source: str = "notifinho") -> Notification:
     )
 
 
+def _image_items(value):
+    items = []
+
+    if isinstance(value, dict):
+        if value.get("type") == "Image":
+            items.append(value)
+
+        for child in value.values():
+            items.extend(_image_items(child))
+
+    elif isinstance(value, list):
+        for child in value:
+            items.extend(_image_items(child))
+
+    return items
+
+
 def image_urls(value):
     urls = []
     if isinstance(value, dict):
@@ -90,9 +107,9 @@ def image_urls(value):
 def test_generic_and_hpe_ilo_cards_use_small_public_https_icons():
     output = TeamsOutput()
 
-    for source, filename in (
-        ("notifinho", "notifinho.png"),
-        ("hpe_ilo", "hpe-ilo.png"),
+    for source, filename, expected_pixels in (
+        ("notifinho", "notifinho.png", 80),
+        ("hpe_ilo", "hpe-ilo.png", 64),
     ):
         formatter = output.source_formatters.get(
             source,
@@ -107,6 +124,12 @@ def test_generic_and_hpe_ilo_cards_use_small_public_https_icons():
         assert all(url.startswith("https://") for url in urls)
         assert any(url.endswith(f"/{filename}") for url in urls)
         assert "data:image/" not in json.dumps(payload)
+        assert any(
+            image.get("url", "").endswith(f"/{filename}")
+            and image.get("width") == f"{expected_pixels}px"
+            and image.get("height") == f"{expected_pixels}px"
+            for image in _image_items(payload)
+        )
         assert output.payload_size(payload) <= output.MAX_PAYLOAD_BYTES
 
 

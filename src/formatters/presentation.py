@@ -85,6 +85,7 @@ class PresentationMixin:
     # product marks. Keeping both dimensions equal preserves the official
     # artwork's aspect ratio while making thin lockups legible in Teams.
     TEAMS_ICON_PIXELS = {
+        "notifinho": 80,
         "proxmox": 64,
         "qnap": 72,
         "synology": 64,
