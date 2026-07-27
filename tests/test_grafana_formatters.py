@@ -311,11 +311,17 @@ def test_actual_output_selects_grafana_formatter_without_network(
         status_code = 204
         text = ""
 
-    def fake_post(url, json, timeout):
+    def fake_post(url, **kwargs):
+
+        payload = kwargs.get("json")
+        if payload is None:
+            payload = json.loads(
+                kwargs["data"]["payload_json"]
+            )
 
         captured["url"] = url
-        captured["payload"] = json
-        captured["timeout"] = timeout
+        captured["payload"] = payload
+        captured["timeout"] = kwargs["timeout"]
 
         return Response()
 

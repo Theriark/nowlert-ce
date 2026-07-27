@@ -130,8 +130,18 @@ def test_actual_output_selects_truenas_formatter_without_network(
         status_code = 204
         text = ""
 
-    def fake_post(url, json, timeout):
-        captured.update(url=url, payload=json, timeout=timeout)
+    def fake_post(url, **kwargs):
+        payload = kwargs.get("json")
+        if payload is None:
+            payload = json.loads(
+                kwargs["data"]["payload_json"]
+            )
+
+        captured.update(
+            url=url,
+            payload=payload,
+            timeout=kwargs["timeout"],
+        )
         return Response()
 
     monkeypatch.setattr(output_module, "config", Config())
