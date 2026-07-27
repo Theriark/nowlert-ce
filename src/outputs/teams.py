@@ -8,6 +8,8 @@ Microsoft Teams output.
 
 from __future__ import annotations
 
+import json
+
 import requests
 
 from urllib.parse import urlsplit
@@ -60,6 +62,21 @@ def valid_teams_webhook(value) -> bool:
 
 
 class TeamsOutput:
+    MAX_PAYLOAD_BYTES = 28 * 1024
+
+    @staticmethod
+    def payload_size(payload: dict) -> int:
+        """Return the exact conservative JSON byte count used for guarding."""
+
+        return len(
+            json.dumps(
+                payload,
+                allow_nan=False,
+            ).encode("utf-8")
+        )
+
+    def payload_too_large(self, payload: dict) -> bool:
+        return self.payload_size(payload) > self.MAX_PAYLOAD_BYTES
 
     def __init__(self):
 
@@ -133,8 +150,18 @@ class TeamsOutput:
 
             return False
 
+        payload_bytes = self.payload_size(payload)
+        if payload_bytes > self.MAX_PAYLOAD_BYTES:
+            log.error(
+                "Teams payload is %s bytes and exceeds the %s-byte limit.",
+                payload_bytes,
+                self.MAX_PAYLOAD_BYTES,
+            )
+            return False
+
         log.info(
-            "Sending notification to Microsoft Teams (%s)...",
+            "Sending %s-byte notification to Microsoft Teams (%s)...",
+            payload_bytes,
             target,
         )
 
@@ -172,9 +199,15 @@ class TeamsOutput:
 
                 return False
 
-            log.info(
-                "Teams notification sent successfully."
-            )
+            if response.status_code == 202:
+                log.info(
+                    "Teams accepted the notification with HTTP 202; "
+                    "channel delivery is not confirmed."
+                )
+            else:
+                log.info(
+                    "Teams notification request completed successfully."
+                )
 
             return True
 

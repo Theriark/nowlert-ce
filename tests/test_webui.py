@@ -254,7 +254,9 @@ def test_webui_uses_same_origin_api_without_unsafe_dom_or_secret_persistence():
     assert 'credentials: "same-origin"' in script
     assert 'cache: "no-store"' in script
     assert '["delivered", "success"].includes(item.outcome)' in script
-    assert 'delivery.success ? `Test delivery sent successfully (${detail}).`' in script
+    assert "function destinationTestToast(delivery, outputType)" in script
+    assert "Microsoft Teams accepted the test (HTTP 202)." in script
+    assert "Delivery is not confirmed; check the channel." in script
     assert 'actionButton("Reset password", "reset-user", item.id)' in script
     assert 'dataset: { action: "toggle-token", id: item.id }' in script
     assert 'dataset: { action: "toggle-input", id: item.name }' in script

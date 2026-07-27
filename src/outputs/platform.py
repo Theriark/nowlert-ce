@@ -253,11 +253,16 @@ class TeamsPlatformAdapter(_HTTPAdapter):
             self.output.default_formatter,
         )
         payload = formatter._sanitize_payload(formatter.format(notification))
+        payload_bytes = self.output.payload_size(payload)
         return OutputPreview(
             "teams",
             "application/json",
             payload,
-            {"formatter": formatter.__class__.__name__},
+            {
+                "formatter": formatter.__class__.__name__,
+                "payload_bytes": payload_bytes,
+                "payload_limit_bytes": self.output.MAX_PAYLOAD_BYTES,
+            },
         )
 
     def deliver(self, destination, secret_value, notification):
@@ -266,6 +271,16 @@ class TeamsPlatformAdapter(_HTTPAdapter):
             url = self._url(secret_url(secret_value), destination.settings)
         except ValueError:
             return DeliveryResult(False, error_code="invalid_destination")
+        payload_bytes = self.output.payload_size(preview.payload)
+        if payload_bytes > self.output.MAX_PAYLOAD_BYTES:
+            return DeliveryResult(
+                False,
+                error_code="teams_payload_too_large",
+                safe_error=(
+                    f"Microsoft Teams payload is {payload_bytes} bytes and "
+                    f"exceeds the {self.output.MAX_PAYLOAD_BYTES}-byte limit."
+                ),
+            )
         return self._post(url, payload=preview.payload, timeout=15)
 
 

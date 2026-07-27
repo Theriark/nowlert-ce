@@ -132,6 +132,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            NOTIFINHO_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.release.outputs.commit_sha }}/assets/icons
           tags: |
             fortpt/notifinho:${{ steps.version.outputs.version }}
             fortpt/notifinho:latest

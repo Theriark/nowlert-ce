@@ -48,7 +48,8 @@ def test_discord_uses_padded_variants_for_requested_integrations():
 def test_teams_keeps_regular_official_assets():
     formatter = PresentationMixin.__new__(PresentationMixin)
     icon = formatter._product_icon_url("zabbix")
-    assert icon.startswith("data:image/png;base64,")
+    assert icon.startswith("https://")
+    assert icon.endswith("/zabbix.png")
     assert "/discord/" not in icon
 
 
@@ -97,4 +98,3 @@ def test_settings_cards_use_full_workspace_width():
     assert """.settings-card {
   max-width: 900px;
 }""" not in styles
-
