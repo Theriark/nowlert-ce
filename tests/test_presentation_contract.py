@@ -623,9 +623,8 @@ def test_xo_and_generic_formatters_are_selected_explicitly():
     assert teams.default_formatter.__class__.__name__ == "GenericTeamsFormatter"
 
 
-def test_discord_components_v2_uses_external_thumbnail_without_attachment(
+def test_discord_components_v2_uploads_packaged_thumbnail_attachment(
     monkeypatch,
-    tmp_path,
 ):
     captured = {}
 
@@ -639,26 +638,45 @@ def test_discord_components_v2_uses_external_thumbnail_without_attachment(
         status_code = 204
         text = ""
 
-    def fake_post(url, json, timeout):
+    def fake_post(url, **kwargs):
         captured["url"] = url
-        captured["payload"] = json
-        captured["timeout"] = timeout
+        captured["kwargs"] = kwargs
+        captured["payload"] = json.loads(
+            kwargs["data"]["payload_json"]
+        )
         return Response()
 
     monkeypatch.setattr(discord_output_module, "config", Config())
     monkeypatch.setattr(discord_output_module.requests, "post", fake_post)
-    assert DiscordOutput().send(_notification("redfish"), target="default")
+
+    output = DiscordOutput()
+    output.ICON_DIR = ROOT / "assets" / "icons"
+
+    assert output.send(_notification("redfish"), target="default")
 
     payload = captured["payload"]
     header = payload["components"][0]["components"][0]
     assert payload["flags"] == 32768
-    assert header["accessory"]["media"]["url"].endswith(
-        "/redfish.png"
+    assert header["accessory"]["media"]["url"] == (
+        "attachment://redfish.png"
     )
+    assert payload["attachments"] == [
+        {"id": 0, "filename": "redfish.png"}
+    ]
     assert "embeds" not in payload
-    assert "attachments" not in payload
+    assert "json" not in captured["kwargs"]
+
+    filename, stream, content_type = (
+        captured["kwargs"]["files"]["files[0]"]
+    )
+    assert filename == "redfish.png"
+    assert content_type == "image/png"
+    assert Path(stream.name).resolve() == (
+        ROOT / "assets" / "icons" / "redfish.png"
+    ).resolve()
+    assert stream.closed
     assert "with_components=true" in captured["url"]
-    assert captured["timeout"] == 15
+    assert captured["kwargs"]["timeout"] == 15
 
 
 @pytest.mark.parametrize(
@@ -724,8 +742,11 @@ def test_outputs_recursively_redact_credentials_before_delivery(
         status_code = 204
         text = ""
 
-    def fake_post(url, json, timeout):
-        captured["payload"] = json
+    def fake_post(url, **kwargs):
+        payload = kwargs.get("json")
+        if payload is None:
+            payload = json.loads(kwargs["data"]["payload_json"])
+        captured["payload"] = payload
         return Response()
 
     item = _notification("portainer")

@@ -505,13 +505,18 @@ def test_actual_output_send_selects_qnap_formatter_without_network(
 
     def fake_post(
         url,
-        json,
-        timeout,
+        **kwargs,
     ):
 
+        payload = kwargs.get("json")
+        if payload is None:
+            payload = json.loads(
+                kwargs["data"]["payload_json"]
+            )
+
         captured["url"] = url
-        captured["payload"] = json
-        captured["timeout"] = timeout
+        captured["payload"] = payload
+        captured["timeout"] = kwargs["timeout"]
 
         return Response()
 

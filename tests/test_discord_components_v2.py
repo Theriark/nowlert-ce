@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from urllib.parse import parse_qs, urlsplit
 
 from formatters.discord_hardware import DellIDRACDiscordFormatter
@@ -265,10 +266,16 @@ def test_dell_components_v2_delivery_enables_webhook_components(monkeypatch):
         status_code = 204
         text = ""
 
-    def fake_post(url, json, timeout):
+    def fake_post(url, **kwargs):
+        payload = kwargs.get("json")
+        if payload is None:
+            payload = json.loads(
+                kwargs["data"]["payload_json"]
+            )
+
         captured["url"] = url
-        captured["payload"] = json
-        captured["timeout"] = timeout
+        captured["payload"] = payload
+        captured["timeout"] = kwargs["timeout"]
         return Response()
 
     monkeypatch.setattr(discord_output_module, "config", Config())
@@ -281,7 +288,11 @@ def test_dell_components_v2_delivery_enables_webhook_components(monkeypatch):
     assert captured["payload"]["flags"] == 32768
     assert "components" in captured["payload"]
     assert "embeds" not in captured["payload"]
-    assert "attachments" not in captured["payload"]
+    attachments = captured["payload"].get("attachments")
+    if attachments is not None:
+        assert attachments == [
+            {"id": 0, "filename": "dell-idrac.png"}
+        ]
     assert captured["timeout"] == 15
 
 
@@ -298,10 +309,16 @@ def test_inherited_components_v2_contract_is_used_for_delivery(monkeypatch):
         status_code = 204
         text = ""
 
-    def fake_post(url, json, timeout):
+    def fake_post(url, **kwargs):
+        payload = kwargs.get("json")
+        if payload is None:
+            payload = json.loads(
+                kwargs["data"]["payload_json"]
+            )
+
         captured["url"] = url
-        captured["payload"] = json
-        captured["timeout"] = timeout
+        captured["payload"] = payload
+        captured["timeout"] = kwargs["timeout"]
         return Response()
 
     monkeypatch.setattr(discord_output_module, "config", Config())
@@ -315,7 +332,11 @@ def test_inherited_components_v2_contract_is_used_for_delivery(monkeypatch):
     assert captured["payload"]["flags"] == 32768
     assert "components" in captured["payload"]
     assert "embeds" not in captured["payload"]
-    assert "attachments" not in captured["payload"]
+    attachments = captured["payload"].get("attachments")
+    if attachments is not None:
+        assert attachments == [
+            {"id": 0, "filename": "qnap.png"}
+        ]
     assert captured["timeout"] == 15
 
 
