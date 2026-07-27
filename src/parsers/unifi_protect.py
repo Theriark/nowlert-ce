@@ -22,7 +22,7 @@ class Parser:
         alarm = payload.get("alarm")
         if not isinstance(alarm, dict):
             return False
-        if "alarm_id" not in payload or "timestamp" not in payload:
+        if "timestamp" not in payload:
             return False
         # Require the discovered nested shape, not generic alarm wording.
         return any(

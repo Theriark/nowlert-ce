@@ -227,7 +227,7 @@ def test_every_dedicated_discord_card_has_a_product_thumbnail(source):
     formatter = DiscordOutput().source_formatters[source]
     embed = formatter.format(_notification(source))["embeds"][0]
 
-    assert embed["thumbnail"]["url"].startswith("https://")
+    assert embed["thumbnail"]["url"].startswith("notifinho-asset://")
     assert embed["thumbnail"]["url"].endswith(".png")
 
 
@@ -249,7 +249,7 @@ def test_every_discord_integration_uses_its_exact_official_product_asset(
 
     expected = PresentationMixin.DISCORD_PRODUCT_ICONS.get(source, filename)
     assert embed["thumbnail"]["url"] == (
-        f"{PresentationMixin.ICON_BASE_URL}/{expected}"
+        f"notifinho-asset://{expected}"
     )
 
 
@@ -294,9 +294,9 @@ def test_every_teams_integration_uses_its_exact_product_asset(source, filename):
     )
     header = _teams_content(formatter.format(item))["body"][0]
 
-    assert _image_urls(header) == [
-        f"{PresentationMixin.ICON_BASE_URL}/{filename}"
-    ]
+    urls = _image_urls(header)
+    assert len(urls) == 1
+    assert urls[0].startswith("data:image/png;base64,")
 
 
 @pytest.mark.parametrize(
@@ -682,8 +682,14 @@ def test_every_discord_product_thumbnail_resolves_to_a_packaged_asset(
 
     assert resolved is not None
     resolved_filename, resolved_path, thumbnail = resolved
-    assert resolved_filename == filename
-    assert resolved_path == output.ICON_DIR / filename
+    expected_relative = formatter.DISCORD_PRODUCT_ICONS.get(
+        source,
+        formatter.PRODUCT_ICONS.get(source, filename),
+    )
+    assert resolved_filename == Path(expected_relative).name
+    assert resolved_path == (
+        output.ICON_DIR / expected_relative
+    ).resolve()
     assert thumbnail is output._thumbnail_media(payload)
 
 

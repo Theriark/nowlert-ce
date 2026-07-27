@@ -39,14 +39,17 @@ def test_discord_uses_padded_variants_for_requested_integrations():
     assert expected.items() <= PresentationMixin.DISCORD_PRODUCT_ICONS.items()
     formatter = PresentationMixin.__new__(PresentationMixin)
     for source, relative in expected.items():
-        assert formatter._discord_product_icon_url(source).endswith("/" + relative)
+        assert formatter._discord_product_icon_url(source) == (
+            f"notifinho-asset://{relative}"
+        )
         assert (ROOT / "assets/icons" / relative).is_file()
 
 
 def test_teams_keeps_regular_official_assets():
     formatter = PresentationMixin.__new__(PresentationMixin)
-    assert formatter._product_icon_url("zabbix").endswith("/zabbix.png")
-    assert "/discord/" not in formatter._product_icon_url("zabbix")
+    icon = formatter._product_icon_url("zabbix")
+    assert icon.startswith("data:image/png;base64,")
+    assert "/discord/" not in icon
 
 
 def test_docker_image_contract_copies_and_checks_icon_assets():

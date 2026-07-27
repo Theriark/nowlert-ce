@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import base64
 from datetime import datetime, timezone
+from functools import lru_cache
 import os
 import re
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -20,13 +23,19 @@ from config import config
 class PresentationMixin:
     """Keep presentation, safety, and product branding consistent."""
 
-    ICON_BASE_URL = os.environ.get(
-        "NOTIFINHO_ICON_BASE_URL",
-        (
-            "https://raw.githubusercontent.com/FortPT/notifinho/"
-            "main/assets/icons"
-        ),
-    ).rstrip("/")
+    ICON_DIR = Path(
+        os.environ.get(
+            "NOTIFINHO_ICON_DIR",
+            os.environ.get(
+                "NOTIFINHO_DISCORD_ICON_DIR",
+                str(
+                    Path(__file__).resolve().parents[2]
+                    / "assets"
+                    / "icons"
+                ),
+            ),
+        )
+    )
 
     PRODUCT_ICONS = {
         "xo": "xen-orchestra.png",
@@ -131,10 +140,48 @@ class PresentationMixin:
             return text[:limit]
         return text[: limit - 1].rstrip() + "…"
 
+    @classmethod
+    @lru_cache(maxsize=64)
+    def _icon_data_uri(cls, relative_path: str) -> str:
+        # Return a bounded data URI for one packaged notification icon.
+
+        raw = str(relative_path or "").strip()
+        relative = Path(raw)
+        if (
+            not raw
+            or relative.is_absolute()
+            or ".." in relative.parts
+        ):
+            return ""
+
+        root = cls.ICON_DIR.resolve()
+        path = (root / relative).resolve()
+        try:
+            path.relative_to(root)
+        except ValueError:
+            return ""
+
+        if not path.is_file():
+            return ""
+
+        mime_type = {
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".gif": "image/gif",
+            ".webp": "image/webp",
+            ".svg": "image/svg+xml",
+        }.get(path.suffix.casefold())
+        if not mime_type:
+            return ""
+
+        encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+        return f"data:{mime_type};base64,{encoded}"
+
     def _product_icon_url(self, source: str) -> str:
         normalized = str(source or "").strip().casefold()
         filename = self.PRODUCT_ICONS.get(normalized)
-        return f"{self.ICON_BASE_URL}/{filename}" if filename else ""
+        return self._icon_data_uri(filename) if filename else ""
 
     def _discord_product_icon_url(self, source: str) -> str:
         normalized = str(source or "").strip().casefold()
@@ -142,7 +189,7 @@ class PresentationMixin:
             normalized,
             self.PRODUCT_ICONS.get(normalized),
         )
-        return f"{self.ICON_BASE_URL}/{filename}" if filename else ""
+        return f"notifinho-asset://{filename}" if filename else ""
 
     def _set_discord_thumbnail(self, embed: dict, source: str) -> None:
         url = self._discord_product_icon_url(source)

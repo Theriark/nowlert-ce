@@ -44,20 +44,25 @@ def find_thumbnail_media(value):
     return None
 
 
-def test_official_release_build_pins_icon_base_to_checked_out_commit():
+def test_official_release_build_uses_packaged_notification_icons():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     workflow = (
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
+    presentation = (
+        ROOT / "src" / "formatters" / "presentation.py"
+    ).read_text(encoding="utf-8")
 
-    assert "ARG NOTIFINHO_ICON_BASE_URL=" in dockerfile
-    assert "FortPT/notifinho/main/assets/icons" in dockerfile
-    assert 'ENV NOTIFINHO_ICON_BASE_URL="${NOTIFINHO_ICON_BASE_URL}"' in dockerfile
-    assert "id: release" in workflow
-    assert "icon_base_url=${ICON_BASE_URL}" in workflow
-    assert "${GITHUB_REPOSITORY}/${HEAD_SHA}/assets/icons" in workflow
-    assert "NOTIFINHO_ICON_BASE_URL=${{ steps.release.outputs.icon_base_url }}" in workflow
+    assert "COPY assets /notifinho/assets" in dockerfile
+    assert "validate_packaged_icons.py" in dockerfile
 
+    assert "ARG NOTIFINHO_ICON_BASE_URL=" not in dockerfile
+    assert "NOTIFINHO_ICON_BASE_URL" not in workflow
+    assert "raw.githubusercontent.com/FortPT/notifinho" not in workflow
+
+    assert "NOTIFINHO_ICON_DIR" in presentation
+    assert "notifinho-asset://" in presentation
+    assert "data:{mime_type};base64," in presentation
 
 def test_components_v2_delivery_uploads_packaged_icon(monkeypatch, tmp_path):
     icon = tmp_path / "synology.png"
