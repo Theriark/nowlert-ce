@@ -336,6 +336,25 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             "CREATE INDEX settings_records_namespace ON settings_records(namespace, setting_key)",
         ),
     ),
+
+    (
+        9,
+        "v2.5.4 destination test health",
+        (
+            "ALTER TABLE destinations ADD COLUMN last_test_at INTEGER",
+            """
+            ALTER TABLE destinations
+            ADD COLUMN last_test_outcome TEXT
+            CHECK (
+                last_test_outcome IS NULL
+                OR last_test_outcome IN ('success', 'failed')
+            )
+            """,
+            "ALTER TABLE destinations ADD COLUMN last_test_response_status INTEGER",
+            "ALTER TABLE destinations ADD COLUMN last_test_error_code TEXT",
+            "ALTER TABLE destinations ADD COLUMN last_test_safe_error TEXT",
+        ),
+    ),
 )
 
 

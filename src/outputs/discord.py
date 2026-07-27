@@ -209,8 +209,8 @@ class DiscordOutput:
             return False
 
     @staticmethod
-    def _delivery_webhook(webhook, payload):
-        """Enable non-interactive Components V2 on webhook delivery."""
+    def _delivery_webhook(webhook, payload, *, wait=False):
+        """Enable Components V2 and optional returned-message verification."""
 
         flags = payload.get("flags", 0) if isinstance(payload, dict) else 0
         if not isinstance(flags, int) or not flags & (1 << 15):
@@ -218,6 +218,8 @@ class DiscordOutput:
         parts = urlsplit(webhook)
         query = dict(parse_qsl(parts.query, keep_blank_values=True))
         query["with_components"] = "true"
+        if wait:
+            query["wait"] = "true"
         return urlunsplit((
             parts.scheme,
             parts.netloc,
@@ -262,6 +264,42 @@ class DiscordOutput:
 
         filename = Path(relative).name
         return filename, path, thumbnail
+
+    @classmethod
+    def _attachment_verified(cls, response, filename):
+        """Confirm Discord retained and linked one uploaded thumbnail."""
+
+        try:
+            message = response.json()
+        except (TypeError, ValueError, AttributeError):
+            return False
+        if not isinstance(message, dict):
+            return False
+
+        attachment = next(
+            (
+                item
+                for item in message.get("attachments", [])
+                if isinstance(item, dict)
+                and str(item.get("filename") or "") == str(filename)
+            ),
+            None,
+        )
+        if attachment is None:
+            return False
+
+        media = cls._thumbnail_media(message)
+        if not isinstance(media, dict):
+            return False
+
+        attachment_id = str(attachment.get("id") or "")
+        media_attachment_id = str(media.get("attachment_id") or "")
+        if attachment_id and media_attachment_id == attachment_id:
+            return True
+
+        attachment_url = str(attachment.get("url") or "")
+        media_url = str(media.get("url") or "")
+        return bool(attachment_url and media_url == attachment_url)
 
     @classmethod
     def _thumbnail_media(cls, payload):

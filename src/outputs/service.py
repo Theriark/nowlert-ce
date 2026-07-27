@@ -88,6 +88,15 @@ class PlatformOutputService:
         return result
 
     def _audit_result(self, actor, destination_id, result):
+        try:
+            self.destinations.record_test_result(
+                actor,
+                destination_id,
+                result,
+            )
+        except (KeyError, PermissionError):
+            pass
+
         self._audit(
             actor,
             "destination.test",
@@ -97,6 +106,7 @@ class PlatformOutputService:
                 "error_code": result.error_code,
                 "response_status": result.response_status,
                 "retryable": result.retryable,
+                "safe_error": str(result.safe_error or "")[:500],
             },
         )
 

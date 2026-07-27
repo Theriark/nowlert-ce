@@ -2204,3 +2204,10 @@ dialog::backdrop {
     transition-duration: 0.01ms !important;
   }
 }
+
+.destination-test-detail {
+  color: var(--danger);
+  display: block;
+  margin: -0.2rem 0 0.1rem;
+  overflow-wrap: anywhere;
+}

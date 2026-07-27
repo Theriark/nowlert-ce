@@ -13,6 +13,24 @@
 - Align the public platform state path with the production `/notifinho/state`
   mount and add the v2.3.3-to-v2.5.2 implementation sequence.
 
+## 2.5.4 - 2026-07-27
+
+### Fixed
+
+- Upload packaged Discord card icons through the v2 platform adapter instead of
+  sending the internal `notifinho-asset://` reference to Discord.
+- Verify that Discord retained the uploaded image and associated it with the
+  Components V2 Thumbnail.
+- Persist destination test outcome, timestamp, safe error, error code, and HTTP
+  status in database schema 9.
+- Show failed destination-test details on destination cards and Routing Flow.
+- Restore a destination and its route flow to healthy after a successful retest.
+
+### Migration
+
+- Schema 9 adds nullable destination test-health columns. Configuration remains
+  `platform_database_v1`.
+
 ## 2.5.3 - 2026-07-27
 
 ### Fixed

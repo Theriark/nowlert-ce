@@ -842,11 +842,46 @@ function routeFlowState(route) {
   return { state: "active", detail: "Route is enabled" };
 }
 
+function destinationTestResult(destination) {
+  if (!destination) return null;
+  if (destination.last_test_at) {
+    return {
+      success: destination.last_test_outcome === "success",
+      response_status: destination.last_test_response_status || null,
+      error_code: destination.last_test_error_code || "",
+      safe_error: destination.last_test_safe_error || "",
+      tested_at: destination.last_test_at,
+    };
+  }
+  return state.destinationTestResults[destination.id] || null;
+}
+
+function destinationTestDetail(result) {
+  if (!result) return "";
+  if (result.safe_error) return result.safe_error;
+  if (result.response_status) return `Destination returned HTTP ${result.response_status}`;
+  if (result.error_code) return friendlyName(result.error_code);
+  return result.success ? "Destination test passed" : "Destination test failed";
+}
+
 function destinationFlowState(destination) {
   if (!destination) return { state: "error", detail: "Destination is missing" };
   if (!destination.enabled) return { state: "disabled", detail: "Destination is disabled" };
   if (CREDENTIAL_OUTPUTS.has(destination.output_type) && !destination.secret_configured) {
     return { state: "error", detail: "Destination credentials are unavailable" };
+  }
+  const testResult = destinationTestResult(destination);
+  if (testResult && !testResult.success) {
+    return {
+      state: "error",
+      detail: `Last destination test failed: ${destinationTestDetail(testResult)}`,
+    };
+  }
+  if (testResult && testResult.success) {
+    return {
+      state: "active",
+      detail: `Last destination test passed${testResult.response_status ? ` with HTTP ${testResult.response_status}` : ""}`,
+    };
   }
   return { state: "active", detail: "Destination is enabled and configured" };
 }
@@ -1180,7 +1215,7 @@ function renderDestinations() {
         actionButton("Delete", "delete-destination", item.id, "danger"),
       );
     }
-    const testResult = state.destinationTestResults[item.id];
+    const testResult = destinationTestResult(item);
     const metaItems = [
       element("button", {
         className: `badge status-button ${item.enabled ? "success" : "danger"}`,
@@ -1201,12 +1236,20 @@ function renderDestinations() {
       metaItems.push(badge("Credentials required", "danger"));
     }
     if (testResult) {
-      metaItems.push(badge(
+      const resultBadge = badge(
         testResult.success ? "Last test passed" : "Last test failed",
         testResult.success ? "success" : "danger",
-      ));
+      );
+      resultBadge.title = destinationTestDetail(testResult);
+      metaItems.push(resultBadge);
     }
     const meta = element("div", { className: "resource-meta" }, metaItems);
+    const testFailure = testResult && !testResult.success
+      ? element("small", {
+          className: "destination-test-detail",
+          text: destinationTestDetail(testResult),
+        })
+      : null;
     container.append(element("article", { className: "resource-card" }, [
       element("div", { className: "resource-heading" }, [
         element("div", { className: "resource-identity" }, [
@@ -1215,6 +1258,7 @@ function renderDestinations() {
         ]),
       ]),
       meta,
+      testFailure,
       actions,
     ]));
   }
@@ -2476,6 +2520,23 @@ async function runPreview(event) {
     result.hidden = false;
     if (action === "test") {
       const delivery = response.result || {};
+      state.destinationTestResults[destinationId] = {
+        success: delivery.success === true,
+        response_status: delivery.response_status || null,
+        error_code: delivery.error_code || "",
+        safe_error: delivery.safe_error || "",
+        tested_at: Date.now(),
+      };
+      if (response.destination) {
+        const index = state.destinations.findIndex(
+          (item) => item.id === response.destination.id,
+        );
+        if (index >= 0) {
+          state.destinations[index] = response.destination;
+        }
+      }
+      renderDestinations();
+      renderFlow();
       const detail = delivery.response_status ? `HTTP ${delivery.response_status}` : delivery.safe_error || delivery.error_code || "No status returned";
       toast(delivery.success ? `Test delivery sent successfully (${detail}).` : `Test delivery failed (${detail}).`, delivery.success ? "success" : "error");
     }
@@ -2600,8 +2661,20 @@ async function resourceAction(action, id) {
       state.destinationTestResults[id] = {
         success: delivery.success === true,
         response_status: delivery.response_status || null,
+        error_code: delivery.error_code || "",
+        safe_error: delivery.safe_error || "",
+        tested_at: Date.now(),
       };
+      if (response.destination) {
+        const index = state.destinations.findIndex(
+          (item) => item.id === response.destination.id,
+        );
+        if (index >= 0) {
+          state.destinations[index] = response.destination;
+        }
+      }
       renderDestinations();
+      renderFlow();
       const detail = delivery.response_status ? `HTTP ${delivery.response_status}` : delivery.safe_error || delivery.error_code || "No status returned";
       toast(delivery.success ? `Test delivery sent successfully (${detail}).` : `Test delivery failed (${detail}).`, delivery.success ? "success" : "error");
       return;

@@ -126,11 +126,117 @@ class DiscordPlatformAdapter(_HTTPAdapter):
     def deliver(self, destination, secret_value, notification):
         try:
             preview = self.preview(destination, notification)
-            url = self._url(secret_url(secret_value), destination.settings)
-            url = self.output._delivery_webhook(url, preview.payload)
+            url = self._url(
+                secret_url(secret_value),
+                destination.settings,
+            )
+            formatter = self.output.source_formatters.get(
+                str(notification.source or "").casefold(),
+                self.output.default_formatter,
+            )
+            thumbnail = self.output._thumbnail_media(preview.payload)
+            local_reference = (
+                isinstance(thumbnail, dict)
+                and str(thumbnail.get("url") or "").startswith(
+                    "notifinho-asset://"
+                )
+            )
+            icon = self.output._local_icon(
+                preview.payload,
+                formatter,
+            )
+            if local_reference and icon is None:
+                return DeliveryResult(
+                    False,
+                    error_code="discord_icon_unavailable",
+                    safe_error=(
+                        "The packaged Discord notification icon "
+                        "is unavailable."
+                    ),
+                )
+            url = self.output._delivery_webhook(
+                url,
+                preview.payload,
+                wait=icon is not None,
+            )
         except ValueError:
-            return DeliveryResult(False, error_code="invalid_destination")
-        return self._post(url, payload=preview.payload, timeout=15)
+            return DeliveryResult(
+                False,
+                error_code="invalid_destination",
+            )
+
+        if icon is None:
+            return self._post(
+                url,
+                payload=preview.payload,
+                timeout=15,
+            )
+
+        filename, path, thumbnail = icon
+        thumbnail["url"] = f"attachment://{filename}"
+        preview.payload["attachments"] = [
+            {
+                "id": 0,
+                "filename": filename,
+            }
+        ]
+
+        try:
+            with path.open("rb") as stream:
+                response = self.http_client.post(
+                    url,
+                    data={
+                        "payload_json": json.dumps(
+                            preview.payload,
+                            separators=(",", ":"),
+                            ensure_ascii=False,
+                        ),
+                    },
+                    files={
+                        "files[0]": (
+                            filename,
+                            stream,
+                            "image/png",
+                        )
+                    },
+                    timeout=15,
+                )
+        except requests.RequestException as error:
+            return request_failure(error)
+        except OSError:
+            return DeliveryResult(
+                False,
+                error_code="discord_icon_unavailable",
+                safe_error=(
+                    "The packaged Discord notification icon "
+                    "could not be opened."
+                ),
+            )
+        except Exception:
+            return DeliveryResult(
+                False,
+                error_code="transport_error",
+            )
+
+        result = http_delivery_result(response)
+        if not result.success:
+            return result
+
+        if not self.output._attachment_verified(
+            response,
+            filename,
+        ):
+            return DeliveryResult(
+                False,
+                response_status=int(response.status_code),
+                error_code="discord_attachment_unverified",
+                safe_error=(
+                    "Discord accepted the message but did not "
+                    "retain the packaged image attachment."
+                ),
+            )
+
+        return result
 
 
 class TeamsPlatformAdapter(_HTTPAdapter):
