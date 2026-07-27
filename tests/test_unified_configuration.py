@@ -159,7 +159,7 @@ def migrated(tmp_path):
     path.chmod(0o640)
     configuration = Configuration(path)
     database = Database(tmp_path / "state" / "notifinho.db")
-    assert database.migrate() == 8
+    assert database.migrate() == 9
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin("administrator", PASSWORD)
     observer = users.create("observer", "observer secure password")

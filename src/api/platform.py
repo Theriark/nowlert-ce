@@ -1459,8 +1459,21 @@ class PlatformAPI:
                         }
                     },
                 )
-            result = self.outputs.test_delivery(actor, destination_id, notification)
-            return APIResponse(200, {"result": self._delivery_result(result)})
+            result = self.outputs.test_delivery(
+                actor,
+                destination_id,
+                notification,
+            )
+            response = {
+                "result": self._delivery_result(result),
+            }
+            try:
+                destination = self.destinations.get(actor, destination_id)
+            except (KeyError, PermissionError):
+                destination = None
+            if destination is not None:
+                response["destination"] = self._destination(destination)
+            return APIResponse(200, response)
 
         if method == "GET":
             if self.yaml_resource_authority:
@@ -1826,6 +1839,11 @@ class PlatformAPI:
             "secret_configured": item.secret_configured,
             "created_at": item.created_at,
             "updated_at": item.updated_at,
+            "last_test_at": item.last_test_at,
+            "last_test_outcome": item.last_test_outcome,
+            "last_test_response_status": item.last_test_response_status,
+            "last_test_error_code": item.last_test_error_code,
+            "last_test_safe_error": item.last_test_safe_error,
         }
 
     @staticmethod

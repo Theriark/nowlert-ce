@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_schema_8_adds_isolated_settings_records():
     migrations = (ROOT / "src/storage/migrations.py").read_text(encoding="utf-8")
-    assert LATEST_SCHEMA_VERSION == 8
+    assert LATEST_SCHEMA_VERSION == 9
     assert "CREATE TABLE settings_records" in migrations
     assert "PRIMARY KEY(namespace, setting_key)" in migrations
 

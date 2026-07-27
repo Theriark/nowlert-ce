@@ -15,6 +15,7 @@ from outputs.settings import OUTPUT_TYPES, normalize_output_settings
 from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.ownership import Actor, OwnershipPolicy
+from storage.sanitize import sanitize_text
 from storage.validation import normalized_identifier, normalized_name
 
 
@@ -33,6 +34,11 @@ class Destination:
     secret_configured: bool
     created_at: int
     updated_at: int
+    last_test_at: int | None = None
+    last_test_outcome: str = ""
+    last_test_response_status: int | None = None
+    last_test_error_code: str = ""
+    last_test_safe_error: str = ""
 
 
 @dataclass(frozen=True)
@@ -216,6 +222,49 @@ class DestinationStore:
             self._destination(row),
             str(row["secret_id"]) if row["secret_id"] is not None else None,
         )
+
+    def record_test_result(
+        self,
+        actor: Actor,
+        destination_id: str,
+        result,
+    ) -> Destination:
+        """Persist one safe destination test result without changing config."""
+
+        row = self._record(destination_id)
+        OwnershipPolicy.require_read(
+            actor,
+            str(row["owner_user_id"]),
+            bool(row["shared"]),
+        )
+        outcome = "success" if bool(getattr(result, "success", False)) else "failed"
+        response_status = getattr(result, "response_status", None)
+        if response_status is not None:
+            response_status = int(response_status)
+        error_code = sanitize_text(getattr(result, "error_code", ""))[:64]
+        safe_error = sanitize_text(getattr(result, "safe_error", ""))[:500]
+        now = int(self.clock())
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE destinations
+                SET last_test_at = ?,
+                    last_test_outcome = ?,
+                    last_test_response_status = ?,
+                    last_test_error_code = ?,
+                    last_test_safe_error = ?
+                WHERE id = ?
+                """,
+                (
+                    now,
+                    outcome,
+                    response_status,
+                    error_code or None,
+                    safe_error or None,
+                    str(destination_id),
+                ),
+            )
+        return self.get(actor, destination_id)
 
     def set_enabled(
         self,
@@ -494,6 +543,33 @@ class DestinationStore:
             secret_configured=row["secret_id"] is not None,
             created_at=int(row["created_at"]),
             updated_at=int(row["updated_at"]),
+            last_test_at=(
+                int(row["last_test_at"])
+                if "last_test_at" in row.keys()
+                and row["last_test_at"] is not None
+                else None
+            ),
+            last_test_outcome=(
+                str(row["last_test_outcome"] or "")
+                if "last_test_outcome" in row.keys()
+                else ""
+            ),
+            last_test_response_status=(
+                int(row["last_test_response_status"])
+                if "last_test_response_status" in row.keys()
+                and row["last_test_response_status"] is not None
+                else None
+            ),
+            last_test_error_code=(
+                str(row["last_test_error_code"] or "")
+                if "last_test_error_code" in row.keys()
+                else ""
+            ),
+            last_test_safe_error=(
+                str(row["last_test_safe_error"] or "")
+                if "last_test_safe_error" in row.keys()
+                else ""
+            ),
         )
 
     @classmethod

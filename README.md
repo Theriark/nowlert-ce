@@ -15,7 +15,7 @@ Built for Homelabs • Ready for Enterprise
 <p align="center">
 
 <a href="https://github.com/FortPT/notifinho/releases">
-  <img src="https://img.shields.io/badge/stable-v2.5.3-blue" alt="Stable release v2.5.3">
+  <img src="https://img.shields.io/badge/stable-v2.5.4-blue" alt="Stable release v2.5.4">
 </a>
 
 <a href="https://www.python.org/">
@@ -49,7 +49,7 @@ Built for Homelabs • Ready for Enterprise
 | Property | Value |
 |----------|-------|
 | **Status** | 🚀 Stable – Production Ready |
-| **Current Stable Release** | **v2.5.3** |
+| **Current Stable Release** | **v2.5.4** |
 | **Next Planned Release** | **v2.x** |
 | **License** | MIT |
 | **Python** | 3.13 |
@@ -57,7 +57,7 @@ Built for Homelabs • Ready for Enterprise
 Notifinho is stable and production ready. New parsers, notification platforms
 and integrations remain planned with backwards compatibility as a priority.
 
-See the [v2.5.3 release notes](docs/releases/v2.5.3.md) for Synology input compatibility, UniFi Protect payload compatibility, and self-contained notification icons. The complete operator walkthrough is in the [v2.5.3 acceptance checklist](docs/v2.5.3-acceptance-checklist.md).
+See the [v2.5.4 release notes](docs/releases/v2.5.4.md) for Synology input compatibility, UniFi Protect payload compatibility, and self-contained notification icons. The complete operator walkthrough is in the [v2.5.4 acceptance checklist](docs/v2.5.4-acceptance-checklist.md).
 
 Notifinho v2 adds a self-hosted notification platform with local accounts,
 database-authoritative destinations, routes, application tokens, regional
@@ -677,8 +677,8 @@ The same release source is published to Docker Hub and GitHub Container
 Registry:
 
 ```bash
-docker pull fortpt/notifinho:2.5.3
-docker pull ghcr.io/fortpt/notifinho:2.5.3
+docker pull fortpt/notifinho:2.5.4
+docker pull ghcr.io/fortpt/notifinho:2.5.4
 ```
 
 Use a versioned image for production. The `latest` tag follows the current

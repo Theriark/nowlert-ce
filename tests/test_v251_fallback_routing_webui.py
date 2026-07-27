@@ -45,7 +45,7 @@ def fast_hash(password: str) -> str:
 
 def database_with_admin(tmp_path):
     database = Database(tmp_path / "state" / "notifinho.db")
-    assert database.migrate() == 8
+    assert database.migrate() == 9
     admin = UserStore(database, password_hasher=fast_hash).bootstrap_admin(
         "administrator", PASSWORD
     )
