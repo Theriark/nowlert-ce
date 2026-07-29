@@ -189,7 +189,7 @@ def test_managed_mount_override_contains_the_verified_capability_set():
     override = yaml.safe_load(
         (ROOT / "compose.managed-backups.yaml").read_text(encoding="utf-8")
     )
-    service = override["services"]["notifinho"]
+    service = override["services"]["nowlert"]
     assert service["user"] == "0:0"
     assert set(service["cap_add"]) == {
         "DAC_OVERRIDE",

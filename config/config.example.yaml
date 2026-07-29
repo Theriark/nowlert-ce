@@ -20,7 +20,7 @@ smtp:
   auth:
     enabled: false
     username: notifinho
-    password_env: NOTIFINHO_SMTP_PASSWORD
+    password_env: NOWLERT_SMTP_PASSWORD
     password_file: ""
 
 http:

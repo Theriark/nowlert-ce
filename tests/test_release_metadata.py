@@ -51,9 +51,10 @@ def test_release_deployment_defaults_are_versioned():
     environment = (ROOT / ".env.example").read_text(encoding="utf-8")
     compose = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
 
-    assert "NOTIFINHO_IMAGE=fortpt/notifinho:2.5.5" in environment
+    assert "NOWLERT_IMAGE=fortpt/notifinho:2.5.5" in environment
     assert "fortpt/notifinho:2.5.5" in compose
-    assert "NOTIFINHO_EXTERNAL_BACKUP_DIR" in environment
+    assert "NOWLERT_EXTERNAL_BACKUP_DIR" in environment
+    assert "NOTIFINHO_EXTERNAL_BACKUP_DIR" in compose
     assert "/notifinho/external-backups" in compose
 
 

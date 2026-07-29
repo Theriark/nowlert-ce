@@ -1,11 +1,11 @@
 # Development-only Compose file. Run it from the repository checkout on VM-09.
 services:
-  notifinho-dev:
+  nowlert-dev:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    image: notifinho-dev:local
-    container_name: notifinho-dev
+    image: nowlert-dev:local
+    container_name: nowlert-dev
     restart: unless-stopped
     working_dir: /notifinho
     ports:

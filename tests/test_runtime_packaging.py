@@ -29,14 +29,23 @@ def test_production_compose_applies_runtime_hardening():
     compose = yaml.safe_load(
         (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
     )
-    service = compose["services"]["notifinho"]
+    assert compose["name"] == "nowlert"
+    service = compose["services"]["nowlert"]
 
+    assert service["container_name"] == "nowlert"
     assert service["read_only"] is True
     assert service["init"] is True
     assert service["cap_drop"] == ["ALL"]
     assert "no-new-privileges:true" in service["security_opt"]
-    assert service["user"] == "${NOTIFINHO_UID:-1000}:${NOTIFINHO_GID:-1000}"
-    assert "${NOTIFINHO_STATE_DIR:-./state}:/notifinho/state" in service["volumes"]
+    assert service["user"] == (
+        "${NOWLERT_UID:-${NOTIFINHO_UID:-1000}}:"
+        "${NOWLERT_GID:-${NOTIFINHO_GID:-1000}}"
+    )
+    assert (
+        "${NOWLERT_STATE_DIR:-${NOTIFINHO_STATE_DIR:-./state}}:"
+        "/notifinho/state"
+    ) in service["volumes"]
+    assert service["environment"]["NOWLERT_STATE_DIR"] == "/notifinho/state"
     assert service["environment"]["NOTIFINHO_STATE_DIR"] == "/notifinho/state"
 
 
@@ -64,4 +73,4 @@ def test_ci_validates_webui_compose_and_production_image():
     assert "package-manager-cache: false" in workflow
     assert "node --check src/webui/app.js" in workflow
     assert "docker compose -f compose.production.yaml config" in workflow
-    assert "docker build --tag notifinho:ci ." in workflow
+    assert "docker build --tag nowlert:ci ." in workflow
