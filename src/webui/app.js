@@ -53,7 +53,7 @@ const SOURCE_ICONS = {
   dell_idrac: "/ui/source-icons/dell-idrac.png",
   home_assistant: "/ui/source-icons/home-assistant.png",
 };
-const GENERIC_SOURCE_ICON = "/ui/source-icons/notifinho.png";
+const GENERIC_SOURCE_ICON = "/ui/source-icons/nowlert.png";
 const PRIORITIES = [
   ["critical", "Critical"],
   ["high", "High"],
@@ -2522,7 +2522,7 @@ function sampleEvent() {
 function cardSampleEvent(destination) {
   return {
     schema: "notifinho.event.v1",
-    source: "notifinho",
+    source: "nowlert",
     title: `${destination.name} test delivery`,
     message: `This is a safe Nowlert test for the ${OUTPUT_NAMES[destination.output_type] || friendlyName(destination.output_type)} destination "${destination.name}".`,
     severity: "information",

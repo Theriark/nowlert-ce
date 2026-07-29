@@ -59,15 +59,15 @@ def destination() -> Destination:
     )
 
 
-def notification(source: str = "notifinho") -> Notification:
+def notification(source: str = "nowlert") -> Notification:
     return Notification(
         source=source,
         title="Safe Microsoft Teams test",
-        body="Safe Notifinho destination test.",
+        body="Safe Nowlert destination test.",
         status="information",
         category="hardware",
         metadata={
-            "provider": "HPE iLO" if source == "hpe_ilo" else "Notifinho",
+            "provider": "HPE iLO" if source == "hpe_ilo" else "Nowlert",
             "host": "Delta",
             "severity": "information",
         },
@@ -108,7 +108,8 @@ def test_generic_and_hpe_ilo_cards_use_small_public_https_icons():
     output = TeamsOutput()
 
     for source, filename, expected_pixels in (
-        ("notifinho", "notifinho.png", 80),
+        ("nowlert", "nowlert.png", 80),
+        ("notifinho", "nowlert.png", 80),
         ("hpe_ilo", "hpe-ilo.png", 64),
     ):
         formatter = output.source_formatters.get(

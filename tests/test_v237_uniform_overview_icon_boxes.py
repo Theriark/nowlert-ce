@@ -44,6 +44,7 @@ def test_v237_target_rules_scale_artwork_without_resizing_boxes():
         "synology",
     ):
         assert f'data-source-key="{key}"' in target_rules
+    assert 'src*="nowlert"' in target_rules
     assert 'src*="notifinho"' in target_rules
 
 

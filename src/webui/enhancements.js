@@ -114,7 +114,7 @@
         title: "Home Assistant test alert",
         message: "Safe WebUI test: Home Assistant events are routed to this destination.",
         category: "automation",
-        metadata: { device: systemName, entity_id: "sensor.notifinho_test" },
+        metadata: { device: systemName, entity_id: "sensor.nowlert_test" },
       },
       grafana: {
         title: "Grafana test alert",
@@ -126,13 +126,13 @@
         title: "Portainer test alert",
         message: "Safe WebUI test: Portainer events are routed to this destination.",
         category: "containers",
-        metadata: { environment: systemName, resource: "notifinho-test" },
+        metadata: { environment: systemName, resource: "nowlert-test" },
       },
       proxmox: {
         title: "Proxmox test alert",
         message: "Safe WebUI test: Proxmox events are routed to this destination.",
         category: "virtualization",
-        metadata: { node: systemName, resource: "vm/notifinho-test" },
+        metadata: { node: systemName, resource: "vm/nowlert-test" },
       },
       unifi_drive: {
         title: "UniFi Drive test alert",
@@ -450,7 +450,7 @@
 
   cardSampleEvent = function sourceAwareCardSampleEvent(destination) {
     const route = routeForDestination(destination.id);
-    return sourceTestSample(route ? route.source : "notifinho", destination);
+    return sourceTestSample(route ? route.source : "nowlert", destination);
   };
 
   const backupTime = byId("backup-time");

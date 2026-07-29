@@ -24,7 +24,7 @@ class GenericDiscordFormatter(DiscordCardFormatter):
         ).strip()
         return self._render_discord_card(
             DiscordCardData(
-                source="notifinho",
+                source="nowlert",
                 integration=source,
                 device=device,
                 event=title,

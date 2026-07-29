@@ -60,7 +60,7 @@ def test_v234_runtime_polish_keeps_reload_source_tests_clock_and_delete_payloads
     assert "history.replaceState" in script
     assert "route.enabled && route.source === source" in script
     assert 'route.source !== "*"' in script
-    assert 'sourceTestSample(route ? route.source : "notifinho"' in script
+    assert 'sourceTestSample(route ? route.source : "nowlert"' in script
     assert 'provider: "Supermicro BMC"' in script
     assert "parseCanonicalTime" in script
     assert "displayClockTime" in script

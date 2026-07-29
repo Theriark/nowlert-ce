@@ -50,7 +50,7 @@ def test_v233_runtime_polish_keeps_reload_source_tests_and_clock_source_aware():
     assert "window.sessionStorage" in script
     assert "route.enabled && route.source === source" in script
     assert 'route.source !== "*"' in script
-    assert 'sourceTestSample(route ? route.source : "notifinho"' in script
+    assert 'sourceTestSample(route ? route.source : "nowlert"' in script
     assert 'provider: "Supermicro BMC"' in script
     assert "parseCanonicalTime" in script
     assert "displayClockTime" in script

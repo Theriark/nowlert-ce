@@ -72,7 +72,7 @@ class WebUIService:
                 "no-cache",
             ),
             "/ui/icon.png": (
-                "assets/icons/notifinho.png",
+                "assets/icons/nowlert.png",
                 "image/png",
                 "public, max-age=86400",
             ),
@@ -112,6 +112,8 @@ class WebUIService:
             "hpe-ilo.png",
             "dell-idrac.png",
             "home-assistant.png",
+            "nowlert.png",
+            # Preserve the earlier URL for cached pages and external links.
             "notifinho.png",
         ):
             self.assets[f"/ui/source-icons/{filename}"] = (

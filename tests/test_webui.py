@@ -313,4 +313,5 @@ def test_production_image_already_packages_webui_and_icon():
     assert (ROOT / "src" / "webui" / "index.html").is_file()
     assert (ROOT / "src" / "webui" / "app.js").is_file()
     assert (ROOT / "src" / "webui" / "styles.css").is_file()
+    assert (ROOT / "assets" / "icons" / "nowlert.png").is_file()
     assert (ROOT / "assets" / "icons" / "notifinho.png").is_file()

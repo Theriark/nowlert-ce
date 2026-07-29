@@ -67,7 +67,9 @@ class PresentationMixin:
         "hpe_ilo": "hpe-ilo.png",
         "dell_idrac": "dell-idrac.png",
         "home_assistant": "home-assistant.png",
-        "notifinho": "notifinho.png",
+        "nowlert": "nowlert.png",
+        # Legacy source identifiers render with the current product artwork.
+        "notifinho": "nowlert.png",
     }
 
     # Discord controls thumbnail layout and does not accept explicit pixel sizes.
@@ -89,6 +91,7 @@ class PresentationMixin:
     # product marks. Keeping both dimensions equal preserves the official
     # artwork's aspect ratio while making thin lockups legible in Teams.
     TEAMS_ICON_PIXELS = {
+        "nowlert": 80,
         "notifinho": 80,
         "proxmox": 64,
         "qnap": 72,

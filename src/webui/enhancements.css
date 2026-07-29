@@ -38,6 +38,7 @@
 
 /* Only artwork is scaled. These rules never change width, height, or row size. */
 .flow-node.source-node .source-product-icon[data-source-key="*"],
+.flow-node.source-node .source-product-icon[src*="nowlert"],
 .flow-node.source-node .source-product-icon[src*="notifinho"] {
   --overview-source-icon-scale: 1.22;
 }
@@ -150,6 +151,7 @@
   }
 
   .flow-node.source-node .source-product-icon[data-source-key="*"],
+  .flow-node.source-node .source-product-icon[src*="nowlert"],
   .flow-node.source-node .source-product-icon[src*="notifinho"] {
     --overview-source-icon-scale: 1.16;
   }

@@ -42,7 +42,7 @@ TEAMS_PRODUCT_ASSETS = {
     "hpe_ilo": "hpe-ilo.png",
     "dell_idrac": "dell-idrac.png",
     "home_assistant": "home-assistant.png",
-    "generic": "notifinho.png",
+    "generic": "nowlert.png",
 }
 
 
@@ -427,7 +427,7 @@ def test_generic_events_do_not_fall_back_to_xen_orchestra_cards():
     assert "Xen Orchestra" not in rendered
     assert "Backup Successful" not in rendered
     assert "xologoname.png" not in rendered
-    assert "notifinho.png" in rendered
+    assert "nowlert.png" in rendered
 
 
 @pytest.mark.parametrize(
