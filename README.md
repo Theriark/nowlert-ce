@@ -142,7 +142,7 @@ preserving the detailed project documentation that follows.
 |---|
 | ![Notifinho notification in Microsoft Teams](docs/images/v2.5.2-teams.png) |
 
-Notifinho uses source-aware presentation, severity colours, structured event
+Nowlert uses source-aware presentation, severity colours, structured event
 details, and packaged vendor assets. Discord-specific padded thumbnails keep
 large vendor artwork readable without changing Microsoft Teams sizing.
 
@@ -445,13 +445,13 @@ Every notification is designed around one principle:
 
 > **Show the right information at the right time, in the clearest possible way.**
 
-Rather than reproducing the original email, Notifinho extracts the relevant information, removes unnecessary noise and presents the result in a format optimized for fast decision making.
+Rather than reproducing the original email, Nowlert extracts the relevant information, removes unnecessary noise and presents the result in a format optimized for fast decision making.
 
 ---
 
 # 🔌 Supported Integrations
 
-Notifinho separates an **integration** from the **input** that receives its
+Nowlert separates an **integration** from the **input** that receives its
 events. Integrations are packaged with the image; inputs and routes determine
 whether their events flow.
 
@@ -504,7 +504,7 @@ See [Integrations and inputs](docs/integrations-and-inputs.md),
 
 # 🎯 Project Goals
 
-Notifinho was created with a few simple goals in mind:
+Nowlert was created with a few simple goals in mind:
 
 - Modernize infrastructure notifications.
 - Preserve compatibility with existing SMTP-based products.
@@ -513,13 +513,13 @@ Notifinho was created with a few simple goals in mind:
 - Keep integrations modular and easy to extend.
 - Support multiple notification platforms from a single notification model.
 
-Rather than replacing existing monitoring or backup solutions, Notifinho complements them by improving how notifications are delivered.
+Rather than replacing existing monitoring or backup solutions, Nowlert complements them by improving how notifications are delivered.
 
 ---
 
 # 🧩 Core Concepts
 
-Notifinho is built around five simple concepts.
+Nowlert is built around five simple concepts.
 
 Understanding these concepts makes it easy to understand the entire project.
 
@@ -611,7 +611,7 @@ See [platform state](docs/platform-state.md),
 
 # ⚡ Design Principles
 
-Every design decision in Notifinho follows a few core principles.
+Every design decision in Nowlert follows a few core principles.
 
 ### 📖 Readability First
 
@@ -623,7 +623,7 @@ Operators should never need to read an entire HTML email to understand what happ
 
 ### 🔌 Zero Changes to Existing Software
 
-If a product can send SMTP email, it can work with Notifinho.
+If a product can send SMTP email, it can work with Nowlert.
 
 Existing infrastructure does not need to be modified.
 
@@ -649,7 +649,7 @@ single responsibility.
 
 ### 🚀 Built to Grow
 
-Notifinho was designed from the beginning to support additional infrastructure platforms and messaging services without requiring architectural changes.
+Nowlert was designed from the beginning to support additional infrastructure platforms and messaging services without requiring architectural changes.
 
 The current implementation packages Xen Orchestra, Zabbix, Grafana, Portainer,
 Proxmox VE, QNAP, Synology, TrueNAS, UniFi Network, UniFi Protect, UniFi Drive,
@@ -784,7 +784,7 @@ platform:
   secure_cookies: true
 
 webui:
-  public_url: "https://notifinho.example.com"
+  public_url: "https://nowlert.example.com"
   enforce_https: true
 ```
 
@@ -793,14 +793,14 @@ proxy. Review the [SMTP security guide](docs/smtp-security.md) before enabling
 STARTTLS or SMTP AUTH.
 
 See the [deployment guide](docs/deployment.md) and
-[v2.5.2 release notes](docs/releases/v2.5.2.md) for upgrade, rollback, managed
+[v3.0.0 release notes](docs/releases/v3.0.0.md) for upgrade, rollback, managed
 backup-mount, and acceptance procedures.
 
 ---
 
 # ⚙️ Configuration
 
-Notifinho v2.5.2 uses a normalized process configuration plus private,
+Nowlert 3.0.0 uses a normalized process configuration plus private,
 database-authoritative platform state.
 
 ```text
@@ -909,7 +909,7 @@ Routes are created and edited in the WebUI. Each route selects:
 
 Exclude filters always win. Dedicated integration routes are evaluated first.
 Fallback routes run only when no dedicated integration route matches. When
-multiple matching routes resolve to the same destination, Notifinho performs
+multiple matching routes resolve to the same destination, Nowlert performs
 one final delivery through the highest-priority route.
 
 ## Logging
@@ -939,7 +939,7 @@ See [Current configuration model](docs/current-configuration-model.md),
 
 # 📬 SMTP Configuration
 
-By default, Notifinho listens on:
+By default, Nowlert listens on:
 
 | Setting | Value |
 |----------|-------|
@@ -950,12 +950,12 @@ Most infrastructure products only require four SMTP settings:
 
 | Setting | Value |
 |----------|-------|
-| SMTP Server | Notifinho host |
+| SMTP Server | Nowlert host |
 | Port | 8025 |
 | Authentication | Disabled |
 | TLS | Disabled |
 
-Notifinho identifies the notification type using the email content rather than the recipient address, allowing existing SMTP configurations to be reused without modification.
+Nowlert identifies the notification type using the email content rather than the recipient address, allowing existing SMTP configurations to be reused without modification.
 
 ## Replaying synthetic QNAP mail in development
 
@@ -978,7 +978,7 @@ python3 scripts/replay_email.py tests/fixtures/qnap/storage_warning.eml
 ```
 
 The development SMTP listener does not require authentication. Watch the
-Notifinho logs for QNAP detection, parsing, source-specific formatter
+Nowlert logs for QNAP detection, parsing, source-specific formatter
 selection, and QNAP route matching and delivery. The fixtures are synthetic and do not
 guarantee compatibility with every QTS or QuTS hero release. More detail is
 available in the [QNAP integration guide](docs/qnap.md).
@@ -1069,9 +1069,9 @@ parsed again, while duplicate routes to the same destination are suppressed.
 # 🗺️ Roadmap
 
 The detailed historical milestones below are retained as part of the project
-record. The authoritative current v2.x planning summary is maintained in
-[docs/roadmap.md](docs/roadmap.md), with issue-level progress tracked in the
-[Notifinho Roadmap](https://github.com/users/FortPT/projects/1).
+record. The authoritative current v3.x planning summary is maintained in
+[docs/roadmap.md](docs/roadmap.md), with issue-level progress tracked through
+the Theriark repository after the transfer.
 
 Completed milestones remain documented here so operators and contributors can
 understand how the current architecture evolved.
@@ -1622,6 +1622,6 @@ In particular:
 
 ──────────────────────────────────────────────
 
-# ⚡ Powered by FortPT
+# ⚡ Powered by Theriark
 
-Copyright © 2026 FortPT
+Copyright © 2026 Theriark
