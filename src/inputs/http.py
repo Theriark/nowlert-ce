@@ -297,7 +297,10 @@ class HTTPHandler(BaseHTTPRequestHandler):
             expected = str(self.server.shared_secret or "")
         if not expected:
             return True
-        supplied = self.headers.get("X-Notifinho-Token", "")
+        supplied = (
+            self.headers.get("X-Nowlert-Token", "")
+            or self.headers.get("X-Notifinho-Token", "")
+        )
         if path in {"/portainer/alerts", "/synology/events"} and not supplied:
             values = parse_qs(query, keep_blank_values=True).get("token", [])
             supplied = values[0] if len(values) == 1 else ""

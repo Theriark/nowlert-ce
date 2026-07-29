@@ -237,7 +237,7 @@ class PresentationMixin:
     def _format_datetime(self, value: Any) -> str:
         """Render source time without ever substituting receipt time.
 
-        Timezone-aware values and epochs are converted to the Notifinho
+        Timezone-aware values and epochs are converted to the Nowlert
         machine's local timezone. Naive values are treated as source-local
         wall clocks. An optional presentation timezone overrides the machine
         default for the future WebUI without changing the event-time source.
@@ -287,7 +287,7 @@ class PresentationMixin:
         return parsed.strftime("%d %b %Y • %H:%M")
 
     def _presentation_timezone(self):
-        """Return an override or the Notifinho machine's local timezone."""
+        """Return an override or the Nowlert machine's local timezone."""
 
         configured = config.get("presentation", "timezone")
         zone_name = str(configured or os.environ.get("TZ") or "").strip()

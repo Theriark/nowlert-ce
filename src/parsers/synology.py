@@ -1,4 +1,4 @@
-"""Parsers for Synology DSM email and Notifinho webhook notifications."""
+"""Parsers for Synology DSM email and Nowlert webhook notifications."""
 
 from __future__ import annotations
 

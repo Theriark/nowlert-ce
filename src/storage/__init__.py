@@ -1,4 +1,4 @@
-"""Persistent state and security services for the Notifinho v2 platform."""
+"""Persistent state and security services for the Nowlert v2 platform."""
 
 from storage.database import Database
 from storage.api_tokens import (

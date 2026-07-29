@@ -1,4 +1,4 @@
-"""Authenticated, owner-scoped HTTP contract for the Notifinho v2 platform."""
+"""Authenticated, owner-scoped HTTP contract for the Nowlert v2 platform."""
 
 from __future__ import annotations
 
@@ -792,7 +792,7 @@ class PlatformAPI:
         update_available = self._version_key(available) > self._version_key(VERSION)
         self.notices.sync_system(
             "software-update",
-            "Notifinho update available",
+            "Nowlert update available",
             f"Version {available} is available; the notice clears after that version is installed.",
             status="warning",
             kind="update",
@@ -1705,7 +1705,10 @@ class PlatformAPI:
         authorization = self._header(headers, "Authorization")
         if authorization.casefold().startswith("bearer "):
             return authorization[7:].strip()
-        return self._header(headers, "X-Notifinho-Token")
+        return (
+            self._header(headers, "X-Nowlert-Token")
+            or self._header(headers, "X-Notifinho-Token")
+        )
 
     def _notification(self, value):
         if not isinstance(value, dict):
@@ -1935,7 +1938,7 @@ class PlatformAPI:
         return APIResponse(
             500,
             {
-                "error": "Notifinho could not complete this request.",
+                "error": "Nowlert could not complete this request.",
                 "code": "internal_error",
                 "reference": reference,
                 "path": path,

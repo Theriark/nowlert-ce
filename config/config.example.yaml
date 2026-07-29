@@ -1,4 +1,4 @@
-# Notifinho v2.5.2 process bootstrap configuration.
+# Nowlert v2.5.2 process bootstrap configuration.
 #
 # This file intentionally contains only listener, bootstrap, and security
 # settings. Destinations, routes, Event API tokens, regional preferences,

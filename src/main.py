@@ -1,5 +1,5 @@
 """
-Notifinho
+Nowlert
 
 main.py
 
@@ -74,14 +74,14 @@ def main() -> int:
                 print("", flush=True)
                 print("SECURE FIRST-RUN SETUP REQUIRED", flush=True)
                 print(
-                    "Open the Notifinho WebUI over HTTPS and enter this "
+                    "Open the Nowlert WebUI over HTTPS and enter this "
                     "single-use setup token:",
                     flush=True,
                 )
                 print(bootstrap.token, flush=True)
                 print(f"Token expires at {expires}.", flush=True)
                 print(
-                    "It rotates when Notifinho restarts until an administrator exists.",
+                    "It rotates when Nowlert restarts until an administrator exists.",
                     flush=True,
                 )
                 print("", flush=True)

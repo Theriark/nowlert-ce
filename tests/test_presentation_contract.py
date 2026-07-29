@@ -544,7 +544,7 @@ def test_every_discord_card_uses_the_shared_information_hierarchy(source):
         for field in embed["fields"]
     )
     assert field_separator_count == (2 if has_details else 1)
-    assert embed["footer"]["text"] == f"FortPT Labs • Notifinho v{VERSION}"
+    assert embed["footer"]["text"] == f"Theriark • Nowlert v{VERSION}"
 
 
 def test_discord_details_follow_metrics_and_end_at_the_footer_rule():

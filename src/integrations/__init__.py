@@ -1,4 +1,4 @@
-"""Built-in integrations available to every Notifinho installation."""
+"""Built-in integrations available to every Nowlert installation."""
 
 from integrations.catalog import (
     CATEGORIES,

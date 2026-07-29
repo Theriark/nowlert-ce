@@ -3,7 +3,7 @@
 set -e
 
 echo "========================================="
-echo " Building Notifinho Development Image"
+echo " Building Nowlert Development Image"
 echo "========================================="
 
 docker build \

@@ -9,7 +9,7 @@ PY
 )
 
 echo "========================================="
-echo " Notifinho ${APP_VERSION}"
+echo " Nowlert ${APP_VERSION}"
 echo " Infrastructure Notification Engine"
 echo "========================================="
 
@@ -19,6 +19,6 @@ touch /notifinho/logs/notifinho.log
 cd /notifinho/src
 
 echo
-echo "[1/1] Starting Notifinho..."
+echo "[1/1] Starting Nowlert..."
 
 exec python3 main.py

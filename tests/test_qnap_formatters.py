@@ -60,7 +60,7 @@ def test_discord_payload_generation():
     assert "Warning" in embed["description"]
     assert embed["color"] == 0xF39C12
     assert embed["footer"]["text"].endswith(
-        f"Notifinho v{VERSION}"
+        f"Nowlert v{VERSION}"
     )
     assert embed["fields"]
     assert all(
@@ -120,7 +120,7 @@ def test_teams_payload_generation():
     assert "RAID Group" in serialized
     assert "Storage & Snapshots" in serialized
     assert "Warning" in serialized
-    assert f"Notifinho v{VERSION}" in serialized
+    assert f"Nowlert v{VERSION}" in serialized
 
     for item in _walk(card):
 

@@ -1,4 +1,4 @@
-"""Notifinho output plugins with lazy compatibility exports."""
+"""Nowlert output plugins with lazy compatibility exports."""
 
 __all__ = [
     "BaseOutput",

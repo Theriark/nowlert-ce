@@ -1,6 +1,6 @@
 "use strict";
 
-/* Notifinho WebUI final polish: persistent views, header actions, source-aware
+/* Nowlert WebUI final polish: persistent views, header actions, source-aware
  * tests, scheduled update checks, regional backup time, and reliable
  * inactive-source removal.
  */
@@ -93,8 +93,8 @@
           provider: "Supermicro BMC",
           system: systemName,
           sensor: "Power Supply 1",
-          registry: "Notifinho.Test.1.0",
-          message_id: "Notifinho.1.0.Test",
+          registry: "Nowlert.Test.1.0",
+          message_id: "Nowlert.1.0.Test",
           recommended_action: "No action is required. This is a safe destination test.",
         },
       },
@@ -120,7 +120,7 @@
         title: "Grafana test alert",
         message: "Safe WebUI test: Grafana alerts are routed to this destination.",
         category: "monitoring",
-        metadata: { rule: "Notifinho destination test", dashboard: "WebUI validation" },
+        metadata: { rule: "Nowlert destination test", dashboard: "WebUI validation" },
       },
       portainer: {
         title: "Portainer test alert",
@@ -156,7 +156,7 @@
         title: "Zabbix test alert",
         message: "Safe WebUI test: Zabbix monitoring events are routed to this destination.",
         category: "monitoring",
-        metadata: { host: systemName, trigger: "Notifinho destination test" },
+        metadata: { host: systemName, trigger: "Nowlert destination test" },
       },
     };
     const sample = samples[source] || {
@@ -247,8 +247,8 @@
       if (manual) {
         toast(
           state.versionStatus.update_available
-            ? `Notifinho ${available} is available.`
-            : `Notifinho ${running || ""} is up to date.`,
+            ? `Nowlert ${available} is available.`
+            : `Nowlert ${running || ""} is up to date.`,
           state.versionStatus.update_available ? "warning" : "success",
         );
       }
@@ -304,7 +304,7 @@
       attributes: { role: "menuitem" },
     }, [
       element("span", { text: "⏻", attributes: { "aria-hidden": "true" } }),
-      element("span", { text: "Restart Notifinho" }),
+      element("span", { text: "Restart Nowlert" }),
     ]);
     restartButton.id = "platform-restart";
     menu.append(updateButton, restartButton);

@@ -297,7 +297,7 @@ async function request(path, options = {}) {
       cache: "no-store",
     });
   } catch (_error) {
-    throw new APIError(0, "Notifinho is not reachable.", path, "network_error");
+    throw new APIError(0, "Nowlert is not reachable.", path, "network_error");
   }
   const raw = await response.text();
   let payload = null;
@@ -402,7 +402,7 @@ function showBootstrap(status) {
   }
   byId("bootstrap-expiry").textContent = status.expires_at
     ? `This setup token expires ${formatTime(status.expires_at)}.`
-    : "The setup token has expired. Restart Notifinho to rotate it, then check the new container output.";
+    : "The setup token has expired. Restart Nowlert to rotate it, then check the new container output.";
   (byId("bootstrap-token").value ? byId("bootstrap-username") : byId("bootstrap-token")).focus();
 }
 
@@ -436,7 +436,7 @@ async function restoreSession() {
   } catch (error) {
     expireSession();
     if (!(error instanceof APIError) || ![401, 404].includes(error.status)) {
-      byId("login-error").textContent = error.message || "Notifinho is not reachable.";
+      byId("login-error").textContent = error.message || "Nowlert is not reachable.";
       byId("login-error").hidden = false;
     }
     return;
@@ -518,7 +518,7 @@ async function initialize() {
     }
   } catch (error) {
     if (!(error instanceof APIError) || error.status !== 404) {
-      byId("login-error").textContent = error.message || "Notifinho is not reachable.";
+      byId("login-error").textContent = error.message || "Nowlert is not reachable.";
       byId("login-error").hidden = false;
     }
   }
@@ -1545,7 +1545,7 @@ function renderConfiguration() {
   const summary = configuration.summary;
   const sync = configuration.sync || { ready: true, errors: [] };
   byId("configuration-card-title").textContent = sync.ready ? "Configured inputs" : "Inputs require configuration repair";
-  byId("configuration-card-copy").textContent = "SMTP, HTTP, and Redfish are managed independently. Click a status to change it, then restart Notifinho.";
+  byId("configuration-card-copy").textContent = "SMTP, HTTP, and Redfish are managed independently. Click a status to change it, then restart Nowlert.";
   const badges = byId("configuration-summary");
   badges.replaceChildren(
     badge(`${summary.inputs} inputs`),
@@ -1619,7 +1619,7 @@ function renderUpdates() {
   byId("available-version").textContent = version.available || "Not advertised";
   byId("update-status").textContent = version.update_available
     ? `Version ${version.available} is available. Review the release notes and deploy the versioned image.`
-    : "Notifinho is up to date with the advertised version.";
+    : "Nowlert is up to date with the advertised version.";
 }
 
 function renderPreferences() {
@@ -1823,7 +1823,7 @@ async function restartPlatform(event) {
       body: { reason: byId("restart-reason").value.trim() },
     });
     byId("restart-dialog").close();
-    toast("Restart accepted. Notifinho will be briefly unavailable.", "success");
+    toast("Restart accepted. Nowlert will be briefly unavailable.", "success");
   } catch (error) {
     showError("restart-error", error);
   }
@@ -2071,7 +2071,7 @@ async function createBackup() {
 async function restoreBackup(id) {
   const accepted = await confirmAction(
     "Restore this state backup?",
-    `Restore ${id}. Notifinho creates a safety backup first and signs out every browser session. Application-token state returns to the selected snapshot.`,
+    `Restore ${id}. Nowlert creates a safety backup first and signs out every browser session. Application-token state returns to the selected snapshot.`,
     "Restore and sign out",
   );
   if (!accepted) return;
@@ -2524,10 +2524,10 @@ function cardSampleEvent(destination) {
     schema: "notifinho.event.v1",
     source: "notifinho",
     title: `${destination.name} test delivery`,
-    message: `This is a safe Notifinho test for the ${OUTPUT_NAMES[destination.output_type] || friendlyName(destination.output_type)} destination "${destination.name}".`,
+    message: `This is a safe Nowlert test for the ${OUTPUT_NAMES[destination.output_type] || friendlyName(destination.output_type)} destination "${destination.name}".`,
     severity: "information",
     status: "active",
-    provider: "Notifinho",
+    provider: "Nowlert",
     metadata: { host: destination.name, component: "Destination test" },
   };
 }
@@ -2748,7 +2748,7 @@ async function resourceAction(action, id) {
     } else if (action === "toggle-input") {
       const item = state.configuration.inputs.find((candidate) => candidate.name === id);
       await request(`/configuration/inputs/${id}`, { method: "PATCH", body: { enabled: !item.enabled } });
-      toast(`Input ${item.enabled ? "disabled" : "enabled"}. Restart Notifinho to apply listener changes.`);
+      toast(`Input ${item.enabled ? "disabled" : "enabled"}. Restart Nowlert to apply listener changes.`);
     } else if (action === "toggle-user") {
       const item = state.users.find((candidate) => candidate.id === id);
       const accepted = await confirmAction(`${item.enabled ? "Disable" : "Enable"} ${item.username}?`, item.enabled ? "Disabling the account revokes every active session." : "The user will be able to sign in again.", item.enabled ? "Disable" : "Enable");

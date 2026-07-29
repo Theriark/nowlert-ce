@@ -1,1 +1,1 @@
-"""Notifinho v1.9 backend API foundations."""
+"""Nowlert v1.9 backend API foundations."""

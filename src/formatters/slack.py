@@ -17,7 +17,7 @@ class SlackFormatter(PresentationMixin):
             150,
         )
         source = self._truncate(
-            metadata.get("provider") or notification.source or "Notifinho",
+            metadata.get("provider") or notification.source or "Nowlert",
             100,
         )
         severity = self._truncate(
@@ -55,7 +55,7 @@ class SlackFormatter(PresentationMixin):
         blocks.append({"type": "section", "fields": fields[:10]})
 
         event_time = metadata.get("event_time") or notification.start_time
-        context = f"Notifinho • {source}"
+        context = f"Nowlert • {source}"
         if event_time:
             formatted = self._format_datetime(event_time)
             if formatted:

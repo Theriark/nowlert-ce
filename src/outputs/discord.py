@@ -1,5 +1,5 @@
 """
-Notifinho
+Nowlert
 
 discord.py
 

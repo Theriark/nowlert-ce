@@ -378,7 +378,9 @@ class WebhookPlatformAdapter(_HTTPAdapter):
                 separators=(",", ":"),
                 ensure_ascii=False,
             ).encode("utf-8")
-            headers["X-Notifinho-Idempotency-Key"] = event_identifier(notification)
+            idempotency_key = event_identifier(notification)
+            headers["X-Nowlert-Idempotency-Key"] = idempotency_key
+            headers["X-Notifinho-Idempotency-Key"] = idempotency_key
             if settings["sign_hmac"]:
                 signing_secret = credentials.get("hmac_secret")
                 if not signing_secret:
@@ -388,7 +390,9 @@ class WebhookPlatformAdapter(_HTTPAdapter):
                     body,
                     hashlib.sha256,
                 ).hexdigest()
-                headers["X-Notifinho-Signature"] = f"sha256={digest}"
+                signature = f"sha256={digest}"
+                headers["X-Nowlert-Signature"] = signature
+                headers["X-Notifinho-Signature"] = signature
             response = self.http_client.request(
                 settings["method"],
                 url,

@@ -1,4 +1,4 @@
-"""Parsers for Proxmox VE email and Notifinho webhook notifications."""
+"""Parsers for Proxmox VE email and Nowlert webhook notifications."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ class Parser:
 
     @classmethod
     def is_envelope(cls, payload) -> bool:
-        """Validate the explicit Notifinho Proxmox webhook contract."""
+        """Validate the explicit Nowlert Proxmox webhook contract."""
         if not isinstance(payload, dict):
             return False
         if payload.get("schema") != cls.WEBHOOK_SCHEMA:
