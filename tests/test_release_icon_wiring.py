@@ -60,7 +60,11 @@ def test_official_release_build_uses_packaged_notification_icons():
     assert "NOTIFINHO_TEAMS_ICON_BASE_URL" in presentation
     assert "notifinho-asset://" in presentation
     assert "data:{mime_type};base64," not in presentation
+    assert "ARG NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
     assert "ARG NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
+    assert "ENV NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
+    assert "ENV NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
+    assert "NOWLERT_TEAMS_ICON_BASE_URL=" in workflow
     assert "NOTIFINHO_TEAMS_ICON_BASE_URL=" in workflow
     assert "${{ steps.release.outputs.commit_sha }}" in workflow
 
