@@ -41,7 +41,7 @@ class PresentationMixin:
             "NOWLERT_TEAMS_ICON_BASE_URL",
             "NOTIFINHO_TEAMS_ICON_BASE_URL",
             default=(
-                "https://raw.githubusercontent.com/FortPT/notifinho/"
+                "https://raw.githubusercontent.com/Theriark/nowlert/"
                 "main/assets/icons"
             ),
         )

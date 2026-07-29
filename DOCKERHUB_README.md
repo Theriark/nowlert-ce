@@ -1,20 +1,20 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/FortPT/notifinho/main/docs/images/logo.png" width="210" alt="Notifinho logo">
+  <img src="https://raw.githubusercontent.com/Theriark/nowlert/main/docs/images/logo.png" width="210" alt="Nowlert logo">
 </p>
 
-<h1 align="center">Notifinho</h1>
+<h1 align="center">Nowlert</h1>
 
 <p align="center">
   <strong>Infrastructure Notification Engine</strong><br>
   Built for homelabs · ready for enterprise
 </p>
 
-Notifinho receives infrastructure events over **SMTP**, **HTTP**, and
+Nowlert receives infrastructure events over **SMTP**, **HTTP**, and
 **Redfish**, normalizes them, applies database-backed routes, and sends rich
 notifications to Discord, Microsoft Teams, Slack, generic webhooks, MQTT, and
 ntfy.
 
-The current stable release is **v2.5.5**. The corresponding image is **`fortpt/notifinho:2.5.5`**.
+The current stable release is **v3.0.0**. The corresponding image is **`theriark/nowlert:3.0.0`**.
 
 ## Highlights
 
@@ -30,13 +30,13 @@ The current stable release is **v2.5.5**. The corresponding image is **`fortpt/n
 - Scheduled local, NFS, or SMB private-state backups
 - Hardened production Compose deployment
 
-![Notifinho v2.5.2 Routing Flow](https://raw.githubusercontent.com/FortPT/notifinho/main/docs/images/v2.5.2-routing-flow.png)
+![Nowlert v2.5.2 Routing Flow](https://raw.githubusercontent.com/Theriark/nowlert/main/docs/images/v2.5.2-routing-flow.png)
 
 ## Quick start
 
 ```bash
-git clone https://github.com/FortPT/notifinho.git
-cd notifinho
+git clone https://github.com/Theriark/nowlert.git
+cd nowlert
 
 cp .env.example .env
 cp config/config.example.yaml config/config.yaml
@@ -48,11 +48,12 @@ chmod 700 logs logs/emails secrets state external-backups
 
 docker compose -f compose.production.yaml config
 docker compose -f compose.production.yaml up -d
-docker logs -f notifinho
+docker logs -f nowlert
 ```
 
-Set `NOTIFINHO_UID` and `NOTIFINHO_GID` in `.env` to the numeric identity that
-owns the mounted directories.
+Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the numeric identity that
+owns the mounted directories. Existing `NOTIFINHO_UID` and `NOTIFINHO_GID`
+values remain accepted as compatibility aliases.
 
 On first start, the container log prints a short-lived, single-use setup token.
 Open the WebUI and choose the first administrator credentials. No default
@@ -85,10 +86,10 @@ WebUI and stored in private platform state.
 
 Do not add the legacy `outputs`, `routing`, `notifications`,
 `presentation`, `home_assistant`, `redfish`, `api.tokens`,
-`platform.backups`, or `webui.language` sections to a fresh v2.5
+`platform.backups`, or `webui.language` sections to a fresh v3.0
 configuration.
 
-The first successful v2.5 start can import a supported v2.4 YAML installation,
+The first successful v3.0 start can import a supported v2.4 YAML installation,
 preserve IDs and credentials, and atomically normalize the mounted file.
 
 ## Built-in integrations
@@ -128,7 +129,7 @@ backup before starting the older image.
 
 ## Documentation
 
-Repository: https://github.com/FortPT/notifinho
+Repository: https://github.com/Theriark/nowlert
 
 - deployment and Portainer guide
 - WebUI guide
@@ -138,6 +139,6 @@ Repository: https://github.com/FortPT/notifinho
 - release notes and acceptance checklists
 - v2.3.3 → v2.5.2 implementation sequence
 
-![Notifinho v2.5.2 Discord card](https://raw.githubusercontent.com/FortPT/notifinho/main/docs/images/v2.5.2-discord-zabbix.png)
+![Nowlert v2.5.2 Discord card](https://raw.githubusercontent.com/Theriark/nowlert/main/docs/images/v2.5.2-discord-zabbix.png)
 
-MIT License · Powered by FortPT
+MIT License · Powered by Theriark

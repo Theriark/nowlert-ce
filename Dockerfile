@@ -3,7 +3,7 @@ FROM python:3.13.14-slim-bookworm@sha256:9d7f287598e1a5a978c015ee176d8216435aaf3
 LABEL org.opencontainers.image.title="Nowlert" \
       org.opencontainers.image.description="Infrastructure Notification Engine" \
       org.opencontainers.image.vendor="Theriark" \
-      org.opencontainers.image.source="https://github.com/FortPT/notifinho"
+      org.opencontainers.image.source="https://github.com/Theriark/nowlert"
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -31,7 +31,7 @@ RUN python3 /notifinho/tools/validate_packaged_icons.py
 
 # NOWLERT_* is preferred. The earlier build argument remains accepted so
 # existing release automation and downstream image builds do not break.
-ARG NOTIFINHO_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/FortPT/notifinho/main/assets/icons
+ARG NOTIFINHO_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/Theriark/nowlert/main/assets/icons
 ARG NOWLERT_TEAMS_ICON_BASE_URL=${NOTIFINHO_TEAMS_ICON_BASE_URL}
 
 ENV NOWLERT_TEAMS_ICON_BASE_URL=${NOWLERT_TEAMS_ICON_BASE_URL}

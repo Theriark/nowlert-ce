@@ -13,6 +13,31 @@
 - Align the public platform state path with the production `/notifinho/state`
   mount and add the v2.3.3-to-v2.5.2 implementation sequence.
 
+## 3.0.0 - 2026-07-29
+
+### Changed
+
+- Rename the product and visible runtime identity from Notifinho to Nowlert.
+- Adopt the intended repository identity `Theriark/nowlert`.
+- Adopt `theriark/nowlert` and `ghcr.io/theriark/nowlert` for stable images.
+- Adopt Nowlert deployment, WebUI, release, and public documentation identities.
+- Preserve original route names when legacy source aliases collapse into the
+  wildcard source during configuration migration.
+
+### Compatibility
+
+- Keep all `NOTIFINHO_*` environment aliases.
+- Continue accepting `X-Notifinho-Token` with `X-Nowlert-Token`.
+- Preserve existing schemas, cookies, SQLite filename, backup formats,
+  `notifinho-asset://` references, and internal `/notifinho` paths.
+
+### Migration
+
+- No database schema change is introduced. Nowlert 3.0.0 continues to use
+  schema 9 and `platform_database_v1`.
+- Existing v2.5.5 platform state can be mounted directly after creating a
+  matched configuration and state backup.
+
 ## 2.5.5 - 2026-07-27
 
 ### Fixed

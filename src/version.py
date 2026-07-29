@@ -13,10 +13,10 @@ APP_NAME = "Nowlert"
 LEGACY_APP_NAME = "Notifinho"
 COMPANY = "Theriark"
 
-VERSION = "2.5.5"
+VERSION = "3.0.0"
 
 AUTHOR = "Ruben Rodrigues"
 
 LICENSE = "MIT"
 
-REPOSITORY = "https://github.com/FortPT/notifinho"
+REPOSITORY = "https://github.com/Theriark/nowlert"

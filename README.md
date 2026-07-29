@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/images/logo.png" width="240" alt="Notifinho Logo">
+  <img src="assets/icons/nowlert.png" width="240" alt="Nowlert logo">
 </p>
 
-<h1 align="center">Notifinho</h1>
+<h1 align="center">Nowlert</h1>
 
 <p align="center">
   <strong>Infrastructure Notification Engine</strong>
@@ -14,8 +14,8 @@ Built for Homelabs • Ready for Enterprise
 
 <p align="center">
 
-<a href="https://github.com/FortPT/notifinho/releases">
-  <img src="https://img.shields.io/badge/stable-v2.5.5-blue" alt="Stable release v2.5.5">
+<a href="https://github.com/Theriark/nowlert/releases">
+  <img src="https://img.shields.io/badge/stable-v3.0.0-blue" alt="Stable release v3.0.0">
 </a>
 
 <a href="https://www.python.org/">
@@ -49,18 +49,20 @@ Built for Homelabs • Ready for Enterprise
 | Property | Value |
 |----------|-------|
 | **Status** | 🚀 Stable – Production Ready |
-| **Current Stable Release** | **v2.5.5** |
-| **Next Planned Release** | **v2.x** |
+| **Current Stable Release** | **v3.0.0** |
+| **Next Planned Release** | **v3.x** |
 | **License** | MIT |
 | **Python** | 3.13 |
 
-Notifinho is stable and production ready. New parsers, notification platforms
-and integrations remain planned with backwards compatibility as a priority.
+Nowlert 3.0.0 is the product, repository, deployment, and container identity
+transition from Notifinho. Existing protocol contracts, environment aliases,
+persistent state, internal paths, cookies, schemas, and rollback data remain
+compatible.
 
-See the [v2.5.5 release notes](docs/releases/v2.5.5.md) for reliable
-Microsoft Teams test delivery, public HTTPS source icons, the 28 KiB payload
-guard, and accurate HTTP 202 status wording. The complete operator walkthrough
-is in the [v2.5.5 acceptance checklist](docs/v2.5.5-acceptance-checklist.md).
+See the [v3.0.0 release notes](docs/releases/v3.0.0.md) for the repository and
+registry transition, compatibility boundaries, upgrade guidance, and rollback
+procedure. The operator walkthrough is in the
+[v3.0.0 acceptance checklist](docs/v3.0.0-acceptance-checklist.md).
 
 Notifinho v2 adds a self-hosted notification platform with local accounts,
 database-authoritative destinations, routes, application tokens, regional
@@ -144,19 +146,19 @@ Notifinho uses source-aware presentation, severity colours, structured event
 details, and packaged vendor assets. Discord-specific padded thumbnails keep
 large vendor artwork readable without changing Microsoft Teams sizing.
 
-# What is Notifinho?
+# What is Nowlert?
 
-**Notifinho** is a parser-driven Infrastructure Notification Engine and
+**Nowlert** is a parser-driven Infrastructure Notification Engine and
 self-hosted notification platform. It receives infrastructure events through
 **SMTP**, **HTTP**, and **Redfish**, converts vendor-specific payloads into one
 shared notification model, applies deterministic database-backed routes, and
 delivers rich notifications to collaboration and automation platforms.
 
 Instead of forcing administrators to read long HTML emails or raw webhook
-payloads, Notifinho produces concise, actionable notifications containing the
+payloads, Nowlert produces concise, actionable notifications containing the
 information needed to understand and respond to an event.
 
-Notifinho works alongside existing infrastructure. SMTP-capable products can
+Nowlert works alongside existing infrastructure. SMTP-capable products can
 send mail directly to its native listener, webhook-capable products can use
 authenticated HTTP endpoints, and hardware controllers can submit Redfish Event
 Service notifications. It does not poll mailboxes, infrastructure APIs,
@@ -173,17 +175,16 @@ delivery history are authoritative in private SQLite platform state. The
 mounted `config.yaml` is intentionally limited to process bootstrap, listener,
 and transport-security settings.
 
-# 🇵🇹 Why the name?
+# 🦉 Why the name?
 
-**Notifinho** comes from the Portuguese word **"notificação"** (notification).
+**Nowlert** brings together the ideas of **now**, an observant **owl**, and an
+actionable **alert**.
 
-The suffix **"-inho"** is commonly used in Portuguese to express something small, concise or simplified.
+The name reflects the product's purpose: receive infrastructure events,
+identify what matters, and deliver a clear notification while it is still
+useful.
 
-The idea behind the name reflects the project's purpose:
-
-Instead of overwhelming administrators with long HTML emails, Notifinho delivers **small, clean and meaningful notifications** that can be understood in just a few seconds.
-
-Simple.
+Immediate.
 
 Readable.
 
@@ -193,9 +194,9 @@ Actionable.
 
 ## 📑 Contents
 
-- [What is Notifinho?](#what-is-notifinho)
+- [What is Nowlert?](#what-is-nowlert)
 - [Why the name?](#-why-the-name)
-- [Why Notifinho?](#why-notifinho)
+- [Why Nowlert?](#why-nowlert)
 - [Features](#-features)
 - [Supported Integrations](#-supported-integrations)
 - [Project Goals](#-project-goals)
@@ -210,21 +211,21 @@ Actionable.
 - [Contributing](#-contributing)
 - [License](#license)
 
-# Why Notifinho?
+# Why Nowlert?
 
 Infrastructure products still report important events through a mixture of
 HTML email, vendor-specific webhooks, and hardware event envelopes. Those
 messages often contain valuable information, but the important fields are
 buried in inconsistent layouts or raw payloads.
 
-Notifinho normalizes those events and presents them in a clean, structured,
+Nowlert normalizes those events and presents them in a clean, structured,
 consistent format designed for modern collaboration and automation platforms.
 It enhances existing monitoring, backup, storage, networking, virtualization,
 and hardware-management products rather than replacing them.
 
-## Traditional Email vs. Notifinho
+## Traditional Email vs. Nowlert
 
-| Traditional/raw event delivery | Notifinho |
+| Traditional/raw event delivery | Nowlert |
 |-------------------------------|------------|
 | Long HTML emails or raw webhook payloads | Rich structured notification cards |
 | Difficult to read on mobile | Mobile-friendly layouts |
@@ -657,7 +658,7 @@ and Redfish inputs feed one routing model. Discord and Microsoft Teams are the
 stable collaboration destinations, with Slack, generic webhook, MQTT, and ntfy
 available through the platform output layer when configured.
 
-Future v2.x work focuses on additional integrations, destination adapters,
+Future v3.x work focuses on additional integrations, destination adapters,
 compatibility validation, operational hardening, and carefully scoped platform
 features without replacing the current database-authoritative model.
 
@@ -665,7 +666,7 @@ features without replacing the current database-authoritative model.
 
 # 🚀 Quick Start
 
-Deploying Notifinho takes only a few minutes. The procedure below uses the
+Deploying Nowlert takes only a few minutes. The procedure below uses the
 versioned, hardened production Compose definition.
 
 ## Requirements
@@ -682,8 +683,8 @@ The same release source is published to Docker Hub and GitHub Container
 Registry:
 
 ```bash
-docker pull fortpt/notifinho:2.5.5
-docker pull ghcr.io/fortpt/notifinho:2.5.5
+docker pull theriark/nowlert:3.0.0
+docker pull ghcr.io/theriark/nowlert:3.0.0
 ```
 
 Use a versioned image for production. The `latest` tag follows the current
@@ -692,8 +693,8 @@ stable release but is not an immutable deployment reference.
 ## 1. Clone the repository
 
 ```bash
-git clone https://github.com/FortPT/notifinho.git
-cd notifinho
+git clone https://github.com/Theriark/nowlert.git
+cd nowlert
 ```
 
 ## 2. Prepare process configuration
@@ -729,9 +730,10 @@ id -u
 id -g
 ```
 
-Set those values as `NOTIFINHO_UID` and `NOTIFINHO_GID` in `.env`. Adjust the
-published SMTP and HTTP ports only when the defaults conflict with another
-service.
+Set those values as `NOWLERT_UID` and `NOWLERT_GID` in `.env`. Existing
+`NOTIFINHO_UID` and `NOTIFINHO_GID` values remain accepted as compatibility
+aliases. Adjust the published ports only when the defaults conflict with
+another service.
 
 ## 5. Validate and start
 
@@ -739,8 +741,8 @@ service.
 docker compose -f compose.production.yaml config
 docker compose -f compose.production.yaml pull
 docker compose -f compose.production.yaml up -d
-docker ps --filter name=notifinho
-docker logs -f notifinho
+docker ps --filter name=nowlert
+docker logs -f nowlert
 ```
 
 Default host ports:
@@ -752,7 +754,7 @@ Default host ports:
 
 On first start, copy the short-lived, single-use setup token from the container
 log and open the WebUI. Choose the first administrator username and password.
-Notifinho has no default account or default password.
+Nowlert has no default account or default password.
 
 ## Portainer deployment
 
@@ -760,15 +762,16 @@ Use `compose.production.yaml` as the stack definition and replace relative bind
 mounts with absolute production paths such as:
 
 ```text
-/docker/notifinho/config
-/docker/notifinho/logs
-/docker/notifinho/secrets
-/docker/notifinho/state
-/docker/notifinho/external-backups
+/docker/nowlert/config
+/docker/nowlert/logs
+/docker/nowlert/secrets
+/docker/nowlert/state
+/docker/nowlert/external-backups
 ```
 
-Preserve the container name `notifinho`, all environment variables, and every
-persistent mount when upgrading. Do not point production at a development
+Use the `nowlert` container identity for new deployments. Existing
+`NOTIFINHO_*` environment aliases and internal `/notifinho` mounts remain
+supported for migration and rollback. Do not point production at a development
 checkout or release-candidate image.
 
 ## HTTP and HTTPS
@@ -1596,7 +1599,7 @@ Please keep pull requests focused and include a clear description of the changes
 
 # 📄 License
 
-Notifinho is released under the MIT License.
+Nowlert is released under the MIT License.
 
 See the [LICENSE](LICENSE) file for details.
 
@@ -1604,7 +1607,7 @@ See the [LICENSE](LICENSE) file for details.
 
 # ❤️ Acknowledgements
 
-Special thanks to the open-source community and the projects that inspired Notifinho.
+Special thanks to the open-source community and the projects that inspired Nowlert.
 
 In particular:
 

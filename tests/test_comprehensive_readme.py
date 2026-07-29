@@ -1,4 +1,4 @@
-"""Guard the detailed README while requiring current v2.5.2 documentation."""
+"""Guard the comprehensive README and current Nowlert documentation."""
 
 from pathlib import Path
 
@@ -12,9 +12,9 @@ def test_readme_remains_comprehensive_and_current():
     assert len(lines) >= 1200
 
     for heading in (
-        "# What is Notifinho?",
-        "# 🇵🇹 Why the name?",
-        "# Why Notifinho?",
+        "# What is Nowlert?",
+        "# 🦉 Why the name?",
+        "# Why Nowlert?",
         "# ✨ Features",
         "# 🔌 Supported Integrations",
         "# 🎯 Project Goals",
@@ -32,9 +32,9 @@ def test_readme_remains_comprehensive_and_current():
         assert heading in readme
 
     for value in (
-        "stable-v2.5.5-blue",
-        "| **Current Stable Release** | **v2.5.5** |",
-        "| **Next Planned Release** | **v2.x** |",
+        "stable-v3.0.0-blue",
+        "| **Current Stable Release** | **v3.0.0** |",
+        "| **Next Planned Release** | **v3.x** |",
         "v2.5.2-overview.png",
         "v2.5.2-routing-flow.png",
         "v2.5.2-sources.png",

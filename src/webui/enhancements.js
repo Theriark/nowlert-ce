@@ -8,7 +8,7 @@
   const VIEW_STORAGE_KEY = "notifinho.active-view";
   const UPDATE_CACHE_KEY = "notifinho.update-status";
   const UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000;
-  const GITHUB_RELEASE_URL = "https://api.github.com/repos/FortPT/notifinho/releases/latest";
+  const GITHUB_RELEASE_URL = "https://api.github.com/repos/Theriark/nowlert/releases/latest";
 
   function storageRead(storage, key) {
     try {

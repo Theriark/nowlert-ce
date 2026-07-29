@@ -21,7 +21,7 @@ def test_production_compose_uses_nowlert_identity():
 
     assert service["container_name"] == "nowlert"
     assert service["image"] == (
-        "${NOWLERT_IMAGE:-${NOTIFINHO_IMAGE:-fortpt/notifinho:2.5.5}}"
+        "${NOWLERT_IMAGE:-${NOTIFINHO_IMAGE:-theriark/nowlert:3.0.0}}"
     )
 
 

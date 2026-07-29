@@ -2,7 +2,7 @@ name: nowlert
 
 services:
   nowlert:
-    image: "${NOWLERT_IMAGE:-${NOTIFINHO_IMAGE:-fortpt/notifinho:2.5.5}}"
+    image: "${NOWLERT_IMAGE:-${NOTIFINHO_IMAGE:-theriark/nowlert:3.0.0}}"
     container_name: nowlert
     restart: unless-stopped
     init: true
