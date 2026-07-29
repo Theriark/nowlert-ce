@@ -19,6 +19,7 @@ from typing import Callable, Mapping
 from aiosmtpd.smtp import AuthResult, LoginPassword
 
 from config import config
+from environment import compatible_environment_names
 
 
 class SMTPSecurityConfigError(ValueError):
@@ -227,13 +228,22 @@ def _read_password(
         )
 
     if password_env:
-        if password_env not in environment:
+        resolved_name = next(
+            (
+                name
+                for name in compatible_environment_names(password_env)
+                if name in environment
+            ),
+            None,
+        )
+
+        if resolved_name is None:
             raise SMTPSecurityConfigError(
                 "The environment variable named by "
                 "smtp.auth.password_env is not set."
             )
 
-        password = environment[password_env]
+        password = environment[resolved_name]
 
         if password == "":
             raise SMTPSecurityConfigError(

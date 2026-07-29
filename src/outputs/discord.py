@@ -9,7 +9,6 @@ Discord output.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from urllib.parse import (
     parse_qsl,
@@ -22,6 +21,7 @@ from urllib.parse import (
 import requests
 
 from config import config
+from environment import compatible_environment
 from formatters.discord import DiscordFormatter
 from formatters.discord_generic import GenericDiscordFormatter
 from formatters.discord_grafana import GrafanaDiscordFormatter
@@ -50,9 +50,10 @@ from models import Notification
 class DiscordOutput:
 
     ICON_DIR = Path(
-        os.environ.get(
+        compatible_environment(
+            "NOWLERT_DISCORD_ICON_DIR",
             "NOTIFINHO_DISCORD_ICON_DIR",
-            "/notifinho/assets/icons",
+            default="/notifinho/assets/icons",
         )
     )
 

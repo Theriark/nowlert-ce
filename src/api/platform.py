@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import signal
 import threading
@@ -14,6 +13,7 @@ from http.cookies import SimpleCookie
 from urllib.parse import unquote
 
 from api.response import APIResponse
+from environment import compatible_environment
 from integrations.catalog import integrations, route_options
 from logger import log
 from api.security import Principal, RateLimiter
@@ -788,7 +788,7 @@ class PlatformAPI:
             persistent=True,
             active=backup_failed,
         )
-        available = str(os.environ.get("NOTIFINHO_AVAILABLE_VERSION") or "").strip()
+        available = str(compatible_environment("NOWLERT_AVAILABLE_VERSION", "NOTIFINHO_AVAILABLE_VERSION", default="") or "").strip()
         update_available = self._version_key(available) > self._version_key(VERSION)
         self.notices.sync_system(
             "software-update",
@@ -1129,7 +1129,7 @@ class PlatformAPI:
     def _version_endpoint(self, method) -> APIResponse:
         if method != "GET":
             return self._method_not_allowed("GET")
-        available = str(os.environ.get("NOTIFINHO_AVAILABLE_VERSION") or "").strip()
+        available = str(compatible_environment("NOWLERT_AVAILABLE_VERSION", "NOTIFINHO_AVAILABLE_VERSION", default="") or "").strip()
         return APIResponse(
             200,
             {

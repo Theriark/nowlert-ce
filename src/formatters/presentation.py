@@ -17,30 +17,34 @@ except ImportError:  # Development/test fallback; release images install tzlocal
         return ZoneInfo("UTC")
 
 from config import config
+from environment import compatible_environment, first_environment
 
 
 class PresentationMixin:
     """Keep presentation, safety, and product branding consistent."""
 
     ICON_DIR = Path(
-        os.environ.get(
+        first_environment(
+            "NOWLERT_ICON_DIR",
+            "NOWLERT_DISCORD_ICON_DIR",
             "NOTIFINHO_ICON_DIR",
-            os.environ.get(
-                "NOTIFINHO_DISCORD_ICON_DIR",
-                str(
-                    Path(__file__).resolve().parents[2]
-                    / "assets"
-                    / "icons"
-                ),
+            "NOTIFINHO_DISCORD_ICON_DIR",
+            default=str(
+                Path(__file__).resolve().parents[2]
+                / "assets"
+                / "icons"
             ),
         )
     )
-    TEAMS_ICON_BASE_URL = os.environ.get(
-        "NOTIFINHO_TEAMS_ICON_BASE_URL",
-        (
-            "https://raw.githubusercontent.com/FortPT/notifinho/"
-            "main/assets/icons"
-        ),
+    TEAMS_ICON_BASE_URL = str(
+        compatible_environment(
+            "NOWLERT_TEAMS_ICON_BASE_URL",
+            "NOTIFINHO_TEAMS_ICON_BASE_URL",
+            default=(
+                "https://raw.githubusercontent.com/FortPT/notifinho/"
+                "main/assets/icons"
+            ),
+        )
     ).rstrip("/")
 
     PRODUCT_ICONS = {

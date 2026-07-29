@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import os
 import sys
 
 from pathlib import Path
 
+from environment import compatible_environment
 from storage.database import Database
 
 
@@ -14,7 +14,10 @@ DEFAULT_STATE_DIRECTORY = "/notifinho/config/platform-state"
 
 
 def state_directory(configuration) -> Path:
-    configured = os.environ.get("NOTIFINHO_STATE_DIR") or configuration.get(
+    configured = compatible_environment(
+        "NOWLERT_STATE_DIR",
+        "NOTIFINHO_STATE_DIR",
+    ) or configuration.get(
         "platform",
         "state_dir",
         default=DEFAULT_STATE_DIRECTORY,

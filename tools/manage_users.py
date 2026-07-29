@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Manage local Notifinho accounts from the trusted host or container shell."""
+"""Manage local Nowlert accounts from the trusted host or container shell."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 sys.path.insert(0, str(SRC))
 
+from environment import compatible_environment  # noqa: E402
 from storage.database import Database  # noqa: E402
 from storage.users import UserStore  # noqa: E402
 
@@ -24,8 +25,16 @@ def parser() -> argparse.ArgumentParser:
     value = argparse.ArgumentParser(description=__doc__)
     value.add_argument(
         "--state-dir",
-        default=os.environ.get("NOTIFINHO_STATE_DIR", "/notifinho/state"),
-        help="owner-only state directory (default: NOTIFINHO_STATE_DIR or /notifinho/state)",
+        default=compatible_environment(
+            "NOWLERT_STATE_DIR",
+            "NOTIFINHO_STATE_DIR",
+            default="/notifinho/state",
+        ),
+        help=(
+            "owner-only state directory "
+            "(default: NOWLERT_STATE_DIR, legacy NOTIFINHO_STATE_DIR, "
+            "or /notifinho/state)"
+        ),
     )
     commands = value.add_subparsers(dest="command", required=True)
 
