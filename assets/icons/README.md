@@ -1,7 +1,7 @@
 # Product icons
 
 These 256 px transparent PNGs are used as Discord thumbnails and Microsoft
-Teams header images. They are locally hosted with the other Notifinho assets,
+Teams header images. They are locally hosted with the other Nowlert assets,
 so card rendering does not depend on a vendor CDN at delivery time.
 
 Every product-specific image below is derived from an official vendor page or
@@ -27,7 +27,8 @@ reverse vendor variants are used where needed for Teams' dark card surface.
 | HPE iLO | `hpe-ilo.png` | [HPE media assets](https://www.hpe.com/us/en/newsroom/media-assets.html) | Official reverse HPE logo |
 | Dell iDRAC | `dell-idrac.png` | [Dell media library](https://www.dell.com/en-us/dt/corporate/newsroom/media-library.htm) | Official Dell Technologies mark |
 | Home Assistant | `home-assistant.png` | [Home Assistant frontend repository](https://github.com/home-assistant/frontend/blob/dev/public/static/icons/favicon-512x512.png) | Official application icon |
-| Generic webhook | `notifinho.png` | This repository's `docs/images/logo.png` | Notifinho's own mark |
+| Generic webhook | `nowlert.png` | Nowlert product asset | Temporary transition artwork; replace with the approved Nowlert mark before the v3.0.0 release |
+| Legacy product URL | `notifinho.png` | Historical Notifinho product asset | Retained for cached URLs and compatibility |
 
 The Redfish mark is used in accordance with the
 [DMTF Redfish logo guidelines](https://www.dmtf.org/sites/default/files/standards/documents/DSP4015_1.0.pdf).
@@ -39,4 +40,4 @@ presence identifies the notification source and does not imply endorsement.
 The Discord, MQTT, and ntfy SVG paths in this directory are from Simple Icons
 16.27.0, distributed under CC0-1.0. Brand names and logos remain trademarks of
 their respective owners. The icons are used only to identify configured output
-types in the private Notifinho WebUI.
+types in the private Nowlert WebUI.

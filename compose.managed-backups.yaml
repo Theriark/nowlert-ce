@@ -3,7 +3,7 @@
 # needed to access existing UID-owned bind mounts, secure platform state, and
 # mount remote filesystems. Use only on a dedicated, trusted host.
 services:
-  notifinho:
+  nowlert:
     user: "0:0"
     cap_add:
       - DAC_OVERRIDE

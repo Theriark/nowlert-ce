@@ -172,7 +172,11 @@ def test_release_build_pins_teams_icons_while_discord_stays_packaged():
     assert "NOTIFINHO_TEAMS_ICON_BASE_URL" in presentation
     assert "notifinho-asset://" in presentation
     assert "data:{mime_type};base64," not in presentation
+    assert "ARG NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
     assert "ARG NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
+    assert "ENV NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
+    assert "ENV NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
+    assert "NOWLERT_TEAMS_ICON_BASE_URL=" in workflow
     assert "NOTIFINHO_TEAMS_ICON_BASE_URL=" in workflow
     assert "${{ steps.release.outputs.commit_sha }}" in workflow
 

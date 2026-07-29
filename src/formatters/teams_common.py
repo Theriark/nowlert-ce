@@ -146,7 +146,7 @@ class TeamsCardFormatter(BaseFormatter):
         body.append(
             {
                 "type": "TextBlock",
-                "text": f"FortPT Labs • Notifinho v{VERSION}",
+                "text": f"Theriark • Nowlert v{VERSION}",
                 "isSubtle": True,
                 "size": "Small",
                 "spacing": "Medium",

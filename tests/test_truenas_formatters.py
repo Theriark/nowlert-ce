@@ -42,7 +42,7 @@ def test_discord_and_teams_payloads_contain_operational_details():
         "SYNTHETIC-REPLICATION",
         "Cleared",
         "Severity",
-        f"Notifinho v{VERSION}",
+        f"Nowlert v{VERSION}",
     ):
         assert expected in json.dumps(discord)
         assert expected in json.dumps(teams)

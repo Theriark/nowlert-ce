@@ -94,4 +94,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker build --tag notifinho:ci .
+          docker build --tag nowlert:ci .

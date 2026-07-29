@@ -59,15 +59,15 @@ def destination() -> Destination:
     )
 
 
-def notification(source: str = "notifinho") -> Notification:
+def notification(source: str = "nowlert") -> Notification:
     return Notification(
         source=source,
         title="Safe Microsoft Teams test",
-        body="Safe Notifinho destination test.",
+        body="Safe Nowlert destination test.",
         status="information",
         category="hardware",
         metadata={
-            "provider": "HPE iLO" if source == "hpe_ilo" else "Notifinho",
+            "provider": "HPE iLO" if source == "hpe_ilo" else "Nowlert",
             "host": "Delta",
             "severity": "information",
         },
@@ -108,7 +108,8 @@ def test_generic_and_hpe_ilo_cards_use_small_public_https_icons():
     output = TeamsOutput()
 
     for source, filename, expected_pixels in (
-        ("notifinho", "notifinho.png", 80),
+        ("nowlert", "nowlert.png", 80),
+        ("notifinho", "nowlert.png", 80),
         ("hpe_ilo", "hpe-ilo.png", 64),
     ):
         formatter = output.source_formatters.get(
@@ -205,6 +206,10 @@ def test_release_image_pins_the_teams_icon_base_to_the_tag_commit():
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
 
+    assert "ARG NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
     assert "ARG NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
+    assert "ENV NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
     assert "ENV NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
+    assert "NOWLERT_TEAMS_ICON_BASE_URL=" in workflow
+    assert "NOTIFINHO_TEAMS_ICON_BASE_URL=" in workflow
     assert "${{ steps.release.outputs.commit_sha }}/assets/icons" in workflow

@@ -1,6 +1,6 @@
 "use strict";
 
-/* Notifinho WebUI final polish: persistent views, header actions, source-aware
+/* Nowlert WebUI final polish: persistent views, header actions, source-aware
  * tests, scheduled update checks, regional backup time, and reliable
  * inactive-source removal.
  */
@@ -8,7 +8,7 @@
   const VIEW_STORAGE_KEY = "notifinho.active-view";
   const UPDATE_CACHE_KEY = "notifinho.update-status";
   const UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000;
-  const GITHUB_RELEASE_URL = "https://api.github.com/repos/FortPT/notifinho/releases/latest";
+  const GITHUB_RELEASE_URL = "https://api.github.com/repos/Theriark/nowlert/releases/latest";
 
   function storageRead(storage, key) {
     try {
@@ -93,8 +93,8 @@
           provider: "Supermicro BMC",
           system: systemName,
           sensor: "Power Supply 1",
-          registry: "Notifinho.Test.1.0",
-          message_id: "Notifinho.1.0.Test",
+          registry: "Nowlert.Test.1.0",
+          message_id: "Nowlert.1.0.Test",
           recommended_action: "No action is required. This is a safe destination test.",
         },
       },
@@ -114,25 +114,25 @@
         title: "Home Assistant test alert",
         message: "Safe WebUI test: Home Assistant events are routed to this destination.",
         category: "automation",
-        metadata: { device: systemName, entity_id: "sensor.notifinho_test" },
+        metadata: { device: systemName, entity_id: "sensor.nowlert_test" },
       },
       grafana: {
         title: "Grafana test alert",
         message: "Safe WebUI test: Grafana alerts are routed to this destination.",
         category: "monitoring",
-        metadata: { rule: "Notifinho destination test", dashboard: "WebUI validation" },
+        metadata: { rule: "Nowlert destination test", dashboard: "WebUI validation" },
       },
       portainer: {
         title: "Portainer test alert",
         message: "Safe WebUI test: Portainer events are routed to this destination.",
         category: "containers",
-        metadata: { environment: systemName, resource: "notifinho-test" },
+        metadata: { environment: systemName, resource: "nowlert-test" },
       },
       proxmox: {
         title: "Proxmox test alert",
         message: "Safe WebUI test: Proxmox events are routed to this destination.",
         category: "virtualization",
-        metadata: { node: systemName, resource: "vm/notifinho-test" },
+        metadata: { node: systemName, resource: "vm/nowlert-test" },
       },
       unifi_drive: {
         title: "UniFi Drive test alert",
@@ -156,7 +156,7 @@
         title: "Zabbix test alert",
         message: "Safe WebUI test: Zabbix monitoring events are routed to this destination.",
         category: "monitoring",
-        metadata: { host: systemName, trigger: "Notifinho destination test" },
+        metadata: { host: systemName, trigger: "Nowlert destination test" },
       },
     };
     const sample = samples[source] || {
@@ -247,8 +247,8 @@
       if (manual) {
         toast(
           state.versionStatus.update_available
-            ? `Notifinho ${available} is available.`
-            : `Notifinho ${running || ""} is up to date.`,
+            ? `Nowlert ${available} is available.`
+            : `Nowlert ${running || ""} is up to date.`,
           state.versionStatus.update_available ? "warning" : "success",
         );
       }
@@ -304,7 +304,7 @@
       attributes: { role: "menuitem" },
     }, [
       element("span", { text: "⏻", attributes: { "aria-hidden": "true" } }),
-      element("span", { text: "Restart Notifinho" }),
+      element("span", { text: "Restart Nowlert" }),
     ]);
     restartButton.id = "platform-restart";
     menu.append(updateButton, restartButton);
@@ -450,7 +450,7 @@
 
   cardSampleEvent = function sourceAwareCardSampleEvent(destination) {
     const route = routeForDestination(destination.id);
-    return sourceTestSample(route ? route.source : "notifinho", destination);
+    return sourceTestSample(route ? route.source : "nowlert", destination);
   };
 
   const backupTime = byId("backup-time");

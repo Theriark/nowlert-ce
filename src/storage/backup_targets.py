@@ -420,7 +420,7 @@ class BackupTargetStore:
             default_path = self.mount_root / target_id
             local_path = supplied_path or str(default_path)
             if Path(local_path) != default_path and not local_path.startswith("/notifinho/"):
-                raise ValueError("remote mount path must be inside Notifinho storage")
+                raise ValueError("remote mount path must be inside Nowlert storage")
         return {
             "name": name,
             "normalized": normalized,

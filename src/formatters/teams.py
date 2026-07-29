@@ -1,5 +1,5 @@
 """
-Notifinho
+Nowlert
 
 teams.py
 
@@ -154,7 +154,7 @@ class TeamsFormatter(TeamsCardFormatter):
 
             return "Proxmox"
 
-        return source or "Notifinho"
+        return source or "Nowlert"
 
     def _result_text(
         self,

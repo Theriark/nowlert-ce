@@ -127,7 +127,7 @@ class DiscordCardFormatter(BaseFormatter):
             ),
             "color": color,
             "fields": fields,
-            "footer": {"text": f"FortPT Labs • Notifinho v{VERSION}"},
+            "footer": {"text": f"Theriark • Nowlert v{VERSION}"},
         }
 
         detail_fields = self._discord_detail_fields(data.details)
@@ -226,7 +226,7 @@ class DiscordCardFormatter(BaseFormatter):
         children.extend((
             self._discord_v2_separator(),
             self._discord_v2_text(
-                f"-# FortPT Labs • Notifinho v{VERSION}",
+                f"-# Theriark • Nowlert v{VERSION}",
             ),
         ))
 

@@ -1,4 +1,4 @@
-# Notifinho roadmap
+# Nowlert roadmap
 
 ## Shipped
 
@@ -54,6 +54,15 @@
 - Microsoft Teams 28 KiB pre-send payload guard
 - accurate HTTP 202 accepted-versus-delivered wording
 
+### v3.0.0 — Nowlert identity transition
+
+- Nowlert product and WebUI identity
+- Theriark repository and container metadata
+- `NOWLERT_*` preferred deployment variables with legacy aliases
+- Docker Hub and GHCR release coordinates
+- compatibility-preserving schema-9 migration
+- guarded release publication from `Theriark/nowlert`
+
 ## Current maintenance priorities
 
 1. Keep README, Docker Hub, configuration examples, release notes, and
@@ -67,7 +76,7 @@
 5. Add new integrations and outputs only behind explicit contracts, tests, and
    source/destination ownership boundaries.
 
-## Candidate v2.x work
+## Candidate v3.x work
 
 These are candidates, not promises or assigned release dates:
 

@@ -1,20 +1,19 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 echo "========================================="
-echo " Building Notifinho Development Image"
+echo " Building Nowlert Development Environment"
 echo "========================================="
 
-docker build \
-    -f Dockerfile.dev \
-    -t notifinho-dev:local \
-    .
+docker compose     -f docker-compose.yml     up -d --build nowlert-dev
 
 echo
-echo "Restarting development container..."
+echo "========================================="
+echo " Nowlert Development Environment"
+echo "========================================="
 
-docker restart notifinho-dev
+docker compose     -f docker-compose.yml     ps nowlert-dev
 
 echo
-echo "✅ Development environment updated."
+echo "Development environment updated."

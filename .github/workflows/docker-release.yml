@@ -25,6 +25,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Verify release repository identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_REPOSITORY,,}" != "theriark/nowlert" ]]; then
+            echo "::error::Stable publication is allowed only from Theriark/nowlert; current repository is ${GITHUB_REPOSITORY}."
+            exit 1
+          fi
+
+          echo "Release repository identity verified."
+
       - name: Resolve release tag
         id: version
         shell: bash
@@ -133,12 +145,13 @@ jobs:
           context: .
           push: true
           build-args: |
+            NOWLERT_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.release.outputs.commit_sha }}/assets/icons
             NOTIFINHO_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.release.outputs.commit_sha }}/assets/icons
           tags: |
-            fortpt/notifinho:${{ steps.version.outputs.version }}
-            fortpt/notifinho:latest
-            ghcr.io/fortpt/notifinho:${{ steps.version.outputs.version }}
-            ghcr.io/fortpt/notifinho:latest
+            theriark/nowlert:${{ steps.version.outputs.version }}
+            theriark/nowlert:latest
+            ghcr.io/theriark/nowlert:${{ steps.version.outputs.version }}
+            ghcr.io/theriark/nowlert:latest
 
       - name: Create or update GitHub Release
         shell: bash
@@ -148,7 +161,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          RELEASE_TITLE="Notifinho ${TAG}"
+          RELEASE_TITLE="Nowlert ${TAG}"
           NOTES_FILE="docs/releases/${TAG}.md"
 
           if gh release view "${TAG}" \

@@ -191,6 +191,8 @@ class APIService:
         if authorization.casefold().startswith("bearer "):
             supplied = authorization[7:].strip()
         if not supplied:
+            supplied = str(headers.get("X-Nowlert-Token", ""))
+        if not supplied:
             supplied = str(headers.get("X-Notifinho-Token", ""))
         if self.platform is not None:
             principal = self.platform.tokens.authenticate(supplied, source)

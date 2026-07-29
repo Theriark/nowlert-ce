@@ -42,7 +42,7 @@ TEAMS_PRODUCT_ASSETS = {
     "hpe_ilo": "hpe-ilo.png",
     "dell_idrac": "dell-idrac.png",
     "home_assistant": "home-assistant.png",
-    "generic": "notifinho.png",
+    "generic": "nowlert.png",
 }
 
 
@@ -427,7 +427,7 @@ def test_generic_events_do_not_fall_back_to_xen_orchestra_cards():
     assert "Xen Orchestra" not in rendered
     assert "Backup Successful" not in rendered
     assert "xologoname.png" not in rendered
-    assert "notifinho.png" in rendered
+    assert "nowlert.png" in rendered
 
 
 @pytest.mark.parametrize(
@@ -544,7 +544,7 @@ def test_every_discord_card_uses_the_shared_information_hierarchy(source):
         for field in embed["fields"]
     )
     assert field_separator_count == (2 if has_details else 1)
-    assert embed["footer"]["text"] == f"FortPT Labs • Notifinho v{VERSION}"
+    assert embed["footer"]["text"] == f"Theriark • Nowlert v{VERSION}"
 
 
 def test_discord_details_follow_metrics_and_end_at_the_footer_rule():

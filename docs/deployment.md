@@ -1,6 +1,6 @@
 # Container deployment
 
-Notifinho keeps development and production Compose definitions separate:
+Nowlert keeps development and production Compose definitions separate:
 
 - `docker-compose.yml` builds the checked-out source and publishes development
   ports `8026` and `18082`;
@@ -23,7 +23,7 @@ Build and start the development service:
 ```bash
 docker compose -f docker-compose.yml up -d --build
 docker compose -f docker-compose.yml ps
-docker logs --tail 100 notifinho-dev
+docker logs --tail 100 nowlert-dev
 ```
 
 Expected listeners are host TCP `8026` for SMTP and host TCP `18082` for the
@@ -44,7 +44,7 @@ chmod 600 .env config/config.yaml
 chmod 700 logs logs/emails secrets state external-backups
 ```
 
-Set `NOTIFINHO_UID` and `NOTIFINHO_GID` in `.env` to the values printed by
+Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the values printed by
 `id`. The production service uses that identity instead of container root.
 Files mounted below `/run/secrets` must be readable by this identity and mode
 `0600` when used as API-token or SMTP-password sources.
@@ -64,7 +64,7 @@ docker compose -f compose.production.yaml config
 docker compose -f compose.production.yaml pull
 docker compose -f compose.production.yaml up -d
 docker compose -f compose.production.yaml ps
-docker logs --tail 100 notifinho
+docker logs --tail 100 nowlert
 ```
 
 The production definition drops Linux capabilities, prevents privilege
@@ -77,21 +77,21 @@ mounts.
 Replace relative paths in `.env` with absolute host paths, for example:
 
 ```dotenv
-NOTIFINHO_CONFIG_DIR=/docker/notifinho/config
-NOTIFINHO_LOG_DIR=/docker/notifinho/logs
-NOTIFINHO_SECRETS_DIR=/docker/notifinho/secrets
-NOTIFINHO_STATE_DIR=/docker/notifinho/state
-NOTIFINHO_EXTERNAL_BACKUP_DIR=/mnt/notifinho-backups
+NOWLERT_CONFIG_DIR=/docker/nowlert/config
+NOWLERT_LOG_DIR=/docker/nowlert/logs
+NOWLERT_SECRETS_DIR=/docker/nowlert/secrets
+NOWLERT_STATE_DIR=/docker/nowlert/state
+NOWLERT_EXTERNAL_BACKUP_DIR=/mnt/nowlert-backups
 ```
 
 Use a versioned image tag for production. Upgrade only after validating the
-same image in development, then change `NOTIFINHO_IMAGE`, pull, and redeploy.
+same image in development, then change `NOWLERT_IMAGE`, pull, and redeploy.
 
 ## v2.5.0 database-authoritative resources upgrade
 
 Before deployment, create a matched backup of `config`, `state`, and `secrets`.
 v2.5.0 upgrades platform state to schema 8. During the first successful start,
-Notifinho imports destinations, routes, YAML application tokens, regional
+Nowlert imports destinations, routes, YAML application tokens, regional
 preferences, backup scheduling, integration notification behavior, Home
 Assistant aliases, UniFi Protect aliases, and Redfish deduplication settings.
 
@@ -219,7 +219,7 @@ For reverse-proxied HTTPS:
 platform:
   secure_cookies: true
 webui:
-  public_url: "https://notifinho.example.com"
+  public_url: "https://nowlert.example.com"
   enforce_https: true
 ```
 
@@ -244,7 +244,7 @@ before schema 6. A v2.2.1 image cannot open schema-6 platform state.
 
 The safest NFS/SMB arrangement remains a host-mounted share bound into the
 container. Create a Local target in the WebUI whose path is inside that bounded
-mount; Notifinho retains its non-root identity, read-only root filesystem, and
+mount; Nowlert retains its non-root identity, read-only root filesystem, and
 dropped capabilities.
 
 Application-managed NFS/SMB mounts are opt-in. They require the mount helpers
@@ -265,12 +265,12 @@ docker compose \
 
 The v2.3.2 override runs the service as root with `DAC_OVERRIDE`, `FOWNER`, and
 `SYS_ADMIN`. Use it only on a dedicated trusted host. Prefer a read/write share
-restricted to the Notifinho host and backup path. SMB secrets are encrypted in
+restricted to the Nowlert host and backup path. SMB secrets are encrypted in
 private state and remain write-only, but moving mount authority into the
 container increases impact if the application is compromised.
 
 For enforced HTTPS entry, set `webui.public_url` to the external HTTPS URL and
-`webui.enforce_https: true`. The reverse proxy supplies TLS; Notifinho redirects
+`webui.enforce_https: true`. The reverse proxy supplies TLS; Nowlert redirects
 only browser WebUI requests and does not manufacture an HTTPS endpoint.
 
 After deployment, complete the
@@ -294,7 +294,7 @@ host's normal credential controls, then bind that directory into the container:
 
 ```yaml
 volumes:
-  - /mnt/notifinho-backups:/notifinho/external-backups
+  - /mnt/nowlert-backups:/notifinho/external-backups
 ```
 
 Set the WebUI external path to `/notifinho/external-backups`. The container
@@ -335,19 +335,19 @@ the browser security boundary.
 
 ## Rollback
 
-Set `NOTIFINHO_IMAGE` back to the previously validated version, then run:
+Set `NOWLERT_IMAGE` back to the previously validated version, then run:
 
 ```bash
 docker compose -f compose.production.yaml pull
 docker compose -f compose.production.yaml up -d
-docker logs --tail 100 notifinho
+docker logs --tail 100 nowlert
 ```
 
 Configuration and logs remain on the host. Review release-specific migration
 notes before rolling back across a configuration or data-schema change.
 
 v2.2.0 upgrades platform state to schema 5. A v2.1.0 image rejects schema 5.
-For rollback, stop Notifinho, restore the complete pre-upgrade configuration
+For rollback, stop Nowlert, restore the complete pre-upgrade configuration
 and state directories, pin `fortpt/notifinho:2.1.0`, and then start the stack.
 
 v2.3.0 upgrades platform state to schema 6. Rollback to v2.2.1 requires the

@@ -1,9 +1,8 @@
-"""Authenticated, owner-scoped HTTP contract for the Notifinho v2 platform."""
+"""Authenticated, owner-scoped HTTP contract for the Nowlert v2 platform."""
 
 from __future__ import annotations
 
 import json
-import os
 import re
 import signal
 import threading
@@ -14,6 +13,7 @@ from http.cookies import SimpleCookie
 from urllib.parse import unquote
 
 from api.response import APIResponse
+from environment import compatible_environment
 from integrations.catalog import integrations, route_options
 from logger import log
 from api.security import Principal, RateLimiter
@@ -788,11 +788,11 @@ class PlatformAPI:
             persistent=True,
             active=backup_failed,
         )
-        available = str(os.environ.get("NOTIFINHO_AVAILABLE_VERSION") or "").strip()
+        available = str(compatible_environment("NOWLERT_AVAILABLE_VERSION", "NOTIFINHO_AVAILABLE_VERSION", default="") or "").strip()
         update_available = self._version_key(available) > self._version_key(VERSION)
         self.notices.sync_system(
             "software-update",
-            "Notifinho update available",
+            "Nowlert update available",
             f"Version {available} is available; the notice clears after that version is installed.",
             status="warning",
             kind="update",
@@ -1129,7 +1129,7 @@ class PlatformAPI:
     def _version_endpoint(self, method) -> APIResponse:
         if method != "GET":
             return self._method_not_allowed("GET")
-        available = str(os.environ.get("NOTIFINHO_AVAILABLE_VERSION") or "").strip()
+        available = str(compatible_environment("NOWLERT_AVAILABLE_VERSION", "NOTIFINHO_AVAILABLE_VERSION", default="") or "").strip()
         return APIResponse(
             200,
             {
@@ -1705,7 +1705,10 @@ class PlatformAPI:
         authorization = self._header(headers, "Authorization")
         if authorization.casefold().startswith("bearer "):
             return authorization[7:].strip()
-        return self._header(headers, "X-Notifinho-Token")
+        return (
+            self._header(headers, "X-Nowlert-Token")
+            or self._header(headers, "X-Notifinho-Token")
+        )
 
     def _notification(self, value):
         if not isinstance(value, dict):
@@ -1935,7 +1938,7 @@ class PlatformAPI:
         return APIResponse(
             500,
             {
-                "error": "Notifinho could not complete this request.",
+                "error": "Nowlert could not complete this request.",
                 "code": "internal_error",
                 "reference": reference,
                 "path": path,

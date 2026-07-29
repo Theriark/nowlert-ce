@@ -1530,6 +1530,18 @@ class UnifiedConfigurationService:
                     changed = True
                     continue
                 next_entry = deepcopy(entry)
+                if (
+                    next_source != source
+                    and not str(next_entry.get("name") or "").strip()
+                ):
+                    # Preserve the original source identity before aliases
+                    # such as generic, redfish and home_lab are merged into
+                    # the wildcard source.
+                    next_entry["name"] = self._route_name(
+                        source,
+                        next_entry,
+                    )
+                    changed = True
                 if not str(next_entry.get("input") or "").strip():
                     inferred = infer_input_type(source)
                     if inferred:

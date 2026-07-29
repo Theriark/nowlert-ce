@@ -17,30 +17,34 @@ except ImportError:  # Development/test fallback; release images install tzlocal
         return ZoneInfo("UTC")
 
 from config import config
+from environment import compatible_environment, first_environment
 
 
 class PresentationMixin:
     """Keep presentation, safety, and product branding consistent."""
 
     ICON_DIR = Path(
-        os.environ.get(
+        first_environment(
+            "NOWLERT_ICON_DIR",
+            "NOWLERT_DISCORD_ICON_DIR",
             "NOTIFINHO_ICON_DIR",
-            os.environ.get(
-                "NOTIFINHO_DISCORD_ICON_DIR",
-                str(
-                    Path(__file__).resolve().parents[2]
-                    / "assets"
-                    / "icons"
-                ),
+            "NOTIFINHO_DISCORD_ICON_DIR",
+            default=str(
+                Path(__file__).resolve().parents[2]
+                / "assets"
+                / "icons"
             ),
         )
     )
-    TEAMS_ICON_BASE_URL = os.environ.get(
-        "NOTIFINHO_TEAMS_ICON_BASE_URL",
-        (
-            "https://raw.githubusercontent.com/FortPT/notifinho/"
-            "main/assets/icons"
-        ),
+    TEAMS_ICON_BASE_URL = str(
+        compatible_environment(
+            "NOWLERT_TEAMS_ICON_BASE_URL",
+            "NOTIFINHO_TEAMS_ICON_BASE_URL",
+            default=(
+                "https://raw.githubusercontent.com/Theriark/nowlert/"
+                "main/assets/icons"
+            ),
+        )
     ).rstrip("/")
 
     PRODUCT_ICONS = {
@@ -63,7 +67,9 @@ class PresentationMixin:
         "hpe_ilo": "hpe-ilo.png",
         "dell_idrac": "dell-idrac.png",
         "home_assistant": "home-assistant.png",
-        "notifinho": "notifinho.png",
+        "nowlert": "nowlert.png",
+        # Legacy source identifiers render with the current product artwork.
+        "notifinho": "nowlert.png",
     }
 
     # Discord controls thumbnail layout and does not accept explicit pixel sizes.
@@ -85,6 +91,7 @@ class PresentationMixin:
     # product marks. Keeping both dimensions equal preserves the official
     # artwork's aspect ratio while making thin lockups legible in Teams.
     TEAMS_ICON_PIXELS = {
+        "nowlert": 80,
         "notifinho": 80,
         "proxmox": 64,
         "qnap": 72,
@@ -237,7 +244,7 @@ class PresentationMixin:
     def _format_datetime(self, value: Any) -> str:
         """Render source time without ever substituting receipt time.
 
-        Timezone-aware values and epochs are converted to the Notifinho
+        Timezone-aware values and epochs are converted to the Nowlert
         machine's local timezone. Naive values are treated as source-local
         wall clocks. An optional presentation timezone overrides the machine
         default for the future WebUI without changing the event-time source.
@@ -287,7 +294,7 @@ class PresentationMixin:
         return parsed.strftime("%d %b %Y • %H:%M")
 
     def _presentation_timezone(self):
-        """Return an override or the Notifinho machine's local timezone."""
+        """Return an override or the Nowlert machine's local timezone."""
 
         configured = config.get("presentation", "timezone")
         zone_name = str(configured or os.environ.get("TZ") or "").strip()

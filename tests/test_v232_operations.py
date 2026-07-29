@@ -189,7 +189,7 @@ def test_managed_mount_override_contains_the_verified_capability_set():
     override = yaml.safe_load(
         (ROOT / "compose.managed-backups.yaml").read_text(encoding="utf-8")
     )
-    service = override["services"]["notifinho"]
+    service = override["services"]["nowlert"]
     assert service["user"] == "0:0"
     assert set(service["cap_add"]) == {
         "DAC_OVERRIDE",
@@ -218,7 +218,8 @@ def test_v232_webui_uses_vendor_icons_safe_removal_and_header_restart():
     assert "<th>Available inputs</th>" in markup
     assert 'actionButton("Remove", "remove-source"' not in script
     assert 'route.source === source || route.source === "*"' in script
-    assert 'source: "notifinho"' in script
+    assert 'source: "nowlert"' in script
+    assert 'schema: "notifinho.event.v1"' in script
     assert 'source: "home_assistant"' not in script[
         script.index("function cardSampleEvent"):
         script.index("async function runPreview")

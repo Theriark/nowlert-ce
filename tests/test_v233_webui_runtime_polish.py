@@ -36,7 +36,7 @@ def test_v233_update_check_is_bounded_to_the_official_github_api():
     script = (ROOT / "src" / "webui" / "enhancements.js").read_text(
         encoding="utf-8"
     )
-    assert "https://api.github.com/repos/FortPT/notifinho/releases/latest" in script
+    assert "https://api.github.com/repos/Theriark/nowlert/releases/latest" in script
     assert "6 * 60 * 60 * 1000" in script
     assert 'credentials: "omit"' in script
     assert "visibilitychange" in script
@@ -50,7 +50,7 @@ def test_v233_runtime_polish_keeps_reload_source_tests_and_clock_source_aware():
     assert "window.sessionStorage" in script
     assert "route.enabled && route.source === source" in script
     assert 'route.source !== "*"' in script
-    assert 'sourceTestSample(route ? route.source : "notifinho"' in script
+    assert 'sourceTestSample(route ? route.source : "nowlert"' in script
     assert 'provider: "Supermicro BMC"' in script
     assert "parseCanonicalTime" in script
     assert "displayClockTime" in script

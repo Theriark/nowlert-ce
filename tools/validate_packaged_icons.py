@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate notification and WebUI assets actually referenced by Notifinho."""
+"""Validate notification and WebUI assets actually referenced by Nowlert."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ for node in ast.walk(tree):
 # WebUIService is the authority mapping /ui URLs to packaged files.
 service_path = ROOT / "src" / "webui" / "service.py"
 spec = importlib.util.spec_from_file_location(
-    "_notifinho_packaged_webui_service",
+    "_nowlert_packaged_webui_service",
     service_path,
 )
 

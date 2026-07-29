@@ -1,4 +1,4 @@
-"""Small, migration-aware SQLite boundary for Notifinho platform state."""
+"""Small, migration-aware SQLite boundary for Nowlert platform state."""
 
 from __future__ import annotations
 

@@ -1,38 +1,51 @@
-name: notifinho
+name: nowlert
 
 services:
-  notifinho:
-    image: "${NOTIFINHO_IMAGE:-fortpt/notifinho:2.5.5}"
-    container_name: notifinho
+  nowlert:
+    image: "${NOWLERT_IMAGE:-${NOTIFINHO_IMAGE:-theriark/nowlert:3.0.0}}"
+    container_name: nowlert
     restart: unless-stopped
     init: true
     stop_grace_period: 20s
 
     # Run with the deployment user's numeric identity. The mounted config and
     # logs directories must be writable by this UID/GID.
-    user: "${NOTIFINHO_UID:-1000}:${NOTIFINHO_GID:-1000}"
+    user: "${NOWLERT_UID:-${NOTIFINHO_UID:-1000}}:${NOWLERT_GID:-${NOTIFINHO_GID:-1000}}"
 
     ports:
-      - "${NOTIFINHO_SMTP_PORT:-8025}:8025"
-      - "${NOTIFINHO_HTTP_PORT:-18080}:8080"
+      - "${NOWLERT_SMTP_PORT:-${NOTIFINHO_SMTP_PORT:-8025}}:8025"
+      - "${NOWLERT_HTTP_PORT:-${NOTIFINHO_HTTP_PORT:-18080}}:8080"
 
     environment:
       TZ: "${TZ:-Europe/Lisbon}"
+
+      # The internal path remains stable so existing state and rollback
+      # procedures continue to work across the product rename.
+      NOWLERT_STATE_DIR: "/notifinho/state"
       NOTIFINHO_STATE_DIR: "/notifinho/state"
-      NOTIFINHO_SMTP_PASSWORD: "${NOTIFINHO_SMTP_PASSWORD:-}"
-      NOTIFINHO_ADMIN_TOKEN: "${NOTIFINHO_ADMIN_TOKEN:-}"
-      NOTIFINHO_HARDWARE_TOKEN: "${NOTIFINHO_HARDWARE_TOKEN:-}"
-      NOTIFINHO_AVAILABLE_VERSION: "${NOTIFINHO_AVAILABLE_VERSION:-}"
+
+      NOWLERT_SMTP_PASSWORD: "${NOWLERT_SMTP_PASSWORD:-${NOTIFINHO_SMTP_PASSWORD:-}}"
+      NOTIFINHO_SMTP_PASSWORD: "${NOTIFINHO_SMTP_PASSWORD:-${NOWLERT_SMTP_PASSWORD:-}}"
+
+      NOWLERT_ADMIN_TOKEN: "${NOWLERT_ADMIN_TOKEN:-${NOTIFINHO_ADMIN_TOKEN:-}}"
+      NOTIFINHO_ADMIN_TOKEN: "${NOTIFINHO_ADMIN_TOKEN:-${NOWLERT_ADMIN_TOKEN:-}}"
+
+      NOWLERT_HARDWARE_TOKEN: "${NOWLERT_HARDWARE_TOKEN:-${NOTIFINHO_HARDWARE_TOKEN:-}}"
+      NOTIFINHO_HARDWARE_TOKEN: "${NOTIFINHO_HARDWARE_TOKEN:-${NOWLERT_HARDWARE_TOKEN:-}}"
+
+      NOWLERT_AVAILABLE_VERSION: "${NOWLERT_AVAILABLE_VERSION:-${NOTIFINHO_AVAILABLE_VERSION:-}}"
+      NOTIFINHO_AVAILABLE_VERSION: "${NOTIFINHO_AVAILABLE_VERSION:-${NOWLERT_AVAILABLE_VERSION:-}}"
 
     volumes:
-      - "${NOTIFINHO_CONFIG_DIR:-./config}:/notifinho/config"
-      - "${NOTIFINHO_LOG_DIR:-./logs}:/notifinho/logs"
-      - "${NOTIFINHO_SECRETS_DIR:-./secrets}:/run/secrets:ro"
-      - "${NOTIFINHO_STATE_DIR:-./state}:/notifinho/state"
-      # This remains the safest backup mode: mount NFS/SMB on the host and bind
-      # it here. The opt-in compose.managed-backups.yaml override is available
-      # when Notifinho must manage remote mounts itself.
-      - "${NOTIFINHO_EXTERNAL_BACKUP_DIR:-./external-backups}:/notifinho/external-backups"
+      - "${NOWLERT_CONFIG_DIR:-${NOTIFINHO_CONFIG_DIR:-./config}}:/notifinho/config"
+      - "${NOWLERT_LOG_DIR:-${NOTIFINHO_LOG_DIR:-./logs}}:/notifinho/logs"
+      - "${NOWLERT_SECRETS_DIR:-${NOTIFINHO_SECRETS_DIR:-./secrets}}:/run/secrets:ro"
+      - "${NOWLERT_STATE_DIR:-${NOTIFINHO_STATE_DIR:-./state}}:/notifinho/state"
+
+      # This remains the safest backup mode: mount NFS/SMB on the host and
+      # bind it here. The managed-backups override is available when Nowlert
+      # must manage remote mounts itself.
+      - "${NOWLERT_EXTERNAL_BACKUP_DIR:-${NOTIFINHO_EXTERNAL_BACKUP_DIR:-./external-backups}}:/notifinho/external-backups"
 
     read_only: true
     tmpfs:

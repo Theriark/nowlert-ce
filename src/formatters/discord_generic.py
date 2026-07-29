@@ -12,7 +12,7 @@ class GenericDiscordFormatter(DiscordCardFormatter):
     def format(self, notification: Notification) -> dict:
         metadata = notification.metadata or {}
         source = str(
-            metadata.get("provider") or notification.source or "Notifinho"
+            metadata.get("provider") or notification.source or "Nowlert"
         ).strip()
         title = notification.title or notification.subject or "Notification"
         severity = metadata.get("severity") or notification.status or "information"
@@ -24,7 +24,7 @@ class GenericDiscordFormatter(DiscordCardFormatter):
         ).strip()
         return self._render_discord_card(
             DiscordCardData(
-                source="notifinho",
+                source="nowlert",
                 integration=source,
                 device=device,
                 event=title,

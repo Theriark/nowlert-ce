@@ -12,7 +12,7 @@ class GenericTeamsFormatter(TeamsCardFormatter):
     def format(self, notification: Notification) -> dict:
         metadata = notification.metadata or {}
         source = str(
-            metadata.get("provider") or notification.source or "Notifinho"
+            metadata.get("provider") or notification.source or "Nowlert"
         ).strip()
         title = notification.title or notification.subject or "Notification"
         severity = (
@@ -32,7 +32,7 @@ class GenericTeamsFormatter(TeamsCardFormatter):
         )
         return self._render_teams_card(
             TeamsCardData(
-                source="notifinho",
+                source="nowlert",
                 integration=source,
                 device=device,
                 event=title,
