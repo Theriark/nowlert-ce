@@ -1,6 +1,6 @@
 # Proxmox VE integration candidate
 
-Notifinho v1.8 includes fixture-validated Proxmox VE ingestion through SMTP and
+Nowlert v1.8 includes fixture-validated Proxmox VE ingestion through SMTP and
 an authenticated native HTTP endpoint:
 
 ```text
@@ -24,7 +24,7 @@ fixtures cannot prove compatibility with every Proxmox release and template.
 Both transports normalize to the `proxmox` source key and use dedicated
 Discord embeds or Microsoft Teams Adaptive Cards.
 
-## Notifinho configuration
+## Nowlert configuration
 
 ```yaml
 http:
@@ -59,7 +59,7 @@ Do not commit the real secret or destination URLs.
 
 ## SMTP candidate
 
-Point a Proxmox notification target at Notifinho's SMTP listener. Detection
+Point a Proxmox notification target at Nowlert's SMTP listener. Detection
 accepts Proxmox-branded senders or characteristic `pve`/`vzdump` backup,
 replication, and status subjects. It does not require the sender address to be
 `root@pam` or use a particular private domain.
@@ -79,12 +79,12 @@ instead of exposing or retaining raw content in output cards.
 ## Native webhook contract
 
 Proxmox webhook targets use administrator-defined request templates, so
-Notifinho defines an explicit versioned JSON contract instead of guessing a
+Nowlert defines an explicit versioned JSON contract instead of guessing a
 release-specific payload:
 
 ```json
 {
-  "schema": "notifinho.proxmox.v1",
+  "schema": "nowlert.proxmox.v1",
   "source": "proxmox-ve",
   "type": "storage",
   "title": "Synthetic storage warning",
@@ -102,7 +102,7 @@ release-specific payload:
 Configure the target to send `Content-Type: application/json` and:
 
 ```text
-X-Notifinho-Token: PASTE_64_CHARACTER_HEX_SECRET
+X-Nowlert-Token: PASTE_64_CHARACTER_HEX_SECRET
 ```
 
 Map Proxmox's available notification template values into the contract. Do not
@@ -110,7 +110,7 @@ copy illustrative placeholder syntax from another Proxmox release: confirm the
 variables and JSON-escaping helper offered by the installed version. Keep
 `schema` and `source` literal. `type` should preferably be one of `backup`,
 `replication`, `storage`, `cluster`, `availability`, `security`, `guest`, or
-`system`; otherwise Notifinho infers a category from the bounded text fields.
+`system`; otherwise Nowlert infers a category from the bounded text fields.
 
 Only scalar values are accepted in `metadata`, and at most 64 metadata keys are
 processed. Extra metadata is retained for normalization but is not rendered in
@@ -129,7 +129,7 @@ curl -sS -o /dev/null -w 'missing_token=%{http_code}\n' \
 
 curl -sS -o /dev/null -w 'authenticated=%{http_code}\n' \
   -H 'Content-Type: application/json' \
-  -H "X-Notifinho-Token: ${TOKEN}" \
+  -H "X-Nowlert-Token: ${TOKEN}" \
   --data @tests/fixtures/proxmox/event_warning.json \
   http://127.0.0.1:18082/proxmox/events
 ```

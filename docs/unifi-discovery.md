@@ -48,7 +48,7 @@ test notifications as initial samples.
 
 ## SMTP discovery
 
-Point one development-only UniFi notification destination at VM-04's
+Point one development-only UniFi notification destination at NOWLERT-HOST's
 development SMTP service on port `8026`. Do not change the production SMTP
 destination. Use a narrow test notification or a low-volume health event, then
 store the resulting original `.eml` under the matching private directory.

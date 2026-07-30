@@ -1,5 +1,5 @@
 {
-  "schema": "notifinho.synology.v1",
+  "schema": "nowlert.synology.v1",
   "source": "synology-dsm",
   "event_type": "backup",
   "title": "Synthetic Hyper Backup failure",

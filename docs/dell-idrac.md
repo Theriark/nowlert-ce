@@ -1,13 +1,13 @@
 # Dell iDRAC
 
-Notifinho v1.9.0 provides a fixture-validated Dell iDRAC candidate through
+Nowlert v1.9.0 provides a fixture-validated Dell iDRAC candidate through
 `POST /redfish/dell` and conservative delivered iDRAC email alerts. Both paths
 use the `dell_idrac` routing key.
 
 Use this Redfish Event Service destination:
 
 ```text
-http://notifinho.example:8080/redfish/dell
+http://nowlert.example:8080/redfish/dell
 ```
 
 Authenticate with a source-scoped header token where supported. Otherwise use
@@ -42,6 +42,6 @@ is deliberately irrelevant. Failed logins, untrusted addresses, and all other
 security events continue through normal routing. Suppressed events are logged
 as handled so the BMC does not retry them.
 
-Notifinho does not call the iDRAC API, poll Lifecycle Controller data, or need
+Nowlert does not call the iDRAC API, poll Lifecycle Controller data, or need
 permanent administrative credentials. Real validation across iDRAC releases
 remains pending and should begin with a harmless test alert.

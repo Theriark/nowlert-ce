@@ -53,7 +53,6 @@ jobs:
           push: true
           build-args: |
             NOWLERT_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/${{ env.SOURCE_SHA }}/assets/icons
-            NOTIFINHO_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/${{ env.SOURCE_SHA }}/assets/icons
           tags: |
             ${{ env.IMAGE }}:main
             ${{ env.IMAGE }}:sha-${{ env.SOURCE_SHA }}

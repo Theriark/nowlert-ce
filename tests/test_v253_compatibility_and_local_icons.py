@@ -1,4 +1,4 @@
-"""Notifinho v2.5.3 compatibility and local-icon regressions."""
+"""Nowlert v2.5.3 compatibility and local-icon regressions."""
 
 from __future__ import annotations
 
@@ -121,7 +121,7 @@ def test_discord_resolves_exact_padded_packaged_variant():
     output.ICON_DIR = ROOT / "assets" / "icons"
     formatter = output.source_formatters["xo"]
     payload = _components_thumbnail(
-        "notifinho-asset://discord/xen-orchestra.png"
+        "nowlert-asset://discord/xen-orchestra.png"
     )
 
     filename, path, thumbnail = output._local_icon(payload, formatter)
@@ -130,14 +130,14 @@ def test_discord_resolves_exact_padded_packaged_variant():
     assert path == (
         ROOT / "assets" / "icons" / "discord" / "xen-orchestra.png"
     ).resolve()
-    assert thumbnail["url"].startswith("notifinho-asset://")
+    assert thumbnail["url"].startswith("nowlert-asset://")
 
 
 def test_discord_resolves_regular_packaged_variant():
     output = DiscordOutput()
     output.ICON_DIR = ROOT / "assets" / "icons"
     formatter = output.source_formatters["synology"]
-    payload = _components_thumbnail("notifinho-asset://synology.png")
+    payload = _components_thumbnail("nowlert-asset://synology.png")
 
     filename, path, _thumbnail = output._local_icon(payload, formatter)
 
@@ -150,11 +150,11 @@ def test_discord_rejects_unmapped_and_traversal_assets():
     formatter = output.source_formatters["xo"]
 
     assert output._local_icon(
-        _components_thumbnail("notifinho-asset://../secret"),
+        _components_thumbnail("nowlert-asset://../secret"),
         formatter,
     ) is None
     assert output._local_icon(
-        _components_thumbnail("notifinho-asset://unknown.png"),
+        _components_thumbnail("nowlert-asset://unknown.png"),
         formatter,
     ) is None
 
@@ -168,16 +168,13 @@ def test_release_build_pins_teams_icons_while_discord_stays_packaged():
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
 
-    assert "NOTIFINHO_ICON_DIR" in presentation
-    assert "NOTIFINHO_TEAMS_ICON_BASE_URL" in presentation
-    assert "notifinho-asset://" in presentation
+    assert "NOWLERT_ICON_DIR" in presentation
+    assert "NOWLERT_TEAMS_ICON_BASE_URL" in presentation
+    assert "nowlert-asset://" in presentation
     assert "data:{mime_type};base64," not in presentation
-    assert "ARG NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ARG NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ENV NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ENV NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "NOWLERT_TEAMS_ICON_BASE_URL=" in workflow
-    assert "NOTIFINHO_TEAMS_ICON_BASE_URL=" in workflow
+    assert dockerfile.count("ARG NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert dockerfile.count("ENV NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert workflow.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
     assert "${{ steps.release.outputs.commit_sha }}" in workflow
 
 

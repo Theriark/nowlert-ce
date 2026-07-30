@@ -1,6 +1,6 @@
 # Platform data portability and migration
 
-Notifinho provides administrator-only, preview-first tools for moving platform
+Nowlert provides administrator-only, preview-first tools for moving platform
 destinations and routes and for protecting private platform state. v2.1.0 keeps
 the configuration mounted inside the running container authoritative while
 mirroring it privately for delivery operations.
@@ -27,7 +27,7 @@ This removes fallback duplicates without losing configured credentials.
 ## Safe platform export
 
 The WebUI **Data tools** page can download a versioned
-`notifinho.platform.v1` JSON document. It contains:
+`nowlert.platform.v1` JSON document. It contains:
 
 - destination owner names, display names, output types, public settings,
   sharing, and enabled state; and
@@ -90,7 +90,7 @@ platform upgrade. Continue to include the entire state bind mount in the
 host's encrypted backup policy; the WebUI snapshots are not a substitute for
 off-host disaster recovery.
 
-Restore requires the exact backup identifier. Before restoring, Notifinho
+Restore requires the exact backup identifier. Before restoring, Nowlert
 creates a safety backup of the current state, verifies every stored digest,
 runs SQLite integrity and schema checks, and stages the replacement. A failed
 swap rolls back to the live database and secret directory.

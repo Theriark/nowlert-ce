@@ -16,7 +16,7 @@ from models import Notification
 class Parser:
     """Normalize bounded Proxmox VE SMTP and webhook events."""
 
-    WEBHOOK_SCHEMA = "notifinho.proxmox.v1"
+    WEBHOOK_SCHEMA = "nowlert.proxmox.v1"
     SEVERITIES = {
         "debug",
         "info",

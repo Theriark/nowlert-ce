@@ -114,7 +114,7 @@ def test_drive_webhook_normalizes_discovered_default_content():
     assert notification.status == "information"
     assert notification.category == "administration"
     assert notification.metadata["event_title"] == "Settings"
-    assert notification.metadata["alarm_name"] == "Notifinho | Drive - Settings"
+    assert notification.metadata["alarm_name"] == "Nowlert | Drive - Settings"
     assert notification.metadata["event_state"] == "triggered"
     assert notification.metadata["format"] == "webhook"
     assert notification.metadata["alarm_id"] == payload["alarm_id"]
@@ -178,7 +178,7 @@ def test_drive_http_endpoint_uses_global_shared_token_and_routes():
             body,
             {
                 "Content-Type": "application/json",
-                "X-Notifinho-Token": token,
+                "X-Nowlert-Token": token,
             },
         )
 
@@ -217,7 +217,7 @@ def test_drive_alarm_rule_is_formatted_and_alarm_id_is_hidden():
     assert discord_embed["description"].startswith(
         "UniFi Drive • ℹ️ **Triggered** • 📍 Administration\n"
     )
-    assert "🚨 **Alarm rule:** Notifinho | Drive - Settings" in (
+    assert "🚨 **Alarm rule:** Nowlert | Drive - Settings" in (
         discord_details["value"]
     )
     assert discord_details["inline"] is False
@@ -226,5 +226,5 @@ def test_drive_alarm_rule_is_formatted_and_alarm_id_is_hidden():
     assert teams_card["body"][2]["items"][0]["text"] == "🔔 Settings alarm triggered"
     assert teams_alarm_rule == {
         "title": "🚨 Alarm rule:",
-        "value": "Notifinho | Drive - Settings",
+        "value": "Nowlert | Drive - Settings",
     }

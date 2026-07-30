@@ -1,6 +1,6 @@
 # Database-authoritative resources
 
-Notifinho v2.5.0 separates process bootstrap from WebUI-managed resources.
+Nowlert v2.5.0 separates process bootstrap from WebUI-managed resources.
 
 ## Core configuration
 
@@ -27,7 +27,7 @@ file with the normalized `platform_database_v1` document. The migration is
 idempotent. If an import or file replacement fails, the legacy YAML remains in
 place and the next start can retry.
 
-Existing API-token values are not rotated. Notifinho imports their hashes from
+Existing API-token values are not rotated. Nowlert imports their hashes from
 the configured file, environment variable, or SHA-256 value. Token values never
 appear in the WebUI or logs.
 

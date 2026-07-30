@@ -1,14 +1,14 @@
 From: Grafana Alerting <alerting@grafana.synthetic.invalid>
-To: Notifinho Fixture <notifinho@receiver.invalid>
+To: Nowlert Fixture <nowlert@receiver.invalid>
 Date: Sun, 12 Jul 2026 11:15:00 +0000
 Subject: [ERROR] Synthetic datasource evaluation failed
 Message-ID: <grafana-datasource-error@grafana.synthetic.invalid>
 MIME-Version: 1.0
-Content-Type: multipart/alternative; boundary="notifinho-grafana-error"
-X-Notifinho-Synthetic-Fixture: true
-X-Notifinho-Fixture-Format: grafana-multipart
+Content-Type: multipart/alternative; boundary="nowlert-grafana-error"
+X-Nowlert-Synthetic-Fixture: true
+X-Nowlert-Fixture-Format: grafana-multipart
 
---notifinho-grafana-error
+--nowlert-grafana-error
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
@@ -27,7 +27,7 @@ Summary: Grafana alert evaluation returned a synthetic error.
 Message: The invented datasource is unavailable for this fixture.
 RuleURL: https://grafana.synthetic.invalid/alerting/grafana/synthetic-datasource-rule/view
 
---notifinho-grafana-error
+--nowlert-grafana-error
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
@@ -41,4 +41,4 @@ Content-Transfer-Encoding: 7bit
 <p><b>Message:</b> The invented datasource is unavailable for this fixture.</p>
 </body></html>
 
---notifinho-grafana-error--
+--nowlert-grafana-error--

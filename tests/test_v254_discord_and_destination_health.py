@@ -150,7 +150,7 @@ def xo_notification() -> Notification:
         status="information",
         title="Backup successful",
         body="Safe v2.5.4 Discord attachment test",
-        metadata={"severity": "information", "host": "VM-09"},
+        metadata={"severity": "information", "host": "DEVELOPMENT-HOST"},
     )
 
 

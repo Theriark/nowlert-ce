@@ -294,10 +294,10 @@ host's normal credential controls, then bind that directory into the container:
 
 ```yaml
 volumes:
-  - /mnt/nowlert-backups:/notifinho/external-backups
+  - /mnt/nowlert-backups:/nowlert/external-backups
 ```
 
-Set the WebUI external path to `/notifinho/external-backups`. The container
+Set the WebUI external path to `/nowlert/external-backups`. The container
 does not need `SYS_ADMIN`, mount privileges, or network-share credentials.
 
 ## v2.1.0 unified-configuration upgrade
@@ -348,7 +348,7 @@ notes before rolling back across a configuration or data-schema change.
 
 v2.2.0 upgrades platform state to schema 5. A v2.1.0 image rejects schema 5.
 For rollback, stop Nowlert, restore the complete pre-upgrade configuration
-and state directories, pin `fortpt/notifinho:2.1.0`, and then start the stack.
+and state directories, pin `fortpt/nowlert:2.1.0`, and then start the stack.
 
 v2.3.0 upgrades platform state to schema 6. Rollback to v2.2.1 requires the
 complete pre-v2.3.0 state and configuration copy; never hand-edit the schema

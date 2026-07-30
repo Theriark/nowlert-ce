@@ -252,8 +252,8 @@ function applyAvatar(id, user) {
 
 function readCsrfCookie(mode = "") {
   const names = mode === "secure"
-    ? ["__Host-notifinho_csrf", "notifinho_csrf"]
-    : ["notifinho_csrf", "__Host-notifinho_csrf"];
+    ? ["__Host-nowlert_csrf", "nowlert_csrf"]
+    : ["nowlert_csrf", "__Host-nowlert_csrf"];
   for (const pair of document.cookie.split(";")) {
     const [rawName, ...rest] = pair.trim().split("=");
     if (names.includes(rawName)) return decodeURIComponent(rest.join("="));
@@ -1077,7 +1077,7 @@ function openIntegrationSettings(source) {
       "integration-dell-trusted-ips",
       "Trusted client IP addresses",
       (settings.suppress_ipmi_session_audit_from || []).join("\n"),
-      "192.168.0.164\n192.168.0.251",
+      "192.0.2.164\n192.0.2.251",
     ));
   } else if (source === "unifi_protect") {
     const lines = Object.entries(settings.device_aliases || {}).map(([key, value]) => `${formatMac(key)} = ${value}`);
@@ -1093,8 +1093,8 @@ function openIntegrationSettings(source) {
     const endpoints = Object.entries(aliases.endpoints || {}).map(([key, value]) => `${key} = ${value.device || ""}`);
     const components = Object.entries(aliases.components || {}).map(([key, value]) => `${key} = ${value.device || ""}${value.endpoint ? ` => ${value.endpoint}` : ""}`);
     fields.append(
-      settingTextarea("integration-ha-endpoints", "Endpoint aliases", endpoints.join("\n"), "192.168.103.35 = HUB-01 | Hall Floor 1"),
-      settingTextarea("integration-ha-components", "Component aliases", components.join("\n"), "homeassistant.components.ipp.coordinator = PRT-01 | Floor 1 => 192.168.101.157", 9),
+      settingTextarea("integration-ha-endpoints", "Endpoint aliases", endpoints.join("\n"), "192.0.2.35 = HUB-01 | Hall Floor 1"),
+      settingTextarea("integration-ha-components", "Component aliases", components.join("\n"), "homeassistant.components.ipp.coordinator = PRT-01 | Floor 1 => 192.0.2.157", 9),
     );
   } else if (source === "redfish") {
     const input = element("input", { type: "number", value: settings.deduplication_window_seconds, attributes: { min: 0, max: 86400, step: 1, required: "" } });
@@ -1959,7 +1959,7 @@ function downloadDocument(documentValue) {
   const link = element("a", {
     attributes: {
       href: url,
-      download: `notifinho-platform-${new Date().toISOString().slice(0, 10)}.json`,
+      download: `nowlert-platform-${new Date().toISOString().slice(0, 10)}.json`,
     },
   });
   document.body.append(link);
@@ -2509,7 +2509,7 @@ function openPreview(id) {
 
 function sampleEvent() {
   return {
-    schema: "notifinho.event.v1",
+    schema: "nowlert.event.v1",
     source: byId("preview-source").value.trim(),
     title: byId("preview-event-title").value.trim(),
     message: byId("preview-message").value.trim(),
@@ -2521,7 +2521,7 @@ function sampleEvent() {
 
 function cardSampleEvent(destination) {
   return {
-    schema: "notifinho.event.v1",
+    schema: "nowlert.event.v1",
     source: "nowlert",
     title: `${destination.name} test delivery`,
     message: `This is a safe Nowlert test for the ${OUTPUT_NAMES[destination.output_type] || friendlyName(destination.output_type)} destination "${destination.name}".`,

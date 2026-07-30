@@ -16,7 +16,7 @@ from models import Notification
 class Parser:
     """Normalize bounded Synology DSM SMTP and webhook events."""
 
-    WEBHOOK_SCHEMA = "notifinho.synology.v1"
+    WEBHOOK_SCHEMA = "nowlert.synology.v1"
     SEVERITIES = {
         "debug",
         "info",

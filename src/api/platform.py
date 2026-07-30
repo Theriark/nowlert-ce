@@ -788,7 +788,9 @@ class PlatformAPI:
             persistent=True,
             active=backup_failed,
         )
-        available = str(compatible_environment("NOWLERT_AVAILABLE_VERSION", "NOTIFINHO_AVAILABLE_VERSION", default="") or "").strip()
+        available = str(
+            compatible_environment("NOWLERT_AVAILABLE_VERSION", default="") or ""
+        ).strip()
         update_available = self._version_key(available) > self._version_key(VERSION)
         self.notices.sync_system(
             "software-update",
@@ -1129,7 +1131,9 @@ class PlatformAPI:
     def _version_endpoint(self, method) -> APIResponse:
         if method != "GET":
             return self._method_not_allowed("GET")
-        available = str(compatible_environment("NOWLERT_AVAILABLE_VERSION", "NOTIFINHO_AVAILABLE_VERSION", default="") or "").strip()
+        available = str(
+            compatible_environment("NOWLERT_AVAILABLE_VERSION", default="") or ""
+        ).strip()
         return APIResponse(
             200,
             {
@@ -1680,9 +1684,9 @@ class PlatformAPI:
         except Exception:
             return ""
         names = (
-            ("__Host-notifinho_session", "notifinho_session")
+            ("__Host-nowlert_session", "nowlert_session")
             if self.secure_cookies
-            else ("notifinho_session", "__Host-notifinho_session")
+            else ("nowlert_session", "__Host-nowlert_session")
         )
         for name in names:
             if name in parsed:
@@ -1705,10 +1709,7 @@ class PlatformAPI:
         authorization = self._header(headers, "Authorization")
         if authorization.casefold().startswith("bearer "):
             return authorization[7:].strip()
-        return (
-            self._header(headers, "X-Nowlert-Token")
-            or self._header(headers, "X-Notifinho-Token")
-        )
+        return self._header(headers, "X-Nowlert-Token")
 
     def _notification(self, value):
         if not isinstance(value, dict):
@@ -1719,7 +1720,7 @@ class PlatformAPI:
         return parsed
 
     def _csrf_cookie(self, token) -> str:
-        name = "__Host-notifinho_csrf" if self.secure_cookies else "notifinho_csrf"
+        name = "__Host-nowlert_csrf" if self.secure_cookies else "nowlert_csrf"
         attributes = [
             f"{name}={token}",
             "Path=/",
@@ -1731,9 +1732,9 @@ class PlatformAPI:
 
     def _clear_cookies(self):
         session_name = (
-            "__Host-notifinho_session" if self.secure_cookies else "notifinho_session"
+            "__Host-nowlert_session" if self.secure_cookies else "nowlert_session"
         )
-        csrf_name = "__Host-notifinho_csrf" if self.secure_cookies else "notifinho_csrf"
+        csrf_name = "__Host-nowlert_csrf" if self.secure_cookies else "nowlert_csrf"
         secure = "; Secure" if self.secure_cookies else ""
         return (
             (

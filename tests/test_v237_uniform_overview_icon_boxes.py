@@ -45,7 +45,6 @@ def test_v237_target_rules_scale_artwork_without_resizing_boxes():
     ):
         assert f'data-source-key="{key}"' in target_rules
     assert 'src*="nowlert"' in target_rules
-    assert 'src*="notifinho"' in target_rules
 
 
 def test_v237_mobile_keeps_every_icon_box_at_home_assistant_size():

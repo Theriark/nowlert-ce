@@ -1,7 +1,7 @@
 # Synthetic Grafana email fixtures
 
 Every `.eml` file in this directory is synthetic and was created for
-Notifinho development. None came from a production Grafana instance. The
+Nowlert development. None came from a production Grafana instance. The
 fixtures use reserved `.invalid` domains, invented dashboards, folders,
 panels, datasources, rules, organizations, and hosts, and contain no real
 addresses, IP addresses, credentials, webhooks, or private information.
@@ -9,7 +9,7 @@ addresses, IP addresses, credentials, webhooks, or private information.
 Each message includes:
 
 ```text
-X-Notifinho-Synthetic-Fixture: true
+X-Nowlert-Synthetic-Fixture: true
 ```
 
 The layouts are inspired by common Grafana Alerting email concepts, but they

@@ -47,7 +47,7 @@ def test_public_config_matches_production_state_mount():
         (ROOT / "config" / "config.example.yaml").read_text(encoding="utf-8")
     )
     assert config["platform"]["configuration_model"] == "platform_database_v1"
-    assert config["platform"]["state_dir"] == "/notifinho/state"
+    assert config["platform"]["state_dir"] == "/nowlert/state"
 
     for removed in ("outputs", "routing", "notifications", "presentation", "home_assistant", "redfish"):
         assert removed not in config

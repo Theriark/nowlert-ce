@@ -104,7 +104,7 @@ def fast_hash(password: str) -> str:
 
 @pytest.fixture
 def platform(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin("administrator", "correct horse battery staple")
@@ -189,7 +189,7 @@ def test_webhook_preview_uses_stable_secret_safe_envelope_and_templates():
         notification(),
     )
 
-    assert default.payload["schema"] == "notifinho.event.v1"
+    assert default.payload["schema"] == "nowlert.event.v1"
     assert default.payload["metadata"]["api_key"] == "<redacted>"
     assert templated.payload == {
         "summary": "grafana:Database latency",
@@ -205,7 +205,7 @@ def test_mqtt_and_ntfy_previews_include_transport_metadata_without_credentials()
     ).preview(
         destination(
             "mqtt",
-            {"host": "mqtt.example.com", "topic": "notifinho/${host}"},
+            {"host": "mqtt.example.com", "topic": "nowlert/${host}"},
         ),
         notification(),
     )
@@ -221,8 +221,8 @@ def test_mqtt_and_ntfy_previews_include_transport_metadata_without_credentials()
         notification(),
     )
 
-    assert mqtt.metadata == {"topic": "notifinho/vm-09", "qos": 1, "retain": False}
-    assert mqtt.payload["schema"] == "notifinho.event.v1"
+    assert mqtt.metadata == {"topic": "nowlert/vm-09", "qos": 1, "retain": False}
+    assert mqtt.payload["schema"] == "nowlert.event.v1"
     assert ntfy.payload["topic"] == "alerts"
     assert ntfy.payload["actions"][0]["url"].startswith("https://")
     assert "Authorization" not in json.dumps(ntfy.payload)
@@ -263,7 +263,7 @@ def test_webhook_delivery_adds_hmac_and_idempotency_without_leaking_secret():
     )
     secret = json.dumps(
         {
-            "url": "https://events.example.com/notifinho",
+            "url": "https://events.example.com/nowlert",
             "hmac_secret": "private-signing-key",
             "headers": {"Authorization": "Bearer private-access-token"},
         }
@@ -273,13 +273,13 @@ def test_webhook_delivery_adds_hmac_and_idempotency_without_leaking_secret():
 
     assert result.success is True
     assert method == "PUT"
-    assert kwargs["headers"]["X-Notifinho-Idempotency-Key"] == "grafana-42"
+    assert kwargs["headers"]["X-Nowlert-Idempotency-Key"] == "grafana-42"
     expected = hmac.new(
         b"private-signing-key",
         kwargs["data"],
         hashlib.sha256,
     ).hexdigest()
-    assert kwargs["headers"]["X-Notifinho-Signature"] == f"sha256={expected}"
+    assert kwargs["headers"]["X-Nowlert-Signature"] == f"sha256={expected}"
     assert b"private-signing-key" not in kwargs["data"]
     assert b"private-access-token" not in kwargs["data"]
 
@@ -311,7 +311,7 @@ def test_mqtt_delivery_uses_tls_auth_qos_and_safe_retry_result():
             "tls": True,
         },
     )
-    secret = json.dumps({"username": "notifinho", "password": "private"}).encode()
+    secret = json.dumps({"username": "nowlert", "password": "private"}).encode()
     result = adapter.deliver(target, secret, notification())
 
     assert result.success is True
@@ -319,7 +319,7 @@ def test_mqtt_delivery_uses_tls_auth_qos_and_safe_retry_result():
     assert calls[0][1]["qos"] == 2
     assert calls[0][1]["retain"] is True
     assert calls[0][1]["tls"] == {}
-    assert calls[0][1]["auth"] == {"username": "notifinho", "password": "private"}
+    assert calls[0][1]["auth"] == {"username": "nowlert", "password": "private"}
     assert "private" not in calls[0][1]["payload"]
 
 

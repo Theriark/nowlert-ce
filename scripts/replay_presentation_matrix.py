@@ -153,7 +153,7 @@ def build_notification(source: str) -> Notification:
         "wifi_name": "SYNTHETIC-WIFI",
         "trigger_key": "motion",
         "trigger_device": "SYNTHETIC-CAMERA",
-        "alarm_name": "Notifinho v1.9.0 presentation validation",
+        "alarm_name": "Nowlert v1.9.0 presentation validation",
         "system": "SYNTHETIC-DRIVE",
         "backup_task": "SYNTHETIC-BACKUP",
         "instance": "SYNTHETIC-PORTAINER",
@@ -203,7 +203,7 @@ def send(sources: list[str], confirmed: bool) -> None:
     if not confirmed:
         raise SystemExit("Sending requires --confirm-send.")
     # Router imports the application logger and is intentionally loaded only
-    # for confirmed delivery inside a running Notifinho container.
+    # for confirmed delivery inside a running Nowlert container.
     from router import Router
 
     router = Router()
@@ -233,7 +233,7 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("/tmp/notifinho-v190-card-previews"),
+        default=Path("/tmp/nowlert-v190-card-previews"),
     )
     parser.add_argument("--confirm-send", action="store_true")
     args = parser.parse_args()

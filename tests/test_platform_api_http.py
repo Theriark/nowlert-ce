@@ -58,7 +58,7 @@ def request(port, method, path, payload=None, headers=None):
 
 
 def test_platform_session_crud_patch_and_delete_over_native_http(monkeypatch, tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
 
     def users(database_value):

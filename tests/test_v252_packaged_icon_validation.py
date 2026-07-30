@@ -15,11 +15,11 @@ def test_docker_image_validates_actual_runtime_asset_mappings():
     assert validator.is_file()
     assert (
         "RUN python3 "
-        "/notifinho/tools/validate_packaged_icons.py"
+        "/nowlert/tools/validate_packaged_icons.py"
     ) in dockerfile
 
     assert (
-        "/notifinho/src/webui/source-icons/"
+        "/nowlert/src/webui/source-icons/"
         "xen-orchestra.png"
     ) not in dockerfile
 

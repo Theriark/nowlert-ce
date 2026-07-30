@@ -24,7 +24,7 @@ from storage.migrations import LATEST_SCHEMA_VERSION
 from storage.ownership import Actor
 
 
-BACKUP_SCHEMA = "notifinho.state-backup.v1"
+BACKUP_SCHEMA = "nowlert.state-backup.v1"
 _BACKUP_ID = re.compile(r"^state-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$")
 _SECRET_FILE = re.compile(r"^[0-9a-f]{32}\.v[1-9][0-9]*$")
 _MAXIMUM_SECRET_FILES = 5000
@@ -105,11 +105,11 @@ class StateBackupStore:
             temporary.mkdir(mode=0o700)
             os.chmod(temporary, 0o700)
             try:
-                database_target = temporary / "notifinho.db"
+                database_target = temporary / "nowlert.db"
                 self._snapshot_database(database_target)
                 secret_target = temporary / "secrets"
                 secret_target.mkdir(mode=0o700)
-                files = {"notifinho.db": self._digest(database_target)}
+                files = {"nowlert.db": self._digest(database_target)}
                 secret_count = 0
                 if self.secret_directory.exists():
                     if self.secret_directory.is_symlink():
@@ -174,8 +174,8 @@ class StateBackupStore:
             stage.mkdir(mode=0o700)
             os.chmod(stage, 0o700)
             try:
-                staged_database = stage / "notifinho.db"
-                shutil.copyfile(source / "notifinho.db", staged_database)
+                staged_database = stage / "nowlert.db"
+                shutil.copyfile(source / "nowlert.db", staged_database)
                 os.chmod(staged_database, 0o600)
                 self._validate_database(staged_database)
                 staged_secrets = stage / "secrets"
@@ -246,7 +246,7 @@ class StateBackupStore:
             raise ValueError("external backup path must be a mounted directory")
         source = self.backup_directory / str(backup_id)
         self._validate(source)
-        managed = root / "notifinho-state-backups"
+        managed = root / "nowlert-state-backups"
         if managed.is_symlink():
             raise ValueError("external backup directory must not be a symbolic link")
         managed.mkdir(mode=0o700, exist_ok=True)
@@ -287,9 +287,9 @@ class StateBackupStore:
         ):
             raise ValueError("backup manifest is invalid")
         files = manifest.get("files")
-        if not isinstance(files, dict) or "notifinho.db" not in files:
+        if not isinstance(files, dict) or "nowlert.db" not in files:
             raise ValueError("backup manifest files are invalid")
-        expected_names = {"notifinho.db"}
+        expected_names = {"nowlert.db"}
         secret_directory = directory / "secrets"
         if secret_directory.is_symlink() or not secret_directory.is_dir():
             raise ValueError("backup secret directory is invalid")
@@ -309,7 +309,7 @@ class StateBackupStore:
             if not hmac.compare_digest(self._digest(path), str(digest)):
                 raise RuntimeError("backup integrity check failed")
             size += path.stat().st_size
-        self._validate_database(directory / "notifinho.db")
+        self._validate_database(directory / "nowlert.db")
         secret_count = int(manifest.get("secret_files", -1))
         if secret_count != len(expected_names) - 1:
             raise ValueError("backup secret count does not match contents")

@@ -1,6 +1,6 @@
 # Grafana notification support
 
-Grafana Alerting support was introduced in Notifinho `v1.3.0` and remains
+Grafana Alerting support was introduced in Nowlert `v1.3.0` and remains
 provisional in the current stable release. It was implemented without
 production Grafana email samples and is currently verified against clearly
 labelled synthetic fixtures. Real-sample validation is tracked in issue #26.
@@ -23,11 +23,11 @@ panel, datasource, labels, values, event-time, and link fields.
 
 Grafana must first be configured with an SMTP server, normally through its
 configuration file or equivalent environment variables. Point that SMTP
-configuration at the host running Notifinho:
+configuration at the host running Nowlert:
 
 | Setting | Development | Production |
 |---|---|---|
-| SMTP host | Notifinho development host | Notifinho host |
+| SMTP host | Nowlert development host | Nowlert host |
 | SMTP port | `8026` when using the published development port | `8025` |
 | Authentication | Disabled for fixture replay | Optional SMTP AUTH after STARTTLS |
 | TLS | Disabled for fixture replay | Optional explicit STARTTLS |
@@ -69,7 +69,7 @@ python3 -m pip install -r requirements-dev.txt
 python3 -m pytest -q
 ```
 
-With Notifinho listening on the development host port, replay the synthetic
+With Nowlert listening on the development host port, replay the synthetic
 firing fixture:
 
 ```bash

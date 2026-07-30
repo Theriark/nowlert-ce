@@ -10,7 +10,6 @@ global project information.
 """
 
 APP_NAME = "Nowlert"
-LEGACY_APP_NAME = "Notifinho"
 COMPANY = "Theriark"
 
 VERSION = "3.0.0"

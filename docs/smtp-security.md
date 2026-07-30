@@ -1,16 +1,16 @@
 # SMTP security
 
-Notifinho can protect its SMTP listener with explicit STARTTLS and SMTP AUTH.
+Nowlert can protect its SMTP listener with explicit STARTTLS and SMTP AUTH.
 Both features are disabled by default so existing deployments remain compatible.
 
 ## Threat model
 
 Without TLS, SMTP message content and credentials can be observed or modified by
-anyone able to intercept traffic between the sender and Notifinho. SMTP AUTH by
+anyone able to intercept traffic between the sender and Nowlert. SMTP AUTH by
 itself does not protect credentials because the built-in `LOGIN` and `PLAIN`
 mechanisms encode credentials but do not encrypt them.
 
-Notifinho therefore never exposes or accepts SMTP AUTH before TLS. Authentication
+Nowlert therefore never exposes or accepts SMTP AUTH before TLS. Authentication
 requires STARTTLS support and uses TLS 1.2 or newer.
 
 TLS and authentication do not replace network controls. Continue restricting the
@@ -54,8 +54,8 @@ smtp:
 
   tls:
     enabled: true
-    certfile: "/notifinho/config/tls/cert.pem"
-    keyfile: "/notifinho/config/tls/key.pem"
+    certfile: "/nowlert/config/tls/cert.pem"
+    keyfile: "/nowlert/config/tls/key.pem"
 ```
 
 The effective behavior is equivalent to:
@@ -75,7 +75,7 @@ have been migrated.
 
 ## SMTP AUTH configuration
 
-Notifinho supports the `LOGIN` and `PLAIN` mechanisms provided by `aiosmtpd`.
+Nowlert supports the `LOGIN` and `PLAIN` mechanisms provided by `aiosmtpd`.
 They are advertised only after STARTTLS.
 
 One fixed SMTP service account is supported:
@@ -84,13 +84,13 @@ One fixed SMTP service account is supported:
 smtp:
   tls:
     enabled: true
-    certfile: "/notifinho/config/tls/cert.pem"
-    keyfile: "/notifinho/config/tls/key.pem"
+    certfile: "/nowlert/config/tls/cert.pem"
+    keyfile: "/nowlert/config/tls/key.pem"
 
   auth:
     enabled: true
-    username: "notifinho"
-    password_env: "NOTIFINHO_SMTP_PASSWORD"
+    username: "nowlert"
+    password_env: "NOWLERT_SMTP_PASSWORD"
     password_file: ""
 ```
 
@@ -112,8 +112,8 @@ password itself:
 smtp:
   auth:
     enabled: true
-    username: "notifinho"
-    password_env: "NOTIFINHO_SMTP_PASSWORD"
+    username: "nowlert"
+    password_env: "NOWLERT_SMTP_PASSWORD"
     password_file: ""
 ```
 
@@ -121,20 +121,20 @@ Docker Compose or Portainer stack example:
 
 ```yaml
 services:
-  notifinho:
-    image: fortpt/notifinho:latest
+  nowlert:
+    image: fortpt/nowlert:latest
     environment:
-      NOTIFINHO_SMTP_PASSWORD: "${NOTIFINHO_SMTP_PASSWORD}"
+      NOWLERT_SMTP_PASSWORD: "${NOWLERT_SMTP_PASSWORD}"
     volumes:
-      - ./config:/notifinho/config
-      - ./config/tls:/notifinho/config/tls:ro
-      - ./logs:/notifinho/logs
+      - ./config:/nowlert/config
+      - ./config/tls:/nowlert/config/tls:ro
+      - ./logs:/nowlert/logs
     ports:
       - "8025:8025"
       - "18080:8080"
 ```
 
-Define `NOTIFINHO_SMTP_PASSWORD` through the deployment environment or
+Define `NOWLERT_SMTP_PASSWORD` through the deployment environment or
 Portainer environment-variable interface. Do not commit it to the repository.
 
 ## Password from a Docker secret or mounted file
@@ -145,26 +145,26 @@ Set `password_env` to an empty string and configure `password_file`:
 smtp:
   auth:
     enabled: true
-    username: "notifinho"
+    username: "nowlert"
     password_env: ""
-    password_file: "/run/secrets/notifinho_smtp_password"
+    password_file: "/run/secrets/nowlert_smtp_password"
 ```
 
 Docker Swarm secret example:
 
 ```yaml
 services:
-  notifinho:
-    image: fortpt/notifinho:latest
+  nowlert:
+    image: fortpt/nowlert:latest
     secrets:
-      - notifinho_smtp_password
+      - nowlert_smtp_password
     volumes:
-      - ./config:/notifinho/config
-      - ./config/tls:/notifinho/config/tls:ro
-      - ./logs:/notifinho/logs
+      - ./config:/nowlert/config
+      - ./config/tls:/nowlert/config/tls:ro
+      - ./logs:/nowlert/logs
 
 secrets:
-  notifinho_smtp_password:
+  nowlert_smtp_password:
     external: true
 ```
 
@@ -200,7 +200,7 @@ They must never be used for deployment.
 
 ## Startup validation
 
-Notifinho fails startup when an enabled security mode is incomplete, including:
+Nowlert fails startup when an enabled security mode is incomplete, including:
 
 - authentication enabled without TLS;
 - missing certificate or private key;
@@ -232,11 +232,11 @@ each sender independently.
 
 1. Keep firewall allowlisting in place.
 2. Mount the certificate and private key.
-3. Enable TLS in Notifinho and leave authentication disabled.
+3. Enable TLS in Nowlert and leave authentication disabled.
 4. Restart the container and verify `STARTTLS` is advertised.
 5. Configure and test STARTTLS on every sender.
 6. Configure the SMTP username and one password source.
-7. Enable authentication in Notifinho.
+7. Enable authentication in Nowlert.
 8. Restart and test every sender through the normal parser, router, and output
    path.
 9. Review logs for delivery failures without enabling protocol-level credential

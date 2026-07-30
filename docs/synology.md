@@ -1,6 +1,6 @@
 # Synology DSM integration
 
-Notifinho v1.8 includes Synology DSM ingestion through SMTP and an
+Nowlert v1.8 includes Synology DSM ingestion through SMTP and an
 authenticated native HTTP endpoint:
 
 ```text
@@ -22,7 +22,7 @@ variables such as `%HOSTNAME%`:
 - [DSM 7 notification rules](https://kb.synology.com/en-global/DSM/help/DSM/AdminCenter/system_notification_rule?version=7)
 
 The exact variables and resulting request depend on the installed DSM version
-and selected event. For that reason, Notifinho uses a small versioned contract
+and selected event. For that reason, Nowlert uses a small versioned contract
 and clearly retains the real-system validation requirement.
 
 ## Supported events
@@ -36,7 +36,7 @@ and clearly retains the real-system validation requirement.
 - authentication, login, certificate, malware, firewall, and blocked-IP events;
 - network and NAS availability events.
 
-## Notifinho configuration
+## Nowlert configuration
 
 ```yaml
 http:
@@ -71,7 +71,7 @@ Do not commit the real HTTP secret or destination URLs.
 
 ## SMTP input
 
-Configure DSM email notifications to use Notifinho's SMTP listener. Detection
+Configure DSM email notifications to use Nowlert's SMTP listener. Detection
 accepts Synology/DiskStation branding in the sender or subject and bounded DSM
 notification subjects. It does not require a particular private domain or NAS
 hostname.
@@ -88,7 +88,7 @@ The JSON representation is:
 
 ```json
 {
-  "schema": "notifinho.synology.v1",
+  "schema": "nowlert.synology.v1",
   "source": "synology-dsm",
   "event_type": "backup",
   "title": "Synthetic Hyper Backup failure",
@@ -113,7 +113,7 @@ Keep `schema` and `source` literal. Map only variables exposed by the installed
 DSM notification template into `title`, `message`, `timestamp`, and operational
 fields. Prefer an `event_type` of `availability`, `backup`, `disk`, `network`,
 `package`, `power`, `replication`, `security`, `storage`, or `system`; otherwise
-Notifinho performs bounded keyword classification.
+Nowlert performs bounded keyword classification.
 
 Severity accepts `debug`, `info`, `information`, `notice`, `warning`, `warn`,
 `error`, `critical`, or `success`. An explicit `resolved`, `recovered`, or
@@ -124,18 +124,18 @@ Severity accepts `debug`, `info`, `information`, `notice`, `warning`, `warn`,
 Every native endpoint accepts:
 
 ```text
-X-Notifinho-Token: PASTE_64_CHARACTER_HEX_SECRET
+X-Nowlert-Token: PASTE_64_CHARACTER_HEX_SECRET
 ```
 
 For DSM custom providers that cannot add the header, the Synology endpoint also
 accepts one query token:
 
 ```text
-http://192.168.0.164:18082/synology/events?token=PASTE_64_CHARACTER_HEX_SECRET
+http://192.0.2.164:18082/synology/events?token=PASTE_64_CHARACTER_HEX_SECRET
 ```
 
 Use the private direct address, restrict the host port to the management
-network, and avoid a reverse proxy that records query strings. Notifinho
+network, and avoid a reverse proxy that records query strings. Nowlert
 suppresses HTTP access logs. Duplicate query tokens and duplicate form fields
 are rejected.
 
@@ -161,7 +161,7 @@ curl -sS -o /dev/null -w 'missing_token=%{http_code}\n' \
 
 curl -sS -o /dev/null -w 'authenticated=%{http_code}\n' \
   -H 'Content-Type: application/json' \
-  -H "X-Notifinho-Token: ${TOKEN}" \
+  -H "X-Nowlert-Token: ${TOKEN}" \
   --data @tests/fixtures/synology/backup_failure.json \
   http://127.0.0.1:18082/synology/events
 

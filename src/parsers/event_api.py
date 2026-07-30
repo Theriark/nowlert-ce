@@ -10,7 +10,7 @@ from models import Notification
 
 
 class Parser:
-    SCHEMA = "notifinho.event.v1"
+    SCHEMA = "nowlert.event.v1"
     _SOURCE = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
     _SEVERITIES = {
         "information", "info", "success", "warning", "warn",

@@ -1,5 +1,5 @@
 """
-Notifinho
+Nowlert
 
 inspect_email.py
 

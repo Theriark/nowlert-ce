@@ -52,8 +52,7 @@ docker logs -f nowlert
 ```
 
 Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the numeric identity that
-owns the mounted directories. Existing `NOTIFINHO_UID` and `NOTIFINHO_GID`
-values remain accepted as compatibility aliases.
+owns the mounted directories.
 
 On first start, the container log prints a short-lived, single-use setup token.
 Open the WebUI and choose the first administrator credentials. No default
@@ -69,11 +68,11 @@ password exists.
 
 | Container path | Purpose |
 |---|---|
-| `/notifinho/config` | Bootstrap `config.yaml` and optional TLS files |
-| `/notifinho/state` | SQLite state, private database backups, and managed secrets |
-| `/notifinho/logs` | Application and optional retained-email logs |
+| `/nowlert/config` | Bootstrap `config.yaml` and optional TLS files |
+| `/nowlert/state` | SQLite state, private database backups, and managed secrets |
+| `/nowlert/logs` | Application and optional retained-email logs |
 | `/run/secrets` | Read-only externally managed secrets |
-| `/notifinho/external-backups` | Host-mounted external backup target |
+| `/nowlert/external-backups` | Host-mounted external backup target |
 
 Keep `config`, `state`, and `secrets` together when backing up or rolling back.
 

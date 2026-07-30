@@ -17,35 +17,32 @@ def test_production_image_has_nowlert_oci_identity():
     )
 
 
-def test_production_image_accepts_new_and_legacy_icon_arguments():
+def test_production_image_uses_nowlert_icon_argument():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
-    assert "ARG NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ARG NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ENV NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ENV NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
+    assert dockerfile.count("ARG NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert dockerfile.count("ENV NOWLERT_TEAMS_ICON_BASE_URL=") == 1
 
 
-def test_release_workflow_supplies_both_icon_argument_names():
+def test_release_workflow_supplies_nowlert_icon_argument():
     workflow = (
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
 
-    assert "NOWLERT_TEAMS_ICON_BASE_URL=" in workflow
-    assert "NOTIFINHO_TEAMS_ICON_BASE_URL=" in workflow
+    assert workflow.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
 
 
-def test_internal_root_remains_upgrade_compatible():
+def test_internal_root_uses_nowlert():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     start_script = (ROOT / "start.sh").read_text(encoding="utf-8")
 
-    assert "WORKDIR /notifinho" in dockerfile
-    assert "COPY src /notifinho/src" in dockerfile
-    assert 'CMD ["/notifinho/start.sh"]' in dockerfile
+    assert "WORKDIR /nowlert" in dockerfile
+    assert "COPY src /nowlert/src" in dockerfile
+    assert 'CMD ["/nowlert/start.sh"]' in dockerfile
 
-    assert 'sys.path.insert(0, "/notifinho/src")' in start_script
-    assert "mkdir -p /notifinho/logs/emails" in start_script
-    assert "cd /notifinho/src" in start_script
+    assert 'sys.path.insert(0, "/nowlert/src")' in start_script
+    assert "mkdir -p /nowlert/logs/emails" in start_script
+    assert "cd /nowlert/src" in start_script
 
 
 def test_development_image_has_nowlert_identity():
@@ -53,4 +50,4 @@ def test_development_image_has_nowlert_identity():
 
     assert 'org.opencontainers.image.title="Nowlert Development"' in dockerfile
     assert 'org.opencontainers.image.vendor="Theriark"' in dockerfile
-    assert "WORKDIR /notifinho" in dockerfile
+    assert "WORKDIR /nowlert" in dockerfile

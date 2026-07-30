@@ -1,4 +1,4 @@
-# Notifinho v2.3.3 to v2.5.2 implementation sequence
+# Nowlert v2.3.3 to v2.5.2 implementation sequence
 
 This is the chronological implementation record for the eight commits between
 the v2.3.3 and v2.5.2 tags.

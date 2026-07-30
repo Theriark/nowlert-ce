@@ -5,8 +5,8 @@
  * inactive-source removal.
  */
 (() => {
-  const VIEW_STORAGE_KEY = "notifinho.active-view";
-  const UPDATE_CACHE_KEY = "notifinho.update-status";
+  const VIEW_STORAGE_KEY = "nowlert.active-view";
+  const UPDATE_CACHE_KEY = "nowlert.update-status";
   const UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000;
   const GITHUB_RELEASE_URL = "https://api.github.com/repos/Theriark/nowlert/releases/latest";
 
@@ -166,7 +166,7 @@
       metadata: {},
     };
     return {
-      schema: "notifinho.event.v1",
+      schema: "nowlert.event.v1",
       source,
       title: sample.title,
       message: sample.message,

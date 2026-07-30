@@ -25,7 +25,7 @@ LOG_FILE = Path(
     config.get(
         "logging",
         "file",
-        default="/notifinho/logs/notifinho.log",
+        default="/nowlert/logs/nowlert.log",
     )
 )
 
@@ -34,7 +34,7 @@ LOG_FILE.parent.mkdir(
     exist_ok=True,
 )
 
-log = logging.getLogger("notifinho")
+log = logging.getLogger("nowlert")
 
 if not log.handlers:
 

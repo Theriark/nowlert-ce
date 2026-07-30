@@ -127,7 +127,7 @@ def test_native_http_serves_get_and_head_with_strict_browser_headers(
     tmp_path,
 ):
     monkeypatch.setattr(http_module, "config", enabled_config())
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     server = HTTPServer(
         ("127.0.0.1", 0),
@@ -308,10 +308,9 @@ def test_webui_keeps_workspace_visible_and_identifies_partial_api_failures():
 def test_production_image_already_packages_webui_and_icon():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
-    assert "COPY src /notifinho/src" in dockerfile
-    assert "COPY assets /notifinho/assets" in dockerfile
+    assert "COPY src /nowlert/src" in dockerfile
+    assert "COPY assets /nowlert/assets" in dockerfile
     assert (ROOT / "src" / "webui" / "index.html").is_file()
     assert (ROOT / "src" / "webui" / "app.js").is_file()
     assert (ROOT / "src" / "webui" / "styles.css").is_file()
     assert (ROOT / "assets" / "icons" / "nowlert.png").is_file()
-    assert (ROOT / "assets" / "icons" / "notifinho.png").is_file()

@@ -39,7 +39,7 @@ class Configuration:
 
 @pytest.fixture
 def operations(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin("administrator", "correct horse battery staple")
@@ -208,6 +208,6 @@ def test_scheduled_backup_runs_once_and_mirrors_to_host_mount(operations, tmp_pa
     result = scheduler.run_due(instant)
     assert result is not None and result["outcome"] == "success"
     assert scheduler.run_due(instant) is None
-    mirrored = external / "notifinho-state-backups" / result["backup_id"]
+    mirrored = external / "nowlert-state-backups" / result["backup_id"]
     assert (mirrored / "manifest.json").is_file()
     assert scheduler.last_run()["outcome"] == "success"

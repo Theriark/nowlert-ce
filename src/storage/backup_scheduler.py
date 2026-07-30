@@ -31,7 +31,7 @@ class BackupScheduler:
             return
         self._thread = threading.Thread(
             target=self._run,
-            name="notifinho-backups",
+            name="nowlert-backups",
             daemon=True,
         )
         self._thread.start()

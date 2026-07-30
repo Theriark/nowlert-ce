@@ -38,15 +38,14 @@ def test_production_compose_applies_runtime_hardening():
     assert service["cap_drop"] == ["ALL"]
     assert "no-new-privileges:true" in service["security_opt"]
     assert service["user"] == (
-        "${NOWLERT_UID:-${NOTIFINHO_UID:-1000}}:"
-        "${NOWLERT_GID:-${NOTIFINHO_GID:-1000}}"
+        "${NOWLERT_UID:-1000}:"
+        "${NOWLERT_GID:-1000}"
     )
     assert (
-        "${NOWLERT_STATE_DIR:-${NOTIFINHO_STATE_DIR:-./state}}:"
-        "/notifinho/state"
+        "${NOWLERT_STATE_DIR:-./state}:"
+        "/nowlert/state"
     ) in service["volumes"]
-    assert service["environment"]["NOWLERT_STATE_DIR"] == "/notifinho/state"
-    assert service["environment"]["NOTIFINHO_STATE_DIR"] == "/notifinho/state"
+    assert service["environment"]["NOWLERT_STATE_DIR"] == "/nowlert/state"
 
 
 def test_public_configuration_enables_secure_webui_bootstrap_defaults():
@@ -59,7 +58,7 @@ def test_public_configuration_enables_secure_webui_bootstrap_defaults():
     assert configuration["platform"]["enabled"] is True
     assert configuration["platform"]["secure_cookies"] is False
     assert configuration["webui"]["enforce_https"] is False
-    assert configuration["platform"]["state_dir"] == "/notifinho/state"
+    assert configuration["platform"]["state_dir"] == "/nowlert/state"
     assert configuration["webui"]["enabled"] is True
 
 

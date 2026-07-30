@@ -1,6 +1,6 @@
 # UniFi integration
 
-Notifinho `1.7.0` provides three independent normalized UniFi sources:
+Nowlert `1.7.0` provides three independent normalized UniFi sources:
 
 - `unifi_network` receives UniFi Network Alarm Manager JSON webhooks;
 - `unifi_protect` receives UniFi Protect Alarm Manager JSON webhooks; and
@@ -38,7 +38,7 @@ return 405, and oversized bodies return 413.
 When `shared_secret` is non-empty, every request must include:
 
 ```text
-X-Notifinho-Token: <secret>
+X-Nowlert-Token: <secret>
 ```
 
 Use HTTPS termination, a strong token, and source restrictions. Do not expose
@@ -76,7 +76,7 @@ The discovered default Drive payload is intentionally small:
 ```json
 {
   "alarm_id": "00000000-0000-4000-8000-000000000001",
-  "text": "Alarm \"Notifinho | Drive - Backup Task Partially Completed\" was triggered"
+  "text": "Alarm \"Nowlert | Drive - Backup Task Partially Completed\" was triggered"
 }
 ```
 
@@ -86,18 +86,18 @@ Unlike Protect, Drive does not identify the exact condition inside a
 multi-trigger alarm. Create one Drive alarm per event and use descriptive names:
 
 ```text
-Notifinho | Drive - Backup Task Partially Completed
-Notifinho | Drive - Backup Task Failed
-Notifinho | Drive - Backup Task Completed
-Notifinho | Drive - Storage Pool Suspended
+Nowlert | Drive - Backup Task Partially Completed
+Nowlert | Drive - Backup Task Failed
+Nowlert | Drive - Backup Task Completed
+Nowlert | Drive - Storage Pool Suspended
 ```
 
-For names using `Drive - <event>` or `Drive | <event>`, Notifinho uses the final
+For names using `Drive - <event>` or `Drive | <event>`, Nowlert uses the final
 event segment as the card title and preserves the full name in `Alarm rule`.
 
 ## UniFi Drive delivered email
 
-Drive email support remains available. Notifinho does not poll IMAP, Microsoft
+Drive email support remains available. Nowlert does not poll IMAP, Microsoft
 Graph, Gmail, or any mailbox and stores no mailbox credentials. Email-based
 Drive notifications require an external forwarding rule or SMTP relay.
 
@@ -133,9 +133,9 @@ configuration always uses `webhook`, never `webhook_url`.
 All three paths can use the same production backend:
 
 ```text
-/unifi/network -> notifinho:8080
-/unifi/protect -> notifinho:8080
-/unifi/drive   -> notifinho:8080
+/unifi/network -> nowlert:8080
+/unifi/protect -> nowlert:8080
+/unifi/drive   -> nowlert:8080
 ```
 
 Keep the shared token enabled even on a private Docker network.

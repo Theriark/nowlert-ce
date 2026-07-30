@@ -1,7 +1,7 @@
 # Synthetic QNAP email fixtures
 
 Every `.eml` file in this directory is a synthetic test fixture created for
-Notifinho development. None of these messages came from a physical QNAP NAS,
+Nowlert development. None of these messages came from a physical QNAP NAS,
 and none contains a real address, IP address, serial number, webhook, or other
 private data. Synthetic mailboxes and domains use the reserved `.invalid`
 top-level domain.
@@ -15,7 +15,7 @@ version.
 Each message includes this explicit marker:
 
 ```text
-X-Notifinho-Synthetic-Fixture: true
+X-Nowlert-Synthetic-Fixture: true
 ```
 
 ## Included events

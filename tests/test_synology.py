@@ -79,7 +79,7 @@ class RunningServer:
 def request(port, target, body, content_type="application/json", token=""):
     headers = {"Content-Type": content_type}
     if token:
-        headers["X-Notifinho-Token"] = token
+        headers["X-Nowlert-Token"] = token
     if isinstance(body, dict):
         body = json.dumps(body).encode("utf-8")
     connection = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
@@ -223,7 +223,7 @@ def test_form_encoded_contract_is_accepted_for_custom_provider():
 
 def test_form_encoded_duplicate_fields_are_rejected():
     body = (
-        "schema=notifinho.synology.v1&schema=duplicate&source=synology-dsm"
+        "schema=nowlert.synology.v1&schema=duplicate&source=synology-dsm"
         "&title=test&severity=info"
     ).encode("utf-8")
     with RunningServer() as running:

@@ -27,8 +27,6 @@ class PresentationMixin:
         first_environment(
             "NOWLERT_ICON_DIR",
             "NOWLERT_DISCORD_ICON_DIR",
-            "NOTIFINHO_ICON_DIR",
-            "NOTIFINHO_DISCORD_ICON_DIR",
             default=str(
                 Path(__file__).resolve().parents[2]
                 / "assets"
@@ -39,7 +37,6 @@ class PresentationMixin:
     TEAMS_ICON_BASE_URL = str(
         compatible_environment(
             "NOWLERT_TEAMS_ICON_BASE_URL",
-            "NOTIFINHO_TEAMS_ICON_BASE_URL",
             default=(
                 "https://raw.githubusercontent.com/Theriark/nowlert/"
                 "main/assets/icons"
@@ -68,8 +65,6 @@ class PresentationMixin:
         "dell_idrac": "dell-idrac.png",
         "home_assistant": "home-assistant.png",
         "nowlert": "nowlert.png",
-        # Legacy source identifiers render with the current product artwork.
-        "notifinho": "nowlert.png",
     }
 
     # Discord controls thumbnail layout and does not accept explicit pixel sizes.
@@ -92,7 +87,6 @@ class PresentationMixin:
     # artwork's aspect ratio while making thin lockups legible in Teams.
     TEAMS_ICON_PIXELS = {
         "nowlert": 80,
-        "notifinho": 80,
         "proxmox": 64,
         "qnap": 72,
         "synology": 64,
@@ -181,7 +175,7 @@ class PresentationMixin:
             normalized,
             self.PRODUCT_ICONS.get(normalized),
         )
-        return f"notifinho-asset://{filename}" if filename else ""
+        return f"nowlert-asset://{filename}" if filename else ""
 
     def _set_discord_thumbnail(self, embed: dict, source: str) -> None:
         url = self._discord_product_icon_url(source)

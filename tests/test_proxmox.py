@@ -136,7 +136,7 @@ def test_http_endpoint_requires_header_token_and_routes():
             webhook_fixture(),
             {
                 "Content-Type": "application/json",
-                "X-Notifinho-Token": "synthetic-secret",
+                "X-Nowlert-Token": "synthetic-secret",
             },
         )
     finally:

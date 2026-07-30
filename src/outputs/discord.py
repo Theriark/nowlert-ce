@@ -52,8 +52,7 @@ class DiscordOutput:
     ICON_DIR = Path(
         compatible_environment(
             "NOWLERT_DISCORD_ICON_DIR",
-            "NOTIFINHO_DISCORD_ICON_DIR",
-            default="/notifinho/assets/icons",
+            default="/nowlert/assets/icons",
         )
     )
 
@@ -243,7 +242,7 @@ class DiscordOutput:
             return None
 
         url = str(thumbnail.get("url") or "")
-        prefix = "notifinho-asset://"
+        prefix = "nowlert-asset://"
         if not url.startswith(prefix):
             return None
 

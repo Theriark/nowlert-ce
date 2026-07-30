@@ -1,13 +1,13 @@
 From: QNAP Notification Center <notification-center@synthetic-qnap.invalid>
-To: Notifinho Fixture <notifinho@receiver.invalid>
+To: Nowlert Fixture <nowlert@receiver.invalid>
 Date: Sun, 12 Jul 2026 09:30:00 +0000
 Subject: [Warning][External Device] UPS entered battery mode
 Message-ID: <ups-power-event@synthetic-qnap.invalid>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-X-Notifinho-Synthetic-Fixture: true
-X-Notifinho-Fixture-Format: qts-plain
+X-Nowlert-Synthetic-Fixture: true
+X-Nowlert-Fixture-Format: qts-plain
 
 [SYNTHETIC FIXTURE - NOT FROM A REAL QNAP NAS]
 

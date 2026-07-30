@@ -213,7 +213,7 @@ def test_configuration_validation_rejects_non_boolean_platform_switches(value):
     errors = validate_config({
         "platform": {
             "enabled": value,
-            "state_dir": "/notifinho/state",
+            "state_dir": "/nowlert/state",
         },
     })
 
@@ -238,7 +238,7 @@ def test_configuration_validation_accepts_disabled_platform_state():
     assert validate_config({
         "platform": {
             "enabled": False,
-            "state_dir": "/notifinho/state",
+            "state_dir": "/nowlert/state",
         },
     }) == []
 
@@ -287,7 +287,7 @@ def test_configuration_validation_rejects_non_boolean_secure_cookie_switch(value
     errors = validate_config({
         "platform": {
             "enabled": False,
-            "state_dir": "/notifinho/state",
+            "state_dir": "/nowlert/state",
             "secure_cookies": value,
         },
     })
@@ -321,7 +321,7 @@ def test_configuration_validation_accepts_trusted_idrac_audit_addresses():
         "notifications": {
             "dell_idrac": {
                 "suppress_ipmi_session_audit_from": [
-                    "192.168.0.164",
+                    "192.0.2.164",
                     "2001:db8::251",
                 ],
             },
@@ -331,7 +331,7 @@ def test_configuration_validation_accepts_trusted_idrac_audit_addresses():
     assert errors == []
 
 
-@pytest.mark.parametrize("value", ["192.168.0.999", "not-an-ip", 164])
+@pytest.mark.parametrize("value", ["192.0.2.999", "not-an-ip", 164])
 def test_configuration_validation_rejects_invalid_idrac_audit_address(value):
     errors = validate_config({
         "notifications": {
@@ -369,7 +369,7 @@ def test_generic_event_api_enforces_source_scope_and_returns_delivery_state():
     service = APIService(Dispatcher(), router, config)
     headers = {"Authorization": f"Bearer {secret}"}
     event = {
-        "schema": "notifinho.event.v1",
+        "schema": "nowlert.event.v1",
         "source": "home_lab",
         "title": "Synthetic event",
         "message": "Synthetic scoped event delivery.",
@@ -400,7 +400,7 @@ def test_generic_event_preview_and_test_send_use_bounded_event_payload():
     service = APIService(Dispatcher(), router, config)
     headers = {"Authorization": f"Bearer {secret}"}
     event = {
-        "schema": "notifinho.event.v1",
+        "schema": "nowlert.event.v1",
         "source": "home_lab",
         "title": "Synthetic generic preview",
         "message": "Generic API preview presentation.",

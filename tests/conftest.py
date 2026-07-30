@@ -1,4 +1,4 @@
-"""Shared pytest bootstrap for Notifinho unit tests.
+"""Shared pytest bootstrap for Nowlert unit tests.
 
 Tests deliberately avoid importing the private ``config/config.yaml`` or
 writing production logs. The application modules use top-level imports from
@@ -87,7 +87,7 @@ logger_module = ModuleType(
 )
 
 logger_module.log = logging.getLogger(
-    "notifinho.tests",
+    "nowlert.tests",
 )
 
 sys.modules["logger"] = logger_module

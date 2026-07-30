@@ -1,4 +1,4 @@
-# Development-only Compose file. Run it from the repository checkout on VM-09.
+# Development-only Compose file. Run it from the repository checkout on DEVELOPMENT-HOST.
 services:
   nowlert-dev:
     build:
@@ -7,14 +7,14 @@ services:
     image: nowlert-dev:local
     container_name: nowlert-dev
     restart: unless-stopped
-    working_dir: /notifinho
+    working_dir: /nowlert
     ports:
       - "8026:8025"
       - "18082:8080"
     volumes:
-      - .:/notifinho
+      - .:/nowlert
     environment:
       TZ: Europe/Lisbon
-    command: /notifinho/start.sh
+    command: /nowlert/start.sh
     init: true
     stop_grace_period: 20s

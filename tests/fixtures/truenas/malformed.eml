@@ -1,5 +1,5 @@
 From: TrueNAS Alert Service <alerts@synthetic-truenas.example.invalid>
-To: notifinho@example.invalid
+To: nowlert@example.invalid
 Subject: Alerts
 Message-ID: <synthetic-truenas-malformed@example.invalid>
 X-Synthetic-Fixture: true

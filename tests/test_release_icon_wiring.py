@@ -53,19 +53,16 @@ def test_official_release_build_uses_packaged_notification_icons():
         ROOT / "src" / "formatters" / "presentation.py"
     ).read_text(encoding="utf-8")
 
-    assert "COPY assets /notifinho/assets" in dockerfile
+    assert "COPY assets /nowlert/assets" in dockerfile
     assert "validate_packaged_icons.py" in dockerfile
 
-    assert "NOTIFINHO_ICON_DIR" in presentation
-    assert "NOTIFINHO_TEAMS_ICON_BASE_URL" in presentation
-    assert "notifinho-asset://" in presentation
+    assert "NOWLERT_ICON_DIR" in presentation
+    assert "NOWLERT_TEAMS_ICON_BASE_URL" in presentation
+    assert "nowlert-asset://" in presentation
     assert "data:{mime_type};base64," not in presentation
-    assert "ARG NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ARG NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ENV NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ENV NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "NOWLERT_TEAMS_ICON_BASE_URL=" in workflow
-    assert "NOTIFINHO_TEAMS_ICON_BASE_URL=" in workflow
+    assert dockerfile.count("ARG NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert dockerfile.count("ENV NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert workflow.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
     assert "${{ steps.release.outputs.commit_sha }}" in workflow
 
 def test_components_v2_delivery_uploads_packaged_icon(monkeypatch, tmp_path):

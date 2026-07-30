@@ -227,7 +227,7 @@ def test_every_dedicated_discord_card_has_a_product_thumbnail(source):
     formatter = DiscordOutput().source_formatters[source]
     embed = formatter.format(_notification(source))["embeds"][0]
 
-    assert embed["thumbnail"]["url"].startswith("notifinho-asset://")
+    assert embed["thumbnail"]["url"].startswith("nowlert-asset://")
     assert embed["thumbnail"]["url"].endswith(".png")
 
 
@@ -249,7 +249,7 @@ def test_every_discord_integration_uses_its_exact_official_product_asset(
 
     expected = PresentationMixin.DISCORD_PRODUCT_ICONS.get(source, filename)
     assert embed["thumbnail"]["url"] == (
-        f"notifinho-asset://{expected}"
+        f"nowlert-asset://{expected}"
     )
 
 
@@ -715,7 +715,7 @@ def test_every_discord_product_thumbnail_resolves_to_a_packaged_asset(
 def test_container_image_packages_the_discord_icon_directory():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
-    assert "COPY assets /notifinho/assets" in dockerfile
+    assert "COPY assets /nowlert/assets" in dockerfile
 
 
 @pytest.mark.parametrize(

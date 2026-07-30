@@ -113,8 +113,6 @@ class WebUIService:
             "dell-idrac.png",
             "home-assistant.png",
             "nowlert.png",
-            # Preserve the earlier URL for cached pages and external links.
-            "notifinho.png",
         ):
             self.assets[f"/ui/source-icons/{filename}"] = (
                 f"assets/icons/{filename}",

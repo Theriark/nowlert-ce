@@ -54,17 +54,16 @@ Built for Homelabs • Ready for Enterprise
 | **License** | MIT |
 | **Python** | 3.13 |
 
-Nowlert 3.0.0 is the product, repository, deployment, and container identity
-transition from Notifinho. Existing protocol contracts, environment aliases,
-persistent state, internal paths, cookies, schemas, and rollback data remain
-compatible.
+Nowlert 3.0.0 establishes the product, repository, deployment, and container
+identity used throughout the project. Runtime contracts use the Nowlert
+namespace consistently across persistent state, paths, cookies, and schemas.
 
 See the [v3.0.0 release notes](docs/releases/v3.0.0.md) for the repository and
 registry transition, compatibility boundaries, upgrade guidance, and rollback
 procedure. The operator walkthrough is in the
 [v3.0.0 acceptance checklist](docs/v3.0.0-acceptance-checklist.md).
 
-Notifinho v2 adds a self-hosted notification platform with local accounts,
+Nowlert v2 adds a self-hosted notification platform with local accounts,
 database-authoritative destinations, routes, application tokens, regional
 preferences, backup schedules, integration behavior and aliases. Each resource
 has its own transaction and error boundary, so one damaged destination, route,
@@ -73,7 +72,7 @@ or settings record does not prevent unrelated WebUI pages from loading.
 settings. Existing v2.4 YAML resources are imported once into schema 8 and then
 removed from the mounted file. First startup emits a short-lived, single-use
 setup token so the operator can choose the first administrator credentials in
-the browser without a default password or CLI bootstrap. Notifinho consumes
+the browser without a default password or CLI bootstrap. Nowlert consumes
 emitted SMTP or webhook notifications; it does not poll infrastructure APIs,
 IMAP, Microsoft Graph, Gmail, or other
 mailboxes. SMTP transport security remains disabled by default and can be
@@ -99,7 +98,7 @@ wildcard-route activity, destination-branded test events, a header restart
 control, dual HTTP/HTTPS cookie migration, and a directly usable managed-mount
 Compose profile including NFSv3 backup behavior in the read-only container.
 
-v2.3.4 completes the final requested polish: Notifinho is slightly larger,
+v2.3.4 completes the final requested polish: Nowlert is slightly larger,
 Dell iDRAC, UniFi Network, UniFi Protect, and QNAP are much larger, Synology is
 larger, F5 reliably returns to the active page instead of Overview, inactive
 source removal accepts the current browser request shape, and the 2.3.3
@@ -118,7 +117,7 @@ preserving the detailed project documentation that follows.
 
 | Overview | Routing Flow |
 |---|---|
-| ![Notifinho v2.5.2 Overview](docs/images/v2.5.2-overview.png) | ![Notifinho v2.5.2 Routing Flow](docs/images/v2.5.2-routing-flow.png) |
+| ![Nowlert v2.5.2 Overview](docs/images/v2.5.2-overview.png) | ![Nowlert v2.5.2 Routing Flow](docs/images/v2.5.2-routing-flow.png) |
 
 | Sources | Destinations |
 |---|---|
@@ -140,7 +139,7 @@ preserving the detailed project documentation that follows.
 
 | Microsoft Teams |
 |---|
-| ![Notifinho notification in Microsoft Teams](docs/images/v2.5.2-teams.png) |
+| ![Nowlert notification in Microsoft Teams](docs/images/v2.5.2-teams.png) |
 
 Nowlert uses source-aware presentation, severity colours, structured event
 details, and packaged vendor assets. Discord-specific padded thumbnails keep
@@ -434,7 +433,7 @@ The provisional `v1.4.0` integration includes:
 
 Compatibility remains provisional for broader real-world alert variants and
 customized templates. Synthetic fixtures, private test-email/test-alert
-replay, and a live Send Test Alert have been validated on VM-04. See the
+replay, and a live Send Test Alert have been validated on NOWLERT-HOST. See the
 [TrueNAS integration guide](docs/truenas.md).
 
 ---
@@ -730,10 +729,8 @@ id -u
 id -g
 ```
 
-Set those values as `NOWLERT_UID` and `NOWLERT_GID` in `.env`. Existing
-`NOTIFINHO_UID` and `NOTIFINHO_GID` values remain accepted as compatibility
-aliases. Adjust the published ports only when the defaults conflict with
-another service.
+Set those values as `NOWLERT_UID` and `NOWLERT_GID` in `.env`. Adjust the
+published ports only when the defaults conflict with another service.
 
 ## 5. Validate and start
 
@@ -769,10 +766,9 @@ mounts with absolute production paths such as:
 /docker/nowlert/external-backups
 ```
 
-Use the `nowlert` container identity for new deployments. Existing
-`NOTIFINHO_*` environment aliases and internal `/notifinho` mounts remain
-supported for migration and rollback. Do not point production at a development
-checkout or release-candidate image.
+Use the `nowlert` container identity, `NOWLERT_*` environment variables, and
+`/nowlert` mounts. Do not point production at a development checkout or
+release-candidate image.
 
 ## HTTP and HTTPS
 
@@ -805,7 +801,7 @@ database-authoritative platform state.
 
 ```text
 config/config.yaml          # listener/bootstrap/security settings
-state/notifinho.db          # WebUI-managed resources and preferences
+state/nowlert.db          # WebUI-managed resources and preferences
 secrets/                    # destination credentials and private values
 logs/                       # application logs and optional captured email
 external-backups/           # optional host-mounted backup target
@@ -835,12 +831,12 @@ smtp:
   port: 8025
   tls:
     enabled: false
-    certfile: /notifinho/config/tls/cert.pem
-    keyfile: /notifinho/config/tls/key.pem
+    certfile: /nowlert/config/tls/cert.pem
+    keyfile: /nowlert/config/tls/key.pem
   auth:
     enabled: false
-    username: notifinho
-    password_env: NOTIFINHO_SMTP_PASSWORD
+    username: nowlert
+    password_env: NOWLERT_SMTP_PASSWORD
     password_file: ""
 
 http:
@@ -856,7 +852,7 @@ api:
 platform:
   enabled: true
   configuration_model: platform_database_v1
-  state_dir: /notifinho/state
+  state_dir: /nowlert/state
   backup_retention: 20
   secure_cookies: false
 
@@ -917,13 +913,13 @@ one final delivery through the highest-priority route.
 Application logs are stored in:
 
 ```text
-/notifinho/logs/notifinho.log
+/nowlert/logs/nowlert.log
 ```
 
 Incoming SMTP messages can optionally be stored under:
 
 ```text
-/notifinho/logs/emails/
+/nowlert/logs/emails/
 ```
 
 These files are for troubleshooting and must not contain long-lived secrets.
@@ -1116,7 +1112,7 @@ See also the [v2.3.3 to v2.5.2 implementation sequence](docs/version-history-2.3
 
 ## ✅ v1.3.0 — QNAP and Grafana
 
-Notifinho v1.3.0 introduced provisional QNAP QTS, QuTS hero, and
+Nowlert v1.3.0 introduced provisional QNAP QTS, QuTS hero, and
 Grafana Alerting support. See the
 [v1.3.0 release notes](docs/releases/v1.3.0.md) for highlights, upgrade
 guidance, validation results, and current compatibility limitations.
@@ -1154,7 +1150,7 @@ v1.3.0 feature set.
 
 ## ✅ v1.4.0 — TrueNAS
 
-Notifinho v1.4.0 introduced provisional TrueNAS 26 support. See the
+Nowlert v1.4.0 introduced provisional TrueNAS 26 support. See the
 [v1.4.0 release notes](docs/releases/v1.4.0.md) for highlights, upgrade
 guidance, validation results, and current compatibility limitations.
 
@@ -1164,13 +1160,13 @@ guidance, validation results, and current compatibility limitations.
 - New, cleared, current, test, and grouped alert handling
 - Discord and Microsoft Teams cards
 - Synthetic fixtures, tests, routing examples, and documentation
-- Real TrueNAS 26 test email, test alert, and live Send Test Alert validated on VM-04
+- Real TrueNAS 26 test email, test alert, and live Send Test Alert validated on NOWLERT-HOST
 
 ---
 
 ## ✅ v1.5.0 — Native UniFi support
 
-Notifinho v1.5.0 introduced native UniFi support. See the
+Nowlert v1.5.0 introduced native UniFi support. See the
 [v1.5.0 release notes](docs/releases/v1.5.0.md) for upgrade, rollback,
 validation, and compatibility details.
 
@@ -1191,14 +1187,14 @@ The release includes:
 - A documented private-sample review workflow tracked in issue #32
 
 The listener remains disabled until configured. UniFi Drive does not poll a
-mailbox; mail must be forwarded or delivered to Notifinho's existing SMTP
+mailbox; mail must be forwarded or delivered to Nowlert's existing SMTP
 input. See [docs/unifi.md](docs/unifi.md) for configuration and security.
 
 ---
 
 ## ✅ v1.6.0 — SMTP transport security
 
-Notifinho v1.6.0 introduced SMTP transport security. See the
+Nowlert v1.6.0 introduced SMTP transport security. See the
 [v1.6.0 release notes](docs/releases/v1.6.0.md) for configuration, upgrade,
 rollback, validation, and compatibility details.
 
@@ -1219,7 +1215,7 @@ The release includes:
 
 ## ✅ v1.7.0 — Native UniFi Drive webhooks
 
-Notifinho v1.7.0 introduced native UniFi Drive webhooks. See the
+Nowlert v1.7.0 introduced native UniFi Drive webhooks. See the
 [v1.7.0 release notes](docs/releases/v1.7.0.md) for configuration, upgrade,
 rollback, validation, and compatibility details.
 
@@ -1235,7 +1231,7 @@ rollback, validation, and compatibility details.
 
 ## ✅ v1.8.0 — Virtualization, containers, and storage
 
-Notifinho v1.8.0 introduced the v1.8 source integrations. See the
+Nowlert v1.8.0 introduced the v1.8 source integrations. See the
 [v1.8.0 release notes](docs/releases/v1.8.0.md) for upgrade, rollback,
 validation, and compatibility details. It expands the server-side notification
 engine while preserving the current YAML configuration and
@@ -1267,7 +1263,7 @@ checklist are documented in the
 
 ## ✅ v1.8.1 — Consistent Discord and Teams presentation
 
-Notifinho v1.8.1 is the presentation and safety patch that preceded v1.9.0.
+Nowlert v1.8.1 is the presentation and safety patch that preceded v1.9.0.
 See the [v1.8.1 release notes](docs/releases/v1.8.1.md) for upgrade, rollback,
 validation, and compatibility details.
 
@@ -1282,7 +1278,7 @@ validation, and compatibility details.
 
 ## ✅ v1.9.0 — Event platform and hardware management
 
-Notifinho v1.9.0 completes the tested backend foundation required by the
+Nowlert v1.9.0 completes the tested backend foundation required by the
 user-facing v2.0 release. See the
 [v1.9.0 release notes](docs/releases/v1.9.0.md).
 
@@ -1313,7 +1309,7 @@ and the responsive WebUI remain explicitly scoped to v2.0.
 
 ## ✅ v1.9.1 — Generic API and Home Assistant presentation patch
 
-Notifinho v1.9.1 corrects two presentation regressions without changing the
+Nowlert v1.9.1 corrects two presentation regressions without changing the
 v1.9 configuration schema or endpoint contracts. See the
 [v1.9.1 release notes](docs/releases/v1.9.1.md).
 
@@ -1325,18 +1321,18 @@ v1.9 configuration schema or endpoint contracts. See the
 - Python paths and verbose internal objects are omitted from cards
 - Existing explicit Home Assistant automation fields remain authoritative
 - Generic Home Assistant transport examples keep reusable presentation inside
-  Notifinho and deployment-specific exclusions in Home Assistant
+  Nowlert and deployment-specific exclusions in Home Assistant
 
 ---
 
 ## ✅ v1.9.2 — Home Assistant device aliases and integration errors
 
-Notifinho v1.9.2 improves generic Home Assistant integration errors without
+Nowlert v1.9.2 improves generic Home Assistant integration errors without
 changing the existing event contract. See the
 [v1.9.2 release notes](docs/releases/v1.9.2.md).
 
 - Optional endpoint and component aliases keep site-local equipment names in
-  Notifinho configuration instead of Home Assistant automations
+  Nowlert configuration instead of Home Assistant automations
 - Bare IPv4 addresses are extracted into the dedicated Endpoint field
 - Tapo/Kasa and Internet Printing Protocol events receive concise summaries
   and canonical service labels
@@ -1349,7 +1345,7 @@ changing the existing event contract. See the
 
 ## ✅ v1.9.3 — Redfish host identity and deduplication
 
-Notifinho v1.9.3 makes multi-server Redfish cards unambiguous without changing
+Nowlert v1.9.3 makes multi-server Redfish cards unambiguous without changing
 the endpoint or configuration schema. See the
 [v1.9.3 release notes](docs/releases/v1.9.3.md).
 
@@ -1362,7 +1358,7 @@ the endpoint or configuration schema. See the
 
 ## ✅ v1.9.4 — Shared Teams presentation and source time
 
-Notifinho v1.9.4 gives every Microsoft Teams integration the same information
+Nowlert v1.9.4 gives every Microsoft Teams integration the same information
 hierarchy and makes source timestamps deterministic for worldwide deployments.
 See the [v1.9.4 release notes](docs/releases/v1.9.4.md).
 
@@ -1370,7 +1366,7 @@ See the [v1.9.4 release notes](docs/releases/v1.9.4.md).
 - Context, message, Severity/Category/Event time metrics, and icon-labelled
   details follow one shared layout
 - Source wall-clock timestamps render as `20 Jul 2026 • 18:09`
-- Available source times are never replaced with Notifinho receipt time
+- Available source times are never replaced with Nowlert receipt time
 - Teams and Discord omit visible UTC or offset suffixes
 - Existing configuration, routing, endpoints, and secrets remain compatible
 
@@ -1378,7 +1374,7 @@ See the [v1.9.4 release notes](docs/releases/v1.9.4.md).
 
 ## ✅ v1.9.6 — Official Teams and Discord presentation
 
-Notifinho v1.9.6 replaces generated initial badges with official vendor assets
+Nowlert v1.9.6 replaces generated initial badges with official vendor assets
 for every Teams and Discord integration and closes issues found during the
 live v1.9.4 office audit. See the
 [v1.9.6 release notes](docs/releases/v1.9.6.md).
@@ -1390,7 +1386,7 @@ live v1.9.4 office audit. See the
 - Xen Orchestra preserves backup names and omits missing Duration/Result facts
 - Identifiers such as `PVE-01`, `CPU`, and `VMID` retain their source casing
 - UniFi cards remove duplicated state/icons and shorten the last-device label
-- Teams and Discord use the Notifinho machine's local clock by default, with
+- Teams and Discord use the Nowlert machine's local clock by default, with
   no visible timezone suffix and no receipt-time substitution
 - Trusted Dell session login/logout audit noise can be suppressed by exact
   source IP across REDFISH and IPMI transports
@@ -1401,7 +1397,7 @@ live v1.9.4 office audit. See the
 
 ## ✅ v1.9.7 — Permanent official icon delivery
 
-Notifinho v1.9.7 is a focused packaging and delivery correction. Official
+Nowlert v1.9.7 is a focused packaging and delivery correction. Official
 Docker images pin the vendor asset base to their own immutable release commit,
 and Discord Components V2 uploads the matching packaged PNG. No layout,
 routing, parser, timestamp, configuration, or secret contract changes.
@@ -1454,14 +1450,14 @@ stable.
 ## ✅ v2.3.2 — Source identity and managed-mount corrections
 
 v2.3.2 completes the production findings from v2.3.1. Overview and Sources use
-the packaged official vendor icons, unknown sources use the Notifinho icon, and
+the packaged official vendor icons, unknown sources use the Nowlert icon, and
 purpose-specific categories replace the old broad visual tags. Enabled All
 Sources routes now mark discovered sources Active. Administrators may remove an
 inactive source only after confirmation; active exact or wildcard routing
 blocks removal and historical deliveries are retained.
 
 Destination-card tests now use the selected destination name and generic
-Notifinho identity instead of Home Assistant branding. The audited Restart
+Nowlert identity instead of Home Assistant branding. The audited Restart
 action moves from Settings to the top-right header. Session lookup prefers the
 cookie matching the configured HTTP/HTTPS mode, preventing an old Secure cookie
 from overriding a new dual-access login.

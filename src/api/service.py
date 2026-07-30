@@ -192,8 +192,6 @@ class APIService:
             supplied = authorization[7:].strip()
         if not supplied:
             supplied = str(headers.get("X-Nowlert-Token", ""))
-        if not supplied:
-            supplied = str(headers.get("X-Notifinho-Token", ""))
         if self.platform is not None:
             principal = self.platform.tokens.authenticate(supplied, source)
             if principal is not None:
@@ -232,7 +230,7 @@ class APIService:
 
     def _safe_logs(self) -> list[str]:
         root = Path(__file__).resolve().parents[2]
-        path = root / "logs" / "notifinho.log"
+        path = root / "logs" / "nowlert.log"
         if not path.is_file():
             return []
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-200:]

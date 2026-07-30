@@ -138,7 +138,7 @@ class DiscordPlatformAdapter(_HTTPAdapter):
             local_reference = (
                 isinstance(thumbnail, dict)
                 and str(thumbnail.get("url") or "").startswith(
-                    "notifinho-asset://"
+                    "nowlert-asset://"
                 )
             )
             icon = self.output._local_icon(
@@ -380,7 +380,6 @@ class WebhookPlatformAdapter(_HTTPAdapter):
             ).encode("utf-8")
             idempotency_key = event_identifier(notification)
             headers["X-Nowlert-Idempotency-Key"] = idempotency_key
-            headers["X-Notifinho-Idempotency-Key"] = idempotency_key
             if settings["sign_hmac"]:
                 signing_secret = credentials.get("hmac_secret")
                 if not signing_secret:
@@ -392,7 +391,6 @@ class WebhookPlatformAdapter(_HTTPAdapter):
                 ).hexdigest()
                 signature = f"sha256={digest}"
                 headers["X-Nowlert-Signature"] = signature
-                headers["X-Notifinho-Signature"] = signature
             response = self.http_client.request(
                 settings["method"],
                 url,

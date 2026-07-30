@@ -1,14 +1,14 @@
 From: QNAP Notification Center <notification-center@synthetic-qnap.invalid>
-To: Notifinho Fixture <notifinho@receiver.invalid>
+To: Nowlert Fixture <nowlert@receiver.invalid>
 Date: Sun, 12 Jul 2026 08:15:00 +0000
 Subject: [Warning][Security] Failed login attempt on SYNTHETIC-QNAP-LAB
 Message-ID: <failed-login@synthetic-qnap.invalid>
 MIME-Version: 1.0
-Content-Type: multipart/alternative; boundary="notifinho-qnap-security-boundary"
-X-Notifinho-Synthetic-Fixture: true
-X-Notifinho-Fixture-Format: qts-multipart
+Content-Type: multipart/alternative; boundary="nowlert-qnap-security-boundary"
+X-Nowlert-Synthetic-Fixture: true
+X-Nowlert-Fixture-Format: qts-multipart
 
---notifinho-qnap-security-boundary
+--nowlert-qnap-security-boundary
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
@@ -29,7 +29,7 @@ Message: A failed login attempt was recorded for the synthetic test account.
 
 No source network address is included because this is a synthetic fixture.
 
---notifinho-qnap-security-boundary
+--nowlert-qnap-security-boundary
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
@@ -54,4 +54,4 @@ Content-Transfer-Encoding: 7bit
   </body>
 </html>
 
---notifinho-qnap-security-boundary--
+--nowlert-qnap-security-boundary--

@@ -46,7 +46,7 @@ record can contain:
 
 ```json
 {
-  "url": "https://events.example.com/notifinho",
+  "url": "https://events.example.com/nowlert",
   "hmac_secret": "REPLACE_IN_SECRET_STORE",
   "headers": {
     "Authorization": "Bearer REPLACE_IN_SECRET_STORE"
@@ -68,11 +68,11 @@ HTTPS action. Delivery accepts official `hooks.slack.com` and
 
 Microsoft Teams cards use public HTTPS source-image URLs because Teams clients
 do not reliably render Base64 data URIs. Published images pin
-`NOTIFINHO_TEAMS_ICON_BASE_URL` to the immutable release commit. A deployment
+`NOWLERT_TEAMS_ICON_BASE_URL` to the immutable release commit. A deployment
 may override it with another credential-free public HTTPS directory containing
 the mapped icon filenames.
 
-Notifinho measures each serialized Teams payload and rejects messages larger
+Nowlert measures each serialized Teams payload and rejects messages larger
 than 28 KiB before making a webhook request. Platform destination tests persist
 the safe `teams_payload_too_large` error. HTTP 202 means the Teams Workflow
 accepted the request; the WebUI does not claim channel delivery and asks the
@@ -80,7 +80,7 @@ operator to confirm that the card appeared.
 
 ## Generic outbound webhook
 
-The default body is the versioned `notifinho.event.v1` JSON envelope. Metadata
+The default body is the versioned `nowlert.event.v1` JSON envelope. Metadata
 is bounded recursively and credential-like keys are redacted. An optional JSON
 object template supports a fixed set of escaped substitutions:
 
@@ -98,13 +98,13 @@ Supported substitutions are `body`, `category`, `event_id`, `host`,
 and PATCH. Unsafe hop-by-hop and credential headers cannot be stored in public
 settings. Credential headers can be supplied only in the owner-scoped secret.
 
-Every request receives `X-Notifinho-Idempotency-Key`. When HMAC is enabled,
+Every request receives `X-Nowlert-Idempotency-Key`. When HMAC is enabled,
 the canonical UTF-8 JSON body is signed with HMAC-SHA256 and sent in
-`X-Notifinho-Signature` as `sha256=<hex digest>`.
+`X-Nowlert-Signature` as `sha256=<hex digest>`.
 
 ## MQTT
 
-MQTT publishes the same stable `notifinho.event.v1` envelope using Eclipse
+MQTT publishes the same stable `nowlert.event.v1` envelope using Eclipse
 Paho's one-shot publisher. Topic templates use the fixed substitutions above.
 QoS is limited to 0, 1, or 2; publish topics cannot contain `+` or `#`; TLS is
 enabled by default; and authentication remains inside the secret store.

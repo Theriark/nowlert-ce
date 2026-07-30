@@ -1,4 +1,4 @@
-"""Regression and protocol tests for Notifinho SMTP security."""
+"""Regression and protocol tests for Nowlert SMTP security."""
 
 from __future__ import annotations
 
@@ -29,12 +29,12 @@ from inputs.smtp_security import (
 TLS_FIXTURES = Path(__file__).parent / "fixtures" / "tls"
 CERTFILE = TLS_FIXTURES / "cert.pem"
 KEYFILE = TLS_FIXTURES / "key.pem"
-USERNAME = "notifinho"
+USERNAME = "nowlert"
 PASSWORD = "correct horse battery staple"
 
 
 class FakeConfig:
-    """Config provider matching Notifinho's nested get API."""
+    """Config provider matching Nowlert's nested get API."""
 
     def __init__(self, data):
         self._data = data
@@ -61,7 +61,7 @@ def smtp_config(
     require_starttls=None,
     auth_required=None,
     username=USERNAME,
-    password_env="NOTIFINHO_SMTP_PASSWORD",
+    password_env="NOWLERT_SMTP_PASSWORD",
     password_file="",
     certfile=CERTFILE,
     keyfile=KEYFILE,
@@ -99,7 +99,7 @@ def smtp_config(
 def secure_settings(**overrides):
     environment = overrides.pop(
         "environment",
-        {"NOTIFINHO_SMTP_PASSWORD": PASSWORD},
+        {"NOWLERT_SMTP_PASSWORD": PASSWORD},
     )
     return load_smtp_security(
         smtp_config(
@@ -363,7 +363,7 @@ def test_authentication_without_tls_fails_closed():
     ):
         load_smtp_security(
             smtp_config(auth_enabled=True),
-            environment={"NOTIFINHO_SMTP_PASSWORD": PASSWORD},
+            environment={"NOWLERT_SMTP_PASSWORD": PASSWORD},
         )
 
 
@@ -470,7 +470,7 @@ def test_empty_password_environment_variable_fails_closed():
         match="is empty",
     ):
         secure_settings(
-            environment={"NOTIFINHO_SMTP_PASSWORD": ""},
+            environment={"NOWLERT_SMTP_PASSWORD": ""},
         )
 
 
@@ -481,7 +481,7 @@ def test_environment_password_spaces_are_preserved():
             auth_enabled=True,
         ),
         environment={
-            "NOTIFINHO_SMTP_PASSWORD": " password with spaces ",
+            "NOWLERT_SMTP_PASSWORD": " password with spaces ",
         },
     ).authenticator
 
@@ -956,7 +956,7 @@ def test_errors_do_not_include_password():
 
     with pytest.raises(SMTPSecurityConfigError) as error:
         secure_settings(
-            environment={"NOTIFINHO_SMTP_PASSWORD": ""},
+            environment={"NOWLERT_SMTP_PASSWORD": ""},
         )
 
     assert exposed_password not in str(error.value)

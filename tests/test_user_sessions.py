@@ -24,7 +24,7 @@ def fast_hash(password: str) -> str:
 
 @pytest.fixture
 def accounts(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     clock = Clock()
     users = UserStore(
@@ -191,7 +191,7 @@ def test_session_cookie_defaults_are_browser_safe(accounts):
     credentials = SessionStore(database, clock=clock).create(user.id)
     cookie = credentials.cookie()
 
-    assert cookie.startswith("__Host-notifinho_session=")
+    assert cookie.startswith("__Host-nowlert_session=")
     assert "; HttpOnly" in cookie
     assert "; Secure" in cookie
     assert "; SameSite=Strict" in cookie

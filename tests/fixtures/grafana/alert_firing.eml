@@ -1,14 +1,14 @@
 From: Grafana Alerting <alerting@grafana.synthetic.invalid>
-To: Notifinho Fixture <notifinho@receiver.invalid>
+To: Nowlert Fixture <nowlert@receiver.invalid>
 Date: Sun, 12 Jul 2026 10:15:00 +0000
 Subject: [FIRING:1] Synthetic API latency alert
 Message-ID: <grafana-firing@grafana.synthetic.invalid>
 MIME-Version: 1.0
-Content-Type: multipart/alternative; boundary="notifinho-grafana-firing"
-X-Notifinho-Synthetic-Fixture: true
-X-Notifinho-Fixture-Format: grafana-multipart
+Content-Type: multipart/alternative; boundary="nowlert-grafana-firing"
+X-Nowlert-Synthetic-Fixture: true
+X-Nowlert-Fixture-Format: grafana-multipart
 
---notifinho-grafana-firing
+--nowlert-grafana-firing
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
@@ -36,7 +36,7 @@ SilenceURL: https://grafana.synthetic.invalid/alerting/silence/new?synthetic=1
 RuleURL: https://grafana.synthetic.invalid/alerting/grafana/synthetic-rule/view
 Alert count: 1
 
---notifinho-grafana-firing
+--nowlert-grafana-firing
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
@@ -62,4 +62,4 @@ Content-Transfer-Encoding: 7bit
 </table>
 </body></html>
 
---notifinho-grafana-firing--
+--nowlert-grafana-firing--

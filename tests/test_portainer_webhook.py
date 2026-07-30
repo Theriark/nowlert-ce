@@ -95,7 +95,7 @@ def test_verified_firing_payload_is_normalized():
     assert item.metadata["state"] == "firing"
     assert item.metadata["severity"] == "warning"
     assert item.metadata["authentication_method"] == "local"
-    assert item.metadata["username"] == "notifinho-discovery-test"
+    assert item.metadata["username"] == "nowlert-discovery-test"
     assert item.metadata["parser_confidence"] == "high"
 
 
@@ -180,7 +180,7 @@ def test_portainer_query_token_authenticates_and_routes():
 
 def test_portainer_http_logs_do_not_expose_payload_values(caplog):
     payload = fixture_payload()
-    caplog.set_level("INFO", logger="notifinho.tests")
+    caplog.set_level("INFO", logger="nowlert.tests")
     with RunningServer() as running:
         assert request(running.port, "/portainer/alerts", payload) == 204
 
@@ -238,7 +238,7 @@ def test_discord_and_teams_cards_show_useful_fields_and_hide_ids():
     assert "Portainer" in rendered
     assert "Firing" in rendered
     assert "Warning" in rendered
-    assert "notifinho-discovery-test" in rendered
+    assert "nowlert-discovery-test" in rendered
     assert "Authentication failures exceeded" in rendered
     for hidden in (
         payload["commonLabels"]["alert_rule_id"],

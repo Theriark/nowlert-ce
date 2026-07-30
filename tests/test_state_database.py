@@ -32,7 +32,7 @@ class Configuration:
 
 
 def test_database_migration_is_idempotent_and_records_all_foundation_tables(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
 
     assert database.migrate() == LATEST_SCHEMA_VERSION
     assert database.migrate() == LATEST_SCHEMA_VERSION
@@ -71,7 +71,7 @@ def test_database_migration_is_idempotent_and_records_all_foundation_tables(tmp_
 
 
 def test_database_and_parent_are_owner_only(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
 
     assert database.path.parent.stat().st_mode & 0o777 == 0o700
@@ -84,7 +84,7 @@ def test_database_rejects_symlink_file_and_directory(tmp_path):
     linked_directory = tmp_path / "linked"
     linked_directory.symlink_to(target_directory, target_is_directory=True)
     with pytest.raises(ValueError, match="directory"):
-        Database(linked_directory / "notifinho.db").migrate()
+        Database(linked_directory / "nowlert.db").migrate()
 
     real_database = tmp_path / "real.db"
     real_database.write_bytes(b"")
@@ -95,7 +95,7 @@ def test_database_rejects_symlink_file_and_directory(tmp_path):
 
 
 def test_database_rejects_newer_schema(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     with database.connect() as connection:
         connection.execute(f"PRAGMA user_version = {LATEST_SCHEMA_VERSION + 1}")
@@ -105,7 +105,7 @@ def test_database_rejects_newer_schema(tmp_path):
 
 
 def test_database_foreign_keys_protect_owned_records(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     with pytest.raises(sqlite3.IntegrityError):
         with database.transaction() as connection:
@@ -124,24 +124,24 @@ def test_state_initialization_is_opt_in_and_supports_environment_override(
     tmp_path,
 ):
     disabled = Configuration({"platform": {"enabled": False}})
-    monkeypatch.setenv("NOTIFINHO_STATE_DIR", str(tmp_path / "disabled"))
+    monkeypatch.setenv("NOWLERT_STATE_DIR", str(tmp_path / "disabled"))
     assert initialize_state(disabled) is None
     assert not (tmp_path / "disabled").exists()
 
     enabled = Configuration({"platform": {"enabled": True}})
     database = initialize_state(enabled)
     assert database is not None
-    assert database.path == tmp_path / "disabled" / "notifinho.db"
+    assert database.path == tmp_path / "disabled" / "nowlert.db"
     assert database.schema_version == LATEST_SCHEMA_VERSION
 
 
 def test_state_directory_requires_a_bounded_absolute_path(monkeypatch):
     configuration = Configuration({"platform": {"state_dir": "relative/state"}})
-    monkeypatch.delenv("NOTIFINHO_STATE_DIR", raising=False)
+    monkeypatch.delenv("NOWLERT_STATE_DIR", raising=False)
     with pytest.raises(ValueError, match="absolute"):
         state_directory(configuration)
 
-    monkeypatch.setenv("NOTIFINHO_STATE_DIR", "/")
+    monkeypatch.setenv("NOWLERT_STATE_DIR", "/")
     with pytest.raises(ValueError, match="filesystem root"):
         state_directory(configuration)
 
@@ -221,7 +221,7 @@ def test_account_cli_initializes_state_and_bootstraps_admin(tmp_path):
 
 
 def test_schema_one_database_upgrades_to_user_routing_schema(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     with database.connect() as connection:
         connection.execute("BEGIN IMMEDIATE")
         connection.execute(
@@ -276,7 +276,7 @@ def test_missing_platform_switch_enables_persistent_legacy_config_fallback(
     monkeypatch,
     tmp_path,
 ):
-    monkeypatch.delenv("NOTIFINHO_STATE_DIR", raising=False)
+    monkeypatch.delenv("NOWLERT_STATE_DIR", raising=False)
     monkeypatch.setattr(
         "storage.runtime.DEFAULT_STATE_DIRECTORY",
         str(tmp_path / "config" / "platform-state"),
@@ -285,7 +285,7 @@ def test_missing_platform_switch_enables_persistent_legacy_config_fallback(
     database = initialize_state(Configuration({}))
 
     assert database is not None
-    assert database.path == tmp_path / "config" / "platform-state" / "notifinho.db"
+    assert database.path == tmp_path / "config" / "platform-state" / "nowlert.db"
     assert database.schema_version == LATEST_SCHEMA_VERSION
 
 

@@ -1,13 +1,13 @@
 From: Grafana Alerting <alerting@grafana.synthetic.invalid>
-To: Notifinho Fixture <notifinho@receiver.invalid>
+To: Nowlert Fixture <nowlert@receiver.invalid>
 Date: Sun, 12 Jul 2026 10:45:00 +0000
 Subject: [PENDING] Synthetic queue depth warning
 Message-ID: <grafana-pending@grafana.synthetic.invalid>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-X-Notifinho-Synthetic-Fixture: true
-X-Notifinho-Fixture-Format: grafana-plain
+X-Nowlert-Synthetic-Fixture: true
+X-Nowlert-Fixture-Format: grafana-plain
 
 [SYNTHETIC FIXTURE - NOT FROM A REAL GRAFANA INSTANCE]
 

@@ -1,18 +1,18 @@
 # HPE iLO
 
-Notifinho v1.9.0 provides a fixture-validated HPE iLO candidate through
+Nowlert v1.9.0 provides a fixture-validated HPE iLO candidate through
 `POST /redfish/hpe` and conservative HPE iLO AlertMail parsing. Both paths use
 the `hpe_ilo` routing key.
 
 Create an iLO Redfish Event Service subscription pointing to:
 
 ```text
-http://notifinho.example:8080/redfish/hpe
+http://nowlert.example:8080/redfish/hpe
 ```
 
-Prefer a source-scoped token sent as `X-Notifinho-Token`. Where the installed
+Prefer a source-scoped token sent as `X-Nowlert-Token`. Where the installed
 iLO release cannot add a header, use a protected reverse proxy or AlertMail to
-Notifinho SMTP. Configure routing independently from other hardware sources:
+Nowlert SMTP. Configure routing independently from other hardware sources:
 
 ```yaml
 routing:
