@@ -3,18 +3,18 @@
 This guide preserves the private-sample discovery workflow used to design the
 production integration. Production configuration now lives in the
 [Portainer integration guide](portainer.md). The first validation target is
-Portainer Business Edition 2.42.0 running on VM-04 (`192.168.0.164`).
+Portainer Business Edition 2.42.0 running on NOWLERT-HOST (`192.0.2.164`).
 
 [Portainer Alerting](https://docs.portainer.io/user/observability/alerting) is
 a Business Edition feature and is configured by a Portainer administrator
 under **Additional Functionality > Alerting**. Its notification channels
-include webhook and email. Notifinho consumes those outbound alert
+include webhook and email. Nowlert consumes those outbound alert
 notifications; it does not use Portainer's stack redeployment webhooks, poll
 the Portainer API, or retain an administrator credential.
 
 ## Confirmed BE 2.42.0 findings
 
-- Portainer can reach a listener on VM-04 through its container network.
+- Portainer can reach a listener on NOWLERT-HOST through its container network.
 - The alert-manager **Test** action checks instance reachability but does not
   send a channel notification.
 - An actual firing rule emits an Alertmanager-compatible versioned JSON
@@ -30,7 +30,7 @@ the Portainer API, or retain an administrator credential.
   username.
 - Firing and resolved channel delivery were validated end to end by submitting
   a short-lived synthetic alert to Portainer's internal Alertmanager API. Both
-  events reached the authenticated Notifinho development endpoint and were
+  events reached the authenticated Nowlert development endpoint and were
   delivered to Discord with the expected warning and recovery presentation.
 
 Private values from the original request were not copied into Git. The
@@ -40,7 +40,7 @@ production test fixture is synthetic and preserves only the reviewed schema.
 
 Original webhook requests and emails can contain hostnames, environment or
 endpoint identifiers, stack and container names, addresses, URLs, tokens, and
-other private infrastructure data. Keep them on VM-04 and never commit them.
+other private infrastructure data. Keep them on NOWLERT-HOST and never commit them.
 
 Create these local directories as needed:
 
@@ -58,26 +58,26 @@ Open `.git/info/exclude` in the development checkout and add:
 Confirm the exclusion before capture:
 
 ```bash
-cd /docker/notifinho-dev
+cd /docker/nowlert-dev
 git check-ignore -v private-samples/portainer/webhook/test.raw
 ```
 
 The command must report `.git/info/exclude`. Do not continue until it does.
 
-## Temporary webhook capture on VM-04
+## Temporary webhook capture on NOWLERT-HOST
 
 The capture server uses Python's standard library. It defaults to loopback and
 does not save raw requests unless an output directory is explicitly supplied.
 Port `18083` is reserved for this temporary discovery session so it does not
 overlap the production or existing development HTTP listeners.
 
-From `/docker/notifinho-dev`, start an isolated disposable container:
+From `/docker/nowlert-dev`, start an isolated disposable container:
 
 ```bash
-docker run --rm --name notifinho-portainer-capture \
+docker run --rm --name nowlert-portainer-capture \
   --network host \
-  -v /docker/notifinho-dev:/notifinho \
-  -w /notifinho \
+  -v /docker/nowlert-dev:/nowlert \
+  -w /nowlert \
   python:3.13-slim \
   python scripts/capture_portainer_webhook.py \
     --host 0.0.0.0 \
@@ -85,7 +85,7 @@ docker run --rm --name notifinho-portainer-capture \
     --output-dir private-samples/portainer/webhook
 ```
 
-If VM-04's firewall blocks the request, add only a temporary rule appropriate
+If NOWLERT-HOST's firewall blocks the request, add only a temporary rule appropriate
 to the local Portainer-to-host path. Do not expose port `18083` outside the
 trusted management network.
 
@@ -93,8 +93,8 @@ In Portainer:
 
 1. Open **Additional Functionality > Alerting**.
 2. Open **Settings** for the internal alert manager.
-3. Add a **Webhook** notification channel named `Notifinho discovery`.
-4. Set its URL to `http://192.168.0.164:18083/portainer/alerts`.
+3. Add a **Webhook** notification channel named `Nowlert discovery`.
+4. Set its URL to `http://192.0.2.164:18083/portainer/alerts`.
 5. Use a channel test if the UI offers one. Otherwise enable one narrow,
    low-volume test rule and deliberately trigger and recover it.
 
@@ -133,7 +133,7 @@ types and shape, parsing status, and likely Portainer/Alertmanager markers.
 
 Webhook is the preferred first path because it preserves structured data. To
 compare Portainer's email format, configure a development-only Alerting email
-channel to VM-04's development SMTP listener on port `8026`. Do not change the
+channel to NOWLERT-HOST's development SMTP listener on port `8026`. Do not change the
 production SMTP destination. Trigger only the same narrow test event and keep
 the original `.eml` under `private-samples/portainer/email/`.
 

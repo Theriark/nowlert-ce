@@ -1,6 +1,6 @@
 # WebUI
 
-Notifinho v2.5.2 packages a responsive, dependency-free management interface in
+Nowlert v2.5.2 packages a responsive, dependency-free management interface in
 the image. It uses the authenticated `/api/v2` contract over the same origin.
 
 ## Activation
@@ -16,7 +16,7 @@ api:
 
 platform:
   enabled: true
-  state_dir: /notifinho/state
+  state_dir: /nowlert/state
   configuration_model: platform_database_v1
   secure_cookies: false
 
@@ -100,7 +100,7 @@ Each settings record has an independent error boundary.
 ### Inputs
 
 SMTP, HTTP, and Redfish are managed independently. Changing their enabled
-state requires a Notifinho restart because listener and transport startup are
+state requires a Nowlert restart because listener and transport startup are
 process-level operations.
 
 ### Backups and Data tools

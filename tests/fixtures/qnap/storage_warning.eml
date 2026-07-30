@@ -1,13 +1,13 @@
 From: QNAP Notification Center <notification-center@synthetic-qnap.invalid>
-To: Notifinho Fixture <notifinho@receiver.invalid>
+To: Nowlert Fixture <nowlert@receiver.invalid>
 Date: Sun, 12 Jul 2026 08:30:00 +0000
 Subject: [Warning][Storage & Snapshots] Storage Pool 1 is in warning state
 Message-ID: <storage-warning@synthetic-qnap.invalid>
 MIME-Version: 1.0
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-X-Notifinho-Synthetic-Fixture: true
-X-Notifinho-Fixture-Format: quts-hero-html
+X-Nowlert-Synthetic-Fixture: true
+X-Nowlert-Fixture-Format: quts-hero-html
 
 <!doctype html>
 <html lang="en">

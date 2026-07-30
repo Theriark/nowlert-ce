@@ -45,7 +45,7 @@ def fast_hash(password: str) -> str:
 def test_http_login_is_available_unless_https_enforcement_is_explicit():
     direct = WebUIService(
         Configuration({
-            "webui": {"public_url": "https://notifinho.example.test"},
+            "webui": {"public_url": "https://nowlert.example.test"},
             "platform": {"secure_cookies": False},
         }),
         root=ROOT,
@@ -55,14 +55,14 @@ def test_http_login_is_available_unless_https_enforcement_is_explicit():
     enforced = WebUIService(
         Configuration({
             "webui": {
-                "public_url": "https://notifinho.example.test",
+                "public_url": "https://nowlert.example.test",
                 "enforce_https": True,
             },
             "platform": {"secure_cookies": True},
         }),
         root=ROOT,
     )
-    assert enforced.redirect_location("/", {}) == "https://notifinho.example.test/"
+    assert enforced.redirect_location("/", {}) == "https://nowlert.example.test/"
 
 
 def test_source_category_configuration_is_bounded():
@@ -91,7 +91,7 @@ def test_source_category_update_is_database_backed_and_removed_from_yaml(tmp_pat
         encoding="utf-8",
     )
     runtime = ReloadableConfiguration(path)
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin(

@@ -31,7 +31,7 @@ def fast_hash(password: str) -> str:
 
 @pytest.fixture
 def platform_state(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin("administrator", PASSWORD)
@@ -96,7 +96,7 @@ def test_portable_export_never_contains_credentials_or_auth_material(platform_st
     document = state["portability"].export_document(state["admin"].actor)
     encoded = json.dumps(document, sort_keys=True)
 
-    assert document["schema"] == "notifinho.platform.v1"
+    assert document["schema"] == "nowlert.platform.v1"
     assert len(document["destinations"]) == 1
     assert len(document["routes"]) == 1
     assert document["destinations"][0]["secret_required"] is True
@@ -116,7 +116,7 @@ def test_portable_import_requires_preview_fingerprint_and_disables_missing_secre
 ):
     state = platform_state
     document = {
-        "schema": "notifinho.platform.v1",
+        "schema": "nowlert.platform.v1",
         "destinations": [{
             "ref": "destination-1",
             "owner": "owner-user",
@@ -171,7 +171,7 @@ def test_portable_preview_rejects_ownership_conflicts_and_duplicate_names(
 ):
     state = platform_state
     document = {
-        "schema": "notifinho.platform.v1",
+        "schema": "nowlert.platform.v1",
         "destinations": [
             {
                 "ref": reference,
@@ -345,7 +345,7 @@ def test_state_backup_detects_tampering_and_ignores_unrecognized_directories(
     backup = backups.create(state["admin"].actor)
     path = backups.backup_directory / backup.id / "manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    manifest["files"]["notifinho.db"] = "0" * 64
+    manifest["files"]["nowlert.db"] = "0" * 64
     path.write_text(json.dumps(manifest), encoding="utf-8")
     os.chmod(path, 0o600)
     (backups.backup_directory / "untrusted-name").mkdir()

@@ -53,7 +53,7 @@ def test_historical_v255_release_identity_is_preserved():
         encoding="utf-8"
     )
 
-    assert notes.startswith("# Notifinho v2.5.5 release notes")
+    assert notes.startswith("# Nowlert v2.5.5 release notes")
 
 
 def test_quick_starts_prepare_platform_state():
@@ -72,9 +72,9 @@ def test_production_defaults_are_versioned_and_compatible():
 
     assert "NOWLERT_IMAGE=theriark/nowlert:3.0.0" in environment
     assert "theriark/nowlert:3.0.0" in compose
-    assert "NOTIFINHO_IMAGE" in compose
-    assert "NOTIFINHO_EXTERNAL_BACKUP_DIR" in compose
-    assert "/notifinho/external-backups" in compose
+    assert "NOWLERT_IMAGE" in compose
+    assert "NOWLERT_EXTERNAL_BACKUP_DIR" in compose
+    assert "/nowlert/external-backups" in compose
 
 
 def test_release_notes_cover_cutover_rollback_and_schema():
@@ -85,7 +85,7 @@ def test_release_notes_cover_cutover_rollback_and_schema():
     for heading in (
         "## Upgrade",
         "## Repository and registry cutover",
-        "## Compatibility and rollback",
+        "## Runtime contract and rollback",
         "## Database and configuration",
         "## Acceptance",
     ):
@@ -116,8 +116,8 @@ def test_release_workflow_is_guarded_and_uses_nowlert_images():
     )
     assert 'RELEASE_TITLE="Nowlert ${TAG}"' in release
 
-    assert "            fortpt/notifinho:" not in release
-    assert "            ghcr.io/fortpt/notifinho:" not in release
+    assert "            fortpt/nowlert:" not in release
+    assert "            ghcr.io/fortpt/nowlert:" not in release
 
 
 def test_release_workflows_use_current_action_majors():

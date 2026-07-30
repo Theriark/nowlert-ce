@@ -11,7 +11,7 @@ from models import Notification
 
 
 class Parser:
-    SCHEMA = "notifinho.home_assistant.v1"
+    SCHEMA = "nowlert.home_assistant.v1"
     _ENTITY = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+$")
     _ENDPOINT_PREFIX = re.compile(
         r"^\[(?P<device>[^\](]+)\((?P<host>[^)]+)\):(?P<port>\d+)\]\s*"

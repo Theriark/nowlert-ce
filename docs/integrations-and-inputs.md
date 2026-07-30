@@ -1,6 +1,6 @@
 # Integrations and inputs
 
-Notifinho distinguishes an **integration** from the **input** that receives an
+Nowlert distinguishes an **integration** from the **input** that receives an
 event.
 
 Integrations are packaged with the image, always available, and cannot be

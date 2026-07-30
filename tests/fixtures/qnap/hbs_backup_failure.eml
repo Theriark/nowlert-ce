@@ -1,14 +1,14 @@
 From: QNAP Notification Center <notification-center@synthetic-qnap.invalid>
-To: Notifinho Fixture <notifinho@receiver.invalid>
+To: Nowlert Fixture <nowlert@receiver.invalid>
 Date: Sun, 12 Jul 2026 09:00:00 +0000
 Subject: [Error][Hybrid Backup Sync] Backup job Synthetic Nightly Backup failed
 Message-ID: <hbs-backup-failure@synthetic-qnap.invalid>
 MIME-Version: 1.0
-Content-Type: multipart/alternative; boundary="notifinho-qnap-hbs-boundary"
-X-Notifinho-Synthetic-Fixture: true
-X-Notifinho-Fixture-Format: hbs-multipart
+Content-Type: multipart/alternative; boundary="nowlert-qnap-hbs-boundary"
+X-Nowlert-Synthetic-Fixture: true
+X-Nowlert-Fixture-Format: hbs-multipart
 
---notifinho-qnap-hbs-boundary
+--nowlert-qnap-hbs-boundary
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
@@ -31,7 +31,7 @@ Message: The synthetic backup job stopped because the test destination was unava
 
 No real storage location, account, or endpoint is represented.
 
---notifinho-qnap-hbs-boundary
+--nowlert-qnap-hbs-boundary
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
@@ -58,4 +58,4 @@ Content-Transfer-Encoding: 7bit
   </body>
 </html>
 
---notifinho-qnap-hbs-boundary--
+--nowlert-qnap-hbs-boundary--

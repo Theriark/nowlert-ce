@@ -1,4 +1,4 @@
-"""Nowlert environment-variable compatibility helpers."""
+"""Nowlert environment-variable helpers."""
 
 from __future__ import annotations
 
@@ -25,28 +25,25 @@ def first_environment(
 
 def compatible_environment(
     primary: str,
-    legacy: str,
+    alternate: str | None = None,
     *,
     default: str | None = None,
     environment: Mapping[str, str] | None = None,
 ) -> str | None:
-    """Prefer a Nowlert variable and fall back to its Notifinho alias."""
+    """Return the configured Nowlert variable.
+
+    ``alternate`` remains optional for callers that support two current
+    Nowlert settings, while duplicate names are collapsed.
+    """
 
     return first_environment(
         primary,
-        legacy,
+        *(name for name in (alternate,) if name and name != primary),
         default=default,
         environment=environment,
     )
 
 
 def compatible_environment_names(name: str) -> tuple[str, ...]:
-    """Return a configured variable followed by its rebrand counterpart."""
-
-    if name.startswith("NOWLERT_"):
-        return name, f"NOTIFINHO_{name.removeprefix('NOWLERT_')}"
-
-    if name.startswith("NOTIFINHO_"):
-        return name, f"NOWLERT_{name.removeprefix('NOTIFINHO_')}"
-
+    """Return the configured environment variable name."""
     return (name,)

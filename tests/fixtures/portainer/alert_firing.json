@@ -1,5 +1,5 @@
 {
-  "receiver": "notifinho-discovery",
+  "receiver": "nowlert-discovery",
   "status": "firing",
   "alerts": [
     {
@@ -16,7 +16,7 @@
         "source": "Portainer",
         "status": "firing",
         "summary": "High authentication failures for a single user",
-        "username": "notifinho-discovery-test"
+        "username": "nowlert-discovery-test"
       },
       "annotations": {
         "created_by": "Portainer",
@@ -43,7 +43,7 @@
     "source": "Portainer",
     "status": "firing",
     "summary": "High authentication failures for a single user",
-    "username": "notifinho-discovery-test"
+    "username": "nowlert-discovery-test"
   },
   "commonAnnotations": {
     "created_by": "Portainer",

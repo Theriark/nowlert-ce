@@ -1,11 +1,11 @@
 # TrueNAS 26 integration
 
-TrueNAS support is provisional in Notifinho `1.4.0`. It follows the public
+TrueNAS support is provisional in Nowlert `1.4.0`. It follows the public
 TrueNAS 26 middleware alert-service layout. Private test-email and test-alert
-samples, plus a fresh live Send Test Alert, have been validated on VM-04.
+samples, plus a fresh live Send Test Alert, have been validated on NOWLERT-HOST.
 Broader real-world alert variants and customized layouts remain provisional.
 
-## How TrueNAS mail reaches Notifinho
+## How TrueNAS mail reaches Nowlert
 
 TrueNAS has two related settings:
 
@@ -17,7 +17,7 @@ TrueNAS has two related settings:
 Configure both. **Send Test Email** (also shown as **Send Test Mail** in some
 TrueNAS 26 documentation/UI revisions) validates the global SMTP transport.
 It is not guaranteed to use the alert-service body and can therefore use
-Notifinho's generic fallback. **Send Test Alert** exercises the Email alert
+Nowlert's generic fallback. **Send Test Alert** exercises the Email alert
 service and should produce the TrueNAS layout that this integration detects.
 
 TrueNAS 26 documentation places system email under **System > General
@@ -34,15 +34,15 @@ In **Email Options**, select **SMTP** and use values equivalent to these:
 
 | Setting | Development | Production |
 |---|---|---|
-| Outgoing Mail Server | VM-04 hostname or reachable address | `notifinho.example.invalid` or the real Notifinho host |
+| Outgoing Mail Server | NOWLERT-HOST hostname or reachable address | `nowlert.example.invalid` or the real Nowlert host |
 | Mail Server Port | `8026` | `8025` |
 | Security/TLS | None | None, unless a separate SMTP proxy adds TLS |
 | Authentication | Disabled | Disabled |
 | From Email | `truenas@synthetic-truenas.example.invalid` for isolated testing | A deployment-owned sender address |
 | Email Recipients | A deployment-owned address accepted by the listener | A deployment-owned address accepted by the listener |
 
-Use VM-04's address as seen from the TrueNAS appliance. `127.0.0.1` refers to
-TrueNAS itself and is only correct if Notifinho is running on that same host.
+Use NOWLERT-HOST's address as seen from the TrueNAS appliance. `127.0.0.1` refers to
+TrueNAS itself and is only correct if Nowlert is running on that same host.
 Do not commit deployment addresses or credentials.
 
 Save the transport and use **Send Test Email** to confirm that TrueNAS can
@@ -116,7 +116,7 @@ To target another development host explicitly:
 ```bash
 python3 scripts/replay_email.py \
   tests/fixtures/truenas/grouped_alerts.eml \
-  --host VM-04-HOSTNAME \
+  --host NOWLERT-HOST-HOSTNAME \
   --port 8026
 ```
 
@@ -145,12 +145,12 @@ The shared status values remain `information`, `warning`, `failure`, and
 `success`. Cleared alerts are recoveries with `success`; grouped messages keep
 individual new, cleared, and current items in notification metadata.
 
-## VM-04 validation
+## NOWLERT-HOST validation
 
 The following validation was completed against TrueNAS 26:
 
 - all nine synthetic fixtures were replayed through the development listener;
-- the private global SMTP test email reached Notifinho and safely used the
+- the private global SMTP test email reached Nowlert and safely used the
   generic fallback;
 - the private Email alert-service test message was detected as TrueNAS;
 - a fresh live **Send Test Alert** was detected with the correct hostname;
@@ -194,5 +194,5 @@ addresses. Keep originals outside Git. Before sharing a sample:
 5. replay the anonymized copy locally; and
 6. commit only a clearly marked synthetic derivative when it adds coverage.
 
-The private real TrueNAS 26 **test email** and **test alert** on VM-04 remain
+The private real TrueNAS 26 **test email** and **test alert** on NOWLERT-HOST remain
 the final authority and must not be committed.

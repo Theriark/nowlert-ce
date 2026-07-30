@@ -25,7 +25,7 @@ class SessionCredentials:
     expires_at: int
 
     def cookie(self, *, secure: bool = True) -> str:
-        cookie_name = "__Host-notifinho_session" if secure else "notifinho_session"
+        cookie_name = "__Host-nowlert_session" if secure else "nowlert_session"
         attributes = [
             f"{cookie_name}={self.session_token}",
             "Path=/",

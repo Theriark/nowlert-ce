@@ -92,7 +92,7 @@ def request(port, method, path, payload=None, token=""):
 
 def event(source="home_lab"):
     return {
-        "schema": "notifinho.event.v1",
+        "schema": "nowlert.event.v1",
         "source": source,
         "title": "Synthetic API event",
         "message": "End-to-end backend transport validation.",
@@ -102,7 +102,7 @@ def event(source="home_lab"):
 
 def home_assistant_event():
     return {
-        "schema": "notifinho.home_assistant.v1",
+        "schema": "nowlert.home_assistant.v1",
         "title": "Synthetic Home Assistant event",
         "message": "Source-scoped transport validation.",
         "severity": "information",

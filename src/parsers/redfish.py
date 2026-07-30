@@ -116,7 +116,7 @@ def _system_name(value: str) -> str:
 
     system = _clean(value, 256)
     compatibility = re.fullmatch(
-        r"notifinho[\s_-]*(.+?)[\s_-]*compat",
+        r"nowlert[\s_-]*(.+?)[\s_-]*compat",
         system,
         re.IGNORECASE,
     )

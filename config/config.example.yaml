@@ -6,7 +6,7 @@
 # deduplication, users, notices, and history are stored in private platform
 # state and managed from the WebUI.
 #
-# Keep /notifinho/state on a persistent private mount. Back up config, state,
+# Keep /nowlert/state on a persistent private mount. Back up config, state,
 # and secrets together before upgrades.
 
 smtp:
@@ -15,11 +15,11 @@ smtp:
   port: 8025
   tls:
     enabled: false
-    certfile: /notifinho/config/tls/cert.pem
-    keyfile: /notifinho/config/tls/key.pem
+    certfile: /nowlert/config/tls/cert.pem
+    keyfile: /nowlert/config/tls/key.pem
   auth:
     enabled: false
-    username: notifinho
+    username: nowlert
     password_env: NOWLERT_SMTP_PASSWORD
     password_file: ""
 
@@ -38,7 +38,7 @@ api:
 platform:
   enabled: true
   configuration_model: platform_database_v1
-  state_dir: /notifinho/state
+  state_dir: /nowlert/state
   backup_retention: 20
 
   # false permits direct HTTP login only on a trusted private network.
@@ -49,7 +49,7 @@ webui:
   enabled: true
 
   # For reverse-proxied HTTPS, set the canonical URL and enable enforcement:
-  # public_url: "https://notifinho.example.com"
+  # public_url: "https://nowlert.example.com"
   # enforce_https: true
   public_url: ""
   enforce_https: false

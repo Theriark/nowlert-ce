@@ -62,15 +62,15 @@ platform:
 outputs:
   discord:
     enabled: true
-    alfa:
+    primary:
       webhook: {PRIVATE_WEBHOOK}
 routing:
   dell_idrac:
     outputs:
       - output: discord
-        target: alfa
+        target: primary
         match:
-          hosts: [ALFA]
+          hosts: [HOST-01]
 """
 
 
@@ -81,7 +81,7 @@ def bridge_state(tmp_path):
     config_path.write_text(mounted_yaml(), encoding="utf-8")
     configuration = Configuration(config_path)
     config_service = ConfigService(config_path, configuration)
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin("administrator", PASSWORD)
@@ -124,7 +124,7 @@ def test_inventory_detects_mounted_resources_without_returning_credentials(
         "migratable_routes": 1,
     }
     assert inventory["outputs"][0]["credential_configured"] is True
-    assert inventory["routes"][0]["filters"] == {"hosts": ["ALFA"]}
+    assert inventory["routes"][0]["filters"] == {"hosts": ["HOST-01"]}
     assert PRIVATE_WEBHOOK not in encoded
     assert "never-return-this" not in encoded
     assert plan.valid is True
@@ -276,14 +276,14 @@ def test_platform_routing_bridge_delivers_legacy_event_after_takeover(
     notification = Notification(
         source="dell_idrac",
         title="Synthetic hardware alert",
-        metadata={"host": "ALFA", "severity": "warning"},
+        metadata={"host": "HOST-01", "severity": "warning"},
     )
 
     summary = bridge.route(notification)
 
     assert summary == DeliverySummary(1, 1, 0, 1)
     assert adapter.events == [
-        ("Imported discord alfa", PRIVATE_WEBHOOK.encode(), "dell_idrac")
+        ("Imported discord primary", PRIVATE_WEBHOOK.encode(), "dell_idrac")
     ]
 
 

@@ -10,13 +10,12 @@ from environment import compatible_environment
 from storage.database import Database
 
 
-DEFAULT_STATE_DIRECTORY = "/notifinho/config/platform-state"
+DEFAULT_STATE_DIRECTORY = "/nowlert/config/platform-state"
 
 
 def state_directory(configuration) -> Path:
     configured = compatible_environment(
         "NOWLERT_STATE_DIR",
-        "NOTIFINHO_STATE_DIR",
     ) or configuration.get(
         "platform",
         "state_dir",
@@ -36,7 +35,7 @@ def initialize_state(configuration) -> Database | None:
     enabled = configuration.get("platform", "enabled", default=None)
     if enabled is False:
         return None
-    database = Database(state_directory(configuration) / "notifinho.db")
+    database = Database(state_directory(configuration) / "nowlert.db")
     try:
         database.migrate()
     except OSError as error:

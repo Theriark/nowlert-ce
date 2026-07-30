@@ -26,7 +26,7 @@ api:
 
 platform:
   enabled: true
-  state_dir: "/notifinho/state"
+  state_dir: "/nowlert/state"
   configuration_model: "platform_database_v1"
   secure_cookies: false
 ```
@@ -146,17 +146,17 @@ Login saves both cookies and returns the CSRF value:
 
 ```bash
 curl --fail-with-body \
-  --cookie-jar /tmp/notifinho.cookies \
+  --cookie-jar /tmp/nowlert.cookies \
   --header 'Content-Type: application/json' \
   --data '{"username":"administrator","password":"REPLACE_ME"}' \
-  https://notifinho.example.com/api/v2/session
+  https://nowlert.example.com/api/v2/session
 ```
 
 Send the returned `csrf_token` on every state-changing session request:
 
 ```bash
 curl --fail-with-body \
-  --cookie /tmp/notifinho.cookies \
+  --cookie /tmp/nowlert.cookies \
   --header 'Content-Type: application/json' \
   --header 'X-CSRF-Token: RETURNED_LOGIN_VALUE' \
   --data '{
@@ -164,7 +164,7 @@ curl --fail-with-body \
     "source_scopes":["home_lab"],
     "rate_limit_per_minute":60
   }' \
-  https://notifinho.example.com/api/v2/tokens
+  https://nowlert.example.com/api/v2/tokens
 ```
 
 The `value` field appears only in this response or a successful rotation.
@@ -185,7 +185,7 @@ Public settings and credentials are deliberately separate in the request:
     "sign_hmac": true
   },
   "secret": {
-    "url": "https://receiver.example.com/notifinho",
+    "url": "https://receiver.example.com/nowlert",
     "hmac_secret": "REPLACE_ME"
   }
 }
@@ -205,14 +205,14 @@ curl --fail-with-body \
   --header 'Authorization: Bearer PLATFORM_TOKEN' \
   --header 'Content-Type: application/json' \
   --data '{
-    "schema":"notifinho.event.v1",
+    "schema":"nowlert.event.v1",
     "source":"home_lab",
     "title":"Synthetic warning",
     "message":"A bounded application event.",
     "severity":"warning",
     "status":"active"
   }' \
-  https://notifinho.example.com/api/v2/events
+  https://nowlert.example.com/api/v2/events
 ```
 
 The token must include `home_lab`. The service evaluates only the token owner's

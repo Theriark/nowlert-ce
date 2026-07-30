@@ -209,7 +209,7 @@ def test_protect_invalid_links_are_omitted(link):
 def test_protect_opaque_trigger_device_is_not_logged_at_info(caplog):
     payload = protect_payload()
     payload["alarm"]["triggers"][0]["device"] = "00:00:5e:00:53:42"
-    caplog.set_level("INFO", logger="notifinho.tests")
+    caplog.set_level("INFO", logger="nowlert.tests")
 
     notification = Dispatcher().parse_webhook("protect", payload)
 
@@ -446,7 +446,7 @@ def test_drive_dispatcher_detection_preserves_existing_sender_precedence():
 
 
 def test_drive_detection_logs_do_not_expose_system_or_task_names(caplog):
-    caplog.set_level("INFO", logger="notifinho.tests")
+    caplog.set_level("INFO", logger="nowlert.tests")
     Dispatcher().parse(drive_message("backup_partial.eml"))
     rendered = caplog.text
     assert "Detected UniFi Drive email" in rendered

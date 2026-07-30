@@ -40,7 +40,7 @@ def test_discord_uses_padded_variants_for_requested_integrations():
     formatter = PresentationMixin.__new__(PresentationMixin)
     for source, relative in expected.items():
         assert formatter._discord_product_icon_url(source) == (
-            f"notifinho-asset://{relative}"
+            f"nowlert-asset://{relative}"
         )
         assert (ROOT / "assets/icons" / relative).is_file()
 
@@ -57,17 +57,17 @@ def test_docker_image_contract_copies_and_checks_icon_assets():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     validator_path = ROOT / "tools" / "validate_packaged_icons.py"
 
-    assert "COPY assets /notifinho/assets" in dockerfile
-    assert "COPY src /notifinho/src" in dockerfile
-    assert "COPY tools /notifinho/tools" in dockerfile
+    assert "COPY assets /nowlert/assets" in dockerfile
+    assert "COPY src /nowlert/src" in dockerfile
+    assert "COPY tools /nowlert/tools" in dockerfile
     assert (
-        "RUN python3 /notifinho/tools/validate_packaged_icons.py"
+        "RUN python3 /nowlert/tools/validate_packaged_icons.py"
         in dockerfile
     )
 
     # The Dockerfile must validate the runtime asset maps rather than
     # duplicating every icon path or inventing a second WebUI icon tree.
-    assert "/notifinho/src/webui/source-icons/" not in dockerfile
+    assert "/nowlert/src/webui/source-icons/" not in dockerfile
 
     validator = validator_path.read_text(encoding="utf-8")
     assert "presentation.py" in validator

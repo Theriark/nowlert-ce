@@ -42,7 +42,7 @@ def fast_hash(password: str) -> str:
 @pytest.fixture
 def platform_state(tmp_path):
     now = [1_800_000_000]
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     users = UserStore(
         database,
@@ -107,7 +107,7 @@ def test_local_backup_target_write_test_and_manual_run(platform_state, tmp_path)
     tested = targets.test(admin.actor, target.id)
     assert tested.last_test_outcome == "success"
     assert tested.public()["mounted"] is True
-    assert not list(destination.glob(".notifinho-write-test-*"))
+    assert not list(destination.glob(".nowlert-write-test-*"))
 
     scheduler = BackupScheduler(database, configuration)
     result = scheduler.run_now(admin.actor, target.id)
@@ -126,9 +126,9 @@ def test_remote_backup_target_masks_password_and_requires_mount_opt_in(
         {
             "name": "SMB archive",
             "type": "smb",
-            "host": "nas.fortpt.local",
+            "host": "nas.example.invalid",
             "share_name": "Backups",
-            "remote_path": "Notifinho",
+            "remote_path": "Nowlert",
             "username": "backup-service",
             "password": "server-side-only",
             "enabled": True,
@@ -149,7 +149,7 @@ def test_backup_target_conflict_does_not_rotate_secret(platform_state):
         {
             "name": "Primary SMB",
             "type": "smb",
-            "host": "nas.fortpt.local",
+            "host": "nas.example.invalid",
             "share_name": "Backups",
             "username": "backup-service",
             "password": "original-secret",
@@ -180,8 +180,8 @@ def test_backup_target_protects_security_mount_options(platform_state):
             {
                 "name": "Unsafe NFS",
                 "type": "nfs",
-                "host": "nas.fortpt.local",
-                "remote_path": "/exports/notifinho",
+                "host": "nas.example.invalid",
+                "remote_path": "/exports/nowlert",
                 "mount_options": "exec",
             },
         )
@@ -230,14 +230,14 @@ def test_https_redirect_and_v230_webui_contract():
     service = WebUIService(
         Configuration({
             "webui": {
-                "public_url": "https://notifinho.example.test",
+                "public_url": "https://nowlert.example.test",
                 "enforce_https": True,
             }
         }),
         root=ROOT,
     )
-    assert service.redirect_location("/", {}) == "https://notifinho.example.test/"
-    assert service.redirect_location("/ui", {}) == "https://notifinho.example.test/ui"
+    assert service.redirect_location("/", {}) == "https://nowlert.example.test/"
+    assert service.redirect_location("/ui", {}) == "https://nowlert.example.test/ui"
     assert service.redirect_location("/", {"X-Forwarded-Proto": "https"}) is None
 
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")

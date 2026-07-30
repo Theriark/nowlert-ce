@@ -19,7 +19,7 @@ def fast_hash(password: str) -> str:
 
 @pytest.fixture
 def vault(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin("administrator", "correct horse battery staple")

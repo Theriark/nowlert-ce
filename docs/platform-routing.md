@@ -74,7 +74,7 @@ Filter values are case-insensitive and may use shell-style patterns such as
 oversized filter documents are rejected. Disabled routes and disabled
 destinations never match.
 
-Since v2.5.1, wildcard (`*`) routes are fallback-only. Notifinho first evaluates
+Since v2.5.1, wildcard (`*`) routes are fallback-only. Nowlert first evaluates
 specific integration routes. It evaluates wildcard routes only when no specific
 route matches. When multiple matching routes resolve to the same destination,
 only the highest-priority route delivers the event.

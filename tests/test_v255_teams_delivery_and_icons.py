@@ -109,7 +109,6 @@ def test_generic_and_hpe_ilo_cards_use_small_public_https_icons():
 
     for source, filename, expected_pixels in (
         ("nowlert", "nowlert.png", 80),
-        ("notifinho", "nowlert.png", 80),
         ("hpe_ilo", "hpe-ilo.png", 64),
     ):
         formatter = output.source_formatters.get(
@@ -206,10 +205,7 @@ def test_release_image_pins_the_teams_icon_base_to_the_tag_commit():
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
 
-    assert "ARG NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ARG NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ENV NOWLERT_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "ENV NOTIFINHO_TEAMS_ICON_BASE_URL=" in dockerfile
-    assert "NOWLERT_TEAMS_ICON_BASE_URL=" in workflow
-    assert "NOTIFINHO_TEAMS_ICON_BASE_URL=" in workflow
+    assert dockerfile.count("ARG NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert dockerfile.count("ENV NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert workflow.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
     assert "${{ steps.release.outputs.commit_sha }}/assets/icons" in workflow

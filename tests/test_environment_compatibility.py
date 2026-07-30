@@ -1,4 +1,4 @@
-"""Nowlert environment-variable compatibility regressions."""
+"""Nowlert environment-variable regressions."""
 
 from __future__ import annotations
 
@@ -22,47 +22,28 @@ class SMTPPasswordConfiguration:
         return values.get(tuple(keys), default)
 
 
-def test_primary_environment_variable_has_precedence():
+def test_configured_environment_variable_is_returned():
     value = compatible_environment(
         "NOWLERT_STATE_DIR",
-        "NOTIFINHO_STATE_DIR",
-        environment={
-            "NOWLERT_STATE_DIR": "/new",
-            "NOTIFINHO_STATE_DIR": "/legacy",
-        },
+        environment={"NOWLERT_STATE_DIR": "/state"},
     )
 
-    assert value == "/new"
+    assert value == "/state"
 
 
 def test_explicit_empty_primary_value_has_precedence():
     value = compatible_environment(
         "NOWLERT_AVAILABLE_VERSION",
-        "NOTIFINHO_AVAILABLE_VERSION",
         default="fallback",
-        environment={
-            "NOWLERT_AVAILABLE_VERSION": "",
-            "NOTIFINHO_AVAILABLE_VERSION": "9.9.9",
-        },
+        environment={"NOWLERT_AVAILABLE_VERSION": ""},
     )
 
     assert value == ""
 
 
-def test_legacy_environment_variable_remains_supported():
+def test_default_is_used_when_variable_does_not_exist():
     value = compatible_environment(
         "NOWLERT_STATE_DIR",
-        "NOTIFINHO_STATE_DIR",
-        environment={"NOTIFINHO_STATE_DIR": "/legacy"},
-    )
-
-    assert value == "/legacy"
-
-
-def test_default_is_used_when_neither_variable_exists():
-    value = compatible_environment(
-        "NOWLERT_STATE_DIR",
-        "NOTIFINHO_STATE_DIR",
         default="/default",
         environment={},
     )
@@ -74,23 +55,16 @@ def test_first_environment_preserves_requested_precedence():
     value = first_environment(
         "NOWLERT_ICON_DIR",
         "NOWLERT_DISCORD_ICON_DIR",
-        "NOTIFINHO_ICON_DIR",
         environment={
             "NOWLERT_DISCORD_ICON_DIR": "/new-discord",
-            "NOTIFINHO_ICON_DIR": "/legacy-general",
         },
     )
 
     assert value == "/new-discord"
 
 
-def test_compatible_names_support_both_rebrand_directions():
+def test_compatible_names_returns_only_the_configured_name():
     assert compatible_environment_names("NOWLERT_SMTP_PASSWORD") == (
-        "NOWLERT_SMTP_PASSWORD",
-        "NOTIFINHO_SMTP_PASSWORD",
-    )
-    assert compatible_environment_names("NOTIFINHO_SMTP_PASSWORD") == (
-        "NOTIFINHO_SMTP_PASSWORD",
         "NOWLERT_SMTP_PASSWORD",
     )
     assert compatible_environment_names("CUSTOM_PASSWORD") == (
@@ -98,31 +72,10 @@ def test_compatible_names_support_both_rebrand_directions():
     )
 
 
-def test_legacy_smtp_configuration_accepts_new_variable():
+def test_smtp_configuration_reads_configured_variable():
     password = _read_password(
-        SMTPPasswordConfiguration("NOTIFINHO_SMTP_PASSWORD"),
+        SMTPPasswordConfiguration("NOWLERT_SMTP_PASSWORD"),
         {"NOWLERT_SMTP_PASSWORD": "new-secret"},
-    )
-
-    assert password == b"new-secret"
-
-
-def test_new_smtp_configuration_accepts_legacy_variable():
-    password = _read_password(
-        SMTPPasswordConfiguration("NOWLERT_SMTP_PASSWORD"),
-        {"NOTIFINHO_SMTP_PASSWORD": "legacy-secret"},
-    )
-
-    assert password == b"legacy-secret"
-
-
-def test_configured_smtp_variable_has_precedence():
-    password = _read_password(
-        SMTPPasswordConfiguration("NOWLERT_SMTP_PASSWORD"),
-        {
-            "NOWLERT_SMTP_PASSWORD": "new-secret",
-            "NOTIFINHO_SMTP_PASSWORD": "legacy-secret",
-        },
     )
 
     assert password == b"new-secret"

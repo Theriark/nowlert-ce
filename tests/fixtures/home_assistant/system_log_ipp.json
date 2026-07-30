@@ -1,5 +1,5 @@
 {
-  "schema": "notifinho.home_assistant.v1",
+  "schema": "nowlert.home_assistant.v1",
   "title": "Home Assistant error",
   "message": [
     "Error fetching ipp data: Invalid response from API: Error occurred while communicating with IPP server."

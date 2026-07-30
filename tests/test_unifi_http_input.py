@@ -116,7 +116,7 @@ def test_application_vendor_json_content_type_is_accepted():
 def test_successful_http_info_logs_do_not_expose_private_payload_values(caplog):
     payload = fixture_payload("network")
     body = json.dumps(payload).encode()
-    caplog.set_level("INFO", logger="notifinho.tests")
+    caplog.set_level("INFO", logger="nowlert.tests")
     with RunningServer() as running:
         assert request(
             running.port,
@@ -192,7 +192,7 @@ def test_shared_secret_success_and_failure_do_not_reveal_request_validity():
             "POST",
             "/unknown",
             b"not-json",
-            {"X-Notifinho-Token": "wrong"},
+            {"X-Nowlert-Token": "wrong"},
         )
         success = request(
             running.port,
@@ -201,7 +201,7 @@ def test_shared_secret_success_and_failure_do_not_reveal_request_validity():
             body,
             {
                 "Content-Type": "application/json",
-                "X-Notifinho-Token": "synthetic-shared-secret",
+                "X-Nowlert-Token": "synthetic-shared-secret",
             },
         )
     assert (missing, wrong_on_unknown_path, success) == (401, 401, 204)
@@ -220,7 +220,7 @@ def test_shared_secret_uses_timing_safe_comparison(monkeypatch):
             running.port,
             "GET",
             "/unifi/network",
-            headers={"X-Notifinho-Token": "synthetic-shared-secret"},
+            headers={"X-Nowlert-Token": "synthetic-shared-secret"},
         )
     assert status == 405
     assert calls == [(b"synthetic-shared-secret", b"synthetic-shared-secret")]

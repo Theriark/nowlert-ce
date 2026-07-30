@@ -1,5 +1,5 @@
 {
-  "schema": "notifinho.proxmox.v1",
+  "schema": "nowlert.proxmox.v1",
   "source": "proxmox-ve",
   "type": "storage",
   "title": "Synthetic storage warning",

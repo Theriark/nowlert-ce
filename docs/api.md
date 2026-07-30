@@ -1,6 +1,6 @@
 # Backend and event API
 
-Notifinho v1.9.0 introduces the disabled-by-default YAML administration and
+Nowlert v1.9.0 introduces the disabled-by-default YAML administration and
 event API. It reuses the existing dispatcher, notification model, router,
 formatters, and outputs; it is not a second delivery pipeline.
 
@@ -12,7 +12,7 @@ event contract is documented in the
 
 Tokens are configured by environment-variable name, owner-only file, or
 SHA-256 digest. Plaintext YAML tokens are rejected. Send a token as
-`Authorization: Bearer TOKEN` or `X-Notifinho-Token: TOKEN`.
+`Authorization: Bearer TOKEN` or `X-Nowlert-Token: TOKEN`.
 
 Roles:
 
@@ -42,7 +42,7 @@ curl -sS \
   -H 'Authorization: Bearer TOKEN' \
   -H 'Content-Type: application/json' \
   --data '{
-    "schema":"notifinho.event.v1",
+    "schema":"nowlert.event.v1",
     "source":"home_lab",
     "title":"Synthetic warning",
     "message":"A bounded application event.",

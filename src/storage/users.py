@@ -57,7 +57,7 @@ class UserStore:
         self.max_failed_logins = max(1, int(max_failed_logins))
         self.lockout_seconds = max(1, int(lockout_seconds))
         self._dummy_password_hash = self.password_hasher(
-            "notifinho-dummy-password-record"
+            "nowlert-dummy-password-record"
         )
 
     def create(self, username: str, password: str, role: str = "user") -> User:

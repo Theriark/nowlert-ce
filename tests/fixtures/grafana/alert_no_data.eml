@@ -1,13 +1,13 @@
 From: Grafana Alerting <alerting@grafana.synthetic.invalid>
-To: Notifinho Fixture <notifinho@receiver.invalid>
+To: Nowlert Fixture <nowlert@receiver.invalid>
 Date: Sun, 12 Jul 2026 11:00:00 +0000
 Subject: [NO DATA] Synthetic host telemetry alert
 Message-ID: <grafana-no-data@grafana.synthetic.invalid>
 MIME-Version: 1.0
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-X-Notifinho-Synthetic-Fixture: true
-X-Notifinho-Fixture-Format: grafana-html
+X-Nowlert-Synthetic-Fixture: true
+X-Nowlert-Fixture-Format: grafana-html
 
 <!doctype html>
 <html lang="en"><body>

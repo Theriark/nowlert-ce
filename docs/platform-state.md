@@ -1,6 +1,6 @@
 # v2 platform state and local accounts
 
-Notifinho's v2 platform foundation uses SQLite and owner-only secret files. It
+Nowlert's v2 platform foundation uses SQLite and owner-only secret files. It
 does not require PostgreSQL, Redis, or another container. Platform state and
 the same-origin WebUI are enabled by default, while explicit
 `platform.enabled: false` and `webui.enabled: false` settings remain
@@ -12,14 +12,14 @@ SQLite mirrors file-backed outputs and routes for delivery operations.
 The hardened production Compose layout is:
 
 ```text
-/notifinho/state/
-|- notifinho.db
+/nowlert/state/
+|- nowlert.db
 |- secrets/
 |  `- generated-identifier.v1
 |- backups/
 |  `- state-YYYYMMDDTHHMMSSZ-identifier/
 `- schema-backups/
-   `- notifinho-schema-3-before-4-TIMESTAMP.db
+   `- nowlert-schema-3-before-4-TIMESTAMP.db
 ```
 
 The state directory and secret directory are mode `0700`. The SQLite database
@@ -46,7 +46,7 @@ before the v2.2.0 schema-5 operational tables and columns are installed.
 Schema version 6 records each account's first login for notice enrollment,
 adds mutable notice timestamps, and stores credential-free backup-target
 metadata. SMB passwords remain separate owner-only encrypted secrets.
-A database created by a newer Notifinho schema is rejected instead of being
+A database created by a newer Nowlert schema is rejected instead of being
 silently downgraded. See the
 [user routing and delivery guide](platform-routing.md) for the schema-v2
 service contracts.
@@ -82,16 +82,16 @@ mkdir -p state
 chmod 700 state
 ```
 
-`compose.production.yaml` mounts `NOTIFINHO_STATE_DIR` at
-`/notifinho/state`. Legacy configurations that omit `platform.state_dir` use
-`/notifinho/config/platform-state`, allowing an upgrade to reuse the existing
+`compose.production.yaml` mounts `NOWLERT_STATE_DIR` at
+`/nowlert/state`. Legacy configurations that omit `platform.state_dir` use
+`/nowlert/config/platform-state`, allowing an upgrade to reuse the existing
 persistent configuration mount. The production Compose mount remains the
 recommended layout:
 
 ```yaml
 platform:
   enabled: true
-  state_dir: "/notifinho/state"
+  state_dir: "/nowlert/state"
   backup_retention: 20
   configuration_model: "platform_database_v1"
   secure_cookies: false
@@ -114,17 +114,17 @@ for isolated development and host-trusted recovery. Password prompts do not echo
 or place values in shell history:
 
 ```bash
-python3 tools/manage_users.py --state-dir /tmp/notifinho-state init
-python3 tools/manage_users.py --state-dir /tmp/notifinho-state \
+python3 tools/manage_users.py --state-dir /tmp/nowlert-state init
+python3 tools/manage_users.py --state-dir /tmp/nowlert-state \
   create-admin --username administrator
-python3 tools/manage_users.py --state-dir /tmp/notifinho-state list-users
+python3 tools/manage_users.py --state-dir /tmp/nowlert-state list-users
 ```
 
 For a running production image, use the mounted state directory inside the
 container:
 
 ```bash
-docker compose -f compose.production.yaml exec notifinho \
+docker compose -f compose.production.yaml exec nowlert \
   python3 tools/manage_users.py create-admin --username administrator
 ```
 

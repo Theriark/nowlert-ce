@@ -42,7 +42,7 @@ def test_replay_defaults_and_fixture_envelope(monkeypatch):
         "@synthetic-qnap.invalid"
     )
     assert recipients == [
-        "notifinho@receiver.invalid",
+        "nowlert@receiver.invalid",
     ]
     assert "Storage Pool 1" in str(
         message["Subject"]
@@ -108,7 +108,7 @@ def test_replay_refused_recipient_is_failure(
     _mock_smtp(
         monkeypatch,
         refused={
-            "notifinho@receiver.invalid": (
+            "nowlert@receiver.invalid": (
                 550,
                 b"Synthetic recipient rejected",
             ),
@@ -120,7 +120,7 @@ def test_replay_refused_recipient_is_failure(
     output = capsys.readouterr()
 
     assert "Success:" not in output.out
-    assert "notifinho@receiver.invalid" in output.err
+    assert "nowlert@receiver.invalid" in output.err
     assert "SMTP 550: Synthetic recipient rejected" in output.err
     assert "one or more recipients were refused" in output.err
 

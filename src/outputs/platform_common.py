@@ -51,7 +51,7 @@ def safe_event_envelope(notification: Notification) -> dict:
     context = notification_context(notification)
     metadata = _safe_json(notification.metadata or {}, depth=0)
     return {
-        "schema": "notifinho.event.v1",
+        "schema": "nowlert.event.v1",
         "id": context["event_id"],
         "source": context["source"],
         "category": context["category"],

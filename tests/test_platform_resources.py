@@ -29,7 +29,7 @@ def fast_hash(password: str) -> str:
 
 @pytest.fixture
 def platform(tmp_path):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     clock = Clock()
     users = UserStore(database, clock=clock, password_hasher=fast_hash)

@@ -5,8 +5,7 @@ LABEL org.opencontainers.image.title="Nowlert Development" \
       org.opencontainers.image.vendor="Theriark" \
       org.opencontainers.image.source="https://github.com/Theriark/nowlert"
 
-# Preserve the established internal root while the product identity changes.
-WORKDIR /notifinho
+WORKDIR /nowlert
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -22,11 +21,11 @@ RUN apt-get update \
        netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt /notifinho/requirements.txt
+COPY requirements.txt /nowlert/requirements.txt
 
 RUN pip install \
     --disable-pip-version-check \
     --no-cache-dir \
-    -r /notifinho/requirements.txt
+    -r /nowlert/requirements.txt
 
-CMD ["/notifinho/start.sh"]
+CMD ["/nowlert/start.sh"]

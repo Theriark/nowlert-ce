@@ -2,7 +2,7 @@
 Replay an RFC 5322 email fixture to a local SMTP listener.
 
 The development workflow intentionally uses neither SMTP authentication nor
-TLS. The default destination matches Notifinho's development host mapping at
+TLS. The default destination matches Nowlert's development host mapping at
 127.0.0.1:8026.
 """
 

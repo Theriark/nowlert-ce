@@ -61,7 +61,7 @@ def configuration_service(tmp_path):
         encoding="utf-8",
     )
     runtime = ReloadableConfiguration(path)
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin(
@@ -82,8 +82,8 @@ def test_cookie_selection_prefers_the_configured_http_or_https_mode():
     )
     headers = {
         "Cookie": (
-            "__Host-notifinho_session=old-secure; "
-            "notifinho_session=current-standard"
+            "__Host-nowlert_session=old-secure; "
+            "nowlert_session=current-standard"
         )
     }
     assert api._session_token(headers) == "current-standard"
@@ -106,7 +106,7 @@ def test_source_categories_migrate_known_integrations_to_sqlite(tmp_path):
         encoding="utf-8",
     )
     runtime = ReloadableConfiguration(path)
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin("administrator", "correct horse battery staple")
@@ -155,8 +155,8 @@ def test_nfs_managed_mount_disables_nlm_for_read_only_container(tmp_path):
         owner_user_id="admin-user",
         name="UNAS backups",
         target_type="nfs",
-        host="192.168.0.163",
-        remote_path="/var/nfs/shared/Backups/Notifinho",
+        host="192.0.2.163",
+        remote_path="/exports/nowlert-backups",
         share_name="",
         local_path=str(tmp_path / "mount"),
         username="",
@@ -180,7 +180,7 @@ def test_nfs_managed_mount_disables_nlm_for_read_only_container(tmp_path):
         "nfs",
         "-o",
         "rw,nosuid,nodev,noexec,nolock,vers=3",
-        "192.168.0.163:/var/nfs/shared/Backups/Notifinho",
+        "192.0.2.163:/exports/nowlert-backups",
         str(tmp_path / "mount"),
     ]]
 
@@ -212,14 +212,14 @@ def test_v232_webui_uses_vendor_icons_safe_removal_and_header_restart():
         markup.index('id="view-settings"'):
         markup.index('id="view-updates"')
     ]
-    assert "Restart Notifinho" not in settings
+    assert "Restart Nowlert" not in settings
     assert "<th>Category</th>" in markup
     assert "<th>Management</th>" not in markup
     assert "<th>Available inputs</th>" in markup
     assert 'actionButton("Remove", "remove-source"' not in script
     assert 'route.source === source || route.source === "*"' in script
     assert 'source: "nowlert"' in script
-    assert 'schema: "notifinho.event.v1"' in script
+    assert 'schema: "nowlert.event.v1"' in script
     assert 'source: "home_assistant"' not in script[
         script.index("function cardSampleEvent"):
         script.index("async function runPreview")

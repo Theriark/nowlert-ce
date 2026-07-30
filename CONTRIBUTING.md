@@ -1,6 +1,6 @@
 # Contributing
 
-First of all, thank you for considering contributing to Notifinho!
+First of all, thank you for considering contributing to Nowlert!
 
 Whether you're fixing a typo, improving the documentation, reporting a bug or implementing a new parser, every contribution is appreciated.
 
@@ -29,7 +29,7 @@ Whether you're fixing a typo, improving the documentation, reporting a bug or im
 
 When opening an issue, please include:
 
-- Notifinho version
+- Nowlert version
 - Python version
 - Docker version (if applicable)
 - Steps to reproduce
@@ -53,4 +53,4 @@ If you're unsure about a design decision, feel free to open a discussion before 
 
 ---
 
-Thank you for helping improve Notifinho.
+Thank you for helping improve Nowlert.

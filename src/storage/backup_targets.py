@@ -251,14 +251,14 @@ class BackupTargetStore:
         mounted_at = target.mounted_at
         try:
             path = self.ensure_ready(actor, target)
-            probe = path / f".notifinho-write-test-{uuid.uuid4().hex}"
+            probe = path / f".nowlert-write-test-{uuid.uuid4().hex}"
             descriptor = os.open(
                 probe,
                 os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0),
                 0o600,
             )
             try:
-                os.write(descriptor, b"notifinho backup target write test\n")
+                os.write(descriptor, b"nowlert backup target write test\n")
                 os.fsync(descriptor)
             finally:
                 os.close(descriptor)
@@ -324,7 +324,7 @@ class BackupTargetStore:
         credentials = None
         try:
             with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", prefix=".notifinho-smb-",
+                mode="w", encoding="utf-8", prefix=".nowlert-smb-",
                 dir=self.database.path.parent, delete=False,
             ) as handle:
                 credentials = Path(handle.name)
@@ -419,7 +419,7 @@ class BackupTargetStore:
         else:
             default_path = self.mount_root / target_id
             local_path = supplied_path or str(default_path)
-            if Path(local_path) != default_path and not local_path.startswith("/notifinho/"):
+            if Path(local_path) != default_path and not local_path.startswith("/nowlert/"):
                 raise ValueError("remote mount path must be inside Nowlert storage")
         return {
             "name": name,

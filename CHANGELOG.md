@@ -3,6 +3,11 @@
 ## Unreleased
 
 - Restore the comprehensive README and update its existing sections for v2.5.2 without removing the detailed project, architecture, deployment, roadmap, and contribution documentation.
+- Complete the Nowlert identity cleanup across runtime paths, protocols,
+  persistent filenames, tests, fixtures, workflows, and documentation.
+- Remove pre-v3 identifier aliases. Fresh deployments must use the documented
+  `NOWLERT_*` variables, `X-Nowlert-*` headers, `/nowlert` paths, and
+  `nowlert.*` schemas.
 
 ### Documentation
 
@@ -10,26 +15,26 @@
   Microsoft Teams screenshots.
 - Align README, Docker Hub, WebUI, integration, roadmap, and public
   configuration guidance with the schema-8 database-authoritative model.
-- Align the public platform state path with the production `/notifinho/state`
+- Align the public platform state path with the production `/nowlert/state`
   mount and add the v2.3.3-to-v2.5.2 implementation sequence.
 
 ## 3.0.0 - 2026-07-29
 
 ### Changed
 
-- Rename the product and visible runtime identity from Notifinho to Nowlert.
+- Finalize the product and visible runtime identity as Nowlert.
 - Adopt the intended repository identity `Theriark/nowlert`.
 - Adopt `theriark/nowlert` and `ghcr.io/theriark/nowlert` for stable images.
 - Adopt Nowlert deployment, WebUI, release, and public documentation identities.
 - Preserve original route names when legacy source aliases collapse into the
   wildcard source during configuration migration.
 
-### Compatibility
+### Runtime identity
 
-- Keep all `NOTIFINHO_*` environment aliases.
-- Continue accepting `X-Notifinho-Token` with `X-Nowlert-Token`.
-- Preserve existing schemas, cookies, SQLite filename, backup formats,
-  `notifinho-asset://` references, and internal `/notifinho` paths.
+- Use the `NOWLERT_*` environment namespace.
+- Use `X-Nowlert-Token` for authenticated event ingestion.
+- Use `nowlert.*` schemas, cookies, SQLite filenames, backup formats,
+  `nowlert-asset://` references, and `/nowlert` container paths.
 
 ### Migration
 
@@ -62,7 +67,7 @@
 ### Fixed
 
 - Upload packaged Discord card icons through the v2 platform adapter instead of
-  sending the internal `notifinho-asset://` reference to Discord.
+  sending the internal `nowlert-asset://` reference to Discord.
 - Verify that Discord retained the uploaded image and associated it with the
   Components V2 Thumbnail.
 - Persist destination test outcome, timestamp, safe error, error code, and HTTP
@@ -168,7 +173,7 @@
 
 - Keep every WebUI Overview source card the same size as Home Assistant.
 - Keep desktop icon layout boxes at 48 × 48 px and mobile boxes at 44 × 44 px.
-- Scale only the visible Notifinho, Dell iDRAC, UniFi Network, UniFi Protect,
+- Scale only the visible Nowlert, Dell iDRAC, UniFi Network, UniFi Protect,
   QNAP, and Synology artwork without changing card or icon-box dimensions.
 - Leave notification payloads, formatters, destination icons, and delivery
   rendering unchanged.
@@ -178,7 +183,7 @@
 ### Fixed
 
 - Restore every non-target Overview source icon to the pre-v2.3.5 size.
-- Keep enlargement limited to Notifinho, Dell iDRAC, UniFi Network, UniFi
+- Keep enlargement limited to Nowlert, Dell iDRAC, UniFi Network, UniFi
   Protect, QNAP, and Synology.
 - Use the official DMTF Redfish logo for the `redfish` source while retaining the
   neutral REST icon for `restful` and `rest_api` aliases.
@@ -188,8 +193,8 @@
 ### Fixed
 
 - Map `xo` to Xen Orchestra and map `redfish`, `restful`, and `rest_api` to a
-  packaged neutral REST API icon instead of the generic Notifinho fallback.
-- Increase the visual size of Notifinho, Dell iDRAC, UniFi Network, UniFi
+  packaged neutral REST API icon instead of the generic Nowlert fallback.
+- Increase the visual size of Nowlert, Dell iDRAC, UniFi Network, UniFi
   Protect, QNAP, and Synology icons in the Overview routing flow.
 - Make inactive-source removal independent of DELETE request bodies by placing
   the source key in the URL path.
@@ -203,7 +208,7 @@
   rendered.
 - Accept inactive-source removal requests using `source`, `id`, or `name`, so
   the current Sources view no longer returns `request is invalid!`.
-- Finalize transparent source icon sizing for Notifinho, Dell iDRAC, UniFi
+- Finalize transparent source icon sizing for Nowlert, Dell iDRAC, UniFi
   Network, UniFi Protect, QNAP, and Synology.
 - Retain source-aware destination-card tests, bounded GitHub update checks, and
   selected 12/24-hour backup time entry while publishing the final release as
@@ -231,10 +236,10 @@
 ### Added
 
 - Add a Home Assistant-style three-dot operations menu with Check for updates
-  and administrator-only Restart Notifinho actions.
+  and administrator-only Restart Nowlert actions.
 - Check the official GitHub releases API after authenticated startup, every six
   hours, when a stale tab becomes visible, and on demand without sending
-  Notifinho credentials.
+  Nowlert credentials.
 
 ### Changed
 
@@ -250,7 +255,7 @@
 - Prefer the browser-session cookie matching the configured HTTP/HTTPS mode
   when legacy Secure and current standard cookies coexist.
 - Treat enabled wildcard routes as activating every discovered source.
-- Send destination-card tests as generic Notifinho events instead of Home
+- Send destination-card tests as generic Nowlert events instead of Home
   Assistant events, preserving the selected destination and channel.
 - Complete the managed-mount Compose override with `DAC_OVERRIDE`, `FOWNER`,
   and `SYS_ADMIN` so root can read existing configuration, write logs, secure
@@ -261,7 +266,7 @@
 ### Added
 
 - Serve the packaged official vendor icons in Overview and Sources, with the
-  Notifinho icon used for wildcard, custom, and otherwise generic sources.
+  Nowlert icon used for wildcard, custom, and otherwise generic sources.
 - Add Virtualization, Monitoring, Storage, Networking, Hardware, Automation,
   Containers, Security, and Generic source categories.
 - Add confirmation-protected removal for inactive sources while retaining
@@ -305,7 +310,7 @@
 - Metric cards now explicitly count Active Sources, Active Destinations, and
   Active Routes.
 - Moved Audit Log row selection to the bottom and increased spacing before
-  Restart Notifinho.
+  Restart Nowlert.
 - Platform schema remains 6 and v2.3.0 configuration/state are directly
   compatible.
 
@@ -491,9 +496,9 @@
   same-origin WebUI by default while continuing to honor every explicit
   `enabled: false` setting.
 - Changed the missing-state-directory fallback to
-  `/notifinho/config/platform-state`, preserving first-run state for legacy
+  `/nowlert/config/platform-state`, preserving first-run state for legacy
   upgrades that already persist the configuration mount. Production Compose
-  continues to use its dedicated `/notifinho/state` mount.
+  continues to use its dedicated `/nowlert/state` mount.
 - Kept the legacy SMTP/webhook pipeline running when an upgraded configuration
   omits the platform switch but its existing configuration mount is not
   writable; explicit platform enablement continues to fail closed.
@@ -648,11 +653,11 @@
 ### Changed
 
 - Replaced generated initial badges with official vendor assets across all 17
-  Microsoft Teams integration presentations, including the generic Notifinho
+  Microsoft Teams integration presentations, including the generic Nowlert
   card.
 - Normalized all locally served header assets to transparent 256 px PNGs and
   documented each official source and mechanical transformation.
-- Added an optional `NOTIFINHO_ICON_BASE_URL` override for immutable branch
+- Added an optional `NOWLERT_ICON_BASE_URL` override for immutable branch
   previews and installations that mirror the same official assets.
 - Preserved source casing for identifiers and acronyms such as `PVE-01`,
   `CPU`, and `VMID`.
@@ -670,7 +675,7 @@
   thumbnails as webhook attachments, preventing integrations such as Grafana
   and Redfish from losing their logo when Discord cannot fetch a remote URL.
 - Changed the shared Teams/Discord time policy so timezone-aware source values
-  and epochs display in the Notifinho machine/container local time by default.
+  and epochs display in the Nowlert machine/container local time by default.
   Naive values remain source-local, missing source times remain omitted, and
   an optional IANA override is available for the future WebUI.
 - Preserved native UniFi Network and Protect epochs until shared Teams and
@@ -691,13 +696,14 @@
   suppressed by exact client address across REDFISH/IPMI transports while
   failed logins and all other security events remain routed.
 - Dell session events use concise titles such as `User Login` and normalize
-  legacy contexts such as `NotifinhoAlfaCompat` to the device name `ALFA`.
+  compatibility contexts such as `NowlertHostCompat` to the device name
+  `HOST-01`.
 
 ### Compatibility
 
 - Existing valid Teams and Discord webhooks, routes, source payloads,
   endpoints, and secrets remain compatible. Timezone-aware source instants now
-  deliberately render in the local Notifinho machine clock.
+  deliberately render in the local Nowlert machine clock.
 - No configuration migration or secret rotation is required.
 
 ### Validation
@@ -720,7 +726,7 @@
 - Standardized every Microsoft Teams formatter on one shared hierarchy:
   device and event header, integration/state/source context, event message,
   horizontal Severity/Category/Event time metrics, icon-labelled details,
-  optional actions, and the Notifinho footer.
+  optional actions, and the Nowlert footer.
 - Standardized Discord and Teams timestamps as `DD Mon YYYY • HH:MM` while
   preserving the wall-clock time emitted by the source machine.
 - Removed visible UTC and numeric-offset suffixes and stopped timezone
@@ -733,7 +739,7 @@
 - Existing parsers, routes, output targets, webhooks, and product-image URLs
   remain compatible.
 - If an event has no source timestamp, Teams displays `—` and Discord omits
-  the optional time field; Notifinho does not invent a receipt timestamp.
+  the optional time field; Nowlert does not invent a receipt timestamp.
 
 ### Validation
 
@@ -776,7 +782,7 @@
 ### Added
 
 - Added optional Home Assistant endpoint and component aliases so site-local
-  equipment names and addresses can remain in Notifinho configuration instead
+  equipment names and addresses can remain in Nowlert configuration instead
   of being duplicated across automations.
 - Added structured Home Assistant error-code fields to Discord and Microsoft
   Teams cards.
@@ -794,7 +800,7 @@
 
 - Existing configurations remain valid. The new `home_assistant.aliases`
   section is optional and no migration is required.
-- Existing `notifinho.home_assistant.v1` payloads, endpoints, tokens, routes,
+- Existing `nowlert.home_assistant.v1` payloads, endpoints, tokens, routes,
   SMTP behavior, and explicit automation fields remain compatible.
 - Rollback to v1.9.1 requires only restoring the previous image tag; the
   optional alias section is ignored by that version.
@@ -827,14 +833,14 @@
 ### Changed
 
 - Simplified the documented Home Assistant automation to a generic transport
-  contract so reusable presentation remains inside Notifinho and
+  contract so reusable presentation remains inside Nowlert and
   deployment-specific exclusions remain in Home Assistant.
 
 ### Compatibility
 
 - Preserves the v1.9.0 configuration schema, API tokens, routes, endpoints,
   SMTP behavior, and existing source-specific formatter selection.
-- Existing Home Assistant `notifinho.home_assistant.v1` payloads remain
+- Existing Home Assistant `nowlert.home_assistant.v1` payloads remain
   compatible; explicit fields from purpose-built automations still take
   precedence over derived values.
 
@@ -843,7 +849,7 @@
 - Passed 506 automated parser, API, formatter, routing, security, and
   backwards-compatibility tests.
 - Validated generic API, Chromecast, MQTT, and Calendar event presentation in
-  the dedicated VM-09 development environment with successful Discord
+  the dedicated DEVELOPMENT-HOST development environment with successful Discord
   delivery and no formatter or delivery errors.
 - Covered equivalent generic and Home Assistant Microsoft Teams presentation
   through the regression suite.
@@ -860,8 +866,8 @@
 - Fixture-validated Supermicro BMC/IPMI, HPE iLO, and Dell iDRAC Redfish and
   delivered-email adapters with dedicated Discord and Teams presentation.
 - Authenticated Home Assistant automation events using the versioned
-  `notifinho.home_assistant.v1` contract.
-- Generic `notifinho.event.v1` submission through `/api/events` with explicit
+  `nowlert.home_assistant.v1` contract.
+- Generic `nowlert.event.v1` submission through `/api/events` with explicit
   per-token source scopes.
 - Disabled-by-default health, masked configuration, validation, logs, preview,
   test-send, and atomic configuration-update API foundations.
@@ -963,7 +969,7 @@
 - Fixture-validated Proxmox VE SMTP parsing for backup, replication, node,
   cluster, storage, availability, security, guest, and system notifications.
 - A versioned Proxmox webhook contract at `POST /proxmox/events`, protected by
-  the existing `X-Notifinho-Token` HTTP authentication boundary.
+  the existing `X-Nowlert-Token` HTTP authentication boundary.
 - Dedicated Proxmox VE Discord embeds, Microsoft Teams Adaptive Cards,
   routing examples, synthetic email/JSON fixtures, and integration guidance.
 - Native Portainer BE Alerting ingestion at `POST /portainer/alerts`, including
@@ -979,7 +985,7 @@
 - Shared discovery sanitization helpers with regression coverage for private
   identifiers, credentials, URLs, and infrastructure metadata.
 - A Portainer BE 2.42.0 discovery runbook for development-only validation on
-  VM-04 without API polling or permanent Portainer credentials.
+  NOWLERT-HOST without API polling or permanent Portainer credentials.
 
 ### Changed
 
@@ -1027,7 +1033,7 @@
 ### Added
 
 - Native authenticated `POST /unifi/drive` Alarm Manager webhook input.
-- Shared `X-Notifinho-Token` authentication for Network, Protect, and Drive.
+- Shared `X-Nowlert-Token` authentication for Network, Protect, and Drive.
 - Dedicated Drive JSON parsing while preserving Drive email parsing through SMTP.
 - Drive `Alarm rule` fields for Discord and Microsoft Teams.
 - Release, deployment, alarm-naming, and rollback documentation.
@@ -1210,7 +1216,7 @@
 - 169 automated tests passed.
 - 54 Python files passed cache-free syntax validation.
 - All nine synthetic TrueNAS fixtures were replayed successfully through SMTP.
-- Private TrueNAS 26 test-email and test-alert samples were replayed on VM-04.
+- Private TrueNAS 26 test-email and test-alert samples were replayed on NOWLERT-HOST.
 - A fresh TrueNAS 26 Send Test Alert was detected, parsed, routed, formatted,
   and delivered successfully.
 - The Docker release-candidate image passed startup, SMTP, parsing, routing,

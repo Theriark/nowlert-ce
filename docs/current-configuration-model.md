@@ -1,6 +1,6 @@
 # Current configuration model
 
-Notifinho v2.5.2 separates process bootstrap from WebUI-managed resources.
+Nowlert v2.5.2 separates process bootstrap from WebUI-managed resources.
 
 ## Bootstrap file
 
@@ -18,7 +18,7 @@ restart.
 
 ## Platform state
 
-The persistent `/notifinho/state` mount contains the SQLite database and
+The persistent `/nowlert/state` mount contains the SQLite database and
 private state required by the WebUI. SQLite is authoritative for:
 
 - destinations and credential references
@@ -54,15 +54,15 @@ atomically writes the normalized `platform_database_v1` document.
 The supplied production Compose definition mounts:
 
 ```text
-./config          -> /notifinho/config
-./state           -> /notifinho/state
-./logs            -> /notifinho/logs
+./config          -> /nowlert/config
+./state           -> /nowlert/state
+./logs            -> /nowlert/logs
 ./secrets         -> /run/secrets (read-only)
-./external-backups -> /notifinho/external-backups
+./external-backups -> /nowlert/external-backups
 ```
 
-The public example configuration uses `/notifinho/state`, matching the
-production Compose file. A legacy `/notifinho/config/platform-state` directory
+The public example configuration uses `/nowlert/state`, matching the
+production Compose file. A legacy `/nowlert/config/platform-state` directory
 may still exist on installations created before the explicit state mount; do
 not move or delete it without confirming the active `platform.state_dir`.
 

@@ -27,8 +27,7 @@ reverse vendor variants are used where needed for Teams' dark card surface.
 | HPE iLO | `hpe-ilo.png` | [HPE media assets](https://www.hpe.com/us/en/newsroom/media-assets.html) | Official reverse HPE logo |
 | Dell iDRAC | `dell-idrac.png` | [Dell media library](https://www.dell.com/en-us/dt/corporate/newsroom/media-library.htm) | Official Dell Technologies mark |
 | Home Assistant | `home-assistant.png` | [Home Assistant frontend repository](https://github.com/home-assistant/frontend/blob/dev/public/static/icons/favicon-512x512.png) | Official application icon |
-| Generic webhook | `nowlert.png` | Nowlert product asset | Temporary transition artwork; replace with the approved Nowlert mark before the v3.0.0 release |
-| Legacy product URL | `notifinho.png` | Historical Notifinho product asset | Retained for cached URLs and compatibility |
+| Generic webhook | `nowlert.png` | Nowlert product asset | Approved Nowlert product mark |
 
 The Redfish mark is used in accordance with the
 [DMTF Redfish logo guidelines](https://www.dmtf.org/sites/default/files/standards/documents/DSP4015_1.0.pdf).

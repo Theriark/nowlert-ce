@@ -27,13 +27,11 @@ def parser() -> argparse.ArgumentParser:
         "--state-dir",
         default=compatible_environment(
             "NOWLERT_STATE_DIR",
-            "NOTIFINHO_STATE_DIR",
-            default="/notifinho/state",
+            default="/nowlert/state",
         ),
         help=(
             "owner-only state directory "
-            "(default: NOWLERT_STATE_DIR, legacy NOTIFINHO_STATE_DIR, "
-            "or /notifinho/state)"
+            "(default: NOWLERT_STATE_DIR or /nowlert/state)"
         ),
     )
     commands = value.add_subparsers(dest="command", required=True)
@@ -80,7 +78,7 @@ def password_from(args) -> str:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     state_dir = Path(args.state_dir).expanduser().absolute()
-    database = Database(state_dir / "notifinho.db")
+    database = Database(state_dir / "nowlert.db")
     version = database.migrate()
     if args.command == "init":
         print(f"state_schema={version}")

@@ -22,7 +22,7 @@ from storage.secrets import SecretStore
 from storage.validation import normalized_name
 
 
-PORTABLE_SCHEMA = "notifinho.platform.v1"
+PORTABLE_SCHEMA = "nowlert.platform.v1"
 MAXIMUM_DOCUMENT_BYTES = 1024 * 1024
 MAXIMUM_DESTINATIONS = 500
 MAXIMUM_ROUTES = 1000

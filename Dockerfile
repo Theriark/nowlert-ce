@@ -8,11 +8,9 @@ LABEL org.opencontainers.image.title="Nowlert" \
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Keep the established internal root so existing mounts, state databases,
-# backup archives and rollback procedures remain compatible.
-WORKDIR /notifinho
+WORKDIR /nowlert
 
-COPY requirements.txt /notifinho/requirements.txt
+COPY requirements.txt /nowlert/requirements.txt
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y cifs-utils nfs-common \
@@ -20,25 +18,21 @@ RUN apt-get update \
     && pip install \
     --disable-pip-version-check \
     --no-cache-dir \
-    -r /notifinho/requirements.txt
+    -r /nowlert/requirements.txt
 
-COPY src /notifinho/src
-COPY assets /notifinho/assets
-COPY tools /notifinho/tools
-COPY start.sh /notifinho/start.sh
+COPY src /nowlert/src
+COPY assets /nowlert/assets
+COPY tools /nowlert/tools
+COPY start.sh /nowlert/start.sh
 
-RUN python3 /notifinho/tools/validate_packaged_icons.py
+RUN python3 /nowlert/tools/validate_packaged_icons.py
 
-# NOWLERT_* is preferred. The earlier build argument remains accepted so
-# existing release automation and downstream image builds do not break.
-ARG NOTIFINHO_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/Theriark/nowlert/main/assets/icons
-ARG NOWLERT_TEAMS_ICON_BASE_URL=${NOTIFINHO_TEAMS_ICON_BASE_URL}
+ARG NOWLERT_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/Theriark/nowlert/main/assets/icons
 
 ENV NOWLERT_TEAMS_ICON_BASE_URL=${NOWLERT_TEAMS_ICON_BASE_URL}
-ENV NOTIFINHO_TEAMS_ICON_BASE_URL=${NOWLERT_TEAMS_ICON_BASE_URL}
 
-RUN chmod +x /notifinho/start.sh
+RUN chmod +x /nowlert/start.sh
 
 EXPOSE 8025 8080
 
-CMD ["/notifinho/start.sh"]
+CMD ["/nowlert/start.sh"]

@@ -15,7 +15,7 @@ def raw_capture(body: bytes, extra_headers: bytes = b"") -> bytes:
         b"Host: private-host.example.invalid\r\n"
         b"Authorization: Bearer synthetic-secret\r\n"
         b"Cookie: session=synthetic-cookie\r\n"
-        b"X-Notifinho-Token: synthetic-token\r\n"
+        b"X-Nowlert-Token: synthetic-token\r\n"
         b"Content-Type: application/json\r\n"
         + extra_headers
         + b"\r\n"
@@ -58,7 +58,7 @@ def test_replay_sends_only_json_body_and_content_type(monkeypatch, tmp_path):
     assert captured["headers"] == {"Content-type": "application/json"}
     assert "Authorization" not in captured["headers"]
     assert "Cookie" not in captured["headers"]
-    assert "X-notifinho-token" not in captured["headers"]
+    assert "X-nowlert-token" not in captured["headers"]
 
 
 @pytest.mark.parametrize(

@@ -58,7 +58,7 @@ def test_detection_is_case_insensitive_and_logs(caplog):
 
     with caplog.at_level(
         logging.INFO,
-        logger="notifinho.tests",
+        logger="nowlert.tests",
     ):
 
         notification = Dispatcher().parse(

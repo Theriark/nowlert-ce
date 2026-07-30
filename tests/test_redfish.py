@@ -78,7 +78,7 @@ class RunningServer:
 def post(port: int, path: str, value: dict, token: str = "") -> int:
     headers = {"Content-Type": "application/json"}
     if token:
-        headers["X-Notifinho-Token"] = token
+        headers["X-Nowlert-Token"] = token
     connection = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
     connection.request("POST", path, json.dumps(value), headers)
     response = connection.getresponse()
@@ -143,15 +143,15 @@ def test_dell_ipmi_session_event_extracts_source_ip():
     value["Events"][0].update({
         "MessageId": "USR0030",
         "Message": (
-            "Successfully logged in using root, from 192.168.0.164 "
+            "Successfully logged in using root, from 192.0.2.164 "
             "and IPMI over LAN."
         ),
     })
 
     item = RedfishParser().parse(value, "dell")[0]
 
-    assert item.metadata["source_ip"] == "192.168.0.164"
-    assert "🌐 **Source IP:** 192.168.0.164" in json.dumps(
+    assert item.metadata["source_ip"] == "192.0.2.164"
+    assert "🌐 **Source IP:** 192.0.2.164" in json.dumps(
         DellIDRACDiscordFormatter().format(item),
         ensure_ascii=False,
     )
@@ -159,18 +159,18 @@ def test_dell_ipmi_session_event_extracts_source_ip():
 
 def test_dell_legacy_context_and_audit_title_are_readable():
     value = payload("dell_storage.json")
-    value["Context"] = "NotifinhoAlfaCompat"
+    value["Context"] = "NowlertHostCompat"
     value["Events"][0].update({
         "MessageId": "USR0030",
         "Message": (
-            "Successfully logged in using root, from 192.168.0.251 "
+            "Successfully logged in using root, from 192.0.2.251 "
             "and REDFISH."
         ),
     })
 
     item = RedfishParser().parse(value, "dell")[0]
 
-    assert item.metadata["system"] == "ALFA"
+    assert item.metadata["system"] == "HOST"
     assert item.title == "User Login"
     assert item.body.startswith("Successfully logged in")
 
@@ -194,8 +194,8 @@ def test_trusted_dell_session_audit_is_suppressed(
         "dell_idrac",
         {
             "suppress_ipmi_session_audit_from": [
-                "192.168.0.164",
-                "192.168.0.251",
+                "192.0.2.164",
+                "192.0.2.251",
             ],
         },
     )
@@ -203,7 +203,7 @@ def test_trusted_dell_session_audit_is_suppressed(
     value["Events"][0].update({
         "MessageId": message_id,
         "Message": (
-            "Successfully logged in using root, from 192.168.0.164 "
+            "Successfully logged in using root, from 192.0.2.164 "
             f"and {transport}."
         ),
     })
@@ -215,8 +215,8 @@ def test_trusted_dell_session_audit_is_suppressed(
 @pytest.mark.parametrize(
     ("message_id", "source_ip", "message"),
     [
-        ("USR0030", "192.168.0.99", "IPMI over LAN"),
-        ("USR0031", "192.168.0.164", "IPMI over LAN login failed"),
+        ("USR0030", "192.0.2.99", "IPMI over LAN"),
+        ("USR0031", "192.0.2.164", "IPMI over LAN login failed"),
     ],
 )
 def test_dell_suppression_preserves_untrusted_and_other_security_events(
@@ -228,7 +228,7 @@ def test_dell_suppression_preserves_untrusted_and_other_security_events(
     monkeypatch.setitem(
         config._data["notifications"],
         "dell_idrac",
-        {"suppress_ipmi_session_audit_from": ["192.168.0.164"]},
+        {"suppress_ipmi_session_audit_from": ["192.0.2.164"]},
     )
     item = Notification(
         source="dell_idrac",

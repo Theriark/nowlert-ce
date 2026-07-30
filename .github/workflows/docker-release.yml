@@ -146,7 +146,6 @@ jobs:
           push: true
           build-args: |
             NOWLERT_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.release.outputs.commit_sha }}/assets/icons
-            NOTIFINHO_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.release.outputs.commit_sha }}/assets/icons
           tags: |
             theriark/nowlert:${{ steps.version.outputs.version }}
             theriark/nowlert:latest

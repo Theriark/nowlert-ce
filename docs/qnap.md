@@ -1,6 +1,6 @@
 # QNAP notification support
 
-QNAP QTS and QuTS hero support was introduced in Notifinho `v1.3.0` and has
+QNAP QTS and QuTS hero support was introduced in Nowlert `v1.3.0` and has
 been validated with real QNAP Notification Center delivery. The notification
 was detected, parsed, routed, formatted, and delivered successfully without
 committing production identifiers or payloads. The synthetic fixtures remain
@@ -84,14 +84,14 @@ Notification Center and use:
 
 | Setting | Development | Production |
 |---------|-------------|------------|
-| SMTP server | Host running Notifinho | Host running Notifinho |
+| SMTP server | Host running Nowlert | Host running Nowlert |
 | Port | `8026` when connecting to the published dev port | `8025` |
 | Authentication | Disabled for fixture replay | Optional SMTP AUTH after STARTTLS |
 | TLS | Disabled for fixture replay | Optional explicit STARTTLS |
 | Recipient | Any syntactically valid local notification address | Deployment-defined address |
 
 Send Notification Center's test message first, then enable only the event
-classes that should be forwarded. Notifinho detects the source from a
+classes that should be forwarded. Nowlert detects the source from a
 case-insensitive combination of sender, subject, and QNAP-specific body
 markers; it does not rely on the recipient address.
 

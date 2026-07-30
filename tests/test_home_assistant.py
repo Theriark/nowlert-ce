@@ -70,7 +70,7 @@ class Router:
 def post(port, payload, token=""):
     headers = {"Content-Type": "application/json"}
     if token:
-        headers["X-Notifinho-Token"] = token
+        headers["X-Nowlert-Token"] = token
     connection = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
     connection.request("POST", "/home-assistant/events", json.dumps(payload), headers)
     response = connection.getresponse()
@@ -97,7 +97,7 @@ def test_home_assistant_system_log_is_normalized_for_readable_cards():
     assert item.body == "Failed to connect to service"
     assert item.metadata["service"] == "Chromecast"
     assert item.metadata["device"] == "TV-01"
-    assert item.metadata["endpoint"] == "192.168.0.128:8009"
+    assert item.metadata["endpoint"] == "192.0.2.128:8009"
     assert item.metadata["retry_seconds"] == "5.0"
     assert "/usr/local/lib" not in item.body
     assert "MDNSServiceInfo" not in item.body
@@ -106,7 +106,7 @@ def test_home_assistant_system_log_is_normalized_for_readable_cards():
 
 def test_home_assistant_generic_errors_use_service_and_concise_event_details():
     payload = {
-        "schema": "notifinho.home_assistant.v1",
+        "schema": "nowlert.home_assistant.v1",
         "title": "Home Assistant error",
         "message": (
             "State '{bios_hardware: {status: OK}, fans: {status: Not Installed}}' "
@@ -151,7 +151,7 @@ def test_home_assistant_unknown_error_message_is_bounded_for_cards():
 def test_home_assistant_kasa_error_uses_endpoint_alias_and_structured_details():
     aliases = {
         "endpoints": {
-            "192.168.103.35": {
+            "192.0.2.35": {
                 "device": "HUB-01 | Hall Floor 1",
             },
         },
@@ -163,7 +163,7 @@ def test_home_assistant_kasa_error_uses_endpoint_alias_and_structured_details():
     assert item.body == "Failed to query the TriggerLogs module."
     assert item.metadata["service"] == "Tapo"
     assert item.metadata["device"] == "HUB-01 | Hall Floor 1"
-    assert item.metadata["endpoint"] == "192.168.103.35"
+    assert item.metadata["endpoint"] == "192.0.2.35"
     assert item.metadata["error_code"] == "UNSPECIFIC_ERROR (-1001)"
     assert "control_child" not in item.body
 
@@ -173,7 +173,7 @@ def test_home_assistant_ipp_error_uses_component_alias_and_concise_details():
         "components": {
             "homeassistant.components.ipp.coordinator": {
                 "device": "PRT-01 | Floor 1",
-                "endpoint": "192.168.101.157",
+                "endpoint": "192.0.2.157",
             },
         },
     }
@@ -184,7 +184,7 @@ def test_home_assistant_ipp_error_uses_component_alias_and_concise_details():
     assert item.body == "Failed to communicate with the IPP server."
     assert item.metadata["service"] == "Internet Printing Protocol"
     assert item.metadata["device"] == "PRT-01 | Floor 1"
-    assert item.metadata["endpoint"] == "192.168.101.157"
+    assert item.metadata["endpoint"] == "192.0.2.157"
 
 
 def test_home_assistant_aliases_are_loaded_from_application_config(monkeypatch):
@@ -194,7 +194,7 @@ def test_home_assistant_aliases_are_loaded_from_application_config(monkeypatch):
         {
             "aliases": {
                 "endpoints": {
-                    "192.168.103.35": {
+                    "192.0.2.35": {
                         "device": "Configured hub",
                     },
                 },
@@ -209,7 +209,7 @@ def test_home_assistant_aliases_are_loaded_from_application_config(monkeypatch):
 
 def test_home_assistant_unknown_service_is_not_presented_as_a_device():
     item = Parser().parse({
-        "schema": "notifinho.home_assistant.v1",
+        "schema": "nowlert.home_assistant.v1",
         "title": "Home Assistant error",
         "message": "Calendar synchronization failed.",
         "severity": "error",
@@ -282,7 +282,7 @@ def test_home_assistant_formatters_present_service_device_and_retry_separately()
 
     assert "Chromecast" in rendered
     assert "TV-01" in rendered
-    assert "192.168.0.128:8009" in rendered
+    assert "192.0.2.128:8009" in rendered
     assert "Retrying in 5.0 seconds" in rendered
     assert "System Error" in rendered
     assert "System_Error" not in rendered
@@ -294,7 +294,7 @@ def test_home_assistant_formatters_present_service_device_and_retry_separately()
 def test_home_assistant_formatters_present_structured_error_code():
     aliases = {
         "endpoints": {
-            "192.168.103.35": {
+            "192.0.2.35": {
                 "device": "HUB-01 | Hall Floor 1",
             },
         },
@@ -306,7 +306,7 @@ def test_home_assistant_formatters_present_structured_error_code():
     })
 
     assert "UNSPECIFIC_ERROR (-1001)" in rendered
-    assert "192.168.103.35" in rendered
+    assert "192.0.2.35" in rendered
     assert "control_child" not in rendered
 
 

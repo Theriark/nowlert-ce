@@ -126,16 +126,16 @@ def source(state_dir, token_file) -> dict:
         "notifications": {
             "xo": {"success": False, "skipped": True, "failure": True, "show_ids": False},
             "zabbix": {"show_ids": False},
-            "dell_idrac": {"suppress_ipmi_session_audit_from": ["192.168.0.164"]},
+            "dell_idrac": {"suppress_ipmi_session_audit_from": ["192.0.2.164"]},
             "unifi_protect": {"device_aliases": {"AA:BB:CC:DD:EE:FF": "CAM-01"}},
         },
         "home_assistant": {
             "aliases": {
-                "endpoints": {"192.168.1.10": {"device": "HUB-01"}},
+                "endpoints": {"192.0.2.10": {"device": "HUB-01"}},
                 "components": {
                     "homeassistant.components.ipp.coordinator": {
                         "device": "PRT-01",
-                        "endpoint": "192.168.1.20",
+                        "endpoint": "192.0.2.20",
                     }
                 },
             }
@@ -158,7 +158,7 @@ def migrated(tmp_path):
     )
     path.chmod(0o640)
     configuration = Configuration(path)
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     assert database.migrate() == 9
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin("administrator", PASSWORD)
@@ -215,7 +215,7 @@ def test_migrated_settings_are_available_in_webui_and_runtime_overlay(migrated):
     settings = migrated["service"].integration_settings()
     assert settings["errors"] == []
     assert settings["settings"]["dell_idrac"]["suppress_ipmi_session_audit_from"] == [
-        "192.168.0.164"
+        "192.0.2.164"
     ]
     assert settings["settings"]["unifi_protect"]["device_aliases"] == {
         "AABBCCDDEEFF": "CAM-01"
@@ -230,7 +230,7 @@ def test_migrated_settings_are_available_in_webui_and_runtime_overlay(migrated):
         "redfish", "deduplication_window_seconds"
     ) == 300
     assert migrated["configuration"].get(
-        "home_assistant", "aliases", "endpoints", "192.168.1.10", "device"
+        "home_assistant", "aliases", "endpoints", "192.0.2.10", "device"
     ) == "HUB-01"
 
 

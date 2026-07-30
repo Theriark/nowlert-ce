@@ -1,6 +1,6 @@
 # Portainer Alerting integration
 
-Notifinho v1.8 accepts Portainer Business Edition Alerting webhooks at:
+Nowlert v1.8 accepts Portainer Business Edition Alerting webhooks at:
 
 ```text
 POST /portainer/alerts
@@ -14,15 +14,15 @@ credentials.
 
 | Portainer | Edition | Transport | Validation |
 |---|---|---|---|
-| 2.42.0 | Business Edition | Alerting webhook | Firing and resolved events validated on VM-04 |
+| 2.42.0 | Business Edition | Alerting webhook | Firing and resolved events validated on NOWLERT-HOST |
 | 2.42.0 | Business Edition | Alerting email | Discovery pending |
 
 The validated webhook is an Alertmanager-compatible envelope containing one or
-more alerts. Notifinho creates one normalized notification per alert and maps
+more alerts. Nowlert creates one normalized notification per alert and maps
 Portainer `firing` events by severity. A `resolved` event maps to a successful
 recovery notification.
 
-## Notifinho configuration
+## Nowlert configuration
 
 Generate a URL-safe secret:
 
@@ -30,8 +30,8 @@ Generate a URL-safe secret:
 openssl rand -hex 32
 ```
 
-Add it to the Notifinho configuration. The same HTTP secret continues to
-protect UniFi webhooks through the `X-Notifinho-Token` header.
+Add it to the Nowlert configuration. The same HTTP secret continues to
+protect UniFi webhooks through the `X-Nowlert-Token` header.
 
 ```yaml
 http:
@@ -66,12 +66,12 @@ Do not commit the real secret or webhook URLs.
 
 ## Portainer channel
 
-For the production Compose example, host port `18080` maps to Notifinho's
-container port `8080`. On VM-04, configure the Portainer Alerting webhook URL
+For the production Compose example, host port `18080` maps to Nowlert's
+container port `8080`. On NOWLERT-HOST, configure the Portainer Alerting webhook URL
 as:
 
 ```text
-http://192.168.0.164:18080/portainer/alerts?token=PASTE_64_CHARACTER_HEX_SECRET
+http://192.0.2.164:18080/portainer/alerts?token=PASTE_64_CHARACTER_HEX_SECRET
 ```
 
 In Portainer:
@@ -88,26 +88,26 @@ delivery with a narrow, reversible alert rule.
 
 ## Network and authentication boundary
 
-Prefer direct traffic between Portainer and VM-04's private host address.
+Prefer direct traffic between Portainer and NOWLERT-HOST's private host address.
 Nginx Proxy Manager is not required for this same-host integration. Restrict
 host port `18080` to the trusted management network and do not expose it to the
 internet.
 
 The query token exists because Portainer's webhook channel accepts only a URL
-and cannot set `X-Notifinho-Token`. Notifinho accepts `?token=` only on the
+and cannot set `X-Nowlert-Token`. Nowlert accepts `?token=` only on the
 Portainer endpoint, requires exactly one value, and compares it using a
 timing-safe operation. Header authentication remains accepted on every native
 endpoint.
 
 Avoid sending the query-token URL through a reverse proxy whose access logs
-record query strings. Notifinho suppresses HTTP access logging, raw request
+record query strings. Nowlert suppresses HTTP access logging, raw request
 bodies, query strings, and payload identifiers.
 
 ## Event mapping
 
-Notifinho uses these validated fields:
+Nowlert uses these validated fields:
 
-| Portainer field | Notifinho use |
+| Portainer field | Nowlert use |
 |---|---|
 | `status` | Firing or resolved state |
 | `alerts[].labels.severity` | Information, warning, or failure mapping |
@@ -131,14 +131,14 @@ disabled state after capture.
 
 Final end-to-end validation used one short-lived synthetic alert submitted to
 Portainer's internal Alertmanager API. Portainer emitted both firing and
-resolved webhooks through its configured channel; Notifinho authenticated,
+resolved webhooks through its configured channel; Nowlert authenticated,
 normalized, routed, and delivered both cards to development Discord. No
 managed container or production workload was interrupted.
 
-Watch Notifinho without printing configuration values:
+Watch Nowlert without printing configuration values:
 
 ```bash
-docker logs -f notifinho
+docker logs -f nowlert
 ```
 
 A successful request returns HTTP `204`. Invalid authentication returns `401`,

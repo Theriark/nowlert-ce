@@ -54,7 +54,7 @@ def service(tmp_path, document):
     path.write_text(yaml.safe_dump(document, sort_keys=False), encoding="utf-8")
     path.chmod(0o600)
     configuration = Configuration(path)
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     assert database.migrate() == 9
     admin = UserStore(database, password_hasher=fast_hash).bootstrap_admin(
         "administrator", PASSWORD

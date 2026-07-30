@@ -165,12 +165,12 @@ class Database:
         os.chmod(directory, 0o700)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         destination = directory / (
-            f"notifinho-schema-{current}-before-{target}-{stamp}.db"
+            f"nowlert-schema-{current}-before-{target}-{stamp}.db"
         )
         position = 1
         while destination.exists():
             destination = directory / (
-                f"notifinho-schema-{current}-before-{target}-{stamp}-{position}.db"
+                f"nowlert-schema-{current}-before-{target}-{stamp}-{position}.db"
             )
             position += 1
         backup = sqlite3.connect(destination)
@@ -179,7 +179,7 @@ class Database:
         finally:
             backup.close()
         os.chmod(destination, 0o600)
-        backups = sorted(directory.glob("notifinho-schema-*.db"), reverse=True)
+        backups = sorted(directory.glob("nowlert-schema-*.db"), reverse=True)
         for obsolete in backups[3:]:
             obsolete.unlink()
         return destination

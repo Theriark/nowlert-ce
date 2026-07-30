@@ -53,7 +53,7 @@ class Handler:
         #
 
         email_dir = Path(
-            "/notifinho/logs/emails"
+            "/nowlert/logs/emails"
         )
 
         email_dir.mkdir(

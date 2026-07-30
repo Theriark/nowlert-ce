@@ -19,7 +19,7 @@ import yaml
 #
 # Project root
 #
-# /notifinho
+# /nowlert
 #
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 #
 # Configuration file
 #
-# /notifinho/config/config.yaml
+# /nowlert/config/config.yaml
 #
 
 CONFIG_FILE = BASE_DIR / "config" / "config.yaml"

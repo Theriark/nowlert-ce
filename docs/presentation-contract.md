@@ -1,6 +1,6 @@
 # Notification presentation contract
 
-Notifinho uses a shared presentation contract so new integrations behave like
+Nowlert uses a shared presentation contract so new integrations behave like
 the existing Discord embeds and Microsoft Teams Adaptive Cards.
 
 ## Event time
@@ -9,13 +9,13 @@ The event source owns the visible timestamp.
 
 - Use the timestamp emitted by the source machine or service.
 - Convert timezone-aware source timestamps and epoch instants to the
-  Notifinho machine/container local timezone before display.
+  Nowlert machine/container local timezone before display.
 - Treat a source timestamp without timezone information as an already-local
   wall clock. Do not reinterpret it as UTC.
 - Do not append `UTC` or a numeric timezone suffix to the card.
 - Render recognized timestamps as `20 Jul 2026 • 18:09`.
 - If no source timestamp is available, omit the Event time metric. Never
-  substitute Notifinho's receipt time.
+  substitute Nowlert's receipt time.
 
 The default is the machine/container local clock. An optional IANA-zone
 override is reserved for installations—and the future WebUI—that intentionally
@@ -26,10 +26,10 @@ presentation:
   timezone: Europe/Lisbon
 ```
 
-If this setting is absent, Notifinho discovers the container's local timezone.
+If this setting is absent, Nowlert discovers the container's local timezone.
 The packaged `tzdata` database and local-zone discovery support worldwide
 deployments. The selected timezone affects presentation only; it never replaces
-the source event timestamp with Notifinho's receipt time.
+the source event timestamp with Nowlert's receipt time.
 
 ## Microsoft Teams hierarchy
 
@@ -43,7 +43,7 @@ Every integration supplies normalized data to the shared Teams renderer:
    time.
 5. Details: optional, icon-labelled integration-specific facts.
 6. Optional integration-specific sections and actions.
-7. Notifinho version footer.
+7. Nowlert version footer.
 
 The normalized card model lives in `src/formatters/teams_common.py`. New Teams
 formatters should inherit `TeamsCardFormatter`, create a `TeamsCardData`
@@ -60,7 +60,7 @@ V2 renderer:
 3. A native responsive separator followed by the highlighted event message.
 4. One compact text row containing Severity, Category, and Event time.
 5. A native responsive separator followed by optional integration details.
-6. A final native separator and the one-line Notifinho version footer.
+6. A final native separator and the one-line Nowlert version footer.
 
 Discord controls separator width at render time, so rules remain aligned on
 desktop and mobile without fixed underscore or dash strings. The renderer does
@@ -96,7 +96,7 @@ alone.
 
 ## Integration images
 
-Card images use a Teams- and Discord-supported raster format. Notifinho stores
+Card images use a Teams- and Discord-supported raster format. Nowlert stores
 normalized 256 px transparent PNGs in `assets/icons/` and includes that
 directory in the production image. Discord uploads the matching packaged PNG
 with each webhook request and references it through an `attachment://` URL;
@@ -106,7 +106,7 @@ Adaptive Cards do not support Discord-style webhook attachments.
 
 Production uses the repository's `main/assets/icons` URL. Preview builds and
 installations that mirror the official assets can set
-`NOTIFINHO_ICON_BASE_URL` to another public HTTPS directory; the filenames and
+`NOWLERT_ICON_BASE_URL` to another public HTTPS directory; the filenames and
 asset contract remain unchanged.
 
 Product-specific images must originate from an official vendor page or source

@@ -44,7 +44,7 @@ def test_readme_remains_comprehensive_and_current():
         "v2.5.2-discord-idrac.png",
         "v2.5.2-teams.png",
         "platform_database_v1",
-        "/notifinho/state",
+        "/nowlert/state",
         "Dedicated integration routes",
         "Fallback routes run only",
     ):
@@ -52,7 +52,7 @@ def test_readme_remains_comprehensive_and_current():
 
     assert "teams-xen-orchestra-v1.9.6.png" not in readme
     assert "discord-xen-orchestra-v1.9.6.png" not in readme
-    assert "By v2.0, Notifinho is planned" not in readme
+    assert "By v2.0, Nowlert is planned" not in readme
     assert "mounted `config.yaml` is the single configuration authority" not in readme
     assert "\noutputs:\n" not in readme
     assert "\nrouting:\n" not in readme

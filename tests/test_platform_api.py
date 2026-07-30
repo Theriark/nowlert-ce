@@ -49,7 +49,7 @@ class FakeWebhookAdapter(PlatformOutputAdapter):
             "webhook",
             "application/json",
             {
-                "schema": "notifinho.event.v1",
+                "schema": "nowlert.event.v1",
                 "source": notification.source,
                 "title": notification.title,
             },
@@ -67,7 +67,7 @@ def fast_hash(password: str) -> str:
 
 @pytest.fixture
 def platform_api(tmp_path, monkeypatch):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
 
     def users(database_value):
@@ -182,7 +182,7 @@ def create_token(platform, headers, *, owner_user_id=None, scopes=("home_lab",))
 
 def event(source="home_lab", severity="warning"):
     return {
-        "schema": "notifinho.event.v1",
+        "schema": "nowlert.event.v1",
         "source": source,
         "title": "Synthetic platform event",
         "message": "Owner-scoped API validation.",
@@ -231,8 +231,8 @@ def test_secure_cookie_defaults_use_host_prefix_and_strict_attributes(platform_a
     )
     cookies = [value for name, value in response.headers if name == "Set-Cookie"]
 
-    assert any(item.startswith("__Host-notifinho_session=") for item in cookies)
-    assert any(item.startswith("__Host-notifinho_csrf=") for item in cookies)
+    assert any(item.startswith("__Host-nowlert_session=") for item in cookies)
+    assert any(item.startswith("__Host-nowlert_csrf=") for item in cookies)
     assert all("Secure" in item and "SameSite=Strict" in item for item in cookies)
     assert "HttpOnly" in next(item for item in cookies if "session=" in item)
     assert "HttpOnly" not in next(item for item in cookies if "csrf=" in item)
@@ -253,7 +253,7 @@ def test_admin_portability_preview_apply_and_v1_secret_redaction(platform_api):
         headers=user_headers,
     )
     document = {
-        "schema": "notifinho.platform.v1",
+        "schema": "nowlert.platform.v1",
         "destinations": [],
         "routes": [],
     }
@@ -865,7 +865,7 @@ def test_notices_avatar_and_application_lifecycle_are_exposed_safely(
     assert disabled.status == 200 and disabled.payload["token"]["enabled"] is False
     assert deleted.status == 204
 
-    monkeypatch.setenv("NOTIFINHO_AVAILABLE_VERSION", "99.0.0")
+    monkeypatch.setenv("NOWLERT_AVAILABLE_VERSION", "99.0.0")
     update = call(platform_api, "GET", "/api/v2/notices", headers=user_headers)
     persistent = next(item for item in update.payload["notices"] if item["kind"] == "update")
     denied = call(
@@ -876,7 +876,7 @@ def test_notices_avatar_and_application_lifecycle_are_exposed_safely(
         user_headers,
     )
     assert denied.status == 403
-    monkeypatch.delenv("NOTIFINHO_AVAILABLE_VERSION")
+    monkeypatch.delenv("NOWLERT_AVAILABLE_VERSION")
     resolved = call(platform_api, "GET", "/api/v2/notices", headers=user_headers)
     assert persistent["id"] not in {item["id"] for item in resolved.payload["notices"]}
 
@@ -998,7 +998,7 @@ def test_first_run_bootstrap_creates_admin_session_and_consumes_token(
     tmp_path,
     monkeypatch,
 ):
-    database = Database(tmp_path / "state" / "notifinho.db")
+    database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
 
     def users(database_value):

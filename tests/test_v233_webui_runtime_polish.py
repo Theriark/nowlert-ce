@@ -18,7 +18,7 @@ def test_webui_service_serves_v233_runtime_assets():
 
     script = service.response("/ui/enhancements.js")
     assert script is not None and script.status == 200
-    assert b"notifinho.active-view" in script.body
+    assert b"nowlert.active-view" in script.body
     assert b"sourceAwareCardSampleEvent" in script.body
     assert b"Check for updates" in script.body
     assert b"innerHTML" not in script.body
