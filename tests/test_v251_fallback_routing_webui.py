@@ -103,6 +103,41 @@ def test_specific_routes_suppress_wildcard_fallback(tmp_path):
     assert unmatched[0].source == "*"
 
 
+def test_smtp_fallback_matches_generic_smtp_only(tmp_path):
+    database, actor = database_with_admin(tmp_path)
+    destination = DestinationStore(database).create(
+        actor,
+        actor.user_id,
+        "Default SMTP alerts",
+        "discord",
+        settings={},
+        enabled=True,
+    )
+    routes = RouteStore(database)
+    fallback = routes.create(
+        actor,
+        actor.user_id,
+        "Fallback SMTP",
+        "*",
+        destination.id,
+        input_type="smtp",
+        priority="lowest",
+    )
+
+    matched = routes.matching(
+        actor,
+        actor.user_id,
+        notification(source="generic", input_type="smtp"),
+    )
+    assert [route.id for route in matched] == [fallback.id]
+
+    assert routes.matching(
+        actor,
+        actor.user_id,
+        notification(source="generic", input_type="http"),
+    ) == []
+
+
 def test_matching_routes_deliver_only_once_per_destination(tmp_path):
     database, actor = database_with_admin(tmp_path)
     destinations = DestinationStore(database)

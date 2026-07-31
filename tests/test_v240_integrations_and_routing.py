@@ -97,6 +97,7 @@ def test_catalogue_is_available_without_runtime_observation():
     assert {
         "Zabbix (SMTP)",
         "Zabbix (HTTP)",
+        "Fallback (SMTP)",
         "Fallback (HTTP)",
         "Fallback (Redfish)",
     } <= labels
