@@ -205,6 +205,14 @@ def route_options(overrides: dict[str, str] | None = None) -> list[dict]:
         (
             {
                 "source": "*",
+                "input_type": "smtp",
+                "integration_name": "Fallback",
+                "input_name": "SMTP",
+                "label": "Fallback (SMTP)",
+                "generic": True,
+            },
+            {
+                "source": "*",
                 "input_type": "http",
                 "integration_name": "Fallback",
                 "input_name": "HTTP",
