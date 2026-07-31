@@ -58,7 +58,7 @@ Open `.git/info/exclude` in the development checkout and add:
 Confirm the exclusion before capture:
 
 ```bash
-cd /docker/nowlert-dev
+cd /docker/nowlert-ce
 git check-ignore -v private-samples/portainer/webhook/test.raw
 ```
 
@@ -71,12 +71,12 @@ does not save raw requests unless an output directory is explicitly supplied.
 Port `18083` is reserved for this temporary discovery session so it does not
 overlap the production or existing development HTTP listeners.
 
-From `/docker/nowlert-dev`, start an isolated disposable container:
+From `/docker/nowlert-ce`, start an isolated disposable container:
 
 ```bash
 docker run --rm --name nowlert-portainer-capture \
   --network host \
-  -v /docker/nowlert-dev:/nowlert \
+  -v /docker/nowlert-ce:/nowlert \
   -w /nowlert \
   python:3.13-slim \
   python scripts/capture_portainer_webhook.py \

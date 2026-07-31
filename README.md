@@ -2,10 +2,10 @@
   <img src="assets/icons/nowlert.png" width="240" alt="Nowlert logo">
 </p>
 
-<h1 align="center">Nowlert</h1>
+<h1 align="center">Nowlert CE</h1>
 
 <p align="center">
-  <strong>Infrastructure Notification Engine</strong>
+  <strong>Community Edition · Infrastructure Notification Engine</strong>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@ Built for Homelabs • Ready for Enterprise
 
 <p align="center">
 
-<a href="https://github.com/Theriark/nowlert/releases">
+<a href="https://github.com/Theriark/nowlert-ce/releases">
   <img src="https://img.shields.io/badge/stable-v3.0.0-blue" alt="Stable release v3.0.0">
 </a>
 
@@ -682,8 +682,8 @@ The same release source is published to Docker Hub and GitHub Container
 Registry:
 
 ```bash
-docker pull theriark/nowlert:3.0.0
-docker pull ghcr.io/theriark/nowlert:3.0.0
+docker pull theriark/nowlert-ce:3.0.0
+docker pull ghcr.io/theriark/nowlert-ce:3.0.0
 ```
 
 Use a versioned image for production. The `latest` tag follows the current
@@ -692,8 +692,8 @@ stable release but is not an immutable deployment reference.
 ## 1. Clone the repository
 
 ```bash
-git clone https://github.com/Theriark/nowlert.git
-cd nowlert
+git clone https://github.com/Theriark/nowlert-ce.git
+cd nowlert-ce
 ```
 
 ## 2. Prepare process configuration
@@ -738,8 +738,8 @@ published ports only when the defaults conflict with another service.
 docker compose -f compose.production.yaml config
 docker compose -f compose.production.yaml pull
 docker compose -f compose.production.yaml up -d
-docker ps --filter name=nowlert
-docker logs -f nowlert
+docker ps --filter name=nowlert-ce
+docker logs -f nowlert-ce
 ```
 
 Default host ports:
@@ -759,11 +759,11 @@ Use `compose.production.yaml` as the stack definition and replace relative bind
 mounts with absolute production paths such as:
 
 ```text
-/docker/nowlert/config
-/docker/nowlert/logs
-/docker/nowlert/secrets
-/docker/nowlert/state
-/docker/nowlert/external-backups
+/docker/nowlert-ce/config
+/docker/nowlert-ce/logs
+/docker/nowlert-ce/secrets
+/docker/nowlert-ce/state
+/docker/nowlert-ce/external-backups
 ```
 
 Use the `nowlert` container identity, `NOWLERT_*` environment variables, and

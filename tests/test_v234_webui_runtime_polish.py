@@ -37,7 +37,7 @@ def test_v234_update_check_is_bounded_to_the_official_github_api():
     script = (ROOT / "src" / "webui" / "enhancements.js").read_text(
         encoding="utf-8"
     )
-    assert "https://api.github.com/repos/Theriark/nowlert/releases/latest" in script
+    assert "https://api.github.com/repos/Theriark/nowlert-ce/releases/latest" in script
     assert "6 * 60 * 60 * 1000" in script
     assert 'credentials: "omit"' in script
     assert "visibilitychange" in script

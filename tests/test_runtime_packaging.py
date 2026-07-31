@@ -84,10 +84,10 @@ def test_production_compose_applies_runtime_hardening():
     compose = yaml.safe_load(
         (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
     )
-    assert compose["name"] == "nowlert"
-    service = compose["services"]["nowlert"]
+    assert compose["name"] == "nowlert-ce"
+    service = compose["services"]["nowlert-ce"]
 
-    assert service["container_name"] == "nowlert"
+    assert service["container_name"] == "nowlert-ce"
     assert service["read_only"] is True
     assert service["init"] is True
     assert service["cap_drop"] == ["ALL"]

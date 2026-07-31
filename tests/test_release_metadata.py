@@ -1,8 +1,9 @@
 """Release metadata invariants for Nowlert v3.0.0."""
 
+import json
 from pathlib import Path
 
-from version import REPOSITORY, VERSION
+from version import EDITION, EDITION_SLUG, REPOSITORY, VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,7 +11,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_application_version_and_repository_are_current():
     assert VERSION == "3.0.0"
-    assert REPOSITORY == "https://github.com/Theriark/nowlert"
+    assert EDITION == "Community Edition"
+    assert EDITION_SLUG == "ce"
+    assert REPOSITORY == "https://github.com/Theriark/nowlert-ce"
+
+
+def test_public_enterprise_release_manifest_is_valid():
+    manifest = json.loads(
+        (ROOT / "release-manifests" / "nowlert-ee.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert manifest["edition"] == "ee"
+    assert manifest["version"] == "3.0.0"
+    assert "release_url" in manifest
 
 
 def test_readme_release_metadata_is_current():
@@ -19,7 +34,7 @@ def test_readme_release_metadata_is_current():
     assert "stable-v3.0.0-blue" in readme
     assert "| **Current Stable Release** | **v3.0.0** |" in readme
     assert "| **Next Planned Release** | **v3.x** |" in readme
-    assert "https://github.com/Theriark/nowlert/releases" in readme
+    assert "https://github.com/Theriark/nowlert-ce/releases" in readme
 
 
 def test_changelog_preserves_history_and_adds_v300():
@@ -45,7 +60,7 @@ def test_v300_release_documents_exist():
         "# Nowlert v3.0.0 acceptance checklist"
     )
     assert "current stable release is **v3.0.0**" in docker_hub
-    assert "theriark/nowlert:3.0.0" in docker_hub
+    assert "theriark/nowlert-ce:3.0.0" in docker_hub
 
 
 def test_historical_v255_release_identity_is_preserved():
@@ -70,8 +85,8 @@ def test_production_defaults_are_versioned_and_compatible():
         encoding="utf-8"
     )
 
-    assert "NOWLERT_IMAGE=theriark/nowlert:3.0.0" in environment
-    assert "theriark/nowlert:3.0.0" in compose
+    assert "NOWLERT_IMAGE=theriark/nowlert-ce:3.0.0" in environment
+    assert "theriark/nowlert-ce:3.0.0" in compose
     assert "NOWLERT_IMAGE" in compose
     assert "NOWLERT_EXTERNAL_BACKUP_DIR" in compose
     assert "/nowlert/external-backups" in compose
@@ -93,9 +108,9 @@ def test_release_notes_cover_cutover_rollback_and_schema():
 
     assert "schema 9" in notes
     assert "platform_database_v1" in notes
-    assert "Theriark/nowlert" in notes
-    assert "theriark/nowlert:3.0.0" in notes
-    assert "ghcr.io/theriark/nowlert" in notes
+    assert "Theriark/nowlert-ce" in notes
+    assert "theriark/nowlert-ce:3.0.0" in notes
+    assert "ghcr.io/theriark/nowlert-ce" in notes
 
 
 def test_release_workflow_is_guarded_and_uses_nowlert_images():
@@ -105,13 +120,13 @@ def test_release_workflow_is_guarded_and_uses_nowlert_images():
 
     assert "Verify release repository identity" in release
     assert '${GITHUB_REPOSITORY,,}' in release
-    assert '"theriark/nowlert"' in release
+    assert '"theriark/nowlert-ce"' in release
     assert (
-        "theriark/nowlert:${{ steps.version.outputs.version }}"
+        "theriark/nowlert-ce:${{ steps.version.outputs.version }}"
         in release
     )
     assert (
-        "ghcr.io/theriark/nowlert:${{ steps.version.outputs.version }}"
+        "ghcr.io/theriark/nowlert-ce:${{ steps.version.outputs.version }}"
         in release
     )
     assert 'RELEASE_TITLE="Nowlert ${TAG}"' in release
@@ -139,3 +154,14 @@ def test_release_workflows_use_current_action_majors():
     assert "docker/login-action@v4" in release
     assert "docker/setup-buildx-action@v4" in release
     assert "docker/build-push-action@v7" in release
+
+
+def test_development_workflow_targets_only_ce():
+    workflow = (
+        ROOT / ".github" / "workflows" / "docker-development.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "IMAGE: ghcr.io/theriark/nowlert-ce" in workflow
+    assert "environment: development" in workflow
+    assert "DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID" in workflow
+    assert "DOKPLOY_EE_DEVELOPMENT_APPLICATION_ID" not in workflow

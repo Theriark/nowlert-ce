@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Theriark/nowlert/main/docs/images/logo.png" width="210" alt="Nowlert logo">
+  <img src="https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/logo.png" width="210" alt="Nowlert logo">
 </p>
 
 <h1 align="center">Nowlert</h1>
@@ -14,7 +14,7 @@ Nowlert receives infrastructure events over **SMTP**, **HTTP**, and
 notifications to Discord, Microsoft Teams, Slack, generic webhooks, MQTT, and
 ntfy.
 
-The current stable release is **v3.0.0**. The corresponding image is **`theriark/nowlert:3.0.0`**.
+The current stable release is **v3.0.0**. The corresponding image is **`theriark/nowlert-ce:3.0.0`**.
 
 ## Highlights
 
@@ -30,13 +30,13 @@ The current stable release is **v3.0.0**. The corresponding image is **`theriark
 - Scheduled local, NFS, or SMB private-state backups
 - Hardened production Compose deployment
 
-![Nowlert v2.5.2 Routing Flow](https://raw.githubusercontent.com/Theriark/nowlert/main/docs/images/v2.5.2-routing-flow.png)
+![Nowlert v2.5.2 Routing Flow](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v2.5.2-routing-flow.png)
 
 ## Quick start
 
 ```bash
-git clone https://github.com/Theriark/nowlert.git
-cd nowlert
+git clone https://github.com/Theriark/nowlert-ce.git
+cd nowlert-ce
 
 cp .env.example .env
 cp config/config.example.yaml config/config.yaml
@@ -48,7 +48,7 @@ chmod 700 logs logs/emails secrets state external-backups
 
 docker compose -f compose.production.yaml config
 docker compose -f compose.production.yaml up -d
-docker logs -f nowlert
+docker logs -f nowlert-ce
 ```
 
 Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the numeric identity that
@@ -128,7 +128,7 @@ backup before starting the older image.
 
 ## Documentation
 
-Repository: https://github.com/Theriark/nowlert
+Repository: https://github.com/Theriark/nowlert-ce
 
 - deployment and Portainer guide
 - WebUI guide
@@ -138,6 +138,6 @@ Repository: https://github.com/Theriark/nowlert
 - release notes and acceptance checklists
 - v2.3.3 → v2.5.2 implementation sequence
 
-![Nowlert v2.5.2 Discord card](https://raw.githubusercontent.com/Theriark/nowlert/main/docs/images/v2.5.2-discord-zabbix.png)
+![Nowlert v2.5.2 Discord card](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v2.5.2-discord-zabbix.png)
 
 MIT License · Powered by Theriark

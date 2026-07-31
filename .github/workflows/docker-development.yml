@@ -24,9 +24,10 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    environment: development
 
     env:
-      IMAGE: ghcr.io/theriark/nowlert
+      IMAGE: ghcr.io/theriark/nowlert-ce
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
     steps:
@@ -70,15 +71,15 @@ jobs:
             echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
-      - name: Trigger Dokploy Development deployment
+      - name: Trigger Dokploy CE Development deployment
         if: >-
           env.DOKPLOY_URL != '' &&
           env.DOKPLOY_API_KEY != '' &&
-          env.DOKPLOY_DEVELOPMENT_APPLICATION_ID != ''
+          env.DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID != ''
         env:
           DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
-          DOKPLOY_DEVELOPMENT_APPLICATION_ID: ${{ secrets.DOKPLOY_DEVELOPMENT_APPLICATION_ID }}
+          DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID: ${{ secrets.DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID }}
         shell: bash
         run: |
           set -euo pipefail
@@ -89,4 +90,4 @@ jobs:
             --header "accept: application/json" \
             --header "Content-Type: application/json" \
             --header "x-api-key: ${DOKPLOY_API_KEY}" \
-            --data "{\"applicationId\":\"${DOKPLOY_DEVELOPMENT_APPLICATION_ID}\"}"
+            --data "{\"applicationId\":\"${DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID}\"}"

@@ -1,11 +1,11 @@
 # Development-only Compose file. Run it from the repository checkout on DEVELOPMENT-HOST.
 services:
-  nowlert-dev:
+  nowlert-ce-dev:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    image: nowlert-dev:local
-    container_name: nowlert-dev
+    image: nowlert-ce-dev:local
+    container_name: nowlert-ce-dev
     restart: unless-stopped
     working_dir: /nowlert
     ports:

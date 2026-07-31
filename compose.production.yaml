@@ -1,9 +1,9 @@
-name: nowlert
+name: nowlert-ce
 
 services:
-  nowlert:
-    image: "${NOWLERT_IMAGE:-theriark/nowlert:3.0.0}"
-    container_name: nowlert
+  nowlert-ce:
+    image: "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.0.0}"
+    container_name: nowlert-ce
     restart: unless-stopped
     init: true
     stop_grace_period: 20s

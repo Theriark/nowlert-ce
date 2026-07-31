@@ -23,8 +23,8 @@
 ### Changed
 
 - Finalize the product and visible runtime identity as Nowlert.
-- Adopt the intended repository identity `Theriark/nowlert`.
-- Adopt `theriark/nowlert` and `ghcr.io/theriark/nowlert` for stable images.
+- Adopt the intended repository identity `Theriark/nowlert-ce`.
+- Adopt `theriark/nowlert-ce` and `ghcr.io/theriark/nowlert-ce` for stable images.
 - Adopt Nowlert deployment, WebUI, release, and public documentation identities.
 - Preserve original route names when legacy source aliases collapse into the
   wildcard source during configuration migration.

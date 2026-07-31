@@ -9,10 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_production_image_has_nowlert_oci_identity():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
-    assert 'org.opencontainers.image.title="Nowlert"' in dockerfile
+    assert 'org.opencontainers.image.title="Nowlert CE"' in dockerfile
     assert 'org.opencontainers.image.vendor="Theriark"' in dockerfile
     assert (
-        'org.opencontainers.image.description="Infrastructure Notification Engine"'
+        'org.opencontainers.image.description="Nowlert Community Edition infrastructure notification engine"'
         in dockerfile
     )
 
@@ -48,6 +48,6 @@ def test_internal_root_uses_nowlert():
 def test_development_image_has_nowlert_identity():
     dockerfile = (ROOT / "Dockerfile.dev").read_text(encoding="utf-8")
 
-    assert 'org.opencontainers.image.title="Nowlert Development"' in dockerfile
+    assert 'org.opencontainers.image.title="Nowlert CE Development"' in dockerfile
     assert 'org.opencontainers.image.vendor="Theriark"' in dockerfile
     assert "WORKDIR /nowlert" in dockerfile
