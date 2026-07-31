@@ -1,6 +1,9 @@
 """Container and process-lifecycle deployment invariants."""
 
+import os
 from pathlib import Path
+import stat
+import subprocess
 
 import yaml
 
@@ -22,7 +25,59 @@ def test_production_image_uses_immutable_python_base_and_pinned_dependencies():
 def test_start_script_execs_python_as_the_container_process():
     script = (ROOT / "start.sh").read_text(encoding="utf-8")
 
+    assert "/nowlert/bootstrap-config.sh" in script
     assert "exec python3 main.py" in script
+
+
+def test_empty_config_volume_is_initialized_once(tmp_path):
+    config_dir = tmp_path / "config"
+    template = tmp_path / "config.example.yaml"
+    template.write_text("http:\n  enabled: true\n", encoding="utf-8")
+
+    subprocess.run(
+        [
+            "sh",
+            str(ROOT / "bootstrap-config.sh"),
+            str(config_dir),
+            str(template),
+        ],
+        check=True,
+    )
+
+    config_file = config_dir / "config.yaml"
+    assert config_file.read_text(encoding="utf-8") == template.read_text(
+        encoding="utf-8"
+    )
+    assert stat.S_IMODE(config_file.stat().st_mode) == 0o600
+
+    config_file.write_text("custom: true\n", encoding="utf-8")
+    os.chmod(config_file, 0o640)
+
+    subprocess.run(
+        [
+            "sh",
+            str(ROOT / "bootstrap-config.sh"),
+            str(config_dir),
+            str(template),
+        ],
+        check=True,
+    )
+
+    assert config_file.read_text(encoding="utf-8") == "custom: true\n"
+    assert stat.S_IMODE(config_file.stat().st_mode) == 0o640
+
+
+def test_production_image_packages_bootstrap_configuration():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    assert (
+        "COPY config/config.example.yaml "
+        "/usr/local/share/nowlert/config.example.yaml"
+    ) in dockerfile
+    assert "COPY bootstrap-config.sh /nowlert/bootstrap-config.sh" in dockerfile
+    assert (
+        "chmod +x /nowlert/bootstrap-config.sh /nowlert/start.sh"
+    ) in dockerfile
 
 
 def test_production_compose_applies_runtime_hardening():

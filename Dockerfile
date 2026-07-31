@@ -23,6 +23,8 @@ RUN apt-get update \
 COPY src /nowlert/src
 COPY assets /nowlert/assets
 COPY tools /nowlert/tools
+COPY config/config.example.yaml /usr/local/share/nowlert/config.example.yaml
+COPY bootstrap-config.sh /nowlert/bootstrap-config.sh
 COPY start.sh /nowlert/start.sh
 
 RUN python3 /nowlert/tools/validate_packaged_icons.py
@@ -31,7 +33,7 @@ ARG NOWLERT_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/Theriark/nowle
 
 ENV NOWLERT_TEAMS_ICON_BASE_URL=${NOWLERT_TEAMS_ICON_BASE_URL}
 
-RUN chmod +x /nowlert/start.sh
+RUN chmod +x /nowlert/bootstrap-config.sh /nowlert/start.sh
 
 EXPOSE 8025 8080
 
