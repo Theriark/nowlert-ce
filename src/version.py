@@ -11,6 +11,8 @@ global project information.
 
 APP_NAME = "Nowlert"
 COMPANY = "Theriark"
+EDITION = "Community Edition"
+EDITION_SLUG = "ce"
 
 VERSION = "3.0.0"
 
@@ -18,4 +20,4 @@ AUTHOR = "Ruben Rodrigues"
 
 LICENSE = "MIT"
 
-REPOSITORY = "https://github.com/Theriark/nowlert"
+REPOSITORY = "https://github.com/Theriark/nowlert-ce"

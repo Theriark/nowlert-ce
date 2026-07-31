@@ -30,8 +30,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_REPOSITORY,,}" != "theriark/nowlert" ]]; then
-            echo "::error::Stable publication is allowed only from Theriark/nowlert; current repository is ${GITHUB_REPOSITORY}."
+          if [[ "${GITHUB_REPOSITORY,,}" != "theriark/nowlert-ce" ]]; then
+            echo "::error::Stable publication is allowed only from Theriark/nowlert-ce; current repository is ${GITHUB_REPOSITORY}."
             exit 1
           fi
 
@@ -147,10 +147,10 @@ jobs:
           build-args: |
             NOWLERT_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.release.outputs.commit_sha }}/assets/icons
           tags: |
-            theriark/nowlert:${{ steps.version.outputs.version }}
-            theriark/nowlert:latest
-            ghcr.io/theriark/nowlert:${{ steps.version.outputs.version }}
-            ghcr.io/theriark/nowlert:latest
+            theriark/nowlert-ce:${{ steps.version.outputs.version }}
+            theriark/nowlert-ce:latest
+            ghcr.io/theriark/nowlert-ce:${{ steps.version.outputs.version }}
+            ghcr.io/theriark/nowlert-ce:latest
 
       - name: Create or update GitHub Release
         shell: bash

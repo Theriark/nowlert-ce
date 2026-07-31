@@ -76,6 +76,7 @@ jobs:
               "compose.production.yaml",
               ".github/dependabot.yml",
               ".github/workflows/ci.yml",
+              ".github/workflows/docker-development.yml",
               ".github/workflows/docker-release.yml",
           ):
               value = yaml.safe_load(Path(name).read_text(encoding="utf-8"))

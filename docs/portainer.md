@@ -138,7 +138,7 @@ managed container or production workload was interrupted.
 Watch Nowlert without printing configuration values:
 
 ```bash
-docker logs -f nowlert
+docker logs -f nowlert-ce
 ```
 
 A successful request returns HTTP `204`. Invalid authentication returns `401`,

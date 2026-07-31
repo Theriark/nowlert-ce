@@ -61,7 +61,7 @@
 - `NOWLERT_*` preferred deployment variables with legacy aliases
 - Docker Hub and GHCR release coordinates
 - compatibility-preserving schema-9 migration
-- guarded release publication from `Theriark/nowlert`
+- guarded release publication from `Theriark/nowlert-ce`
 
 ## Current maintenance priorities
 

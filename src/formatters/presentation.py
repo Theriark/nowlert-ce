@@ -38,7 +38,7 @@ class PresentationMixin:
         compatible_environment(
             "NOWLERT_TEAMS_ICON_BASE_URL",
             default=(
-                "https://raw.githubusercontent.com/Theriark/nowlert/"
+                "https://raw.githubusercontent.com/Theriark/nowlert-ce/"
                 "main/assets/icons"
             ),
         )

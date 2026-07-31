@@ -23,7 +23,7 @@ Build and start the development service:
 ```bash
 docker compose -f docker-compose.yml up -d --build
 docker compose -f docker-compose.yml ps
-docker logs --tail 100 nowlert-dev
+docker logs --tail 100 nowlert-ce-dev
 ```
 
 Expected listeners are host TCP `8026` for SMTP and host TCP `18082` for the
@@ -64,7 +64,7 @@ docker compose -f compose.production.yaml config
 docker compose -f compose.production.yaml pull
 docker compose -f compose.production.yaml up -d
 docker compose -f compose.production.yaml ps
-docker logs --tail 100 nowlert
+docker logs --tail 100 nowlert-ce
 ```
 
 The production definition drops Linux capabilities, prevents privilege
@@ -77,10 +77,10 @@ mounts.
 Replace relative paths in `.env` with absolute host paths, for example:
 
 ```dotenv
-NOWLERT_CONFIG_DIR=/docker/nowlert/config
-NOWLERT_LOG_DIR=/docker/nowlert/logs
-NOWLERT_SECRETS_DIR=/docker/nowlert/secrets
-NOWLERT_STATE_DIR=/docker/nowlert/state
+NOWLERT_CONFIG_DIR=/docker/nowlert-ce/config
+NOWLERT_LOG_DIR=/docker/nowlert-ce/logs
+NOWLERT_SECRETS_DIR=/docker/nowlert-ce/secrets
+NOWLERT_STATE_DIR=/docker/nowlert-ce/state
 NOWLERT_EXTERNAL_BACKUP_DIR=/mnt/nowlert-backups
 ```
 
@@ -340,7 +340,7 @@ Set `NOWLERT_IMAGE` back to the previously validated version, then run:
 ```bash
 docker compose -f compose.production.yaml pull
 docker compose -f compose.production.yaml up -d
-docker logs --tail 100 nowlert
+docker logs --tail 100 nowlert-ce
 ```
 
 Configuration and logs remain on the host. Review release-specific migration

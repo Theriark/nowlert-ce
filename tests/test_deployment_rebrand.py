@@ -13,13 +13,13 @@ def test_production_compose_uses_nowlert_identity():
         (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
     )
 
-    assert compose["name"] == "nowlert"
-    assert "nowlert" in compose["services"]
+    assert compose["name"] == "nowlert-ce"
+    assert "nowlert-ce" in compose["services"]
 
-    service = compose["services"]["nowlert"]
+    service = compose["services"]["nowlert-ce"]
 
-    assert service["container_name"] == "nowlert"
-    assert service["image"] == "${NOWLERT_IMAGE:-theriark/nowlert:3.0.0}"
+    assert service["container_name"] == "nowlert-ce"
+    assert service["image"] == "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.0.0}"
 
 
 def test_production_compose_uses_nowlert_host_variables():
@@ -65,7 +65,7 @@ def test_internal_container_paths_use_nowlert():
     compose = yaml.safe_load(
         (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
     )
-    service = compose["services"]["nowlert"]
+    service = compose["services"]["nowlert-ce"]
 
     assert service["environment"]["NOWLERT_STATE_DIR"] == "/nowlert/state"
 
@@ -84,9 +84,9 @@ def test_development_compose_uses_nowlert_identity():
     compose = yaml.safe_load(
         (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     )
-    service = compose["services"]["nowlert-dev"]
+    service = compose["services"]["nowlert-ce-dev"]
 
-    assert service["image"] == "nowlert-dev:local"
-    assert service["container_name"] == "nowlert-dev"
+    assert service["image"] == "nowlert-ce-dev:local"
+    assert service["container_name"] == "nowlert-ce-dev"
     assert service["working_dir"] == "/nowlert"
     assert service["command"] == "/nowlert/start.sh"
