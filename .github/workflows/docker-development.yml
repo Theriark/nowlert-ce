@@ -32,7 +32,7 @@ jobs:
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
       DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
-      DOKPLOY_APPLICATION_ID: nowlert-ce-development-acs6dz
+      DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID: nowlert-ce-development-acs6dz
       DEV_SMOKE_SCHEDULE_ID: ${{ vars.DEV_CE_SMOKE_SCHEDULE_ID }}
 
     steps:
@@ -82,7 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           python .github/scripts/dokploy_release.py deploy \
-            --application-id "${DOKPLOY_APPLICATION_ID}" \
+            --application-id "${DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID}" \
             --image "${IMAGE}@${{ steps.build.outputs.digest }}" \
             --health-url https://ce-dev.nowlert.theriark.com/api/health \
             --title "CE Development ${SOURCE_SHA}" \
