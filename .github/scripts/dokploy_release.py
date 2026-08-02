@@ -16,7 +16,7 @@ from collections.abc import Iterable
 from typing import Any
 
 IMAGE_RE = re.compile(
-    r"^ghcr\.io/theriark/nowlert-(?:ce|ee)@sha256:[0-9a-f]{64}$"
+    r"^ghcr\.io/theriark/nowlert-ce@sha256:[0-9a-f]{64}$"
 )
 TERMINAL_FAILURE = {"error", "failed", "failure", "cancelled", "canceled"}
 TERMINAL_SUCCESS = {"done", "success", "succeeded", "completed", "complete"}
