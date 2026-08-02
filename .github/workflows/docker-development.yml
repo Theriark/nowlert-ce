@@ -24,17 +24,33 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     environment: development
 
     env:
       IMAGE: ghcr.io/theriark/nowlert-ce
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID: nowlert-ce-development-acs6dz
+      DEV_SMOKE_SCHEDULE_ID: ${{ vars.DEV_CE_SMOKE_SCHEDULE_ID }}
 
     steps:
       - name: Checkout tested source
         uses: actions/checkout@v7
         with:
           ref: ${{ env.SOURCE_SHA }}
+
+      - name: Verify protected deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${DOKPLOY_URL}" ]] || { echo "::error::DOKPLOY_URL is missing"; exit 1; }
+          [[ -n "${DOKPLOY_API_KEY}" ]] || { echo "::error::DOKPLOY_API_KEY is missing"; exit 1; }
+          [[ -n "${DEV_SMOKE_SCHEDULE_ID}" ]] || {
+            echo "::error::Repository variable DEV_CE_SMOKE_SCHEDULE_ID is missing"
+            exit 1
+          }
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
@@ -60,34 +76,37 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Record immutable promotion reference
-        shell: bash
-        run: |
-          {
-            echo "## Nowlert Development image"
-            echo
-            echo "- Development tag: \`${IMAGE}:main\`"
-            echo "- Promotion tag: \`${IMAGE}:sha-${SOURCE_SHA}\`"
-            echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-      - name: Trigger Dokploy CE Development deployment
-        if: >-
-          env.DOKPLOY_URL != '' &&
-          env.DOKPLOY_API_KEY != '' &&
-          env.DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID != ''
-        env:
-          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
-          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
-          DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID: ${{ secrets.DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID }}
+      - name: Deploy exact CE digest to Development
+        id: deploy
         shell: bash
         run: |
           set -euo pipefail
+          python .github/scripts/dokploy_release.py deploy \
+            --application-id "${DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID}" \
+            --image "${IMAGE}@${{ steps.build.outputs.digest }}" \
+            --health-url https://ce-dev.nowlert.theriark.com/api/health \
+            --title "CE Development ${SOURCE_SHA}" \
+            --description "GitHub Actions run ${{ github.run_id }}"
 
-          curl --fail-with-body --silent --show-error \
-            --request POST \
-            "${DOKPLOY_URL%/}/api/application.deploy" \
-            --header "accept: application/json" \
-            --header "Content-Type: application/json" \
-            --header "x-api-key: ${DOKPLOY_API_KEY}" \
-            --data "{\"applicationId\":\"${DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID}\"}"
+      - name: Run CE Development smoke on VM-09
+        id: smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/dokploy_release.py run-schedule \
+            --schedule-id "${DEV_SMOKE_SCHEDULE_ID}" \
+            --success-marker "DEVELOPMENT CE SMOKE PASSED" \
+            --timeout 1800
+
+      - name: Record immutable Development result
+        shell: bash
+        run: |
+          {
+            echo "## Nowlert CE Development passed"
+            echo
+            echo "- Source commit: \`${SOURCE_SHA}\`"
+            echo "- Development tag: \`${IMAGE}:main\`"
+            echo "- Promotion tag: \`${IMAGE}:sha-${SOURCE_SHA}\`"
+            echo "- Immutable image: \`${IMAGE}@${{ steps.build.outputs.digest }}\`"
+            echo "- Development smoke deployment: \`${{ steps.smoke.outputs.deployment_id }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"

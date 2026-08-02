@@ -1,0 +1,114 @@
+name: Promote CE to Stage
+
+on:
+  workflow_dispatch:
+    inputs:
+      ce_image:
+        description: "Immutable CE image including @sha256 digest"
+        required: true
+        type: string
+      change_reference:
+        description: "PR, issue, or release reference"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nowlert-ce-stage-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote CE immutable image to Stage
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    environment: stage
+
+    env:
+      DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      PROMOTION_IMAGE: ${{ inputs.ce_image }}
+      CE_STAGE_APPLICATION_ID: nowlert-ce-nowlertcestage-suk6ln
+      STAGE_CE_QA_SCHEDULE_ID: ${{ vars.STAGE_CE_QA_SCHEDULE_ID }}
+
+    steps:
+      - name: Checkout pipeline code
+        uses: actions/checkout@v7
+
+      - name: Verify CE Stage configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [[ -n "${DOKPLOY_URL}" ]] || {
+            echo "::error::DOKPLOY_URL is missing"
+            exit 1
+          }
+
+          [[ -n "${DOKPLOY_API_KEY}" ]] || {
+            echo "::error::DOKPLOY_API_KEY is missing"
+            exit 1
+          }
+
+          [[ -n "${STAGE_CE_QA_SCHEDULE_ID}" ]] || {
+            echo "::error::STAGE_CE_QA_SCHEDULE_ID is missing"
+            exit 1
+          }
+
+          [[ "${PROMOTION_IMAGE}" =~ ^ghcr\.io/theriark/nowlert-ce@sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::CE image must be an immutable nowlert-ce digest"
+            exit 1
+          }
+
+      - name: Promote CE to Stage
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/dokploy_release.py deploy \
+            --application-id "${CE_STAGE_APPLICATION_ID}" \
+            --image "${PROMOTION_IMAGE}" \
+            --health-url https://ce-stage.nowlert.theriark.com/api/health \
+            --title "CE Stage promotion ${{ github.run_id }}" \
+            --description "${{ inputs.change_reference }}" \
+            --noop-ok
+
+      - name: Run CE Stage QA on VM-12
+        id: stage_qa
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/dokploy_release.py run-schedule \
+            --schedule-id "${STAGE_CE_QA_SCHEDULE_ID}" \
+            --success-marker "STAGE CE QA PASSED" \
+            --timeout 5400
+
+      - name: Record successful CE Stage promotion
+        shell: bash
+        run: |
+          {
+            echo "## CE Stage promotion passed"
+            echo
+            echo "- CE image: \`${PROMOTION_IMAGE}\`"
+            echo "- Change reference: ${{ inputs.change_reference }}"
+            echo "- Stage QA deployment: \`${{ steps.stage_qa.outputs.deployment_id }}\`"
+            echo "- Rebuild performed: no"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Roll back CE after a failed Stage gate
+        if: ${{ failure() && steps.deploy.outputs.previous_image != '' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          python .github/scripts/dokploy_release.py deploy \
+            --application-id "${CE_STAGE_APPLICATION_ID}" \
+            --image "${{ steps.deploy.outputs.previous_image }}" \
+            --health-url https://ce-stage.nowlert.theriark.com/api/health \
+            --title "Automatic CE Stage rollback ${{ github.run_id }}" \
+            --description "The CE Stage promotion or QA gate failed" \
+            --allow-mutable \
+            --noop-ok

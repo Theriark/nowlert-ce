@@ -1,0 +1,124 @@
+name: Promote CE to Production Reference
+
+on:
+  workflow_dispatch:
+    inputs:
+      ce_image:
+        description: "Stage-approved immutable CE image"
+        required: true
+        type: string
+      stage_promotion_run:
+        description: "URL or ID of the successful CE Stage promotion"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nowlert-ce-production-reference-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote CE Stage-approved image to Production Reference
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production-reference
+
+    env:
+      DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      PROMOTION_IMAGE: ${{ inputs.ce_image }}
+      CE_STAGE_APPLICATION_ID: nowlert-ce-nowlertcestage-suk6ln
+      CE_PRODREF_APPLICATION_ID: nowlert-ce-cenowlertproduction-zhxtm9
+      PRODREF_CE_SMOKE_SCHEDULE_ID: ${{ vars.PRODREF_CE_SMOKE_SCHEDULE_ID }}
+
+    steps:
+      - name: Checkout pipeline code
+        uses: actions/checkout@v7
+
+      - name: Verify CE Production Reference configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [[ -n "${DOKPLOY_URL}" ]] || {
+            echo "::error::DOKPLOY_URL is missing"
+            exit 1
+          }
+
+          [[ -n "${DOKPLOY_API_KEY}" ]] || {
+            echo "::error::DOKPLOY_API_KEY is missing"
+            exit 1
+          }
+
+          [[ -n "${PRODREF_CE_SMOKE_SCHEDULE_ID}" ]] || {
+            echo "::error::PRODREF_CE_SMOKE_SCHEDULE_ID is missing"
+            exit 1
+          }
+
+          [[ "${PROMOTION_IMAGE}" =~ ^ghcr\.io/theriark/nowlert-ce@sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::CE image must be an immutable nowlert-ce digest"
+            exit 1
+          }
+
+      - name: Confirm CE image is currently approved in Stage
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/dokploy_release.py assert-image \
+            --application-id "${CE_STAGE_APPLICATION_ID}" \
+            --image "${PROMOTION_IMAGE}"
+
+      - name: Promote CE to Production Reference
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/dokploy_release.py deploy \
+            --application-id "${CE_PRODREF_APPLICATION_ID}" \
+            --image "${PROMOTION_IMAGE}" \
+            --health-url https://ce-prod.nowlert.theriark.com/api/health \
+            --title "CE Production Reference promotion ${{ github.run_id }}" \
+            --description "CE Stage run: ${{ inputs.stage_promotion_run }}" \
+            --noop-ok
+
+      - name: Run CE Production Reference smoke on VM-13
+        id: smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/dokploy_release.py run-schedule \
+            --schedule-id "${PRODREF_CE_SMOKE_SCHEDULE_ID}" \
+            --success-marker "PRODUCTION REFERENCE CE POST-PROMOTION SMOKE PASSED" \
+            --timeout 1800
+
+      - name: Record successful CE Production Reference promotion
+        shell: bash
+        run: |
+          {
+            echo "## CE Production Reference promotion passed"
+            echo
+            echo "- CE image: \`${PROMOTION_IMAGE}\`"
+            echo "- CE Stage promotion run: ${{ inputs.stage_promotion_run }}"
+            echo "- Production Reference smoke: \`${{ steps.smoke.outputs.deployment_id }}\`"
+            echo "- Rebuild performed: no"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Roll back CE after a failed Production Reference gate
+        if: ${{ failure() && steps.deploy.outputs.previous_image != '' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          python .github/scripts/dokploy_release.py deploy \
+            --application-id "${CE_PRODREF_APPLICATION_ID}" \
+            --image "${{ steps.deploy.outputs.previous_image }}" \
+            --health-url https://ce-prod.nowlert.theriark.com/api/health \
+            --title "Automatic CE Production Reference rollback ${{ github.run_id }}" \
+            --description "The CE Production Reference promotion or smoke gate failed" \
+            --allow-mutable \
+            --noop-ok
