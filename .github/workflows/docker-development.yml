@@ -88,7 +88,7 @@ jobs:
             --title "CE Development ${SOURCE_SHA}" \
             --description "GitHub Actions run ${{ github.run_id }}"
 
-      - name: Run official CE Development smoke on VM-12
+      - name: Run CE Development smoke on VM-09
         id: smoke
         shell: bash
         run: |
