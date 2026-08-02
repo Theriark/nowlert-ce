@@ -96,7 +96,7 @@ jobs:
             --description "Stage run: ${{ inputs.stage_promotion_run }}" \
             --noop-ok
 
-      - name: Run official Production Reference smoke on VM-12
+      - name: Run official Production Reference smoke on VM-13
         id: smoke
         shell: bash
         run: |
