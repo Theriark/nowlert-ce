@@ -1,0 +1,150 @@
+name: Promote to Stage
+
+on:
+  workflow_dispatch:
+    inputs:
+      ce_image:
+        description: "Immutable CE image, including @sha256 digest"
+        required: true
+        type: string
+      ee_image:
+        description: "Immutable EE image, including @sha256 digest"
+        required: true
+        type: string
+      change_reference:
+        description: "PR, issue, or release reference"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nowlert-stage-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote immutable CE and EE images
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    environment: stage
+
+    env:
+      DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      CE_STAGE_APPLICATION_ID: nowlert-ce-nowlertcestage-suk6ln
+      EE_STAGE_APPLICATION_ID: nowlert-ee-eenowlertstage-xmdm85
+      STAGE_FULL_QA_SCHEDULE_ID: qfWM2pKVYL91XV4aK1qy5
+      STAGE_POST_RESTART_SCHEDULE_ID: udrcMhqcdkz0YHbiDBYoS
+      STAGE_EVIDENCE_INTEGRITY_SCHEDULE_ID: O-6cLsjbNC_8w8u0a-nru
+
+    steps:
+      - name: Checkout pipeline code
+        uses: actions/checkout@v7
+
+      - name: Verify protected pipeline configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${DOKPLOY_URL}" ]] || { echo "::error::DOKPLOY_URL is missing"; exit 1; }
+          [[ -n "${DOKPLOY_API_KEY}" ]] || { echo "::error::DOKPLOY_API_KEY is missing"; exit 1; }
+
+      - name: Promote CE to Stage
+        id: ce
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/dokploy_release.py deploy \
+            --application-id "${CE_STAGE_APPLICATION_ID}" \
+            --image "${{ inputs.ce_image }}" \
+            --health-url https://ce-stage.nowlert.theriark.com/api/health \
+            --title "Stage promotion ${{ github.run_id }}" \
+            --description "${{ inputs.change_reference }}" \
+            --noop-ok
+
+      - name: Promote EE to Stage
+        id: ee
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/dokploy_release.py deploy \
+            --application-id "${EE_STAGE_APPLICATION_ID}" \
+            --image "${{ inputs.ee_image }}" \
+            --health-url https://ee-stage.nowlert.theriark.com/api/health \
+            --title "Stage promotion ${{ github.run_id }}" \
+            --description "${{ inputs.change_reference }}" \
+            --noop-ok
+
+      - name: Run official Stage full QA on VM-12
+        id: stage_qa
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/dokploy_release.py run-schedule \
+            --schedule-id "${STAGE_FULL_QA_SCHEDULE_ID}" \
+            --success-marker "STAGE QA PAIRED RUN PASSED" \
+            --timeout 5400
+
+      - name: Run Stage post-deployment persistence smoke on VM-12
+        id: post_restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/dokploy_release.py run-schedule \
+            --schedule-id "${STAGE_POST_RESTART_SCHEDULE_ID}" \
+            --success-marker "STAGE POST-RESTART SMOKE PASSED" \
+            --timeout 1800
+
+      - name: Verify Stage evidence integrity on VM-12
+        id: integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/dokploy_release.py run-schedule \
+            --schedule-id "${STAGE_EVIDENCE_INTEGRITY_SCHEDULE_ID}" \
+            --success-marker "STAGE EVIDENCE INTEGRITY PASSED" \
+            --timeout 1800
+
+      - name: Record successful Stage promotion
+        shell: bash
+        run: |
+          {
+            echo "## Stage promotion passed"
+            echo
+            echo "- CE image: \`${{ inputs.ce_image }}\`"
+            echo "- EE image: \`${{ inputs.ee_image }}\`"
+            echo "- Change reference: ${{ inputs.change_reference }}"
+            echo "- Stage full QA deployment: \`${{ steps.stage_qa.outputs.deployment_id }}\`"
+            echo "- Post-deployment smoke: \`${{ steps.post_restart.outputs.deployment_id }}\`"
+            echo "- Evidence integrity: \`${{ steps.integrity.outputs.deployment_id }}\`"
+            echo "- Rebuild performed: no"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Roll back EE after a failed gate
+        if: ${{ failure() && steps.ee.outputs.previous_image != '' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          python .github/scripts/dokploy_release.py deploy \
+            --application-id "${EE_STAGE_APPLICATION_ID}" \
+            --image "${{ steps.ee.outputs.previous_image }}" \
+            --health-url https://ee-stage.nowlert.theriark.com/api/health \
+            --title "Automatic Stage rollback ${{ github.run_id }}" \
+            --description "A Stage promotion or QA gate failed" \
+            --allow-mutable \
+            --noop-ok
+
+      - name: Roll back CE after a failed gate
+        if: ${{ failure() && steps.ce.outputs.previous_image != '' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          python .github/scripts/dokploy_release.py deploy \
+            --application-id "${CE_STAGE_APPLICATION_ID}" \
+            --image "${{ steps.ce.outputs.previous_image }}" \
+            --health-url https://ce-stage.nowlert.theriark.com/api/health \
+            --title "Automatic Stage rollback ${{ github.run_id }}" \
+            --description "A Stage promotion or QA gate failed" \
+            --allow-mutable \
+            --noop-ok
