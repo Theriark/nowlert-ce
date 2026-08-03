@@ -1,0 +1,157 @@
+name: Initialize CE Desired-State Ledger
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+concurrency:
+  group: nowlert-ce-ledger-initialization
+  cancel-in-progress: false
+
+jobs:
+  initialize:
+    name: Validate and initialize CE ledger
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production-reference
+
+    env:
+      DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      VERSION: v3.0.0
+      FINAL_IMAGE: ghcr.io/theriark/nowlert-ce@sha256:f0b82565b450bda8bb66bcdd82e4a8b730c6b64aa10f66b6319087c3d44b7468
+      SOURCE_COMMIT: 0adcfe3e00e0f622a460939b17e917103da12e6e
+      DEVELOPMENT_RUN_ID: "30774715325"
+      STAGE_PROMOTION_RUN_ID: "30775353663"
+      STAGE_APPLICATION_ID: D0aI55MKe3G77LFdQcPdY
+      STAGE_SCHEDULE_ID: meHx1NPZfCxqASLe4RAYS
+      STAGE_SCHEDULE_DEPLOYMENT_ID: OT_tOkX_Y3GOdVVbvb7WN
+      PRODUCTION_REFERENCE_RUN_ID: "30776030212"
+      PRODREF_APPLICATION_ID: -Qb71PLUZmBHLJ_Iv68Oo
+      PRODREF_SCHEDULE_ID: JVSEdTk4tt4vKPbG3cKFZ
+      PRODREF_SCHEDULE_DEPLOYMENT_ID: LWwEp6HTGfGYvpw7m0Gzo
+
+    steps:
+      - name: Checkout ledger workflow code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify live CE Stage and Production Reference digests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/dokploy_release.py assert-image \
+            --application-id "${STAGE_APPLICATION_ID}" \
+            --image "${FINAL_IMAGE}"
+
+          python .github/scripts/dokploy_release.py assert-image \
+            --application-id "${PRODREF_APPLICATION_ID}" \
+            --image "${FINAL_IMAGE}"
+
+      - name: Validate the finalized CE promotion chain
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/finalize_release.py \
+            --version "${VERSION}" \
+            --final-image "${FINAL_IMAGE}" \
+            --source-commit "${SOURCE_COMMIT}" \
+            --development-run "${DEVELOPMENT_RUN_ID}" \
+            --stage-run "${STAGE_PROMOTION_RUN_ID}" \
+            --production-reference-run "${PRODUCTION_REFERENCE_RUN_ID}" \
+            --qa-schedule-deployment-id "${PRODREF_SCHEDULE_DEPLOYMENT_ID}" \
+            --release-notes "Phase 2 initial desired-state ledger backfill for the finalized CE release."
+
+      - name: Configure AWS credentials for CE ledger
+        uses: aws-actions/configure-aws-credentials@v6.1.1
+        with:
+          role-to-assume: arn:aws:iam::845958214943:role/GitHubActions-NowlertCE-LedgerWriter
+          aws-region: eu-west-1
+          role-session-name: nowlert-ce-ledger-init-${{ github.run_id }}
+          role-duration-seconds: 900
+          allowed-account-ids: "845958214943"
+          mask-aws-account-id: true
+          unset-current-credentials: true
+
+      - name: Write CE Stage desired state
+        id: stage_ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/ledger.py current \
+            --environment stage \
+            --image "${FINAL_IMAGE}" \
+            --source-commit "${SOURCE_COMMIT}" \
+            --promotion-run "${STAGE_PROMOTION_RUN_ID}" \
+            --application-id "${STAGE_APPLICATION_ID}" \
+            --schedule-id "${STAGE_SCHEDULE_ID}" \
+            --schedule-deployment-id "${STAGE_SCHEDULE_DEPLOYMENT_ID}" \
+            --qa-marker "STAGE CE QA PASSED" \
+            --output-path ce-stage-current.json
+
+      - name: Write CE Production Reference desired state
+        id: prodref_ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/ledger.py current \
+            --environment production-reference \
+            --image "${FINAL_IMAGE}" \
+            --source-commit "${SOURCE_COMMIT}" \
+            --promotion-run "${PRODUCTION_REFERENCE_RUN_ID}" \
+            --application-id "${PRODREF_APPLICATION_ID}" \
+            --schedule-id "${PRODREF_SCHEDULE_ID}" \
+            --schedule-deployment-id "${PRODREF_SCHEDULE_DEPLOYMENT_ID}" \
+            --qa-marker "PRODUCTION REFERENCE CE POST-PROMOTION SMOKE PASSED" \
+            --output-path ce-production-reference-current.json
+
+      - name: Write CE release ledger record
+        id: release_ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/ledger.py release \
+            --manifest release-manifest.json \
+            --output-path ce-v3.0.0-release.json
+
+      - name: Upload CE ledger initialization evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nowlert-ce-v3.0.0-ledger-initialization
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            ce-stage-current.json
+            ce-production-reference-current.json
+            ce-v3.0.0-release.json
+            release-manifest.json
+
+      - name: Record CE ledger initialization
+        shell: bash
+        run: |
+          {
+            echo "## CE desired-state ledger initialized"
+            echo
+            echo "- Stage key: \`${{ steps.stage_ledger.outputs.key }}\`"
+            echo "- Stage version: \`${{ steps.stage_ledger.outputs.version_id }}\`"
+            echo "- Production Reference key: \`${{ steps.prodref_ledger.outputs.key }}\`"
+            echo "- Production Reference version: \`${{ steps.prodref_ledger.outputs.version_id }}\`"
+            echo "- Release key: \`${{ steps.release_ledger.outputs.key }}\`"
+            echo "- Release version: \`${{ steps.release_ledger.outputs.version_id }}\`"
+            echo "- Image: \`${FINAL_IMAGE}\`"
+            echo "- Source commit: \`${SOURCE_COMMIT}\`"
+            echo "- Deployment performed: no"
+            echo "- QA schedule triggered: no"
+          } >> "${GITHUB_STEP_SUMMARY}"
