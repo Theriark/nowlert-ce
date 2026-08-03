@@ -30,8 +30,8 @@ jobs:
       DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
       DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
       PROMOTION_IMAGE: ${{ inputs.ce_image }}
-      CE_STAGE_APPLICATION_ID: nowlert-ce-nowlertcestage-suk6ln
-      CE_PRODREF_APPLICATION_ID: nowlert-ce-cenowlertproduction-zhxtm9
+      CE_STAGE_APPLICATION_ID: D0aI55MKe3G77LFdQcPdY
+      CE_PRODREF_APPLICATION_ID: -Qb71PLUZmBHLJ_Iv68Oo
       PRODREF_CE_SMOKE_SCHEDULE_ID: ${{ vars.PRODREF_CE_SMOKE_SCHEDULE_ID }}
 
     steps:
