@@ -19,17 +19,79 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  detect-changes:
+    name: Decide whether Development deployment is required
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.decision.outputs.deploy }}
+      source_sha: ${{ steps.decision.outputs.source_sha }}
+
+    steps:
+      - name: Checkout tested source for change detection
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 2
+
+      - name: Decide whether to deploy Development
+        id: decision
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          echo "source_sha=${SOURCE_SHA}" >> "${GITHUB_OUTPUT}"
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "deploy=true" >> "${GITHUB_OUTPUT}"
+            echo "Manual run: Development deployment required"
+            exit 0
+          fi
+
+          if git rev-parse "${SOURCE_SHA}^1" >/dev/null 2>&1; then
+            changed_files="$(
+              git diff --name-only "${SOURCE_SHA}^1" "${SOURCE_SHA}"
+            )"
+          else
+            changed_files="$(
+              git diff-tree                 --root                 --no-commit-id                 --name-only                 -r "${SOURCE_SHA}"
+            )"
+          fi
+
+          echo "Changed files:"
+          printf '%s\n' "${changed_files}"
+
+          if [[ -z "${changed_files}" ]]; then
+            echo "deploy=true" >> "${GITHUB_OUTPUT}"
+            echo "No changed files detected; deploying conservatively"
+          elif printf '%s\n' "${changed_files}" |
+            grep -qvE '^\.github/'; then
+            echo "deploy=true" >> "${GITHUB_OUTPUT}"
+            echo "Application-impacting changes detected"
+          else
+            echo "deploy=false" >> "${GITHUB_OUTPUT}"
+            echo "Pipeline-only change: Development deployment skipped"
+            {
+              echo "## Development deployment skipped"
+              echo
+              echo "All changed files are under \`.github/\`."
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+  publish:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: development
 
     env:
       IMAGE: ghcr.io/theriark/nowlert-ce
-      SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      SOURCE_SHA: ${{ needs.detect-changes.outputs.source_sha }}
       DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
       DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
       DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID: LZHV0rpjSvusK9k9MGGpp
