@@ -23,6 +23,13 @@ EXPECTED_WORKFLOWS = {
     "stage": "Promote CE to Stage",
     "production_reference": "Promote CE to Production Reference",
 }
+EXPECTED_RUN_EVENTS = {
+    "development": {"workflow_run", "workflow_dispatch"},
+    "stage": {"workflow_dispatch"},
+    "production_reference": {"workflow_dispatch"},
+}
+STAGE_SCHEDULE_ID = "meHx1NPZfCxqASLe4RAYS"
+STAGE_SUCCESS_MARKER = "STAGE CE QA PASSED"
 PRODREF_APPLICATION_ID = "-Qb71PLUZmBHLJ_Iv68Oo"
 PRODREF_SCHEDULE_ID = "JVSEdTk4tt4vKPbG3cKFZ"
 PRODREF_QA_HOST = "vm-13"
@@ -64,7 +71,12 @@ def get_json(path: str) -> dict[str, Any]:
     return json.loads(api_request(path).decode("utf-8"))
 
 
-def get_run(repository: str, run_id: int, expected_name: str) -> dict[str, Any]:
+def get_run(
+    repository: str,
+    run_id: int,
+    expected_name: str,
+    allowed_events: set[str],
+) -> dict[str, Any]:
     run = get_json(f"/repos/{repository}/actions/runs/{run_id}")
     actual_repository = run.get("repository", {}).get("full_name")
     if actual_repository != repository:
@@ -72,6 +84,11 @@ def get_run(repository: str, run_id: int, expected_name: str) -> dict[str, Any]:
     if run.get("name") != expected_name:
         fail(
             f"Run {run_id} is workflow {run.get('name')!r}; expected {expected_name!r}"
+        )
+    if run.get("event") not in allowed_events:
+        fail(
+            f"Run {run_id} used event {run.get('event')!r}; expected one of "
+            f"{sorted(allowed_events)!r}"
         )
     if run.get("status") != "completed" or run.get("conclusion") != "success":
         fail(
@@ -121,13 +138,22 @@ def validate_args(args: argparse.Namespace) -> None:
 def validate_runs(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
     runs = {
         "development": get_run(
-            args.repository, args.development_run, EXPECTED_WORKFLOWS["development"]
+            args.repository,
+            args.development_run,
+            EXPECTED_WORKFLOWS["development"],
+            EXPECTED_RUN_EVENTS["development"],
         ),
-        "stage": get_run(args.repository, args.stage_run, EXPECTED_WORKFLOWS["stage"]),
+        "stage": get_run(
+            args.repository,
+            args.stage_run,
+            EXPECTED_WORKFLOWS["stage"],
+            EXPECTED_RUN_EVENTS["stage"],
+        ),
         "production_reference": get_run(
             args.repository,
             args.production_reference_run,
             EXPECTED_WORKFLOWS["production_reference"],
+            EXPECTED_RUN_EVENTS["production_reference"],
         ),
     }
 
@@ -135,6 +161,19 @@ def validate_runs(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         fail(
             "Development run head SHA does not match the requested source commit: "
             f"{runs['development'].get('head_sha')} != {args.source_commit}"
+        )
+
+    run_times = [
+        runs["development"].get("created_at"),
+        runs["stage"].get("created_at"),
+        runs["production_reference"].get("created_at"),
+    ]
+    if not all(isinstance(value, str) and value for value in run_times):
+        fail("One or more workflow runs are missing created_at timestamps")
+    if not run_times[0] <= run_times[1] <= run_times[2]:
+        fail(
+            "Workflow run order is invalid; expected Development before Stage before "
+            "Production Reference"
         )
 
     development_logs = get_run_logs(args.repository, args.development_run)
@@ -160,6 +199,12 @@ def validate_runs(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         args.stage_run,
     )
     require_in_logs(
+        stage_logs,
+        f"PASS: schedule {STAGE_SCHEDULE_ID} emitted marker: {STAGE_SUCCESS_MARKER}",
+        "the successful VM-12 Stage gate confirmation",
+        args.stage_run,
+    )
+    require_in_logs(
         prodref_logs,
         args.final_image,
         "the immutable image digest",
@@ -167,14 +212,29 @@ def validate_runs(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
     )
     require_in_logs(
         prodref_logs,
-        PRODREF_SUCCESS_MARKER,
-        "the VM-13 success marker",
+        f"CE Stage run: {args.stage_run}",
+        "the supplied Stage promotion run reference",
         args.production_reference_run,
     )
     require_in_logs(
         prodref_logs,
-        args.qa_schedule_deployment_id,
-        "the QA schedule deployment ID",
+        f"Execution host: {PRODREF_QA_HOST}",
+        "the VM-13 execution host",
+        args.production_reference_run,
+    )
+    require_in_logs(
+        prodref_logs,
+        (
+            f"Detected schedule deployment {args.qa_schedule_deployment_id} "
+            f"for {PRODREF_SCHEDULE_ID}"
+        ),
+        "the exact VM-13 QA schedule deployment",
+        args.production_reference_run,
+    )
+    require_in_logs(
+        prodref_logs,
+        f"PASS: schedule {PRODREF_SCHEDULE_ID} emitted marker: {PRODREF_SUCCESS_MARKER}",
+        "the successful VM-13 marker confirmation",
         args.production_reference_run,
     )
 
@@ -204,8 +264,11 @@ def write_outputs(args: argparse.Namespace, runs: dict[str, dict[str, Any]]) -> 
             key: {
                 "id": str(run["id"]),
                 "name": run["name"],
+                "event": run["event"],
                 "html_url": run["html_url"],
                 "head_sha": run["head_sha"],
+                "created_at": run["created_at"],
+                "updated_at": run["updated_at"],
                 "run_attempt": run["run_attempt"],
                 "conclusion": run["conclusion"],
             }
