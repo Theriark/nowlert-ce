@@ -30,7 +30,7 @@ jobs:
       DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
       DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
       PROMOTION_IMAGE: ${{ inputs.ce_image }}
-      CE_STAGE_APPLICATION_ID: nowlert-ce-nowlertcestage-suk6ln
+      CE_STAGE_APPLICATION_ID: D0aI55MKe3G77LFdQcPdY
       STAGE_CE_QA_SCHEDULE_ID: ${{ vars.STAGE_CE_QA_SCHEDULE_ID }}
 
     steps:
