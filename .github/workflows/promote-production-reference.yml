@@ -7,6 +7,10 @@ on:
         description: "Stage-approved immutable CE image"
         required: true
         type: string
+      source_commit:
+        description: "Original full source commit SHA for the image"
+        required: true
+        type: string
       stage_promotion_run:
         description: "URL or ID of the successful CE Stage promotion"
         required: true
@@ -14,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: nowlert-ce-production-reference-promotion
@@ -30,6 +35,7 @@ jobs:
       DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
       DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
       PROMOTION_IMAGE: ${{ inputs.ce_image }}
+      SOURCE_COMMIT: ${{ inputs.source_commit }}
       CE_STAGE_APPLICATION_ID: D0aI55MKe3G77LFdQcPdY
       CE_PRODREF_APPLICATION_ID: -Qb71PLUZmBHLJ_Iv68Oo
       PRODREF_CE_SMOKE_SCHEDULE_ID: ${{ vars.PRODREF_CE_SMOKE_SCHEDULE_ID }}
@@ -37,6 +43,8 @@ jobs:
     steps:
       - name: Checkout pipeline code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Verify CE Production Reference configuration
         shell: bash
@@ -63,6 +71,16 @@ jobs:
             exit 1
           }
 
+          [[ "${SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::Source commit must be a full lowercase 40-character SHA"
+            exit 1
+          }
+
+          git cat-file -e "${SOURCE_COMMIT}^{commit}" || {
+            echo "::error::Source commit does not exist in this repository"
+            exit 1
+          }
+
       - name: Confirm CE image is currently approved in Stage
         shell: bash
         run: |
@@ -71,6 +89,28 @@ jobs:
           python .github/scripts/dokploy_release.py assert-image \
             --application-id "${CE_STAGE_APPLICATION_ID}" \
             --image "${PROMOTION_IMAGE}"
+
+      - name: Configure AWS credentials for CE ledger
+        uses: aws-actions/configure-aws-credentials@v6.1.1
+        with:
+          role-to-assume: arn:aws:iam::845958214943:role/GitHubActions-NowlertCE-LedgerWriter
+          aws-region: eu-west-1
+          role-session-name: nowlert-ce-prodref-${{ github.run_id }}
+          role-duration-seconds: 900
+          allowed-account-ids: "845958214943"
+          mask-aws-account-id: true
+          unset-current-credentials: true
+
+      - name: Confirm CE Stage ledger approval
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/ledger.py assert-current \
+            --environment stage \
+            --image "${PROMOTION_IMAGE}" \
+            --source-commit "${SOURCE_COMMIT}" \
+            --promotion-run "${{ inputs.stage_promotion_run }}"
 
       - name: Promote CE to Production Reference
         id: deploy
@@ -97,6 +137,22 @@ jobs:
             --success-marker "PRODUCTION REFERENCE CE POST-PROMOTION SMOKE PASSED" \
             --timeout 1800
 
+      - name: Record CE Production Reference desired state
+        id: ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/ledger.py current \
+            --environment production-reference \
+            --image "${PROMOTION_IMAGE}" \
+            --source-commit "${SOURCE_COMMIT}" \
+            --promotion-run "${GITHUB_RUN_ID}" \
+            --application-id "${CE_PRODREF_APPLICATION_ID}" \
+            --schedule-id "${PRODREF_CE_SMOKE_SCHEDULE_ID}" \
+            --schedule-deployment-id "${{ steps.smoke.outputs.deployment_id }}" \
+            --qa-marker "PRODUCTION REFERENCE CE POST-PROMOTION SMOKE PASSED"
+
       - name: Record successful CE Production Reference promotion
         shell: bash
         run: |
@@ -104,13 +160,16 @@ jobs:
             echo "## CE Production Reference promotion passed"
             echo
             echo "- CE image: \`${PROMOTION_IMAGE}\`"
+            echo "- Source commit: \`${SOURCE_COMMIT}\`"
             echo "- CE Stage promotion run: ${{ inputs.stage_promotion_run }}"
             echo "- Production Reference smoke: \`${{ steps.smoke.outputs.deployment_id }}\`"
+            echo "- Ledger key: \`${{ steps.ledger.outputs.key }}\`"
+            echo "- Ledger version: \`${{ steps.ledger.outputs.version_id }}\`"
             echo "- Rebuild performed: no"
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Roll back CE after a failed Production Reference gate
-        if: ${{ failure() && steps.deploy.outputs.previous_image != '' }}
+        if: ${{ (steps.deploy.outcome == 'failure' || steps.smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
         continue-on-error: true
         shell: bash
         run: |
