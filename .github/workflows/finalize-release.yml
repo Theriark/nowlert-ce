@@ -150,13 +150,13 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          tag_pushed=false
+          tag_ref_created=false
 
           cleanup_failed_publication() {
             status=$?
             trap - ERR
 
-            if [[ "${tag_pushed}" == "true" ]]; then
+            if [[ "${tag_ref_created}" == "true" ]]; then
               echo "::warning::Release publication failed; removing partial release state"
 
               if gh release view "${VERSION}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
@@ -165,8 +165,9 @@ jobs:
                   --yes || true
               fi
 
-              git push origin ":refs/tags/${VERSION}" || true
-              git tag -d "${VERSION}" || true
+              gh api --method DELETE \
+                "repos/${GITHUB_REPOSITORY}/git/refs/tags/${VERSION}" \
+                >/dev/null 2>&1 || true
             fi
 
             exit "${status}"
@@ -174,14 +175,36 @@ jobs:
 
           trap cleanup_failed_publication ERR
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "${VERSION}" "${SOURCE_COMMIT}" \
-            -m "Nowlert CE ${VERSION}" \
-            -m "Image: ${FINAL_IMAGE}" \
-            -m "Production Reference run: ${PRODUCTION_REFERENCE_RUN_ID}"
-          git push origin "refs/tags/${VERSION}"
-          tag_pushed=true
+          tag_message="$(printf '%s\n\n%s\n\n%s' \
+            "Nowlert CE ${VERSION}" \
+            "Image: ${FINAL_IMAGE}" \
+            "Production Reference run: ${PRODUCTION_REFERENCE_RUN_ID}")"
+
+          tag_object_sha="$(
+            gh api --method POST \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/git/tags" \
+              -f tag="${VERSION}" \
+              -f message="${tag_message}" \
+              -f object="${SOURCE_COMMIT}" \
+              -f type="commit" \
+              -f 'tagger[name]=github-actions[bot]' \
+              -f 'tagger[email]=41898282+github-actions[bot]@users.noreply.github.com' \
+              --jq '.sha'
+          )"
+
+          [[ "${tag_object_sha}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::GitHub did not return a valid annotated tag object SHA"
+            exit 1
+          }
+
+          gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${VERSION}" \
+            -f sha="${tag_object_sha}" \
+            >/dev/null
+          tag_ref_created=true
 
           gh release create "${VERSION}" \
             --repo "${GITHUB_REPOSITORY}" \
