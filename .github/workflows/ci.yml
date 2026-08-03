@@ -82,6 +82,7 @@ jobs:
               ".github/workflows/promote-production-reference.yml",
               ".github/workflows/finalize-release.yml",
               ".github/workflows/initialize-ledger.yml",
+              ".github/workflows/verify-runtime-drift.yml",
           ):
               value = yaml.safe_load(Path(name).read_text(encoding="utf-8"))
               if not isinstance(value, dict):
