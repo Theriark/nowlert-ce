@@ -69,6 +69,10 @@ def request_json(
         raise DokployError(
             f"Dokploy API {method} {path} failed with HTTP {exc.code}: {body[:1000]}"
         ) from exc
+    except TimeoutError as exc:
+        raise DokployError(
+            f"Dokploy API {method} {path} timed out after {timeout} seconds"
+        ) from exc
     except urllib.error.URLError as exc:
         raise DokployError(f"Dokploy API {method} {path} failed: {exc}") from exc
 
@@ -268,7 +272,10 @@ def read_deployment_logs(deployment_id: str) -> str:
 def run_schedule(args: argparse.Namespace) -> None:
     before = {record_id(record) for record in list_schedule_deployments(args.schedule_id)}
     trigger = request_json(
-        "POST", "schedule.runManually", payload={"scheduleId": args.schedule_id}
+        "POST",
+        "schedule.runManually",
+        payload={"scheduleId": args.schedule_id},
+        timeout=args.timeout,
     )
     deployment_id = find_key(trigger, "deploymentId")
     if deployment_id is not None:
