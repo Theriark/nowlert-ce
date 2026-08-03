@@ -1,0 +1,220 @@
+name: Finalize CE Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example v3.0.0"
+        required: true
+        type: string
+      final_image:
+        description: "Final immutable CE image digest"
+        required: true
+        type: string
+      source_commit:
+        description: "Original full source commit SHA"
+        required: true
+        type: string
+      development_run_id:
+        description: "Successful Development Image run ID"
+        required: true
+        type: string
+      stage_promotion_run_id:
+        description: "Successful CE Stage promotion run ID"
+        required: true
+        type: string
+      production_reference_run_id:
+        description: "Successful CE Production Reference promotion run ID"
+        required: true
+        type: string
+      qa_schedule_deployment_id:
+        description: "VM-13 Production Reference smoke schedule deployment ID"
+        required: true
+        type: string
+      release_notes:
+        description: "Human-readable release notes"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: nowlert-ce-release-finalization
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    name: Validate and publish CE release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production-reference
+
+    env:
+      DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      VERSION: ${{ inputs.version }}
+      FINAL_IMAGE: ${{ inputs.final_image }}
+      SOURCE_COMMIT: ${{ inputs.source_commit }}
+      DEVELOPMENT_RUN_ID: ${{ inputs.development_run_id }}
+      STAGE_PROMOTION_RUN_ID: ${{ inputs.stage_promotion_run_id }}
+      PRODUCTION_REFERENCE_RUN_ID: ${{ inputs.production_reference_run_id }}
+      QA_SCHEDULE_DEPLOYMENT_ID: ${{ inputs.qa_schedule_deployment_id }}
+      RELEASE_NOTES: ${{ inputs.release_notes }}
+      CE_PRODREF_APPLICATION_ID: -Qb71PLUZmBHLJ_Iv68Oo
+
+    steps:
+      - name: Checkout release workflow code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate release inputs and repository state
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [[ "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || {
+            echo "::error::Version must be semantic and begin with v"
+            exit 1
+          }
+
+          [[ "${SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::Source commit must be a full lowercase 40-character SHA"
+            exit 1
+          }
+
+          [[ "${FINAL_IMAGE}" =~ ^ghcr\.io/theriark/nowlert-ce@sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::Final image must be an immutable nowlert-ce digest"
+            exit 1
+          }
+
+          [[ -n "${DOKPLOY_URL}" ]] || {
+            echo "::error::DOKPLOY_URL is missing"
+            exit 1
+          }
+
+          [[ -n "${DOKPLOY_API_KEY}" ]] || {
+            echo "::error::DOKPLOY_API_KEY is missing"
+            exit 1
+          }
+
+          git cat-file -e "${SOURCE_COMMIT}^{commit}" || {
+            echo "::error::Source commit does not exist in this repository"
+            exit 1
+          }
+
+          if git show-ref --verify --quiet "refs/tags/${VERSION}"; then
+            echo "::error::Tag ${VERSION} already exists"
+            exit 1
+          fi
+
+          if gh release view "${VERSION}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "::error::GitHub Release ${VERSION} already exists"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Verify live CE Production Reference digest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/dokploy_release.py assert-image \
+            --application-id="${CE_PRODREF_APPLICATION_ID}" \
+            --image "${FINAL_IMAGE}"
+
+      - name: Validate promotion chain and create release records
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/finalize_release.py \
+            --version "${VERSION}" \
+            --final-image "${FINAL_IMAGE}" \
+            --source-commit "${SOURCE_COMMIT}" \
+            --development-run "${DEVELOPMENT_RUN_ID}" \
+            --stage-run "${STAGE_PROMOTION_RUN_ID}" \
+            --production-reference-run "${PRODUCTION_REFERENCE_RUN_ID}" \
+            --qa-schedule-deployment-id "${QA_SCHEDULE_DEPLOYMENT_ID}" \
+            --release-notes "${RELEASE_NOTES}"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Publish annotated CE tag and GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+
+          tag_pushed=false
+
+          cleanup_failed_publication() {
+            status=$?
+            trap - ERR
+
+            if [[ "${tag_pushed}" == "true" ]]; then
+              echo "::warning::Release publication failed; removing partial release state"
+
+              if gh release view "${VERSION}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+                gh release delete "${VERSION}" \
+                  --repo "${GITHUB_REPOSITORY}" \
+                  --yes || true
+              fi
+
+              git push origin ":refs/tags/${VERSION}" || true
+              git tag -d "${VERSION}" || true
+            fi
+
+            exit "${status}"
+          }
+
+          trap cleanup_failed_publication ERR
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${VERSION}" "${SOURCE_COMMIT}" \
+            -m "Nowlert CE ${VERSION}" \
+            -m "Image: ${FINAL_IMAGE}" \
+            -m "Production Reference run: ${PRODUCTION_REFERENCE_RUN_ID}"
+          git push origin "refs/tags/${VERSION}"
+          tag_pushed=true
+
+          gh release create "${VERSION}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "Nowlert CE ${VERSION}" \
+            --notes-file release-summary.md \
+            release-manifest.json \
+            release-summary.md
+
+          trap - ERR
+
+      - name: Upload CE release evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nowlert-ce-${{ inputs.version }}-release-record
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            release-manifest.json
+            release-summary.md
+
+      - name: Record successful CE release finalization
+        shell: bash
+        run: |
+          {
+            echo "## CE release finalized"
+            echo
+            echo "- Version: \`${VERSION}\`"
+            echo "- Source commit: \`${SOURCE_COMMIT}\`"
+            echo "- Final image: \`${FINAL_IMAGE}\`"
+            echo "- Development run: \`${DEVELOPMENT_RUN_ID}\`"
+            echo "- Stage promotion run: \`${STAGE_PROMOTION_RUN_ID}\`"
+            echo "- Production Reference run: \`${PRODUCTION_REFERENCE_RUN_ID}\`"
+            echo "- VM-13 schedule deployment: \`${QA_SCHEDULE_DEPLOYMENT_ID}\`"
+            echo "- Rebuild performed: no"
+            echo "- Deployment performed: no"
+          } >> "${GITHUB_STEP_SUMMARY}"
