@@ -39,6 +39,7 @@ on:
 permissions:
   actions: read
   contents: read
+  id-token: write
 
 concurrency:
   group: nowlert-ce-release-finalization
@@ -164,7 +165,30 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Publish annotated CE tag and GitHub Release
+      - name: Configure AWS credentials for CE ledger
+        uses: aws-actions/configure-aws-credentials@v6.1.1
+        with:
+          role-to-assume: arn:aws:iam::845958214943:role/GitHubActions-NowlertCE-LedgerWriter
+          aws-region: eu-west-1
+          role-session-name: nowlert-ce-release-${{ github.run_id }}
+          role-duration-seconds: 900
+          allowed-account-ids: "845958214943"
+          mask-aws-account-id: true
+          unset-current-credentials: true
+
+      - name: Confirm CE Production Reference ledger approval
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/ledger.py assert-current \
+            --environment production-reference \
+            --image "${FINAL_IMAGE}" \
+            --source-commit "${SOURCE_COMMIT}" \
+            --promotion-run "${PRODUCTION_REFERENCE_RUN_ID}"
+
+      - name: Publish annotated CE tag, GitHub Release, and ledger record
+        id: publish
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.CE_RELEASE_TOKEN }}
@@ -178,7 +202,7 @@ jobs:
             trap - ERR
 
             if [[ "${tag_ref_created}" == "true" ]]; then
-              echo "::warning::Release publication failed; removing partial release state"
+              echo "::warning::Release publication failed; removing partial GitHub release state"
 
               if gh release view "${VERSION}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
                 gh release delete "${VERSION}" \
@@ -240,6 +264,10 @@ jobs:
             release-manifest.json \
             release-summary.md
 
+          python .github/scripts/ledger.py release \
+            --manifest release-manifest.json \
+            --output-path "${VERSION}-ledger-record.json"
+
           trap - ERR
 
       - name: Upload CE release evidence artifact
@@ -251,6 +279,7 @@ jobs:
           path: |
             release-manifest.json
             release-summary.md
+            ${{ inputs.version }}-ledger-record.json
 
       - name: Record successful CE release finalization
         shell: bash
@@ -265,6 +294,8 @@ jobs:
             echo "- Stage promotion run: \`${STAGE_PROMOTION_RUN_ID}\`"
             echo "- Production Reference run: \`${PRODUCTION_REFERENCE_RUN_ID}\`"
             echo "- VM-13 schedule deployment: \`${QA_SCHEDULE_DEPLOYMENT_ID}\`"
+            echo "- Ledger key: \`${{ steps.publish.outputs.key }}\`"
+            echo "- Ledger version: \`${{ steps.publish.outputs.version_id }}\`"
             echo "- Rebuild performed: no"
             echo "- Deployment performed: no"
           } >> "${GITHUB_STEP_SUMMARY}"
