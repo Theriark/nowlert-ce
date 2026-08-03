@@ -79,7 +79,7 @@ jobs:
           set -euo pipefail
 
           python .github/scripts/dokploy_release.py deploy \
-            --application-id "${CE_PRODREF_APPLICATION_ID}" \
+            --application-id="${CE_PRODREF_APPLICATION_ID}" \
             --image "${PROMOTION_IMAGE}" \
             --health-url https://ce-prod.nowlert.theriark.com/api/health \
             --title "CE Production Reference promotion ${{ github.run_id }}" \
@@ -115,7 +115,7 @@ jobs:
         shell: bash
         run: |
           python .github/scripts/dokploy_release.py deploy \
-            --application-id "${CE_PRODREF_APPLICATION_ID}" \
+            --application-id="${CE_PRODREF_APPLICATION_ID}" \
             --image "${{ steps.deploy.outputs.previous_image }}" \
             --health-url https://ce-prod.nowlert.theriark.com/api/health \
             --title "Automatic CE Production Reference rollback ${{ github.run_id }}" \
