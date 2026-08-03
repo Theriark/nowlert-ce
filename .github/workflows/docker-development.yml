@@ -58,7 +58,11 @@ jobs:
             )"
           else
             changed_files="$(
-              git diff-tree                 --root                 --no-commit-id                 --name-only                 -r "${SOURCE_SHA}"
+              git diff-tree \
+                --root \
+                --no-commit-id \
+                --name-only \
+                -r "${SOURCE_SHA}"
             )"
           fi
 
@@ -69,16 +73,16 @@ jobs:
             echo "deploy=true" >> "${GITHUB_OUTPUT}"
             echo "No changed files detected; deploying conservatively"
           elif printf '%s\n' "${changed_files}" |
-            grep -qvE '^\.github/'; then
+            grep -qvE '^(\.github/|tests/)'; then
             echo "deploy=true" >> "${GITHUB_OUTPUT}"
             echo "Application-impacting changes detected"
           else
             echo "deploy=false" >> "${GITHUB_OUTPUT}"
-            echo "Pipeline-only change: Development deployment skipped"
+            echo "Pipeline- or test-only change: Development deployment skipped"
             {
               echo "## Development deployment skipped"
               echo
-              echo "All changed files are under \`.github/\`."
+              echo "All changed files are under \`.github/\` or \`tests/\`."
             } >> "${GITHUB_STEP_SUMMARY}"
           fi
 
