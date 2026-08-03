@@ -143,10 +143,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Create annotated CE version tag
+      - name: Publish annotated CE tag and GitHub Release
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+
+          tag_pushed=false
+
+          cleanup_failed_publication() {
+            status=$?
+            trap - ERR
+
+            if [[ "${tag_pushed}" == "true" ]]; then
+              echo "::warning::Release publication failed; removing partial release state"
+
+              if gh release view "${VERSION}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+                gh release delete "${VERSION}" \
+                  --repo "${GITHUB_REPOSITORY}" \
+                  --yes || true
+              fi
+
+              git push origin ":refs/tags/${VERSION}" || true
+              git tag -d "${VERSION}" || true
+            fi
+
+            exit "${status}"
+          }
+
+          trap cleanup_failed_publication ERR
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -155,11 +181,7 @@ jobs:
             -m "Image: ${FINAL_IMAGE}" \
             -m "Production Reference run: ${PRODUCTION_REFERENCE_RUN_ID}"
           git push origin "refs/tags/${VERSION}"
-
-      - name: Create CE GitHub Release
-        shell: bash
-        run: |
-          set -euo pipefail
+          tag_pushed=true
 
           gh release create "${VERSION}" \
             --repo "${GITHUB_REPOSITORY}" \
@@ -167,8 +189,8 @@ jobs:
             --notes-file release-summary.md \
             release-manifest.json \
             release-summary.md
-        env:
-          GH_TOKEN: ${{ github.token }}
+
+          trap - ERR
 
       - name: Upload CE release evidence artifact
         uses: actions/upload-artifact@v4
