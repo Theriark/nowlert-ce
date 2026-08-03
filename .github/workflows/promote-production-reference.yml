@@ -148,7 +148,7 @@ jobs:
             --image "${PROMOTION_IMAGE}" \
             --source-commit "${SOURCE_COMMIT}" \
             --promotion-run "${GITHUB_RUN_ID}" \
-            --application-id "${CE_PRODREF_APPLICATION_ID}" \
+            --application-id="${CE_PRODREF_APPLICATION_ID}" \
             --schedule-id "${PRODREF_CE_SMOKE_SCHEDULE_ID}" \
             --schedule-deployment-id "${{ steps.smoke.outputs.deployment_id }}" \
             --qa-marker "PRODUCTION REFERENCE CE POST-PROMOTION SMOKE PASSED"

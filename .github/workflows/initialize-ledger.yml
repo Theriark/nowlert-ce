@@ -51,7 +51,7 @@ jobs:
             --image "${FINAL_IMAGE}"
 
           python .github/scripts/dokploy_release.py assert-image \
-            --application-id "${PRODREF_APPLICATION_ID}" \
+            --application-id="${PRODREF_APPLICATION_ID}" \
             --image "${FINAL_IMAGE}"
 
       - name: Validate the finalized CE promotion chain
@@ -110,7 +110,7 @@ jobs:
             --image "${FINAL_IMAGE}" \
             --source-commit "${SOURCE_COMMIT}" \
             --promotion-run "${PRODUCTION_REFERENCE_RUN_ID}" \
-            --application-id "${PRODREF_APPLICATION_ID}" \
+            --application-id="${PRODREF_APPLICATION_ID}" \
             --schedule-id "${PRODREF_SCHEDULE_ID}" \
             --schedule-deployment-id "${PRODREF_SCHEDULE_DEPLOYMENT_ID}" \
             --qa-marker "PRODUCTION REFERENCE CE POST-PROMOTION SMOKE PASSED" \
