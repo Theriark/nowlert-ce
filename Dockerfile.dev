@@ -22,6 +22,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /nowlert/requirements.txt
+COPY config/config.example.yaml /usr/local/share/nowlert/config.example.yaml
 
 RUN pip install \
     --disable-pip-version-check \
