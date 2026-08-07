@@ -171,13 +171,16 @@ class DeliveryHistoryStore:
         OwnershipPolicy.require_read(actor, str(row["owner_user_id"]))
         return self._attempt(row)
 
-    def list_visible(self, actor: Actor, limit: int = 100) -> list[DeliveryAttempt]:
+    def list_visible(
+        self, actor: Actor, limit: int = 100, offset: int = 0
+    ) -> list[DeliveryAttempt]:
         bounded = max(1, min(int(limit), 500))
+        bounded_offset = max(0, int(offset))
         with self.database.connect() as connection:
             if actor.is_admin:
                 rows = connection.execute(
-                    "SELECT * FROM delivery_attempts ORDER BY created_at DESC, id LIMIT ?",
-                    (bounded,),
+                    "SELECT * FROM delivery_attempts ORDER BY created_at DESC, id LIMIT ? OFFSET ?",
+                    (bounded, bounded_offset),
                 ).fetchall()
             else:
                 rows = connection.execute(
@@ -186,11 +189,29 @@ class DeliveryHistoryStore:
                     LEFT JOIN destinations
                       ON destinations.id = attempts.destination_id
                     WHERE attempts.owner_user_id = ? OR destinations.shared = 1
-                    ORDER BY attempts.created_at DESC, attempts.id LIMIT ?
+                    ORDER BY attempts.created_at DESC, attempts.id LIMIT ? OFFSET ?
                     """,
-                    (actor.user_id, bounded),
+                    (actor.user_id, bounded, bounded_offset),
                 ).fetchall()
         return [self._attempt(row) for row in rows]
+
+    def count_visible(self, actor: Actor) -> int:
+        with self.database.connect() as connection:
+            if actor.is_admin:
+                row = connection.execute(
+                    "SELECT COUNT(*) FROM delivery_attempts"
+                ).fetchone()
+            else:
+                row = connection.execute(
+                    """
+                    SELECT COUNT(*) FROM delivery_attempts AS attempts
+                    LEFT JOIN destinations
+                      ON destinations.id = attempts.destination_id
+                    WHERE attempts.owner_user_id = ? OR destinations.shared = 1
+                    """,
+                    (actor.user_id,),
+                ).fetchone()
+        return int(row[0] or 0)
 
     def metrics(self, actor: Actor, since: int) -> dict:
         """Return final delivery outcomes for a server-side history window."""

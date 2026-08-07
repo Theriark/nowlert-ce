@@ -88,23 +88,37 @@ class AuditEventStore:
             )
         return int(cursor.lastrowid)
 
-    def list_visible(self, actor: Actor, limit: int = 100) -> list[AuditEvent]:
+    def list_visible(
+        self, actor: Actor, limit: int = 100, offset: int = 0
+    ) -> list[AuditEvent]:
         bounded = max(1, min(int(limit), 500))
+        bounded_offset = max(0, int(offset))
         with self.database.connect() as connection:
             if actor.is_admin:
                 rows = connection.execute(
-                    "SELECT * FROM audit_events ORDER BY id DESC LIMIT ?",
-                    (bounded,),
+                    "SELECT * FROM audit_events ORDER BY id DESC LIMIT ? OFFSET ?",
+                    (bounded, bounded_offset),
                 ).fetchall()
             else:
                 rows = connection.execute(
                     """
                     SELECT * FROM audit_events
-                    WHERE actor_user_id = ? ORDER BY id DESC LIMIT ?
+                    WHERE actor_user_id = ? ORDER BY id DESC LIMIT ? OFFSET ?
                     """,
-                    (actor.user_id, bounded),
+                    (actor.user_id, bounded, bounded_offset),
                 ).fetchall()
         return [self._event(row) for row in rows]
+
+    def count_visible(self, actor: Actor) -> int:
+        with self.database.connect() as connection:
+            if actor.is_admin:
+                row = connection.execute("SELECT COUNT(*) FROM audit_events").fetchone()
+            else:
+                row = connection.execute(
+                    "SELECT COUNT(*) FROM audit_events WHERE actor_user_id = ?",
+                    (actor.user_id,),
+                ).fetchone()
+        return int(row[0] or 0)
 
     @classmethod
     def _safe_details(cls, details: dict) -> dict:

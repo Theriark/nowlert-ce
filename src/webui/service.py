@@ -61,6 +61,11 @@ class WebUIService:
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/qa_patch.js": (
+                "src/webui/qa_patch.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/styles.css": (
                 "src/webui/styles.css",
                 "text/css; charset=utf-8",
@@ -68,6 +73,11 @@ class WebUIService:
             ),
             "/ui/enhancements.css": (
                 "src/webui/enhancements.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/qa_patch.css": (
+                "src/webui/qa_patch.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
