@@ -644,7 +644,7 @@ function applyLanguage() {
     if (!item.dataset.i18nSource && !Object.hasOwn(PT_TRANSLATIONS, current)) continue;
     if (!item.dataset.i18nSource) item.dataset.i18nSource = current;
     const source = item.dataset.i18nSource;
-    item.textContent = state.preferences.language === "pt-PT" ? (PT_TRANSLATIONS[source] || source) : source;
+    item.textContent = state.preferences.language.startsWith("pt-") ? (PT_TRANSLATIONS[source] || source) : source;
   }
 }
 
