@@ -3,7 +3,7 @@
 const API = "/api/v2";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const VIEW_TITLES = {
-  dashboard: "Overview",
+  dashboard: "Dashboard",
   sources: "Sources",
   destinations: "Destinations",
   routes: "Routes",
@@ -73,6 +73,7 @@ const SOURCE_CATEGORIES = {
   generic: { key: "generic", label: "Generic" },
 };
 const PT_TRANSLATIONS = {
+  "Dashboard": "Painel",
   "Overview": "Visão geral",
   "Destinations": "Destinos",
   "Routes": "Rotas",

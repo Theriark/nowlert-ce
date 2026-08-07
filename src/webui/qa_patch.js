@@ -191,3 +191,43 @@ document.addEventListener("DOMContentLoaded", () => {
     if (event.target.closest('[data-action="remove-avatar"]')) window.setTimeout(qaUpdateAvatarSave, 0);
   });
 });
+
+/* Nowlert 3.1.0 empty-state icon restoration */
+(() => {
+  const ICON_PATH = "/ui/icon.png";
+
+  function restoreEmptyStateIcons(root = document) {
+    const candidates = root.querySelectorAll('.empty-state, .empty-panel, .fallback-product-mark');
+    candidates.forEach((node) => {
+      if (node.querySelector('.empty-state-icon')) return;
+      const icon = document.createElement('div');
+      icon.className = 'empty-state-icon';
+      const img = document.createElement('img');
+      img.src = ICON_PATH;
+      img.alt = 'Nowlert';
+      icon.appendChild(img);
+      node.insertBefore(icon, node.firstChild);
+    });
+  }
+
+  function run() {
+    restoreEmptyStateIcons(document);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once: true });
+  } else {
+    run();
+  }
+
+  let pending = false;
+  const observer = new MutationObserver(() => {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => {
+      pending = false;
+      run();
+    });
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+})();

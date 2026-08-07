@@ -31,3 +31,1874 @@
   margin-top: 0.3rem;
   opacity: 0.75;
 }
+
+/* Nowlert 3.1.0 Amber Accent brand layer */
+:root {
+  color-scheme: dark;
+  --bg: #0b0e11;
+  --bg-soft: #11151a;
+  --surface: rgba(28, 32, 38, 0.94);
+  --surface-solid: #1b1f24;
+  --surface-raised: #23282f;
+  --line: rgba(244, 197, 66, 0.13);
+  --line-strong: rgba(244, 197, 66, 0.28);
+  --text: #f2ebdd;
+  --muted: #b7ac9a;
+  --accent: #f4c542;
+  --accent-strong: #d9a629;
+  --accent-soft: rgba(244, 197, 66, 0.13);
+  --blue: #6a6d72;
+  --warning: #f4c542;
+  --danger: #ef655a;
+  --success: #8dcc55;
+  --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  --radius: 14px;
+  --radius-small: 9px;
+}
+
+html,
+body {
+  background: #0b0e11;
+}
+
+body {
+  background:
+    radial-gradient(circle at 72% -10%, rgba(244, 197, 66, 0.065), transparent 36rem),
+    radial-gradient(circle at 16% 100%, rgba(183, 172, 154, 0.035), transparent 30rem),
+    linear-gradient(180deg, #0b0e11 0%, #0d1115 100%);
+  color: var(--text);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline-color: rgba(244, 197, 66, 0.78);
+}
+
+::selection {
+  background: rgba(244, 197, 66, 0.28);
+  color: #fffaf0;
+}
+
+/* Brand */
+.brand {
+  gap: 0.68rem;
+}
+
+.brand-mark {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  height: 46px;
+  width: 46px;
+}
+
+.brand-mark img {
+  filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.38));
+  height: 44px;
+  width: 44px;
+}
+
+.brand strong {
+  color: #f4c542;
+  font-size: 1.04rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.brand small {
+  color: #8e8b84;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sidebar > .brand {
+  border-bottom: 1px solid rgba(244, 197, 66, 0.10);
+  margin-bottom: 1rem;
+  padding: 0.05rem 0.65rem 1.15rem;
+}
+
+/* Shell and navigation */
+.app-shell {
+  grid-template-columns: 244px minmax(0, 1fr);
+}
+
+.sidebar {
+  background:
+    linear-gradient(180deg, rgba(15, 18, 22, 0.985), rgba(11, 14, 17, 0.99));
+  border-right: 1px solid rgba(244, 197, 66, 0.11);
+  box-shadow: 12px 0 36px rgba(0, 0, 0, 0.18);
+  padding: 1.18rem 0.9rem 0.9rem;
+}
+
+.nav-list {
+  gap: 0.2rem;
+}
+
+.nav-item,
+.profile-chip {
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #b8b3aa;
+  font-size: 0.88rem;
+  padding: 0.68rem 0.72rem;
+}
+
+.nav-item:hover,
+.profile-chip:hover {
+  background: rgba(244, 197, 66, 0.055);
+  border-color: rgba(244, 197, 66, 0.09);
+  color: #f2ebdd;
+  transform: translateX(1px);
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, #f4c542, #d9a629);
+  border-color: #f4c542;
+  box-shadow: 0 8px 24px rgba(217, 166, 41, 0.18);
+  color: #181b1f;
+  font-weight: 750;
+}
+
+.nav-item.active .nav-icon {
+  color: #181b1f;
+}
+
+.nav-icon {
+  color: #d0c8ba;
+}
+
+.sidebar-footer {
+  border-color: rgba(244, 197, 66, 0.10);
+}
+
+.profile-chip {
+  background: rgba(255, 255, 255, 0.018);
+  border-color: rgba(255, 255, 255, 0.045);
+}
+
+.avatar {
+  background: linear-gradient(145deg, #f4c542, #d9a629);
+  box-shadow: 0 0 0 2px rgba(244, 197, 66, 0.12);
+  color: #171a1e;
+}
+
+/* Header */
+.topbar {
+  backdrop-filter: blur(18px);
+  background: rgba(11, 14, 17, 0.88);
+  border-bottom: 1px solid rgba(244, 197, 66, 0.10);
+  justify-content: flex-start;
+  min-height: 78px;
+  padding: 1rem clamp(1rem, 3.2vw, 2.35rem);
+}
+
+.topbar > h1 {
+  align-items: center;
+  display: flex;
+  font-size: clamp(1.55rem, 2.2vw, 2rem);
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  text-align: left;
+}
+
+.topbar > h1::before {
+  background: linear-gradient(180deg, #f4c542, #d9a629);
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(244, 197, 66, 0.24);
+  content: "";
+  display: inline-block;
+  height: 1.75rem;
+  margin-right: 0.78rem;
+  width: 4px;
+}
+
+.topbar-actions {
+  right: clamp(1rem, 3.2vw, 2.35rem);
+}
+
+.content {
+  max-width: 1580px;
+  padding: clamp(1rem, 2.8vw, 2.15rem);
+}
+
+/* Surfaces */
+.panel,
+.table-panel,
+.metric-card,
+.resource-card,
+.compact-resource-card,
+.flow-node,
+.health-check,
+.notice-card,
+.configuration-status,
+.integration-card {
+  background:
+    linear-gradient(145deg, rgba(31, 35, 41, 0.97), rgba(21, 25, 30, 0.97));
+  border-color: rgba(244, 197, 66, 0.12);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.018) inset,
+    0 14px 34px rgba(0, 0, 0, 0.16);
+}
+
+.panel:hover,
+.metric-card:hover,
+.resource-card:hover,
+.compact-resource-card:hover {
+  border-color: rgba(244, 197, 66, 0.23);
+}
+
+.panel-heading {
+  border-color: rgba(244, 197, 66, 0.10);
+}
+
+.panel-heading h2,
+.panel-heading h3,
+.section-toolbar h2 {
+  color: #f5efe4;
+  font-weight: 700;
+}
+
+.eyebrow,
+.text-button,
+a {
+  color: #f4c542;
+}
+
+.text-button:hover,
+a:hover {
+  color: #ffcf4c;
+}
+
+/* Dashboard metrics */
+.metric-grid {
+  gap: 0.85rem;
+}
+
+.metric-card {
+  border: 1px solid rgba(244, 197, 66, 0.11);
+  min-height: 118px;
+  overflow: hidden;
+  padding: 1.05rem 1.1rem;
+  position: relative;
+}
+
+.metric-card::after {
+  background: radial-gradient(circle, rgba(244, 197, 66, 0.12), transparent 68%);
+  content: "";
+  height: 100px;
+  pointer-events: none;
+  position: absolute;
+  right: -34px;
+  top: -42px;
+  width: 100px;
+}
+
+.metric-card > span,
+.metric-card > small,
+.metric-card label > span {
+  color: #a9a39a;
+}
+
+.metric-card > strong {
+  color: #fffaf0;
+  font-size: clamp(1.65rem, 2.6vw, 2.15rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.metric-card:nth-child(1),
+.metric-card:nth-child(3),
+.metric-card:nth-child(4),
+.metric-card:nth-child(6) {
+  border-top-color: rgba(244, 197, 66, 0.35);
+}
+
+.metric-card:nth-child(5) {
+  border-top-color: rgba(141, 204, 85, 0.46);
+}
+
+/* Forms */
+input,
+select,
+textarea {
+  background: #12161a;
+  border-color: rgba(183, 172, 154, 0.20);
+  color: #f2ebdd;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: rgba(244, 197, 66, 0.24);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(244, 197, 66, 0.58);
+  box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.08);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #77756f;
+}
+
+/* Buttons */
+.button.primary {
+  background: linear-gradient(135deg, #f4c542, #d9a629);
+  border-color: #f4c542;
+  box-shadow: 0 8px 22px rgba(217, 166, 41, 0.14);
+  color: #181b1f;
+  font-weight: 750;
+}
+
+.button.primary:hover {
+  filter: brightness(1.055);
+  transform: translateY(-1px);
+}
+
+.button.secondary,
+.icon-button {
+  background: #171b20;
+  border-color: rgba(183, 172, 154, 0.20);
+  color: #ddd5c8;
+}
+
+.button.secondary:hover,
+.icon-button:hover {
+  background: #1d2228;
+  border-color: rgba(244, 197, 66, 0.27);
+  color: #f4c542;
+}
+
+.button.danger {
+  background: rgba(239, 101, 90, 0.10);
+  border-color: rgba(239, 101, 90, 0.35);
+  color: #ff8b82;
+}
+
+/* Tables and timelines */
+table {
+  border-color: rgba(244, 197, 66, 0.09);
+}
+
+thead th {
+  background: rgba(244, 197, 66, 0.035);
+  color: #cfc5b5;
+}
+
+tbody tr {
+  border-color: rgba(183, 172, 154, 0.09);
+}
+
+tbody tr:hover {
+  background: rgba(244, 197, 66, 0.025);
+}
+
+.timeline-item,
+.activity-item {
+  border-color: rgba(183, 172, 154, 0.10);
+}
+
+/* Status */
+.status-dot.success,
+.badge.success,
+.badge.enabled {
+  color: #9bd968;
+}
+
+.status-dot.error,
+.badge.error,
+.badge.failed {
+  color: #ff7f75;
+}
+
+.badge,
+.status-button {
+  border-color: rgba(183, 172, 154, 0.16);
+}
+
+.badge.input {
+  background: rgba(244, 197, 66, 0.08);
+  border-color: rgba(244, 197, 66, 0.18);
+  color: #f7d769;
+}
+
+/* Routing flow */
+.flow-head {
+  color: #8f8a82;
+}
+
+.flow-arrow {
+  color: #d9a629;
+}
+
+.flow-node {
+  border-color: rgba(244, 197, 66, 0.12);
+}
+
+/* Menus and dialogs */
+.profile-menu-popover,
+.platform-menu-popover,
+dialog {
+  background: #171b20;
+  border-color: rgba(244, 197, 66, 0.20);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.48);
+}
+
+.platform-menu-popover button:hover,
+.platform-menu-popover button:focus-visible,
+.profile-menu-popover button:hover,
+.profile-menu-popover button:focus-visible {
+  background: rgba(244, 197, 66, 0.08);
+}
+
+/* Login / bootstrap */
+.login-view {
+  background:
+    radial-gradient(circle at 50% 15%, rgba(244, 197, 66, 0.075), transparent 28rem),
+    #0b0e11;
+}
+
+.login-atmosphere {
+  background:
+    linear-gradient(rgba(244, 197, 66, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 197, 66, 0.045) 1px, transparent 1px);
+  background-size: 52px 52px;
+}
+
+.login-view::before {
+  background: rgba(244, 197, 66, 0.07);
+}
+
+.login-view::after {
+  background: rgba(183, 172, 154, 0.055);
+}
+
+.login-card {
+  background:
+    linear-gradient(145deg, rgba(29, 33, 39, 0.98), rgba(17, 20, 24, 0.98));
+  border: 1px solid rgba(244, 197, 66, 0.18);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.48);
+}
+
+.brand-login .brand-mark {
+  background: transparent;
+  border: 0;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-color: #6f591e #14181c;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #14181c;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #6f591e;
+  border: 2px solid #14181c;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #92751f;
+}
+
+/* Keep the theme restrained on smaller screens. */
+@media (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .metric-card {
+    min-height: 108px;
+  }
+}
+
+@media (max-width: 780px) {
+  .topbar {
+    justify-content: center;
+  }
+
+  .topbar > h1 {
+    font-size: 1.35rem;
+  }
+
+  .topbar > h1::before {
+    height: 1.3rem;
+    margin-right: 0.55rem;
+  }
+}
+
+/* Nowlert 3.1.0 refinement layer */
+.brand,
+.brand-login {
+  align-items: center;
+}
+
+.sidebar > .brand {
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding-bottom: 1.25rem;
+}
+
+.sidebar > .brand .brand-mark {
+  height: 54px;
+  width: 54px;
+}
+
+.sidebar > .brand .brand-mark img {
+  height: 52px;
+  width: 52px;
+}
+
+.sidebar > .brand span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.14rem;
+}
+
+.sidebar > .brand strong {
+  font-size: 1.16rem;
+  letter-spacing: 0.06em;
+}
+
+.sidebar > .brand small {
+  color: #cdc1af;
+  font-size: 0.70rem;
+  letter-spacing: 0.11em;
+}
+
+.brand-tagline {
+  color: #8f897f;
+  display: block;
+  font-size: 0.67rem;
+  letter-spacing: 0.055em;
+  margin-top: 0.28rem;
+}
+
+.login-card {
+  border-radius: 22px;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.44);
+  max-width: 510px;
+  padding: 2.35rem 2.6rem 2.25rem;
+  position: relative;
+}
+
+.login-card::before {
+  background: linear-gradient(90deg, rgba(244, 197, 66, 0), rgba(244, 197, 66, 0.42), rgba(244, 197, 66, 0));
+  content: "";
+  height: 1px;
+  left: 2.4rem;
+  position: absolute;
+  right: 2.4rem;
+  top: 5.65rem;
+}
+
+.brand-login {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.6rem;
+  text-align: center;
+}
+
+.brand-login .brand-mark {
+  height: 76px;
+  width: 76px;
+}
+
+.brand-login .brand-mark img {
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.34));
+  height: 74px;
+  width: 74px;
+}
+
+.brand-login strong {
+  color: #f5efe4;
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-top: 0.2rem;
+  text-transform: uppercase;
+}
+
+.brand-login small {
+  color: #cbbda8;
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.brand-login .brand-tagline {
+  color: #938a7e;
+  font-size: 0.7rem;
+  letter-spacing: 0.11em;
+  margin-top: 0.1rem;
+  text-transform: uppercase;
+}
+
+.login-card label {
+  color: #e9e1d5;
+  font-weight: 650;
+}
+
+.login-card input {
+  min-height: 48px;
+}
+
+.login-card .button.primary {
+  margin-top: 0.5rem;
+  min-height: 48px;
+}
+
+.panel,
+.table-panel,
+.resource-card,
+.compact-resource-card,
+.integration-card,
+.metric-card {
+  position: relative;
+}
+
+.panel::before,
+.table-panel::before,
+.resource-card::before,
+.compact-resource-card::before,
+.integration-card::before,
+.metric-card::before {
+  background: linear-gradient(90deg, rgba(244, 197, 66, 0.18), rgba(244, 197, 66, 0.02));
+  border-radius: 999px;
+  content: "";
+  height: 3px;
+  left: 1rem;
+  position: absolute;
+  right: 1rem;
+  top: 0;
+}
+
+.panel-heading,
+.section-toolbar {
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.panel-ornament {
+  display: inline-flex;
+  gap: 0.24rem;
+  margin-left: auto;
+}
+
+.panel-ornament span {
+  background: linear-gradient(180deg, rgba(244, 197, 66, 0.92), rgba(217, 166, 41, 0.45));
+  border-radius: 999px;
+  display: inline-block;
+  width: 5px;
+}
+
+.panel-ornament span:nth-child(1) { height: 12px; opacity: 0.58; }
+.panel-ornament span:nth-child(2) { height: 18px; opacity: 0.82; }
+.panel-ornament span:nth-child(3) { height: 9px; opacity: 0.48; }
+
+.entity-card-brand {
+  align-items: center;
+  display: flex;
+  gap: 0.72rem;
+  margin-bottom: 0.9rem;
+}
+
+.entity-card-brand img {
+  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.10), rgba(255,255,255,0));
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  height: 30px;
+  padding: 2px;
+  width: 30px;
+}
+
+.entity-card-brand strong {
+  color: #f6f0e6;
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 740;
+  letter-spacing: 0.03em;
+}
+
+.entity-card-brand small {
+  color: #a79c8a;
+  display: block;
+  font-size: 0.69rem;
+  letter-spacing: 0.08em;
+  margin-top: 0.12rem;
+  text-transform: uppercase;
+}
+
+.resource-card,
+.compact-resource-card,
+.integration-card {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.resource-card::after,
+.compact-resource-card::after,
+.integration-card::after {
+  background:
+    radial-gradient(circle at 82% 22%, rgba(244, 197, 66, 0.13), transparent 18%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.empty-state-icon img,
+.fallback-product-mark img {
+  height: 60px;
+  width: 60px;
+}
+
+@media (max-width: 780px) {
+  .login-card {
+    padding: 2rem 1.4rem 1.85rem;
+  }
+
+  .login-card::before {
+    left: 1.4rem;
+    right: 1.4rem;
+    top: 5.2rem;
+  }
+}
+
+/* Nowlert 3.1.0 professional polish layer */
+:root {
+  --brand-charcoal: #2f333a;
+  --brand-slate: #6a6d72;
+  --brand-beige: #f2ebdd;
+  --brand-taupe: #b7ac9a;
+  --brand-amber: #f4c542;
+  --brand-gold: #d9a629;
+}
+
+body.nowlert-v310-refined {
+  background-image:
+    radial-gradient(circle at top center, rgba(244, 197, 66, 0.08), transparent 30%),
+    linear-gradient(90deg, rgba(244, 197, 66, 0.035) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, rgba(244, 197, 66, 0.03) 0 1px, transparent 1px 100%);
+  background-size: auto, 40px 40px, 40px 40px;
+}
+
+.brand {
+  align-items: center;
+}
+
+.sidebar > .brand {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  gap: 0.9rem;
+  min-height: 74px;
+  padding-bottom: 1.35rem;
+}
+
+.sidebar > .brand .brand-mark {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 68px;
+  justify-content: center;
+  width: 68px;
+}
+
+.sidebar > .brand .brand-mark img {
+  height: 62px;
+  width: 62px;
+}
+
+.sidebar > .brand span {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.1rem;
+  justify-content: center;
+}
+
+.sidebar > .brand strong {
+  color: var(--brand-amber);
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.sidebar > .brand small {
+  color: #ece3d6;
+  font-size: 0.73rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.25;
+  margin-top: 0.15rem;
+  text-transform: uppercase;
+}
+
+.sidebar > .brand .brand-tagline {
+  display: none;
+}
+
+.login-card {
+  max-width: 560px;
+  padding: 2.4rem 2.6rem 2.35rem;
+}
+
+.login-card::before {
+  display: none;
+}
+
+.login-card::after {
+  background: linear-gradient(90deg, rgba(244, 197, 66, 0), rgba(244, 197, 66, 0.3), rgba(244, 197, 66, 0));
+  border-radius: 999px;
+  content: "";
+  height: 2px;
+  left: 2.4rem;
+  position: absolute;
+  right: 2.4rem;
+  top: 0;
+}
+
+.brand-login {
+  gap: 0.55rem;
+  margin-bottom: 1.9rem;
+  padding-top: 0.2rem;
+}
+
+.brand-login .brand-mark {
+  height: 108px;
+  width: 108px;
+}
+
+.brand-login .brand-mark img {
+  height: 102px;
+  width: 102px;
+}
+
+.brand-login strong {
+  color: #f6f0e6;
+  font-size: 1.95rem;
+  font-weight: 820;
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+  margin-top: 0.15rem;
+  text-transform: uppercase;
+}
+
+.brand-login small {
+  color: #d8c9b0;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.brand-login .brand-tagline {
+  display: none;
+}
+
+.login-card label {
+  margin-bottom: 0.38rem;
+}
+
+.login-card .button.primary {
+  border-radius: 13px;
+  box-shadow: 0 10px 24px rgba(217, 166, 41, 0.2);
+}
+
+.main-header,
+.page-header,
+.section-header {
+  align-items: center;
+}
+
+h1,
+.page-title {
+  font-size: 1.95rem;
+  font-weight: 780;
+  letter-spacing: -0.03em;
+}
+
+#view-dashboard .panel,
+#view-dashboard .table-panel,
+#view-dashboard .metric-card,
+#view-dashboard .resource-card,
+#view-dashboard .compact-resource-card,
+#view-dashboard .integration-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)),
+    linear-gradient(180deg, rgba(47, 51, 58, 0.96), rgba(28, 31, 36, 0.96));
+}
+
+.metric-card,
+#view-dashboard .metric-card {
+  border-radius: 16px;
+  min-height: 104px;
+  padding: 1rem 1.05rem;
+}
+
+.metric-card strong,
+.metric-value,
+.stat-value,
+.kpi-value {
+  color: #fbf4ea;
+  font-size: 1.8rem;
+  font-weight: 780;
+  line-height: 1.05;
+}
+
+.metric-card small,
+.metric-trend,
+.stat-trend,
+.kpi-trend {
+  color: #a8d86a;
+  font-weight: 650;
+}
+
+#view-dashboard canvas,
+#view-dashboard svg {
+  max-height: 230px;
+}
+
+.panel,
+.table-panel,
+.resource-card,
+.compact-resource-card,
+.integration-card,
+.metric-card {
+  border-radius: 18px;
+}
+
+.panel,
+.table-panel {
+  overflow: hidden;
+}
+
+.section-toolbar,
+.panel-heading {
+  border-bottom: 1px solid rgba(244, 197, 66, 0.12);
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.8rem;
+}
+
+#view-destinations .resource-card,
+#view-destinations .compact-resource-card,
+#view-destinations .integration-card,
+#view-sources .resource-card,
+#view-sources .compact-resource-card,
+#view-sources .integration-card {
+  border-radius: 18px;
+  min-height: 208px;
+  padding: 1.15rem 1.2rem 1.1rem;
+}
+
+#view-destinations .entity-card-brand,
+#view-sources .entity-card-brand {
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+#view-destinations .entity-card-brand img,
+#view-sources .entity-card-brand img {
+  height: 42px;
+  width: 42px;
+}
+
+#view-destinations .entity-card-brand strong,
+#view-sources .entity-card-brand strong {
+  font-size: 1.02rem;
+}
+
+#view-destinations .entity-card-brand small,
+#view-sources .entity-card-brand small {
+  font-size: 0.72rem;
+}
+
+#view-destinations .resource-card p,
+#view-destinations .compact-resource-card p,
+#view-sources .resource-card p,
+#view-sources .compact-resource-card p {
+  color: #c8bcab;
+  line-height: 1.45;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead th {
+  color: #eadfcf;
+  font-size: 0.77rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+tbody tr:hover {
+  background: rgba(244, 197, 66, 0.05);
+}
+
+input,
+select,
+textarea {
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.14);
+}
+
+@media (max-width: 780px) {
+  .sidebar > .brand {
+    gap: 0.7rem;
+    min-height: 68px;
+  }
+
+  .sidebar > .brand .brand-mark {
+    height: 58px;
+    width: 58px;
+  }
+
+  .sidebar > .brand .brand-mark img {
+    height: 52px;
+    width: 52px;
+  }
+
+  .sidebar > .brand strong {
+    font-size: 1.22rem;
+  }
+
+  .login-card {
+    padding: 2rem 1.35rem 1.95rem;
+  }
+
+  .login-card::after {
+    left: 1.35rem;
+    right: 1.35rem;
+  }
+
+  .brand-login .brand-mark {
+    height: 94px;
+    width: 94px;
+  }
+
+  .brand-login .brand-mark img {
+    height: 88px;
+    width: 88px;
+  }
+
+  .brand-login strong {
+    font-size: 1.7rem;
+  }
+}
+
+/* Nowlert 3.1.0 icon scale follow-up */
+.brand-login .brand-mark {
+  height: 136px;
+  width: 136px;
+}
+
+.brand-login .brand-mark img {
+  height: 128px;
+  width: 128px;
+}
+
+.sidebar > .brand .brand-mark {
+  height: 86px;
+  width: 86px;
+}
+
+.sidebar > .brand .brand-mark img {
+  height: 78px;
+  width: 78px;
+}
+
+.entity-card-brand img {
+  height: 38px;
+  width: 38px;
+}
+
+#view-destinations .entity-card-brand img,
+#view-sources .entity-card-brand img,
+#view-routes .entity-card-brand img,
+#view-dashboard .entity-card-brand img {
+  height: 52px;
+  width: 52px;
+}
+
+.empty-state-icon,
+.fallback-product-mark,
+.empty-panel .empty-state-icon,
+.empty-state .empty-state-icon {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.9rem;
+}
+
+.empty-state-icon img,
+.fallback-product-mark img,
+.empty-panel .empty-state-icon img,
+.empty-state .empty-state-icon img {
+  height: 86px;
+  width: 86px;
+}
+
+#view-destinations .empty-state-icon img,
+#view-sources .empty-state-icon img,
+#view-routes .empty-state-icon img,
+#view-dashboard .empty-state-icon img,
+#view-destinations .fallback-product-mark img,
+#view-sources .fallback-product-mark img,
+#view-routes .fallback-product-mark img,
+#view-dashboard .fallback-product-mark img {
+  height: 92px;
+  width: 92px;
+}
+
+@media (max-width: 780px) {
+  .brand-login .brand-mark {
+    height: 118px;
+    width: 118px;
+  }
+
+  .brand-login .brand-mark img {
+    height: 110px;
+    width: 110px;
+  }
+
+  .sidebar > .brand .brand-mark {
+    height: 72px;
+    width: 72px;
+  }
+
+  .sidebar > .brand .brand-mark img {
+    height: 66px;
+    width: 66px;
+  }
+
+  .empty-state-icon img,
+  .fallback-product-mark img,
+  #view-destinations .empty-state-icon img,
+  #view-sources .empty-state-icon img,
+  #view-routes .empty-state-icon img,
+  #view-dashboard .empty-state-icon img,
+  #view-destinations .fallback-product-mark img,
+  #view-sources .fallback-product-mark img,
+  #view-routes .fallback-product-mark img,
+  #view-dashboard .fallback-product-mark img {
+    height: 78px;
+    width: 78px;
+  }
+}
+
+/* Nowlert 3.1.0 brand tune follow-up */
+.brand strong,
+.brand-login strong {
+  align-items: baseline;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  white-space: nowrap;
+}
+
+.brand strong .brand-now,
+.brand-login strong .brand-now {
+  color: var(--brand-amber, #f4c542);
+}
+
+.brand strong .brand-lert,
+.brand-login strong .brand-lert {
+  color: #f6f0e6;
+}
+
+.sidebar > .brand {
+  gap: 1rem;
+}
+
+.sidebar > .brand span {
+  gap: 0.18rem;
+}
+
+.sidebar > .brand strong {
+  font-size: 1.34rem;
+  letter-spacing: 0.05em;
+  line-height: 1.02;
+}
+
+.sidebar > .brand small {
+  color: #ece3d6;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.11em;
+  line-height: 1.18;
+  margin-top: 0.08rem;
+}
+
+.brand-login {
+  gap: 0.72rem;
+}
+
+.brand-login strong {
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  line-height: 1.04;
+}
+
+.brand-login small {
+  color: #e3d4bc;
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  margin-top: 0.12rem;
+  text-transform: uppercase;
+}
+
+@media (max-width: 780px) {
+  .sidebar > .brand strong {
+    font-size: 1.18rem;
+  }
+
+  .sidebar > .brand small {
+    font-size: 0.68rem;
+  }
+
+  .brand-login strong {
+    font-size: 1.72rem;
+  }
+}
+
+/* Nowlert 3.1.0 brand layout correction */
+.brand strong,
+.brand-login strong {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  white-space: nowrap;
+}
+
+.brand strong .brand-now,
+.brand-login strong .brand-now {
+  color: #f4c542;
+}
+
+.brand strong .brand-lert,
+.brand-login strong .brand-lert {
+  color: #f6f0e6;
+}
+
+.sidebar > .brand {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  gap: 0.72rem;
+  min-height: 84px;
+  padding-bottom: 1.15rem;
+}
+
+.sidebar > .brand .brand-mark {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 92px;
+  justify-content: center;
+  width: 92px;
+}
+
+.sidebar > .brand .brand-mark img {
+  display: block;
+  height: 84px;
+  width: 84px;
+}
+
+.sidebar > .brand span {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.08rem;
+  justify-content: center;
+  min-width: 0;
+}
+
+.sidebar > .brand strong {
+  align-items: baseline;
+  display: inline-flex;
+  font-size: 1.42rem;
+  font-weight: 820;
+  letter-spacing: 0.045em;
+  line-height: 1.02;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.sidebar > .brand small {
+  color: #f0e4d3;
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.11em;
+  line-height: 1.12;
+  margin: 0.08rem 0 0;
+  text-transform: uppercase;
+}
+
+.sidebar > .brand .brand-tagline {
+  display: none !important;
+}
+
+.brand-login {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+  margin-bottom: 1.65rem;
+}
+
+.brand-login .brand-mark {
+  align-items: center;
+  display: inline-flex;
+  height: 156px;
+  justify-content: center;
+  width: 156px;
+}
+
+.brand-login .brand-mark img {
+  display: block;
+  height: 144px;
+  width: 144px;
+}
+
+.brand-login strong {
+  align-items: baseline;
+  display: inline-flex;
+  font-size: 2.14rem;
+  font-weight: 820;
+  letter-spacing: 0.075em;
+  line-height: 1.04;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.brand-login small {
+  color: #e7d6b8;
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  line-height: 1.15;
+  margin: 0.02rem 0 0;
+  text-transform: uppercase;
+}
+
+.brand-login .brand-tagline {
+  display: none !important;
+}
+
+@media (max-width: 780px) {
+  .sidebar > .brand {
+    gap: 0.62rem;
+    min-height: 76px;
+  }
+
+  .sidebar > .brand .brand-mark {
+    height: 78px;
+    width: 78px;
+  }
+
+  .sidebar > .brand .brand-mark img {
+    height: 70px;
+    width: 70px;
+  }
+
+  .sidebar > .brand strong {
+    font-size: 1.22rem;
+  }
+
+  .sidebar > .brand small {
+    font-size: 0.67rem;
+  }
+
+  .brand-login .brand-mark {
+    height: 136px;
+    width: 136px;
+  }
+
+  .brand-login .brand-mark img {
+    height: 124px;
+    width: 124px;
+  }
+
+  .brand-login strong {
+    font-size: 1.86rem;
+  }
+}
+
+/* Nowlert 3.1.0 sidebar + login wordmark correction */
+.brand strong .brand-now,
+.brand-login strong .brand-now {
+  color: #f4c542 !important;
+}
+
+.brand strong .brand-lert,
+.brand-login strong .brand-lert {
+  color: #f6f0e6 !important;
+}
+
+.sidebar > .brand {
+  align-items: flex-start !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+.sidebar > .brand strong {
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+  font-size: 1.36rem !important;
+  font-weight: 820 !important;
+  gap: 0 !important;
+  letter-spacing: 0.045em !important;
+  line-height: 1.05 !important;
+  margin: 0 0 0.65rem 0 !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+
+.sidebar > .brand .brand-mark {
+  align-items: center !important;
+  display: inline-flex !important;
+  height: 94px !important;
+  justify-content: center !important;
+  margin: 0 0 0.65rem 0 !important;
+  width: 94px !important;
+}
+
+.sidebar > .brand .brand-mark img {
+  display: block !important;
+  height: 86px !important;
+  width: 86px !important;
+}
+
+.sidebar > .brand small {
+  color: #f0e4d3 !important;
+  display: block !important;
+  font-size: 0.74rem !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.11em !important;
+  line-height: 1.12 !important;
+  margin: 0 !important;
+  text-transform: uppercase !important;
+}
+
+.sidebar > .brand span {
+  display: contents !important;
+}
+
+.brand-login strong {
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Nowlert 3.1.0 STATIC brand lockup - final */
+.brand-wordmark {
+  align-items: baseline !important;
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  white-space: nowrap !important;
+}
+
+.brand-wordmark .brand-now {
+  color: #f4c542 !important;
+  display: inline !important;
+}
+
+.brand-wordmark .brand-lert {
+  color: #f6f0e6 !important;
+  display: inline !important;
+}
+
+/* Login: preserve the currently approved scale and layout. */
+.brand-login .brand-wordmark {
+  margin: 0 !important;
+}
+
+/* Sidebar: exact requested order and centered alignment. */
+.sidebar > .brand.sidebar-brand {
+  align-items: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.46rem !important;
+  justify-content: center !important;
+  min-height: 0 !important;
+  padding: 0.75rem 0.35rem 1rem !important;
+  text-align: center !important;
+}
+
+.sidebar > .brand.sidebar-brand > .brand-wordmark {
+  color: inherit !important;
+  font-size: 1.45rem !important;
+  font-weight: 820 !important;
+  letter-spacing: 0.045em !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  order: 1 !important;
+  text-transform: uppercase !important;
+}
+
+.sidebar > .brand.sidebar-brand > .brand-mark {
+  align-items: center !important;
+  background: transparent !important;
+  border: 0 !important;
+  display: flex !important;
+  height: 104px !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  order: 2 !important;
+  width: 104px !important;
+}
+
+.sidebar > .brand.sidebar-brand > .brand-mark img {
+  display: block !important;
+  height: 96px !important;
+  max-height: none !important;
+  max-width: none !important;
+  width: 96px !important;
+}
+
+.sidebar > .brand.sidebar-brand > small {
+  color: #f0e4d3 !important;
+  display: block !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.105em !important;
+  line-height: 1.08 !important;
+  margin: 0 !important;
+  order: 3 !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+}
+
+/* Override older broad span rules from the previous visual layers. */
+.sidebar > .brand.sidebar-brand > .brand-mark,
+.sidebar > .brand.sidebar-brand .brand-now,
+.sidebar > .brand.sidebar-brand .brand-lert {
+  visibility: visible !important;
+}
+
+@media (max-width: 780px) {
+  .sidebar > .brand.sidebar-brand > .brand-wordmark {
+    font-size: 1.28rem !important;
+  }
+
+  .sidebar > .brand.sidebar-brand > .brand-mark {
+    height: 90px !important;
+    width: 90px !important;
+  }
+
+  .sidebar > .brand.sidebar-brand > .brand-mark img {
+    height: 82px !important;
+    width: 82px !important;
+  }
+}
+
+/* Nowlert 3.1.0 sidebar + empty-state correction */
+.sidebar > .brand {
+  align-items: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  padding: 0 0.45rem 1.45rem !important;
+}
+
+.sidebar > .brand strong {
+  margin: 0 0 0.18rem !important;
+}
+
+.sidebar > .brand .brand-mark {
+  align-items: center !important;
+  display: inline-flex !important;
+  height: 112px !important;
+  justify-content: center !important;
+  margin: 0 0 0.16rem !important;
+  width: 112px !important;
+}
+
+.sidebar > .brand .brand-mark img {
+  display: block !important;
+  height: 104px !important;
+  width: 104px !important;
+}
+
+.sidebar > .brand small {
+  margin: 0 0 0.85rem !important;
+  text-align: center !important;
+}
+
+.sidebar > .brand + .nav-list,
+.sidebar > .brand + nav {
+  margin-top: 0.45rem !important;
+}
+
+.empty-state-icon {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 0.85rem;
+}
+
+.empty-state-icon img {
+  display: block;
+  height: 92px;
+  width: 92px;
+}
+
+#view-destinations .empty-state-icon img,
+#view-routes .empty-state-icon img,
+#view-tokens .empty-state-icon img,
+#view-deliveries .empty-state-icon img,
+#view-audit .empty-state-icon img,
+#view-dashboard .empty-state-icon img,
+#view-sources .empty-state-icon img {
+  height: 92px;
+  width: 92px;
+}
+
+/* Nowlert 3.1.0 FINAL sidebar rhythm */
+.sidebar > .brand.sidebar-brand {
+  align-items: center !important;
+  box-sizing: border-box !important;
+  border-bottom: 1px solid rgba(244, 197, 66, 0.10) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  justify-content: flex-start !important;
+
+  /* Preserve the sidebar's own top inset: no added top margin or padding. */
+  margin: 0 0 16px !important;
+  padding: 0 0 16px !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+
+.sidebar > .brand.sidebar-brand > .brand-wordmark {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  gap: 0 !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+
+.sidebar > .brand.sidebar-brand > .brand-mark {
+  align-items: center !important;
+  background: transparent !important;
+  border: 0 !important;
+  display: flex !important;
+  flex: 0 0 112px !important;
+  height: 112px !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  width: 112px !important;
+}
+
+.sidebar > .brand.sidebar-brand > .brand-mark img {
+  display: block !important;
+  height: 112px !important;
+  margin: 0 !important;
+  max-height: none !important;
+  max-width: none !important;
+  object-fit: contain !important;
+  padding: 0 !important;
+  width: 112px !important;
+}
+
+.sidebar > .brand.sidebar-brand > small {
+  display: block !important;
+  flex: 0 0 auto !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+
+/* Use the real border as the divider; disable old synthetic spacers. */
+.sidebar > .brand.sidebar-brand::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* The brand's 16px bottom margin is the exact divider -> navigation gap. */
+.sidebar > .brand.sidebar-brand + .nav-list,
+.sidebar > .brand.sidebar-brand + nav {
+  margin-top: 0 !important;
+}
+
+/* Nowlert 3.1.0 sidebar spacing RESET */
+.sidebar > .brand {
+  align-items: center !important;
+  border-bottom: 1px solid rgba(244, 197, 66, 0.12) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  justify-content: flex-start !important;
+  margin: 0 0 8px !important;
+  padding: 0 12px 8px !important;
+  text-align: center !important;
+}
+
+.sidebar > .brand > strong,
+.sidebar > .brand > .brand-mark,
+.sidebar > .brand > small {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.sidebar > .brand > strong {
+  line-height: 1 !important;
+}
+
+.sidebar > .brand > .brand-mark {
+  align-items: center !important;
+  display: flex !important;
+  height: 88px !important;
+  justify-content: center !important;
+  overflow: visible !important;
+  width: 88px !important;
+}
+
+.sidebar > .brand > .brand-mark img {
+  display: block !important;
+  height: 88px !important;
+  transform: scale(1.24) !important;
+  transform-origin: center !important;
+  width: 88px !important;
+}
+
+.sidebar > .brand > small {
+  line-height: 1 !important;
+}
+
+.sidebar > .brand::before,
+.sidebar > .brand::after {
+  content: none !important;
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.sidebar > .brand + .nav-list,
+.sidebar > .brand + nav {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Nowlert 3.1.0 CANONICAL sidebar reset */
+.sidebar > .brand.sidebar-brand {
+  --sidebar-brand-gap: 10px;
+  align-items: center !important;
+  border-bottom: 1px solid rgba(244, 197, 66, 0.12) !important;
+  box-sizing: border-box !important;
+  display: grid !important;
+  flex: 0 0 auto !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: auto 86px auto !important;
+  justify-items: center !important;
+  margin: 0 0 var(--sidebar-brand-gap) !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  padding: 0 0 var(--sidebar-brand-gap) !important;
+  row-gap: var(--sidebar-brand-gap) !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.sidebar > .brand.sidebar-brand > .brand-wordmark {
+  align-items: baseline !important;
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+}
+
+.sidebar > .brand.sidebar-brand > .brand-mark {
+  align-items: center !important;
+  background: transparent !important;
+  border: 0 !important;
+  display: flex !important;
+  height: 86px !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  width: 86px !important;
+}
+
+.sidebar > .brand.sidebar-brand > .brand-mark img {
+  display: block !important;
+  height: 86px !important;
+  margin: 0 !important;
+  max-height: none !important;
+  max-width: none !important;
+  object-fit: contain !important;
+  padding: 0 !important;
+  transform: scale(1.16) !important;
+  transform-origin: center !important;
+  width: 86px !important;
+}
+
+.sidebar > .brand.sidebar-brand > small {
+  display: block !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.sidebar > .brand.sidebar-brand::before,
+.sidebar > .brand.sidebar-brand::after {
+  content: none !important;
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.sidebar > .brand.sidebar-brand + .nav-list,
+.sidebar > .brand.sidebar-brand + nav {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}

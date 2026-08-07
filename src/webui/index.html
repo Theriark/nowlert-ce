@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#07111f">
+  <meta name="theme-color" content="#0b0e11">
   <title>Nowlert</title>
   <link rel="icon" href="/ui/icon.png" type="image/png">
   <link rel="stylesheet" href="/ui/styles.css">
@@ -59,7 +59,7 @@
     <div class="login-card">
       <div class="brand brand-login">
         <span class="brand-mark"><img src="/ui/icon.png" alt=""></span>
-        <strong>Nowlert</strong>
+        <strong class="brand-wordmark"><span class="brand-now">NOW</span><span class="brand-lert">LERT</span></strong>
       </div>
       <h1 id="login-title" class="sr-only">Sign in to Nowlert</h1>
       <form id="login-form" class="stack" autocomplete="on">
@@ -79,13 +79,14 @@
 
   <div id="app-shell" class="app-shell" hidden>
     <aside class="sidebar" aria-label="Primary navigation">
-      <div class="brand">
+      <div class="brand sidebar-brand">
+        <strong class="brand-wordmark"><span class="brand-now">NOW</span><span class="brand-lert">LERT</span></strong>
         <span class="brand-mark"><img src="/ui/icon.png" alt=""></span>
-        <span><strong>Nowlert</strong><small>Control plane</small></span>
+        <small>Community Edition</small>
       </div>
       <nav id="primary-nav" class="nav-list">
         <button class="nav-item active" type="button" data-view="dashboard" aria-current="page">
-          <span class="nav-icon" aria-hidden="true">⌂</span><span>Overview</span>
+          <span class="nav-icon" aria-hidden="true">⌂</span><span>Dashboard</span>
         </button>
         <button class="nav-item" type="button" data-view="sources">
           <span class="nav-icon" aria-hidden="true">◉</span><span>Sources</span>
@@ -142,7 +143,7 @@
     <div class="workspace">
       <header class="topbar">
         <button id="mobile-menu" class="icon-button mobile-only" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
-        <h1 id="page-title">Overview</h1>
+        <h1 id="page-title">Dashboard</h1>
         <div class="topbar-actions">
           <button id="restart-header-button" class="button danger" type="button" data-action="restart-platform" hidden>Restart</button>
         </div>

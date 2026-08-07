@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_application_version_and_repository_are_current():
-    assert VERSION == "3.0.0"
+    assert VERSION == "3.1.0"
     assert EDITION == "Community Edition"
     assert EDITION_SLUG == "ce"
     assert REPOSITORY == "https://github.com/Theriark/nowlert-ce"
