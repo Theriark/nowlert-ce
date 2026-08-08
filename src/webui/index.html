@@ -4,15 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#07111f">
+  <meta name="theme-color" content="#0b0e11">
   <title>Nowlert</title>
-  <link rel="icon" href="/ui/icon.png" type="image/png">
+  <link rel="icon" href="/ui/brand/nowlert-owl-v3.1.0.png" type="image/png">
   <link rel="stylesheet" href="/ui/styles.css">
   <link rel="stylesheet" href="/ui/enhancements.css">
   <link rel="stylesheet" href="/ui/qa_patch.css">
+  <link rel="stylesheet" href="/ui/professional.css">
   <script src="/ui/app.js" defer></script>
   <script src="/ui/enhancements.js" defer></script>
   <script src="/ui/qa_patch.js" defer></script>
+  <script src="/ui/dashboard.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -21,7 +23,7 @@
     <div class="login-atmosphere" aria-hidden="true"></div>
     <div class="login-card">
       <div class="brand brand-login">
-        <span class="brand-mark"><img src="/ui/icon.png" alt=""></span>
+        <span class="brand-mark"><img src="/ui/brand/nowlert-owl-v3.1.0.png" alt=""></span>
         <span><strong>Nowlert</strong><small>Secure first-run setup</small></span>
       </div>
       <div class="login-copy">
@@ -58,8 +60,8 @@
     <div class="login-atmosphere" aria-hidden="true"></div>
     <div class="login-card">
       <div class="brand brand-login">
-        <span class="brand-mark"><img src="/ui/icon.png" alt=""></span>
-        <strong>Nowlert</strong>
+        <span class="brand-mark"><img src="/ui/brand/nowlert-owl-v3.1.0.png" alt=""></span>
+        <strong class="brand-wordmark"><span class="brand-now">NOW</span><span class="brand-lert">LERT</span></strong>
       </div>
       <h1 id="login-title" class="sr-only">Sign in to Nowlert</h1>
       <form id="login-form" class="stack" autocomplete="on">
@@ -79,13 +81,14 @@
 
   <div id="app-shell" class="app-shell" hidden>
     <aside class="sidebar" aria-label="Primary navigation">
-      <div class="brand">
-        <span class="brand-mark"><img src="/ui/icon.png" alt=""></span>
-        <span><strong>Nowlert</strong><small>Control plane</small></span>
+      <div class="brand sidebar-brand">
+        <strong class="brand-wordmark"><span class="brand-now">NOW</span><span class="brand-lert">LERT</span></strong>
+        <span class="brand-mark"><img src="/ui/brand/nowlert-owl-v3.1.0.png" alt=""></span>
+        <small>Community Edition</small>
       </div>
       <nav id="primary-nav" class="nav-list">
         <button class="nav-item active" type="button" data-view="dashboard" aria-current="page">
-          <span class="nav-icon" aria-hidden="true">⌂</span><span>Overview</span>
+          <span class="nav-icon" aria-hidden="true">⌂</span><span>Dashboard</span>
         </button>
         <button class="nav-item" type="button" data-view="sources">
           <span class="nav-icon" aria-hidden="true">◉</span><span>Sources</span>
@@ -142,7 +145,7 @@
     <div class="workspace">
       <header class="topbar">
         <button id="mobile-menu" class="icon-button mobile-only" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
-        <h1 id="page-title">Overview</h1>
+        <h1 id="page-title">Dashboard</h1>
         <div class="topbar-actions">
           <button id="restart-header-button" class="button danger" type="button" data-action="restart-platform" hidden>Restart</button>
         </div>
@@ -173,37 +176,65 @@
               <div id="notice-list" class="notice-list"></div>
             </article>
           </section>
-          <div class="metric-grid" aria-label="Workspace summary">
+          <div class="metric-grid dashboard-kpi-grid" aria-label="Workspace summary">
             <article class="metric-card"><span>Routed integrations</span><strong id="metric-sources">—</strong><small>Used by enabled routes</small></article>
-            <article class="metric-card"><span>Active Destinations</span><strong id="metric-destinations">—</strong><small>Enabled</small></article>
-            <article class="metric-card"><span>Active Routes</span><strong id="metric-routes">—</strong><small>Enabled</small></article>
+            <article class="metric-card"><span>Active Destinations</span><strong id="metric-destinations">—</strong><small>Enabled outputs</small></article>
+            <article class="metric-card"><span>Active Routes</span><strong id="metric-routes">—</strong><small>Enabled routing rules</small></article>
             <article class="metric-card"><span>Event API tokens</span><strong id="metric-tokens">—</strong><small>Active credentials</small></article>
             <article class="metric-card metric-history"><span>Success</span><strong id="metric-success">—</strong><small id="metric-success-note">Selected history</small></article>
-            <article class="metric-card metric-history"><span>Requests</span><strong id="metric-requests">—</strong><label class="history-filter"><span>History</span><select id="history-range"><option value="10m">10 minutes</option><option value="1h" selected>1 hour</option><option value="1d">1 day</option><option value="1m">1 month</option><option value="1y">1 year</option></select></label></article>
+            <article class="metric-card metric-history"><span>Requests</span><strong id="metric-requests">—</strong><small>Selected history</small></article>
           </div>
-          <article class="panel flow-panel">
+
+          <section class="dashboard-analytics-grid" aria-label="Delivery analytics">
+            <article class="panel dashboard-chart-panel">
+              <div class="panel-heading dashboard-panel-heading">
+                <div><p class="eyebrow">Delivery analytics</p><h2>Delivery History</h2></div>
+                <label class="history-filter dashboard-range"><span>Range</span><select id="history-range"><option value="10m">10 minutes</option><option value="1h" selected>1 hour</option><option value="1d">1 day</option><option value="1m">1 month</option><option value="1y">1 year</option></select></label>
+              </div>
+              <div id="dashboard-delivery-chart" class="dashboard-chart" role="img" aria-label="Delivery history chart"></div>
+              <div id="dashboard-chart-summary" class="dashboard-chart-summary" aria-live="polite"></div>
+            </article>
+
+            <article class="panel dashboard-deliveries-panel">
+              <div class="panel-heading dashboard-panel-heading"><div><p class="eyebrow">Live operations</p><h2>Recent Activity</h2></div><button class="text-button" type="button" data-view="deliveries">View all</button></div>
+              <div id="dashboard-deliveries" class="activity-list dashboard-activity-list"></div>
+            </article>
+          </section>
+
+          <section class="dashboard-insights-grid" aria-label="Workspace insights">
+            <article class="panel dashboard-insight-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Observed traffic</p><h2>Top Sources</h2></div></div>
+              <div id="dashboard-top-sources" class="dashboard-ranking"></div>
+            </article>
+            <article class="panel dashboard-insight-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Delivery targets</p><h2>Top Destinations</h2></div></div>
+              <div id="dashboard-top-destinations" class="dashboard-ranking"></div>
+            </article>
+            <article class="panel dashboard-health-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Operational state</p><h2>System Health</h2></div><button class="text-button" type="button" data-view="audit">Details</button></div>
+              <div id="dashboard-system-health" class="dashboard-system-health"></div>
+            </article>
+          </section>
+
+          <article class="panel flow-panel dashboard-flow-panel">
             <div class="panel-heading centered-heading"><h2>Routing Flow</h2></div>
             <div class="flow-head" aria-hidden="true"><span>Source</span><span>Route</span><span>Destination</span></div>
             <div id="dashboard-flow" class="flow-map"></div>
           </article>
-          <article class="panel dashboard-deliveries-panel">
-            <div class="panel-heading"><h2>Latest Activity</h2><button class="text-button" type="button" data-view="deliveries">View all</button></div>
-            <div id="dashboard-deliveries" class="activity-list"></div>
-          </article>
         </section>
 
         <section id="view-sources" class="view" data-page="sources" hidden>
-          <div class="section-toolbar"><div><h2>Sources</h2></div></div>
+          <div class="section-toolbar"><div><h2>Sources</h2><p>Review built-in integrations, available inputs, and their operational categories.</p></div></div>
           <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>Integration</th><th>Available inputs</th><th>Category</th></tr></thead><tbody id="source-table"></tbody></table></div><div id="source-empty" class="empty-state" hidden></div></div>
         </section>
 
         <section id="view-destinations" class="view" data-page="destinations" hidden>
-          <div class="section-toolbar"><div><h2>Destinations</h2></div><button id="add-destination-button" class="button primary" type="button" data-action="new-destination">Add destination</button></div>
+          <div class="section-toolbar"><div><h2>Destinations</h2><p>Configure delivery targets for Discord, Microsoft Teams, Slack, generic webhooks, MQTT, and ntfy.</p></div><button id="add-destination-button" class="button primary" type="button" data-action="new-destination">Add destination</button></div>
           <div id="destination-list" class="resource-grid"></div>
         </section>
 
         <section id="view-routes" class="view" data-page="routes" hidden>
-          <div class="section-toolbar"><div><h2>Routes</h2></div><button id="add-route-button" class="button primary" type="button" data-action="new-route">Add route</button></div>
+          <div class="section-toolbar"><div><h2>Routes</h2><p>Connect integrations and inputs to destinations with priorities and event filters.</p></div><button id="add-route-button" class="button primary" type="button" data-action="new-route">Add route</button></div>
           <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>Name</th><th>Integration</th><th>Input</th><th>Destination</th><th>Filters</th><th>Priority</th><th>Status</th><th><span class="sr-only">Delete</span></th></tr></thead><tbody id="route-table"></tbody></table></div><div id="route-empty" class="empty-state" hidden></div></div>
         </section>
 
@@ -213,24 +244,30 @@
         </section>
 
         <section id="view-deliveries" class="view" data-page="deliveries" hidden>
-          <div class="section-toolbar"><div><h2>Delivery history</h2></div><label class="search-field"><span class="sr-only">Search deliveries</span><input id="delivery-search" type="search" placeholder="Search source, title, or outcome"></label></div>
-          <div id="delivery-list" class="timeline"></div>
+          <div class="section-toolbar"><div><h2>Delivery history</h2><p>Review final delivery outcomes, retries, response status, and safe transport errors for routed events.</p></div><label class="search-field"><span class="sr-only">Search deliveries</span><input id="delivery-search" type="search" placeholder="Search source, title, or outcome"></label></div>
+          <div class="table-panel professional-timeline-panel">
+            <div class="professional-panel-header" data-panel-header="deliveries" role="heading" aria-level="3">
+              <strong>Delivery attempts</strong>
+              <span>Source, outcome, response, and time</span>
+            </div>
+            <div id="delivery-list" class="timeline"></div>
+          </div>
         </section>
 
         <section id="view-audit" class="view" data-page="audit" hidden>
-          <div class="section-toolbar"><div><h2>Audit log</h2></div><label class="search-field"><span class="sr-only">Search audit events</span><input id="audit-search" type="search" placeholder="Search action or outcome"></label></div>
+          <div class="section-toolbar"><div><h2>Audit log</h2><p>Review security-relevant actions, health checks, outcomes, and operational details.</p></div><label class="search-field"><span class="sr-only">Search audit events</span><input id="audit-search" type="search" placeholder="Search action or outcome"></label></div>
           <article class="panel health-panel"><div class="panel-heading"><div><p class="eyebrow">System checks</p><h3>Nowlert health</h3><p>Read-only tests of configuration, storage, credentials, routes, backups, and recent delivery failures.</p></div><button class="button secondary" type="button" data-action="run-health-checks">Run checks</button></div><div id="health-check-list" class="health-check-list"></div></article>
           <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>Time</th><th>Action</th><th>Resource</th><th>Outcome</th><th>Details</th></tr></thead><tbody id="audit-table"></tbody></table></div><div id="audit-empty" class="empty-state" hidden></div></div>
           <div class="audit-footer"><label><span>Entries</span><select id="audit-page-size"><option>25</option><option>50</option><option>100</option><option>150</option><option>250</option><option>500</option></select></label></div>
         </section>
 
         <section id="view-users" class="view" data-page="users" hidden>
-          <div class="section-toolbar"><div><h2>Users</h2></div><button class="button primary" type="button" data-action="new-user">Add user</button></div>
+          <div class="section-toolbar"><div><h2>Users</h2><p>Manage local accounts, roles, access state, and password resets.</p></div><button class="button primary" type="button" data-action="new-user">Add user</button></div>
           <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>User</th><th>Role</th><th>Last login</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="user-table"></tbody></table></div></div>
         </section>
 
         <section id="view-settings" class="view" data-page="settings" hidden>
-          <div class="section-toolbar"><div><h2>Settings</h2></div></div>
+          <div class="section-toolbar"><div><h2>Settings</h2><p>Configure regional preferences and integration-specific behavior.</p></div></div>
           <article class="panel settings-card">
             <div class="panel-heading"><div><p class="eyebrow">Regional settings</p><h3>Language, timezone, and clock</h3><p>Timezone also controls timestamps generated by Nowlert notification formatters.</p></div></div>
             <form id="preferences-form" class="form-grid">
@@ -247,7 +284,7 @@
         </section>
 
         <section id="view-updates" class="view" data-page="updates" hidden>
-          <div class="section-toolbar"><div><h2>Updates</h2></div></div>
+          <div class="section-toolbar"><div><h2>Updates</h2><p>Review the running version and any advertised Nowlert update.</p></div></div>
           <article class="panel update-panel">
             <div><strong>Running version</strong><span id="running-version">—</span></div>
             <div><strong>Available version</strong><span id="available-version">Not advertised</span></div>
@@ -256,7 +293,7 @@
         </section>
 
         <section id="view-inputs" class="view" data-page="inputs" hidden>
-          <div class="section-toolbar"><div><h2>Inputs</h2></div></div>
+          <div class="section-toolbar"><div><h2>Inputs</h2><p>Inspect and manage the SMTP, HTTP, and Redfish listeners used to receive events.</p></div></div>
           <div class="data-tools-grid">
             <article class="panel data-tool-card configuration-card">
               <div><p class="eyebrow">Inputs</p><h3 id="configuration-card-title">Configured inputs</h3><p id="configuration-card-copy">SMTP, HTTP, and Redfish are managed independently. Click a status to enable or disable an input; changes apply after Nowlert restarts.</p></div>
@@ -268,7 +305,7 @@
         </section>
 
         <section id="view-data" class="view" data-page="data" hidden>
-          <div class="section-toolbar"><div><h2>Data tools</h2></div></div>
+          <div class="section-toolbar"><div><h2>Data tools</h2><p>Export, preview, and import portable configuration without exposing credentials.</p></div></div>
           <div class="data-tools-grid">
             <article class="panel data-tool-card">
               <div><p class="eyebrow">Portable configuration</p><h3>Export destinations and routes</h3><p>Downloads owner-aware settings without passwords, application tokens, or destination credentials.</p></div>
@@ -283,7 +320,7 @@
         </section>
 
         <section id="view-backups" class="view" data-page="backups" hidden>
-          <div class="section-toolbar"><div><h2>Backups</h2></div><button class="button primary" type="button" data-action="new-backup-target">Add backup destination</button></div>
+          <div class="section-toolbar"><div><h2>Backups</h2><p>Configure backup destinations, schedules, snapshots, and restore operations.</p></div><button class="button primary" type="button" data-action="new-backup-target">Add backup destination</button></div>
           <div class="data-tools-grid">
             <article class="panel data-tool-card backup-targets-card">
               <div class="panel-heading"><div><p class="eyebrow">Destinations</p><h3>Backup storage</h3><p>Remote targets are reachability-tested, mounted when managed mounts are enabled, and verified with a real write test.</p></div></div>
@@ -310,7 +347,7 @@
         </section>
 
         <section id="view-account" class="view" data-page="account" hidden>
-          <div class="section-toolbar"><div><h2>Account security</h2></div></div>
+          <div class="section-toolbar"><div><h2>Account security</h2><p>Manage your profile picture, password, and active account security settings.</p></div></div>
           <div class="account-grid">
             <article class="panel identity-card"><span id="account-avatar" class="avatar large">N</span><div><h3 id="account-name">Account</h3><p id="account-role">User</p><small id="account-session">Session active</small><form id="avatar-form" class="avatar-form"><label class="button secondary small">Choose picture<input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><div id="avatar-editor" class="avatar-editor" hidden><canvas id="avatar-canvas" width="256" height="256" aria-label="Circular profile picture crop preview"></canvas><label><span>Zoom</span><input id="avatar-zoom" type="range" min="1" max="3" step="0.01" value="1"></label><small>Drag the picture to position it inside the circle.</small></div><button id="avatar-save" class="button secondary small" type="submit" disabled hidden>Save picture</button><button class="text-button" type="button" data-action="remove-avatar">Remove</button></form></div></article>
             <article class="panel"><div class="panel-heading"><div><h3>Change password</h3><p>This signs out every active session, including this one.</p></div></div><form id="password-form" class="stack compact"><label><span>Current password</span><input name="current_password" type="password" autocomplete="current-password" required></label><label><span>New password</span><input name="new_password" type="password" autocomplete="new-password" minlength="12" required></label><label><span>Confirm new password</span><input name="confirm_password" type="password" autocomplete="new-password" minlength="12" required></label><button class="button primary" type="submit">Update password</button></form></article>

@@ -247,7 +247,11 @@ def test_every_discord_integration_uses_its_exact_official_product_asset(
     )
     embed = formatter.format(item)["embeds"][0]
 
-    expected = PresentationMixin.DISCORD_PRODUCT_ICONS.get(source, filename)
+    icon_source = "nowlert" if source == "generic" else source
+    expected = PresentationMixin.DISCORD_PRODUCT_ICONS.get(
+        icon_source,
+        filename,
+    )
     assert embed["thumbnail"]["url"] == (
         f"nowlert-asset://{expected}"
     )
@@ -701,9 +705,10 @@ def test_every_discord_product_thumbnail_resolves_to_a_packaged_asset(
 
     assert resolved is not None
     resolved_filename, resolved_path, thumbnail = resolved
+    icon_source = "nowlert" if source == "generic" else source
     expected_relative = formatter.DISCORD_PRODUCT_ICONS.get(
-        source,
-        formatter.PRODUCT_ICONS.get(source, filename),
+        icon_source,
+        formatter.PRODUCT_ICONS.get(icon_source, filename),
     )
     assert resolved_filename == Path(expected_relative).name
     assert resolved_path == (

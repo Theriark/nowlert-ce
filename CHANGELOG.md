@@ -18,6 +18,39 @@
 - Align the public platform state path with the production `/nowlert/state`
   mount and add the v2.3.3-to-v2.5.2 implementation sequence.
 
+## 3.1.0 - 2026-08-08
+
+### Added
+
+- Professional Amber Accent Dashboard with Delivery History analytics, Recent
+  Activity, Top Sources, Top Destinations, System Health, and Routing Flow.
+- Official Nowlert owl branding across WebUI application surfaces and generic
+  Discord notifications.
+- Browser Back and Forward navigation between internal WebUI sections.
+- Contextual descriptions across management pages and branded ranking empty
+  states.
+- Routes, Delivery History, and Audit Log pagination improvements.
+- Route severity/status Select All and Clear controls.
+- Expanded regional language and timezone choices.
+- Version-aware Dokploy health gating and built-image brand/version validation.
+
+### Fixed
+
+- Destination title/message validation and long-title layout handling.
+- Configured webhook presentation during destination editing without exposing
+  stored credentials.
+- Restart Nowlert reliability and misleading restart-policy dialog text.
+- Integration Settings Cancel, Close, and Escape behavior with unsaved-change
+  protection.
+- Username 64-character enforcement and Save Picture visibility.
+- Development bootstrap configuration packaging and deployment cutover race.
+
+### Compatibility
+
+- Database schema remains 9 and the configuration model remains
+  `platform_database_v1`.
+- No database migration is required from v3.0.0.
+
 ## 3.0.0 - 2026-07-29
 
 ### Changed

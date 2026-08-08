@@ -71,6 +71,7 @@ class PresentationMixin:
     # These variants retain the official artwork on a larger transparent canvas,
     # reducing only the visible mark inside Discord cards.
     DISCORD_PRODUCT_ICONS = {
+        "nowlert": "discord/nowlert-owl-v3.1.0.png",
         "xo": "discord/xen-orchestra.png",
         "xen_orchestra": "discord/xen-orchestra.png",
         "xenorchestra": "discord/xen-orchestra.png",

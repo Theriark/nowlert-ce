@@ -81,10 +81,25 @@ class WebUIService:
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/professional.css": (
+                "src/webui/professional.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/dashboard.js": (
+                "src/webui/dashboard.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/icon.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
-                "public, max-age=86400",
+                "no-cache",
+            ),
+            "/ui/brand/nowlert-owl-v3.1.0.png": (
+                "assets/icons/nowlert.png",
+                "image/png",
+                "public, max-age=31536000, immutable",
             ),
             "/ui/icons/discord.svg": (
                 "assets/icons/discord.svg", "image/svg+xml", "public, max-age=86400"

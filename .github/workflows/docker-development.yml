@@ -142,15 +142,42 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+
+      - name: Verify Development image version and approved owl
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          EXPECTED_VERSION="$(
+            PYTHONPATH=src python3 -c 'from version import VERSION; print(VERSION)'
+          )"
+          EXPECTED_ICON_SHA="684bda33be520811ab80057da41c34112ffc58ee7a559ffd66ba3f02b92f052a"
+          IMAGE_REF="${IMAGE}@${{ steps.build.outputs.digest }}"
+
+          docker pull "${IMAGE_REF}"
+          docker run --rm \
+            --entrypoint python \
+            -e PYTHONPATH=/nowlert/src \
+            "${IMAGE_REF}" \
+            -c 'import hashlib, pathlib, sys; from version import VERSION; expected_version, expected_sha = sys.argv[1:3]; data = pathlib.Path("/nowlert/assets/icons/nowlert.png").read_bytes(); assert VERSION == expected_version, (VERSION, expected_version); assert hashlib.sha256(data).hexdigest() == expected_sha' \
+            "${EXPECTED_VERSION}" \
+            "${EXPECTED_ICON_SHA}"
+
+          echo "Verified image version ${EXPECTED_VERSION} and approved owl ${EXPECTED_ICON_SHA}"
+
       - name: Deploy exact CE digest to Development
         id: deploy
         shell: bash
         run: |
           set -euo pipefail
+          EXPECTED_VERSION="$(
+            PYTHONPATH=src python3 -c 'from version import VERSION; print(VERSION)'
+          )"
           python .github/scripts/dokploy_release.py deploy \
             --application-id "${DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID}" \
             --image "${IMAGE}@${{ steps.build.outputs.digest }}" \
             --health-url https://ce-dev.nowlert.theriark.com/api/health \
+            --expected-version "${EXPECTED_VERSION}" \
             --title "CE Development ${SOURCE_SHA}" \
             --description "GitHub Actions run ${{ github.run_id }}"
 

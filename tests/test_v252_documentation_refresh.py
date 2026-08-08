@@ -1,4 +1,4 @@
-"""Current v2.5.2 public-documentation contract."""
+"""Historical v2.5.2 assets and current v3.1.0 documentation contract."""
 
 from pathlib import Path
 
@@ -8,14 +8,26 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_stable_documentation_uses_v252_and_current_screenshots():
+def test_stable_documentation_uses_v310_and_preserves_v252_assets():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     dockerhub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
 
-    assert "v2.5.2" in readme
-    assert "v2.5.2" in dockerhub
+    assert "v3.1.0" in readme
+    assert "v3.1.0" in dockerhub
 
-    for name in (
+    current = (
+        "v3.1.0-dashboard.png",
+        "v3.1.0-routing-flow.png",
+        "v3.1.0-destinations.png",
+        "v3.1.0-delivery-history.png",
+        "v3.1.0-discord-xen-orchestra.png",
+        "v3.1.0-teams-xen-orchestra.png",
+    )
+    for name in current:
+        assert (ROOT / "docs" / "images" / name).is_file()
+        assert name in readme
+
+    historical = (
         "v2.5.2-overview.png",
         "v2.5.2-routing-flow.png",
         "v2.5.2-sources.png",
@@ -24,10 +36,11 @@ def test_stable_documentation_uses_v252_and_current_screenshots():
         "v2.5.2-settings.png",
         "v2.5.2-discord-idrac.png",
         "v2.5.2-teams.png",
-    ):
+    )
+    for name in historical:
         assert (ROOT / "docs" / "images" / name).is_file()
-        assert name in readme
 
+    assert "v2.5.2-overview.png" not in readme
     assert "teams-xen-orchestra-v1.9.6.png" not in readme
     assert "discord-xen-orchestra-v1.9.6.png" not in readme
 

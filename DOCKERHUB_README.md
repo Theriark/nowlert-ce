@@ -14,7 +14,7 @@ Nowlert receives infrastructure events over **SMTP**, **HTTP**, and
 notifications to Discord, Microsoft Teams, Slack, generic webhooks, MQTT, and
 ntfy.
 
-The current stable release is **v3.0.0**. The corresponding image is **`theriark/nowlert-ce:3.0.0`**.
+The current stable release is **v3.1.0**. The corresponding image is **`theriark/nowlert-ce:3.1.0`**.
 
 ## Highlights
 
@@ -30,7 +30,15 @@ The current stable release is **v3.0.0**. The corresponding image is **`theriark
 - Scheduled local, NFS, or SMB private-state backups
 - Hardened production Compose deployment
 
-![Nowlert v2.5.2 Routing Flow](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v2.5.2-routing-flow.png)
+## Preview
+
+![Nowlert v3.1.0 Dashboard](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-dashboard.png)
+
+![Nowlert v3.1.0 Routing Flow](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-routing-flow.png)
+
+![Nowlert v3.1.0 Discord Xen Orchestra](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-discord-xen-orchestra.png)
+
+![Nowlert v3.1.0 Microsoft Teams Xen Orchestra](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-teams-xen-orchestra.png)
 
 ## Quick start
 
@@ -85,10 +93,10 @@ WebUI and stored in private platform state.
 
 Do not add the legacy `outputs`, `routing`, `notifications`,
 `presentation`, `home_assistant`, `redfish`, `api.tokens`,
-`platform.backups`, or `webui.language` sections to a fresh v3.0
+`platform.backups`, or `webui.language` sections to a fresh v3.1
 configuration.
 
-The first successful v3.0 start can import a supported v2.4 YAML installation,
+The first successful v3.1 start can import a supported v2.4 YAML installation,
 preserve IDs and credentials, and atomically normalize the mounted file.
 
 ## Built-in integrations

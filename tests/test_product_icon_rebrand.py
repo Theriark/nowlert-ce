@@ -32,6 +32,12 @@ def test_webui_primary_icon_uses_nowlert_asset():
     )
 
     assert service.assets["/ui/icon.png"][0] == "assets/icons/nowlert.png"
+    assert service.assets["/ui/icon.png"][2] == "no-cache"
+    assert service.assets["/ui/brand/nowlert-owl-v3.1.0.png"] == (
+        "assets/icons/nowlert.png",
+        "image/png",
+        "public, max-age=31536000, immutable",
+    )
     assert (
         service.assets["/ui/source-icons/nowlert.png"][0]
         == "assets/icons/nowlert.png"
@@ -44,7 +50,7 @@ def test_webui_uses_nowlert_source_and_schema():
         ROOT / "src" / "webui" / "enhancements.js"
     ).read_text(encoding="utf-8")
 
-    assert 'GENERIC_SOURCE_ICON = "/ui/source-icons/nowlert.png"' in app
+    assert 'GENERIC_SOURCE_ICON = "/ui/brand/nowlert-owl-v3.1.0.png"' in app
     assert 'source: "nowlert"' in app
     assert 'schema: "nowlert.event.v1"' in app
     assert 'route.source : "nowlert"' in enhancements
