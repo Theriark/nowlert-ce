@@ -53,7 +53,7 @@ const SOURCE_ICONS = {
   dell_idrac: "/ui/source-icons/dell-idrac.png",
   home_assistant: "/ui/source-icons/home-assistant.png",
 };
-const GENERIC_SOURCE_ICON = "/ui/source-icons/nowlert.png";
+const GENERIC_SOURCE_ICON = "/ui/brand/nowlert-owl-v3.1.0.png";
 const PRIORITIES = [
   ["critical", "Critical"],
   ["high", "High"],

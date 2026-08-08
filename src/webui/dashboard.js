@@ -210,7 +210,7 @@
     if (!entries.length) {
       const emptyState = node("div", "dashboard-ranking-empty");
       const icon = node("img");
-      icon.src = "/ui/icon.png";
+      icon.src = "/ui/brand/nowlert-owl-v3.1.0.png";
       icon.alt = "";
       icon.setAttribute("aria-hidden", "true");
       emptyState.append(

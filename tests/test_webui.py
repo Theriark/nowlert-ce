@@ -376,7 +376,7 @@ def test_v310_management_descriptions_content_headers_and_ranking_empty_states()
 
     assert '"No top sources"' in dashboard
     assert '"No top destinations"' in dashboard
-    assert 'icon.src = "/ui/icon.png";' in dashboard
+    assert 'icon.src = "/ui/brand/nowlert-owl-v3.1.0.png";' in dashboard
 
     marker = "/* Nowlert 3.1.0 management descriptions and content headers */"
     assert marker in styles

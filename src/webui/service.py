@@ -94,7 +94,12 @@ class WebUIService:
             "/ui/icon.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
-                "public, max-age=86400",
+                "no-cache",
+            ),
+            "/ui/brand/nowlert-owl-v3.1.0.png": (
+                "assets/icons/nowlert.png",
+                "image/png",
+                "public, max-age=31536000, immutable",
             ),
             "/ui/icons/discord.svg": (
                 "assets/icons/discord.svg", "image/svg+xml", "public, max-age=86400"

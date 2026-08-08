@@ -184,27 +184,66 @@ def current_image(application_id: str) -> str:
     return image.strip()
 
 
-def wait_health(url: str, timeout_seconds: int) -> None:
+def wait_health(
+    url: str,
+    timeout_seconds: int,
+    *,
+    expected_version: str = "",
+) -> None:
     deadline = time.monotonic() + timeout_seconds
     last_error = "health endpoint did not respond"
+    consecutive_matches = 0
+
     while time.monotonic() < deadline:
-        request = urllib.request.Request(url, headers={"accept": "application/json"})
+        request = urllib.request.Request(
+            url,
+            headers={"accept": "application/json"},
+        )
         try:
             with urllib.request.urlopen(request, timeout=15) as response:
                 body = response.read().decode("utf-8", errors="replace")
                 status_code = response.status
             payload = json.loads(body)
-            if status_code == 200 and payload.get("status") == "ok":
-                print(
-                    f"PASS: {url} returned HTTP 200 status=ok "
-                    f"version={payload.get('version', 'unknown')}"
+            observed_version = str(payload.get("version") or "").strip()
+            healthy = status_code == 200 and payload.get("status") == "ok"
+
+            if not healthy:
+                consecutive_matches = 0
+                last_error = f"HTTP {status_code}: {body[:500]}"
+            elif expected_version and observed_version != expected_version:
+                consecutive_matches = 0
+                last_error = (
+                    f"healthy response is still version {observed_version or 'unknown'}; "
+                    f"waiting for {expected_version}"
                 )
-                return
-            last_error = f"HTTP {status_code}: {body[:500]}"
-        except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as exc:
+                print(f"WAIT: {url} {last_error}")
+            else:
+                consecutive_matches += 1
+                if consecutive_matches >= 2:
+                    print(
+                        f"PASS: {url} returned two consecutive HTTP 200 "
+                        f"status=ok responses version={observed_version or 'unknown'}"
+                    )
+                    return
+                last_error = (
+                    f"received first matching healthy response version="
+                    f"{observed_version or 'unknown'}; confirming"
+                )
+                print(f"WAIT: {url} {last_error}")
+        except (
+            urllib.error.URLError,
+            urllib.error.HTTPError,
+            json.JSONDecodeError,
+            TimeoutError,
+        ) as exc:
+            consecutive_matches = 0
             last_error = str(exc)
-        time.sleep(10)
-    raise DokployError(f"Health check timed out for {url}: {last_error}")
+        time.sleep(5)
+
+    expected = f" version={expected_version}" if expected_version else ""
+    raise DokployError(
+        f"Health check timed out for {url}{expected}: {last_error}"
+    )
 
 
 def deploy(args: argparse.Namespace) -> None:
@@ -232,7 +271,11 @@ def deploy(args: argparse.Namespace) -> None:
         )
         print(f"Deployment requested for {args.application_id}: {args.image}")
 
-    wait_health(args.health_url, args.timeout)
+    wait_health(
+        args.health_url,
+        args.timeout,
+        expected_version=args.expected_version,
+    )
     observed = current_image(args.application_id)
     if observed != args.image:
         raise DokployError(
@@ -353,6 +396,7 @@ def build_parser() -> argparse.ArgumentParser:
     deploy_parser.add_argument("--title", default="Immutable image deployment")
     deploy_parser.add_argument("--description", default="Managed by GitHub Actions")
     deploy_parser.add_argument("--timeout", type=int, default=600)
+    deploy_parser.add_argument("--expected-version", default="")
     deploy_parser.add_argument("--allow-mutable", action="store_true")
     deploy_parser.add_argument("--noop-ok", action="store_true")
     deploy_parser.set_defaults(func=deploy)

@@ -118,10 +118,20 @@ jobs:
         run: |
           set -euo pipefail
 
+          EXPECTED_VERSION="$(
+            git show "${SOURCE_COMMIT}:src/version.py" |
+              sed -n 's/^VERSION = "\([^"[:space:]]*\)"$/\1/p'
+          )"
+          [[ -n "${EXPECTED_VERSION}" ]] || {
+            echo "::error::Could not determine version for ${SOURCE_COMMIT}"
+            exit 1
+          }
+
           python .github/scripts/dokploy_release.py deploy \
             --application-id="${CE_PRODREF_APPLICATION_ID}" \
             --image "${PROMOTION_IMAGE}" \
             --health-url https://ce-prod.nowlert.theriark.com/api/health \
+            --expected-version "${EXPECTED_VERSION}" \
             --title "CE Production Reference promotion ${{ github.run_id }}" \
             --description "CE Stage run: ${{ inputs.stage_promotion_run }}" \
             --noop-ok

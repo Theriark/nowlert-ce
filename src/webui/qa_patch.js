@@ -194,7 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* Nowlert 3.1.0 empty-state icon restoration */
 (() => {
-  const ICON_PATH = "/ui/icon.png";
+  const ICON_PATH = "/ui/brand/nowlert-owl-v3.1.0.png";
 
   function restoreEmptyStateIcons(root = document) {
     const candidates = root.querySelectorAll('.empty-state, .empty-panel, .fallback-product-mark');
