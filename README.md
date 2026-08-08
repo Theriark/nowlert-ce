@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icons/nowlert.png" width="240" alt="Nowlert logo">
+  <img src="docs/images/logo.png" width="240" alt="Nowlert logo">
 </p>
 
 <h1 align="center">Nowlert CE</h1>
@@ -15,7 +15,7 @@ Built for Homelabs • Ready for Enterprise
 <p align="center">
 
 <a href="https://github.com/Theriark/nowlert-ce/releases">
-  <img src="https://img.shields.io/badge/stable-v3.0.0-blue" alt="Stable release v3.0.0">
+  <img src="https://img.shields.io/badge/stable-v3.1.0-F4C542" alt="Stable release v3.1.0">
 </a>
 
 <a href="https://www.python.org/">
@@ -49,19 +49,20 @@ Built for Homelabs • Ready for Enterprise
 | Property | Value |
 |----------|-------|
 | **Status** | 🚀 Stable – Production Ready |
-| **Current Stable Release** | **v3.0.0** |
+| **Current Stable Release** | **v3.1.0** |
 | **Next Planned Release** | **v3.x** |
 | **License** | MIT |
 | **Python** | 3.13 |
 
-Nowlert 3.0.0 establishes the product, repository, deployment, and container
-identity used throughout the project. Runtime contracts use the Nowlert
-namespace consistently across persistent state, paths, cookies, and schemas.
+Nowlert 3.1.0 delivers the approved Amber Accent Community Edition WebUI,
+professional Dashboard analytics, official owl branding, pagination and
+management-page polish, safer Integration Settings editing, and stronger
+version-aware deployment readiness checks. The release retains database schema
+9 and the `platform_database_v1` configuration model.
 
-See the [v3.0.0 release notes](docs/releases/v3.0.0.md) for the repository and
-registry transition, compatibility boundaries, upgrade guidance, and rollback
-procedure. The operator walkthrough is in the
-[v3.0.0 acceptance checklist](docs/v3.0.0-acceptance-checklist.md).
+See the [v3.1.0 release notes](docs/releases/v3.1.0.md) and the
+[v3.1.0 QA checklist](docs/v3.1.0-qa-checklist.md) for upgrade, validation, and
+rollback guidance.
 
 Nowlert v2 adds a self-hosted notification platform with local accounts,
 database-authoritative destinations, routes, application tokens, regional
@@ -109,42 +110,29 @@ corrections remain in place.
 
 # 📸 Preview
 
-The screenshots below show the current **v2.5.2** WebUI and outbound
-notification presentation. They replace the older v1.9.6 examples while
-preserving the detailed project documentation that follows.
+The screenshots below show the **Nowlert CE v3.1.0** Amber Accent WebUI and
+outbound notification presentation using populated release-candidate state.
 
 ## Current WebUI
 
-| Overview | Routing Flow |
+| Dashboard | Routing Flow |
 |---|---|
-| ![Nowlert v2.5.2 Overview](docs/images/v2.5.2-overview.png) | ![Nowlert v2.5.2 Routing Flow](docs/images/v2.5.2-routing-flow.png) |
+| ![Nowlert v3.1.0 Dashboard](docs/images/v3.1.0-dashboard.png) | ![Nowlert v3.1.0 Routing Flow](docs/images/v3.1.0-routing-flow.png) |
 
-| Sources | Destinations |
+| Destinations | Delivery History |
 |---|---|
-| ![Built-in integrations and inputs](docs/images/v2.5.2-sources.png) | ![Database-backed destinations](docs/images/v2.5.2-destinations.png) |
+| ![Nowlert v3.1.0 Destinations](docs/images/v3.1.0-destinations.png) | ![Nowlert v3.1.0 Delivery History](docs/images/v3.1.0-delivery-history.png) |
 
-| Inputs | Settings |
+## Notifications
+
+| Discord | Microsoft Teams |
 |---|---|
-| ![SMTP, HTTP, and Redfish inputs](docs/images/v2.5.2-inputs.png) | ![Regional and integration settings](docs/images/v2.5.2-settings.png) |
+| ![Nowlert v3.1.0 Discord Xen Orchestra](docs/images/v3.1.0-discord-xen-orchestra.png) | ![Nowlert v3.1.0 Microsoft Teams Xen Orchestra](docs/images/v3.1.0-teams-xen-orchestra.png) |
 
-| Routes | Event API access |
-|---|---|
-| ![Input-aware routes](docs/images/v2.5.2-routes.png) | ![Scoped Event API tokens](docs/images/v2.5.2-api-access.png) |
+Additional v3.1.0 Discord examples for Dell iDRAC and UniFi are retained under
+`docs/images/` for release documentation and QA reference.
 
-## Current notifications
-
-| Discord — Dell iDRAC | Discord — Zabbix |
-|---|---|
-| ![Dell iDRAC notification in Discord](docs/images/v2.5.2-discord-idrac.png) | ![Zabbix notification in Discord](docs/images/v2.5.2-discord-zabbix.png) |
-
-| Microsoft Teams |
-|---|
-| ![Nowlert notification in Microsoft Teams](docs/images/v2.5.2-teams.png) |
-
-Nowlert uses source-aware presentation, severity colours, structured event
-details, and packaged vendor assets. Discord-specific padded thumbnails keep
-large vendor artwork readable without changing Microsoft Teams sizing.
-
+---
 # What is Nowlert?
 
 **Nowlert** is a parser-driven Infrastructure Notification Engine and

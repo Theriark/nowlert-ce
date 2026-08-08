@@ -1,4 +1,4 @@
-"""Release metadata invariants for Nowlert v3.0.0."""
+"""Release metadata invariants for Nowlert v3.1.0."""
 
 import json
 from pathlib import Path
@@ -31,22 +31,24 @@ def test_public_enterprise_release_manifest_is_valid():
 def test_readme_release_metadata_is_current():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert "stable-v3.0.0-blue" in readme
-    assert "| **Current Stable Release** | **v3.0.0** |" in readme
+    assert "stable-v3.1.0-F4C542" in readme
+    assert "| **Current Stable Release** | **v3.1.0** |" in readme
     assert "| **Next Planned Release** | **v3.x** |" in readme
     assert "https://github.com/Theriark/nowlert-ce/releases" in readme
 
 
-def test_changelog_preserves_history_and_adds_v300():
+def test_changelog_preserves_history_and_adds_v310():
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
+    assert "## 3.1.0 - 2026-08-08" in changelog
     assert "## 3.0.0 - 2026-07-29" in changelog
     assert "## 2.5.5 - 2026-07-27" in changelog
-    assert changelog.index("## Unreleased") < changelog.index("## 3.0.0")
+    assert changelog.index("## Unreleased") < changelog.index("## 3.1.0")
+    assert changelog.index("## 3.1.0") < changelog.index("## 3.0.0")
     assert changelog.index("## 3.0.0") < changelog.index("## 2.5.5")
 
 
-def test_v300_release_documents_exist():
+def test_v300_release_documents_remain_historical():
     notes = ROOT / "docs" / "releases" / "v3.0.0.md"
     checklist = ROOT / "docs" / "v3.0.0-acceptance-checklist.md"
     docker_hub = (ROOT / "DOCKERHUB_README.md").read_text(
@@ -59,8 +61,8 @@ def test_v300_release_documents_exist():
     assert checklist.read_text(encoding="utf-8").startswith(
         "# Nowlert v3.0.0 acceptance checklist"
     )
-    assert "current stable release is **v3.0.0**" in docker_hub
-    assert "theriark/nowlert-ce:3.0.0" in docker_hub
+    assert "current stable release is **v3.1.0**" in docker_hub
+    assert "theriark/nowlert-ce:3.1.0" in docker_hub
 
 
 def test_historical_v255_release_identity_is_preserved():
@@ -85,8 +87,8 @@ def test_production_defaults_are_versioned_and_compatible():
         encoding="utf-8"
     )
 
-    assert "NOWLERT_IMAGE=theriark/nowlert-ce:3.0.0" in environment
-    assert "theriark/nowlert-ce:3.0.0" in compose
+    assert "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.0" in environment
+    assert "theriark/nowlert-ce:3.1.0" in compose
     assert "NOWLERT_IMAGE" in compose
     assert "NOWLERT_EXTERNAL_BACKUP_DIR" in compose
     assert "/nowlert/external-backups" in compose

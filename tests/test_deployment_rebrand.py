@@ -19,7 +19,7 @@ def test_production_compose_uses_nowlert_identity():
     service = compose["services"]["nowlert-ce"]
 
     assert service["container_name"] == "nowlert-ce"
-    assert service["image"] == "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.0.0}"
+    assert service["image"] == "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.1.0}"
 
 
 def test_production_compose_uses_nowlert_host_variables():
