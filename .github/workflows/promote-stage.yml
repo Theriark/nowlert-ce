@@ -28,7 +28,7 @@ jobs:
   promote:
     name: Promote CE immutable image to Stage
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     environment: stage
 
     env:
@@ -37,7 +37,6 @@ jobs:
       PROMOTION_IMAGE: ${{ inputs.ce_image }}
       SOURCE_COMMIT: ${{ inputs.source_commit }}
       CE_STAGE_APPLICATION_ID: D0aI55MKe3G77LFdQcPdY
-      STAGE_CE_QA_SCHEDULE_ID: ${{ vars.STAGE_CE_QA_SCHEDULE_ID }}
 
     steps:
       - name: Checkout pipeline code
@@ -57,11 +56,6 @@ jobs:
 
           [[ -n "${DOKPLOY_API_KEY}" ]] || {
             echo "::error::DOKPLOY_API_KEY is missing"
-            exit 1
-          }
-
-          [[ -n "${STAGE_CE_QA_SCHEDULE_ID}" ]] || {
-            echo "::error::STAGE_CE_QA_SCHEDULE_ID is missing"
             exit 1
           }
 
@@ -104,16 +98,25 @@ jobs:
             --description "${{ inputs.change_reference }}" \
             --noop-ok
 
-      - name: Run CE Stage QA on VM-12
-        id: stage_qa
+      # This gate is intentionally passive. Do not add notification-ingress or
+      # destination-delivery tests to an automatic promotion workflow.
+      - name: Run notification-silent CE Stage promotion smoke
+        id: silent_smoke
         shell: bash
         run: |
           set -euo pipefail
 
-          python .github/scripts/dokploy_release.py run-schedule \
-            --schedule-id "${STAGE_CE_QA_SCHEDULE_ID}" \
-            --success-marker "STAGE CE QA PASSED" \
-            --timeout 5400
+          EXPECTED_VERSION="$(
+            git show "${SOURCE_COMMIT}:src/version.py" |
+              sed -n 's/^VERSION = "\([^"[:space:]]*\)"$/\1/p'
+          )"
+
+          python .github/scripts/dokploy_release.py promotion-smoke \
+            --application-id "${CE_STAGE_APPLICATION_ID}" \
+            --image "${PROMOTION_IMAGE}" \
+            --health-url https://ce-stage.nowlert.theriark.com/api/health \
+            --expected-version "${EXPECTED_VERSION}" \
+            --success-marker "STAGE CE SILENT PROMOTION SMOKE PASSED"
 
       - name: Configure AWS credentials for CE ledger
         uses: aws-actions/configure-aws-credentials@v6.1.1
@@ -138,9 +141,9 @@ jobs:
             --source-commit "${SOURCE_COMMIT}" \
             --promotion-run "${GITHUB_RUN_ID}" \
             --application-id "${CE_STAGE_APPLICATION_ID}" \
-            --schedule-id "${STAGE_CE_QA_SCHEDULE_ID}" \
-            --schedule-deployment-id "${{ steps.stage_qa.outputs.deployment_id }}" \
-            --qa-marker "STAGE CE QA PASSED"
+            --evidence-type silent-promotion-smoke \
+            --health-url https://ce-stage.nowlert.theriark.com/api/health \
+            --success-marker "STAGE CE SILENT PROMOTION SMOKE PASSED"
 
       - name: Record successful CE Stage promotion
         shell: bash
@@ -151,14 +154,15 @@ jobs:
             echo "- CE image: \`${PROMOTION_IMAGE}\`"
             echo "- Source commit: \`${SOURCE_COMMIT}\`"
             echo "- Change reference: ${{ inputs.change_reference }}"
-            echo "- Stage QA deployment: \`${{ steps.stage_qa.outputs.deployment_id }}\`"
+            echo "- Silent promotion smoke: passed"
+            echo "- Notification delivery tests: disabled"
             echo "- Ledger key: \`${{ steps.ledger.outputs.key }}\`"
             echo "- Ledger version: \`${{ steps.ledger.outputs.version_id }}\`"
             echo "- Rebuild performed: no"
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Roll back CE after a failed Stage gate
-        if: ${{ (steps.deploy.outcome == 'failure' || steps.stage_qa.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
+        if: ${{ (steps.deploy.outcome == 'failure' || steps.silent_smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
         continue-on-error: true
         shell: bash
         run: |
@@ -167,6 +171,6 @@ jobs:
             --image "${{ steps.deploy.outputs.previous_image }}" \
             --health-url https://ce-stage.nowlert.theriark.com/api/health \
             --title "Automatic CE Stage rollback ${{ github.run_id }}" \
-            --description "The CE Stage promotion or QA gate failed" \
+            --description "The CE Stage promotion or silent smoke gate failed" \
             --allow-mutable \
             --noop-ok

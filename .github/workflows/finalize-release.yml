@@ -27,10 +27,6 @@ on:
         description: "Successful CE Production Reference promotion run ID"
         required: true
         type: string
-      qa_schedule_deployment_id:
-        description: "VM-13 Production Reference smoke schedule deployment ID"
-        required: true
-        type: string
       release_notes:
         description: "Human-readable release notes"
         required: true
@@ -61,7 +57,6 @@ jobs:
       DEVELOPMENT_RUN_ID: ${{ inputs.development_run_id }}
       STAGE_PROMOTION_RUN_ID: ${{ inputs.stage_promotion_run_id }}
       PRODUCTION_REFERENCE_RUN_ID: ${{ inputs.production_reference_run_id }}
-      QA_SCHEDULE_DEPLOYMENT_ID: ${{ inputs.qa_schedule_deployment_id }}
       RELEASE_NOTES: ${{ inputs.release_notes }}
       CE_PRODREF_APPLICATION_ID: -Qb71PLUZmBHLJ_Iv68Oo
 
@@ -160,7 +155,6 @@ jobs:
             --development-run "${DEVELOPMENT_RUN_ID}" \
             --stage-run "${STAGE_PROMOTION_RUN_ID}" \
             --production-reference-run "${PRODUCTION_REFERENCE_RUN_ID}" \
-            --qa-schedule-deployment-id "${QA_SCHEDULE_DEPLOYMENT_ID}" \
             --release-notes "${RELEASE_NOTES}"
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -293,7 +287,7 @@ jobs:
             echo "- Development run: \`${DEVELOPMENT_RUN_ID}\`"
             echo "- Stage promotion run: \`${STAGE_PROMOTION_RUN_ID}\`"
             echo "- Production Reference run: \`${PRODUCTION_REFERENCE_RUN_ID}\`"
-            echo "- VM-13 schedule deployment: \`${QA_SCHEDULE_DEPLOYMENT_ID}\`"
+            echo "- Notification delivery tests during promotions: disabled"
             echo "- Ledger key: \`${{ steps.publish.outputs.key }}\`"
             echo "- Ledger version: \`${{ steps.publish.outputs.version_id }}\`"
             echo "- Rebuild performed: no"

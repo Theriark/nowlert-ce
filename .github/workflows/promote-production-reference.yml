@@ -28,7 +28,7 @@ jobs:
   promote:
     name: Promote CE Stage-approved image to Production Reference
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     environment: production-reference
 
     env:
@@ -38,7 +38,6 @@ jobs:
       SOURCE_COMMIT: ${{ inputs.source_commit }}
       CE_STAGE_APPLICATION_ID: D0aI55MKe3G77LFdQcPdY
       CE_PRODREF_APPLICATION_ID: -Qb71PLUZmBHLJ_Iv68Oo
-      PRODREF_CE_SMOKE_SCHEDULE_ID: ${{ vars.PRODREF_CE_SMOKE_SCHEDULE_ID }}
 
     steps:
       - name: Checkout pipeline code
@@ -58,11 +57,6 @@ jobs:
 
           [[ -n "${DOKPLOY_API_KEY}" ]] || {
             echo "::error::DOKPLOY_API_KEY is missing"
-            exit 1
-          }
-
-          [[ -n "${PRODREF_CE_SMOKE_SCHEDULE_ID}" ]] || {
-            echo "::error::PRODREF_CE_SMOKE_SCHEDULE_ID is missing"
             exit 1
           }
 
@@ -136,16 +130,25 @@ jobs:
             --description "CE Stage run: ${{ inputs.stage_promotion_run }}" \
             --noop-ok
 
-      - name: Run CE Production Reference smoke on VM-13
-        id: smoke
+      # This gate is intentionally passive. Do not add notification-ingress or
+      # destination-delivery tests to an automatic promotion workflow.
+      - name: Run notification-silent CE Production Reference promotion smoke
+        id: silent_smoke
         shell: bash
         run: |
           set -euo pipefail
 
-          python .github/scripts/dokploy_release.py run-schedule \
-            --schedule-id "${PRODREF_CE_SMOKE_SCHEDULE_ID}" \
-            --success-marker "PRODUCTION REFERENCE CE POST-PROMOTION SMOKE PASSED" \
-            --timeout 1800
+          EXPECTED_VERSION="$(
+            git show "${SOURCE_COMMIT}:src/version.py" |
+              sed -n 's/^VERSION = "\([^"[:space:]]*\)"$/\1/p'
+          )"
+
+          python .github/scripts/dokploy_release.py promotion-smoke \
+            --application-id="${CE_PRODREF_APPLICATION_ID}" \
+            --image "${PROMOTION_IMAGE}" \
+            --health-url https://ce-prod.nowlert.theriark.com/api/health \
+            --expected-version "${EXPECTED_VERSION}" \
+            --success-marker "PRODUCTION REFERENCE CE SILENT PROMOTION SMOKE PASSED"
 
       - name: Record CE Production Reference desired state
         id: ledger
@@ -159,9 +162,9 @@ jobs:
             --source-commit "${SOURCE_COMMIT}" \
             --promotion-run "${GITHUB_RUN_ID}" \
             --application-id="${CE_PRODREF_APPLICATION_ID}" \
-            --schedule-id "${PRODREF_CE_SMOKE_SCHEDULE_ID}" \
-            --schedule-deployment-id "${{ steps.smoke.outputs.deployment_id }}" \
-            --qa-marker "PRODUCTION REFERENCE CE POST-PROMOTION SMOKE PASSED"
+            --evidence-type silent-promotion-smoke \
+            --health-url https://ce-prod.nowlert.theriark.com/api/health \
+            --success-marker "PRODUCTION REFERENCE CE SILENT PROMOTION SMOKE PASSED"
 
       - name: Record successful CE Production Reference promotion
         shell: bash
@@ -172,14 +175,15 @@ jobs:
             echo "- CE image: \`${PROMOTION_IMAGE}\`"
             echo "- Source commit: \`${SOURCE_COMMIT}\`"
             echo "- CE Stage promotion run: ${{ inputs.stage_promotion_run }}"
-            echo "- Production Reference smoke: \`${{ steps.smoke.outputs.deployment_id }}\`"
+            echo "- Silent promotion smoke: passed"
+            echo "- Notification delivery tests: disabled"
             echo "- Ledger key: \`${{ steps.ledger.outputs.key }}\`"
             echo "- Ledger version: \`${{ steps.ledger.outputs.version_id }}\`"
             echo "- Rebuild performed: no"
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Roll back CE after a failed Production Reference gate
-        if: ${{ (steps.deploy.outcome == 'failure' || steps.smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
+        if: ${{ (steps.deploy.outcome == 'failure' || steps.silent_smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
         continue-on-error: true
         shell: bash
         run: |
@@ -188,6 +192,6 @@ jobs:
             --image "${{ steps.deploy.outputs.previous_image }}" \
             --health-url https://ce-prod.nowlert.theriark.com/api/health \
             --title "Automatic CE Production Reference rollback ${{ github.run_id }}" \
-            --description "The CE Production Reference promotion or smoke gate failed" \
+            --description "The CE Production Reference promotion or silent smoke gate failed" \
             --allow-mutable \
             --noop-ok

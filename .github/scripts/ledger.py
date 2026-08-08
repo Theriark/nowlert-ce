@@ -236,11 +236,42 @@ def build_current(args: argparse.Namespace) -> tuple[str, dict[str, Any]]:
     validate_image(args.image)
     validate_source_commit(args.source_commit)
     promotion_run = normalize_run_id(args.promotion_run)
-    validate_token(args.schedule_id, "Schedule ID")
-    validate_token(args.schedule_deployment_id, "Schedule deployment ID")
     validate_token(args.application_id, "Application ID")
-    if not args.qa_marker.strip():
-        fail("QA marker must not be empty")
+
+    evidence_type = str(getattr(args, "evidence_type", "schedule") or "schedule")
+    if evidence_type == "schedule":
+        schedule_id = str(getattr(args, "schedule_id", "") or "").strip()
+        schedule_deployment_id = str(
+            getattr(args, "schedule_deployment_id", "") or ""
+        ).strip()
+        qa_marker = str(getattr(args, "qa_marker", "") or "").strip()
+        validate_token(schedule_id, "Schedule ID")
+        validate_token(schedule_deployment_id, "Schedule deployment ID")
+        if not qa_marker:
+            fail("QA marker must not be empty")
+        evidence = {
+            "type": "qa_schedule",
+            "schedule_id": schedule_id,
+            "schedule_deployment_id": schedule_deployment_id,
+            "success_marker": qa_marker,
+            "notification_delivery_tests": True,
+        }
+    elif evidence_type == "silent-promotion-smoke":
+        health_url = str(getattr(args, "health_url", "") or "").strip()
+        success_marker = str(getattr(args, "success_marker", "") or "").strip()
+        if not health_url.startswith("https://"):
+            fail("Silent promotion smoke health URL must use https://")
+        if not success_marker:
+            fail("Silent promotion smoke success marker must not be empty")
+        evidence = {
+            "type": "silent_promotion_smoke",
+            "health_url": health_url,
+            "success_marker": success_marker,
+            "notification_delivery_tests": False,
+            "schedule_triggered": False,
+        }
+    else:
+        fail(f"Unsupported evidence type: {evidence_type}")
 
     key = f"{PREFIX}/{args.environment}/current.json"
     payload = {
@@ -252,11 +283,7 @@ def build_current(args: argparse.Namespace) -> tuple[str, dict[str, Any]]:
         "source_commit": args.source_commit,
         "promotion_run": promotion_run,
         "application_id": args.application_id,
-        "qa_evidence": {
-            "schedule_id": args.schedule_id,
-            "schedule_deployment_id": args.schedule_deployment_id,
-            "success_marker": args.qa_marker.strip(),
-        },
+        "qa_evidence": evidence,
         "workflow": workflow_metadata(),
         "approved_at": utc_now(),
     }
@@ -349,9 +376,16 @@ def parse_args() -> argparse.Namespace:
     current.add_argument("--source-commit", required=True)
     current.add_argument("--promotion-run", required=True)
     current.add_argument("--application-id", required=True)
-    current.add_argument("--schedule-id", required=True)
-    current.add_argument("--schedule-deployment-id", required=True)
-    current.add_argument("--qa-marker", required=True)
+    current.add_argument(
+        "--evidence-type",
+        choices=("schedule", "silent-promotion-smoke"),
+        default="schedule",
+    )
+    current.add_argument("--health-url", default="")
+    current.add_argument("--success-marker", default="")
+    current.add_argument("--schedule-id", default="")
+    current.add_argument("--schedule-deployment-id", default="")
+    current.add_argument("--qa-marker", default="")
     current.add_argument("--output-path")
     current.set_defaults(function=command_current)
 

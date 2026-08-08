@@ -294,6 +294,29 @@ def assert_image(args: argparse.Namespace) -> None:
     print(f"PASS: {args.application_id} runs {observed}")
 
 
+def promotion_smoke(args: argparse.Namespace) -> None:
+    """Passively verify a promoted image without submitting notification events."""
+    validate_image(args.image)
+    marker = args.success_marker.strip()
+    if not marker:
+        raise DokployError("Promotion smoke success marker must not be empty")
+
+    wait_health(
+        args.health_url,
+        args.timeout,
+        expected_version=args.expected_version,
+    )
+    observed = current_image(args.application_id)
+    if observed != args.image:
+        raise DokployError(
+            f"Dokploy application {args.application_id} reports {observed}, expected {args.image}"
+        )
+
+    print(f"PASS: passive promotion smoke confirmed exact image {observed}")
+    print("PASS: notification delivery tests disabled for this promotion smoke")
+    print(marker)
+
+
 def list_schedule_deployments(schedule_id: str) -> list[dict[str, Any]]:
     response = request_json(
         "GET",
@@ -405,6 +428,15 @@ def build_parser() -> argparse.ArgumentParser:
     assert_parser.add_argument("--application-id", required=True)
     assert_parser.add_argument("--image", required=True)
     assert_parser.set_defaults(func=assert_image)
+
+    smoke_parser = subparsers.add_parser("promotion-smoke")
+    smoke_parser.add_argument("--application-id", required=True)
+    smoke_parser.add_argument("--image", required=True)
+    smoke_parser.add_argument("--health-url", required=True)
+    smoke_parser.add_argument("--expected-version", required=True)
+    smoke_parser.add_argument("--success-marker", required=True)
+    smoke_parser.add_argument("--timeout", type=int, default=300)
+    smoke_parser.set_defaults(func=promotion_smoke)
 
     schedule_parser = subparsers.add_parser("run-schedule")
     schedule_parser.add_argument("--schedule-id", required=True)
