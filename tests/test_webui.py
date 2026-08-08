@@ -195,6 +195,10 @@ def test_webui_markup_is_semantic_external_and_complete():
         "notice-panel",
         "history-range",
         "dashboard-flow",
+        "dashboard-delivery-chart",
+        "dashboard-top-sources",
+        "dashboard-top-destinations",
+        "dashboard-system-health",
         "health-check-list",
         "backup-settings-form",
         "avatar-form",
@@ -211,11 +215,13 @@ def test_webui_markup_is_semantic_external_and_complete():
         "/ui/app.js",
         "/ui/enhancements.js",
         "/ui/qa_patch.js",
+        "/ui/dashboard.js",
     ]
     assert inspector.stylesheets == [
         "/ui/styles.css",
         "/ui/enhancements.css",
         "/ui/qa_patch.css",
+        "/ui/professional.css",
     ]
     assert inspector.inline_handlers == []
     assert "<style" not in markup
@@ -319,3 +325,86 @@ def test_production_image_already_packages_webui_and_icon():
     assert (ROOT / "src" / "webui" / "app.js").is_file()
     assert (ROOT / "src" / "webui" / "styles.css").is_file()
     assert (ROOT / "assets" / "icons" / "nowlert.png").is_file()
+
+
+def test_v310_management_headers_and_dashboard_analytics_alignment():
+    markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "professional.css").read_text(encoding="utf-8")
+
+    assert (
+        "Configure delivery targets for Discord, Microsoft Teams, Slack, "
+        "generic webhooks, MQTT, and ntfy."
+    ) in markup
+    assert (
+        "Review final delivery outcomes, retries, response status, and safe "
+        "transport errors for routed events."
+    ) in markup
+    marker = "/* Nowlert 3.1.0 final management headers and analytics alignment */"
+    assert marker in styles
+    final_styles = styles[styles.index(marker):]
+    assert "#view-dashboard .dashboard-analytics-grid" in final_styles
+    assert "> .dashboard-deliveries-panel" in final_styles
+    assert "margin-top: 0;" in final_styles
+
+
+def test_v310_management_descriptions_content_headers_and_ranking_empty_states():
+    markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
+    dashboard = (ROOT / "src" / "webui" / "dashboard.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "professional.css").read_text(encoding="utf-8")
+
+    descriptions = (
+        "Review built-in integrations, available inputs, and their operational categories.",
+        "Connect integrations and inputs to destinations with priorities and event filters.",
+        "Review security-relevant actions, health checks, outcomes, and operational details.",
+        "Manage local accounts, roles, access state, and password resets.",
+        "Configure regional preferences and integration-specific behavior.",
+        "Review the running version and any advertised Nowlert update.",
+        "Inspect and manage the SMTP, HTTP, and Redfish listeners used to receive events.",
+        "Configure backup destinations, schedules, snapshots, and restore operations.",
+        "Export, preview, and import portable configuration without exposing credentials.",
+        "Manage your profile picture, password, and active account security settings.",
+    )
+    for copy in descriptions:
+        assert copy in markup
+
+    assert 'data-panel-header="destinations"' not in markup
+    assert 'class="table-panel professional-resource-panel"' not in markup
+    assert '<div id="destination-list" class="resource-grid"></div>' in markup
+    assert 'data-panel-header="deliveries"' in markup
+    assert ">Delivery attempts<" in markup
+    assert ">Source, outcome, response, and time<" in markup
+
+    assert '"No top sources"' in dashboard
+    assert '"No top destinations"' in dashboard
+    assert 'icon.src = "/ui/icon.png";' in dashboard
+
+    marker = "/* Nowlert 3.1.0 management descriptions and content headers */"
+    assert marker in styles
+    final_styles = styles[styles.index(marker):]
+    assert ".dashboard-ranking-empty img" in final_styles
+    assert ".professional-panel-header" in final_styles
+
+
+def test_v310_menu_navigation_uses_browser_history_and_destinations_stay_a_card_grid():
+    markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
+    app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
+    enhancements = (ROOT / "src" / "webui" / "enhancements.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "professional.css").read_text(encoding="utf-8")
+
+    assert 'function navigate(view, historyMode = "push")' in app
+    assert 'window.history.pushState({ nowlertView: view }' in app
+    assert 'window.addEventListener("popstate", navigateFromHistory)' in app
+    assert 'navigate(view, "none")' in app
+    assert 'originalNavigate(view, historyMode)' in enhancements
+    assert 'originalNavigate(view, "replace")' in enhancements
+
+    assert 'data-panel-header="destinations"' not in markup
+    assert 'professional-resource-panel' not in markup
+    assert '<div id="destination-list" class="resource-grid"></div>' in markup
+    assert 'data-panel-header="deliveries"' in markup
+
+    marker = "/* Nowlert 3.1.0 Destinations card-grid empty state */"
+    assert marker in styles
+    final_styles = styles[styles.index(marker):]
+    assert "background: transparent;" in final_styles
+    assert "border: 0;" in final_styles

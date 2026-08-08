@@ -186,6 +186,7 @@ const state = {
   pendingImport: null,
   sessionExpiresAt: null,
   confirmResolve: null,
+  integrationSettingsBaseline: "",
 };
 
 const byId = (id) => document.getElementById(id);
@@ -595,7 +596,13 @@ async function loadWorkspace() {
   }
   renderAll();
   const requested = window.location.hash.slice(1);
-  navigate(VIEW_TITLES[requested] && (!["users", "settings", "inputs", "backups", "data"].includes(requested) || isAdmin()) ? requested : state.currentView);
+  navigate(
+    VIEW_TITLES[requested]
+      && (!["users", "settings", "inputs", "backups", "data"].includes(requested) || isAdmin())
+      ? requested
+      : state.currentView,
+    "replace",
+  );
 }
 
 function renderAll() {
@@ -649,7 +656,7 @@ function applyLanguage() {
   }
 }
 
-function navigate(view) {
+function navigate(view, historyMode = "push") {
   if (!VIEW_TITLES[view] || (["users", "settings", "inputs", "backups", "data"].includes(view) && !isAdmin())) view = "dashboard";
   state.currentView = view;
   for (const section of document.querySelectorAll(".view")) {
@@ -663,7 +670,15 @@ function navigate(view) {
   }
   byId("page-title").textContent = VIEW_TITLES[view];
   closeProfileMenu();
-  window.history.replaceState(null, "", `#${view}`);
+  const targetHash = `#${view}`;
+  if (
+    historyMode === "replace"
+    || (historyMode === "none" && window.location.hash !== targetHash)
+  ) {
+    window.history.replaceState({ nowlertView: view }, "", targetHash);
+  } else if (historyMode === "push" && window.location.hash !== targetHash) {
+    window.history.pushState({ nowlertView: view }, "", targetHash);
+  }
   byId("app-shell").classList.remove("nav-open");
   byId("mobile-menu").setAttribute("aria-expanded", "false");
   byId("main-content").focus({ preventScroll: true });
@@ -1051,6 +1066,37 @@ function settingTextarea(id, label, value, placeholder, rows = 7) {
   return element("label", { className: "wide" }, [element("span", { text: label }), input]);
 }
 
+function integrationSettingsSnapshot() {
+  const fields = byId("integration-settings-fields");
+  if (!fields) return "";
+  return JSON.stringify(
+    [...fields.querySelectorAll("input, select, textarea")].map((field) => ({
+      id: field.id,
+      type: field.type,
+      value: ["checkbox", "radio"].includes(field.type) ? field.checked : field.value,
+    })),
+  );
+}
+
+function integrationSettingsChanged() {
+  return integrationSettingsSnapshot() !== state.integrationSettingsBaseline;
+}
+
+async function closeIntegrationSettings() {
+  const dialog = byId("integration-settings-dialog");
+  if (!dialog || !dialog.open) return;
+  if (integrationSettingsChanged()) {
+    const discard = await confirmAction(
+      "Discard unsaved changes?",
+      "The integration settings were changed. Exit without saving them?",
+      "Discard changes",
+    );
+    if (!discard) return;
+  }
+  state.integrationSettingsBaseline = "";
+  dialog.close("cancel");
+}
+
 function formatMac(value) {
   return String(value || "").replace(/[^0-9a-f]/gi, "").toUpperCase().match(/.{1,2}/g)?.join(":") || String(value || "");
 }
@@ -1102,6 +1148,7 @@ function openIntegrationSettings(source) {
     input.id = "integration-redfish-window";
     fields.append(element("label", {}, [element("span", { text: "Deduplication window (seconds)" }), input]));
   }
+  state.integrationSettingsBaseline = integrationSettingsSnapshot();
   byId("integration-settings-dialog").showModal();
 }
 
@@ -1132,6 +1179,10 @@ function parseMappingLines(value, label, component = false) {
 
 async function saveIntegrationSettings(event) {
   event.preventDefault();
+  if (event.submitter && event.submitter.value === "cancel") {
+    await closeIntegrationSettings();
+    return;
+  }
   const source = byId("integration-settings-source").value;
   let body;
   try {
@@ -1163,6 +1214,7 @@ async function saveIntegrationSettings(event) {
     const response = await request(`/integration-settings/${encodeURIComponent(source)}`, { method: "PUT", body });
     state.integrationSettings[source] = response.settings;
     state.integrationSettingsErrors = state.integrationSettingsErrors.filter((item) => item.resource !== source);
+    state.integrationSettingsBaseline = "";
     byId("integration-settings-dialog").close();
     renderIntegrationSettings();
     toast(`${INTEGRATION_SETTING_LABELS[source]} settings saved.`);
@@ -2857,6 +2909,10 @@ function bindEvents() {
   byId("password-form").addEventListener("submit", changePassword);
   byId("preferences-form").addEventListener("submit", savePreferences);
   byId("integration-settings-form").addEventListener("submit", saveIntegrationSettings);
+  byId("integration-settings-dialog").addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeIntegrationSettings();
+  });
   byId("notice-form").addEventListener("submit", saveNotice);
   byId("backup-settings-form").addEventListener("submit", saveBackupSettings);
   byId("backup-target-form").addEventListener("submit", saveBackupTarget);
@@ -2912,10 +2968,14 @@ function bindEvents() {
       byId("profile-menu-button").focus();
     }
   });
-  window.addEventListener("hashchange", () => {
+  const navigateFromHistory = () => {
     const view = window.location.hash.slice(1);
-    if (state.user && VIEW_TITLES[view]) navigate(view);
-  });
+    if (state.user && VIEW_TITLES[view] && state.currentView !== view) {
+      navigate(view, "none");
+    }
+  };
+  window.addEventListener("popstate", navigateFromHistory);
+  window.addEventListener("hashchange", navigateFromHistory);
 }
 
 bindEvents();

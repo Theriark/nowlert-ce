@@ -81,6 +81,16 @@ class WebUIService:
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/professional.css": (
+                "src/webui/professional.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/dashboard.js": (
+                "src/webui/dashboard.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/icon.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
