@@ -31,18 +31,13 @@ def test_promotion_workflow_yaml_is_valid() -> None:
         assert isinstance(payload, dict), relative
 
 
-def test_automatic_promotion_workflows_have_zero_delivery_test_paths() -> None:
+def test_automatic_promotion_workflows_have_zero_active_delivery_test_paths() -> None:
     forbidden = (
         "run-schedule",
         "stage_ce_qa_schedule_id",
         "prodref_ce_smoke_schedule_id",
         "schedule-id",
-        "zabbix",
-        "portainer",
-        "firing",
-        "resolved",
         "/api/v2",
-        "smtp",
     )
 
     for relative in (
@@ -52,10 +47,55 @@ def test_automatic_promotion_workflows_have_zero_delivery_test_paths() -> None:
         content = (ROOT / relative).read_text(encoding="utf-8")
         folded = content.casefold()
         assert "promotion-smoke" in content
-        assert "notification delivery tests: disabled" in folded
+        assert "external notification delivery during promotion: disabled" in folded
         assert "--evidence-type silent-promotion-smoke" in content
         for value in forbidden:
             assert value not in folded, (relative, value)
+
+
+def test_full_promotion_gates_run_complete_suite_without_external_network() -> None:
+    workflows = {
+        ".github/workflows/promote-stage.yml": "STAGE CE SILENT FULL GATE PASSED",
+        ".github/workflows/promote-production-reference.yml": (
+            "PRODUCTION REFERENCE CE SILENT FULL GATE PASSED"
+        ),
+    }
+
+    for relative, marker in workflows.items():
+        content = (ROOT / relative).read_text(encoding="utf-8")
+        assert "requirements-dev.txt" in content
+        assert "env -i" in content
+        assert '"${UNSHARE_BIN}" --net' in content
+        assert "route show default" in content
+        assert "addr show scope global" in content
+        assert "PASS: promotion gate network namespace has no default route" in content
+        assert '"${PYTHON_BIN}" -m pytest -q' in content
+        assert marker in content
+
+
+def test_production_reference_rejects_unsafe_stage_promotion_evidence() -> None:
+    content = (
+        ROOT / ".github" / "workflows" / "promote-production-reference.yml"
+    ).read_text(encoding="utf-8")
+
+    for required in (
+        "STAGE CE SILENT FULL GATE PASSED",
+        "STAGE CE SILENT PROMOTION SMOKE PASSED",
+        "PASS: promotion gate network namespace has no default route",
+        "PASS: notification delivery tests disabled for this promotion smoke",
+    ):
+        assert required in content
+
+    for forbidden_log_fragment in (
+        "===== DELIVERY =====",
+        "Expected deliveries:",
+        "Accepted deliveries:",
+        "Related firing run:",
+        "stage-ce-all-",
+        "stage-ce-zabbix-",
+        "stage-ce-portainer-",
+    ):
+        assert forbidden_log_fragment in content
 
 
 def test_promotion_smoke_function_is_passive_and_read_only() -> None:
@@ -103,6 +143,7 @@ def test_release_finalization_rejects_delivery_qa_for_new_promotion_chain() -> N
     assert "SILENT_PROMOTION_FORBIDDEN_LOG_FRAGMENTS" in finalizer
     assert "qa_schedule_deployment_id" not in workflow
     assert "Notification delivery tests during promotions: disabled" in workflow
+
 
 def test_legacy_schedule_runner_remains_available_but_is_not_auto_promoted() -> None:
     helper = load_helper()
