@@ -28,7 +28,7 @@ jobs:
   promote:
     name: Promote CE immutable image to Stage
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     environment: stage
 
     env:
@@ -74,6 +74,67 @@ jobs:
             exit 1
           }
 
+      - name: Checkout candidate source for the full gate
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_commit }}
+          path: candidate
+
+      - name: Set up Python for the full gate
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: candidate/requirements-dev.txt
+
+      - name: Install full-gate dependencies
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python -m pip check
+
+      # The complete automated suite runs in a fresh network namespace with
+      # no default route and no global address. Loopback stays available for
+      # local mocks/sinks, while real Discord/Teams/SMTP/webhook delivery is
+      # impossible at the kernel network boundary.
+      - name: Run full notification-silent CE Stage gate
+        id: full_gate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CANDIDATE_PATH="${GITHUB_WORKSPACE}/candidate"
+          PYTHON_BIN="$(command -v python)"
+          BASH_BIN="$(command -v bash)"
+          IP_BIN="$(command -v ip)"
+          UNSHARE_BIN="$(command -v unshare)"
+
+          sudo env -i \
+            PATH="${PATH}" \
+            CANDIDATE_PATH="${CANDIDATE_PATH}" \
+            PYTHON_BIN="${PYTHON_BIN}" \
+            BASH_BIN="${BASH_BIN}" \
+            IP_BIN="${IP_BIN}" \
+            "${UNSHARE_BIN}" --net -- "${BASH_BIN}" -c '
+              set -euo pipefail
+              "${IP_BIN}" link set lo up
+              if "${IP_BIN}" route show default | grep -q .; then
+                echo "::error::Promotion gate network namespace has a default route"
+                exit 1
+              fi
+              if "${IP_BIN}" -o addr show scope global | grep -q .; then
+                echo "::error::Promotion gate network namespace has a global address"
+                exit 1
+              fi
+              echo "PASS: promotion gate network namespace has no default route"
+              cd "${CANDIDATE_PATH}"
+              "${PYTHON_BIN}" -m pytest -q
+              echo "STAGE CE SILENT FULL GATE PASSED"
+            '
+
       - name: Promote CE to Stage
         id: deploy
         shell: bash
@@ -98,8 +159,8 @@ jobs:
             --description "${{ inputs.change_reference }}" \
             --noop-ok
 
-      # This gate is intentionally passive. Do not add notification-ingress or
-      # destination-delivery tests to an automatic promotion workflow.
+      # Live-environment verification is read-only. Functional delivery paths
+      # were already exercised inside the network-isolated full gate above.
       - name: Run notification-silent CE Stage promotion smoke
         id: silent_smoke
         shell: bash
@@ -154,8 +215,10 @@ jobs:
             echo "- CE image: \`${PROMOTION_IMAGE}\`"
             echo "- Source commit: \`${SOURCE_COMMIT}\`"
             echo "- Change reference: ${{ inputs.change_reference }}"
-            echo "- Silent promotion smoke: passed"
-            echo "- Notification delivery tests: disabled"
+            echo "- Full notification-silent gate: passed"
+            echo "- Gate network: isolated namespace, no default route or global address"
+            echo "- Live Stage verification: read-only passive smoke passed"
+            echo "- External notification delivery during promotion: disabled"
             echo "- Ledger key: \`${{ steps.ledger.outputs.key }}\`"
             echo "- Ledger version: \`${{ steps.ledger.outputs.version_id }}\`"
             echo "- Rebuild performed: no"
