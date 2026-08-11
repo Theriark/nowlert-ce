@@ -17,6 +17,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
   id-token: write
 
@@ -28,7 +29,7 @@ jobs:
   promote:
     name: Promote CE Stage-approved image to Production Reference
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     environment: production-reference
 
     env:
@@ -106,6 +107,115 @@ jobs:
             --source-commit "${SOURCE_COMMIT}" \
             --promotion-run "${{ inputs.stage_promotion_run }}"
 
+      # Refuse legacy/unsafe Stage evidence even if the desired-state ledger
+      # points at it. A Production Reference promotion can consume only a Stage
+      # run that proves both the full network-isolated gate and the read-only
+      # live smoke, with no active delivery-QA fragments in its logs.
+      - name: Confirm CE Stage promotion was notification-silent full gate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGE_PROMOTION_RUN: ${{ inputs.stage_promotion_run }}
+        run: |
+          set -euo pipefail
+
+          stage_run_id="${STAGE_PROMOTION_RUN%/}"
+          stage_run_id="${stage_run_id##*/}"
+          [[ "${stage_run_id}" =~ ^[0-9]+$ ]] || {
+            echo "::error::Stage promotion run must end in a numeric run ID"
+            exit 1
+          }
+
+          stage_log="$(mktemp)"
+          trap 'rm -f "${stage_log}"' EXIT
+          gh run view "${stage_run_id}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --log > "${stage_log}"
+
+          for required in \
+            "PASS: promotion gate network namespace has no default route" \
+            "STAGE CE SILENT FULL GATE PASSED" \
+            "STAGE CE SILENT PROMOTION SMOKE PASSED" \
+            "PASS: notification delivery tests disabled for this promotion smoke"
+          do
+            grep -Fq "${required}" "${stage_log}" || {
+              echo "::error::Stage promotion ${stage_run_id} lacks required safe-gate evidence: ${required}"
+              exit 1
+            }
+          done
+
+          for forbidden in \
+            "===== DELIVERY =====" \
+            "Expected deliveries:" \
+            "Accepted deliveries:" \
+            "Related firing run:" \
+            "stage-ce-all-" \
+            "stage-ce-zabbix-" \
+            "stage-ce-portainer-"
+          do
+            if grep -Fq "${forbidden}" "${stage_log}"; then
+              echo "::error::Stage promotion ${stage_run_id} contains active delivery QA evidence: ${forbidden}"
+              exit 1
+            fi
+          done
+
+      - name: Checkout candidate source for the full gate
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_commit }}
+          path: candidate
+
+      - name: Set up Python for the full gate
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: candidate/requirements-dev.txt
+
+      - name: Install full-gate dependencies
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python -m pip check
+
+      - name: Run full notification-silent CE Production Reference gate
+        id: full_gate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CANDIDATE_PATH="${GITHUB_WORKSPACE}/candidate"
+          PYTHON_BIN="$(command -v python)"
+          BASH_BIN="$(command -v bash)"
+          IP_BIN="$(command -v ip)"
+          UNSHARE_BIN="$(command -v unshare)"
+
+          sudo env -i \
+            PATH="${PATH}" \
+            CANDIDATE_PATH="${CANDIDATE_PATH}" \
+            PYTHON_BIN="${PYTHON_BIN}" \
+            BASH_BIN="${BASH_BIN}" \
+            IP_BIN="${IP_BIN}" \
+            "${UNSHARE_BIN}" --net -- "${BASH_BIN}" -c '
+              set -euo pipefail
+              "${IP_BIN}" link set lo up
+              if "${IP_BIN}" route show default | grep -q .; then
+                echo "::error::Promotion gate network namespace has a default route"
+                exit 1
+              fi
+              if "${IP_BIN}" -o addr show scope global | grep -q .; then
+                echo "::error::Promotion gate network namespace has a global address"
+                exit 1
+              fi
+              echo "PASS: promotion gate network namespace has no default route"
+              cd "${CANDIDATE_PATH}"
+              "${PYTHON_BIN}" -m pytest -q
+              echo "PRODUCTION REFERENCE CE SILENT FULL GATE PASSED"
+            '
+
       - name: Promote CE to Production Reference
         id: deploy
         shell: bash
@@ -130,8 +240,6 @@ jobs:
             --description "CE Stage run: ${{ inputs.stage_promotion_run }}" \
             --noop-ok
 
-      # This gate is intentionally passive. Do not add notification-ingress or
-      # destination-delivery tests to an automatic promotion workflow.
       - name: Run notification-silent CE Production Reference promotion smoke
         id: silent_smoke
         shell: bash
@@ -175,8 +283,11 @@ jobs:
             echo "- CE image: \`${PROMOTION_IMAGE}\`"
             echo "- Source commit: \`${SOURCE_COMMIT}\`"
             echo "- CE Stage promotion run: ${{ inputs.stage_promotion_run }}"
-            echo "- Silent promotion smoke: passed"
-            echo "- Notification delivery tests: disabled"
+            echo "- Stage safety evidence: notification-silent full gate verified"
+            echo "- Full notification-silent Production Reference gate: passed"
+            echo "- Gate network: isolated namespace, no default route or global address"
+            echo "- Live Production Reference verification: read-only passive smoke passed"
+            echo "- External notification delivery during promotion: disabled"
             echo "- Ledger key: \`${{ steps.ledger.outputs.key }}\`"
             echo "- Ledger version: \`${{ steps.ledger.outputs.version_id }}\`"
             echo "- Rebuild performed: no"
