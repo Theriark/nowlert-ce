@@ -275,3 +275,125 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 })();
+
+/* Development QA fixes: NCE-21, delivery labels, and NCE-25. */
+const QA_ALL_SEVERITIES = ["debug", "information", "warning", "error", "critical", "failure"];
+const QA_ALL_STATUSES = ["active", "resolved", "firing", "recovered", "success", "skipped", "failure"];
+
+function qaSelectionCoversAll(values, expected) {
+  const selected = new Set(
+    (Array.isArray(values) ? values : []).map((value) => String(value).toLowerCase()),
+  );
+  return selected.size === expected.length && expected.every((value) => selected.has(value));
+}
+
+const qaNceOriginalFilterSummary = filterSummary;
+filterSummary = function filterSummaryWithAllEvents(filters = {}) {
+  const normalized = { ...filters };
+  if (qaSelectionCoversAll(normalized.severities, QA_ALL_SEVERITIES)) normalized.severities = [];
+  if (qaSelectionCoversAll(normalized.statuses, QA_ALL_STATUSES)) normalized.statuses = [];
+  const summary = qaNceOriginalFilterSummary(normalized);
+  return summary === "All events" ? "All Events" : summary;
+};
+
+function qaNormalizeDeliveryBadges() {
+  for (const meta of document.querySelectorAll("#delivery-list .resource-meta")) {
+    const seen = new Set();
+    for (const item of [...meta.querySelectorAll(".badge")]) {
+      const text = item.textContent.trim();
+      const key = text.toLowerCase();
+      if (!text || text === "—" || seen.has(key)) {
+        item.remove();
+        continue;
+      }
+      seen.add(key);
+    }
+  }
+}
+
+const qaNceOriginalRenderDeliveries = renderDeliveries;
+renderDeliveries = function renderDeliveriesWithoutDuplicateBadges() {
+  qaNceOriginalRenderDeliveries();
+  qaNormalizeDeliveryBadges();
+};
+
+const qaNceOriginalLoadDeliveryPage = qaLoadDeliveryPage;
+qaLoadDeliveryPage = async function qaLoadDeliveryPageWithoutDuplicateBadges(page) {
+  await qaNceOriginalLoadDeliveryPage(page);
+  qaNormalizeDeliveryBadges();
+};
+
+function qaSafeErrorMessage(message) {
+  const text = String(message || "");
+  return text
+    .replace(/\s+\((?=[^)]*(?:HTTP\s+\d{3}|\/api\/v2))[^)]*\)\.?\s*$/, "")
+    .trim();
+}
+
+function qaLogApiError(error) {
+  if (!(error instanceof APIError) || error.qaTechnicalDetailsLogged) return;
+  error.qaTechnicalDetailsLogged = true;
+  console.error("Nowlert API request failed", {
+    status: error.status,
+    path: error.path,
+    code: error.code,
+    reference: error.reference,
+  });
+}
+
+const qaNceOriginalRequest = request;
+request = async function requestWithSafeUserErrors(path, options = {}) {
+  try {
+    return await qaNceOriginalRequest(path, options);
+  } catch (error) {
+    if (error instanceof APIError) {
+      qaLogApiError(error);
+      error.message = qaSafeErrorMessage(error.message) || "Request failed";
+    }
+    throw error;
+  }
+};
+
+const qaNceOriginalShowError = showError;
+showError = function showErrorWithoutTechnicalDetails(id, error) {
+  if (error instanceof APIError) {
+    qaLogApiError(error);
+    error.message = qaSafeErrorMessage(error.message) || "Request failed";
+  }
+  qaNceOriginalShowError(id, error);
+};
+
+const qaNceOriginalToast = toast;
+toast = function toastWithoutTechnicalErrors(message, style = "") {
+  const safeMessage = style === "error" ? qaSafeErrorMessage(message) : message;
+  qaNceOriginalToast(safeMessage, style);
+};
+
+const qaNceOriginalDestinationTestToast = destinationTestToast;
+destinationTestToast = function destinationTestToastWithoutHttpError(delivery, outputType) {
+  if (delivery && !delivery.success) {
+    console.error("Destination test failed", {
+      response_status: delivery.response_status,
+      error_code: delivery.error_code,
+      safe_error: delivery.safe_error,
+    });
+    return {
+      message: "Test delivery failed. Check the destination configuration and logs.",
+      style: "error",
+    };
+  }
+  return qaNceOriginalDestinationTestToast(delivery, outputType);
+};
+
+function qaSanitizeVisibleErrors() {
+  for (const node of document.querySelectorAll(
+    "#login-error, .form-error, #workspace-alert-list li, .toast.error",
+  )) {
+    const safe = qaSafeErrorMessage(node.textContent);
+    if (safe !== node.textContent) node.textContent = safe;
+  }
+}
+
+qaSanitizeVisibleErrors();
+const qaNceErrorObserver = new MutationObserver(qaSanitizeVisibleErrors);
+qaNceErrorObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
