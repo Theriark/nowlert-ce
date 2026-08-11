@@ -4,6 +4,28 @@ const QA_PAGE_SIZE = 25;
 let qaRoutePage = 1;
 let qaDeliveryPage = 1;
 let qaAuditPage = 1;
+const QA_AUDIT_PAGE_SIZE_KEY = "nowlert.audit.pageSize";
+const QA_AUDIT_PAGE_SIZES = [25, 50, 100, 150, 250, 500];
+
+function qaReadAuditPageSize() {
+  let stored = 25;
+  try {
+    stored = Number(window.localStorage.getItem(QA_AUDIT_PAGE_SIZE_KEY));
+  } catch (error) {
+    stored = 25;
+  }
+  return QA_AUDIT_PAGE_SIZES.includes(stored) ? stored : 25;
+}
+
+function qaWriteAuditPageSize(value) {
+  try {
+    window.localStorage.setItem(QA_AUDIT_PAGE_SIZE_KEY, String(value));
+  } catch (error) {
+    /* storage unavailable; selection stays in-session only */
+  }
+}
+
+let qaAuditPageSize = qaReadAuditPageSize();
 let qaDeliveryPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 
@@ -85,8 +107,11 @@ async function qaLoadDeliveryPage(page) {
 
 async function qaLoadAuditPage(page) {
   try {
-    const response = await request(`/audit-events/page/${Math.max(1, Number(page || 1))}`);
+    const response = await request(
+      `/audit-events/page/${Math.max(1, Number(page || 1))}/size/${qaAuditPageSize}`,
+    );
     state.audit = response.audit_events || [];
+    if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
     qaAuditPagination = response.pagination || qaAuditPagination;
     qaAuditPage = qaAuditPagination.page || 1;
     qaOriginalRenderAudit();
@@ -113,6 +138,25 @@ loadWorkspace = async function loadWorkspaceWithPagination() {
   await qaOriginalLoadWorkspace();
   await Promise.all([qaLoadDeliveryPage(qaDeliveryPage), qaLoadAuditPage(qaAuditPage)]);
 };
+
+function qaBindAuditPageSize() {
+  const select = byId("audit-page-size");
+  if (!select || select.dataset.qaPageSize === "1") return;
+  select.dataset.qaPageSize = "1";
+  qaAuditPageSize = qaReadAuditPageSize();
+  select.value = String(qaAuditPageSize);
+  if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
+  select.addEventListener("change", () => {
+    const chosen = Number(select.value);
+    qaAuditPageSize = QA_AUDIT_PAGE_SIZES.includes(chosen) ? chosen : 25;
+    qaWriteAuditPageSize(qaAuditPageSize);
+    if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
+    qaAuditPage = 1;
+    qaLoadAuditPage(1);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", qaBindAuditPageSize);
 
 function qaAddSelectActions(selectId) {
   const select = byId(selectId);
