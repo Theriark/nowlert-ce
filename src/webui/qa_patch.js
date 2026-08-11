@@ -1,11 +1,91 @@
 "use strict";
 
 const QA_PAGE_SIZE = 25;
+const QA_ALL_SEVERITIES = ["debug", "information", "warning", "error", "critical", "failure"];
+const QA_ALL_STATUSES = ["active", "resolved", "firing", "recovered", "success", "skipped", "failure"];
 let qaRoutePage = 1;
 let qaDeliveryPage = 1;
 let qaAuditPage = 1;
 let qaDeliveryPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
+
+const qaOriginalRequest = request;
+
+function qaSanitizeApiError(error) {
+  if (!(error instanceof APIError)) return;
+  const details = [];
+  if (error.status) details.push(`HTTP ${error.status}`);
+  if (error.path) details.push(`${API}${error.path}`);
+  if (error.reference) details.push(`reference ${error.reference}`);
+  const suffix = details.length ? ` (${details.join(" · ")})` : "";
+  if (suffix && error.message.endsWith(suffix)) {
+    error.message = error.message.slice(0, -suffix.length) || "Request failed";
+  }
+}
+
+request = async function requestWithSafeUserErrors(path, options = {}) {
+  try {
+    return await qaOriginalRequest(path, options);
+  } catch (error) {
+    if (error instanceof APIError) {
+      console.error("Nowlert API request failed", {
+        status: error.status,
+        path: error.path,
+        code: error.code,
+        reference: error.reference,
+      });
+      qaSanitizeApiError(error);
+    }
+    throw error;
+  }
+};
+
+const qaOriginalDestinationTestToast = destinationTestToast;
+destinationTestToast = function destinationTestToastWithSafeErrors(delivery, outputType) {
+  if (delivery && !delivery.success) {
+    console.error("Destination test failed", {
+      response_status: delivery.response_status,
+      error_code: delivery.error_code,
+      safe_error: delivery.safe_error,
+    });
+    return {
+      message: "Test delivery failed. Check the destination configuration and logs.",
+      style: "error",
+    };
+  }
+  return qaOriginalDestinationTestToast(delivery, outputType);
+};
+
+function qaSelectionCoversAll(values, expected) {
+  const selected = new Set(
+    (Array.isArray(values) ? values : []).map((value) => String(value).toLowerCase()),
+  );
+  return selected.size === expected.length && expected.every((value) => selected.has(value));
+}
+
+const qaOriginalFilterSummary = filterSummary;
+filterSummary = function filterSummaryWithAllEvents(filters = {}) {
+  const normalized = { ...filters };
+  if (qaSelectionCoversAll(normalized.severities, QA_ALL_SEVERITIES)) normalized.severities = [];
+  if (qaSelectionCoversAll(normalized.statuses, QA_ALL_STATUSES)) normalized.statuses = [];
+  const summary = qaOriginalFilterSummary(normalized);
+  return summary === "All events" ? "All Events" : summary;
+};
+
+function qaNormalizeDeliveryBadges() {
+  for (const meta of document.querySelectorAll("#delivery-list .resource-meta")) {
+    const seen = new Set();
+    for (const item of [...meta.querySelectorAll(".badge")]) {
+      const text = item.textContent.trim();
+      const key = text.toLowerCase();
+      if (!text || text === "—" || seen.has(key)) {
+        item.remove();
+        continue;
+      }
+      seen.add(key);
+    }
+  }
+}
 
 function qaPager(containerId, pagination, onPage) {
   let container = byId(containerId);
@@ -77,6 +157,7 @@ async function qaLoadDeliveryPage(page) {
     qaDeliveryPagination = response.pagination || qaDeliveryPagination;
     qaDeliveryPage = qaDeliveryPagination.page || 1;
     qaOriginalRenderDeliveries();
+    qaNormalizeDeliveryBadges();
     qaMountPager("view-deliveries", "delivery-pagination", qaDeliveryPagination, qaLoadDeliveryPage);
   } catch (error) {
     toast(error.message || "Delivery history page could not be loaded.", "error");
@@ -99,6 +180,7 @@ async function qaLoadAuditPage(page) {
 const qaOriginalRenderDeliveries = renderDeliveries;
 renderDeliveries = function renderDeliveriesWithPagination() {
   qaOriginalRenderDeliveries();
+  qaNormalizeDeliveryBadges();
   qaMountPager("view-deliveries", "delivery-pagination", qaDeliveryPagination, qaLoadDeliveryPage);
 };
 
