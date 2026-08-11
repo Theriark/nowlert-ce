@@ -2675,6 +2675,18 @@ async function resourceAction(action, id) {
       state.user = response.user;
       applyAvatar("profile-avatar", state.user);
       applyAvatar("account-avatar", state.user);
+      byId("avatar-file").value = "";
+      byId("avatar-editor").hidden = true;
+      byId("avatar-zoom").value = "1";
+      if (state.avatarEditor.image && typeof state.avatarEditor.image.close === "function") {
+        state.avatarEditor.image.close();
+      }
+      state.avatarEditor.image = null;
+      const avatarSave = byId("avatar-save");
+      if (avatarSave) {
+        avatarSave.hidden = true;
+        avatarSave.disabled = true;
+      }
       toast("Profile picture removed.");
       return;
     } else if (action === "export-platform") {
