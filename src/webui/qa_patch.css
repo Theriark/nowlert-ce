@@ -19,6 +19,18 @@
   opacity: 0.8;
 }
 
+.qa-pagination .qa-page-number {
+  max-width: 4.75rem;
+  min-height: 2.1rem;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .qa-pagination {
+    flex-wrap: wrap;
+  }
+}
+
 .qa-select-actions {
   display: flex;
   gap: 0.75rem;

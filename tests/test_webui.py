@@ -458,3 +458,43 @@ def test_nce15_regional_i18n_save_boundary():
     request = app.index('const response = await request("/preferences"', save)
     persisted = app.index("state.preferences = response.preferences;", save)
     assert request < persisted
+
+
+def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
+    script = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "qa_patch.css").read_text(encoding="utf-8")
+
+    # Only Delivery History and Audit Log get the extended pager.
+    assert 'containerId === "delivery-pagination"' in script
+    assert 'containerId === "audit-pagination"' in script
+    assert "if (!directNavigation)" in script
+
+    # First / Last navigation.
+    assert 'text: "First"' in script
+    assert 'text: "Last"' in script
+    assert 'first.addEventListener("click", () => onPage(1));' in script
+    assert 'last.addEventListener("click", () => onPage(totalPages));' in script
+
+    # Direct page-number navigation and validity constraints.
+    assert 'className: "qa-page-number"' in script
+    assert 'type: "number"' in script
+    assert 'min: "1"' in script
+    assert "max: String(totalPages)" in script
+    assert "Number.isInteger(value)" in script
+    assert "value < 1 || value > totalPages" in script
+    assert 'pageInput.setAttribute("aria-invalid", valid ? "false" : "true");' in script
+    assert 'if (event.key === "Enter")' in script
+
+    # Existing boundaries remain enforced.
+    assert "disabled: page <= 1" in script
+    assert "disabled: page >= totalPages" in script
+
+    # NCE-23 persisted Audit page-size behavior must remain intact.
+    assert 'const QA_AUDIT_PAGE_SIZE_KEY = "nowlert.audit.pageSize";' in script
+    assert "qaReadAuditPageSize()" in script
+    assert "qaWriteAuditPageSize(qaAuditPageSize);" in script
+    assert "/size/${qaAuditPageSize}" in script
+
+    # Layout remains usable on narrow displays.
+    assert ".qa-pagination .qa-page-number" in styles
+    assert "@media (max-width: 720px)" in styles

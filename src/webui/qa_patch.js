@@ -32,18 +32,130 @@ let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_page
 function qaPager(containerId, pagination, onPage) {
   let container = byId(containerId);
   if (!container) {
-    container = element("div", { className: "qa-pagination", attributes: { id: containerId, "aria-label": "Pagination" } });
+    container = element("div", {
+      className: "qa-pagination",
+      attributes: { id: containerId, "aria-label": "Pagination" },
+    });
     return container;
   }
+
   container.replaceChildren();
+
   const page = Number(pagination.page || 1);
   const totalPages = Math.max(1, Number(pagination.total_pages || 1));
   const total = Number(pagination.total || 0);
-  const previous = element("button", { className: "button secondary small", text: "Previous", type: "button", disabled: page <= 1 });
-  const next = element("button", { className: "button secondary small", text: "Next", type: "button", disabled: page >= totalPages });
+  const directNavigation =
+    containerId === "delivery-pagination" ||
+    containerId === "audit-pagination";
+
+  const previous = element("button", {
+    className: "button secondary small",
+    text: "Previous",
+    type: "button",
+    disabled: page <= 1,
+  });
+  const next = element("button", {
+    className: "button secondary small",
+    text: "Next",
+    type: "button",
+    disabled: page >= totalPages,
+  });
+  const status = element("span", {
+    text: `Page ${page} of ${totalPages} - ${total} item${total === 1 ? "" : "s"}`,
+  });
+
   previous.addEventListener("click", () => onPage(page - 1));
   next.addEventListener("click", () => onPage(page + 1));
-  container.append(previous, element("span", { text: `Page ${page} of ${totalPages} - ${total} item${total === 1 ? "" : "s"}` }), next);
+
+  // Routes keep the existing compact Previous / Next pager.
+  if (!directNavigation) {
+    container.append(previous, status, next);
+    return container;
+  }
+
+  const first = element("button", {
+    className: "button secondary small",
+    text: "First",
+    type: "button",
+    disabled: page <= 1,
+    attributes: { "aria-label": "First page" },
+  });
+  const last = element("button", {
+    className: "button secondary small",
+    text: "Last",
+    type: "button",
+    disabled: page >= totalPages,
+    attributes: { "aria-label": "Last page" },
+  });
+  const pageInput = element("input", {
+    className: "qa-page-number",
+    type: "number",
+    value: page,
+    attributes: {
+      min: "1",
+      max: String(totalPages),
+      step: "1",
+      inputmode: "numeric",
+      "aria-label": `Page number, 1 to ${totalPages}`,
+    },
+  });
+  const go = element("button", {
+    className: "button secondary small",
+    text: "Go",
+    type: "button",
+    attributes: { "aria-label": "Go to page" },
+  });
+
+  const requestedPage = () => {
+    const value = Number(pageInput.value);
+    if (!Number.isInteger(value) || value < 1 || value > totalPages) {
+      return null;
+    }
+    return value;
+  };
+
+  const updateJumpState = () => {
+    const requested = requestedPage();
+    const valid = requested !== null;
+    pageInput.setAttribute("aria-invalid", valid ? "false" : "true");
+    go.disabled = !valid || requested === page;
+  };
+
+  const jumpToRequestedPage = () => {
+    const requested = requestedPage();
+
+    if (requested === null) {
+      pageInput.value = String(page);
+      updateJumpState();
+      return;
+    }
+
+    if (requested !== page) onPage(requested);
+  };
+
+  first.addEventListener("click", () => onPage(1));
+  last.addEventListener("click", () => onPage(totalPages));
+  pageInput.addEventListener("input", updateJumpState);
+  pageInput.addEventListener("change", jumpToRequestedPage);
+  pageInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      jumpToRequestedPage();
+    }
+  });
+  go.addEventListener("click", jumpToRequestedPage);
+
+  updateJumpState();
+
+  container.append(
+    first,
+    previous,
+    status,
+    pageInput,
+    go,
+    next,
+    last,
+  );
   return container;
 }
 
