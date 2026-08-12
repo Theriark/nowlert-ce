@@ -64,8 +64,50 @@ function qaPager(containerId, pagination, onPage) {
     text: `Page ${page} of ${totalPages} - ${total} item${total === 1 ? "" : "s"}`,
   });
 
-  previous.addEventListener("click", () => onPage(page - 1));
-  next.addEventListener("click", () => onPage(page + 1));
+  const navigatePage = (targetPage) => {
+    // Routes keep their existing behavior. Delivery History and Audit Log
+    // preserve the pager's viewport position while their rows re-render.
+    if (!directNavigation) {
+      onPage(targetPage);
+      return;
+    }
+
+    const anchorTop = container.getBoundingClientRect().top;
+
+    const restorePagerAnchor = () => {
+      window.requestAnimationFrame(() => {
+        const updatedContainer = byId(containerId);
+        if (!updatedContainer) return;
+
+        const delta =
+          updatedContainer.getBoundingClientRect().top - anchorTop;
+
+        if (Math.abs(delta) < 0.5) return;
+
+        window.scrollBy({
+          top: delta,
+          left: 0,
+          behavior: "auto",
+        });
+      });
+    };
+
+    let result;
+    try {
+      result = onPage(targetPage);
+    } catch (error) {
+      restorePagerAnchor();
+      throw error;
+    }
+
+    Promise.resolve(result).then(
+      restorePagerAnchor,
+      restorePagerAnchor,
+    );
+  };
+
+  previous.addEventListener("click", () => navigatePage(page - 1));
+  next.addEventListener("click", () => navigatePage(page + 1));
 
   // Routes keep the existing compact Previous / Next pager.
   if (!directNavigation) {
@@ -130,11 +172,11 @@ function qaPager(containerId, pagination, onPage) {
       return;
     }
 
-    if (requested !== page) onPage(requested);
+    if (requested !== page) navigatePage(requested);
   };
 
-  first.addEventListener("click", () => onPage(1));
-  last.addEventListener("click", () => onPage(totalPages));
+  first.addEventListener("click", () => navigatePage(1));
+  last.addEventListener("click", () => navigatePage(totalPages));
   pageInput.addEventListener("input", updateJumpState);
   pageInput.addEventListener("change", jumpToRequestedPage);
   pageInput.addEventListener("keydown", (event) => {

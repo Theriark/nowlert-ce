@@ -472,8 +472,6 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     # First / Last navigation.
     assert 'text: "First"' in script
     assert 'text: "Last"' in script
-    assert 'first.addEventListener("click", () => onPage(1));' in script
-    assert 'last.addEventListener("click", () => onPage(totalPages));' in script
 
     # Direct page-number navigation and validity constraints.
     assert 'className: "qa-page-number"' in script
@@ -484,6 +482,20 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     assert "value < 1 || value > totalPages" in script
     assert 'pageInput.setAttribute("aria-invalid", valid ? "false" : "true");' in script
     assert 'if (event.key === "Enter")' in script
+
+    # User-triggered page changes preserve the pager's viewport anchor
+    # even when the target page has a different number of rows.
+    assert "const navigatePage = (targetPage) => {" in script
+    assert "const anchorTop = container.getBoundingClientRect().top;" in script
+    assert "const updatedContainer = byId(containerId);" in script
+    assert "updatedContainer.getBoundingClientRect().top - anchorTop" in script
+    assert "window.requestAnimationFrame" in script
+    assert "window.scrollBy({" in script
+    assert 'previous.addEventListener("click", () => navigatePage(page - 1));' in script
+    assert 'next.addEventListener("click", () => navigatePage(page + 1));' in script
+    assert 'first.addEventListener("click", () => navigatePage(1));' in script
+    assert 'last.addEventListener("click", () => navigatePage(totalPages));' in script
+    assert "if (requested !== page) navigatePage(requested);" in script
 
     # Existing boundaries remain enforced.
     assert "disabled: page <= 1" in script
