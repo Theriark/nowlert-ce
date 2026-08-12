@@ -17,6 +17,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
   id-token: write
 
@@ -28,7 +29,7 @@ jobs:
   promote:
     name: Promote CE Stage-approved image to Production Reference
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
     environment: production-reference
 
     env:
@@ -38,7 +39,6 @@ jobs:
       SOURCE_COMMIT: ${{ inputs.source_commit }}
       CE_STAGE_APPLICATION_ID: D0aI55MKe3G77LFdQcPdY
       CE_PRODREF_APPLICATION_ID: -Qb71PLUZmBHLJ_Iv68Oo
-      PRODREF_CE_SMOKE_SCHEDULE_ID: ${{ vars.PRODREF_CE_SMOKE_SCHEDULE_ID }}
 
     steps:
       - name: Checkout pipeline code
@@ -58,11 +58,6 @@ jobs:
 
           [[ -n "${DOKPLOY_API_KEY}" ]] || {
             echo "::error::DOKPLOY_API_KEY is missing"
-            exit 1
-          }
-
-          [[ -n "${PRODREF_CE_SMOKE_SCHEDULE_ID}" ]] || {
-            echo "::error::PRODREF_CE_SMOKE_SCHEDULE_ID is missing"
             exit 1
           }
 
@@ -112,30 +107,156 @@ jobs:
             --source-commit "${SOURCE_COMMIT}" \
             --promotion-run "${{ inputs.stage_promotion_run }}"
 
+      # Refuse legacy/unsafe Stage evidence even if the desired-state ledger
+      # points at it. A Production Reference promotion can consume only a Stage
+      # run that proves both the full network-isolated gate and the read-only
+      # live smoke, with no active delivery-QA fragments in its logs.
+      - name: Confirm CE Stage promotion was notification-silent full gate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGE_PROMOTION_RUN: ${{ inputs.stage_promotion_run }}
+        run: |
+          set -euo pipefail
+
+          stage_run_id="${STAGE_PROMOTION_RUN%/}"
+          stage_run_id="${stage_run_id##*/}"
+          [[ "${stage_run_id}" =~ ^[0-9]+$ ]] || {
+            echo "::error::Stage promotion run must end in a numeric run ID"
+            exit 1
+          }
+
+          stage_log="$(mktemp)"
+          trap 'rm -f "${stage_log}"' EXIT
+          gh run view "${stage_run_id}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --log > "${stage_log}"
+
+          for required in \
+            "PASS: promotion gate network namespace has no default route" \
+            "STAGE CE SILENT FULL GATE PASSED" \
+            "STAGE CE SILENT PROMOTION SMOKE PASSED" \
+            "PASS: notification delivery tests disabled for this promotion smoke"
+          do
+            grep -Fq "${required}" "${stage_log}" || {
+              echo "::error::Stage promotion ${stage_run_id} lacks required safe-gate evidence: ${required}"
+              exit 1
+            }
+          done
+
+          for forbidden in \
+            "===== DELIVERY =====" \
+            "Expected deliveries:" \
+            "Accepted deliveries:" \
+            "Related firing run:" \
+            "stage-ce-all-" \
+            "stage-ce-zabbix-" \
+            "stage-ce-portainer-"
+          do
+            if grep -Fq "${forbidden}" "${stage_log}"; then
+              echo "::error::Stage promotion ${stage_run_id} contains active delivery QA evidence: ${forbidden}"
+              exit 1
+            fi
+          done
+
+      - name: Checkout candidate source for the full gate
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_commit }}
+          path: candidate
+
+      - name: Set up Python for the full gate
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: candidate/requirements-dev.txt
+
+      - name: Install full-gate dependencies
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          python -m pip check
+
+      - name: Run full notification-silent CE Production Reference gate
+        id: full_gate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CANDIDATE_PATH="${GITHUB_WORKSPACE}/candidate"
+          PYTHON_BIN="$(command -v python)"
+          BASH_BIN="$(command -v bash)"
+          IP_BIN="$(command -v ip)"
+          UNSHARE_BIN="$(command -v unshare)"
+
+          sudo env -i \
+            PATH="${PATH}" \
+            CANDIDATE_PATH="${CANDIDATE_PATH}" \
+            PYTHON_BIN="${PYTHON_BIN}" \
+            BASH_BIN="${BASH_BIN}" \
+            IP_BIN="${IP_BIN}" \
+            "${UNSHARE_BIN}" --net -- "${BASH_BIN}" -c '
+              set -euo pipefail
+              "${IP_BIN}" link set lo up
+              if "${IP_BIN}" route show default | grep -q .; then
+                echo "::error::Promotion gate network namespace has a default route"
+                exit 1
+              fi
+              if "${IP_BIN}" -o addr show scope global | grep -q .; then
+                echo "::error::Promotion gate network namespace has a global address"
+                exit 1
+              fi
+              echo "PASS: promotion gate network namespace has no default route"
+              cd "${CANDIDATE_PATH}"
+              "${PYTHON_BIN}" -m pytest -q
+              echo "PRODUCTION REFERENCE CE SILENT FULL GATE PASSED"
+            '
+
       - name: Promote CE to Production Reference
         id: deploy
         shell: bash
         run: |
           set -euo pipefail
 
+          EXPECTED_VERSION="$(
+            git show "${SOURCE_COMMIT}:src/version.py" |
+              sed -n 's/^VERSION = "\([^"[:space:]]*\)"$/\1/p'
+          )"
+          [[ -n "${EXPECTED_VERSION}" ]] || {
+            echo "::error::Could not determine version for ${SOURCE_COMMIT}"
+            exit 1
+          }
+
           python .github/scripts/dokploy_release.py deploy \
             --application-id="${CE_PRODREF_APPLICATION_ID}" \
             --image "${PROMOTION_IMAGE}" \
             --health-url https://ce-prod.nowlert.theriark.com/api/health \
+            --expected-version "${EXPECTED_VERSION}" \
             --title "CE Production Reference promotion ${{ github.run_id }}" \
             --description "CE Stage run: ${{ inputs.stage_promotion_run }}" \
             --noop-ok
 
-      - name: Run CE Production Reference smoke on VM-13
-        id: smoke
+      - name: Run notification-silent CE Production Reference promotion smoke
+        id: silent_smoke
         shell: bash
         run: |
           set -euo pipefail
 
-          python .github/scripts/dokploy_release.py run-schedule \
-            --schedule-id "${PRODREF_CE_SMOKE_SCHEDULE_ID}" \
-            --success-marker "PRODUCTION REFERENCE CE POST-PROMOTION SMOKE PASSED" \
-            --timeout 1800
+          EXPECTED_VERSION="$(
+            git show "${SOURCE_COMMIT}:src/version.py" |
+              sed -n 's/^VERSION = "\([^"[:space:]]*\)"$/\1/p'
+          )"
+
+          python .github/scripts/dokploy_release.py promotion-smoke \
+            --application-id="${CE_PRODREF_APPLICATION_ID}" \
+            --image "${PROMOTION_IMAGE}" \
+            --health-url https://ce-prod.nowlert.theriark.com/api/health \
+            --expected-version "${EXPECTED_VERSION}" \
+            --success-marker "PRODUCTION REFERENCE CE SILENT PROMOTION SMOKE PASSED"
 
       - name: Record CE Production Reference desired state
         id: ledger
@@ -149,9 +270,9 @@ jobs:
             --source-commit "${SOURCE_COMMIT}" \
             --promotion-run "${GITHUB_RUN_ID}" \
             --application-id="${CE_PRODREF_APPLICATION_ID}" \
-            --schedule-id "${PRODREF_CE_SMOKE_SCHEDULE_ID}" \
-            --schedule-deployment-id "${{ steps.smoke.outputs.deployment_id }}" \
-            --qa-marker "PRODUCTION REFERENCE CE POST-PROMOTION SMOKE PASSED"
+            --evidence-type silent-promotion-smoke \
+            --health-url https://ce-prod.nowlert.theriark.com/api/health \
+            --success-marker "PRODUCTION REFERENCE CE SILENT PROMOTION SMOKE PASSED"
 
       - name: Record successful CE Production Reference promotion
         shell: bash
@@ -162,14 +283,18 @@ jobs:
             echo "- CE image: \`${PROMOTION_IMAGE}\`"
             echo "- Source commit: \`${SOURCE_COMMIT}\`"
             echo "- CE Stage promotion run: ${{ inputs.stage_promotion_run }}"
-            echo "- Production Reference smoke: \`${{ steps.smoke.outputs.deployment_id }}\`"
+            echo "- Stage safety evidence: notification-silent full gate verified"
+            echo "- Full notification-silent Production Reference gate: passed"
+            echo "- Gate network: isolated namespace, no default route or global address"
+            echo "- Live Production Reference verification: read-only passive smoke passed"
+            echo "- External notification delivery during promotion: disabled"
             echo "- Ledger key: \`${{ steps.ledger.outputs.key }}\`"
             echo "- Ledger version: \`${{ steps.ledger.outputs.version_id }}\`"
             echo "- Rebuild performed: no"
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Roll back CE after a failed Production Reference gate
-        if: ${{ (steps.deploy.outcome == 'failure' || steps.smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
+        if: ${{ (steps.deploy.outcome == 'failure' || steps.silent_smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
         continue-on-error: true
         shell: bash
         run: |
@@ -178,6 +303,6 @@ jobs:
             --image "${{ steps.deploy.outputs.previous_image }}" \
             --health-url https://ce-prod.nowlert.theriark.com/api/health \
             --title "Automatic CE Production Reference rollback ${{ github.run_id }}" \
-            --description "The CE Production Reference promotion or smoke gate failed" \
+            --description "The CE Production Reference promotion or silent smoke gate failed" \
             --allow-mutable \
             --noop-ok

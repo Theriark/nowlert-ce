@@ -224,11 +224,31 @@ class PlatformAPI:
                 return self._routes_endpoint(method, payload, actor)
             if path == "/api/v2/deliveries":
                 return self._deliveries_endpoint(method, actor)
+            delivery_page_size = re.fullmatch(
+                r"/api/v2/deliveries/page/(\d+)/size/(\d+)", path
+            )
+            if delivery_page_size:
+                return self._deliveries_page_endpoint(
+                    method,
+                    actor,
+                    int(delivery_page_size.group(1)),
+                    int(delivery_page_size.group(2)),
+                )
             delivery_page = re.fullmatch(r"/api/v2/deliveries/page/(\d+)", path)
             if delivery_page:
                 return self._deliveries_page_endpoint(method, actor, int(delivery_page.group(1)))
             if path == "/api/v2/audit-events":
                 return self._audit_endpoint(method, actor)
+            audit_page_size = re.fullmatch(
+                r"/api/v2/audit-events/page/(\d+)/size/(\d+)", path
+            )
+            if audit_page_size:
+                return self._audit_page_endpoint(
+                    method,
+                    actor,
+                    int(audit_page_size.group(1)),
+                    int(audit_page_size.group(2)),
+                )
             audit_page = re.fullmatch(r"/api/v2/audit-events/page/(\d+)", path)
             if audit_page:
                 return self._audit_page_endpoint(method, actor, int(audit_page.group(1)))
@@ -676,10 +696,14 @@ class PlatformAPI:
         attempts = self.history.list_visible(actor, limit=100)
         return APIResponse(200, {"deliveries": [self._delivery(item) for item in attempts]})
 
-    def _deliveries_page_endpoint(self, method, actor, page) -> APIResponse:
+    _DELIVERY_PAGE_SIZES = (25, 50, 100, 150, 250, 500)
+
+    def _deliveries_page_endpoint(self, method, actor, page, size=None) -> APIResponse:
         if method != "GET":
             return self._method_not_allowed("GET")
         page_size = 25
+        if size is not None and int(size) in self._DELIVERY_PAGE_SIZES:
+            page_size = int(size)
         total = self.history.count_visible(actor)
         total_pages = max(1, (total + page_size - 1) // page_size)
         current = min(max(1, int(page)), total_pages)
@@ -762,10 +786,14 @@ class PlatformAPI:
         events = self.audit.list_visible(actor, limit=500)
         return APIResponse(200, {"audit_events": [self._audit(item) for item in events]})
 
-    def _audit_page_endpoint(self, method, actor, page) -> APIResponse:
+    _AUDIT_PAGE_SIZES = (25, 50, 100, 150, 250, 500)
+
+    def _audit_page_endpoint(self, method, actor, page, size=None) -> APIResponse:
         if method != "GET":
             return self._method_not_allowed("GET")
         page_size = 25
+        if size is not None and int(size) in self._AUDIT_PAGE_SIZES:
+            page_size = int(size)
         total = self.audit.count_visible(actor)
         total_pages = max(1, (total + page_size - 1) // page_size)
         current = min(max(1, int(page)), total_pages)

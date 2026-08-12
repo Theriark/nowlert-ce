@@ -377,7 +377,7 @@
     const view = desiredView();
     if (!view || !VIEW_TITLES[view]) return;
     if (state.currentView !== view && typeof originalNavigate === "function") {
-      originalNavigate(view);
+      originalNavigate(view, "replace");
     }
     persistDesiredView(view);
   }
@@ -385,8 +385,8 @@
   restorePersistedView();
   installHeaderMenu();
 
-  navigate = function enhancedNavigate(view) {
-    const result = originalNavigate(view);
+  navigate = function enhancedNavigate(view, historyMode = "push") {
+    const result = originalNavigate(view, historyMode);
     persistDesiredView(state.currentView || view);
     return result;
   };

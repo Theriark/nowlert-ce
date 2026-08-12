@@ -41,3 +41,33 @@ def test_build_current_record_is_edition_scoped() -> None:
     assert payload["image"] == args.image
     assert payload["source_commit"] == args.source_commit
     assert payload["promotion_run"] == "30776030212"
+    assert payload["qa_evidence"]["type"] == "qa_schedule"
+    assert payload["qa_evidence"]["notification_delivery_tests"] is True
+
+
+def test_build_current_silent_promotion_evidence_disables_delivery_tests() -> None:
+    args = Namespace(
+        environment="stage",
+        image=ledger.IMAGE_PREFIX + "c" * 64,
+        source_commit="d" * 40,
+        promotion_run="31237622033",
+        application_id="D0aI55MKe3G77LFdQcPdY",
+        evidence_type="silent-promotion-smoke",
+        health_url="https://ce-stage.nowlert.theriark.com/api/health",
+        success_marker="STAGE CE SILENT PROMOTION SMOKE PASSED",
+        schedule_id="",
+        schedule_deployment_id="",
+        qa_marker="",
+    )
+
+    key, payload = ledger.build_current(args)
+
+    assert key == f"{ledger.PREFIX}/stage/current.json"
+    evidence = payload["qa_evidence"]
+    assert evidence == {
+        "type": "silent_promotion_smoke",
+        "health_url": "https://ce-stage.nowlert.theriark.com/api/health",
+        "success_marker": "STAGE CE SILENT PROMOTION SMOKE PASSED",
+        "notification_delivery_tests": False,
+        "schedule_triggered": False,
+    }
