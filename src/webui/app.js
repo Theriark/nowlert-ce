@@ -72,6 +72,30 @@ const SOURCE_CATEGORIES = {
   security: { key: "security", label: "Security" },
   generic: { key: "generic", label: "Generic" },
 };
+const LANGUAGE_DEFAULT_TIMEZONES = {
+  "en-GB": "Europe/London",
+  "en-US": "America/New_York",
+  "pt-PT": "Europe/Lisbon",
+  "pt-BR": "America/Sao_Paulo",
+  "es-ES": "Europe/Madrid",
+  "fr-FR": "Europe/Paris",
+  "de-DE": "Europe/Berlin",
+  "it-IT": "Europe/Rome",
+  "nl-NL": "Europe/Amsterdam",
+  "pl-PL": "Europe/Warsaw",
+  "cs-CZ": "Europe/Prague",
+  "ro-RO": "Europe/Bucharest",
+  "sv-SE": "Europe/Stockholm",
+  "da-DK": "Europe/Copenhagen",
+  "nb-NO": "Europe/Oslo",
+  "fi-FI": "Europe/Helsinki",
+  "el-GR": "Europe/Athens",
+  "tr-TR": "Europe/Istanbul",
+  "ru-RU": "Europe/Moscow",
+  "uk-UA": "Europe/Kyiv",
+  "ja-JP": "Asia/Tokyo",
+  "zh-CN": "Asia/Shanghai",
+};
 const PT_TRANSLATIONS = {
   "Dashboard": "Painel",
   "Overview": "Visão geral",
@@ -1684,6 +1708,12 @@ function renderPreferences() {
   document.documentElement.lang = state.preferences.language || "en-GB";
 }
 
+function applyLanguageDefaultTimezone() {
+  const language = byId("preference-language").value;
+  const timezone = LANGUAGE_DEFAULT_TIMEZONES[language];
+  if (timezone) byId("preference-timezone").value = timezone;
+}
+
 async function savePreferences(event) {
   event.preventDefault();
   try {
@@ -1691,7 +1721,7 @@ async function savePreferences(event) {
       method: "PUT",
       body: {
         language: byId("preference-language").value,
-        timezone: byId("preference-timezone").value.trim(),
+        timezone: byId("preference-timezone").value,
         time_format: byId("preference-time-format").value,
       },
     });
@@ -1882,6 +1912,14 @@ async function restartPlatform(event) {
   }
 }
 
+function updateAvatarSaveState(available) {
+  const save = byId("avatar-save");
+  if (!save) return;
+  const enabled = Boolean(available);
+  save.hidden = !enabled;
+  save.disabled = !enabled;
+}
+
 async function saveAvatar(event) {
   event.preventDefault();
   if (!state.avatarEditor.image) {
@@ -1889,6 +1927,7 @@ async function saveAvatar(event) {
     return;
   }
   try {
+    updateAvatarSaveState(false);
     const imageData = byId("avatar-canvas").toDataURL("image/png");
     const response = await request("/account/avatar", { method: "PUT", body: { image_data: imageData } });
     state.user = response.user;
@@ -1900,8 +1939,10 @@ async function saveAvatar(event) {
       state.avatarEditor.image.close();
     }
     state.avatarEditor.image = null;
+    updateAvatarSaveState(false);
     toast("Profile picture updated.");
   } catch (error) {
+    updateAvatarSaveState(Boolean(state.avatarEditor.image));
     toast(error.message || "Profile picture could not be saved.", "error");
   }
 }
@@ -1914,6 +1955,7 @@ async function loadAvatarEditor() {
   if ((!supportedType && !supportedExtension) || file.size > 10 * 1024 * 1024) {
     toast("Choose a PNG, JPEG, or WebP image up to 10 MiB.", "error");
     byId("avatar-file").value = "";
+    updateAvatarSaveState(false);
     return;
   }
   let image;
@@ -1960,6 +2002,7 @@ async function loadAvatarEditor() {
   state.avatarEditor.y = (256 - height * base) / 2;
   byId("avatar-editor").hidden = false;
   drawAvatarEditor();
+  updateAvatarSaveState(true);
 }
 
 function drawAvatarEditor() {
@@ -2675,6 +2718,18 @@ async function resourceAction(action, id) {
       state.user = response.user;
       applyAvatar("profile-avatar", state.user);
       applyAvatar("account-avatar", state.user);
+      byId("avatar-file").value = "";
+      byId("avatar-editor").hidden = true;
+      byId("avatar-zoom").value = "1";
+      if (state.avatarEditor.image && typeof state.avatarEditor.image.close === "function") {
+        state.avatarEditor.image.close();
+      }
+      state.avatarEditor.image = null;
+      const avatarSave = byId("avatar-save");
+      if (avatarSave) {
+        avatarSave.hidden = true;
+        avatarSave.disabled = true;
+      }
       toast("Profile picture removed.");
       return;
     } else if (action === "export-platform") {
@@ -2908,6 +2963,7 @@ function bindEvents() {
   byId("preview-form").addEventListener("submit", runPreview);
   byId("password-form").addEventListener("submit", changePassword);
   byId("preferences-form").addEventListener("submit", savePreferences);
+  byId("preference-language").addEventListener("change", applyLanguageDefaultTimezone);
   byId("integration-settings-form").addEventListener("submit", saveIntegrationSettings);
   byId("integration-settings-dialog").addEventListener("cancel", (event) => {
     event.preventDefault();
@@ -2919,7 +2975,10 @@ function bindEvents() {
   byId("backup-target-type").addEventListener("change", updateBackupTargetFields);
   byId("restart-form").addEventListener("submit", restartPlatform);
   byId("avatar-form").addEventListener("submit", saveAvatar);
-  byId("avatar-file").addEventListener("change", () => loadAvatarEditor().catch((error) => toast(error.message, "error")));
+  byId("avatar-file").addEventListener("change", () => loadAvatarEditor().catch((error) => {
+    updateAvatarSaveState(false);
+    toast(error.message, "error");
+  }));
   byId("avatar-zoom").addEventListener("input", zoomAvatarEditor);
   byId("avatar-canvas").addEventListener("pointerdown", (event) => {
     state.avatarEditor.dragging = true;

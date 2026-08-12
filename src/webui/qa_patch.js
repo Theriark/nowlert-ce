@@ -4,6 +4,28 @@ const QA_PAGE_SIZE = 25;
 let qaRoutePage = 1;
 let qaDeliveryPage = 1;
 let qaAuditPage = 1;
+const QA_AUDIT_PAGE_SIZE_KEY = "nowlert.audit.pageSize";
+const QA_AUDIT_PAGE_SIZES = [25, 50, 100, 150, 250, 500];
+
+function qaReadAuditPageSize() {
+  let stored = 25;
+  try {
+    stored = Number(window.localStorage.getItem(QA_AUDIT_PAGE_SIZE_KEY));
+  } catch (error) {
+    stored = 25;
+  }
+  return QA_AUDIT_PAGE_SIZES.includes(stored) ? stored : 25;
+}
+
+function qaWriteAuditPageSize(value) {
+  try {
+    window.localStorage.setItem(QA_AUDIT_PAGE_SIZE_KEY, String(value));
+  } catch (error) {
+    /* storage unavailable; selection stays in-session only */
+  }
+}
+
+let qaAuditPageSize = qaReadAuditPageSize();
 let qaDeliveryPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 
@@ -85,8 +107,11 @@ async function qaLoadDeliveryPage(page) {
 
 async function qaLoadAuditPage(page) {
   try {
-    const response = await request(`/audit-events/page/${Math.max(1, Number(page || 1))}`);
+    const response = await request(
+      `/audit-events/page/${Math.max(1, Number(page || 1))}/size/${qaAuditPageSize}`,
+    );
     state.audit = response.audit_events || [];
+    if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
     qaAuditPagination = response.pagination || qaAuditPagination;
     qaAuditPage = qaAuditPagination.page || 1;
     qaOriginalRenderAudit();
@@ -113,6 +138,25 @@ loadWorkspace = async function loadWorkspaceWithPagination() {
   await qaOriginalLoadWorkspace();
   await Promise.all([qaLoadDeliveryPage(qaDeliveryPage), qaLoadAuditPage(qaAuditPage)]);
 };
+
+function qaBindAuditPageSize() {
+  const select = byId("audit-page-size");
+  if (!select || select.dataset.qaPageSize === "1") return;
+  select.dataset.qaPageSize = "1";
+  qaAuditPageSize = qaReadAuditPageSize();
+  select.value = String(qaAuditPageSize);
+  if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
+  select.addEventListener("change", () => {
+    const chosen = Number(select.value);
+    qaAuditPageSize = QA_AUDIT_PAGE_SIZES.includes(chosen) ? chosen : 25;
+    qaWriteAuditPageSize(qaAuditPageSize);
+    if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
+    qaAuditPage = 1;
+    qaLoadAuditPage(1);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", qaBindAuditPageSize);
 
 function qaAddSelectActions(selectId) {
   const select = byId(selectId);
@@ -143,53 +187,11 @@ function qaAddCounter(inputId, maximum) {
   update();
 }
 
-function qaUpdateAvatarSave() {
-  const save = byId("avatar-save");
-  const file = byId("avatar-file");
-  if (!save || !file) return;
-  const selected = Boolean(file.files && file.files.length);
-  save.hidden = !selected;
-  save.disabled = !selected;
-}
-
-function qaEnhanceRegionalSettings() {
-  const language = byId("preference-language");
-  if (language) {
-    const labels = {
-      "en-US": "English (United States)",
-      "pt-BR": "Portuguese (Brazil)",
-    };
-    for (const [value, label] of Object.entries(labels)) {
-      if (![...language.options].some((option) => option.value === value)) {
-        language.append(element("option", { value, text: label }));
-      }
-    }
-  }
-  const zones = byId("timezone-suggestions");
-  if (zones) {
-    for (const value of [
-      "Europe/Berlin", "Europe/Amsterdam", "Europe/Rome", "Europe/Zurich", "Europe/Stockholm",
-      "America/Chicago", "America/Denver", "America/Toronto", "America/Sao_Paulo", "America/Mexico_City",
-      "Asia/Dubai", "Asia/Kolkata", "Asia/Singapore", "Asia/Tokyo", "Asia/Seoul",
-      "Australia/Sydney", "Pacific/Auckland", "Africa/Johannesburg",
-    ]) {
-      if (![...zones.options].some((option) => option.value === value)) zones.append(element("option", { value }));
-    }
-  }
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   qaAddCounter("preview-event-title", 256);
   qaAddCounter("preview-message", 4000);
   qaAddCounter("user-name", 64);
   for (const id of ["route-severities", "route-statuses", "route-exclude_severities", "route-exclude_statuses"]) qaAddSelectActions(id);
-  qaEnhanceRegionalSettings();
-  qaUpdateAvatarSave();
-  byId("avatar-file")?.addEventListener("change", qaUpdateAvatarSave);
-  byId("avatar-form")?.addEventListener("submit", () => window.setTimeout(qaUpdateAvatarSave, 0));
-  document.addEventListener("click", (event) => {
-    if (event.target.closest('[data-action="remove-avatar"]')) window.setTimeout(qaUpdateAvatarSave, 0);
-  });
 });
 
 /* Nowlert 3.1.0 empty-state icon restoration */

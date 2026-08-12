@@ -234,8 +234,34 @@ class SettingsStore:
         except (ZoneInfoNotFoundError, ValueError):
             raise ValueError("timezone must be a valid IANA timezone") from None
         language = str(value.get("language") or "").strip()
-        if language not in {"en-GB", "en-US", "pt-PT", "pt-BR"}:
-            raise ValueError("language must be en-GB, en-US, pt-PT, or pt-BR")
+        supported_languages = {
+            "en-GB",
+            "en-US",
+            "pt-PT",
+            "pt-BR",
+            "es-ES",
+            "fr-FR",
+            "de-DE",
+            "it-IT",
+            "nl-NL",
+            "pl-PL",
+            "cs-CZ",
+            "ro-RO",
+            "sv-SE",
+            "da-DK",
+            "nb-NO",
+            "fi-FI",
+            "el-GR",
+            "tr-TR",
+            "ru-RU",
+            "uk-UA",
+            "ja-JP",
+            "zh-CN",
+        }
+        if language not in supported_languages:
+            raise ValueError(
+                "language must be one of the supported Regional Settings locales"
+            )
         time_format = str(value.get("time_format") or "").strip()
         if time_format not in {"12", "24"}:
             raise ValueError("time format must be 12 or 24")

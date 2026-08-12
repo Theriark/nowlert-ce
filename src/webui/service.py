@@ -66,6 +66,11 @@ class WebUIService:
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/i18n.js": (
+                "src/webui/i18n.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/styles.css": (
                 "src/webui/styles.css",
                 "text/css; charset=utf-8",
