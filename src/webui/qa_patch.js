@@ -45,6 +45,28 @@ function qaWriteDeliveryPageSize(value) {
   }
 }
 
+function qaScrollPageBottom() {
+  const scroll = () => {
+    const pageHeight = Math.max(
+      document.documentElement ? document.documentElement.scrollHeight : 0,
+      document.body ? document.body.scrollHeight : 0,
+    );
+    window.scrollTo({
+      top: pageHeight,
+      left: 0,
+      behavior: "auto",
+    });
+  };
+
+  // Apply immediately and again after layout settles so async table
+  // replacement and browser scroll anchoring cannot leave us above bottom.
+  scroll();
+  window.requestAnimationFrame(() => {
+    scroll();
+    window.requestAnimationFrame(scroll);
+  });
+}
+
 let qaAuditPageSize = qaReadAuditPageSize();
 let qaDeliveryPageSize = qaReadDeliveryPageSize();
 let qaDeliveryPagination = { page: 1, page_size: qaDeliveryPageSize, total: 0, total_pages: 1 };
@@ -91,29 +113,17 @@ function qaPager(containerId, pagination, onPage) {
       return;
     }
 
-    const showBottomPager = () => {
-      window.requestAnimationFrame(() => {
-        const updatedContainer = byId(containerId);
-        if (!updatedContainer) return;
-        updatedContainer.scrollIntoView({
-          block: "end",
-          inline: "nearest",
-          behavior: "auto",
-        });
-      });
-    };
-
     let result;
     try {
       result = onPage(targetPage);
     } catch (error) {
-      showBottomPager();
+      qaScrollPageBottom();
       throw error;
     }
 
     Promise.resolve(result).then(
-      showBottomPager,
-      showBottomPager,
+      qaScrollPageBottom,
+      qaScrollPageBottom,
     );
   };
 
@@ -140,13 +150,6 @@ function qaPager(containerId, pagination, onPage) {
     disabled: page >= totalPages,
     attributes: { "aria-label": "Last page" },
   });
-  const topShortcut = element("button", {
-    className: "button secondary small",
-    text: "Top",
-    type: "button",
-    attributes: { "aria-label": "Go to top" },
-  });
-
   const pageInput = element("input", {
     className: "qa-page-number",
     type: "number",
@@ -193,9 +196,6 @@ function qaPager(containerId, pagination, onPage) {
     if (requested !== page) navigatePage(requested);
   };
 
-  topShortcut.addEventListener("click", () => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  });
   first.addEventListener("click", () => navigatePage(1));
   last.addEventListener("click", () => navigatePage(totalPages));
   pageInput.addEventListener("input", updateJumpState);
@@ -211,7 +211,6 @@ function qaPager(containerId, pagination, onPage) {
   updateJumpState();
 
   container.append(
-    topShortcut,
     first,
     previous,
     status,
@@ -317,6 +316,25 @@ loadWorkspace = async function loadWorkspaceWithPagination() {
   await Promise.all([qaLoadDeliveryPage(qaDeliveryPage), qaLoadAuditPage(qaAuditPage)]);
 };
 
+function qaCreateTopShortcut() {
+  const button = element("button", {
+    className: "button secondary small qa-top-shortcut",
+    text: "Top",
+    type: "button",
+    attributes: { "aria-label": "Go to top" },
+  });
+
+  button.addEventListener("click", () => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
+  });
+
+  return button;
+}
+
 function qaBindAuditPageSize() {
   const select = byId("audit-page-size");
   if (!select || select.dataset.qaPageSize === "1") return;
@@ -330,7 +348,7 @@ function qaBindAuditPageSize() {
     qaWriteAuditPageSize(qaAuditPageSize);
     if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
     qaAuditPage = 1;
-    qaLoadAuditPage(1);
+    qaLoadAuditPage(1).then(qaScrollPageBottom);
   });
 }
 
@@ -338,7 +356,9 @@ function qaBindDeliveryPageSize() {
   const view = byId("view-deliveries");
   if (!view || byId("delivery-page-size")) return;
 
-  const footer = element("div", { className: "audit-footer qa-delivery-footer" });
+  const footer = element("div", {
+    className: "audit-footer qa-delivery-footer qa-pagination-footer",
+  });
   const label = element("label");
   const caption = element("span", { text: "Entries" });
   const select = element("select", {
@@ -358,15 +378,29 @@ function qaBindDeliveryPageSize() {
     qaDeliveryPageSize = QA_DELIVERY_PAGE_SIZES.includes(chosen) ? chosen : 25;
     qaWriteDeliveryPageSize(qaDeliveryPageSize);
     qaDeliveryPage = 1;
-    qaLoadDeliveryPage(1);
+    qaLoadDeliveryPage(1).then(qaScrollPageBottom);
   });
 
   label.append(caption, select);
-  footer.append(label);
+  footer.append(label, qaCreateTopShortcut());
 
   const panel = view.querySelector(".professional-timeline-panel");
   if (panel) panel.insertAdjacentElement("afterend", footer);
   else view.append(footer);
+}
+
+function qaBindFooterTopShortcuts() {
+  for (const viewId of ["view-deliveries", "view-audit"]) {
+    const view = byId(viewId);
+    const footer = view && view.querySelector(".audit-footer");
+    if (!footer) continue;
+
+    footer.classList.add("qa-pagination-footer");
+
+    if (!footer.querySelector(".qa-top-shortcut")) {
+      footer.append(qaCreateTopShortcut());
+    }
+  }
 }
 
 function qaBindBottomShortcuts() {
@@ -389,14 +423,7 @@ function qaBindBottomShortcuts() {
     });
 
     button.addEventListener("click", () => {
-      const pager = byId(pagerId);
-      if (pager) {
-        pager.scrollIntoView({
-          block: "end",
-          inline: "nearest",
-          behavior: "auto",
-        });
-      }
+      qaScrollPageBottom();
     });
 
     toolbar.append(button);
@@ -406,6 +433,7 @@ function qaBindBottomShortcuts() {
 document.addEventListener("DOMContentLoaded", () => {
   qaBindAuditPageSize();
   qaBindDeliveryPageSize();
+  qaBindFooterTopShortcuts();
   qaBindBottomShortcuts();
 });
 

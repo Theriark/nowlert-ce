@@ -486,24 +486,33 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     assert 'pageInput.setAttribute("aria-invalid", valid ? "false" : "true");' in script
     assert 'if (event.key === "Enter")' in script
 
-    # Every paging action finishes with the bottom pager visible.
+    # Every paging action finishes at the actual document bottom, after
+    # asynchronous layout settles.
     assert "const navigatePage = (targetPage) => {" in script
-    assert "const showBottomPager = () => {" in script
-    assert "const updatedContainer = byId(containerId);" in script
-    assert "updatedContainer.scrollIntoView({" in script
-    assert 'block: "end"' in script
+    assert "function qaScrollPageBottom()" in script
+    assert "document.documentElement.scrollHeight" in script
+    assert "document.body ? document.body.scrollHeight : 0" in script
     assert "window.requestAnimationFrame" in script
+    assert "window.requestAnimationFrame(scroll);" in script
+    assert "Promise.resolve(result).then(" in script
     assert 'previous.addEventListener("click", () => navigatePage(page - 1));' in script
     assert 'next.addEventListener("click", () => navigatePage(page + 1));' in script
     assert 'first.addEventListener("click", () => navigatePage(1));' in script
     assert 'last.addEventListener("click", () => navigatePage(totalPages));' in script
     assert "if (requested !== page) navigatePage(requested);" in script
 
-    # Explicit Top shortcut in bottom pager and Bottom shortcut in toolbar.
+    # Top is in the footer beside Entries; Bottom uses true document-bottom
+    # scrolling rather than aligning the pager element.
+    assert "function qaCreateTopShortcut()" in script
+    assert 'className: "button secondary small qa-top-shortcut"' in script
     assert 'text: "Top"' in script
     assert 'text: "Bottom"' in script
-    assert 'window.scrollTo({ top: 0, left: 0, behavior: "auto" });' in script
+    assert 'footer.append(label, qaCreateTopShortcut());' in script
+    assert 'footer.classList.add("qa-pagination-footer");' in script
+    assert "qaScrollPageBottom();" in script
     assert 'data-qa-bottom' in script
+    assert ".qa-pagination-footer" in styles
+    assert "overflow-anchor: none" in styles
 
     # NCE-23 Audit entries-per-page persistence remains intact.
     assert 'const QA_AUDIT_PAGE_SIZE_KEY = "nowlert.audit.pageSize";' in script
