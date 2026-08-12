@@ -458,3 +458,94 @@ def test_nce15_regional_i18n_save_boundary():
     request = app.index('const response = await request("/preferences"', save)
     persisted = app.index("state.preferences = response.preferences;", save)
     assert request < persisted
+
+
+def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
+    script = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "qa_patch.css").read_text(encoding="utf-8")
+    platform = (ROOT / "src" / "api" / "platform.py").read_text(encoding="utf-8")
+
+    # Only Delivery History and Audit Log get the extended pager.
+    assert 'containerId === "delivery-pagination"' in script
+    assert 'containerId === "audit-pagination"' in script
+    assert "if (!directNavigation)" in script
+
+    # First / Last navigation.
+    assert 'text: "First"' in script
+    assert 'text: "Last"' in script
+    assert "disabled: page <= 1" in script
+    assert "disabled: page >= totalPages" in script
+
+    # Direct page-number navigation and validity constraints.
+    assert 'className: "qa-page-number"' in script
+    assert 'type: "number"' in script
+    assert 'min: "1"' in script
+    assert "max: String(totalPages)" in script
+    assert "Number.isInteger(value)" in script
+    assert "value < 1 || value > totalPages" in script
+    assert 'pageInput.setAttribute("aria-invalid", valid ? "false" : "true");' in script
+    assert 'if (event.key === "Enter")' in script
+
+    # Every paging action finishes at the actual document bottom, after
+    # asynchronous layout settles.
+    assert "const navigatePage = (targetPage) => {" in script
+    assert "function qaScrollPageBottom()" in script
+    assert "document.documentElement.scrollHeight" in script
+    assert "document.body ? document.body.scrollHeight : 0" in script
+    assert "window.requestAnimationFrame" in script
+    assert "window.requestAnimationFrame(scroll);" in script
+    assert "Promise.resolve(result).then(" in script
+    assert 'previous.addEventListener("click", () => navigatePage(page - 1));' in script
+    assert 'next.addEventListener("click", () => navigatePage(page + 1));' in script
+    assert 'first.addEventListener("click", () => navigatePage(1));' in script
+    assert 'last.addEventListener("click", () => navigatePage(totalPages));' in script
+    assert "if (requested !== page) navigatePage(requested);" in script
+
+    # Top is in the footer beside Entries; Bottom uses true document-bottom
+    # scrolling rather than aligning the pager element.
+    assert "function qaCreateTopShortcut()" in script
+    assert 'className: "button secondary small qa-top-shortcut"' in script
+    assert 'text: "Top"' in script
+    assert 'text: "Bottom"' in script
+    assert 'footer.append(label, qaCreateTopShortcut());' in script
+    assert 'footer.classList.add("qa-pagination-footer");' in script
+    assert "qaScrollPageBottom();" in script
+    assert 'data-qa-bottom' in script
+    assert ".qa-pagination-footer" in styles
+    assert "overflow-anchor: none" in styles
+
+    # Entering Delivery History or Audit Log from another view always starts
+    # at the top without changing pagination/page-size state.
+    assert "function qaScrollPageTop()" in script
+    assert "const qaOriginalNavigate = navigate;" in script
+    assert 'navigate = function navigateWithPagedViewTop(view, historyMode = "push") {' in script
+    assert "const previousView = state.currentView;" in script
+    assert "const currentView = state.currentView;" in script
+    assert "previousView !== currentView" in script
+    assert 'currentView === "deliveries" || currentView === "audit"' in script
+    assert "qaScrollPageTop();" in script
+
+    # NCE-23 Audit entries-per-page persistence remains intact.
+    assert 'const QA_AUDIT_PAGE_SIZE_KEY = "nowlert.audit.pageSize";' in script
+    assert "qaReadAuditPageSize()" in script
+    assert "qaWriteAuditPageSize(qaAuditPageSize);" in script
+    assert "/size/${qaAuditPageSize}" in script
+
+    # Delivery History gets the same persisted page-size choices.
+    assert 'const QA_DELIVERY_PAGE_SIZE_KEY = "nowlert.delivery.pageSize";' in script
+    assert "QA_DELIVERY_PAGE_SIZES = [25, 50, 100, 150, 250, 500]" in script
+    assert "qaReadDeliveryPageSize()" in script
+    assert "qaWriteDeliveryPageSize(qaDeliveryPageSize);" in script
+    assert "/size/${qaDeliveryPageSize}" in script
+    assert 'id: "delivery-page-size"' in script
+
+    # Backend accepts the Delivery History selected page size.
+    assert "_DELIVERY_PAGE_SIZES = (25, 50, 100, 150, 250, 500)" in platform
+    assert "delivery_page_size = re.fullmatch(" in platform
+    assert "/api/v2/deliveries/page/" in platform
+    assert "int(delivery_page_size.group(2))" in platform
+    assert "def _deliveries_page_endpoint(self, method, actor, page, size=None)" in platform
+
+    # Layout remains usable on narrow displays.
+    assert ".qa-pagination .qa-page-number" in styles
+    assert "@media (max-width: 720px)" in styles

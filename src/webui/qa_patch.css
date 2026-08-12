@@ -19,6 +19,39 @@
   opacity: 0.8;
 }
 
+.qa-pagination .qa-page-number {
+  max-width: 4.75rem;
+  min-height: 2.1rem;
+  text-align: center;
+}
+
+/* Do not let browser scroll anchoring counteract explicit pager movement. */
+#view-deliveries,
+#view-audit,
+.qa-pagination,
+.qa-pagination-footer {
+  overflow-anchor: none;
+}
+
+.qa-pagination-footer {
+  align-items: flex-end;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.qa-pagination-footer .qa-top-shortcut {
+  flex: 0 0 auto;
+  margin-left: 0.35rem;
+}
+
+@media (max-width: 720px) {
+  .qa-pagination {
+    flex-wrap: wrap;
+  }
+}
+
 .qa-select-actions {
   display: flex;
   gap: 0.75rem;
