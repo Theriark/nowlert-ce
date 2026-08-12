@@ -514,6 +514,17 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     assert ".qa-pagination-footer" in styles
     assert "overflow-anchor: none" in styles
 
+    # Entering Delivery History or Audit Log from another view always starts
+    # at the top without changing pagination/page-size state.
+    assert "function qaScrollPageTop()" in script
+    assert "const qaOriginalNavigate = navigate;" in script
+    assert 'navigate = function navigateWithPagedViewTop(view, historyMode = "push") {' in script
+    assert "const previousView = state.currentView;" in script
+    assert "const currentView = state.currentView;" in script
+    assert "previousView !== currentView" in script
+    assert 'currentView === "deliveries" || currentView === "audit"' in script
+    assert "qaScrollPageTop();" in script
+
     # NCE-23 Audit entries-per-page persistence remains intact.
     assert 'const QA_AUDIT_PAGE_SIZE_KEY = "nowlert.audit.pageSize";' in script
     assert "qaReadAuditPageSize()" in script

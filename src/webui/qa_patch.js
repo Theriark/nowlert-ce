@@ -67,6 +67,37 @@ function qaScrollPageBottom() {
   });
 }
 
+function qaScrollPageTop() {
+  const scroll = () => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
+  };
+
+  scroll();
+  window.requestAnimationFrame(() => {
+    scroll();
+    window.requestAnimationFrame(scroll);
+  });
+}
+
+const qaOriginalNavigate = navigate;
+navigate = function navigateWithPagedViewTop(view, historyMode = "push") {
+  const previousView = state.currentView;
+
+  qaOriginalNavigate(view, historyMode);
+
+  const currentView = state.currentView;
+  if (
+    previousView !== currentView
+    && (currentView === "deliveries" || currentView === "audit")
+  ) {
+    qaScrollPageTop();
+  }
+};
+
 let qaAuditPageSize = qaReadAuditPageSize();
 let qaDeliveryPageSize = qaReadDeliveryPageSize();
 let qaDeliveryPagination = { page: 1, page_size: qaDeliveryPageSize, total: 0, total_pages: 1 };
@@ -325,11 +356,7 @@ function qaCreateTopShortcut() {
   });
 
   button.addEventListener("click", () => {
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: "auto",
-    });
+    qaScrollPageTop();
   });
 
   return button;
