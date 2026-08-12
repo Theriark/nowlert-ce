@@ -1382,8 +1382,46 @@ function destinationTypeName(id) {
   return item ? (OUTPUT_NAMES[item.output_type] || friendlyName(item.output_type)) : "Unavailable destination";
 }
 
+const ROUTE_ALL_EVENT_FILTERS = {
+  severities: new Set([
+    "debug",
+    "information",
+    "warning",
+    "error",
+    "critical",
+    "failure",
+  ]),
+  statuses: new Set([
+    "active",
+    "resolved",
+    "firing",
+    "recovered",
+    "success",
+    "skipped",
+    "failure",
+  ]),
+};
+
+function routeFilterHasAllEvents(key, values) {
+  const available = ROUTE_ALL_EVENT_FILTERS[key];
+  if (!available || !Array.isArray(values) || values.length !== available.size) {
+    return false;
+  }
+
+  const selected = new Set(
+    values.map((value) => String(value || "").toLowerCase()),
+  );
+
+  return (
+    selected.size === available.size
+    && [...available].every((value) => selected.has(value))
+  );
+}
+
 function filterSummary(filters) {
   const parts = [];
+  let allEvents = false;
+
   const labels = {
     severities: "Include severity",
     statuses: "Include status",
@@ -1394,14 +1432,51 @@ function filterSummary(filters) {
     exclude_hosts: "Exclude host",
     exclude_events: "Exclude event",
   };
+
   for (const key of Object.keys(labels)) {
     const values = filters && filters[key];
-    if (Array.isArray(values) && values.length) {
-      parts.push(`${labels[key]}: ${values.map(capitalize).join(", ")}`);
+    if (!Array.isArray(values) || !values.length) continue;
+
+    if (
+      (key === "severities" || key === "statuses")
+      && routeFilterHasAllEvents(key, values)
+    ) {
+      allEvents = true;
+      continue;
     }
+
+    if (
+      key === "exclude_severities"
+      && routeFilterHasAllEvents("severities", values)
+    ) {
+      parts.push(`${labels[key]}: All Events`);
+      continue;
+    }
+
+    if (
+      key === "exclude_statuses"
+      && routeFilterHasAllEvents("statuses", values)
+    ) {
+      parts.push(`${labels[key]}: All Events`);
+      continue;
+    }
+
+    parts.push(`${labels[key]}: ${values.map(capitalize).join(", ")}`);
   }
-  if (parts.length === 1 && filters.severities && filters.severities.length === 1 && filters.severities[0] === "critical") return "Just Critical";
-  return parts.join(" · ") || "All events";
+
+  if (allEvents) parts.unshift("All Events");
+
+  if (
+    !allEvents
+    && parts.length === 1
+    && filters.severities
+    && filters.severities.length === 1
+    && filters.severities[0] === "critical"
+  ) {
+    return "Just Critical";
+  }
+
+  return parts.join(" · ") || "All Events";
 }
 
 function renderRoutes() {

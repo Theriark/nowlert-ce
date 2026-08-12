@@ -363,3 +363,44 @@ def test_integration_settings_list_has_heading_spacing():
     )
     assert "#integration-settings-list {" in styles
     assert "margin-top: 1.5rem" in styles
+
+
+
+def test_nce21_nce27_route_filter_summary_and_mutual_exclusion():
+    script = (ROOT / "src/webui/app.js").read_text(encoding="utf-8")
+    patch = (ROOT / "src/webui/qa_patch.js").read_text(encoding="utf-8")
+
+    # NCE-21: complete Status / Severity selections collapse to one
+    # human-readable All Events entry instead of listing every value.
+    assert "const ROUTE_ALL_EVENT_FILTERS = {" in script
+    assert '"debug",' in script
+    assert '"information",' in script
+    assert '"active",' in script
+    assert '"resolved",' in script
+    assert "function routeFilterHasAllEvents(key, values)" in script
+    assert 'if (allEvents) parts.unshift("All Events");' in script
+    assert 'return parts.join(" · ") || "All Events";' in script
+    assert '${labels[key]}: All Events' in script
+
+    # NCE-27: Include and Exclude Status / Severity choices are exclusive.
+    assert "function qaSyncRouteFilterPair(" in patch
+    assert "function qaSyncAllRouteFilterPairs(" in patch
+    assert 'preferred === "include"' in patch
+    assert "option.disabled = excludeSelected.has(option.value);" in patch
+    assert "option.disabled = includeSelected.has(option.value);" in patch
+    assert 'qaSyncAllRouteFilterPairs("exclude");' in patch
+    assert (
+        'qaBindRouteFilterPair(\n'
+        '    "route-severities",\n'
+        '    "route-exclude_severities",\n'
+        '  );'
+    ) in patch
+    assert (
+        'qaBindRouteFilterPair(\n'
+        '    "route-statuses",\n'
+        '    "route-exclude_statuses",\n'
+        '  );'
+    ) in patch
+
+    # Select All must never programmatically re-select a disabled conflict.
+    assert "if (!option.disabled) option.selected = true;" in patch

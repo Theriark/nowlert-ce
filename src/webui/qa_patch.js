@@ -464,15 +464,110 @@ document.addEventListener("DOMContentLoaded", () => {
   qaBindBottomShortcuts();
 });
 
+function qaSelectedRouteFilterValues(select) {
+  return new Set(
+    [...select.selectedOptions].map((option) => option.value),
+  );
+}
+
+function qaSyncRouteFilterPair(includeId, excludeId, preferred = "exclude") {
+  const include = byId(includeId);
+  const exclude = byId(excludeId);
+  if (!include || !exclude) return;
+
+  let includeSelected = qaSelectedRouteFilterValues(include);
+  let excludeSelected = qaSelectedRouteFilterValues(exclude);
+
+  const overlap = new Set(
+    [...includeSelected].filter((value) => excludeSelected.has(value)),
+  );
+
+  if (overlap.size) {
+    const losingSelect = preferred === "include" ? exclude : include;
+
+    for (const option of losingSelect.options) {
+      if (overlap.has(option.value)) option.selected = false;
+    }
+  }
+
+  includeSelected = qaSelectedRouteFilterValues(include);
+  excludeSelected = qaSelectedRouteFilterValues(exclude);
+
+  for (const option of include.options) {
+    option.disabled = excludeSelected.has(option.value);
+  }
+
+  for (const option of exclude.options) {
+    option.disabled = includeSelected.has(option.value);
+  }
+}
+
+function qaSyncAllRouteFilterPairs(preferred = "exclude") {
+  qaSyncRouteFilterPair(
+    "route-severities",
+    "route-exclude_severities",
+    preferred,
+  );
+  qaSyncRouteFilterPair(
+    "route-statuses",
+    "route-exclude_statuses",
+    preferred,
+  );
+}
+
+function qaBindRouteFilterPair(includeId, excludeId) {
+  const include = byId(includeId);
+  const exclude = byId(excludeId);
+  if (!include || !exclude) return;
+
+  const bindingKey = `${includeId}:${excludeId}`;
+  if (include.dataset.qaExclusivePair === bindingKey) return;
+
+  include.dataset.qaExclusivePair = bindingKey;
+  exclude.dataset.qaExclusivePair = bindingKey;
+
+  include.addEventListener("change", () => {
+    qaSyncRouteFilterPair(includeId, excludeId, "include");
+  });
+
+  exclude.addEventListener("change", () => {
+    qaSyncRouteFilterPair(includeId, excludeId, "exclude");
+  });
+
+  // Existing legacy conflicts follow the established routing rule:
+  // Exclude wins.
+  qaSyncRouteFilterPair(includeId, excludeId, "exclude");
+}
+
 function qaAddSelectActions(selectId) {
   const select = byId(selectId);
   if (!select || select.dataset.qaActions === "1") return;
   select.dataset.qaActions = "1";
+
   const actions = element("div", { className: "qa-select-actions" });
-  const all = element("button", { className: "text-button", text: "Select all", type: "button" });
-  const clear = element("button", { className: "text-button", text: "Clear", type: "button" });
-  all.addEventListener("click", () => { for (const option of select.options) option.selected = true; select.dispatchEvent(new Event("change", { bubbles: true })); });
-  clear.addEventListener("click", () => { for (const option of select.options) option.selected = false; select.dispatchEvent(new Event("change", { bubbles: true })); });
+  const all = element("button", {
+    className: "text-button",
+    text: "Select all",
+    type: "button",
+  });
+  const clear = element("button", {
+    className: "text-button",
+    text: "Clear",
+    type: "button",
+  });
+
+  all.addEventListener("click", () => {
+    for (const option of select.options) {
+      if (!option.disabled) option.selected = true;
+    }
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  clear.addEventListener("click", () => {
+    for (const option of select.options) option.selected = false;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
   actions.append(all, clear);
   select.parentElement.append(actions);
 }
@@ -493,11 +588,34 @@ function qaAddCounter(inputId, maximum) {
   update();
 }
 
+const qaOriginalOpenRoute = openRoute;
+openRoute = function openRouteWithExclusiveFilters(id = "") {
+  qaOriginalOpenRoute(id);
+  qaSyncAllRouteFilterPairs("exclude");
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   qaAddCounter("preview-event-title", 256);
   qaAddCounter("preview-message", 4000);
   qaAddCounter("user-name", 64);
-  for (const id of ["route-severities", "route-statuses", "route-exclude_severities", "route-exclude_statuses"]) qaAddSelectActions(id);
+
+  for (const id of [
+    "route-severities",
+    "route-statuses",
+    "route-exclude_severities",
+    "route-exclude_statuses",
+  ]) {
+    qaAddSelectActions(id);
+  }
+
+  qaBindRouteFilterPair(
+    "route-severities",
+    "route-exclude_severities",
+  );
+  qaBindRouteFilterPair(
+    "route-statuses",
+    "route-exclude_statuses",
+  );
 });
 
 /* Nowlert 3.1.0 empty-state icon restoration */
