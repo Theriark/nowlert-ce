@@ -6,6 +6,8 @@ let qaDeliveryPage = 1;
 let qaAuditPage = 1;
 const QA_AUDIT_PAGE_SIZE_KEY = "nowlert.audit.pageSize";
 const QA_AUDIT_PAGE_SIZES = [25, 50, 100, 150, 250, 500];
+const QA_DELIVERY_PAGE_SIZE_KEY = "nowlert.delivery.pageSize";
+const QA_DELIVERY_PAGE_SIZES = [25, 50, 100, 150, 250, 500];
 
 function qaReadAuditPageSize() {
   let stored = 25;
@@ -25,8 +27,27 @@ function qaWriteAuditPageSize(value) {
   }
 }
 
+function qaReadDeliveryPageSize() {
+  let stored = 25;
+  try {
+    stored = Number(window.localStorage.getItem(QA_DELIVERY_PAGE_SIZE_KEY));
+  } catch (error) {
+    stored = 25;
+  }
+  return QA_DELIVERY_PAGE_SIZES.includes(stored) ? stored : 25;
+}
+
+function qaWriteDeliveryPageSize(value) {
+  try {
+    window.localStorage.setItem(QA_DELIVERY_PAGE_SIZE_KEY, String(value));
+  } catch (error) {
+    /* storage unavailable; selection stays in-session only */
+  }
+}
+
 let qaAuditPageSize = qaReadAuditPageSize();
-let qaDeliveryPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
+let qaDeliveryPageSize = qaReadDeliveryPageSize();
+let qaDeliveryPagination = { page: 1, page_size: qaDeliveryPageSize, total: 0, total_pages: 1 };
 let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 
 function qaPager(containerId, pagination, onPage) {
@@ -65,28 +86,18 @@ function qaPager(containerId, pagination, onPage) {
   });
 
   const navigatePage = (targetPage) => {
-    // Routes keep their existing behavior. Delivery History and Audit Log
-    // preserve the pager's viewport position while their rows re-render.
     if (!directNavigation) {
       onPage(targetPage);
       return;
     }
 
-    const anchorTop = container.getBoundingClientRect().top;
-
-    const restorePagerAnchor = () => {
+    const showBottomPager = () => {
       window.requestAnimationFrame(() => {
         const updatedContainer = byId(containerId);
         if (!updatedContainer) return;
-
-        const delta =
-          updatedContainer.getBoundingClientRect().top - anchorTop;
-
-        if (Math.abs(delta) < 0.5) return;
-
-        window.scrollBy({
-          top: delta,
-          left: 0,
+        updatedContainer.scrollIntoView({
+          block: "end",
+          inline: "nearest",
           behavior: "auto",
         });
       });
@@ -96,13 +107,13 @@ function qaPager(containerId, pagination, onPage) {
     try {
       result = onPage(targetPage);
     } catch (error) {
-      restorePagerAnchor();
+      showBottomPager();
       throw error;
     }
 
     Promise.resolve(result).then(
-      restorePagerAnchor,
-      restorePagerAnchor,
+      showBottomPager,
+      showBottomPager,
     );
   };
 
@@ -129,6 +140,13 @@ function qaPager(containerId, pagination, onPage) {
     disabled: page >= totalPages,
     attributes: { "aria-label": "Last page" },
   });
+  const topShortcut = element("button", {
+    className: "button secondary small",
+    text: "Top",
+    type: "button",
+    attributes: { "aria-label": "Go to top" },
+  });
+
   const pageInput = element("input", {
     className: "qa-page-number",
     type: "number",
@@ -175,6 +193,9 @@ function qaPager(containerId, pagination, onPage) {
     if (requested !== page) navigatePage(requested);
   };
 
+  topShortcut.addEventListener("click", () => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  });
   first.addEventListener("click", () => navigatePage(1));
   last.addEventListener("click", () => navigatePage(totalPages));
   pageInput.addEventListener("input", updateJumpState);
@@ -190,6 +211,7 @@ function qaPager(containerId, pagination, onPage) {
   updateJumpState();
 
   container.append(
+    topShortcut,
     first,
     previous,
     status,
@@ -248,7 +270,9 @@ renderDestinationFields = function renderDestinationFieldsWithCredentialState(se
 
 async function qaLoadDeliveryPage(page) {
   try {
-    const response = await request(`/deliveries/page/${Math.max(1, Number(page || 1))}`);
+    const response = await request(
+      `/deliveries/page/${Math.max(1, Number(page || 1))}/size/${qaDeliveryPageSize}`,
+    );
     state.deliveries = response.deliveries || [];
     qaDeliveryPagination = response.pagination || qaDeliveryPagination;
     qaDeliveryPage = qaDeliveryPagination.page || 1;
@@ -310,7 +334,80 @@ function qaBindAuditPageSize() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", qaBindAuditPageSize);
+function qaBindDeliveryPageSize() {
+  const view = byId("view-deliveries");
+  if (!view || byId("delivery-page-size")) return;
+
+  const footer = element("div", { className: "audit-footer qa-delivery-footer" });
+  const label = element("label");
+  const caption = element("span", { text: "Entries" });
+  const select = element("select", {
+    attributes: { id: "delivery-page-size", "aria-label": "Delivery History entries per page" },
+  });
+
+  for (const size of QA_DELIVERY_PAGE_SIZES) {
+    const option = element("option", { text: String(size), value: String(size) });
+    select.append(option);
+  }
+
+  qaDeliveryPageSize = qaReadDeliveryPageSize();
+  select.value = String(qaDeliveryPageSize);
+
+  select.addEventListener("change", () => {
+    const chosen = Number(select.value);
+    qaDeliveryPageSize = QA_DELIVERY_PAGE_SIZES.includes(chosen) ? chosen : 25;
+    qaWriteDeliveryPageSize(qaDeliveryPageSize);
+    qaDeliveryPage = 1;
+    qaLoadDeliveryPage(1);
+  });
+
+  label.append(caption, select);
+  footer.append(label);
+
+  const panel = view.querySelector(".professional-timeline-panel");
+  if (panel) panel.insertAdjacentElement("afterend", footer);
+  else view.append(footer);
+}
+
+function qaBindBottomShortcuts() {
+  for (const [viewId, pagerId] of [
+    ["view-deliveries", "delivery-pagination"],
+    ["view-audit", "audit-pagination"],
+  ]) {
+    const view = byId(viewId);
+    const toolbar = view && view.querySelector(".section-toolbar");
+    if (!toolbar || toolbar.querySelector(`[data-qa-bottom="${pagerId}"]`)) continue;
+
+    const button = element("button", {
+      className: "button secondary small",
+      text: "Bottom",
+      type: "button",
+      attributes: {
+        "data-qa-bottom": pagerId,
+        "aria-label": "Go to bottom pagination controls",
+      },
+    });
+
+    button.addEventListener("click", () => {
+      const pager = byId(pagerId);
+      if (pager) {
+        pager.scrollIntoView({
+          block: "end",
+          inline: "nearest",
+          behavior: "auto",
+        });
+      }
+    });
+
+    toolbar.append(button);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  qaBindAuditPageSize();
+  qaBindDeliveryPageSize();
+  qaBindBottomShortcuts();
+});
 
 function qaAddSelectActions(selectId) {
   const select = byId(selectId);

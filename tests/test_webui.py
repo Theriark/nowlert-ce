@@ -463,6 +463,7 @@ def test_nce15_regional_i18n_save_boundary():
 def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     script = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "qa_patch.css").read_text(encoding="utf-8")
+    platform = (ROOT / "src" / "api" / "platform.py").read_text(encoding="utf-8")
 
     # Only Delivery History and Audit Log get the extended pager.
     assert 'containerId === "delivery-pagination"' in script
@@ -472,6 +473,8 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     # First / Last navigation.
     assert 'text: "First"' in script
     assert 'text: "Last"' in script
+    assert "disabled: page <= 1" in script
+    assert "disabled: page >= totalPages" in script
 
     # Direct page-number navigation and validity constraints.
     assert 'className: "qa-page-number"' in script
@@ -483,29 +486,45 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     assert 'pageInput.setAttribute("aria-invalid", valid ? "false" : "true");' in script
     assert 'if (event.key === "Enter")' in script
 
-    # User-triggered page changes preserve the pager's viewport anchor
-    # even when the target page has a different number of rows.
+    # Every paging action finishes with the bottom pager visible.
     assert "const navigatePage = (targetPage) => {" in script
-    assert "const anchorTop = container.getBoundingClientRect().top;" in script
+    assert "const showBottomPager = () => {" in script
     assert "const updatedContainer = byId(containerId);" in script
-    assert "updatedContainer.getBoundingClientRect().top - anchorTop" in script
+    assert "updatedContainer.scrollIntoView({" in script
+    assert 'block: "end"' in script
     assert "window.requestAnimationFrame" in script
-    assert "window.scrollBy({" in script
     assert 'previous.addEventListener("click", () => navigatePage(page - 1));' in script
     assert 'next.addEventListener("click", () => navigatePage(page + 1));' in script
     assert 'first.addEventListener("click", () => navigatePage(1));' in script
     assert 'last.addEventListener("click", () => navigatePage(totalPages));' in script
     assert "if (requested !== page) navigatePage(requested);" in script
 
-    # Existing boundaries remain enforced.
-    assert "disabled: page <= 1" in script
-    assert "disabled: page >= totalPages" in script
+    # Explicit Top shortcut in bottom pager and Bottom shortcut in toolbar.
+    assert 'text: "Top"' in script
+    assert 'text: "Bottom"' in script
+    assert 'window.scrollTo({ top: 0, left: 0, behavior: "auto" });' in script
+    assert 'data-qa-bottom' in script
 
-    # NCE-23 persisted Audit page-size behavior must remain intact.
+    # NCE-23 Audit entries-per-page persistence remains intact.
     assert 'const QA_AUDIT_PAGE_SIZE_KEY = "nowlert.audit.pageSize";' in script
     assert "qaReadAuditPageSize()" in script
     assert "qaWriteAuditPageSize(qaAuditPageSize);" in script
     assert "/size/${qaAuditPageSize}" in script
+
+    # Delivery History gets the same persisted page-size choices.
+    assert 'const QA_DELIVERY_PAGE_SIZE_KEY = "nowlert.delivery.pageSize";' in script
+    assert "QA_DELIVERY_PAGE_SIZES = [25, 50, 100, 150, 250, 500]" in script
+    assert "qaReadDeliveryPageSize()" in script
+    assert "qaWriteDeliveryPageSize(qaDeliveryPageSize);" in script
+    assert "/size/${qaDeliveryPageSize}" in script
+    assert 'id: "delivery-page-size"' in script
+
+    # Backend accepts the Delivery History selected page size.
+    assert "_DELIVERY_PAGE_SIZES = (25, 50, 100, 150, 250, 500)" in platform
+    assert "delivery_page_size = re.fullmatch(" in platform
+    assert "/api/v2/deliveries/page/" in platform
+    assert "int(delivery_page_size.group(2))" in platform
+    assert "def _deliveries_page_endpoint(self, method, actor, page, size=None)" in platform
 
     # Layout remains usable on narrow displays.
     assert ".qa-pagination .qa-page-number" in styles
