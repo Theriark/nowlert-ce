@@ -784,7 +784,7 @@ class PlatformAPI:
         if method != "GET":
             return self._method_not_allowed("GET")
         events = self.audit.list_visible(actor, limit=500)
-        return APIResponse(200, {"audit_events": [self._audit(item) for item in events]})
+        return APIResponse(200, {"audit_events": self._audit_items(events)})
 
     _AUDIT_PAGE_SIZES = (25, 50, 100, 150, 250, 500)
 
@@ -805,7 +805,7 @@ class PlatformAPI:
         return APIResponse(
             200,
             {
-                "audit_events": [self._audit(item) for item in events],
+                "audit_events": self._audit_items(events),
                 "pagination": {
                     "page": current,
                     "page_size": page_size,
@@ -1988,11 +1988,20 @@ class PlatformAPI:
             "safe_error": sanitize_text(item.safe_error)[:500],
         }
 
+    def _audit_items(self, events):
+        usernames = {user.id: user.username for user in self.users.list()}
+        return [self._audit(item, usernames) for item in events]
+
     @staticmethod
-    def _audit(item):
+    def _audit(item, usernames=None):
+        actor_username = None
+        if item.actor_user_id:
+            actor_username = (usernames or {}).get(item.actor_user_id)
+
         return {
             "id": item.id,
             "actor_user_id": item.actor_user_id,
+            "actor_username": actor_username,
             "action": item.action,
             "resource_type": item.resource_type,
             "resource_id": item.resource_id,

@@ -258,7 +258,7 @@
         <section id="view-audit" class="view" data-page="audit" hidden>
           <div class="section-toolbar"><div><h2>Audit log</h2><p>Review security-relevant actions, health checks, outcomes, and operational details.</p></div><label class="search-field"><span class="sr-only">Search audit events</span><input id="audit-search" type="search" placeholder="Search action or outcome"></label></div>
           <article class="panel health-panel"><div class="panel-heading"><div><p class="eyebrow">System checks</p><h3>Nowlert health</h3><p>Read-only tests of configuration, storage, credentials, routes, backups, and recent delivery failures.</p></div><button class="button secondary" type="button" data-action="run-health-checks">Run checks</button></div><div id="health-check-list" class="health-check-list"></div></article>
-          <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>Time</th><th>Action</th><th>Resource</th><th>Outcome</th><th>Details</th></tr></thead><tbody id="audit-table"></tbody></table></div><div id="audit-empty" class="empty-state" hidden></div></div>
+          <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>Time</th><th>Action</th><th>User</th><th>Resource</th><th>Outcome</th><th>Details</th></tr></thead><tbody id="audit-table"></tbody></table></div><div id="audit-empty" class="empty-state" hidden></div></div>
           <div class="audit-footer"><label><span>Entries</span><select id="audit-page-size"><option>25</option><option>50</option><option>100</option><option>150</option><option>250</option><option>500</option></select></label></div>
         </section>
 

@@ -549,3 +549,39 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     # Layout remains usable on narrow displays.
     assert ".qa-pagination .qa-page-number" in styles
     assert "@media (max-width: 720px)" in styles
+
+
+
+def test_nce28_nce29_audit_context_and_explicit_health_checks():
+    markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
+    script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
+
+    # NCE-28: Audit Log exposes actor, precise action, affected resource,
+    # resource identifier, outcome, and safe details.
+    assert (
+        "<th>Time</th><th>Action</th><th>User</th><th>Resource</th>"
+        "<th>Outcome</th><th>Details</th>"
+    ) in markup
+    assert "function auditActionLabel(value)" in script
+    assert "function auditActorLabel(item)" in script
+    assert "function auditDetailsText(details)" in script
+    assert "item.actor_username" in script
+    assert "item.actor_user_id" in script
+    assert "item.resource_id" in script
+    assert 'text: item.action || "unknown"' in script
+    assert 'text: auditDetailsText(item.details)' in script
+
+    # Search includes the newly-visible actor and affected entity context.
+    assert "item.actor_username," in script
+    assert "item.actor_user_id," in script
+    assert "item.resource_id," in script
+
+    # NCE-29: generic workspace loading must not execute a health check.
+    assert (
+        'health: ["Health checks", request("/health-checks")'
+        not in script
+    )
+
+    # Health checks remain available only as an explicit user action.
+    assert 'action === "run-health-checks"' in script
+    assert 'const response = await request("/health-checks");' in script

@@ -575,7 +575,6 @@ async function loadWorkspace() {
     preferences: ["Regional settings", request("/preferences"), (value) => { state.preferences = value.preferences; }],
     notices: ["Notices", request("/notices"), (value) => { state.notices = value.notices; }],
     metrics: ["Overview metrics", request(`/metrics/${state.historyRange}`), (value) => { state.metrics = value.metrics; }],
-    health: ["Health checks", request("/health-checks"), (value) => { state.healthChecks = value.checks; }],
     version: ["Version status", request("/version"), (value) => { state.versionStatus = value.version; }],
   };
   if (isAdmin()) {
@@ -1582,24 +1581,124 @@ function renderDeliveries() {
   }
 }
 
+function auditActionLabel(value) {
+  const parts = String(value || "")
+    .split(".")
+    .filter(Boolean)
+    .map(capitalize);
+
+  return parts.length ? parts.join(" · ") : "Unknown action";
+}
+
+function auditActorLabel(item) {
+  if (item.actor_username) return item.actor_username;
+
+  if (item.actor_user_id) {
+    return `User ${String(item.actor_user_id).slice(0, 8)}`;
+  }
+
+  if (item.action === "session.login" && item.outcome !== "success") {
+    return "Unauthenticated";
+  }
+
+  return "System";
+}
+
+function auditDetailValue(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) return value.join(", ");
+  return String(value);
+}
+
+function auditDetailsText(details) {
+  if (!details || typeof details !== "object") return "No additional details";
+
+  const entries = Object.entries(details);
+  if (!entries.length) return "No additional details";
+
+  return entries
+    .map(([key, value]) => `${friendlyName(key)}: ${auditDetailValue(value)}`)
+    .join(" · ");
+}
+
 function renderAudit() {
   const query = byId("audit-search").value.trim().toLowerCase();
-  const items = state.audit.filter((item) => JSON.stringify([item.action, item.resource_type, item.outcome, item.details]).toLowerCase().includes(query)).slice(0, state.auditPageSize);
+
+  const items = state.audit
+    .filter((item) => JSON.stringify([
+      item.action,
+      item.actor_username,
+      item.actor_user_id,
+      item.resource_type,
+      item.resource_id,
+      item.outcome,
+      item.details,
+    ]).toLowerCase().includes(query))
+    .slice(0, state.auditPageSize);
+
   const body = byId("audit-table");
   body.replaceChildren();
   byId("audit-empty").hidden = items.length > 0;
+
   if (!items.length) {
-    byId("audit-empty").replaceChildren(element("strong", { text: query ? "No matching audit events" : "No audit events" }), element("span", { text: query ? "Try a different search." : "Security-relevant activity appears here." }));
+    byId("audit-empty").replaceChildren(
+      element("strong", {
+        text: query ? "No matching audit events" : "No audit events",
+      }),
+      element("span", {
+        text: query
+          ? "Try a different search."
+          : "Security-relevant activity appears here.",
+      }),
+    );
     return;
   }
+
   for (const item of items) {
-    const details = item.details && Object.keys(item.details).length ? JSON.stringify(item.details) : "—";
+    const actor = auditActorLabel(item);
+    const resource = friendlyName(item.resource_type);
+    const resourceId = String(item.resource_id || "");
+
     body.append(element("tr", {}, [
       element("td", { text: formatTime(item.created_at) }),
-      element("td", {}, element("strong", { text: item.action })),
-      element("td", { text: item.resource_type }),
-      element("td", {}, badge(item.outcome, item.outcome === "success" ? "success" : "danger")),
-      element("td", {}, element("small", { text: details })),
+
+      element("td", {}, [
+        element("strong", { text: auditActionLabel(item.action) }),
+        element("small", { text: item.action || "unknown" }),
+      ]),
+
+      element("td", {}, [
+        element("strong", { text: actor }),
+        item.actor_user_id
+          ? element("small", {
+              text: `ID ${String(item.actor_user_id).slice(0, 8)}`,
+              title: String(item.actor_user_id),
+            })
+          : element("small", { text: "No authenticated user" }),
+      ]),
+
+      element("td", {}, [
+        element("strong", { text: resource }),
+        resourceId
+          ? element("code", { text: resourceId, title: resourceId })
+          : element("small", { text: "Platform-level action" }),
+      ]),
+
+      element(
+        "td",
+        {},
+        badge(
+          item.outcome,
+          item.outcome === "success" ? "success" : "danger",
+        ),
+      ),
+
+      element(
+        "td",
+        {},
+        element("small", { text: auditDetailsText(item.details) }),
+      ),
     ]));
   }
 }

@@ -883,12 +883,24 @@ def test_notices_avatar_and_application_lifecycle_are_exposed_safely(
 
 def test_audit_visibility_and_database_exclude_submitted_credentials(platform_api):
     headers = login(platform_api)
-    create_destination(platform_api, headers)
+    destination = create_destination(platform_api, headers)
     audit = call(platform_api, "GET", "/api/v2/audit-events", headers=headers)
     database_bytes = platform_api["database"].path.read_bytes()
 
     assert audit.status == 200
     assert audit.payload["audit_events"]
+
+    created = next(
+        item
+        for item in audit.payload["audit_events"]
+        if item["action"] == "destination.create"
+    )
+    assert created["actor_user_id"] == platform_api["admin"].id
+    assert created["actor_username"] == "administrator"
+    assert created["resource_type"] == "destination"
+    assert created["resource_id"] == destination["id"]
+    assert created["details"]["output_type"] == "webhook"
+
     assert b"https://example.invalid/events" not in database_bytes
     assert "https://example.invalid/events" not in json.dumps(audit.payload)
 
