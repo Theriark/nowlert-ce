@@ -143,51 +143,9 @@ function qaAddCounter(inputId, maximum) {
   update();
 }
 
-function qaUpdateAvatarSave() {
-  const save = byId("avatar-save");
-  const file = byId("avatar-file");
-  if (!save || !file) return;
-  const selected = Boolean(file.files && file.files.length);
-  save.hidden = !selected;
-  save.disabled = !selected;
-}
-
-function qaEnhanceRegionalSettings() {
-  const language = byId("preference-language");
-  if (language) {
-    const labels = {
-      "en-US": "English (United States)",
-      "pt-BR": "Portuguese (Brazil)",
-    };
-    for (const [value, label] of Object.entries(labels)) {
-      if (![...language.options].some((option) => option.value === value)) {
-        language.append(element("option", { value, text: label }));
-      }
-    }
-  }
-  const zones = byId("timezone-suggestions");
-  if (zones) {
-    for (const value of [
-      "Europe/Berlin", "Europe/Amsterdam", "Europe/Rome", "Europe/Zurich", "Europe/Stockholm",
-      "America/Chicago", "America/Denver", "America/Toronto", "America/Sao_Paulo", "America/Mexico_City",
-      "Asia/Dubai", "Asia/Kolkata", "Asia/Singapore", "Asia/Tokyo", "Asia/Seoul",
-      "Australia/Sydney", "Pacific/Auckland", "Africa/Johannesburg",
-    ]) {
-      if (![...zones.options].some((option) => option.value === value)) zones.append(element("option", { value }));
-    }
-  }
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   qaAddCounter("preview-event-title", 256);
   qaAddCounter("preview-message", 4000);
   qaAddCounter("user-name", 64);
   for (const id of ["route-severities", "route-statuses", "route-exclude_severities", "route-exclude_statuses"]) qaAddSelectActions(id);
-  qaEnhanceRegionalSettings();
-  qaUpdateAvatarSave();
-  byId("avatar-file")?.addEventListener("change", qaUpdateAvatarSave);
-  byId("avatar-form")?.addEventListener("submit", () => window.setTimeout(qaUpdateAvatarSave, 0));
-  document.addEventListener("click", (event) => {
-    if (event.target.closest('[data-action="remove-avatar"]')) window.setTimeout(qaUpdateAvatarSave, 0);
-  });
 });
