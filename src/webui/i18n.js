@@ -25,14 +25,19 @@
   function nce15NormalizeLanguageLabels() {
     const select = byId("preference-language");
     if (!select) return;
+
     const languageLabels = {
-      "en-GB": "English — UK",
-      "en-US": "English — US",
-      "pt-PT": "Português — Portugal",
-      "pt-BR": "Português — Brasil",
+      "en-GB": "English",
+      "en-US": "English",
+      "pt-PT": "Português",
+      "pt-BR": "Português",
     };
+
     for (const option of select.options) {
-      if (languageLabels[option.value]) option.textContent = languageLabels[option.value];
+      option.hidden = option.value === "en-US" || option.value === "pt-BR";
+      if (languageLabels[option.value]) {
+        option.textContent = languageLabels[option.value];
+      }
       delete option.dataset.i18nSource;
     }
   }

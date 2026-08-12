@@ -84,6 +84,7 @@ def test_webui_service_is_explicitly_gated_and_has_no_path_mapping():
     assert service.enabled is True
     assert service.response("/").status == 200
     assert service.response("/ui/app.js").content_type.startswith("text/javascript")
+    assert service.response("/ui/i18n.js").content_type.startswith("text/javascript")
     assert service.response("/ui/styles.css").content_type.startswith("text/css")
     assert service.response("/ui/icon.png").content_type == "image/png"
     assert service.response("/ui/../config/config.yaml").status == 404
@@ -215,6 +216,7 @@ def test_webui_markup_is_semantic_external_and_complete():
         "/ui/app.js",
         "/ui/enhancements.js",
         "/ui/qa_patch.js",
+        "/ui/i18n.js",
         "/ui/dashboard.js",
     ]
     assert inspector.stylesheets == [
@@ -408,3 +410,51 @@ def test_v310_menu_navigation_uses_browser_history_and_destinations_stay_a_card_
     final_styles = styles[styles.index(marker):]
     assert "background: transparent;" in final_styles
     assert "border: 0;" in final_styles
+
+
+def test_nce15_regional_i18n_save_boundary():
+    script = (ROOT / "src" / "webui" / "i18n.js").read_text(encoding="utf-8")
+    app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
+    markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
+
+    for locale in (
+        "pt", "es", "fr", "de", "it", "nl", "pl", "cs", "ro",
+        "sv", "da", "nb", "fi", "el", "tr", "ru", "uk", "ja", "zh",
+    ):
+        assert f'"{locale}": [' in script
+
+    assert '"en-GB": "English"' in script
+    assert '"en-US": "English"' in script
+    assert '"pt-PT": "Português"' in script
+    assert '"pt-BR": "Português"' in script
+    assert "canonicalAliases" not in script
+    assert "select.value = canonicalAliases" not in script
+
+    for forbidden_label in (
+        "English — UK",
+        "English — US",
+        "Português — Portugal",
+        "Português — Brasil",
+        "English (United Kingdom)",
+        "English (United States)",
+        "Português (Portugal)",
+        "Português (Brasil)",
+    ):
+        assert forbidden_label not in markup
+
+    assert '<option value="en-GB">English</option>' in markup
+    assert '<option value="en-US" hidden>English</option>' in markup
+    assert '<option value="pt-PT">Português</option>' in markup
+    assert '<option value="pt-BR" hidden>Português</option>' in markup
+
+    assert (
+        'const leavingSettings = state.currentView === "settings" && view !== "settings";'
+        in script
+    )
+    assert "if (leavingSettings) renderPreferences();" in script
+    assert 'if (view === "settings") renderPreferences();' in script
+
+    save = app.index("async function savePreferences")
+    request = app.index('const response = await request("/preferences"', save)
+    persisted = app.index("state.preferences = response.preferences;", save)
+    assert request < persisted
