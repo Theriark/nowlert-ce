@@ -114,8 +114,14 @@ def validate_config(data) -> list[str]:
             webui.get("enforce_https"), bool
         ):
             errors.append("webui.enforce_https must be a boolean")
-        if "language" in webui and webui.get("language") not in {"en-GB", "pt-PT"}:
-            errors.append("webui.language must be en-GB or pt-PT")
+        supported_languages = {
+            "en-GB", "en-US", "pt-PT", "pt-BR", "es-ES", "fr-FR",
+            "de-DE", "it-IT", "nl-NL", "pl-PL", "cs-CZ", "ro-RO",
+            "sv-SE", "da-DK", "nb-NO", "fi-FI", "el-GR", "tr-TR",
+            "ru-RU", "uk-UA", "ja-JP", "zh-CN",
+        }
+        if "language" in webui and webui.get("language") not in supported_languages:
+            errors.append("webui.language must be a supported Regional Settings locale")
         source_categories = webui.get("source_categories", {})
         if not isinstance(source_categories, dict):
             errors.append("webui.source_categories must be an object")
