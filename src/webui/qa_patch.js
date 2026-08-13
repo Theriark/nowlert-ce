@@ -134,9 +134,6 @@ function qaPager(containerId, pagination, onPage) {
     type: "button",
     disabled: page >= totalPages,
   });
-  const status = element("span", {
-    text: `Page ${page} of ${totalPages} - ${total} item${total === 1 ? "" : "s"}`,
-  });
 
   const navigatePage = (targetPage) => {
     if (!directNavigation) {
@@ -161,8 +158,11 @@ function qaPager(containerId, pagination, onPage) {
   previous.addEventListener("click", () => navigatePage(page - 1));
   next.addEventListener("click", () => navigatePage(page + 1));
 
-  // Routes keep the existing compact Previous / Next pager.
+  // Routes retain the compact pager.
   if (!directNavigation) {
+    const status = element("span", {
+      text: `Page ${page} of ${totalPages} - ${total} item${total === 1 ? "" : "s"}`,
+    });
     container.append(previous, status, next);
     return container;
   }
@@ -181,6 +181,7 @@ function qaPager(containerId, pagination, onPage) {
     disabled: page >= totalPages,
     attributes: { "aria-label": "Last page" },
   });
+
   const pageInput = element("input", {
     className: "qa-page-number",
     type: "number",
@@ -193,12 +194,16 @@ function qaPager(containerId, pagination, onPage) {
       "aria-label": `Page number, 1 to ${totalPages}`,
     },
   });
-  const go = element("button", {
-    className: "button secondary small",
-    text: "Go",
-    type: "button",
-    attributes: { "aria-label": "Go to page" },
-  });
+
+  const pageStatus = element(
+    "span",
+    { className: "qa-page-status" },
+    [
+      "Page ",
+      pageInput,
+      ` of ${totalPages} - ${total} item${total === 1 ? "" : "s"}`,
+    ],
+  );
 
   const requestedPage = () => {
     const value = Number(pageInput.value);
@@ -209,10 +214,10 @@ function qaPager(containerId, pagination, onPage) {
   };
 
   const updateJumpState = () => {
-    const requested = requestedPage();
-    const valid = requested !== null;
-    pageInput.setAttribute("aria-invalid", valid ? "false" : "true");
-    go.disabled = !valid || requested === page;
+    pageInput.setAttribute(
+      "aria-invalid",
+      requestedPage() === null ? "true" : "false",
+    );
   };
 
   const jumpToRequestedPage = () => {
@@ -229,27 +234,25 @@ function qaPager(containerId, pagination, onPage) {
 
   first.addEventListener("click", () => navigatePage(1));
   last.addEventListener("click", () => navigatePage(totalPages));
+
   pageInput.addEventListener("input", updateJumpState);
-  pageInput.addEventListener("change", jumpToRequestedPage);
   pageInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       jumpToRequestedPage();
     }
   });
-  go.addEventListener("click", jumpToRequestedPage);
 
   updateJumpState();
 
   container.append(
     first,
     previous,
-    status,
-    pageInput,
-    go,
+    pageStatus,
     next,
     last,
   );
+
   return container;
 }
 
@@ -262,6 +265,13 @@ function qaMountPager(viewId, containerId, pagination, onPage) {
     view.append(pager);
   }
   qaPager(containerId, pagination, onPage);
+
+  if (
+    containerId === "delivery-pagination"
+    || containerId === "audit-pagination"
+  ) {
+    qaArrangePaginationFooter(viewId, containerId);
+  }
 }
 
 const qaOriginalRenderRoutes = renderRoutes;
@@ -362,6 +372,50 @@ function qaCreateTopShortcut() {
   return button;
 }
 
+function qaArrangePaginationFooter(viewId, containerId) {
+  const view = byId(viewId);
+  const pager = byId(containerId);
+  if (!view || !pager) return;
+
+  let row = view.querySelector(
+    `.qa-pagination-row[data-qa-pager="${containerId}"]`,
+  );
+
+  if (!row) {
+    row = element("div", {
+      className: "qa-pagination-row",
+      attributes: { "data-qa-pager": containerId },
+    });
+
+    const left = element("div", {
+      className: "qa-pagination-left",
+    });
+    left.append(qaCreateTopShortcut());
+
+    row.append(left);
+    view.append(row);
+  }
+
+  if (pager.parentElement !== row) {
+    row.append(pager);
+  }
+
+  const footer = view.querySelector(".audit-footer");
+  if (!footer) return;
+
+  footer.classList.add("qa-pagination-footer");
+
+  // Remove the old location if this page was rendered before the
+  // NCE-35 layout was applied.
+  for (const shortcut of footer.querySelectorAll(".qa-top-shortcut")) {
+    shortcut.remove();
+  }
+
+  if (footer.parentElement !== row) {
+    row.append(footer);
+  }
+}
+
 function qaBindAuditPageSize() {
   const select = byId("audit-page-size");
   if (!select || select.dataset.qaPageSize === "1") return;
@@ -381,7 +435,15 @@ function qaBindAuditPageSize() {
 
 function qaBindDeliveryPageSize() {
   const view = byId("view-deliveries");
-  if (!view || byId("delivery-page-size")) return;
+  if (!view) return;
+
+  if (byId("delivery-page-size")) {
+    qaArrangePaginationFooter(
+      "view-deliveries",
+      "delivery-pagination",
+    );
+    return;
+  }
 
   const footer = element("div", {
     className: "audit-footer qa-delivery-footer qa-pagination-footer",
@@ -389,12 +451,19 @@ function qaBindDeliveryPageSize() {
   const label = element("label");
   const caption = element("span", { text: "Entries" });
   const select = element("select", {
-    attributes: { id: "delivery-page-size", "aria-label": "Delivery History entries per page" },
+    attributes: {
+      id: "delivery-page-size",
+      "aria-label": "Delivery History entries per page",
+    },
   });
 
   for (const size of QA_DELIVERY_PAGE_SIZES) {
-    const option = element("option", { text: String(size), value: String(size) });
-    select.append(option);
+    select.append(
+      element("option", {
+        text: String(size),
+        value: String(size),
+      }),
+    );
   }
 
   qaDeliveryPageSize = qaReadDeliveryPageSize();
@@ -402,32 +471,32 @@ function qaBindDeliveryPageSize() {
 
   select.addEventListener("change", () => {
     const chosen = Number(select.value);
-    qaDeliveryPageSize = QA_DELIVERY_PAGE_SIZES.includes(chosen) ? chosen : 25;
+    qaDeliveryPageSize =
+      QA_DELIVERY_PAGE_SIZES.includes(chosen) ? chosen : 25;
     qaWriteDeliveryPageSize(qaDeliveryPageSize);
     qaDeliveryPage = 1;
     qaLoadDeliveryPage(1).then(qaScrollPageBottom);
   });
 
   label.append(caption, select);
-  footer.append(label, qaCreateTopShortcut());
+  footer.append(label);
+  view.append(footer);
 
-  const panel = view.querySelector(".professional-timeline-panel");
-  if (panel) panel.insertAdjacentElement("afterend", footer);
-  else view.append(footer);
+  qaArrangePaginationFooter(
+    "view-deliveries",
+    "delivery-pagination",
+  );
 }
 
 function qaBindFooterTopShortcuts() {
-  for (const viewId of ["view-deliveries", "view-audit"]) {
-    const view = byId(viewId);
-    const footer = view && view.querySelector(".audit-footer");
-    if (!footer) continue;
-
-    footer.classList.add("qa-pagination-footer");
-
-    if (!footer.querySelector(".qa-top-shortcut")) {
-      footer.append(qaCreateTopShortcut());
-    }
-  }
+  qaArrangePaginationFooter(
+    "view-deliveries",
+    "delivery-pagination",
+  );
+  qaArrangePaginationFooter(
+    "view-audit",
+    "audit-pagination",
+  );
 }
 
 function qaBindBottomShortcuts() {
@@ -657,3 +726,41 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 })();
+
+
+
+/* NCE-34: preserve the Stage-approved Delivery History badge cleanup. */
+function qaNormalizeDeliveryBadges() {
+  for (
+    const meta
+    of document.querySelectorAll("#delivery-list .resource-meta")
+  ) {
+    const seen = new Set();
+
+    for (const item of [...meta.querySelectorAll(".badge")]) {
+      const text = item.textContent.trim();
+      const key = text.toLowerCase();
+
+      if (!text || text === "—" || seen.has(key)) {
+        item.remove();
+        continue;
+      }
+
+      seen.add(key);
+    }
+  }
+}
+
+const qaNce34OriginalRenderDeliveries = renderDeliveries;
+renderDeliveries = function renderDeliveriesWithoutDuplicateBadges() {
+  qaNce34OriginalRenderDeliveries();
+  qaNormalizeDeliveryBadges();
+};
+
+const qaNce34OriginalLoadDeliveryPage = qaLoadDeliveryPage;
+qaLoadDeliveryPage = async function qaLoadDeliveryPageWithoutDuplicateBadges(
+  page,
+) {
+  await qaNce34OriginalLoadDeliveryPage(page);
+  qaNormalizeDeliveryBadges();
+};

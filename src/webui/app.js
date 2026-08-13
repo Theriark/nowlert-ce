@@ -447,11 +447,17 @@ function showApp(session) {
   byId("add-route-button").hidden = !isAdmin();
   byId("restart-header-button").hidden = !isAdmin();
   const name = state.user.username;
-  const role = state.user.role;
+  const admin = isAdmin();
   for (const id of ["profile-avatar", "account-avatar"]) applyAvatar(id, state.user);
   for (const id of ["profile-name", "account-name"]) byId(id).textContent = name;
-  byId("profile-role").textContent = role;
-  byId("account-role").textContent = role === "admin" ? "Administrator" : "User";
+
+  const profileRole = byId("profile-role");
+  profileRole.textContent = admin ? "Admin" : "User";
+  delete profileRole.dataset.i18nSource;
+
+  const accountRole = byId("account-role");
+  accountRole.textContent = admin ? "Administrator" : "User";
+  delete accountRole.dataset.i18nSource;
   byId("account-session").textContent = `Session expires ${formatTime(session.expires_at)}`;
 }
 
@@ -2961,9 +2967,9 @@ async function resourceAction(action, id) {
       return;
     } else if (action === "delete-backup") {
       const accepted = await confirmAction(
-        "Delete state backup?",
-        `Permanently delete ${id}? This backup cannot be restored after deletion.`,
-        "Delete",
+        `Delete state backup ${id}?`,
+        "This permanently deletes this backup. It cannot be restored after deletion.",
+        "Delete backup",
       );
       if (!accepted) return;
       await request(`/backups/${id}`, { method: "DELETE" });

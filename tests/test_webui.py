@@ -483,7 +483,9 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     assert "max: String(totalPages)" in script
     assert "Number.isInteger(value)" in script
     assert "value < 1 || value > totalPages" in script
-    assert 'pageInput.setAttribute("aria-invalid", valid ? "false" : "true");' in script
+    assert "pageInput.setAttribute(" in script
+    assert '"aria-invalid",' in script
+    assert 'requestedPage() === null ? "true" : "false"' in script
     assert 'if (event.key === "Enter")' in script
 
     # Every paging action finishes at the actual document bottom, after
@@ -501,13 +503,15 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     assert 'last.addEventListener("click", () => navigatePage(totalPages));' in script
     assert "if (requested !== page) navigatePage(requested);" in script
 
-    # Top is in the footer beside Entries; Bottom uses true document-bottom
-    # scrolling rather than aligning the pager element.
+    # Top, pager, and Entries share the bottom row. Bottom still uses
+    # true document-bottom scrolling.
     assert "function qaCreateTopShortcut()" in script
     assert 'className: "button secondary small qa-top-shortcut"' in script
     assert 'text: "Top"' in script
     assert 'text: "Bottom"' in script
-    assert 'footer.append(label, qaCreateTopShortcut());' in script
+    assert "function qaArrangePaginationFooter(" in script
+    assert 'className: "qa-pagination-left"' in script
+    assert "footer.append(label);" in script
     assert 'footer.classList.add("qa-pagination-footer");' in script
     assert "qaScrollPageBottom();" in script
     assert 'data-qa-bottom' in script
@@ -612,4 +616,61 @@ def test_nce30_nce31_admin_delete_controls():
     assert 'await request(`/backups/${id}`, { method: "DELETE" });' in script
 
     assert "the user still owns destinations, secrets, or backup destinations" in script
-    assert "This backup cannot be restored after deletion." in script
+    assert "It cannot be restored after deletion." in script
+    assert '"Delete backup"' in script
+
+
+
+def test_nce31_nce33_nce34_nce35_development_followups():
+    app = (ROOT / "src" / "webui" / "app.js").read_text(
+        encoding="utf-8"
+    )
+    patch = (ROOT / "src" / "webui" / "qa_patch.js").read_text(
+        encoding="utf-8"
+    )
+    styles = (ROOT / "src" / "webui" / "qa_patch.css").read_text(
+        encoding="utf-8"
+    )
+
+    # NCE-31: destructive backup action has an explicit confirmation.
+    assert "`Delete state backup ${id}?`" in app
+    assert '"Delete backup"' in app
+    assert "It cannot be restored after deletion." in app
+
+    # NCE-33: role display uses the same authority as access control and
+    # cannot be reset to the static HTML User value by the i18n layer.
+    assert "const admin = isAdmin();" in app
+    assert (
+        'profileRole.textContent = admin ? "Admin" : "User";'
+        in app
+    )
+    assert "delete profileRole.dataset.i18nSource;" in app
+    assert (
+        'accountRole.textContent = admin ? "Administrator" : "User";'
+        in app
+    )
+
+    # NCE-34: restore the Stage-approved duplicate/empty badge cleanup.
+    assert "function qaNormalizeDeliveryBadges()" in patch
+    assert 'text === "—" || seen.has(key)' in patch
+    assert "qaNormalizeDeliveryBadges();" in patch
+
+    # NCE-35: direct page box is embedded in Page [n] of N, Go is gone,
+    # and Enter remains the explicit direct navigation action.
+    assert 'className: "qa-page-status"' in patch
+    assert '"Page ",' in patch
+    assert "pageInput," in patch
+    assert 'text: "Go"' not in patch
+    assert 'go.addEventListener(' not in patch
+    assert 'pageInput.addEventListener("change"' not in patch
+    assert 'if (event.key === "Enter")' in patch
+
+    # Top / pager / Entries are one three-column bottom row.
+    assert "function qaArrangePaginationFooter(" in patch
+    assert 'className: "qa-pagination-left"' in patch
+    assert "footer.append(label);" in patch
+    assert (
+        "grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);"
+        in styles
+    )
+    assert ".qa-pagination-row > .qa-pagination-footer" in styles
