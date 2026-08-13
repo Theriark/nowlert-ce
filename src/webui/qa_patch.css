@@ -2003,3 +2003,13 @@ textarea:focus {
     justify-content: flex-start;
   }
 }
+
+
+
+/* NCE-37 stable native route selection highlight */
+#route-severities option:checked,
+#route-statuses option:checked {
+  background: Highlight !important;
+  box-shadow: 0 0 0 9999px Highlight inset;
+  color: HighlightText !important;
+}

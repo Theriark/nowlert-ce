@@ -403,18 +403,23 @@ def test_nce21_nce36_nce37_nce38_route_filter_ui():
     assert 'for (const key of ["severities", "statuses"]) {' in script
     assert "Select at least one included" in script
 
-    # NCE-37: use the existing/native selected-option highlight only.
-    assert "function qaRefreshRouteChoiceAccessibility(select)" in patch
+    # NCE-37: selected options retain the same system highlight even
+    # when the listbox is not focused.
     assert "qaRefreshRouteChoiceColors" not in patch
     assert '"qa-route-included"' not in patch
     assert '"qa-route-excluded"' not in patch
-    assert "option.qa-route-included" not in styles
-    assert "option.qa-route-excluded" not in styles
+    assert "#route-severities option:checked" in styles
+    assert "#route-statuses option:checked" in styles
+    assert "background: Highlight !important;" in styles
+    assert "color: HighlightText !important;" in styles
     assert "Green options are included" not in markup
-    assert "Highlighted options are included" in markup
+    assert "Existing selections stay highlighted" in markup
 
-    # NCE-38: ordinary clicks are additive toggles while native drag/range
-    # and modifier-assisted selection remain available.
+    # NCE-38: ordinary mouse interaction is owned from mousedown so
+    # existing options never disappear temporarily.
+    assert "function qaRouteChoiceValues(select)" in patch
+    assert "function qaApplyRouteChoiceValues(select, values)" in patch
+    assert "function qaRouteChoiceOption(event)" in patch
     assert "function qaBindRouteChoiceList(selectId)" in patch
 
     choice_block = patch.split(
@@ -427,17 +432,35 @@ def test_nce21_nce36_nce37_nce38_route_filter_ui():
 
     assert 'select.addEventListener("mousedown"' in choice_block
     assert 'select.addEventListener("mousemove"' in choice_block
+    assert 'document.addEventListener("mouseup"' in choice_block
     assert 'select.addEventListener("click"' in choice_block
-    assert "event.preventDefault();" not in choice_block
-    assert "snapshot.nativeOnly" in choice_block
-    assert "snapshot.dragged" in choice_block
-    assert (
-        "candidate.selected = snapshot.values.has("
-        in choice_block
-    )
-    assert "option.selected = !snapshot.selected;" in choice_block
+
+    # Ordinary mouse selection is intercepted before the browser can
+    # collapse the existing multiple-selection state.
+    assert "event.preventDefault();" in choice_block
+    assert "select.focus({ preventScroll: true });" in choice_block
+    assert "suppressClick" in choice_block
+
+    # Normal click toggles only the clicked option.
+    assert "if (snapshot.selected)" in choice_block
+    assert "values.delete(snapshot.option.value);" in choice_block
+    assert "values.add(snapshot.option.value);" in choice_block
+
+    # Drag adds a contiguous range while preserving the original set.
+    assert "pointer.dragged = true;" in choice_block
+    assert "const first = Math.min(" in choice_block
+    assert "const last = Math.max(" in choice_block
+    assert "values.add(candidate.value);" in choice_block
+    assert "const values = new Set(pointer.values);" in choice_block
+
+    # Modifier-assisted native selection remains available.
+    assert "event.ctrlKey" in choice_block
+    assert "event.metaKey" in choice_block
+    assert "event.shiftKey" in choice_block
+    assert "snapshot.nativeOnly" not in choice_block
+
     assert 'new Event("change", { bubbles: true })' in choice_block
-    assert "or drag across options to select a range" in markup
+    assert "Drag across options to add a range" in markup
 
     # The old two-list conflict machinery is intentionally gone.
     assert "qaSyncRouteFilterPair" not in patch

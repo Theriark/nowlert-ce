@@ -546,6 +546,31 @@ function qaRefreshRouteChoiceAccessibility(select) {
   }
 }
 
+function qaRouteChoiceValues(select) {
+  return new Set(
+    [...select.selectedOptions].map(
+      (option) => option.value,
+    ),
+  );
+}
+
+function qaApplyRouteChoiceValues(select, values) {
+  for (const option of select.options) {
+    option.selected = values.has(option.value);
+  }
+
+  qaRefreshRouteChoiceAccessibility(select);
+}
+
+function qaRouteChoiceOption(event) {
+  return (
+    event.target
+    && event.target.tagName === "OPTION"
+  )
+    ? event.target
+    : null;
+}
+
 function qaBindRouteChoiceList(selectId) {
   const select = byId(selectId);
   if (!select || select.dataset.qaSingleClick === "1") return;
@@ -553,116 +578,161 @@ function qaBindRouteChoiceList(selectId) {
   select.dataset.qaSingleClick = "1";
 
   let pointer = null;
+  let suppressClick = false;
 
   select.addEventListener("mousedown", (event) => {
-    const option = (
-      event.target
-      && event.target.tagName === "OPTION"
-    )
-      ? event.target
-      : null;
+    const option = qaRouteChoiceOption(event);
 
-    if (!option) {
+    if (!option || event.button !== 0) {
       pointer = null;
       return;
     }
 
     /*
-     * Snapshot the state before the browser applies its native
-     * selection behavior.
-     *
-     * Crucially, do not preventDefault() here. Native drag/range
-     * selection must remain available.
+     * Keep the browser's normal modifier-assisted behavior.
      */
+    if (
+      event.ctrlKey
+      || event.metaKey
+      || event.shiftKey
+    ) {
+      pointer = null;
+      suppressClick = false;
+      return;
+    }
+
+    /*
+     * Own the ordinary mouse path before the browser can collapse
+     * the multiple selection to the option under the pointer.
+     */
+    event.preventDefault();
+
+    suppressClick = true;
+    select.focus({ preventScroll: true });
+
+    const values = qaRouteChoiceValues(select);
+    const options = [...select.options];
+    const startIndex = options.indexOf(option);
+
     pointer = {
       option,
+      startIndex,
+      lastIndex: startIndex,
       selected: option.selected,
-      values: new Set(
-        [...select.selectedOptions].map(
-          (candidate) => candidate.value,
-        ),
-      ),
-      x: event.clientX,
-      y: event.clientY,
+      values,
       dragged: false,
-      nativeOnly:
-        event.ctrlKey
-        || event.metaKey
-        || event.shiftKey,
     };
+
+    /*
+     * When adding an option, show it immediately while the mouse
+     * button is held. Existing selections remain untouched.
+     *
+     * A selected option remains selected until mouseup, when a
+     * normal click removes only that option.
+     */
+    if (!option.selected) {
+      const preview = new Set(values);
+      preview.add(option.value);
+      qaApplyRouteChoiceValues(select, preview);
+    }
   });
 
   select.addEventListener("mousemove", (event) => {
     if (!pointer || !(event.buttons & 1)) return;
 
-    if (
-      Math.abs(event.clientX - pointer.x) > 4
-      || Math.abs(event.clientY - pointer.y) > 4
-    ) {
-      pointer.dragged = true;
-    }
-  });
+    const option = qaRouteChoiceOption(event);
+    if (!option) return;
 
-  select.addEventListener("click", (event) => {
-    const option = (
-      event.target
-      && event.target.tagName === "OPTION"
-    )
-      ? event.target
-      : null;
+    const options = [...select.options];
+    const currentIndex = options.indexOf(option);
 
     if (
-      !option
-      || !pointer
-      || pointer.option !== option
+      currentIndex < 0
+      || currentIndex === pointer.lastIndex
     ) {
-      qaRefreshRouteChoiceAccessibility(select);
       return;
     }
+
+    pointer.lastIndex = currentIndex;
+
+    if (currentIndex !== pointer.startIndex) {
+      pointer.dragged = true;
+    }
+
+    if (!pointer.dragged) return;
+
+    /*
+     * Dragging adds the complete range to the selection that existed
+     * when the drag started. It never clears previously selected
+     * options.
+     */
+    const values = new Set(pointer.values);
+    const first = Math.min(
+      pointer.startIndex,
+      currentIndex,
+    );
+    const last = Math.max(
+      pointer.startIndex,
+      currentIndex,
+    );
+
+    for (let index = first; index <= last; index += 1) {
+      const candidate = select.options[index];
+
+      if (!candidate.disabled) {
+        values.add(candidate.value);
+      }
+    }
+
+    qaApplyRouteChoiceValues(select, values);
+  });
+
+  document.addEventListener("mouseup", (event) => {
+    if (!pointer || event.button !== 0) return;
 
     const snapshot = pointer;
     pointer = null;
 
-    /*
-     * Modifier-assisted selection and mouse dragging belong to the
-     * browser. Preserve the native result exactly.
-     */
-    if (snapshot.nativeOnly || snapshot.dragged) {
+    if (!snapshot.dragged) {
+      const values = new Set(snapshot.values);
+
+      if (snapshot.selected) {
+        values.delete(snapshot.option.value);
+      } else {
+        values.add(snapshot.option.value);
+      }
+
+      qaApplyRouteChoiceValues(select, values);
+    } else {
       qaRefreshRouteChoiceAccessibility(select);
-      return;
     }
-
-    /*
-     * Ordinary click:
-     * restore everything that was selected before the click and toggle
-     * only the clicked option.
-     *
-     * Example:
-     *   click Debug
-     *   click Warning
-     * => Debug + Warning both remain selected.
-     */
-    for (const candidate of select.options) {
-      candidate.selected = snapshot.values.has(
-        candidate.value,
-      );
-    }
-
-    option.selected = !snapshot.selected;
 
     select.dispatchEvent(
       new Event("change", { bubbles: true }),
     );
+
+    /*
+     * A click follows mouseup. Keep suppression alive through that
+     * click, then clear it on the next task.
+     */
+    window.setTimeout(() => {
+      suppressClick = false;
+    }, 0);
   });
 
-  /*
-   * Mouseup happens before click. Clear on the next task so a normal
-   * click still has access to its snapshot.
-   */
-  document.addEventListener("mouseup", () => {
-    window.setTimeout(() => {
-      pointer = null;
-    }, 0);
+  select.addEventListener("click", (event) => {
+    if (!suppressClick) return;
+
+    /*
+     * Prevent a browser click default from changing the selection
+     * after our mouseup handler finalized it.
+     */
+    event.preventDefault();
+  });
+
+  window.addEventListener("blur", () => {
+    pointer = null;
+    suppressClick = false;
   });
 
   select.addEventListener("change", () => {
