@@ -433,16 +433,19 @@ def test_nce21_nce36_nce37_nce38_route_filter_ui():
     assert "if (!available.length) continue;" in script
 
     # NCE-39 Development polish: show every available enum value and
-    # pack the remaining route controls beside tall listboxes instead
-    # of inheriting the height of one oversized grid row.
+    # keep the four text filters in fixed paired rows beneath selectors.
     assert "select.size = Math.max(values.length, 2);" in script
     assert "function refreshRouteFilterLayout()" in script
     assert "function scheduleRouteFilterLayout()" in script
-    assert 'grid.style.gridAutoFlow = "row dense";' in script
-    assert 'grid.style.gridAutoRows = "4px";' in script
-    assert 'field.style.gridRowEnd = `span ${span}`;' in script
+    assert 'grid.style.gridAutoFlow = "row";' in script
+    assert 'grid.style.gridAutoRows = "auto";' in script
+    assert "const pairedFields = [" in script
+    assert '["route-hosts", "route-exclude_hosts"]' in script
+    assert '["route-events", "route-exclude_events"]' in script
+    assert "field.style.gridRow = String(firstTextRow + rowOffset);" in script
+    assert "field.style.gridColumn = String(columnOffset + 1);" in script
     assert "scheduleRouteFilterLayout();" in script
-    assert "grid-auto-flow: row dense;" in layout_styles
+    assert "grid-auto-flow: row;" in layout_styles
     assert ".route-filter-grid > label {" in layout_styles
     assert "align-self: start;" in layout_styles
     assert (
