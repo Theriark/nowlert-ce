@@ -147,7 +147,7 @@ jobs:
             echo "## Nowlert CE Development passed"
             echo
             echo "- Source commit: \`${SOURCE_SHA}\`"
-            echo "- Development tag: \`${IMAGE}:main\`"
+            echo "- Development tag: \`${IMAGE}:development\`"
             echo "- Promotion tag: \`${IMAGE}:sha-${SOURCE_SHA}\`"
             echo "- Immutable image: \`${IMAGE}@${{ steps.build.outputs.digest }}\`"
             echo "- Development smoke deployment: \`${{ steps.smoke.outputs.deployment_id }}\`"
