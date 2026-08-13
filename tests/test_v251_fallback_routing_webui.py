@@ -383,7 +383,10 @@ def test_nce21_nce36_nce37_nce38_route_filter_ui():
     # NCE-21: complete enumerated filters are neutral and collapse to
     # All Events when no other restriction remains.
     assert "const ROUTE_ALL_EVENT_FILTERS = {" in script
-    assert "function routeFilterHasAllEvents(key, values)" in script
+    assert (
+        'function routeFilterHasAllEvents(key, values, source = "")'
+        in script
+    )
     assert 'return parts.join(" · ") || "All Events";' in script
     assert 'return "Just Critical";' in script
     assert 'parts.unshift("All Events")' not in script
@@ -398,10 +401,51 @@ def test_nce21_nce36_nce37_nce38_route_filter_ui():
 
     # Legacy include/exclude records are converted into their effective
     # allow-list before editing, then saved using include-only filters.
-    assert "function routeAllowedFilterValues(key, filters = {})" in script
+    assert "function routeAllowedFilterValues(" in script
+    assert 'filters = {},' in script
+    assert 'source = "",' in script
     assert 'const excludedKey = `exclude_${key}`;' in script
     assert 'for (const key of ["severities", "statuses"]) {' in script
     assert "Select at least one included" in script
+
+    # NCE-39: the selected integration source owns the exact route
+    # severity/status vocabulary. The input transport is not part of
+    # the lookup, so Zabbix SMTP and HTTP share one definition.
+    assert (
+        'function routeFilterValuesForSource(source = "", key)'
+        in script
+    )
+    assert "integration.route_filters" in script
+    assert "function routeSelectedSource()" in script
+    assert "function refreshRouteFilterOptions(filters = {})" in script
+    assert "currentRouteFilterSelections()" in script
+    assert 'sourceSelect.dataset.routeFilterSource = source;' in script
+    assert "previousSource === nextSource" in script
+    assert "field.hidden = values.length === 0;" in script
+    assert "select.disabled = values.length === 0;" in script
+    assert "const selectedSource = routeSelectedSource();" in script
+    assert "const available = routeFilterValuesForSource(" in script
+    assert "if (!available.length) continue;" in script
+    assert (
+        "filterSummary(route.filters, route.source)"
+        in script
+    )
+    assert (
+        "filterSummary(item.filters, item.source)"
+        in script
+    )
+    assert 'severities: "All Severities"' in script
+    assert 'statuses: "All Statuses"' in script
+
+    # The generic global option list is no longer baked into the form.
+    assert (
+        '<select id="route-severities" multiple size="6"></select>'
+        in markup
+    )
+    assert (
+        '<select id="route-statuses" multiple size="7"></select>'
+        in markup
+    )
 
     # NCE-37: selected options retain the same system highlight even
     # when the listbox is not focused.

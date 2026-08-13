@@ -1093,6 +1093,50 @@ def test_integrations_endpoint_is_complete_and_categories_are_database_backed(pl
     assert "Fallback (HTTP)" in labels
     assert "Fallback (Redfish)" in labels
 
+    # NCE-39: route filter values belong to the integration source,
+    # not to its SMTP/HTTP/Redfish transport.
+    assert integrations_by_source["zabbix"]["route_filters"] == {
+        "severities": [
+            "not classified",
+            "information",
+            "warning",
+            "average",
+            "high",
+            "disaster",
+        ],
+        "statuses": [
+            "failure",
+            "success",
+        ],
+    }
+    assert [
+        item["id"]
+        for item in integrations_by_source["zabbix"]["inputs"]
+    ] == [
+        "smtp",
+        "http",
+    ]
+
+    assert integrations_by_source["xo"]["route_filters"] == {
+        "severities": [],
+        "statuses": [
+            "info",
+            "success",
+            "failure",
+            "skipped",
+        ],
+    }
+
+    assert integrations_by_source["qnap"]["route_filters"]["statuses"] == []
+    assert (
+        integrations_by_source["unifi_network"]["route_filters"]["statuses"]
+        == []
+    )
+    assert (
+        integrations_by_source["home_assistant"]["route_filters"]["statuses"]
+        == []
+    )
+
     updated = call(
         platform_api,
         "PUT",

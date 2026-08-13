@@ -149,6 +149,220 @@ _CATALOGUE = (
     },
 )
 
+
+# User-facing route filter values exposed by each integration.
+#
+# These are keyed ONLY by parser source. Input transport is deliberately
+# excluded: an integration has the same event vocabulary over SMTP/HTTP.
+#
+# Empty tuples mean that dimension is not exposed by that integration.
+_ROUTE_FILTERS = {
+    "xo": {
+        "severities": (),
+        "statuses": (
+            "info",
+            "success",
+            "failure",
+            "skipped",
+        ),
+    },
+    "zabbix": {
+        "severities": (
+            "not classified",
+            "information",
+            "warning",
+            "average",
+            "high",
+            "disaster",
+        ),
+        "statuses": (
+            "failure",
+            "success",
+        ),
+    },
+    "grafana": {
+        "severities": (
+            "information",
+            "warning",
+            "error",
+            "critical",
+        ),
+        "statuses": (
+            "firing",
+            "pending",
+            "resolved",
+            "no data",
+            "error",
+            "test",
+            "not resolved",
+        ),
+    },
+    "portainer": {
+        "severities": (
+            "information",
+            "warning",
+            "critical",
+            "error",
+            "failure",
+        ),
+        "statuses": (
+            "firing",
+            "resolved",
+        ),
+    },
+    "proxmox": {
+        "severities": (
+            "debug",
+            "info",
+            "information",
+            "notice",
+            "warning",
+            "warn",
+            "error",
+            "critical",
+            "success",
+        ),
+        "statuses": (
+            "information",
+            "warning",
+            "failure",
+            "failed",
+            "success",
+            "resolved",
+            "recovered",
+        ),
+    },
+    "qnap": {
+        "severities": (
+            "information",
+            "normal",
+            "warning",
+            "error",
+            "critical",
+        ),
+        "statuses": (),
+    },
+    "synology": {
+        "severities": (
+            "debug",
+            "info",
+            "information",
+            "notice",
+            "warning",
+            "warn",
+            "error",
+            "critical",
+            "success",
+        ),
+        "statuses": (
+            "information",
+            "warning",
+            "failure",
+            "failed",
+            "success",
+            "resolved",
+            "recovered",
+            "restored",
+        ),
+    },
+    "truenas": {
+        "severities": (
+            "information",
+            "warning",
+            "critical",
+            "normal",
+        ),
+        "statuses": (),
+    },
+    "unifi_network": {
+        "severities": (
+            "information",
+            "warning",
+            "critical",
+        ),
+        "statuses": (),
+    },
+    "unifi_protect": {
+        "severities": (
+            "information",
+        ),
+        "statuses": (),
+    },
+    "unifi_drive": {
+        "severities": (
+            "information",
+            "warning",
+            "critical",
+        ),
+        "statuses": (),
+    },
+    "supermicro": {
+        "severities": (
+            "critical",
+            "fatal",
+            "emergency",
+            "alert",
+            "warning",
+            "caution",
+            "ok",
+            "normal",
+            "cleared",
+            "informational",
+            "information",
+            "info",
+        ),
+        "statuses": (),
+    },
+    "hpe_ilo": {
+        "severities": (
+            "critical",
+            "fatal",
+            "emergency",
+            "alert",
+            "warning",
+            "caution",
+            "ok",
+            "normal",
+            "cleared",
+            "informational",
+            "information",
+            "info",
+        ),
+        "statuses": (),
+    },
+    "dell_idrac": {
+        "severities": (
+            "critical",
+            "fatal",
+            "emergency",
+            "alert",
+            "warning",
+            "caution",
+            "ok",
+            "normal",
+            "cleared",
+            "informational",
+            "information",
+            "info",
+        ),
+        "statuses": (),
+    },
+    "home_assistant": {
+        "severities": (
+            "information",
+            "info",
+            "success",
+            "warning",
+            "warn",
+            "error",
+            "critical",
+            "fatal",
+            "emergency",
+        ),
+        "statuses": (),
+    },
+}
+
 _BY_SOURCE = {item["source"]: item for item in _CATALOGUE}
 _ALIASES = {
     alias: item["source"]
@@ -251,6 +465,7 @@ def infer_input_type(source: str) -> str:
 
 def _public(item: dict) -> dict:
     source = item["source"]
+    route_filters = _ROUTE_FILTERS[source]
     return {
         "id": source,
         "source": source,
@@ -262,4 +477,8 @@ def _public(item: dict) -> dict:
             {"id": value, "name": _INPUT_NAMES[value]}
             for value in item["inputs"]
         ],
+        "route_filters": {
+            "severities": list(route_filters["severities"]),
+            "statuses": list(route_filters["statuses"]),
+        },
     }

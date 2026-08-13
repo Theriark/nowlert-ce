@@ -1013,7 +1013,7 @@ function renderFlow() {
         title: routeStatus.detail,
       }, [
         flowSignal(firstStatus, `${inputStatus.detail}; ${routeStatus.detail}`),
-        element("div", {}, [element("strong", { text: route.name }), element("small", { text: filterSummary(route.filters) })]),
+        element("div", {}, [element("strong", { text: route.name }), element("small", { text: filterSummary(route.filters, route.source) })]),
         flowSignal(destinationStatus.state, destinationStatus.detail, true),
       ]),
       element("div", {
@@ -1407,9 +1407,71 @@ const ROUTE_ALL_EVENT_FILTERS = {
   ]),
 };
 
-function routeFilterHasAllEvents(key, values) {
-  const available = ROUTE_ALL_EVENT_FILTERS[key];
-  if (!available || !Array.isArray(values) || values.length !== available.size) {
+function routeFilterValuesForSource(source = "", key) {
+  const fallback = ROUTE_ALL_EVENT_FILTERS[key];
+
+  if (source === "*") {
+    return fallback ? [...fallback] : [];
+  }
+
+  const integration = integrationBySource(source);
+
+  /*
+   * Unknown/legacy integrations keep the old generic choices rather
+   * than becoming destructive when edited.
+   */
+  if (!integration || !integration.route_filters) {
+    return fallback ? [...fallback] : [];
+  }
+
+  const configured = integration.route_filters[key];
+
+  if (!Array.isArray(configured)) return [];
+
+  return [
+    ...new Set(
+      configured
+        .map((value) => String(value || "").trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function routeSelectedSource() {
+  const select = byId("route-source");
+  if (!select) return "";
+
+  const [source] = String(select.value || "").split("::", 2);
+  return source || "";
+}
+
+function currentRouteFilterSelections() {
+  const filters = {};
+
+  for (const key of ["severities", "statuses"]) {
+    const select = byId(`route-${key}`);
+    if (!select) continue;
+
+    const values = [...select.selectedOptions]
+      .map((option) => option.value);
+
+    if (values.length) {
+      filters[key] = values;
+    }
+  }
+
+  return filters;
+}
+
+function routeFilterHasAllEvents(key, values, source = "") {
+  const availableValues = routeFilterValuesForSource(source, key);
+  const available = new Set(availableValues);
+
+  if (
+    !available.size
+    || !Array.isArray(values)
+    || values.length !== available.size
+  ) {
     return false;
   }
 
@@ -1423,9 +1485,15 @@ function routeFilterHasAllEvents(key, values) {
   );
 }
 
-function routeAllowedFilterValues(key, filters = {}) {
-  const available = ROUTE_ALL_EVENT_FILTERS[key];
-  if (!available) return [];
+function routeAllowedFilterValues(
+  key,
+  filters = {},
+  source = "",
+) {
+  const availableValues = routeFilterValuesForSource(source, key);
+  const available = new Set(availableValues);
+
+  if (!available.size) return [];
 
   const includedValues = (
     filters
@@ -1433,7 +1501,7 @@ function routeAllowedFilterValues(key, filters = {}) {
     && filters[key].length
   )
     ? filters[key]
-    : [...available];
+    : availableValues;
 
   const excludedKey = `exclude_${key}`;
   const excludedValues = (
@@ -1455,12 +1523,57 @@ function routeAllowedFilterValues(key, filters = {}) {
     ),
   );
 
-  return [...available].filter(
+  return availableValues.filter(
     (value) => included.has(value) && !excluded.has(value),
   );
 }
 
-function filterSummary(filters) {
+function refreshRouteFilterOptions(filters = {}) {
+  const source = routeSelectedSource();
+
+  for (const key of ["severities", "statuses"]) {
+    const select = byId(`route-${key}`);
+    if (!select) continue;
+
+    const field = select.closest("label");
+    const values = routeFilterValuesForSource(source, key);
+    const selected = new Set(
+      routeAllowedFilterValues(key, filters, source),
+    );
+
+    select.replaceChildren();
+
+    for (const value of values) {
+      const option = element("option", {
+        value,
+        text: capitalize(value),
+      });
+      option.selected = selected.has(value);
+      option.setAttribute(
+        "aria-selected",
+        option.selected ? "true" : "false",
+      );
+      select.append(option);
+    }
+
+    select.disabled = values.length === 0;
+    select.size = Math.min(
+      Math.max(values.length, 2),
+      8,
+    );
+
+    if (field) {
+      field.hidden = values.length === 0;
+    }
+  }
+
+  const sourceSelect = byId("route-source");
+  if (sourceSelect) {
+    sourceSelect.dataset.routeFilterSource = source;
+  }
+}
+
+function filterSummary(filters, source = "") {
   const parts = [];
 
   const labels = {
@@ -1474,21 +1587,42 @@ function filterSummary(filters) {
     exclude_events: "Exclude event",
   };
 
+  const fullLabels = {
+    severities: "All Severities",
+    statuses: "All Statuses",
+  };
+
   for (const key of Object.keys(labels)) {
     const values = filters && filters[key];
     if (!Array.isArray(values) || !values.length) continue;
 
+    const enumeratedKey = key.startsWith("exclude_")
+      ? key.slice("exclude_".length)
+      : key;
+
+    if (
+      ["severities", "statuses"].includes(enumeratedKey)
+      && !routeFilterValuesForSource(source, enumeratedKey).length
+    ) {
+      continue;
+    }
+
     if (
       (key === "severities" || key === "statuses")
-      && routeFilterHasAllEvents(key, values)
+      && routeFilterHasAllEvents(key, values, source)
     ) {
+      parts.push(fullLabels[key]);
       continue;
     }
 
     // Legacy routes may still contain these keys until edited.
     if (
       key === "exclude_severities"
-      && routeFilterHasAllEvents("severities", values)
+      && routeFilterHasAllEvents(
+        "severities",
+        values,
+        source,
+      )
     ) {
       parts.push(`${labels[key]}: All Events`);
       continue;
@@ -1496,7 +1630,11 @@ function filterSummary(filters) {
 
     if (
       key === "exclude_statuses"
-      && routeFilterHasAllEvents("statuses", values)
+      && routeFilterHasAllEvents(
+        "statuses",
+        values,
+        source,
+      )
     ) {
       parts.push(`${labels[key]}: All Events`);
       continue;
@@ -1507,8 +1645,20 @@ function filterSummary(filters) {
     );
   }
 
+  const fullOnly = new Set(
+    Object.values(fullLabels),
+  );
+
+  if (
+    parts.length
+    && parts.every((part) => fullOnly.has(part))
+  ) {
+    return "All Events";
+  }
+
   if (
     parts.length === 1
+    && filters
     && filters.severities
     && filters.severities.length === 1
     && filters.severities[0] === "critical"
@@ -1544,7 +1694,7 @@ function renderRoutes() {
       element("td", { text: descriptor.integration }),
       element("td", { text: descriptor.input }),
       element("td", { text: destinationTypeName(item.destination_id) }),
-      element("td", {}, element("small", { text: filterSummary(item.filters) })),
+      element("td", {}, element("small", { text: filterSummary(item.filters, item.source) })),
       element("td", { text: capitalize(item.priority_name || "normal") }),
       element("td", {}, status),
       element("td", {}, isAdmin() ? actionButton("Delete", "delete-route", item.id, "danger") : null),
@@ -2634,19 +2784,67 @@ function setRouteOptions(selected = "") {
   if (selected) select.value = selected;
 }
 
-function setRouteSourceOptions(selectedSource = "", selectedInput = "") {
+function setRouteSourceOptions(
+  selectedSource = "",
+  selectedInput = "",
+) {
   const select = byId("route-source");
   select.replaceChildren();
+
   const currentValue = `${selectedSource}::${selectedInput}`;
+
   for (const option of state.routeSourceOptions) {
     const value = `${option.source}::${option.input_type}`;
-    select.append(element("option", { value, text: option.label }));
+    select.append(
+      element("option", {
+        value,
+        text: option.label,
+      }),
+    );
   }
-  if (selectedSource && ![...select.options].some((option) => option.value === currentValue)) {
-    const descriptor = routeSourceDescriptor(selectedSource, selectedInput);
-    select.append(element("option", { value: currentValue, text: `${descriptor.label} (legacy)` }));
+
+  if (
+    selectedSource
+    && ![...select.options].some(
+      (option) => option.value === currentValue,
+    )
+  ) {
+    const descriptor = routeSourceDescriptor(
+      selectedSource,
+      selectedInput,
+    );
+    select.append(
+      element("option", {
+        value: currentValue,
+        text: `${descriptor.label} (legacy)`,
+      }),
+    );
   }
-  if (selectedSource) select.value = currentValue;
+
+  if (selectedSource) {
+    select.value = currentValue;
+  }
+
+  if (select.dataset.nce39FilterBound !== "1") {
+    select.dataset.nce39FilterBound = "1";
+
+    select.addEventListener("change", () => {
+      const previousSource =
+        select.dataset.routeFilterSource || "";
+      const nextSource = routeSelectedSource();
+
+      /*
+       * SMTP <-> HTTP for the SAME integration keeps the current
+       * selection. Changing integration starts with that integration's
+       * complete native list selected.
+       */
+      const filters = previousSource === nextSource
+        ? currentRouteFilterSelections()
+        : {};
+
+      refreshRouteFilterOptions(filters);
+    });
+  }
 }
 
 function openRoute(id = "") {
@@ -2664,18 +2862,9 @@ function openRoute(id = "") {
   byId("route-priority").value = item ? (item.priority_name || "normal") : "normal";
   byId("route-enabled").checked = item ? item.enabled : true;
   setRouteOptions(item ? item.destination_id : "");
-  for (const key of ["severities", "statuses"]) {
-    const selected = new Set(
-      routeAllowedFilterValues(
-        key,
-        item && item.filters ? item.filters : {},
-      ),
-    );
-
-    for (const option of byId(`route-${key}`).options) {
-      option.selected = selected.has(option.value);
-    }
-  }
+  refreshRouteFilterOptions(
+    item && item.filters ? item.filters : {},
+  );
   for (const key of ["hosts", "events", "exclude_hosts", "exclude_events"]) {
     byId(`route-${key}`).value = item && item.filters[key] ? item.filters[key].join(", ") : "";
   }
@@ -2692,12 +2881,28 @@ async function saveRoute(event) {
   clearError("route-error");
   const id = byId("route-id").value;
   const filters = {};
+  const selectedSource = routeSelectedSource();
+
   for (const key of ["severities", "statuses"]) {
+    const available = routeFilterValuesForSource(
+      selectedSource,
+      key,
+    );
+
+    /*
+     * A dimension that does not exist for this integration is neither
+     * displayed nor persisted.
+     */
+    if (!available.length) continue;
+
     const values = [...byId(`route-${key}`).selectedOptions]
       .map((option) => option.value);
 
     if (!values.length) {
-      const label = key === "severities" ? "severity" : "status";
+      const label = key === "severities"
+        ? "severity"
+        : "status";
+
       showError(
         "route-error",
         new Error(`Select at least one included ${label}.`),
@@ -2707,6 +2912,7 @@ async function saveRoute(event) {
 
     filters[key] = values;
   }
+
   for (const key of ["hosts", "events", "exclude_hosts", "exclude_events"]) {
     const values = splitList(byId(`route-${key}`).value);
     if (values.length) filters[key] = values;
