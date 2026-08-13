@@ -245,7 +245,7 @@
 
 .route-filter-grid {
   align-items: start;
-  grid-auto-flow: row dense;
+  grid-auto-flow: row;
 }
 
 .route-filter-grid > label {
