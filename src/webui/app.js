@@ -1537,18 +1537,25 @@ function refreshRouteFilterLayout() {
   );
 
   /*
-   * Clear previous masonry spans before measuring the current layout.
-   * This also lets hidden Severity/Status fields disappear cleanly.
+   * Route text filters are paired controls. Reset any previous layout
+   * state before assigning deterministic rows and columns.
    */
   for (const field of fields) {
-    field.style.gridRowEnd = "";
+    field.style.gridRow = "";
+    field.style.gridColumn = "";
   }
+
+  grid.style.gridAutoFlow = "row";
+  grid.style.gridAutoRows = "auto";
 
   const columns = getComputedStyle(grid)
     .gridTemplateColumns
     .split(/\s+/)
     .filter(Boolean)
     .length;
+
+  /* The normal responsive form layout remains one column on narrow screens. */
+  if (columns < 2) return;
 
   const visibleSelectors = [
     byId("route-severities"),
@@ -1558,45 +1565,30 @@ function refreshRouteFilterLayout() {
     .filter((field) => field && !field.hidden);
 
   /*
-   * The normal responsive form layout becomes one column on narrow
-   * screens. When both Severity and Status are visible, keep them in a
-   * shared first row so the Hosts and Events controls start on matching
-   * horizontal lines in both columns. Masonry remains useful when only
-   * one enumerated selector is available for the integration.
+   * Keep the enumerated selectors together on their own row. When only
+   * one selector exists, leave the other column empty instead of pulling
+   * a host/event field upward beside it.
    */
-  if (columns < 2 || visibleSelectors.length === 2) {
-    grid.style.gridAutoFlow = "row";
-    grid.style.gridAutoRows = "auto";
-    return;
-  }
+  visibleSelectors.forEach((field, index) => {
+    field.style.gridRow = "1";
+    field.style.gridColumn = String(index + 1);
+  });
 
-  /*
-   * Small implicit grid rows plus measured row spans give us a stable
-   * masonry-style layout using normal CSS Grid. Tall Severity/Status
-   * listboxes occupy only their own column; the opposite column can
-   * continue packing Hosts/Events controls upward beside them.
-   */
-  grid.style.gridAutoFlow = "row dense";
-  grid.style.gridAutoRows = "4px";
+  const firstTextRow = visibleSelectors.length ? 2 : 1;
+  const pairedFields = [
+    ["route-hosts", "route-exclude_hosts"],
+    ["route-events", "route-exclude_events"],
+  ];
 
-  const layout = getComputedStyle(grid);
-  const rowHeight = parseFloat(layout.gridAutoRows) || 4;
-  const rowGap = parseFloat(layout.rowGap) || 0;
-
-  for (const field of fields) {
-    if (field.hidden) continue;
-
-    const height = field.getBoundingClientRect().height;
-    const span = Math.max(
-      1,
-      Math.ceil(
-        (height + rowGap)
-        / (rowHeight + rowGap)
-      ),
-    );
-
-    field.style.gridRowEnd = `span ${span}`;
-  }
+  pairedFields.forEach((ids, rowOffset) => {
+    ids.forEach((id, columnOffset) => {
+      const input = byId(id);
+      const field = input && input.closest("label");
+      if (!field || field.hidden) return;
+      field.style.gridRow = String(firstTextRow + rowOffset);
+      field.style.gridColumn = String(columnOffset + 1);
+    });
+  });
 }
 
 function scheduleRouteFilterLayout() {
