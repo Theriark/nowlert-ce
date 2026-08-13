@@ -1,28 +1,32 @@
-name: Docker Release
+name: Docker Release Aliases
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
-
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing stable tag to publish, for example v1.3.0"
+        description: "Existing stable release tag, for example v3.1.0"
+        required: true
+        type: string
+      final_image:
+        description: "Production Reference-approved immutable GHCR image"
         required: true
         type: string
 
 permissions:
-  contents: write
+  contents: read
   packages: write
 
 concurrency:
-  group: docker-release-${{ github.event_name }}-${{ github.event.inputs.tag || github.ref_name }}
+  group: docker-release-${{ inputs.tag }}
   cancel-in-progress: false
 
 jobs:
-  docker-release:
+  publish-aliases:
     runs-on: ubuntu-latest
+
+    env:
+      TAG: ${{ inputs.tag }}
+      FINAL_IMAGE: ${{ inputs.final_image }}
 
     steps:
       - name: Verify release repository identity
@@ -30,178 +34,152 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_REPOSITORY,,}" != "theriark/nowlert-ce" ]]; then
-            echo "::error::Stable publication is allowed only from Theriark/nowlert-ce; current repository is ${GITHUB_REPOSITORY}."
+          [[ "${GITHUB_REPOSITORY,,}" == "theriark/nowlert-ce" ]] || {
+            echo "::error::Stable publication is allowed only from Theriark/nowlert-ce"
             exit 1
-          fi
+          }
 
-          echo "Release repository identity verified."
-
-      - name: Resolve release tag
-        id: version
-        shell: bash
-        env:
-          DISPATCH_TAG: ${{ github.event.inputs.tag }}
-        run: |
-          set -euo pipefail
-
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            TAG="${DISPATCH_TAG}"
-          else
-            TAG="${GITHUB_REF_NAME}"
-          fi
-
-          if [[ ! "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Release tag must match vMAJOR.MINOR.PATCH; received '${TAG}'."
+          [[ "${GITHUB_REF}" == "refs/heads/main" ]] || {
+            echo "::error::Docker release aliases must be launched from main"
             exit 1
-          fi
-
-          VERSION="${TAG#v}"
-
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-          echo "Release tag: ${TAG}"
-          echo "Image version: ${VERSION}"
+          }
 
       - name: Checkout release tag
         uses: actions/checkout@v7
         with:
-          ref: ${{ steps.version.outputs.tag }}
+          ref: ${{ inputs.tag }}
           fetch-depth: 0
 
-      - name: Verify tag and application version
+      - name: Verify tag, main, version, and immutable image
         id: release
         shell: bash
-        env:
-          TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
+
+          [[ "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "::error::Release tag must match vMAJOR.MINOR.PATCH"
+            exit 1
+          }
+
+          [[ "${FINAL_IMAGE}" =~ ^ghcr\.io/theriark/nowlert-ce@sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::final_image must be an immutable Nowlert CE GHCR digest"
+            exit 1
+          }
+
+          git fetch origin \
+            +refs/heads/main:refs/remotes/origin/main
 
           TAG_SHA="$(git rev-list -n 1 "${TAG}")"
+          MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
           HEAD_SHA="$(git rev-parse HEAD)"
 
-          if [[ "${TAG_SHA}" != "${HEAD_SHA}" ]]; then
-            echo "::error::Checked-out commit ${HEAD_SHA} does not match tag ${TAG} at ${TAG_SHA}."
+          [[ "${TAG_SHA}" == "${HEAD_SHA}" ]] || {
+            echo "::error::Checked-out source does not match ${TAG}"
             exit 1
-          fi
+          }
 
+          [[ "${TAG_SHA}" == "${MAIN_SHA}" ]] || {
+            echo "::error::Release tag ${TAG} does not point at current main"
+            exit 1
+          }
+
+          VERSION="${TAG#v}"
           APP_VERSION="$(
-            sed -n 's/^VERSION = "\(.*\)"/\1/p' src/version.py
+            sed -n 's/^VERSION = "\([^"]*\)"/\1/p' src/version.py
           )"
 
-          if [[ -z "${APP_VERSION}" ]]; then
-            echo "::error::Could not read VERSION from src/version.py."
+          [[ "${APP_VERSION}" == "${VERSION}" ]] || {
+            echo "::error::Application version ${APP_VERSION} does not match ${TAG}"
             exit 1
-          fi
+          }
 
-          if [[ "${APP_VERSION}" != "${VERSION}" ]]; then
-            echo "::error::src/version.py contains '${APP_VERSION}', but tag ${TAG} requires '${VERSION}'."
-            exit 1
-          fi
+          EXPECTED_DIGEST="${FINAL_IMAGE##*@}"
 
-          echo "commit_sha=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "expected_digest=${EXPECTED_DIGEST}" >> "${GITHUB_OUTPUT}"
 
-          echo "Application version ${APP_VERSION} matches ${TAG}."
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.13"
-
-      - name: Install test dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements-dev.txt
-
-      - name: Run release test suite
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m pytest -q
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Login to GitHub Container Registry
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build and push Docker images
-        uses: docker/build-push-action@v7
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
         with:
-          context: .
-          push: true
-          build-args: |
-            NOWLERT_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.release.outputs.commit_sha }}/assets/icons
-          tags: |
-            theriark/nowlert-ce:${{ steps.version.outputs.version }}
-            theriark/nowlert-ce:latest
-            ghcr.io/theriark/nowlert-ce:${{ steps.version.outputs.version }}
-            ghcr.io/theriark/nowlert-ce:latest
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Create or update GitHub Release
+      - name: Install registry copy tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      - name: Publish stable aliases without rebuilding
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
 
-          RELEASE_TITLE="Nowlert ${TAG}"
-          NOTES_FILE="docs/releases/${TAG}.md"
+          skopeo copy --all --preserve-digests \
+            "docker://${FINAL_IMAGE}" \
+            "docker://ghcr.io/theriark/nowlert-ce:${VERSION}"
 
-          if gh release view "${TAG}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            >/dev/null 2>&1; then
+          skopeo copy --all --preserve-digests \
+            "docker://${FINAL_IMAGE}" \
+            "docker://ghcr.io/theriark/nowlert-ce:latest"
 
-            echo "Release ${TAG} already exists; updating it."
+          skopeo copy --all --preserve-digests \
+            "docker://${FINAL_IMAGE}" \
+            "docker://docker.io/theriark/nowlert-ce:${VERSION}"
 
-            RELEASE_ARGS=(
-              release edit "${TAG}"
-              --repo "${GITHUB_REPOSITORY}"
-              --title "${RELEASE_TITLE}"
-              --verify-tag
-              --draft=false
-              --latest
-            )
+          skopeo copy --all --preserve-digests \
+            "docker://${FINAL_IMAGE}" \
+            "docker://docker.io/theriark/nowlert-ce:latest"
 
-            if [[ -f "${NOTES_FILE}" ]]; then
-              RELEASE_ARGS+=(--notes-file "${NOTES_FILE}")
-            else
-              echo "No ${NOTES_FILE} found; preserving existing release notes."
-            fi
+      - name: Verify all stable aliases use the approved digest
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          EXPECTED_DIGEST: ${{ steps.release.outputs.expected_digest }}
+        run: |
+          set -euo pipefail
 
-            gh "${RELEASE_ARGS[@]}"
-          else
-            echo "Creating GitHub Release ${TAG}."
+          for image in \
+            "ghcr.io/theriark/nowlert-ce:${VERSION}" \
+            "ghcr.io/theriark/nowlert-ce:latest" \
+            "docker.io/theriark/nowlert-ce:${VERSION}" \
+            "docker.io/theriark/nowlert-ce:latest"
+          do
+            actual="$(
+              skopeo inspect \
+                --format '{{.Digest}}' \
+                "docker://${image}"
+            )"
 
-            RELEASE_ARGS=(
-              release create "${TAG}"
-              --repo "${GITHUB_REPOSITORY}"
-              --title "${RELEASE_TITLE}"
-              --verify-tag
-              --latest
-            )
+            [[ "${actual}" == "${EXPECTED_DIGEST}" ]] || {
+              echo "::error::${image} resolved to ${actual}; expected ${EXPECTED_DIGEST}"
+              exit 1
+            }
 
-            if [[ -f "${NOTES_FILE}" ]]; then
-              RELEASE_ARGS+=(--notes-file "${NOTES_FILE}")
-            else
-              echo "No ${NOTES_FILE} found; generating release notes."
-              RELEASE_ARGS+=(--generate-notes)
-            fi
+            echo "PASS: ${image} -> ${actual}"
+          done
 
-            gh "${RELEASE_ARGS[@]}"
-          fi
+      - name: Record immutable release alias publication
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          EXPECTED_DIGEST: ${{ steps.release.outputs.expected_digest }}
+        run: |
+          {
+            echo "## Stable CE image aliases published"
+            echo
+            echo "- Tag: \`${TAG}\`"
+            echo "- Source image: \`${FINAL_IMAGE}\`"
+            echo "- Digest: \`${EXPECTED_DIGEST}\`"
+            echo "- Image rebuild performed: no"
+          } >> "${GITHUB_STEP_SUMMARY}"

@@ -15,7 +15,7 @@ from typing import Callable
 from api.security import hash_password, verify_password
 from storage.database import Database
 from storage.ownership import Actor
-from storage.validation import normalized_identifier
+from storage.validation import ConflictError, normalized_identifier
 
 
 @dataclass(frozen=True)
@@ -280,6 +280,64 @@ class UserStore:
                     (now, str(user_id)),
                 )
         return self.get(user_id)
+
+    def delete(self, user_id: str) -> None:
+        target_id = str(user_id)
+
+        with self.database.transaction() as connection:
+            row = connection.execute(
+                "SELECT role, enabled FROM users WHERE id = ?",
+                (target_id,),
+            ).fetchone()
+
+            if row is None:
+                raise KeyError("user not found")
+
+            if row["role"] == "admin" and bool(row["enabled"]):
+                remaining_admins = int(
+                    connection.execute(
+                        """
+                        SELECT COUNT(*)
+                        FROM users
+                        WHERE role = 'admin'
+                          AND enabled = 1
+                          AND id != ?
+                        """,
+                        (target_id,),
+                    ).fetchone()[0]
+                )
+                if not remaining_admins:
+                    raise ValueError(
+                        "the last enabled administrator cannot be deleted"
+                    )
+
+            blockers = []
+            for table, label in (
+                ("destinations", "destinations"),
+                ("secret_records", "secret records"),
+                ("backup_targets", "backup destinations"),
+            ):
+                count = int(
+                    connection.execute(
+                        f"SELECT COUNT(*) FROM {table} WHERE owner_user_id = ?",
+                        (target_id,),
+                    ).fetchone()[0]
+                )
+                if count:
+                    blockers.append(f"{count} {label}")
+
+            if blockers:
+                raise ConflictError(
+                    "user owns resources that must be removed first: "
+                    + ", ".join(blockers)
+                )
+
+            cursor = connection.execute(
+                "DELETE FROM users WHERE id = ?",
+                (target_id,),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError("user not found")
 
     def set_avatar(self, user_id: str, avatar_data: str | None) -> User:
         """Store a small browser-safe raster avatar inside the protected DB."""

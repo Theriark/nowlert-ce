@@ -115,26 +115,36 @@ def test_release_notes_cover_cutover_rollback_and_schema():
     assert "ghcr.io/theriark/nowlert-ce" in notes
 
 
-def test_release_workflow_is_guarded_and_uses_nowlert_images():
+def test_release_workflow_is_guarded_and_reuses_approved_image():
     release = (
         ROOT / ".github" / "workflows" / "docker-release.yml"
+    ).read_text(encoding="utf-8")
+    finalization = (
+        ROOT / ".github" / "workflows" / "finalize-release.yml"
     ).read_text(encoding="utf-8")
 
     assert "Verify release repository identity" in release
     assert '${GITHUB_REPOSITORY,,}' in release
     assert '"theriark/nowlert-ce"' in release
-    assert (
-        "theriark/nowlert-ce:${{ steps.version.outputs.version }}"
-        in release
-    )
-    assert (
-        "ghcr.io/theriark/nowlert-ce:${{ steps.version.outputs.version }}"
-        in release
-    )
-    assert 'RELEASE_TITLE="Nowlert ${TAG}"' in release
 
-    assert "            fortpt/nowlert:" not in release
-    assert "            ghcr.io/fortpt/nowlert:" not in release
+    assert "final_image:" in release
+    assert (
+        "docker://ghcr.io/theriark/nowlert-ce:${VERSION}"
+        in release
+    )
+    assert (
+        "docker://docker.io/theriark/nowlert-ce:${VERSION}"
+        in release
+    )
+    assert "skopeo copy --all --preserve-digests" in release
+    assert "docker/build-push-action" not in release
+
+    # GitHub Release publication is performed during finalization.
+    assert '--title "Nowlert CE ${VERSION}"' in finalization
+    assert 'gh release create "${VERSION}"' in finalization
+
+    assert "fortpt/nowlert:" not in release
+    assert "ghcr.io/fortpt/nowlert:" not in release
 
 
 def test_release_workflows_use_current_action_majors():
@@ -145,17 +155,17 @@ def test_release_workflows_use_current_action_majors():
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
 
-    for value in (
-        "actions/checkout@v7",
-        "actions/setup-python@v7",
-    ):
-        assert value in ci
-        assert value in release
-
+    assert "actions/checkout@v7" in ci
+    assert "actions/setup-python@v7" in ci
     assert "actions/setup-node@v7" in ci
+
+    assert "actions/checkout@v7" in release
     assert "docker/login-action@v4" in release
-    assert "docker/setup-buildx-action@v4" in release
-    assert "docker/build-push-action@v7" in release
+
+    # Alias publication copies the immutable image; it does not build.
+    assert "docker/setup-buildx-action" not in release
+    assert "docker/build-push-action" not in release
+    assert "skopeo copy --all --preserve-digests" in release
 
 
 def test_development_workflow_targets_only_ce():

@@ -46,7 +46,10 @@ def find_thumbnail_media(value):
 
 def test_official_release_build_uses_packaged_notification_icons():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
-    workflow = (
+    development = (
+        ROOT / ".github" / "workflows" / "docker-development.yml"
+    ).read_text(encoding="utf-8")
+    release = (
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
     presentation = (
@@ -62,8 +65,14 @@ def test_official_release_build_uses_packaged_notification_icons():
     assert "data:{mime_type};base64," not in presentation
     assert dockerfile.count("ARG NOWLERT_TEAMS_ICON_BASE_URL=") == 1
     assert dockerfile.count("ENV NOWLERT_TEAMS_ICON_BASE_URL=") == 1
-    assert workflow.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
-    assert "${{ steps.release.outputs.commit_sha }}" in workflow
+
+    # The one and only image build is the Development build.
+    assert development.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert "${{ env.SOURCE_SHA }}/assets/icons" in development
+
+    # Release aliases never rebuild the approved image.
+    assert "NOWLERT_TEAMS_ICON_BASE_URL=" not in release
+    assert "docker/build-push-action" not in release
 
 def test_components_v2_delivery_uploads_packaged_icon(monkeypatch, tmp_path):
     icon = tmp_path / "synology.png"

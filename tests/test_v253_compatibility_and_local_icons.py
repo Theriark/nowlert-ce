@@ -164,7 +164,10 @@ def test_release_build_pins_teams_icons_while_discord_stays_packaged():
         ROOT / "src" / "formatters" / "presentation.py"
     ).read_text(encoding="utf-8")
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
-    workflow = (
+    development = (
+        ROOT / ".github" / "workflows" / "docker-development.yml"
+    ).read_text(encoding="utf-8")
+    release = (
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
 
@@ -174,8 +177,12 @@ def test_release_build_pins_teams_icons_while_discord_stays_packaged():
     assert "data:{mime_type};base64," not in presentation
     assert dockerfile.count("ARG NOWLERT_TEAMS_ICON_BASE_URL=") == 1
     assert dockerfile.count("ENV NOWLERT_TEAMS_ICON_BASE_URL=") == 1
-    assert workflow.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
-    assert "${{ steps.release.outputs.commit_sha }}" in workflow
+
+    assert development.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert "${{ env.SOURCE_SHA }}/assets/icons" in development
+
+    assert "NOWLERT_TEAMS_ICON_BASE_URL=" not in release
+    assert "docker/build-push-action" not in release
 
 
 def test_invalid_teams_icon_base_url_fails_closed(monkeypatch):

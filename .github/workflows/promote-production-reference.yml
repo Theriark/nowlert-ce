@@ -76,6 +76,26 @@ jobs:
             exit 1
           }
 
+          [[ "${GITHUB_REF}" == "refs/heads/main" ]] || {
+            echo "::error::Production Reference must be launched from main"
+            exit 1
+          }
+
+          git fetch origin             +refs/heads/main:refs/remotes/origin/main             +refs/heads/stage:refs/remotes/origin/stage
+
+          MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+          STAGE_SHA="$(git rev-parse refs/remotes/origin/stage)"
+
+          [[ "${SOURCE_COMMIT}" == "${MAIN_SHA}" ]] || {
+            echo "::error::Production Reference source ${SOURCE_COMMIT} is not main ${MAIN_SHA}"
+            exit 1
+          }
+
+          [[ "${SOURCE_COMMIT}" == "${STAGE_SHA}" ]] || {
+            echo "::error::main ${MAIN_SHA} does not match Stage-approved source ${STAGE_SHA}"
+            exit 1
+          }
+
       - name: Confirm CE image is currently approved in Stage
         shell: bash
         run: |

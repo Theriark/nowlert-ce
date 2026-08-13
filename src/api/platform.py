@@ -1396,16 +1396,27 @@ class PlatformAPI:
             return APIResponse(200, {"input": result})
 
         backup_match = re.fullmatch(
-            r"/api/v2/backups/(state-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8})/restore",
+            r"/api/v2/backups/(state-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8})(?:/(restore))?",
             path,
         )
         if backup_match:
-            return self._backup_restore(
-                method,
-                payload,
-                actor,
-                backup_match.group(1),
-            )
+            backup_id, action = backup_match.groups()
+
+            if action == "restore":
+                return self._backup_restore(
+                    method,
+                    payload,
+                    actor,
+                    backup_id,
+                )
+
+            self._require_admin(actor)
+
+            if method != "DELETE":
+                return self._method_not_allowed("DELETE")
+
+            self.backups.delete(actor, backup_id)
+            return APIResponse(204)
 
         user_match = re.fullmatch(
             r"/api/v2/users/([0-9a-f]{32})(?:/(password|tokens|routes))?",
@@ -1488,7 +1499,27 @@ class PlatformAPI:
                 "success",
             )
             return APIResponse(200, {"user": self._user(user)})
-        return self._method_not_allowed("GET, PATCH")
+        if method == "DELETE":
+            if user_id == actor.user_id:
+                raise PermissionError(
+                    "the current administrator cannot delete its own account"
+                )
+
+            user = self.users.get(user_id)
+            self.users.delete(user_id)
+            self.audit.write(
+                actor,
+                "user.delete",
+                "user",
+                user.id,
+                "success",
+                {
+                    "username": user.username,
+                    "role": user.role,
+                },
+            )
+            return APIResponse(204)
+        return self._method_not_allowed("GET, PATCH, DELETE")
 
     def _token_resource(self, method, payload, actor, token_id, action):
         if action is None:

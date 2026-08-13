@@ -17,7 +17,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 concurrency:
@@ -71,6 +71,20 @@ jobs:
 
           git cat-file -e "${SOURCE_COMMIT}^{commit}" || {
             echo "::error::Source commit does not exist in this repository"
+            exit 1
+          }
+
+          [[ "${GITHUB_REF}" == "refs/heads/development" ]] || {
+            echo "::error::Stage promotion must be launched from development"
+            exit 1
+          }
+
+          git fetch origin             +refs/heads/development:refs/remotes/origin/development
+
+          DEVELOPMENT_SHA="$(git rev-parse refs/remotes/origin/development)"
+
+          [[ "${SOURCE_COMMIT}" == "${DEVELOPMENT_SHA}" ]] || {
+            echo "::error::Stage source ${SOURCE_COMMIT} is not current development ${DEVELOPMENT_SHA}"
             exit 1
           }
 
@@ -205,6 +219,26 @@ jobs:
             --evidence-type silent-promotion-smoke \
             --health-url https://ce-stage.nowlert.theriark.com/api/health \
             --success-marker "STAGE CE SILENT PROMOTION SMOKE PASSED"
+
+      - name: Advance Stage source branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          gh api --method PATCH             "repos/${GITHUB_REPOSITORY}/git/refs/heads/stage"             -f sha="${SOURCE_COMMIT}"             -F force=true             >/dev/null
+
+          STAGE_SHA="$(
+            gh api               "repos/${GITHUB_REPOSITORY}/git/ref/heads/stage"               --jq '.object.sha'
+          )"
+
+          [[ "${STAGE_SHA}" == "${SOURCE_COMMIT}" ]] || {
+            echo "::error::stage branch did not advance to ${SOURCE_COMMIT}"
+            exit 1
+          }
+
+          echo "Stage branch now references ${STAGE_SHA}"
 
       - name: Record successful CE Stage promotion
         shell: bash

@@ -1,13 +1,6 @@
 name: Development Image
 
 on:
-  workflow_run:
-    workflows:
-      - Continuous Integration
-    types:
-      - completed
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -15,76 +8,32 @@ permissions:
   packages: write
 
 concurrency:
-  group: development-image-${{ github.event.workflow_run.head_sha || github.sha }}
+  group: development-image-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
   detect-changes:
-    name: Decide whether Development deployment is required
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+    name: Validate Development source
     runs-on: ubuntu-latest
     outputs:
-      deploy: ${{ steps.decision.outputs.deploy }}
-      source_sha: ${{ steps.decision.outputs.source_sha }}
+      deploy: ${{ steps.source.outputs.deploy }}
+      source_sha: ${{ steps.source.outputs.source_sha }}
 
     steps:
-      - name: Checkout tested source for change detection
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-          fetch-depth: 2
-
-      - name: Decide whether to deploy Development
-        id: decision
+      - name: Verify Development source branch
+        id: source
         shell: bash
-        env:
-          SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
           set -euo pipefail
 
-          echo "source_sha=${SOURCE_SHA}" >> "${GITHUB_OUTPUT}"
+          [[ "${GITHUB_REF}" == "refs/heads/development" ]] || {
+            echo "::error::Development deployment must run from the development branch; received ${GITHUB_REF}"
+            exit 1
+          }
 
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "deploy=true" >> "${GITHUB_OUTPUT}"
-            echo "Manual run: Development deployment required"
-            exit 0
-          fi
-
-          if git rev-parse "${SOURCE_SHA}^1" >/dev/null 2>&1; then
-            changed_files="$(
-              git diff --name-only "${SOURCE_SHA}^1" "${SOURCE_SHA}"
-            )"
-          else
-            changed_files="$(
-              git diff-tree \
-                --root \
-                --no-commit-id \
-                --name-only \
-                -r "${SOURCE_SHA}"
-            )"
-          fi
-
-          echo "Changed files:"
-          printf '%s\n' "${changed_files}"
-
-          if [[ -z "${changed_files}" ]]; then
-            echo "deploy=true" >> "${GITHUB_OUTPUT}"
-            echo "No changed files detected; deploying conservatively"
-          elif printf '%s\n' "${changed_files}" |
-            grep -qvE '^(\.github/|tests/)'; then
-            echo "deploy=true" >> "${GITHUB_OUTPUT}"
-            echo "Application-impacting changes detected"
-          else
-            echo "deploy=false" >> "${GITHUB_OUTPUT}"
-            echo "Pipeline- or test-only change: Development deployment skipped"
-            {
-              echo "## Development deployment skipped"
-              echo
-              echo "All changed files are under \`.github/\` or \`tests/\`."
-            } >> "${GITHUB_STEP_SUMMARY}"
-          fi
+          echo "deploy=true" >> "${GITHUB_OUTPUT}"
+          echo "source_sha=${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "Development source verified: ${GITHUB_SHA}"
 
   publish:
     needs: detect-changes
@@ -137,7 +86,7 @@ jobs:
           build-args: |
             NOWLERT_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/${{ github.repository }}/${{ env.SOURCE_SHA }}/assets/icons
           tags: |
-            ${{ env.IMAGE }}:main
+            ${{ env.IMAGE }}:development
             ${{ env.IMAGE }}:sha-${{ env.SOURCE_SHA }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

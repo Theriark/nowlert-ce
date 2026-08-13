@@ -199,13 +199,21 @@ def test_http_202_is_accepted_but_webui_does_not_claim_delivery():
     assert "Last Microsoft Teams test was accepted with HTTP 202" in script
 
 
-def test_release_image_pins_the_teams_icon_base_to_the_tag_commit():
+def test_release_image_pins_the_teams_icon_base_to_source_commit():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
-    workflow = (
+    development = (
+        ROOT / ".github" / "workflows" / "docker-development.yml"
+    ).read_text(encoding="utf-8")
+    release = (
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
 
     assert dockerfile.count("ARG NOWLERT_TEAMS_ICON_BASE_URL=") == 1
     assert dockerfile.count("ENV NOWLERT_TEAMS_ICON_BASE_URL=") == 1
-    assert workflow.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
-    assert "${{ steps.release.outputs.commit_sha }}/assets/icons" in workflow
+
+    assert development.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert "${{ env.SOURCE_SHA }}/assets/icons" in development
+
+    # The approved digest is promoted unchanged after this build.
+    assert "NOWLERT_TEAMS_ICON_BASE_URL=" not in release
+    assert "docker/build-push-action" not in release

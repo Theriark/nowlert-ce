@@ -1198,3 +1198,99 @@ def test_resource_list_errors_are_isolated_per_destination_and_route(platform_ap
     assert routes.status == 200
     assert [item["id"] for item in routes.payload["routes"]] == [second_route["id"]]
     assert routes.payload["errors"][0]["resource_id"] == broken_route["id"]
+
+
+
+def test_admin_can_delete_users_and_state_backups(platform_api):
+    admin_headers = login(platform_api)
+
+    created = call(
+        platform_api,
+        "POST",
+        "/api/v2/users",
+        {
+            "username": "delete-me",
+            "password": "delete me secure password",
+            "role": "user",
+        },
+        admin_headers,
+    )
+    assert created.status == 201
+    user_id = created.payload["user"]["id"]
+
+    user_headers = login(
+        platform_api,
+        "delete-me",
+        "delete me secure password",
+        client="127.0.0.44",
+    )
+
+    deleted_user = call(
+        platform_api,
+        "DELETE",
+        f"/api/v2/users/{user_id}",
+        headers=admin_headers,
+    )
+    assert deleted_user.status == 204
+    assert call(
+        platform_api,
+        "GET",
+        "/api/v2/session",
+        headers=user_headers,
+        client="127.0.0.44",
+    ).status == 401
+
+    users = call(
+        platform_api,
+        "GET",
+        "/api/v2/users",
+        headers=admin_headers,
+    )
+    assert user_id not in {item["id"] for item in users.payload["users"]}
+
+    self_delete = call(
+        platform_api,
+        "DELETE",
+        f"/api/v2/users/{platform_api['admin'].id}",
+        headers=admin_headers,
+    )
+    assert self_delete.status == 403
+
+    created_backup = call(
+        platform_api,
+        "POST",
+        "/api/v2/backups",
+        {},
+        admin_headers,
+    )
+    assert created_backup.status == 201
+    backup_id = created_backup.payload["backup"]["id"]
+
+    deleted_backup = call(
+        platform_api,
+        "DELETE",
+        f"/api/v2/backups/{backup_id}",
+        headers=admin_headers,
+    )
+    assert deleted_backup.status == 204
+
+    backups = call(
+        platform_api,
+        "GET",
+        "/api/v2/backups",
+        headers=admin_headers,
+    )
+    assert backup_id not in {
+        item["id"]
+        for item in backups.payload["backups"]
+    }
+
+    audit = call(
+        platform_api,
+        "GET",
+        "/api/v2/audit-events",
+        headers=admin_headers,
+    )
+    actions = {item["action"] for item in audit.payload["audit_events"]}
+    assert "user.delete" in actions
+    assert "state.backup.delete" in actions

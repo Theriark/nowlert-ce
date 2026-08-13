@@ -1713,6 +1713,7 @@ function renderUsers() {
     if (!self) {
       actions.append(
         actionButton("Reset password", "reset-user", item.id),
+        actionButton("Delete", "delete-user", item.id, "danger"),
       );
     }
     body.append(element("tr", {}, [
@@ -1753,7 +1754,10 @@ function renderBackups() {
         element("small", { text: `${item.secret_files} secret files · ${formatBytes(item.size_bytes)} · schema ${item.schema_version}` }),
         element("code", { text: item.id }),
       ]),
-      actionButton("Restore", "restore-backup", item.id, "danger"),
+      element("div", { className: "row-actions" }, [
+        actionButton("Restore", "restore-backup", item.id),
+        actionButton("Delete", "delete-backup", item.id, "danger"),
+      ]),
     ]));
   }
 }
@@ -2955,6 +2959,15 @@ async function resourceAction(action, id) {
     } else if (action === "restore-backup") {
       await restoreBackup(id);
       return;
+    } else if (action === "delete-backup") {
+      const accepted = await confirmAction(
+        "Delete state backup?",
+        `Permanently delete ${id}? This backup cannot be restored after deletion.`,
+        "Delete",
+      );
+      if (!accepted) return;
+      await request(`/backups/${id}`, { method: "DELETE" });
+      toast("State backup deleted.");
     } else if (action === "toggle-destination") {
       const item = state.destinations.find((candidate) => candidate.id === id);
       await request(`/destinations/${id}`, { method: "PATCH", body: { enabled: !item.enabled } });
@@ -3037,6 +3050,19 @@ async function resourceAction(action, id) {
       if (!accepted) return;
       await request(`/users/${id}`, { method: "PATCH", body: { enabled: !item.enabled } });
       toast(`User ${item.enabled ? "disabled" : "enabled"}.`);
+    } else if (action === "delete-user") {
+      const item = state.users.find((candidate) => candidate.id === id);
+      if (!item) return;
+
+      const accepted = await confirmAction(
+        `Delete ${item.username}?`,
+        "This permanently removes the account and its sessions, API tokens, routes, and delivery history. Deletion is blocked while the user still owns destinations, secrets, or backup destinations.",
+        "Delete user",
+      );
+      if (!accepted) return;
+
+      await request(`/users/${id}`, { method: "DELETE" });
+      toast(`User ${item.username} deleted.`);
     }
     await loadWorkspace();
   } catch (error) {

@@ -237,6 +237,39 @@ class StateBackupStore:
         })
         return result
 
+    def delete(self, actor: Actor, backup_id: str) -> StateBackup:
+        self._require_admin(actor)
+
+        if not _BACKUP_ID.fullmatch(str(backup_id)):
+            raise ValueError("backup identifier is invalid")
+
+        with self._lock:
+            path = self.backup_directory / str(backup_id)
+
+            if not path.exists():
+                raise KeyError("backup not found")
+
+            backup = self._validate(path)
+
+            try:
+                shutil.rmtree(path)
+            except Exception:
+                self._audit(
+                    actor,
+                    "state.backup.delete",
+                    "failed",
+                    {"backup_id": backup_id},
+                )
+                raise
+
+        self._audit(
+            actor,
+            "state.backup.delete",
+            "success",
+            {"backup_id": backup.id},
+        )
+        return backup
+
     def mirror(self, actor: Actor, backup_id: str, external_root: str | Path) -> Path:
         """Copy one verified state backup to a host-mounted NFS/SMB directory."""
 

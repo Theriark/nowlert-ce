@@ -585,3 +585,31 @@ def test_nce28_nce29_audit_context_and_explicit_health_checks():
     # Health checks remain available only as an explicit user action.
     assert 'action === "run-health-checks"' in script
     assert 'const response = await request("/health-checks");' in script
+
+
+
+def test_nce30_nce31_admin_delete_controls():
+    script = (ROOT / "src" / "webui" / "app.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert '"delete-user"' in script
+    assert '"delete-backup"' in script
+
+    assert (
+        'actionButton("Delete", "delete-user", item.id, "danger")'
+        in script
+    )
+    assert (
+        'actionButton("Delete", "delete-backup", item.id, "danger")'
+        in script
+    )
+
+    assert 'action === "delete-user"' in script
+    assert 'action === "delete-backup"' in script
+
+    assert 'await request(`/users/${id}`, { method: "DELETE" });' in script
+    assert 'await request(`/backups/${id}`, { method: "DELETE" });' in script
+
+    assert "the user still owns destinations, secrets, or backup destinations" in script
+    assert "This backup cannot be restored after deletion." in script

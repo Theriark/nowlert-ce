@@ -18,6 +18,7 @@ from storage.notices import NoticeStore
 from storage.ownership import Actor
 from storage.routes import RouteStore, route_priority_name, route_priority_value
 from storage.users import UserStore
+from storage.validation import ConflictError
 
 
 def fast_hash(password: str) -> str:
@@ -211,3 +212,36 @@ def test_scheduled_backup_runs_once_and_mirrors_to_host_mount(operations, tmp_pa
     mirrored = external / "nowlert-state-backups" / result["backup_id"]
     assert (mirrored / "manifest.json").is_file()
     assert scheduler.last_run()["outcome"] == "success"
+
+
+
+def test_user_delete_preserves_admin_and_owned_resources(operations):
+    database, users, admin, user = operations
+
+    with pytest.raises(
+        ValueError,
+        match="last enabled administrator cannot be deleted",
+    ):
+        users.delete(admin.id)
+
+    DestinationStore(database).create(
+        user.actor,
+        user.id,
+        "Owned destination",
+        "discord",
+    )
+
+    with pytest.raises(
+        ConflictError,
+        match="user owns resources",
+    ):
+        users.delete(user.id)
+
+    disposable = users.create(
+        "disposable-user",
+        "disposable secure password",
+    )
+    users.delete(disposable.id)
+
+    with pytest.raises(KeyError):
+        users.get(disposable.id)

@@ -102,6 +102,20 @@ jobs:
             exit 1
           }
 
+          [[ "${GITHUB_REF}" == "refs/heads/main" ]] || {
+            echo "::error::Release finalization must be launched from main"
+            exit 1
+          }
+
+          git fetch origin             +refs/heads/main:refs/remotes/origin/main
+
+          MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+
+          [[ "${SOURCE_COMMIT}" == "${MAIN_SHA}" ]] || {
+            echo "::error::Release source ${SOURCE_COMMIT} is not current main ${MAIN_SHA}"
+            exit 1
+          }
+
           if git show-ref --verify --quiet "refs/tags/${VERSION}"; then
             echo "::error::Tag ${VERSION} already exists"
             exit 1

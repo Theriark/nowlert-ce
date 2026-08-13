@@ -24,12 +24,20 @@ def test_production_image_uses_nowlert_icon_argument():
     assert dockerfile.count("ENV NOWLERT_TEAMS_ICON_BASE_URL=") == 1
 
 
-def test_release_workflow_supplies_nowlert_icon_argument():
-    workflow = (
+def test_development_build_supplies_nowlert_icon_argument():
+    development = (
+        ROOT / ".github" / "workflows" / "docker-development.yml"
+    ).read_text(encoding="utf-8")
+    release = (
         ROOT / ".github" / "workflows" / "docker-release.yml"
     ).read_text(encoding="utf-8")
 
-    assert workflow.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert development.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
+    assert "${{ env.SOURCE_SHA }}/assets/icons" in development
+
+    # Stable aliases reuse the already-built immutable image.
+    assert "NOWLERT_TEAMS_ICON_BASE_URL=" not in release
+    assert "docker/build-push-action" not in release
 
 
 def test_internal_root_uses_nowlert():
