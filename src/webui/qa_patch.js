@@ -533,79 +533,61 @@ document.addEventListener("DOMContentLoaded", () => {
   qaBindBottomShortcuts();
 });
 
-function qaSelectedRouteFilterValues(select) {
-  return new Set(
-    [...select.selectedOptions].map((option) => option.value),
-  );
-}
+function qaRefreshRouteChoiceColors(select) {
+  if (!select) return;
 
-function qaSyncRouteFilterPair(includeId, excludeId, preferred = "exclude") {
-  const include = byId(includeId);
-  const exclude = byId(excludeId);
-  if (!include || !exclude) return;
+  for (const option of select.options) {
+    option.classList.toggle(
+      "qa-route-included",
+      option.selected,
+    );
+    option.classList.toggle(
+      "qa-route-excluded",
+      !option.selected,
+    );
 
-  let includeSelected = qaSelectedRouteFilterValues(include);
-  let excludeSelected = qaSelectedRouteFilterValues(exclude);
-
-  const overlap = new Set(
-    [...includeSelected].filter((value) => excludeSelected.has(value)),
-  );
-
-  if (overlap.size) {
-    const losingSelect = preferred === "include" ? exclude : include;
-
-    for (const option of losingSelect.options) {
-      if (overlap.has(option.value)) option.selected = false;
-    }
-  }
-
-  includeSelected = qaSelectedRouteFilterValues(include);
-  excludeSelected = qaSelectedRouteFilterValues(exclude);
-
-  for (const option of include.options) {
-    option.disabled = excludeSelected.has(option.value);
-  }
-
-  for (const option of exclude.options) {
-    option.disabled = includeSelected.has(option.value);
+    option.setAttribute(
+      "aria-label",
+      `${option.textContent.trim()}: ${
+        option.selected ? "included" : "excluded"
+      }`,
+    );
   }
 }
 
-function qaSyncAllRouteFilterPairs(preferred = "exclude") {
-  qaSyncRouteFilterPair(
-    "route-severities",
-    "route-exclude_severities",
-    preferred,
-  );
-  qaSyncRouteFilterPair(
-    "route-statuses",
-    "route-exclude_statuses",
-    preferred,
-  );
-}
+function qaBindRouteChoiceList(selectId) {
+  const select = byId(selectId);
+  if (!select || select.dataset.qaSingleClick === "1") return;
 
-function qaBindRouteFilterPair(includeId, excludeId) {
-  const include = byId(includeId);
-  const exclude = byId(excludeId);
-  if (!include || !exclude) return;
+  select.dataset.qaSingleClick = "1";
 
-  const bindingKey = `${includeId}:${excludeId}`;
-  if (include.dataset.qaExclusivePair === bindingKey) return;
+  select.addEventListener("mousedown", (event) => {
+    const option = (
+      event.target
+      && event.target.tagName === "OPTION"
+    )
+      ? event.target
+      : null;
 
-  include.dataset.qaExclusivePair = bindingKey;
-  exclude.dataset.qaExclusivePair = bindingKey;
+    if (!option) return;
 
-  include.addEventListener("change", () => {
-    qaSyncRouteFilterPair(includeId, excludeId, "include");
+    // Native <select multiple> requires Ctrl/Cmd to preserve prior
+    // selections. Own the click so each option independently toggles.
+    event.preventDefault();
+
+    option.selected = !option.selected;
+    select.focus();
+
+    select.dispatchEvent(
+      new Event("change", { bubbles: true }),
+    );
   });
 
-  exclude.addEventListener("change", () => {
-    qaSyncRouteFilterPair(includeId, excludeId, "exclude");
+  select.addEventListener("change", () => {
+    qaRefreshRouteChoiceColors(select);
   });
 
-  // Existing legacy conflicts follow the established routing rule:
-  // Exclude wins.
-  qaSyncRouteFilterPair(includeId, excludeId, "exclude");
+  qaRefreshRouteChoiceColors(select);
 }
 
 function qaAddSelectActions(selectId) {
@@ -658,9 +640,15 @@ function qaAddCounter(inputId, maximum) {
 }
 
 const qaOriginalOpenRoute = openRoute;
-openRoute = function openRouteWithExclusiveFilters(id = "") {
+openRoute = function openRouteWithChoiceColors(id = "") {
   qaOriginalOpenRoute(id);
-  qaSyncAllRouteFilterPairs("exclude");
+
+  qaRefreshRouteChoiceColors(
+    byId("route-severities"),
+  );
+  qaRefreshRouteChoiceColors(
+    byId("route-statuses"),
+  );
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -671,20 +659,10 @@ document.addEventListener("DOMContentLoaded", () => {
   for (const id of [
     "route-severities",
     "route-statuses",
-    "route-exclude_severities",
-    "route-exclude_statuses",
   ]) {
     qaAddSelectActions(id);
+    qaBindRouteChoiceList(id);
   }
-
-  qaBindRouteFilterPair(
-    "route-severities",
-    "route-exclude_severities",
-  );
-  qaBindRouteFilterPair(
-    "route-statuses",
-    "route-exclude_statuses",
-  );
 });
 
 /* Nowlert 3.1.0 empty-state icon restoration */

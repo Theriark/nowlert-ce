@@ -2003,3 +2003,36 @@ textarea:focus {
     justify-content: flex-start;
   }
 }
+
+
+
+/* NCE-37/NCE-38 route inclusion chooser */
+#route-severities,
+#route-statuses {
+  cursor: pointer;
+}
+
+#route-severities option,
+#route-statuses option {
+  background: rgba(239, 101, 90, 0.13);
+  color: #ff9189;
+  cursor: pointer;
+  padding: 0.46rem 0.58rem;
+}
+
+#route-severities option.qa-route-excluded,
+#route-statuses option.qa-route-excluded {
+  background: rgba(239, 101, 90, 0.13) !important;
+  color: #ff9189 !important;
+}
+
+#route-severities option.qa-route-included,
+#route-statuses option.qa-route-included,
+#route-severities option:checked,
+#route-statuses option:checked {
+  background: rgba(141, 204, 85, 0.18) !important;
+  box-shadow:
+    0 0 0 9999px rgba(141, 204, 85, 0.18) inset;
+  color: #b9ec91 !important;
+  font-weight: 700;
+}

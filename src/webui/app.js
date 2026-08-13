@@ -1423,9 +1423,45 @@ function routeFilterHasAllEvents(key, values) {
   );
 }
 
+function routeAllowedFilterValues(key, filters = {}) {
+  const available = ROUTE_ALL_EVENT_FILTERS[key];
+  if (!available) return [];
+
+  const includedValues = (
+    filters
+    && Array.isArray(filters[key])
+    && filters[key].length
+  )
+    ? filters[key]
+    : [...available];
+
+  const excludedKey = `exclude_${key}`;
+  const excludedValues = (
+    filters
+    && Array.isArray(filters[excludedKey])
+  )
+    ? filters[excludedKey]
+    : [];
+
+  const included = new Set(
+    includedValues.map(
+      (value) => String(value || "").toLowerCase(),
+    ),
+  );
+
+  const excluded = new Set(
+    excludedValues.map(
+      (value) => String(value || "").toLowerCase(),
+    ),
+  );
+
+  return [...available].filter(
+    (value) => included.has(value) && !excluded.has(value),
+  );
+}
+
 function filterSummary(filters) {
   const parts = [];
-  let allEvents = false;
 
   const labels = {
     severities: "Include severity",
@@ -1446,10 +1482,10 @@ function filterSummary(filters) {
       (key === "severities" || key === "statuses")
       && routeFilterHasAllEvents(key, values)
     ) {
-      allEvents = true;
       continue;
     }
 
+    // Legacy routes may still contain these keys until edited.
     if (
       key === "exclude_severities"
       && routeFilterHasAllEvents("severities", values)
@@ -1466,14 +1502,13 @@ function filterSummary(filters) {
       continue;
     }
 
-    parts.push(`${labels[key]}: ${values.map(capitalize).join(", ")}`);
+    parts.push(
+      `${labels[key]}: ${values.map(capitalize).join(", ")}`,
+    );
   }
 
-  if (allEvents) parts.unshift("All Events");
-
   if (
-    !allEvents
-    && parts.length === 1
+    parts.length === 1
     && filters.severities
     && filters.severities.length === 1
     && filters.severities[0] === "critical"
@@ -2629,9 +2664,17 @@ function openRoute(id = "") {
   byId("route-priority").value = item ? (item.priority_name || "normal") : "normal";
   byId("route-enabled").checked = item ? item.enabled : true;
   setRouteOptions(item ? item.destination_id : "");
-  for (const key of ["severities", "statuses", "exclude_severities", "exclude_statuses"]) {
-    const selected = new Set(item && item.filters[key] ? item.filters[key] : []);
-    for (const option of byId(`route-${key}`).options) option.selected = selected.has(option.value);
+  for (const key of ["severities", "statuses"]) {
+    const selected = new Set(
+      routeAllowedFilterValues(
+        key,
+        item && item.filters ? item.filters : {},
+      ),
+    );
+
+    for (const option of byId(`route-${key}`).options) {
+      option.selected = selected.has(option.value);
+    }
   }
   for (const key of ["hosts", "events", "exclude_hosts", "exclude_events"]) {
     byId(`route-${key}`).value = item && item.filters[key] ? item.filters[key].join(", ") : "";
@@ -2649,9 +2692,20 @@ async function saveRoute(event) {
   clearError("route-error");
   const id = byId("route-id").value;
   const filters = {};
-  for (const key of ["severities", "statuses", "exclude_severities", "exclude_statuses"]) {
-    const values = [...byId(`route-${key}`).selectedOptions].map((option) => option.value);
-    if (values.length) filters[key] = values;
+  for (const key of ["severities", "statuses"]) {
+    const values = [...byId(`route-${key}`).selectedOptions]
+      .map((option) => option.value);
+
+    if (!values.length) {
+      const label = key === "severities" ? "severity" : "status";
+      showError(
+        "route-error",
+        new Error(`Select at least one included ${label}.`),
+      );
+      return;
+    }
+
+    filters[key] = values;
   }
   for (const key of ["hosts", "events", "exclude_hosts", "exclude_events"]) {
     const values = splitList(byId(`route-${key}`).value);
