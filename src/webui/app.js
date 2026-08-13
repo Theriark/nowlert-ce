@@ -1550,11 +1550,21 @@ function refreshRouteFilterLayout() {
     .filter(Boolean)
     .length;
 
+  const visibleSelectors = [
+    byId("route-severities"),
+    byId("route-statuses"),
+  ]
+    .map((select) => select && select.closest("label"))
+    .filter((field) => field && !field.hidden);
+
   /*
    * The normal responsive form layout becomes one column on narrow
-   * screens. Masonry is only useful when two columns are available.
+   * screens. When both Severity and Status are visible, keep them in a
+   * shared first row so the Hosts and Events controls start on matching
+   * horizontal lines in both columns. Masonry remains useful when only
+   * one enumerated selector is available for the integration.
    */
-  if (columns < 2) {
+  if (columns < 2 || visibleSelectors.length === 2) {
     grid.style.gridAutoFlow = "row";
     grid.style.gridAutoRows = "auto";
     return;
