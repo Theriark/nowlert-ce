@@ -245,6 +245,12 @@
 
 .route-filter-grid {
   align-items: start;
+  grid-auto-flow: row dense;
+}
+
+.route-filter-grid > label {
+  align-self: start;
+  min-width: 0;
 }
 
 .resource-meta .status-button:not(:disabled):hover {

@@ -379,6 +379,11 @@ def test_nce21_nce36_nce37_nce38_route_filter_ui():
     styles = (ROOT / "src/webui/qa_patch.css").read_text(
         encoding="utf-8"
     )
+    layout_styles = (
+        ROOT / "src/webui/enhancements.css"
+    ).read_text(
+        encoding="utf-8"
+    )
 
     # NCE-21: complete enumerated filters are neutral and collapse to
     # All Events when no other restriction remains.
@@ -426,6 +431,20 @@ def test_nce21_nce36_nce37_nce38_route_filter_ui():
     assert "const selectedSource = routeSelectedSource();" in script
     assert "const available = routeFilterValuesForSource(" in script
     assert "if (!available.length) continue;" in script
+
+    # NCE-39 Development polish: show every available enum value and
+    # pack the remaining route controls beside tall listboxes instead
+    # of inheriting the height of one oversized grid row.
+    assert "select.size = Math.max(values.length, 2);" in script
+    assert "function refreshRouteFilterLayout()" in script
+    assert "function scheduleRouteFilterLayout()" in script
+    assert 'grid.style.gridAutoFlow = "row dense";' in script
+    assert 'grid.style.gridAutoRows = "4px";' in script
+    assert 'field.style.gridRowEnd = `span ${span}`;' in script
+    assert "scheduleRouteFilterLayout();" in script
+    assert "grid-auto-flow: row dense;" in layout_styles
+    assert ".route-filter-grid > label {" in layout_styles
+    assert "align-self: start;" in layout_styles
     assert (
         "filterSummary(route.filters, route.source)"
         in script

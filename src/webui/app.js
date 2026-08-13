@@ -1528,6 +1528,93 @@ function routeAllowedFilterValues(
   );
 }
 
+function refreshRouteFilterLayout() {
+  const grid = document.querySelector(".route-filter-grid");
+  if (!grid) return;
+
+  const fields = [...grid.children].filter(
+    (field) => field.matches("label"),
+  );
+
+  /*
+   * Clear previous masonry spans before measuring the current layout.
+   * This also lets hidden Severity/Status fields disappear cleanly.
+   */
+  for (const field of fields) {
+    field.style.gridRowEnd = "";
+  }
+
+  const columns = getComputedStyle(grid)
+    .gridTemplateColumns
+    .split(/\s+/)
+    .filter(Boolean)
+    .length;
+
+  /*
+   * The normal responsive form layout becomes one column on narrow
+   * screens. Masonry is only useful when two columns are available.
+   */
+  if (columns < 2) {
+    grid.style.gridAutoFlow = "row";
+    grid.style.gridAutoRows = "auto";
+    return;
+  }
+
+  /*
+   * Small implicit grid rows plus measured row spans give us a stable
+   * masonry-style layout using normal CSS Grid. Tall Severity/Status
+   * listboxes occupy only their own column; the opposite column can
+   * continue packing Hosts/Events controls upward beside them.
+   */
+  grid.style.gridAutoFlow = "row dense";
+  grid.style.gridAutoRows = "4px";
+
+  const layout = getComputedStyle(grid);
+  const rowHeight = parseFloat(layout.gridAutoRows) || 4;
+  const rowGap = parseFloat(layout.rowGap) || 0;
+
+  for (const field of fields) {
+    if (field.hidden) continue;
+
+    const height = field.getBoundingClientRect().height;
+    const span = Math.max(
+      1,
+      Math.ceil(
+        (height + rowGap)
+        / (rowHeight + rowGap)
+      ),
+    );
+
+    field.style.gridRowEnd = `span ${span}`;
+  }
+}
+
+function scheduleRouteFilterLayout() {
+  const grid = document.querySelector(".route-filter-grid");
+  if (!grid) return;
+
+  if (grid.dataset.layoutFrame) {
+    window.cancelAnimationFrame(
+      Number(grid.dataset.layoutFrame),
+    );
+  }
+
+  const frame = window.requestAnimationFrame(() => {
+    delete grid.dataset.layoutFrame;
+    refreshRouteFilterLayout();
+  });
+
+  grid.dataset.layoutFrame = String(frame);
+
+  if (grid.dataset.layoutResizeBound !== "1") {
+    grid.dataset.layoutResizeBound = "1";
+    window.addEventListener(
+      "resize",
+      scheduleRouteFilterLayout,
+    );
+  }
+}
+
 function refreshRouteFilterOptions(filters = {}) {
   const source = routeSelectedSource();
 
@@ -1557,10 +1644,7 @@ function refreshRouteFilterOptions(filters = {}) {
     }
 
     select.disabled = values.length === 0;
-    select.size = Math.min(
-      Math.max(values.length, 2),
-      8,
-    );
+    select.size = Math.max(values.length, 2);
 
     if (field) {
       field.hidden = values.length === 0;
@@ -1571,6 +1655,8 @@ function refreshRouteFilterOptions(filters = {}) {
   if (sourceSelect) {
     sourceSelect.dataset.routeFilterSource = source;
   }
+
+  scheduleRouteFilterLayout();
 }
 
 function filterSummary(filters, source = "") {
