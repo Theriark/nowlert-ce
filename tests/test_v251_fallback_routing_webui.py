@@ -403,21 +403,41 @@ def test_nce21_nce36_nce37_nce38_route_filter_ui():
     assert 'for (const key of ["severities", "statuses"]) {' in script
     assert "Select at least one included" in script
 
-    # NCE-37: every option is explicitly rendered as included or excluded.
-    assert "function qaRefreshRouteChoiceColors(select)" in patch
-    assert '"qa-route-included"' in patch
-    assert '"qa-route-excluded"' in patch
-    assert "option.qa-route-included" in styles
-    assert "option.qa-route-excluded" in styles
-    assert "rgba(141, 204, 85" in styles
-    assert "rgba(239, 101, 90" in styles
+    # NCE-37: use the existing/native selected-option highlight only.
+    assert "function qaRefreshRouteChoiceAccessibility(select)" in patch
+    assert "qaRefreshRouteChoiceColors" not in patch
+    assert '"qa-route-included"' not in patch
+    assert '"qa-route-excluded"' not in patch
+    assert "option.qa-route-included" not in styles
+    assert "option.qa-route-excluded" not in styles
+    assert "Green options are included" not in markup
+    assert "Highlighted options are included" in markup
 
-    # NCE-38: one normal click independently toggles an option.
+    # NCE-38: ordinary clicks are additive toggles while native drag/range
+    # and modifier-assisted selection remain available.
     assert "function qaBindRouteChoiceList(selectId)" in patch
-    assert 'select.addEventListener("mousedown"' in patch
-    assert "event.preventDefault();" in patch
-    assert "option.selected = !option.selected;" in patch
-    assert 'new Event("change", { bubbles: true })' in patch
+
+    choice_block = patch.split(
+        "function qaBindRouteChoiceList(selectId)",
+        1,
+    )[1].split(
+        "function qaAddSelectActions",
+        1,
+    )[0]
+
+    assert 'select.addEventListener("mousedown"' in choice_block
+    assert 'select.addEventListener("mousemove"' in choice_block
+    assert 'select.addEventListener("click"' in choice_block
+    assert "event.preventDefault();" not in choice_block
+    assert "snapshot.nativeOnly" in choice_block
+    assert "snapshot.dragged" in choice_block
+    assert (
+        "candidate.selected = snapshot.values.has("
+        in choice_block
+    )
+    assert "option.selected = !snapshot.selected;" in choice_block
+    assert 'new Event("change", { bubbles: true })' in choice_block
+    assert "or drag across options to select a range" in markup
 
     # The old two-list conflict machinery is intentionally gone.
     assert "qaSyncRouteFilterPair" not in patch

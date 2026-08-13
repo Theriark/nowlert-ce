@@ -533,23 +533,14 @@ document.addEventListener("DOMContentLoaded", () => {
   qaBindBottomShortcuts();
 });
 
-function qaRefreshRouteChoiceColors(select) {
+function qaRefreshRouteChoiceAccessibility(select) {
   if (!select) return;
 
   for (const option of select.options) {
-    option.classList.toggle(
-      "qa-route-included",
-      option.selected,
-    );
-    option.classList.toggle(
-      "qa-route-excluded",
-      !option.selected,
-    );
-
     option.setAttribute(
       "aria-label",
       `${option.textContent.trim()}: ${
-        option.selected ? "included" : "excluded"
+        option.selected ? "included" : "not included"
       }`,
     );
   }
@@ -561,6 +552,8 @@ function qaBindRouteChoiceList(selectId) {
 
   select.dataset.qaSingleClick = "1";
 
+  let pointer = null;
+
   select.addEventListener("mousedown", (event) => {
     const option = (
       event.target
@@ -569,25 +562,114 @@ function qaBindRouteChoiceList(selectId) {
       ? event.target
       : null;
 
-    if (!option) return;
+    if (!option) {
+      pointer = null;
+      return;
+    }
 
-    // Native <select multiple> requires Ctrl/Cmd to preserve prior
-    // selections. Own the click so each option independently toggles.
-    event.preventDefault();
+    /*
+     * Snapshot the state before the browser applies its native
+     * selection behavior.
+     *
+     * Crucially, do not preventDefault() here. Native drag/range
+     * selection must remain available.
+     */
+    pointer = {
+      option,
+      selected: option.selected,
+      values: new Set(
+        [...select.selectedOptions].map(
+          (candidate) => candidate.value,
+        ),
+      ),
+      x: event.clientX,
+      y: event.clientY,
+      dragged: false,
+      nativeOnly:
+        event.ctrlKey
+        || event.metaKey
+        || event.shiftKey,
+    };
+  });
 
-    option.selected = !option.selected;
-    select.focus();
+  select.addEventListener("mousemove", (event) => {
+    if (!pointer || !(event.buttons & 1)) return;
+
+    if (
+      Math.abs(event.clientX - pointer.x) > 4
+      || Math.abs(event.clientY - pointer.y) > 4
+    ) {
+      pointer.dragged = true;
+    }
+  });
+
+  select.addEventListener("click", (event) => {
+    const option = (
+      event.target
+      && event.target.tagName === "OPTION"
+    )
+      ? event.target
+      : null;
+
+    if (
+      !option
+      || !pointer
+      || pointer.option !== option
+    ) {
+      qaRefreshRouteChoiceAccessibility(select);
+      return;
+    }
+
+    const snapshot = pointer;
+    pointer = null;
+
+    /*
+     * Modifier-assisted selection and mouse dragging belong to the
+     * browser. Preserve the native result exactly.
+     */
+    if (snapshot.nativeOnly || snapshot.dragged) {
+      qaRefreshRouteChoiceAccessibility(select);
+      return;
+    }
+
+    /*
+     * Ordinary click:
+     * restore everything that was selected before the click and toggle
+     * only the clicked option.
+     *
+     * Example:
+     *   click Debug
+     *   click Warning
+     * => Debug + Warning both remain selected.
+     */
+    for (const candidate of select.options) {
+      candidate.selected = snapshot.values.has(
+        candidate.value,
+      );
+    }
+
+    option.selected = !snapshot.selected;
 
     select.dispatchEvent(
       new Event("change", { bubbles: true }),
     );
   });
 
-  select.addEventListener("change", () => {
-    qaRefreshRouteChoiceColors(select);
+  /*
+   * Mouseup happens before click. Clear on the next task so a normal
+   * click still has access to its snapshot.
+   */
+  document.addEventListener("mouseup", () => {
+    window.setTimeout(() => {
+      pointer = null;
+    }, 0);
   });
 
-  qaRefreshRouteChoiceColors(select);
+  select.addEventListener("change", () => {
+    qaRefreshRouteChoiceAccessibility(select);
+  });
+
+  qaRefreshRouteChoiceAccessibility(select);
 }
 
 function qaAddSelectActions(selectId) {
@@ -640,13 +722,13 @@ function qaAddCounter(inputId, maximum) {
 }
 
 const qaOriginalOpenRoute = openRoute;
-openRoute = function openRouteWithChoiceColors(id = "") {
+openRoute = function openRouteWithChoiceState(id = "") {
   qaOriginalOpenRoute(id);
 
-  qaRefreshRouteChoiceColors(
+  qaRefreshRouteChoiceAccessibility(
     byId("route-severities"),
   );
-  qaRefreshRouteChoiceColors(
+  qaRefreshRouteChoiceAccessibility(
     byId("route-statuses"),
   );
 };
