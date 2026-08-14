@@ -34,6 +34,6 @@ Thumbs.db
 # Backups
 backup-release-files/
 
-# Local configuration backups and embedded platform state
+# Nowlert local configuration backups and embedded platform state
 config/backups/
 config/platform-state/
