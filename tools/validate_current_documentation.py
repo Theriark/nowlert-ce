@@ -28,13 +28,12 @@ FILES = (
 )
 
 CURRENT_SCREENSHOTS = (
-    "v3.1.1-dashboard.png",
-    "v3.1.1-routes.png",
-    "v3.1.1-route-editor.png",
-    "v3.1.1-users.png",
-    "v3.1.1-backups.png",
-    "v3.1.1-delivery-history.png",
-    "v3.1.1-audit-log.png",
+    "v3.1.0-dashboard.png",
+    "v3.1.0-routing-flow.png",
+    "v3.1.0-destinations.png",
+    "v3.1.0-delivery-history.png",
+    "v3.1.0-discord-xen-orchestra.png",
+    "v3.1.0-teams-xen-orchestra.png",
 )
 
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
@@ -72,6 +71,7 @@ if missing:
 
 readme = (ROOT / "README.md").read_text(encoding="utf-8")
 dockerhub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
+docs_index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
 webui = (ROOT / "docs" / "webui.md").read_text(encoding="utf-8")
 api = (ROOT / "docs" / "platform-api.md").read_text(encoding="utf-8")
 deployment = (ROOT / "docs" / "deployment.md").read_text(encoding="utf-8")
@@ -92,6 +92,7 @@ required_pairs = (
     (deployment, "docker-release.yml"),
     (api, "DELETE | `/api/v2/users/{id}`"),
     (api, "DELETE | `/api/v2/backups/{id}`"),
+    (docs_index, "does not introduce a visual redesign"),
 )
 for document, required in required_pairs:
     if required not in document:
