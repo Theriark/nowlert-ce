@@ -16,16 +16,15 @@ def test_stable_documentation_uses_v311_and_preserves_v252_assets():
     assert "v3.1.1" in readme
     assert "v3.1.1" in dockerhub
 
-    current = (
-        "v3.1.1-dashboard.png",
-        "v3.1.1-routes.png",
-        "v3.1.1-route-editor.png",
-        "v3.1.1-users.png",
-        "v3.1.1-backups.png",
-        "v3.1.1-delivery-history.png",
-        "v3.1.1-audit-log.png",
+    current_visual_baseline = (
+        "v3.1.0-dashboard.png",
+        "v3.1.0-routing-flow.png",
+        "v3.1.0-destinations.png",
+        "v3.1.0-delivery-history.png",
+        "v3.1.0-discord-xen-orchestra.png",
+        "v3.1.0-teams-xen-orchestra.png",
     )
-    for name in current:
+    for name in current_visual_baseline:
         assert (ROOT / "docs" / "images" / name).is_file(), name
         assert name in readme or name in webui
 
