@@ -1,15 +1,16 @@
-# v2 platform state and local accounts
+# Platform state and local accounts
 
-Nowlert's v2 platform foundation uses SQLite and owner-only secret files. It
-does not require PostgreSQL, Redis, or another container. Platform state and
-the same-origin WebUI are enabled by default, while explicit
-`platform.enabled: false` and `webui.enabled: false` settings remain
-authoritative. Existing YAML configuration is the single configuration source;
-SQLite mirrors file-backed outputs and routes for delivery operations.
+Nowlert v3.1.1 stores its management-plane state in SQLite plus owner-scoped
+private secret files. PostgreSQL, Redis, and separate management services are
+not required for a normal single-instance deployment.
+
+The current configuration model is `platform_database_v1`: SQLite is
+authoritative for WebUI-managed resources, while `config.yaml` is limited to
+process/bootstrap and listener/security settings.
 
 ## Storage layout
 
-The hardened production Compose layout is:
+A production state mount is organized below `/nowlert/state`:
 
 ```text
 /nowlert/state/
@@ -19,74 +20,84 @@ The hardened production Compose layout is:
 |- backups/
 |  `- state-YYYYMMDDTHHMMSSZ-identifier/
 `- schema-backups/
-   `- nowlert-schema-3-before-4-TIMESTAMP.db
+   `- nowlert-schema-N-before-M-TIMESTAMP.db
 ```
 
-The state directory and secret directory are mode `0700`. The SQLite database
-and each secret value are mode `0600`. Secret filenames are generated; user
-input is never used as a path. Secret metadata contains only ownership, type,
-version, and configured state. Values and their filesystem paths are not
-returned by metadata operations.
+Directories containing private state are mode `0700`; database, manifest, and
+secret files are mode `0600`. Secret filenames are generated rather than based
+on user input.
 
-SQLite foreign keys and transactional migrations protect relationships among:
+Normal metadata operations do not return secret values or secret filesystem
+paths.
 
-- local users and hashed browser sessions;
-- user-owned API tokens;
+## Schema 9
+
+v3.1.1 keeps database schema **9**. It is the same schema used by v3.1.0, so no
+database migration is required for this patch release.
+
+The current schema covers:
+
+- local users and browser sessions;
+- hashed Event API tokens;
 - owner-scoped secret records;
-- private or shared destinations;
-- user-owned routes; and
-- future database-backed audit events.
+- private/shared destinations;
+- routes and integration/input identity;
+- settings records and integration categories;
+- notices;
+- delivery history;
+- audit events;
+- backup target metadata; and
+- destination-test health state.
 
-Schema migrations run in order and are recorded in `schema_migrations`. Schema
-version 2 adds API-token rotation metadata and safe delivery-attempt history.
-Schema version 3 adds digest-only, expiring, single-use first-run setup tokens.
-Schema version 4 adds stable configuration keys for the YAML runtime mirror.
-A pre-migration SQLite snapshot is created automatically before schema 4 and
-before the v2.2.0 schema-5 operational tables and columns are installed.
-Schema version 6 records each account's first login for notice enrollment,
-adds mutable notice timestamps, and stores credential-free backup-target
-metadata. SMB passwords remain separate owner-only encrypted secrets.
-A database created by a newer Nowlert schema is rejected instead of being
-silently downgraded. See the
-[user routing and delivery guide](platform-routing.md) for the schema-v2
-service contracts.
+A database created by a newer unsupported schema is rejected instead of being
+silently downgraded.
 
-## Account security foundation
+## Account security
 
-Passwords use the existing salted PBKDF2-SHA256 record with 600,000 iterations
-and a minimum length of 12 characters. The database never stores plaintext
-passwords, session tokens, or CSRF tokens.
+Passwords use salted PBKDF2-SHA256 records. The database never stores plaintext
+passwords, browser session tokens, CSRF values, or Event API token plaintext.
 
-Local login protection includes:
+Local account protection includes:
 
-- case-insensitive, normalized usernames;
+- normalized case-insensitive usernames;
 - persistent failed-login counters;
-- a 15-minute lockout after five failed attempts;
+- lockout after repeated failed attempts;
 - equivalent password verification work for unknown usernames;
-- automatic session revocation after a password reset or account disable;
-- protection against disabling the last enabled administrator;
+- session revocation after password reset or account disable;
+- protection against losing the last enabled administrator;
 - absolute and idle session expiry; and
-- a `__Host-` session cookie with `HttpOnly`, `Secure`, `SameSite=Strict`, and
-  path `/` defaults.
+- secure cookie support for reverse-proxied HTTPS deployments.
 
-The platform API wires browser login and platform routing to these services
-with CSRF and ownership enforcement. See the
-[authenticated platform API guide](platform-api.md) and [WebUI guide](webui.md).
+### Administrator user deletion
+
+v3.1.1 adds permanent user deletion to the administrator workflow.
+
+The operation is not a blind row delete. The API enforces administrative
+permissions and account/ownership constraints, rejects deletion of the current
+administrator account, and records a `user.delete` audit event when successful.
+
+The WebUI requires an explicit destructive-action confirmation.
+
+## First-run setup
+
+When no users exist, startup creates a random setup token, stores only its
+digest, and prints the plaintext token once to container output.
+
+The token is short-lived and single-use. The operator uses it in the WebUI to
+choose the first administrator username/password. No default administrator
+credential is shipped.
 
 ## Production preparation
 
-Create the state directory with the same UID/GID used by the container:
+Create the state directory with the same numeric UID/GID used by the container:
 
 ```bash
 mkdir -p state
 chmod 700 state
 ```
 
-`compose.production.yaml` mounts `NOWLERT_STATE_DIR` at
-`/nowlert/state`. Legacy configurations that omit `platform.state_dir` use
-`/nowlert/config/platform-state`, allowing an upgrade to reuse the existing
-persistent configuration mount. The production Compose mount remains the
-recommended layout:
+The production Compose file mounts `NOWLERT_STATE_DIR` at `/nowlert/state`.
+Recommended configuration:
 
 ```yaml
 platform:
@@ -97,21 +108,13 @@ platform:
   secure_cookies: false
 ```
 
-Platform state initializes or migrates at application startup. When no users
-exist, every startup rotates a random 256-bit setup token, writes only its
-SHA-256 digest to SQLite, and prints the plaintext token once to container
-output. Open the WebUI over HTTPS, enter that token, and choose the first
-administrator username and password. The token expires after 30 minutes and is
-consumed immediately after successful setup. The WebUI reads and writes database-authoritative resources through isolated
-transactions. `config.yaml` retains only process bootstrap and listener
-settings. Invalid resource rows are reported independently while valid
-resources and unrelated pages remain available.
+For untrusted browser access, use a TLS reverse proxy and set
+`secure_cookies: true` together with WebUI HTTPS enforcement.
 
 ## Trusted recovery CLI
 
-Normal first-run setup does not require the CLI. These commands remain available
-for isolated development and host-trusted recovery. Password prompts do not echo
-or place values in shell history:
+Normal first-run setup and account management use the WebUI/API. A host-trusted
+CLI remains available for isolated recovery:
 
 ```bash
 python3 tools/manage_users.py --state-dir /tmp/nowlert-state init
@@ -120,50 +123,53 @@ python3 tools/manage_users.py --state-dir /tmp/nowlert-state \
 python3 tools/manage_users.py --state-dir /tmp/nowlert-state list-users
 ```
 
-For a running production image, use the mounted state directory inside the
-container:
+For a running production container:
 
 ```bash
 docker compose -f compose.production.yaml exec nowlert \
   python3 tools/manage_users.py create-admin --username administrator
 ```
 
-Additional host-trusted operations are `create-user`, `enable-user`,
-`disable-user`, and `reset-password`. Automation may use `--password-env NAME`
-instead of a command-line password; the CLI removes that variable from its own
-environment after reading it. Never pass passwords as command arguments.
+Do not put plaintext passwords in command arguments or shell history. Prefer the
+interactive prompt or the tool's environment-variable input path for trusted
+automation.
 
-## Backup and rollback
+## Private state backups
 
-The administrator Data tools page can create a consistent live SQLite and
-secret-file snapshot with an integrity manifest. These private snapshots stay
-below the state mount and are subject to `platform.backup_retention`. Restore
-creates a safety snapshot, stages and verifies the selected backup, and revokes
-every browser session. See the [data-portability guide](data-portability.md).
+The Backups/Data tools workflow creates a consistent SQLite + owner-scoped
+secret snapshot with an integrity manifest below the state mount.
 
-For off-host disaster recovery, stop the container and copy the complete state
-directory into encrypted owner-only storage. Do not copy a live SQLite database
-with ordinary filesystem tools. Server-side snapshots are not a substitute for
-off-host backups.
+A restore:
 
-v2.3.0 through v2.3.2 use schema 6. A v2.2.1 image rejects that newer database, so rollback
-requires stopping the container and restoring the complete pre-upgrade state
-and configuration backups before pinning `2.2.1`. Never delete or hand-edit
-the database to imitate a downgrade.
+1. requires the exact backup identifier;
+2. creates a safety snapshot of current state;
+3. validates stored hashes and SQLite integrity;
+4. stages the replacement;
+5. swaps only after validation; and
+6. revokes browser sessions after success.
 
+v3.1.1 also allows an administrator to permanently delete one selected private
+snapshot. Deletion is audited and does not affect other backups.
 
-## Schema 7 integration catalogue state
+These application-managed snapshots are not a substitute for encrypted off-host
+disaster recovery. Keep the complete state mount in the host backup policy.
 
-v2.4.0 adds `routes.input_type` and the `integration_categories` table. The
-integration catalogue itself is built into the application image; SQLite stores
-only administrator category overrides. A v2.3.7 image cannot open schema-7
-state, so application rollback requires restoring the matching schema-6 backup.
+## Upgrade and rollback
 
+Before moving from v3.1.0 to v3.1.1:
 
-## Schema 8 database-authoritative resources
+1. record the running image/digest;
+2. take a matched copy of `config`, `state`, and external `secrets`;
+3. deploy the exact promoted v3.1.1 image;
+4. verify login, routes, destinations, history, backups, and health; and
+5. retain the backup until acceptance passes.
 
-v2.5.0 adds `settings_records` and makes SQLite authoritative for destinations,
-routes, API applications, regional preferences, backup scheduling, integration
-behavior, and aliases. The first start imports the v2.4 YAML resources and
-normalizes `config.yaml`. A v2.4.0 image cannot open schema-8 state, so rollback
-requires the matched pre-upgrade config, state, and secrets backup.
+Because the schema remains 9, no migration is expected. Even so, rollback
+should use a matched backup when private state has changed after the upgrade.
+
+Older schema transition notes remain in the historical release/acceptance
+files; they are not the current v3.1.1 deployment path.
+
+See [platform-api.md](platform-api.md),
+[platform-routing.md](platform-routing.md), and
+[data-portability.md](data-portability.md).
