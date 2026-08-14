@@ -279,7 +279,7 @@ jobs:
           trap - ERR
 
       - name: Upload CE release evidence artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nowlert-ce-${{ inputs.version }}-release-record
           if-no-files-found: error
