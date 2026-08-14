@@ -1,80 +1,102 @@
 # Current configuration model
 
-Nowlert v2.5.2 separates process bootstrap from WebUI-managed resources.
+Nowlert v3.1.1 separates **process bootstrap** from **database-authoritative
+platform resources**.
+
+The active model is `platform_database_v1`.
 
 ## Bootstrap file
 
-`config/config.yaml` is intentionally small. It controls only:
+`config/config.yaml` controls process-level behavior that must be known before
+the management plane is available:
 
-- SMTP binding, STARTTLS, and SMTP AUTH bootstrap
-- HTTP binding and request-size limits
-- API and platform activation
-- persistent state location and backup retention
-- secure-cookie mode
-- WebUI activation, canonical URL, and HTTPS enforcement
+- SMTP binding, STARTTLS, and SMTP AUTH bootstrap;
+- HTTP binding and request-size limits;
+- API/platform activation;
+- persistent state location and retention boundary;
+- secure-cookie mode; and
+- WebUI activation, canonical URL, and HTTPS enforcement.
 
-Listener, certificate, binding, and cookie-mode changes require a container
-restart.
+Listener, certificate, binding, authentication-bootstrap, and cookie-mode
+changes require a container restart.
 
 ## Platform state
 
-The persistent `/nowlert/state` mount contains the SQLite database and
-private state required by the WebUI. SQLite is authoritative for:
+The persistent `/nowlert/state` mount contains the SQLite database and private
+state required by the WebUI.
 
-- destinations and credential references
-- routes, input types, priorities, and include/exclude filters
-- Event API token hashes, scopes, rate limits, and usage
-- regional preferences and backup schedules
-- integration categories, behavior, aliases, and Redfish deduplication
-- users, sessions, notices, audit events, and delivery history
+SQLite is authoritative for:
 
-Destination secrets remain in private owner-only files and are never returned
-through the normal read API.
+- local users and sessions;
+- destinations and safe credential references;
+- routes, integration/input identity, priorities, and filters;
+- Event API token hashes, scopes, limits, and usage;
+- regional preferences;
+- backup schedules and target metadata;
+- integration categories, behavior, aliases, and Redfish settings;
+- notices;
+- audit history; and
+- delivery history.
 
-## Removed legacy YAML sections
+Destination secret values remain in private owner-scoped files and are never
+returned through normal read APIs.
 
-Fresh v2.5 configurations must not recreate these formerly WebUI-managed
-sections:
+## Removed legacy YAML resources
 
-- `outputs`
-- `routing`
-- `notifications`
-- `presentation`
-- `home_assistant`
-- `redfish`
-- `api.tokens`
-- `platform.backups`
-- `webui.language`
+Fresh v3.1.1 configurations must not recreate WebUI-managed legacy sections such
+as:
 
-The first successful v2.5 migration imports supported v2.4 resources and then
-atomically writes the normalized `platform_database_v1` document.
+- `outputs`;
+- `routing`;
+- `notifications`;
+- `presentation`;
+- `home_assistant`;
+- `redfish`;
+- `api.tokens`;
+- `platform.backups`; or
+- `webui.language`.
+
+Those structures are relevant only to supported migration paths from older
+installations.
 
 ## Persistent paths
 
-The supplied production Compose definition mounts:
+The supplied production Compose definition uses:
 
 ```text
-./config          -> /nowlert/config
-./state           -> /nowlert/state
-./logs            -> /nowlert/logs
-./secrets         -> /run/secrets (read-only)
+./config           -> /nowlert/config
+./state            -> /nowlert/state
+./logs             -> /nowlert/logs
+./secrets          -> /run/secrets (read-only)
 ./external-backups -> /nowlert/external-backups
 ```
 
-The public example configuration uses `/nowlert/state`, matching the
-production Compose file. A legacy `/nowlert/config/platform-state` directory
-may still exist on installations created before the explicit state mount; do
-not move or delete it without confirming the active `platform.state_dir`.
+The public example configuration uses `/nowlert/state`, matching the production
+Compose definition.
+
+A legacy `/nowlert/config/platform-state` directory may still exist on an
+installation upgraded from an older release. Do not move or delete it until the
+active `platform.state_dir` has been confirmed.
 
 ## Backup boundary
 
-A complete recovery backup keeps these together:
+A complete recovery set keeps these together:
 
-1. mounted `config`
-2. mounted `state`
-3. mounted external `secrets`, when used
-4. the exact image tag and deployment definition
+1. mounted `config`;
+2. mounted `state`;
+3. mounted external `secrets`, when used;
+4. the exact image reference/digest; and
+5. the deployment definition used with that image.
 
-Portable JSON export is useful for migration but is not a replacement for a
-matched private-state backup because it deliberately omits credentials,
-passwords, sessions, and token values.
+Portable JSON export is useful for migration but is not a disaster-recovery
+backup because it deliberately omits credentials, passwords, sessions, token
+values, and other private state.
+
+## v3.1.0 -> v3.1.1
+
+v3.1.1 keeps database schema 9 and `platform_database_v1`. No database migration
+is required. The release adds UI/API behavior and release-pipeline corrections,
+not a new configuration authority model.
+
+Take a matched backup before upgrading and keep it until the v3.1.1 acceptance
+checks pass.
