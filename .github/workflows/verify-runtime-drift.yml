@@ -49,7 +49,7 @@ jobs:
           }
 
       - name: Configure read-only AWS credentials for CE drift verification
-        uses: aws-actions/configure-aws-credentials@v6.1.1
+        uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
           role-to-assume: arn:aws:iam::845958214943:role/GitHubActions-NowlertCE-LedgerReader
           aws-region: eu-west-1

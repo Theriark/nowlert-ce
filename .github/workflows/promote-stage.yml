@@ -194,7 +194,7 @@ jobs:
             --success-marker "STAGE CE SILENT PROMOTION SMOKE PASSED"
 
       - name: Configure AWS credentials for CE ledger
-        uses: aws-actions/configure-aws-credentials@v6.1.1
+        uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
           role-to-assume: arn:aws:iam::845958214943:role/GitHubActions-NowlertCE-LedgerWriter
           aws-region: eu-west-1
