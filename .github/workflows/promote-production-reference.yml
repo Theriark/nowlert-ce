@@ -164,14 +164,16 @@ jobs:
             }
           done
 
+          # Keep exact runtime forbidden markers while ensuring Actions does not
+          # echo the complete markers into this workflow's own command log.
           for forbidden in \
-            "===== DELIVERY =====" \
-            "Expected deliveries:" \
-            "Accepted deliveries:" \
-            "Related firing run:" \
-            "stage-ce-all-" \
-            "stage-ce-zabbix-" \
-            "stage-ce-portainer-"
+            "===== ""DELIVERY =====" \
+            "Expected ""deliveries:" \
+            "Accepted ""deliveries:" \
+            "Related ""firing run:" \
+            "stage-ce-""all-" \
+            "stage-ce-""zabbix-" \
+            "stage-ce-""portainer-"
           do
             if grep -Fq "${forbidden}" "${stage_log}"; then
               echo "::error::Stage promotion ${stage_run_id} contains active delivery QA evidence: ${forbidden}"
