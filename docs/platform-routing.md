@@ -1,140 +1,199 @@
-# v2 user tokens, destinations, routes, and delivery history
+# Platform routing and delivery
 
-The platform state provides an ownership-enforcing backend service layer
-exposed through the [authenticated platform API](platform-api.md). Since
-v2.5.0, SQLite is authoritative for API tokens, destinations, routes, settings,
-delivery history, retries, previews, and test delivery. `config.yaml` contains
-only process bootstrap, listener, and security configuration.
+Nowlert v3.1.1 uses database-authoritative Event API tokens, destinations,
+routes, delivery history, and audit state. `config.yaml` is not the normal
+editing surface for these resources.
 
-## API tokens
+## Event API tokens
 
-Platform API tokens belong to one local user. A token value is generated with
-cryptographic randomness, returned once, and stored only as a SHA-256 digest.
-Metadata contains the token name, role, source scopes, rate limit, version,
-expiry, last-use time, and revocation time; it never contains the token value
-or digest.
+An Event API token belongs to one local user. Its plaintext value is generated
+with cryptographic randomness, returned only at creation or rotation, and stored
+only as a digest.
 
-Application tokens require one or more explicit source scopes. Wildcard scopes
-and administrator tokens require an administrator. Authentication also rejects
-disabled owners, expired tokens, revoked tokens, and events outside the token's
-source scopes. The returned principal is compatible with the existing
-per-token/per-client rate limiter.
+Token metadata includes:
 
-Rotation generates a new value, invalidates the previous value, increments the
-non-secret version, and clears last-use metadata. Revocation is final; a
-revoked token cannot be rotated back into service.
+- name;
+- role/source scopes;
+- rate limit;
+- version;
+- expiry;
+- last-use time; and
+- revocation state.
+
+Tokens authorize `POST /api/v2/events`; they are not WebUI management
+credentials. Disabled owners, expired/revoked tokens, out-of-scope sources, and
+rate-limit violations are rejected.
 
 ## Destinations and secrets
 
-A destination has one owner, a display name, output type, non-secret JSON
-settings, enabled state, and optional owner-scoped secret reference. Supported
-schema types are Discord, Microsoft Teams, Slack, generic webhook, MQTT, and
-ntfy. The disabled adapters and preview/test contracts are documented in the
-[platform output guide](platform-outputs.md).
+A destination has an owner, display name, output type, public settings, enabled
+state, sharing state, and optional private secret reference.
 
-Credential-like keys are rejected anywhere in destination settings. Webhook
-URLs, passwords, tokens, and similar values must use the owner-only secret
-store. Public destination metadata reports only whether a secret is configured.
+Supported platform destination types are:
 
-Private destinations are visible only to their owner and administrators. Only
-an administrator can share a destination. Another user can reference a shared
-destination from a route, but cannot reveal or rotate its secret. A shared
-destination cannot be made private while another user's route references it.
+- Discord;
+- Microsoft Teams;
+- Slack;
+- generic webhook;
+- MQTT; and
+- ntfy.
 
-## User routes
+Credential-like keys are rejected from public settings. Webhook URLs,
+passwords, tokens, and similar values use the owner-scoped secret store. Normal
+read APIs report only safe metadata such as `secret_configured`.
 
-Routes belong to one user and point to either that user's destination or an
-explicitly shared destination. Matching is deterministic and ordered first by
-numeric priority and then by normalized route name.
+Private destinations are visible to their owner and administrators. Only an
+administrator can share a destination. A route may reference a shared
+destination without revealing or rotating that destination owner's credential.
 
-Each route selects one source. Administrators may use the `*` source. Optional
-include filters are ANDed across categories and ORed within each category.
-Exclude filters always win:
+## Route identity
+
+Routes belong to one user and point to an owned or explicitly shared
+destination.
+
+A route persists:
+
+- integration/source key;
+- normalized input type;
+- destination;
+- numeric priority;
+- enabled state; and
+- bounded filter criteria.
+
+Matching is deterministic: priority first, then normalized route name for stable
+tie-breaking.
+
+## Route filters
+
+The v3.1.1 WebUI presents four meaningful filter groups:
+
+- host patterns;
+- event patterns;
+- included severities; and
+- included statuses.
+
+Host and event filters support include/exclude patterns. Values are
+case-insensitive and may use shell-style wildcard patterns such as `backup*` or
+`test-*`.
+
+A representative route filter document is:
 
 ```json
 {
-  "hosts": ["pve-01"],
+  "hosts": ["pve-*"],
   "events": ["backup*"],
-  "severities": ["critical", "warning"],
+  "severities": ["warning", "critical"],
   "statuses": ["active"],
   "exclude_hosts": ["test-*"],
   "exclude_events": ["heartbeat*"]
 }
 ```
 
-- `hosts` checks normalized `host`, `hostname`, `device`, and `node` metadata;
-- `events` checks event metadata, notification category, and title;
-- `severities` checks severity metadata and normalized notification status;
-- `statuses` checks notification status and state/status metadata;
-- `exclude_hosts`, `exclude_events`, `exclude_severities`, and
-  `exclude_statuses` reject matching values after include filters pass.
+Interpretation:
 
-Filter values are case-insensitive and may use shell-style patterns such as
-`backup*`. Unknown filter categories, empty lists, oversized values, and
-oversized filter documents are rejected. Disabled routes and disabled
-destinations never match.
+- host/event include values are ORed within their category;
+- separate categories are ANDed;
+- explicit host/event exclusions win after include matching;
+- only selected severity/status values are included; and
+- an unselected severity/status is implicitly excluded in the current route
+  editor.
 
-Since v2.5.1, wildcard (`*`) routes are fallback-only. Nowlert first evaluates
-specific integration routes. It evaluates wildcard routes only when no specific
-route matches. When multiple matching routes resolve to the same destination,
-only the highest-priority route delivers the event.
+The current UI intentionally does not expose redundant **Excluded Severities**
+or **Excluded Statuses** lists.
+
+Included Severity/Status controls support normal single-click additive and
+subtractive selection while retaining native range/drag behavior. The available
+choices are scoped to the selected integration/input contract.
+
+## Full-list criteria
+
+Selecting the full list is still meaningful configuration. v3.1.1 preserves and
+displays full-list severity/status criteria on the Routes page even when the
+other criterion is a partial selection. This prevents a saved route from
+appearing less constrained or differently configured than it really is.
+
+## Dedicated routes and fallback
+
+Wildcard source routes are **fallback-only**.
+
+Evaluation order:
+
+1. identify the normalized integration and input;
+2. evaluate enabled dedicated integration routes;
+3. apply route filters;
+4. deliver dedicated matches;
+5. if no dedicated route matched, evaluate enabled fallback routes; and
+6. suppress duplicate delivery to the same destination.
+
+This means a dedicated Dell iDRAC, Zabbix, or other integration route does not
+also fan out through a generic fallback unless no dedicated route matched.
 
 ## Delivery orchestration
 
-The platform delivery service accepts injected output adapters. This keeps
-transport code separate from ownership, routing, retries, and history, and
-lets every platform output reuse the same policy.
+For each selected route, the platform delivery service:
 
-For every matched route, the service:
+1. rechecks route and destination state;
+2. rechecks visibility/ownership;
+3. resolves destination secrets internally as the true owner;
+4. invokes only the adapter registered for the destination output type;
+5. retries only explicitly retryable outcomes, with a bounded attempt count;
+   and
+6. records a safe history row for each attempt.
 
-1. rechecks destination visibility and enabled state;
-2. resolves the destination secret internally as its real owner;
-3. invokes only the adapter registered for the destination output type;
-4. retries only results explicitly marked retryable, with at most five
-   attempts; and
-5. records one safe history row per attempt.
+Adapter exceptions become bounded safe error codes. Response bodies, secret
+values, token values, and raw exception text are not stored in delivery history.
 
-Adapter exceptions become the generic `delivery_exception` code. Exception
-text is not persisted. Missing adapters, destinations, or secret values become
-safe terminal error codes.
+## Delivery History
 
-Delivery history contains owner, route/destination identifiers, bounded source,
-title and severity, outcome, attempt number, retryability, HTTP-like status,
-safe error code, and sanitized error text. It never stores destination secret
-values, token values, adapter exception messages, or response bodies. Users see
-only their own history; administrators may inspect all history.
+Delivery History records information needed for operational diagnosis without
+turning the history table into a credential or payload archive.
 
-Retries in this phase are bounded within the service call. A persistent
-background retry queue is deliberately deferred until the worker/runtime phase
-so no unfinished scheduler is enabled in production.
+Typical fields include:
+
+- source/integration;
+- title and severity;
+- route and destination identifiers;
+- attempt number;
+- outcome/status;
+- retryability;
+- safe error code/text; and
+- timestamp.
+
+v3.1.1 removes redundant visual status badges and standardizes paginated
+navigation with the Audit Log. The underlying delivery semantics are unchanged.
 
 ## Audit events
 
-Token, destination, and route mutations can write database-backed audit events.
-Sensitive detail keys are replaced with `<redacted>`, and credential patterns
-inside other text are sanitized. Users see their own audit activity;
-administrators may inspect all activity.
+Protected token, destination, route, user, backup, settings, and operational
+mutations can write audit events. Sensitive keys and credential-like text are
+redacted/sanitized before persistence.
 
-## Database resource authority
+v3.1.1 adds audited administrator workflows for user deletion and individual
+private-state backup deletion.
 
-The first v2.5.0 start validates the legacy `unified_yaml_v1` document, imports
-its tokens, destinations, routes, and WebUI-managed settings into schema 8, and
-then atomically normalizes the mounted file to
-`platform.configuration_model: platform_database_v1`.
+## Ownership model
 
-After migration, destination and route API requests never synchronize the whole
-YAML document. Each store uses its own database transaction and returns valid
-rows independently from malformed rows. Integration behavior, regional
-preferences, and backup scheduling use isolated `settings_records`; a damaged
-record reports a scoped warning and falls back to its validated default without
-preventing other pages from loading.
+Regular users see only resources allowed by ownership/sharing policy.
+Administrators can inspect platform-wide state and perform protected management
+operations.
 
-Existing credential values are not copied into YAML or API responses. YAML
-application token values are imported as hashes, destination credentials remain
-in the owner-only secret store, and the original token/secret files remain
-mounted for rollback and auditability.
+An administrator may create a resource for another owner where the API contract
+explicitly permits `owner_user_id`. Regular users cannot select arbitrary
+owners or create administrator-only wildcard authority.
 
-Listener binding changes such as ports, TLS certificates, HTTP publication, and
-SMTP authentication remain process-level `config.yaml` settings and require a
-container restart. Destination, route, token, alias, presentation, deduplication,
-and backup schedule changes take effect through their database stores.
+## Database authority
+
+Current installations use `platform_database_v1`:
+
+- SQLite is authoritative for destinations, routes, Event API tokens,
+  preferences, backup schedules, integration behavior, aliases, users, notices,
+  history, and audit state;
+- destination credential values remain in private owner-scoped files; and
+- `config.yaml` remains the process/bootstrap document.
+
+Legacy migration/compatibility code exists so older installations can be
+upgraded safely. It is not a reason to reintroduce removed WebUI-managed YAML
+sections into a healthy v3.1.1 deployment.
+
+See [current-configuration-model.md](current-configuration-model.md),
+[platform-api.md](platform-api.md), and [platform-state.md](platform-state.md).
