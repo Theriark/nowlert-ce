@@ -86,6 +86,11 @@ def test_production_reference_rejects_unsafe_stage_promotion_evidence() -> None:
     ):
         assert required in content
 
+    assert 'grep -Fq "${forbidden}" "${stage_log}"' in content
+
+    # The finalizer scans the complete Actions log for these runtime markers.
+    # They must therefore not appear contiguously in the ProdRef workflow source,
+    # because Actions echoes the shell source before executing it.
     for forbidden_log_fragment in (
         "===== DELIVERY =====",
         "Expected deliveries:",
@@ -95,7 +100,20 @@ def test_production_reference_rejects_unsafe_stage_promotion_evidence() -> None:
         "stage-ce-zabbix-",
         "stage-ce-portainer-",
     ):
-        assert forbidden_log_fragment in content
+        assert forbidden_log_fragment not in content
+
+    # Adjacent shell strings reconstruct the exact same values at runtime, so
+    # the Stage log rejection remains strict without poisoning the ProdRef log.
+    for split_guard_fragment in (
+        '"===== ""DELIVERY ====="',
+        '"Expected ""deliveries:"',
+        '"Accepted ""deliveries:"',
+        '"Related ""firing run:"',
+        '"stage-ce-""all-"',
+        '"stage-ce-""zabbix-"',
+        '"stage-ce-""portainer-"',
+    ):
+        assert split_guard_fragment in content
 
 
 def test_promotion_smoke_function_is_passive_and_read_only() -> None:
