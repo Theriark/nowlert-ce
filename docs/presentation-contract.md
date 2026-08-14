@@ -1,88 +1,88 @@
 # Notification presentation contract
 
-Nowlert uses a shared presentation contract so new integrations behave like
-the existing Discord embeds and Microsoft Teams Adaptive Cards.
+Nowlert v3.1.1 uses shared presentation rules so integrations render
+consistently across Discord and Microsoft Teams without duplicating product
+logic in each formatter.
 
 ## Event time
 
 The event source owns the visible timestamp.
 
 - Use the timestamp emitted by the source machine or service.
-- Convert timezone-aware source timestamps and epoch instants to the
-  Nowlert machine/container local timezone before display.
-- Treat a source timestamp without timezone information as an already-local
-  wall clock. Do not reinterpret it as UTC.
-- Do not append `UTC` or a numeric timezone suffix to the card.
-- Render recognized timestamps as `20 Jul 2026 • 18:09`.
-- If no source timestamp is available, omit the Event time metric. Never
-  substitute Nowlert's receipt time.
+- Convert timezone-aware source timestamps and epoch instants to the selected
+  Nowlert display timezone before presentation.
+- Treat a source timestamp without timezone information as an already-local wall
+  clock; do not reinterpret it as UTC.
+- Do not append UTC or numeric offset suffixes to the final card timestamp.
+- Render recognized timestamps using the user's selected 12/24-hour preference.
+- If no source timestamp exists, omit Event time rather than substituting the
+  Nowlert receipt time.
 
-The default is the machine/container local clock. An optional IANA-zone
-override is reserved for installations—and the future WebUI—that intentionally
-need a different display timezone:
+Regional timezone and clock-format preferences are managed through the current
+platform Settings UI/database model. The container `TZ` value remains the
+runtime fallback when no explicit platform preference is available.
 
-```yaml
-presentation:
-  timezone: Europe/Lisbon
-```
-
-If this setting is absent, Nowlert discovers the container's local timezone.
-The packaged `tzdata` database and local-zone discovery support worldwide
-deployments. The selected timezone affects presentation only; it never replaces
-the source event timestamp with Nowlert's receipt time.
+Do not add the removed legacy `presentation` YAML section to a fresh v3.1.1
+configuration.
 
 ## Microsoft Teams hierarchy
 
 Every integration supplies normalized data to the shared Teams renderer:
 
-1. Header: `device • event`, with a device icon, status icon, severity-aware
-   title color, and the integration image at the top right.
+1. Header: `device • event`, with device/status icons, severity-aware title
+   color, and the integration image at the top right.
 2. Context: `integration • state • source area`.
-3. Message: one emphasized event body with an event icon.
-4. Metrics: exactly three horizontal values—Severity, Category, and Event
-   time.
-5. Details: optional, icon-labelled integration-specific facts.
-6. Optional integration-specific sections and actions.
-7. Nowlert version footer.
+3. Message: one emphasized event body.
+4. Metrics: Severity, Category, and Event time when available.
+5. Details: optional icon-labelled integration-specific facts.
+6. Optional integration-specific sections/actions.
+7. `Theriark • Nowlert v<version>` footer.
 
-The normalized card model lives in `src/formatters/teams_common.py`. New Teams
-formatters should inherit `TeamsCardFormatter`, create a `TeamsCardData`
-instance, and keep vendor parsing outside the renderer.
+The normalized model lives in `src/formatters/teams_common.py`. New Teams
+formatters inherit the shared formatter/model and keep source parsing outside
+the renderer.
+
+Teams uses public HTTPS image URLs. The default asset root is the repository's
+`main/assets/icons` path. Controlled preview/mirrored installations may use the
+`NOWLERT_TEAMS_ICON_BASE_URL` compatibility override, which must be a valid
+credential-free HTTPS URL.
 
 ## Discord hierarchy
 
-Every integration supplies normalized data to the shared Discord Components
-V2 renderer:
+Every integration supplies normalized data to the shared Discord Components V2
+renderer:
 
-1. Header: `device • event`, device/status icons, severity-aware accent color,
-   and the official integration thumbnail.
+1. Header: `device • event`, device/status icons, severity-aware accent, and
+   official integration thumbnail.
 2. Context: `integration • state • source area`.
-3. A native responsive separator followed by the highlighted event message.
-4. One compact text row containing Severity, Category, and Event time.
-5. A native responsive separator followed by optional integration details.
-6. A final native separator and the one-line Nowlert version footer.
+3. Responsive separator plus the highlighted event message.
+4. Compact Severity, Category, and Event time metrics.
+5. Responsive separator plus optional integration details.
+6. Final separator and one-line Nowlert version footer.
 
-Discord controls separator width at render time, so rules remain aligned on
-desktop and mobile without fixed underscore or dash strings. The renderer does
-not add a redundant Event label or synthetic spacer fields. Source-specific
-details remain richer than the compact Teams card and are ordered vertically
-for phone readability.
+Discord controls separator width at render time, so rules remain responsive on
+desktop/mobile. The shared renderer budgets component/text limits and removes
+lower-priority optional facts before essential title/context/event/metrics/footer
+content.
 
-The normalized model and Components V2 renderer live in
-`src/formatters/discord_common.py`; delivery and packaged icon attachments live
-in `src/outputs/discord.py`. New formatters create `DiscordCardData` and
-`DiscordFact` values rather than constructing destination JSON independently.
-The renderer enforces Discord's component and text budgets, removing the
-lowest-priority optional facts first while retaining title, context, event,
-metrics, and footer.
+Discord product artwork is served from packaged assets and uploaded through the
+output adapter rather than depending on a runtime external image host. Internal
+asset references use the `nowlert-asset://` contract and are resolved before
+transport.
 
-Optional facts whose source value is missing or represented by `-`, `—`,
-`N/A`, `None`, or `null` are omitted. Identifiers and acronyms such as
-`PVE-01`, `VMID`, and `CPU` retain their source casing.
+## Missing and identifier values
+
+Optional facts whose source value is missing or represented by `-`, `—`, `N/A`,
+`None`, or `null` are omitted. Zero remains a meaningful value.
+
+Identifiers/acronyms such as `PVE-01`, `VMID`, `CPU`, or `NVR` retain meaningful
+source casing instead of being blindly title-cased.
 
 ## Status semantics
 
-The shared renderer maps normalized states to accessible icon and color pairs:
+The shared renderer maps normalized state/severity to an icon plus destination
+color. Text/icons always carry the semantic meaning so color is not the only
+signal.
 
 | State family | Icon | Teams color | Discord color |
 |---|---:|---|---|
@@ -91,26 +91,45 @@ The shared renderer maps normalized states to accessible icon and color pairs:
 | Resolved, recovered, success | ✅ | Good | Green |
 | Information or unknown | ℹ️ | Accent | Blue |
 
-The icon remains part of the text so status is not communicated by color
-alone.
+The current state wins over historical severity: a recovered critical event is
+shown as recovered, while an informational state carrying a critical severity
+can still be rendered as critical when no resolved state is present.
 
-## Integration images
+## Integration artwork
 
-Card images use a Teams- and Discord-supported raster format. Nowlert stores
-normalized 256 px transparent PNGs in `assets/icons/` and includes that
-directory in the production image. Discord uploads the matching packaged PNG
-with each webhook request and references it through an `attachment://` URL;
-this prevents a card from silently losing its thumbnail when an external image
-host is unavailable. Teams continues to use the public HTTPS asset URL because
-Adaptive Cards do not support Discord-style webhook attachments.
+Normalized 256 px transparent PNGs are packaged under `assets/icons/`.
+Product-specific artwork should come from an official vendor source or source
+repository. Record provenance/mechanical transformations in
+`assets/icons/README.md`; do not introduce generated initials or lookalike
+artwork as a product logo.
 
-Production uses the repository's `main/assets/icons` URL. Preview builds and
-installations that mirror the official assets can set
-`NOWLERT_ICON_BASE_URL` to another public HTTPS directory; the filenames and
-asset contract remain unchanged.
+Discord may use padded variants under `assets/icons/discord/` so visually wide
+or large marks remain balanced without distorting the official artwork.
 
-Product-specific images must originate from an official vendor page or source
-repository. Record the source and any mechanical transformation in
-`assets/icons/README.md`. Do not introduce generated initials or lookalike
-artwork as a product logo. Product names and marks are used only to identify
-the event source.
+## Payload safety
+
+Shared presentation helpers sanitize credential-like text before delivery,
+including bearer values, password/secret/token assignments, Discord webhook
+credentials, and sensitive query-token forms.
+
+Presentation must never turn a destination credential, Event API token, session
+value, private webhook URL, or secret-file path into visible card content.
+
+Microsoft Teams payload size is bounded before transport; over-budget messages
+fail safely instead of being sent with unbounded content. Discord similarly
+budgets optional facts/components to preserve the essential event context.
+
+## Extending presentation
+
+A new integration should:
+
+1. normalize source-specific data in its parser;
+2. reuse the shared Discord/Teams model/hierarchy;
+3. add only source-specific optional facts/actions;
+4. provide official packaged artwork;
+5. preserve credential sanitization and payload budgets; and
+6. add regression tests for missing values, status semantics, timestamps,
+   artwork, and platform limits.
+
+See [platform-outputs.md](platform-outputs.md) for destination transport rules
+and [platform-routing.md](platform-routing.md) for route/delivery semantics.
