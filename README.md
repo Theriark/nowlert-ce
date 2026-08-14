@@ -72,18 +72,27 @@ See [v3.1.1 release notes](docs/releases/v3.1.1.md) and the
 
 # 📸 Preview
 
-The v3.1.1 screenshots are captured from the exact Stage-approved candidate.
-They intentionally contain no credentials, token values, or secret material.
+v3.1.1 keeps the approved v3.1.0 visual design, so the existing screenshot set
+remains the current visual baseline. New screenshots are added only when the
+rendered UI or notification presentation materially changes.
 
-| Dashboard | Routes |
+## Current WebUI
+
+| Dashboard | Routing Flow |
 |---|---|
-| ![Nowlert v3.1.1 Dashboard](docs/images/v3.1.1-dashboard.png) | ![Nowlert v3.1.1 Routes](docs/images/v3.1.1-routes.png) |
+| ![Nowlert Dashboard](docs/images/v3.1.0-dashboard.png) | ![Nowlert Routing Flow](docs/images/v3.1.0-routing-flow.png) |
 
-| Delivery History | Audit Log |
+| Destinations | Delivery History |
 |---|---|
-| ![Nowlert v3.1.1 Delivery History](docs/images/v3.1.1-delivery-history.png) | ![Nowlert v3.1.1 Audit Log](docs/images/v3.1.1-audit-log.png) |
+| ![Nowlert Destinations](docs/images/v3.1.0-destinations.png) | ![Nowlert Delivery History](docs/images/v3.1.0-delivery-history.png) |
 
-More UI screenshots are documented in the [WebUI guide](docs/webui.md).
+## Notifications
+
+| Discord | Microsoft Teams |
+|---|---|
+| ![Nowlert Discord Xen Orchestra](docs/images/v3.1.0-discord-xen-orchestra.png) | ![Nowlert Microsoft Teams Xen Orchestra](docs/images/v3.1.0-teams-xen-orchestra.png) |
+
+More UI behavior is documented in the [WebUI guide](docs/webui.md).
 
 ---
 
