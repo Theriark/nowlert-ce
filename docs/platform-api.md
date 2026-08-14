@@ -1,19 +1,19 @@
-# v2 authenticated platform API
+# Authenticated platform API
 
-Phase 4 exposes the local-account, ownership, routing, output, history, and
-audit foundations through the `/api/v2` JSON API. It also provides the
-user/application event-ingestion path used by platform routes. Phase 5 adds a
-same-origin browser client for this contract; see the [WebUI guide](webui.md).
+Nowlert v3.1.1 exposes the management plane and Event API through `/api/v2` on
+the same HTTP service as the WebUI.
 
-v2.3.2 exposes credential-free mounted YAML metadata, administrator-only
-atomic mutations, notice lifecycle controls, backup destinations, and audited
-restart. The browser never receives destination, application-token, or remote
-share credential material.
+The normal v3.1.1 authority model is:
 
-## Default and activation boundary
+- `config.yaml` for process/bootstrap, listeners, transport security, state
+  location, and WebUI publication;
+- SQLite under `/nowlert/state` for WebUI-managed platform resources; and
+- owner-scoped private secret files for credential values.
 
-The HTTP transport, API, and platform are enabled when their switches are
-omitted. An operator can still disable any layer explicitly:
+The browser and normal read API never receive stored destination credentials,
+password hashes, session tokens, API-token hashes, or secret-file paths.
+
+## Activation
 
 ```yaml
 http:
@@ -31,118 +31,174 @@ platform:
   secure_cookies: false
 ```
 
+Do not expose port 8080 directly to an untrusted network. Use a trusted reverse
+proxy with TLS, preserve the original client address, and do not cache `/api/v2`
+responses.
+
+## First-run bootstrap
+
 On an empty database, `GET /api/v2/bootstrap` reports that setup is required.
-The image prints a short-lived, single-use setup token to container output;
-`POST /api/v2/bootstrap` consumes it while creating the first administrator
-and browser session. The `false` value permits direct HTTP login only on a
-trusted private network because a browser sends the session cookie without
-transport encryption. Use `secure_cookies: true`, `webui.enforce_https: true`,
-and a TLS reverse proxy for untrusted or Internet-facing access.
+The application creates a random short-lived setup token, stores only its
+SHA-256 digest, and prints the plaintext value once to container output.
 
-Do not expose port 8080 directly to the Internet. Terminate TLS at a trusted
-reverse proxy, apply firewall restrictions, preserve the original client
-address, and do not cache `/api/v2` responses.
+`POST /api/v2/bootstrap` consumes the token while creating the first
+administrator and browser session. No default username/password exists.
 
-## Authentication boundary
+## Browser authentication
 
 Browser and management operations use a local session:
 
-- `POST /api/v2/session` accepts a username and password;
-- the server returns an `HttpOnly`, `SameSite=Strict` session cookie;
-- secure deployments use `__Host-` cookie names and the `Secure` attribute;
-- the one-time CSRF value is returned in the login response and a readable,
-  same-site CSRF cookie; and
-- every session-authenticated `POST`, `PUT`, `PATCH`, and `DELETE` request must
-  send the value as `X-CSRF-Token`.
+- `POST /api/v2/session` accepts username/password;
+- the server returns an HttpOnly, SameSite=Strict session cookie;
+- secure deployments use `__Host-` cookie names and the Secure attribute;
+- login/bootstrap responses include the CSRF value; and
+- session-authenticated `POST`, `PUT`, `PATCH`, and `DELETE` requests must send
+  `X-CSRF-Token`.
 
-Sessions have absolute and idle expiry. Logout, password reset, and account
-disable revoke them. Login attempts retain the persistent lockout rules and
-also have a per-client in-memory rate limit. Authenticated session requests
-have a separate per-session/per-client rate limit.
+Sessions have idle and absolute expiry. Logout, password reset, account disable,
+and private-state restore revoke affected sessions.
 
-Platform API tokens are accepted only by `POST /api/v2/events`. They cannot be
-used for account, token, destination, route, preview, history, or audit
-management. Tokens are source-scoped, rate-limited per token and client,
-returned only at creation or rotation, and stored only as SHA-256 digests.
+## Event API tokens
 
-Legacy YAML application tokens are imported into SQLite during the v2.5 migration.
-Their existing values continue working, but token management is database-only
-after migration.
+Event API tokens are accepted by `POST /api/v2/events`. They do not grant
+management access.
 
-## Endpoints
+Tokens are:
+
+- owned by a local account;
+- explicitly source-scoped;
+- rate-limited per token/client;
+- returned only at creation or rotation; and
+- stored only as digests.
+
+## Core endpoints
+
+### Session and users
 
 | Method | Path | Access | Purpose |
 |---|---|---|---|
-| GET | `/api/v2/bootstrap` | public | report whether first-run setup is required |
-| POST | `/api/v2/bootstrap` | single-use setup token | create the first administrator and session |
-| POST | `/api/v2/session` | public | authenticate a local account |
-| GET | `/api/v2/session` | session | return the current account |
-| DELETE | `/api/v2/session` | session + CSRF | revoke the current session |
-| GET | `/api/v2/users` | administrator session | list local accounts |
-| POST | `/api/v2/users` | administrator session + CSRF | create an account |
-| GET | `/api/v2/users/{id}` | administrator session | return an account |
-| PATCH | `/api/v2/users/{id}` | administrator session + CSRF | enable or disable an account |
-| PUT | `/api/v2/users/{id}/password` | administrator + CSRF | reset password and sessions |
-| GET | `/api/v2/users/{id}/tokens` | administrator session | list an owner's token metadata |
-| GET | `/api/v2/users/{id}/routes` | administrator session | list an owner's routes |
-| PUT | `/api/v2/account/password` | session + CSRF | change the current password |
-| PUT/DELETE | `/api/v2/account/avatar` | session + CSRF | set or remove the current profile picture |
-| GET/PUT | `/api/v2/source-categories` | session / administrator + CSRF for PUT | list or update source presentation tags |
-| GET | `/api/v2/integration-settings` | session | list isolated integration behavior and per-resource errors |
-| GET/PUT | `/api/v2/integration-settings/{source}` | session / administrator + CSRF for PUT | inspect or update one integration settings record |
-| GET | `/api/v2/version` | session | return running and advertised update versions |
-| GET/POST | `/api/v2/notices` | session / administrator + CSRF | list or publish operational notices |
-| POST | `/api/v2/notices/{id}/dismiss` | session + CSRF | dismiss an ordinary notice for this account |
-| PATCH/DELETE | `/api/v2/notices/{id}` | administrator + CSRF | edit or resolve an administrator notice |
-| GET | `/api/v2/metrics/{range}` | session | return Overview metrics for 10m, 1h, 1d, 1m, or 1y |
-| GET | `/api/v2/health-checks` | session | run safe operational checks |
-| GET/PUT | `/api/v2/backup-settings` | administrator + CSRF for PUT | inspect or update backup schedule and target |
-| GET/POST | `/api/v2/backup-targets` | administrator + CSRF for POST | list or create Local/NFS/SMB backup targets |
-| GET/PATCH/DELETE | `/api/v2/backup-targets/{id}` | administrator + CSRF for mutation | inspect, update, or remove a target |
-| POST | `/api/v2/backup-targets/{id}/test` | administrator + CSRF | test connectivity and write access |
-| POST | `/api/v2/backups/run` | administrator + CSRF | run a backup against the selected target |
-| POST | `/api/v2/reboot` | administrator + CSRF | record a reason and request process restart |
-| GET | `/api/v2/tokens` | session | list current-user token metadata |
-| POST | `/api/v2/tokens` | session + CSRF | create and return a token once |
-| POST | `/api/v2/tokens/{id}/rotate` | owner/admin + CSRF | rotate and return a token once |
-| POST | `/api/v2/tokens/{id}/revoke` | owner/admin + CSRF | revoke a token permanently |
-| PATCH/DELETE | `/api/v2/tokens/{id}` | owner/admin + CSRF | enable, disable, or delete an application |
-| GET | `/api/v2/destinations` | session | list database-backed destinations plus isolated row errors |
-| POST | `/api/v2/destinations` | administrator + CSRF | create a database destination with a write-only secret |
-| GET | `/api/v2/destinations/{id}` | visible session | return secret-free metadata |
-| PATCH | `/api/v2/destinations/{id}` | administrator + CSRF | update database metadata, type, or secret while preserving the ID |
-| DELETE | `/api/v2/destinations/{id}` | administrator + CSRF | delete an unused database destination |
-| POST | `/api/v2/destinations/{id}/preview` | visible session + CSRF | preview payload |
-| POST | `/api/v2/destinations/{id}/test` | administrator + CSRF | test delivery |
-| GET | `/api/v2/routes` | session | list database-backed routes plus isolated row errors |
-| POST | `/api/v2/routes` | administrator + CSRF | create a database-backed route |
-| GET | `/api/v2/routes/{id}` | owner/admin session | return a route |
-| PATCH | `/api/v2/routes/{id}` | owner/admin + CSRF | update a route atomically |
-| DELETE | `/api/v2/routes/{id}` | owner/admin + CSRF | delete a route |
-| POST | `/api/v2/events` | scoped token or session + CSRF | route an event |
-| GET | `/api/v2/deliveries` | session | list visible owned or shared attempts |
-| GET | `/api/v2/audit-events` | session | list up to 500 visible audit events |
-| GET | `/api/v2/portability/export` | administrator session | export credential-free platform JSON |
-| POST | `/api/v2/portability/preview` | administrator + CSRF | preview platform JSON import |
-| POST | `/api/v2/portability/import` | administrator + CSRF | apply fingerprinted JSON import |
-| POST | `/api/v2/migrations/v1/preview` | administrator + CSRF | preview v1.x YAML migration |
-| POST | `/api/v2/migrations/v1/import` | administrator + CSRF | apply fingerprinted YAML migration |
-| GET | `/api/v2/configuration/inventory` | administrator session | inspect mounted YAML without credentials |
-| GET | `/api/v2/preferences` | session | read language, timezone, and clock format |
-| PUT | `/api/v2/preferences` | administrator + CSRF | update the isolated regional settings record |
-| GET | `/api/v2/backups` | administrator session | list verified state backups |
-| POST | `/api/v2/backups` | administrator + CSRF | create a private state backup |
-| POST | `/api/v2/backups/{id}/restore` | administrator + CSRF | confirmed restore and session revocation |
+| GET | `/api/v2/bootstrap` | public | report first-run setup state |
+| POST | `/api/v2/bootstrap` | setup token | create first administrator/session |
+| POST | `/api/v2/session` | public | authenticate local account |
+| GET | `/api/v2/session` | session | return current account/session metadata |
+| DELETE | `/api/v2/session` | session + CSRF | revoke current session |
+| GET | `/api/v2/users` | administrator | list accounts |
+| POST | `/api/v2/users` | administrator + CSRF | create account |
+| GET | `/api/v2/users/{id}` | administrator | return account |
+| PATCH | `/api/v2/users/{id}` | administrator + CSRF | enable/disable account |
+| DELETE | `/api/v2/users/{id}` | administrator + CSRF | permanently delete eligible account |
+| PUT | `/api/v2/users/{id}/password` | administrator + CSRF | reset password/sessions |
+| GET | `/api/v2/users/{id}/tokens` | administrator | list owner token metadata |
+| GET | `/api/v2/users/{id}/routes` | administrator | list owner routes |
+| PUT | `/api/v2/account/password` | session + CSRF | change current password |
+| PUT/DELETE | `/api/v2/account/avatar` | session + CSRF | set/remove current avatar |
 
-An administrator may create a resource for another owner by including
-`owner_user_id`. A regular user cannot select another owner. Only an
-administrator can create or change a shared destination, create wildcard
-tokens/routes, create administrator tokens, or allow private-network output
-delivery.
+v3.1.1 user deletion is server-side protected. An administrator cannot delete
+its own currently authenticated account, and storage ownership/integrity rules
+must permit the deletion. Successful deletion writes a `user.delete` audit
+event.
+
+### Integrations, preferences, and operations
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/api/v2/integrations` | session | built-in integration catalogue |
+| GET | `/api/v2/integration-settings` | session | integration behavior + isolated errors |
+| GET/PUT | `/api/v2/integration-settings/{source}` | session / administrator + CSRF | inspect/update one integration record |
+| GET/PUT | `/api/v2/source-categories` | session / administrator + CSRF | list/update categories |
+| DELETE | `/api/v2/source-categories/{source}` | administrator + CSRF | reset category override |
+| GET | `/api/v2/preferences` | session | regional preferences |
+| PUT | `/api/v2/preferences` | administrator + CSRF | update regional preferences |
+| GET | `/api/v2/version` | session | running/advertised version |
+| GET/POST | `/api/v2/notices` | session / administrator + CSRF | list/publish notices |
+| POST | `/api/v2/notices/{id}/dismiss` | session + CSRF | dismiss ordinary notice |
+| PATCH/DELETE | `/api/v2/notices/{id}` | administrator + CSRF | edit/resolve notice |
+| GET | `/api/v2/metrics/{range}` | session | Overview metrics |
+| GET | `/api/v2/health-checks` | session | safe operational checks |
+| POST | `/api/v2/reboot` | administrator + CSRF | audited restart request |
+
+### Event API tokens
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/api/v2/tokens` | session | list current-user token metadata |
+| POST | `/api/v2/tokens` | session + CSRF | create token and return value once |
+| POST | `/api/v2/tokens/{id}/rotate` | owner/admin + CSRF | rotate and return value once |
+| POST | `/api/v2/tokens/{id}/revoke` | owner/admin + CSRF | permanently revoke token |
+| PATCH/DELETE | `/api/v2/tokens/{id}` | owner/admin + CSRF | change state/delete token metadata |
+
+### Destinations and routes
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/api/v2/destinations` | session | list visible destinations + row errors |
+| POST | `/api/v2/destinations` | administrator + CSRF | create destination/write-only secret |
+| GET | `/api/v2/destinations/{id}` | visible session | read secret-free metadata |
+| PATCH | `/api/v2/destinations/{id}` | administrator + CSRF | update metadata/type/secret |
+| DELETE | `/api/v2/destinations/{id}` | administrator + CSRF | delete unused destination |
+| POST | `/api/v2/destinations/{id}/preview` | visible session + CSRF | preview payload |
+| POST | `/api/v2/destinations/{id}/test` | administrator + CSRF | perform destination test |
+| GET | `/api/v2/routes` | session | list visible routes + row errors |
+| POST | `/api/v2/routes` | administrator + CSRF | create route |
+| GET | `/api/v2/routes/{id}` | owner/admin | return route |
+| PATCH | `/api/v2/routes/{id}` | owner/admin + CSRF | update route atomically |
+| DELETE | `/api/v2/routes/{id}` | owner/admin + CSRF | delete route |
+| POST | `/api/v2/events` | scoped token or session + CSRF | route normalized application event |
+
+Route filters are bounded and normalized server-side. See
+[platform-routing.md](platform-routing.md) for dedicated/fallback behavior.
+
+### Delivery and audit history
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/api/v2/deliveries` | session | compatible delivery list |
+| GET | `/api/v2/deliveries/page/{page}` | session | paginated delivery history |
+| GET | `/api/v2/deliveries/page/{page}/size/{size}` | session | paginated history with explicit size |
+| GET | `/api/v2/audit-events` | session | compatible audit list |
+| GET | `/api/v2/audit-events/page/{page}` | session | paginated audit history |
+| GET | `/api/v2/audit-events/page/{page}/size/{size}` | session | paginated audit history with size |
+
+History is owner-filtered. Administrators may inspect all retained rows. Safe
+history does not persist destination credentials, token values, response bodies,
+or raw adapter exception text.
+
+### Backup targets and private state backups
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET/PUT | `/api/v2/backup-settings` | administrator + CSRF for PUT | schedule/selected target |
+| GET/POST | `/api/v2/backup-targets` | administrator + CSRF for POST | list/create Local/NFS/SMB target |
+| GET/PATCH/DELETE | `/api/v2/backup-targets/{id}` | administrator + CSRF for mutation | inspect/update/delete target |
+| POST | `/api/v2/backup-targets/{id}/test` | administrator + CSRF | test target connectivity/write |
+| POST | `/api/v2/backups/run` | administrator + CSRF | run scheduled-style external backup |
+| GET | `/api/v2/backups` | administrator | list verified private snapshots |
+| POST | `/api/v2/backups` | administrator + CSRF | create private state snapshot |
+| DELETE | `/api/v2/backups/{id}` | administrator + CSRF | permanently delete one private snapshot |
+| POST | `/api/v2/backups/{id}/restore` | administrator + CSRF | restore exact snapshot after confirmation |
+
+v3.1.1 exposes private snapshot deletion separately from restore. Deletion is
+audited and affects only the selected backup directory.
+
+### Portability and legacy migration
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/api/v2/portability/export` | administrator | credential-free platform JSON |
+| POST | `/api/v2/portability/preview` | administrator + CSRF | validate/fingerprint import |
+| POST | `/api/v2/portability/import` | administrator + CSRF | apply unchanged confirmed import |
+| POST | `/api/v2/migrations/v1/preview` | administrator + CSRF | preview legacy YAML import |
+| POST | `/api/v2/migrations/v1/import` | administrator + CSRF | apply confirmed legacy import |
+| GET | `/api/v2/configuration/inventory` | administrator | secret-free mounted-config inventory |
+
+Compatibility/recovery endpoints for older configuration-authority transitions
+may remain present, but a normal v3.1.1 installation uses
+`platform_database_v1`. Do not switch a healthy current deployment back to
+legacy YAML resource authority.
 
 ## Session example
 
-Login saves both cookies and returns the CSRF value:
+Login and store cookies:
 
 ```bash
 curl --fail-with-body \
@@ -152,53 +208,19 @@ curl --fail-with-body \
   https://nowlert.example.com/api/v2/session
 ```
 
-Send the returned `csrf_token` on every state-changing session request:
+The response includes `csrf_token`. Send that value on state-changing browser
+session requests:
 
 ```bash
 curl --fail-with-body \
   --cookie /tmp/nowlert.cookies \
   --header 'Content-Type: application/json' \
   --header 'X-CSRF-Token: RETURNED_LOGIN_VALUE' \
-  --data '{
-    "name":"Home lab application",
-    "source_scopes":["home_lab"],
-    "rate_limit_per_minute":60
-  }' \
+  --data '{"name":"Home lab application","source_scopes":["home_assistant"],"rate_limit_per_minute":60}' \
   https://nowlert.example.com/api/v2/tokens
 ```
 
-The `value` field appears only in this response or a successful rotation.
-Store it immediately in the submitting application. It cannot be retrieved
-later.
-
-## Destination secret example
-
-Public settings and credentials are deliberately separate in the request:
-
-```json
-{
-  "name": "Operations webhook",
-  "output_type": "webhook",
-  "settings": {
-    "method": "POST",
-    "timeout_seconds": 15,
-    "sign_hmac": true
-  },
-  "secret": {
-    "url": "https://receiver.example.com/nowlert",
-    "hmac_secret": "REPLACE_ME"
-  }
-}
-```
-
-The response contains `secret_configured: true`; it never contains the secret,
-secret-file path, stored digest, webhook URL, password, or token. Updating the
-`secret` field rotates the owner-only secret. A user may route to or test a
-shared destination but cannot read or replace its owner's credentials.
-
-## Event submission
-
-Applications submit the stable event envelope with a platform token:
+## Event submission example
 
 ```bash
 curl --fail-with-body \
@@ -206,7 +228,7 @@ curl --fail-with-body \
   --header 'Content-Type: application/json' \
   --data '{
     "schema":"nowlert.event.v1",
-    "source":"home_lab",
+    "source":"home_assistant",
     "title":"Synthetic warning",
     "message":"A bounded application event.",
     "severity":"warning",
@@ -215,19 +237,15 @@ curl --fail-with-body \
   https://nowlert.example.com/api/v2/events
 ```
 
-The token must include `home_lab`. The service evaluates only the token owner's
-enabled platform routes and internally resolves secrets as each destination's
-true owner. The response reports matched routes, successful/failed deliveries,
-and total attempts; it never includes response bodies or destination secrets.
+The token must include the submitted source scope. Routing resolves destination
+credentials internally and never returns them to the submitting application.
 
-## Safe responses and compatibility
+## Safe response contract
 
-All `/api/v2` responses use `Cache-Control: no-store`,
-`X-Content-Type-Options: nosniff`, and `Referrer-Policy: no-referrer`. Error
-messages are intentionally generic. Preview and test responses use bounded
-backend formatters and safe transport results. Delivery history and audit
-events are owner-filtered; administrators may inspect all retained records.
+Management responses use no-store/browser hardening headers. Errors are bounded
+and sanitized. Preview/test responses expose safe transport outcomes rather
+than response bodies or secrets.
 
-The mounted file is authoritative. The legacy v1.x upload endpoints remain for
-API compatibility; successful imports are adopted into YAML automatically.
-See the [data-portability guide](data-portability.md).
+For state ownership, backup, and migration details see
+[platform-state.md](platform-state.md) and
+[data-portability.md](data-portability.md).
