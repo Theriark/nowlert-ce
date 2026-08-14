@@ -1,105 +1,102 @@
 # Nowlert roadmap
 
+The roadmap records shipped milestones separately from future candidates. A
+candidate is not a promise or assigned release date until it is accepted into a
+tracked release scope.
+
 ## Shipped
-
-### v2.3.3–v2.3.7 — WebUI runtime and icon corrections
-
-- active-page persistence across reloads
-- compact operations menu and update checks
-- safe inactive-source lifecycle
-- source-aware destination tests
-- normalized Overview source-card icon boxes
-- official DMTF Redfish identity
 
 ### v2.4.0 — Integrations and inputs
 
-- built-in integration catalogue
-- SMTP, HTTP, and Redfish input model
-- input-aware routes
-- schema 7 integration categories
-- safe destination type changes and rollback
+- built-in integration catalogue;
+- normalized SMTP, HTTP, and Redfish input model;
+- input-aware routes; and
+- integration category state.
 
-### v2.5.0 — Database-authoritative WebUI resources
+### v2.5.0–v2.5.5 — Database authority and delivery hardening
 
-- schema 8
-- independent stores for destinations, routes, tokens, and settings
-- normalized bootstrap-only `config.yaml`
-- per-resource failure isolation
-- WebUI editors for aliases and integration behavior
+- database-authoritative destinations, routes, Event API tokens, and settings;
+- bootstrap-only `config.yaml`;
+- fallback-only wildcard routing and duplicate-delivery suppression;
+- include/exclude route filters;
+- packaged source artwork;
+- destination-test state and delivery history; and
+- Discord/Microsoft Teams transport/presentation corrections.
 
-### v2.5.1 — Routing and WebUI normalization
+### v3.0.0 — Nowlert identity
 
-- fallback-only wildcard routes
-- duplicate delivery suppression
-- include/exclude filters
-- normalized input labels
-- direct destination state controls
-- Event API token terminology and scopes
-- durable production validation baselines
+- final Nowlert product/runtime identity;
+- `Theriark/nowlert-ce` repository and container coordinates;
+- `NOWLERT_*` environment variables and `/nowlert` paths;
+- schema-9 compatibility; and
+- guarded release publication.
 
-### v2.5.2 — Flow presentation and packaged assets
+### v3.1.0 — Amber WebUI and operational quality
 
-- independent Routing Flow status symbols
-- destination name plus platform/channel labels
-- Discord-specific padded vendor thumbnails
-- build-time packaged icon validation
-- full-width Settings layout
+- professional Dashboard analytics and routing flow;
+- approved owl branding and Amber Accent UI;
+- browser Back/Forward section navigation;
+- management-page layout and pagination polish;
+- safer Integration Settings editing; and
+- version-aware deployment health gates.
 
-### v2.5.3–v2.5.5 — Compatibility and destination delivery corrections
+### v3.1.1 — QA and immutable promotion hardening
 
-- Synology SMTP/HTTP and UniFi Protect payload compatibility
-- packaged Discord image attachments and response verification
-- persistent schema-9 destination-test health
-- Microsoft Teams public HTTPS source icons
-- Microsoft Teams 28 KiB pre-send payload guard
-- accurate HTTP 202 accepted-versus-delivered wording
-
-### v3.0.0 — Nowlert identity transition
-
-- Nowlert product and WebUI identity
-- Theriark repository and container metadata
-- `NOWLERT_*` preferred deployment variables with legacy aliases
-- Docker Hub and GHCR release coordinates
-- compatibility-preserving schema-9 migration
-- guarded release publication from `Theriark/nowlert-ce`
+- administrator user deletion with safety/audit controls;
+- individual private state backup deletion;
+- authoritative Admin/User profile chip;
+- Delivery History presentation correction;
+- unified Delivery History/Audit Log pagination footer;
+- simplified Included Severity/Status route editing;
+- mouse-only additive route selection with native range behavior retained;
+- integration-scoped route criteria and correct full-list display;
+- `development` / `stage` / `main` environment branch alignment;
+- build-once immutable Development → Stage → Production Reference promotion;
+- release tag bound to current `main`; and
+- stable GHCR/Docker Hub aliases copied from the approved digest without rebuild.
 
 ## Current maintenance priorities
 
-1. Keep README, Docker Hub, configuration examples, release notes, and
-   screenshots synchronized with the stable image.
-2. Expand real-system validation for integrations that began as
-   fixture-validated candidates.
-3. Preserve migration and rollback coverage from schema 6, schema 7, and
-   schema 8 to schema 9.
-4. Keep the production image non-root, read-only, capability-minimal, and
+1. Keep runtime version, README, Docker Hub text, configuration examples,
+   screenshots, release notes, and stable images synchronized.
+2. Preserve the build-once promotion invariant and desired-state ledger evidence.
+3. Expand real-system validation for integrations that currently rely heavily on
+   fixtures.
+4. Preserve upgrade/rollback coverage for supported older schema/state paths.
+5. Keep the production image non-root, read-only, capability-minimal, and
    reproducible.
-5. Add new integrations and outputs only behind explicit contracts, tests, and
-   source/destination ownership boundaries.
+6. Add integrations/outputs only behind explicit contracts, tests, and
+   ownership/security boundaries.
 
 ## Candidate v3.x work
 
-These are candidates, not promises or assigned release dates:
+Candidates, not commitments:
 
-- broader real Proxmox VE compatibility validation
-- broader Synology DSM compatibility validation
-- Redfish vendor/firmware matrix expansion
-- additional destination adapters such as Telegram
-- persistent background retry/queue orchestration
-- optional operational metrics export
-- documentation and screenshot drift automation
-- automated Docker Hub content synchronization
-- additional UI localization
+- broader Proxmox VE real-system compatibility validation;
+- broader Synology DSM compatibility validation;
+- Redfish vendor/firmware matrix expansion;
+- additional destination adapters such as Telegram;
+- persistent background retry/queue orchestration;
+- optional operational metrics export;
+- automatic documentation/screenshot drift detection;
+- automated Docker Hub documentation publication;
+- additional WebUI localization; and
+- stronger automated environment/runtime drift reporting.
 
-## Issue and project policy
+## Issue and release policy
 
-Create one GitHub issue per independently testable outcome. Each issue should
-define:
+Create one issue per independently testable outcome. A useful issue defines:
 
-- problem or goal
-- security and compatibility boundary
-- acceptance criteria
-- real-system versus fixture validation level
-- target release only after scope is approved
+- problem/goal;
+- security and compatibility boundary;
+- acceptance criteria;
+- real-system versus fixture validation level; and
+- target release only after scope is approved.
 
-Completed work remains closed. Do not reopen historical release issues to track
-new compatibility findings; create a new issue referencing the original.
+Release candidates must be cumulative on `development`. Stage approval moves the
+`stage` pointer to the exact promoted source commit. `main` is fast-forwarded to
+that same commit before Production Reference/release finalization.
+
+Completed historical issues remain closed; new compatibility findings should be
+tracked as new issues referencing the original work rather than reopening old
+release records.
