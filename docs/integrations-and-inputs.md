@@ -1,10 +1,10 @@
 # Integrations and inputs
 
-Nowlert distinguishes an **integration** from the **input** that receives an
-event.
+Nowlert v3.1.1 distinguishes an **integration** from the **input** that receives
+an event.
 
-Integrations are packaged with the image, always available, and cannot be
-disabled or removed as configuration records. Inputs are the three normalized
+Integrations are packaged with the image and provide source detection, parsing,
+presentation metadata, and supported route criteria. Inputs are the normalized
 transport types: **SMTP**, **HTTP**, and **Redfish**.
 
 | Integration | Source key | Inputs | Default category |
@@ -25,12 +25,11 @@ transport types: **SMTP**, **HTTP**, and **Redfish**.
 | Dell iDRAC | `dell_idrac` | Redfish | Hardware |
 | Home Assistant | `home_assistant` | HTTP | Automation |
 
-The WebUI shows display names and never requires administrators to type parser
-identifiers.
+The WebUI uses display names; operators do not need to type parser identifiers.
 
 ## Route choices
 
-Route forms combine the integration and input:
+Route forms combine integration and input, for example:
 
 ```text
 Zabbix (SMTP)
@@ -40,18 +39,36 @@ Fallback (HTTP)
 Fallback (Redfish)
 ```
 
-A route persists both the source key and the input type. Existing Zabbix routes
-from v2.3 are conservatively inferred as SMTP during migration.
+A route persists both source/integration identity and input type.
+
+v3.1.1 also scopes the route editor's severity/status choices to the selected
+integration/input contract. This avoids showing irrelevant criteria and makes
+the saved route representation match what the integration can emit.
 
 ## Fallback behavior
 
-Since v2.5.1, wildcard routes are true fallbacks:
+Wildcard routes are true fallbacks:
 
-1. evaluate enabled dedicated integration routes
-2. apply include/exclude filters
-3. deliver dedicated matches
-4. evaluate fallback routes only when no dedicated route matches
-5. suppress repeated delivery to the same destination
+1. evaluate enabled dedicated integration routes;
+2. apply their filters;
+3. deliver dedicated matches;
+4. evaluate fallback routes only if no dedicated route matched; and
+5. suppress repeated delivery to the same destination.
+
+## Route criteria
+
+The current WebUI exposes:
+
+- host include/exclude patterns;
+- event include/exclude patterns;
+- included severities; and
+- included statuses.
+
+Unselected severity/status values are implicitly excluded. The UI does not show
+redundant excluded-severity or excluded-status controls.
+
+Selecting the full list is preserved and displayed as configured on the Routes
+page.
 
 ## Categories
 
@@ -67,4 +84,8 @@ Categories are presentation metadata stored in SQLite:
 - Security
 - Generic
 
-Changing a category does not change parser identity or routing behavior.
+Changing a category does not change parser identity, supported inputs, or route
+matching.
+
+See [platform-routing.md](platform-routing.md) for the full matching model and
+[`integrations/`](integrations/) for product-specific setup notes.
