@@ -1,5 +1,5 @@
 # Optional override for WebUI-managed NFS/SMB mounts.
-# This runs the container as root and grants only the additional capabilities
+# This runs the Nowlert container as root and grants only the additional capabilities
 # needed to access existing UID-owned bind mounts, secure platform state, and
 # mount remote filesystems. Use only on a dedicated, trusted host.
 services:
