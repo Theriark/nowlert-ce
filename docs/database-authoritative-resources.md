@@ -1,42 +1,64 @@
 # Database-authoritative resources
 
-Nowlert v2.5.0 separates process bootstrap from WebUI-managed resources.
+Nowlert v3.1.1 uses `platform_database_v1` to separate process bootstrap from
+WebUI-managed resources.
 
-## Core configuration
+## Bootstrap configuration
 
-`config/config.yaml` contains only listener, transport-security, API-enable,
-state-directory, cookie, and WebUI bootstrap settings. It is not parsed during
-normal destination or route requests.
+`config/config.yaml` contains process-level configuration such as:
+
+- listener binding;
+- SMTP/HTTP transport security;
+- API/platform activation;
+- state-directory location;
+- secure-cookie mode; and
+- WebUI publication/HTTPS settings.
+
+It is not the normal destination, route, user, token, preference, or backup
+editing surface.
 
 ## Platform state
 
-The SQLite database stores destinations, routes, application-token hashes,
-regional preferences, backup scheduling, integration behavior, aliases, users,
-notices, audit events, and delivery history. Destination credential values stay
-in private secret files referenced by SQLite.
+SQLite stores authoritative management state for:
 
-Each resource uses an independent transaction and API error boundary. A malformed
-destination, route, or settings row is reported with its resource identifier;
-valid rows remain visible and unrelated pages continue loading.
+- users and sessions;
+- Event API token hashes/metadata;
+- destinations and safe secret references;
+- routes and integration/input criteria;
+- regional preferences;
+- backup scheduling/targets;
+- integration behavior/categories/aliases;
+- notices;
+- audit events; and
+- delivery history.
 
-## One-way migration
+Destination credential values remain in private owner-scoped secret files.
 
-The first v2.5.0 start reads a v2.4 `unified_yaml_v1` configuration, validates it,
-imports every supported resource, and only then atomically replaces the mounted
-file with the normalized `platform_database_v1` document. The migration is
-idempotent. If an import or file replacement fails, the legacy YAML remains in
-place and the next start can retry.
+Each resource uses scoped validation/transaction boundaries so a damaged row can
+be reported without making unrelated valid resources or pages unavailable.
 
-Existing API-token values are not rotated. Nowlert imports their hashes from
-the configured file, environment variable, or SHA-256 value. Token values never
-appear in the WebUI or logs.
+## Legacy migration boundary
+
+Supported older installations can import their legacy YAML-managed resources
+into the database model. After successful migration, current platform resources
+are managed through SQLite/WebUI/API and removed from the normal bootstrap YAML.
+
+Do not recreate legacy `outputs`, `routing`, `api.tokens`, or other
+WebUI-managed YAML sections in a healthy current installation.
 
 ## Backups and rollback
 
-A production upgrade backup must keep `config`, `state`, and `secrets` together.
-Private state backups preserve all database resources and secret files. Portable
-exports omit passwords, application-token values, and destination credentials.
+A production recovery set keeps `config`, `state`, and external `secrets`
+together with the exact deployment image/reference.
 
-Rollback to a pre-v2.5 image requires restoring the matched pre-upgrade YAML,
-database, and secrets because older versions cannot open schema 8 or reconstruct
-resources from the normalized core file.
+Private state snapshots preserve database resources and owner-scoped secrets.
+Portable exports intentionally omit passwords, Event API token values, and
+destination credentials.
+
+v3.1.1 keeps schema 9, so no database migration is required from v3.1.0.
+Historical rollback notes for older schema transitions remain in their original
+release/acceptance files.
+
+See [current-configuration-model.md](current-configuration-model.md),
+[platform-state.md](platform-state.md), and
+[data-portability.md](data-portability.md).
