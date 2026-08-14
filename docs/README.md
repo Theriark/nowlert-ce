@@ -56,20 +56,23 @@ changes current behavior.
 
 ## Screenshots
 
-Current public screenshots live under `images/` and must be captured from the
-release candidate that is actually promoted. Do not publish screenshots that
-show passwords, destination URLs, API tokens, setup tokens, private hostnames,
-email addresses, or other secret/personal material.
+Current public screenshots live under `images/`. v3.1.1 does not introduce a
+visual redesign, so it deliberately reuses the approved v3.1.0 visual baseline
+rather than duplicating identical PNGs under new filenames.
 
-For v3.1.1, the documentation uses:
+The README/current WebUI documentation uses:
 
-- `v3.1.1-dashboard.png`
-- `v3.1.1-routes.png`
-- `v3.1.1-route-editor.png`
-- `v3.1.1-users.png`
-- `v3.1.1-backups.png`
-- `v3.1.1-delivery-history.png`
-- `v3.1.1-audit-log.png`
+- `v3.1.0-dashboard.png`
+- `v3.1.0-routing-flow.png`
+- `v3.1.0-destinations.png`
+- `v3.1.0-delivery-history.png`
+- `v3.1.0-discord-xen-orchestra.png`
+- `v3.1.0-teams-xen-orchestra.png`
+
+Refresh screenshots only when the rendered UI or notification presentation
+materially changes. Never publish captures that show passwords, destination
+URLs, API tokens, setup tokens, private hostnames, email addresses, or other
+secret/personal material.
 
 ## Documentation validation
 
@@ -83,5 +86,6 @@ python -m pytest -q tests/test_comprehensive_readme.py \
   tests/test_v311_release_docs.py
 ```
 
-Documentation, release metadata, runtime version, Compose defaults, and current
-screenshots should describe the same release before a tag is created.
+Documentation, release metadata, runtime version, Compose defaults, and the
+approved visual baseline should describe the same release before a tag is
+created.
