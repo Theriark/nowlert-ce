@@ -9,13 +9,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 CURRENT_SCREENSHOTS = (
-    "v3.1.1-dashboard.png",
-    "v3.1.1-routes.png",
-    "v3.1.1-route-editor.png",
-    "v3.1.1-users.png",
-    "v3.1.1-backups.png",
-    "v3.1.1-delivery-history.png",
-    "v3.1.1-audit-log.png",
+    "v3.1.0-dashboard.png",
+    "v3.1.0-routing-flow.png",
+    "v3.1.0-destinations.png",
+    "v3.1.0-delivery-history.png",
+    "v3.1.0-discord-xen-orchestra.png",
+    "v3.1.0-teams-xen-orchestra.png",
 )
 
 
@@ -43,7 +42,7 @@ def test_v311_release_identity_is_consistent():
     assert checklist.startswith("# Nowlert CE v3.1.1 QA checklist")
 
 
-def test_v311_current_screenshots_are_packaged_and_referenced():
+def test_v311_approved_visual_baseline_is_packaged_and_referenced():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     webui = (ROOT / "docs" / "webui.md").read_text(encoding="utf-8")
     docs_index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
@@ -54,6 +53,8 @@ def test_v311_current_screenshots_are_packaged_and_referenced():
         assert path.stat().st_size > 0, filename
         assert filename in readme or filename in webui
         assert filename in docs_index
+
+    assert "does not introduce a visual redesign" in docs_index
 
 
 def test_v311_release_notes_cover_cumulative_qa_and_immutable_release():
