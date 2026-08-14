@@ -1,24 +1,21 @@
-# Container deployment
+# Container deployment and release flow
 
-Nowlert keeps development and production Compose definitions separate:
+Nowlert CE uses one source commit and one immutable image digest through its
+release chain. Development builds the image once; Stage and Production
+Reference promote that digest without rebuilding; release finalization tags the
+same source commit; stable registry aliases copy the approved digest without
+building from the tag.
 
-- `docker-compose.yml` builds the checked-out source and publishes development
-  ports `8026` and `18082`;
-- `compose.production.yaml` runs a versioned published image on production
-  ports `8025` and `18080` by default.
+## Local development checkout
 
-Do not run both definitions with the same container name or host ports.
-
-## Development checkout
-
-Create the private configuration once and keep it outside Git:
+Create private configuration outside Git-tracked files:
 
 ```bash
 cp config/config.example.yaml config/config.yaml
 nano config/config.yaml
 ```
 
-Build and start the development service:
+Build and start the local development Compose service:
 
 ```bash
 docker compose -f docker-compose.yml up -d --build
@@ -26,38 +23,25 @@ docker compose -f docker-compose.yml ps
 docker logs --tail 100 nowlert-ce-dev
 ```
 
-Expected listeners are host TCP `8026` for SMTP and host TCP `18082` for the
-optional HTTP input. The HTTP listener starts only when `http.enabled` is true
-in the private configuration.
+The development Compose definition builds the checked-out source and uses the
+development host ports documented in that file.
 
 ## Production host preparation
 
-Copy the environment template, create writable bind-mount directories, and
-record the deployment user's numeric identity:
-
 ```bash
 cp .env.example .env
+cp config/config.example.yaml config/config.yaml
 mkdir -p logs/emails secrets state external-backups
-id -u
-id -g
 chmod 600 .env config/config.yaml
 chmod 700 logs logs/emails secrets state external-backups
+id -u
+id -g
 ```
 
-Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the values printed by
-`id`. The production service uses that identity instead of container root.
-Files mounted below `/run/secrets` must be readable by this identity and mode
-`0600` when used as API-token or SMTP-password sources.
+Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the identity that owns the
+mounted directories.
 
-The writable `state` mount contains the v2 SQLite database and owner-scoped
-secret files. Platform state and the WebUI are enabled by default and can be
-disabled explicitly. See the [platform-state guide](platform-state.md) before
-creating local accounts. Private state snapshots also live in this mount; configure
-`platform.backup_retention`, include the mount in encrypted off-host backups,
-and read the [data-portability guide](data-portability.md) before restore or
-v1.x migration.
-
-Validate and start the production definition:
+Validate and start the production Compose definition:
 
 ```bash
 docker compose -f compose.production.yaml config
@@ -67,14 +51,13 @@ docker compose -f compose.production.yaml ps
 docker logs --tail 100 nowlert-ce
 ```
 
-The production definition drops Linux capabilities, prevents privilege
-escalation, uses a read-only root filesystem, provides a bounded temporary
-filesystem, and writes only to the configured `config`, `logs`, and secrets
-mounts.
+The base production definition runs non-root, drops Linux capabilities,
+prevents privilege escalation, uses a read-only root filesystem, and persists
+only the explicitly mounted configuration/state/log/backup paths.
 
 ## Portainer stacks
 
-Replace relative paths in `.env` with absolute host paths, for example:
+Use absolute host paths in `.env`, for example:
 
 ```dotenv
 NOWLERT_CONFIG_DIR=/docker/nowlert-ce/config
@@ -84,272 +67,275 @@ NOWLERT_STATE_DIR=/docker/nowlert-ce/state
 NOWLERT_EXTERNAL_BACKUP_DIR=/mnt/nowlert-backups
 ```
 
-Use a versioned image tag for production. Upgrade only after validating the
-same image in development, then change `NOWLERT_IMAGE`, pull, and redeploy.
+Pin a versioned image for production rather than relying only on `latest`.
 
-## v2.5.0 database-authoritative resources upgrade
+## Persistent recovery boundary
 
-Before deployment, create a matched backup of `config`, `state`, and `secrets`.
-v2.5.0 upgrades platform state to schema 8. During the first successful start,
-Nowlert imports destinations, routes, YAML application tokens, regional
-preferences, backup scheduling, integration notification behavior, Home
-Assistant aliases, UniFi Protect aliases, and Redfish deduplication settings.
+Before an upgrade, keep a matched backup of:
 
-After the import succeeds, `config.yaml` is atomically normalized and receives
-`platform.configuration_model: platform_database_v1`. The migrated `outputs`,
-`routing`, `api.tokens`, `notifications`, `presentation`, `home_assistant`,
-`redfish`, `platform.backups`, and `webui.language` sections are removed. The
-original file is retained in `config/backups` and its ownership and mode are
-preserved.
+- `config`;
+- `state`;
+- external `secrets`, when used;
+- the deployment definition; and
+- the currently running image reference/digest.
 
-Deploy and validate v2.5.0 in an isolated container with a copied production
-configuration before replacing production. Confirm that resource counts,
-credential-backed test deliveries, application-token authentication, aliases,
-regional settings, and backup scheduling match production. Complete the
-[v2.5.0 acceptance checklist](v2.5.0-acceptance-checklist.md).
+v3.1.1 keeps schema 9, so upgrading from v3.1.0 does not require a database
+migration. A matched backup is still required for safe rollback after state has
+changed.
 
-Rollback to v2.4.0 requires stopping v2.5.0 and restoring the matched pre-upgrade
-`config`, `state`, and `secrets` backup. v2.4.0 cannot open schema 8 and the
-normalized v2.5.0 YAML no longer contains destinations or routes.
+---
 
-## v2.3.7 fixed-box Overview icon corrective upgrade
+# Repository environment model
 
-v2.3.7 keeps platform schema 6. After redeployment, force-refresh the browser
-and verify that every Overview source card matches Home Assistant while the
-selected source artwork is more legible inside the unchanged icon boxes.
-Notification payloads and destination rendering are not changed.
+The release branches represent approved source state:
 
-Complete the
-[v2.3.7 acceptance checklist](v2.3.7-acceptance-checklist.md) before production.
+| Branch | Meaning |
+|---|---|
+| `development` | cumulative active work; CI builds/deploys the Development candidate |
+| `stage` | exact source commit approved by the Stage promotion gate |
+| `main` | exact Stage-approved source after explicit fast-forward; required for Production Reference/release |
 
-## v2.3.6 scoped icon and Redfish corrective upgrade
+The desired invariant before Production Reference is:
 
-v2.3.6 keeps platform schema 6. After redeployment, force-refresh the browser,
-verify that normal source icons returned to their previous size, confirm that
-only the requested products remain enlarged, and verify the official Redfish
-identity.
+```text
+development SHA == stage SHA == main SHA == image source SHA
+```
 
-Complete the
-[v2.3.6 acceptance checklist](v2.3.6-acceptance-checklist.md) before production.
+The runtime image is additionally pinned by immutable digest.
 
-## v2.3.5 source identity and removal corrective upgrade
+## Development
 
-v2.3.5 keeps platform schema 6. After redeployment, force-refresh the browser,
-verify `xo` and `redfish` source icons, confirm the enlarged Overview icons, and
-remove one inactive source through the Sources page.
+A push to `development` runs CI. After the test job passes, the Development
+image workflow builds/publishes the candidate and deploys that exact digest to
+Development.
 
-Complete the
-[v2.3.5 acceptance checklist](v2.3.5-acceptance-checklist.md) before production.
+Record from the successful Development run:
 
-## v2.3.4 final WebUI corrective upgrade
+```text
+SOURCE_COMMIT=<40-char development SHA>
+FINAL_IMAGE=ghcr.io/theriark/nowlert-ce@sha256:<digest>
+DEVELOPMENT_RUN_ID=<run id>
+```
 
-v2.3.4 keeps platform schema 6 and does not migrate `config.yaml` or SQLite
-state. Stop the container and copy the complete configuration, state, log, and
-secrets mounts before changing the image from `2.3.3` to `2.3.4`.
+Do not replace the immutable digest with a mutable tag for later promotions.
 
-After deployment, force-refresh the browser once, verify F5 on several pages,
-run Check for updates, send one source-aware destination test, remove one safe
-inactive source, and validate both 12-hour and 24-hour scheduled backup entry.
+## Stage
 
-Complete the
-[v2.3.4 acceptance checklist](v2.3.4-acceptance-checklist.md) before production.
+Stage promotion is manually dispatched from `development` with:
 
-## v2.3.3 WebUI corrective upgrade
+- `ce_image` — the exact Development immutable image;
+- `source_commit` — the exact source SHA that built it; and
+- `change_reference` — issue/release reference.
 
-v2.3.3 keeps platform schema 6 and does not migrate `config.yaml` or SQLite
-state. Stop the container and copy the complete configuration, state, log, and
-secrets mounts before changing the image from `2.3.2` to `2.3.3`.
+The workflow:
 
-After deployment, force-refresh the browser once, verify F5 on several pages,
-run Check for updates, send one source-aware destination test, remove one safe
-inactive source, and validate both 12-hour and 24-hour scheduled backup entry.
+1. requires the source commit to equal current `development`;
+2. runs the full test gate in a network-isolated namespace;
+3. deploys the exact digest to Stage;
+4. runs a passive notification-silent live smoke;
+5. records desired state in the release ledger; and
+6. advances the `stage` branch to the approved source SHA.
 
-Complete the
-[v2.3.3 acceptance checklist](v2.3.3-acceptance-checklist.md) before production.
+No rebuild is performed.
 
-## v2.3.2 corrective upgrade
-
-v2.3.2 keeps platform schema 6. Stop the container and copy the complete
-configuration, state, log, and secrets mounts before changing the image from
-`2.3.1` to `2.3.2`.
-
-For direct NFS/SMB mounting, render and deploy the production definition with
-the managed-backup override:
+Example CLI:
 
 ```bash
-docker compose \
-  -f compose.production.yaml \
-  -f compose.managed-backups.yaml \
-  config
-
-docker compose \
-  -f compose.production.yaml \
-  -f compose.managed-backups.yaml \
-  up -d
+gh workflow run promote-stage.yml \
+  --repo Theriark/nowlert-ce \
+  --ref development \
+  -f ce_image="$FINAL_IMAGE" \
+  -f source_commit="$SOURCE_COMMIT" \
+  -f change_reference="v3.1.1"
 ```
 
-The override runs as root and adds `DAC_OVERRIDE`, `FOWNER`, and `SYS_ADMIN`
-after the base service drops every capability. These are required to access
-existing UID-owned bind mounts, apply the platform state mode, and perform the
-remote mount. Managed NFS backup mounts add `nolock`, so NFSv3 does not need
-`rpc.statd` runtime files below the read-only `/run`.
+After success, record:
 
-Complete the
-[v2.3.2 acceptance checklist](v2.3.2-acceptance-checklist.md) before production.
-
-## v2.3.1 corrective WebUI upgrade
-
-v2.3.1 keeps platform schema 6. Stop the container, copy the complete
-configuration and state mounts, then change only the image from `2.3.0` to
-`2.3.1`.
-
-For trusted-LAN HTTP login:
-
-```yaml
-platform:
-  secure_cookies: false
-webui:
-  public_url: ""
-  enforce_https: false
+```text
+STAGE_PROMOTION_RUN_ID=<successful Promote CE to Stage run id>
 ```
 
-For reverse-proxied HTTPS:
+## Fast-forward `main`
 
-```yaml
-platform:
-  secure_cookies: true
-webui:
-  public_url: "https://nowlert.example.com"
-  enforce_https: true
-```
+Production Reference is intentionally blocked until `main` and `stage` point to
+the same approved source commit.
 
-Saving an NFS or SMB destination enables managed mounts automatically. Start
-the service with both Compose files when using that feature:
+Verify Stage is strictly ahead/identical and fast-forward only:
 
 ```bash
-docker compose \
-  -f compose.production.yaml \
-  -f compose.managed-backups.yaml \
-  up -d
+SOURCE_COMMIT="$(gh api \
+  repos/Theriark/nowlert-ce/git/ref/heads/stage \
+  --jq '.object.sha')"
+
+MAIN_SHA="$(gh api \
+  repos/Theriark/nowlert-ce/git/ref/heads/main \
+  --jq '.object.sha')"
+
+gh api \
+  "repos/Theriark/nowlert-ce/compare/${MAIN_SHA}...${SOURCE_COMMIT}" \
+  --jq '{status,ahead_by,behind_by}'
 ```
 
-Complete the
-[v2.3.1 acceptance checklist](v2.3.1-acceptance-checklist.md) before production.
-
-## v2.3.0 WebUI and backup-destination upgrade
-
-Stop the existing container and copy the complete configuration and state
-mounts before changing the image. v2.3.0 creates a schema-5 SQLite snapshot
-before schema 6. A v2.2.1 image cannot open schema-6 platform state.
-
-The safest NFS/SMB arrangement remains a host-mounted share bound into the
-container. Create a Local target in the WebUI whose path is inside that bounded
-mount; Nowlert retains its non-root identity, read-only root filesystem, and
-dropped capabilities.
-
-Application-managed NFS/SMB mounts are opt-in. They require the mount helpers
-packaged in the image, `platform.backups.managed_mounts: true`, and the
-managed-mount override:
+Only when the compare result is a fast-forward-safe state, move `main` without
+force:
 
 ```bash
-docker compose \
-  -f compose.production.yaml \
-  -f compose.managed-backups.yaml \
-  config
-
-docker compose \
-  -f compose.production.yaml \
-  -f compose.managed-backups.yaml \
-  up -d
+gh api --method PATCH \
+  repos/Theriark/nowlert-ce/git/refs/heads/main \
+  -f sha="$SOURCE_COMMIT" \
+  -F force=false
 ```
 
-The v2.3.2 override runs the service as root with `DAC_OVERRIDE`, `FOWNER`, and
-`SYS_ADMIN`. Use it only on a dedicated trusted host. Prefer a read/write share
-restricted to the Nowlert host and backup path. SMB secrets are encrypted in
-private state and remain write-only, but moving mount authority into the
-container increases impact if the application is compromised.
+Re-read both refs and require equality before continuing.
 
-For enforced HTTPS entry, set `webui.public_url` to the external HTTPS URL and
-`webui.enforce_https: true`. The reverse proxy supplies TLS; Nowlert redirects
-only browser WebUI requests and does not manufacture an HTTPS endpoint.
+## Production Reference
 
-After deployment, complete the
-[v2.3.0 acceptance checklist](v2.3.0-acceptance-checklist.md).
+Production Reference must be dispatched from `main`.
 
-## v2.2.0 operational upgrade
+Inputs:
 
-Before changing the image, stop the existing container and copy the complete
-configuration and state mounts. v2.2.0 creates a schema-4 SQLite snapshot before
-schema 5. The unified YAML remains compatible with v2.1.0, but a v2.1.0 image
-cannot open schema-5 platform state.
+- `ce_image` — Stage-approved immutable image;
+- `source_commit` — source SHA; and
+- `stage_promotion_run` — successful Stage promotion run ID or URL.
 
-After deployment, verify notices, all five Overview ranges, every configured
-route in Routing Flow, destination preview/test delivery, application status,
-profile pictures, health checks, and input toggles. Run one real source event
-and confirm one delivery record with device, event, source, status, attempt,
-and input fields.
+The workflow requires:
 
-For external backup storage, mount NFS or SMB on the Docker host using the
-host's normal credential controls, then bind that directory into the container:
-
-```yaml
-volumes:
-  - /mnt/nowlert-backups:/nowlert/external-backups
+```text
+source_commit == main == stage
 ```
 
-Set the WebUI external path to `/nowlert/external-backups`. The container
-does not need `SYS_ADMIN`, mount privileges, or network-share credentials.
+It also verifies the exact image is currently approved in Stage, verifies the
+Stage desired-state ledger/evidence, reruns the full network-isolated gate,
+deploys the same digest to Production Reference, runs a passive live smoke, and
+records the Production Reference desired state.
 
-## v2.1.0 unified-configuration upgrade
+Example CLI:
 
-Stop the existing container and copy the complete configuration and state
-mounts before changing the image. v2.1.0 automatically creates a schema-3
-SQLite snapshot before schema 4 and an atomic YAML backup before converting the
-v2.0.2 authority marker. The host-level offline copy remains the recovery
-boundary for a complete image rollback.
+```bash
+gh workflow run promote-production-reference.yml \
+  --repo Theriark/nowlert-ce \
+  --ref main \
+  -f ce_image="$FINAL_IMAGE" \
+  -f source_commit="$SOURCE_COMMIT" \
+  -f stage_promotion_run="$STAGE_PROMOTION_RUN_ID"
+```
 
-After signing in, verify that Destinations and Routes each show one YAML-backed
-list without fallback duplicates. The Overview flow map must include every
-enabled route. Edit one harmless display field in the WebUI and confirm the
-same value in the host `config.yaml`; then edit it back in the file and refresh
-the WebUI. Run one real source event and confirm one destination delivery and a
-`delivered` history outcome.
+Record the successful run ID:
 
-## Reverse proxy boundary
+```text
+PRODUCTION_REFERENCE_RUN_ID=<run id>
+```
 
-Port `8080` is HTTP and may be published through Nginx Proxy Manager. Publishing
-the container port remains an explicit deployment choice; restrict the proxy or
-firewall to approved senders. Port `8025` is SMTP and must not be sent through
-an HTTP reverse proxy.
+## Release finalization
 
-The platform API uses a short-lived first-run token printed to container output
-to create the first administrator in the browser. Its four components remain
-independently controllable through `http.enabled`, `api.enabled`,
-`platform.enabled`, and `webui.enabled`. Keep
-`platform.secure_cookies: true`, publish `/api/v2` only through HTTPS, disable
-proxy caching, preserve duplicate `Set-Cookie` response headers, and apply
-request/body limits. Do not rewrite `Authorization`, `Cookie`, or
-`X-CSRF-Token`. See the [platform API guide](platform-api.md) before enabling
-the endpoint outside isolated development and the [WebUI guide](webui.md) for
-the browser security boundary.
+Release finalization runs from `main` and creates the annotated version tag and
+GitHub Release on that exact commit. It does not deploy or rebuild the image.
+
+Inputs include the source commit, final immutable image, Development/Stage/
+Production Reference evidence run IDs, and human-readable release notes.
+
+Example for v3.1.1:
+
+```bash
+gh workflow run finalize-release.yml \
+  --repo Theriark/nowlert-ce \
+  --ref main \
+  -f version="v3.1.1" \
+  -f final_image="$FINAL_IMAGE" \
+  -f source_commit="$SOURCE_COMMIT" \
+  -f development_run_id="$DEVELOPMENT_RUN_ID" \
+  -f stage_promotion_run_id="$STAGE_PROMOTION_RUN_ID" \
+  -f production_reference_run_id="$PRODUCTION_REFERENCE_RUN_ID" \
+  -f release_notes="Nowlert CE v3.1.1 QA and immutable promotion hardening"
+```
+
+The workflow refuses an existing tag/release, verifies current `main`, verifies
+the live Production Reference digest, validates promotion evidence, writes the
+release ledger record, creates the annotated tag/GitHub Release, and uploads
+release evidence.
+
+## Stable production image aliases
+
+After the release tag exists, run **Docker Release Aliases** from `main`:
+
+```bash
+gh workflow run docker-release.yml \
+  --repo Theriark/nowlert-ce \
+  --ref main \
+  -f tag="v3.1.1" \
+  -f final_image="$FINAL_IMAGE"
+```
+
+This workflow uses registry-copy tooling to publish:
+
+```text
+ghcr.io/theriark/nowlert-ce:3.1.1
+ghcr.io/theriark/nowlert-ce:latest
+docker.io/theriark/nowlert-ce:3.1.1
+docker.io/theriark/nowlert-ce:latest
+```
+
+All aliases must resolve to the approved Production Reference digest. **No
+image rebuild is performed from the release tag.**
+
+For Community Edition this stable registry publication is the production
+release boundary. There is no additional CE Dokploy `Production` deployment
+workflow after Production Reference; operators consume the released stable
+image from GHCR/Docker Hub.
+
+## Watching workflow runs from CLI
+
+List recent runs:
+
+```bash
+gh run list --repo Theriark/nowlert-ce --limit 20
+```
+
+Watch a known run and return non-zero on failure:
+
+```bash
+gh run watch "$RUN_ID" \
+  --repo Theriark/nowlert-ce \
+  --exit-status
+```
+
+Inspect run summary/jobs:
+
+```bash
+gh run view "$RUN_ID" --repo Theriark/nowlert-ce
+gh run view "$RUN_ID" --repo Theriark/nowlert-ce --log-failed
+```
 
 ## Rollback
 
-Set `NOWLERT_IMAGE` back to the previously validated version, then run:
+### Before stable publication
 
-```bash
-docker compose -f compose.production.yaml pull
-docker compose -f compose.production.yaml up -d
-docker logs --tail 100 nowlert-ce
-```
+If Stage or Production Reference fails, stop the release. Do not move forward
+with the tag or stable aliases. Promotion workflows contain bounded rollback
+handling for failed live gates where a previous image is available.
 
-Configuration and logs remain on the host. Review release-specific migration
-notes before rolling back across a configuration or data-schema change.
+### After stable publication
 
-v2.2.0 upgrades platform state to schema 5. A v2.1.0 image rejects schema 5.
-For rollback, stop Nowlert, restore the complete pre-upgrade configuration
-and state directories, pin `fortpt/nowlert:2.1.0`, and then start the stack.
+A source rollback and a state rollback are separate decisions:
 
-v2.3.0 upgrades platform state to schema 6. Rollback to v2.2.1 requires the
-complete pre-v2.3.0 state and configuration copy; never hand-edit the schema
-marker.
+1. identify the last known-good version and digest;
+2. determine whether private state changed incompatibly;
+3. if required, restore the matched pre-upgrade state/config/secret backup;
+4. pin the known-good version/digest; and
+5. verify health/login/routing/delivery before restoring traffic.
+
+Never point an older image at a database schema it cannot open.
+
+## Documentation/release consistency
+
+Before finalization, verify all of the following describe the same candidate:
+
+- `src/version.py`;
+- `.env.example`;
+- `compose.production.yaml`;
+- `README.md`;
+- `DOCKERHUB_README.md`;
+- `CHANGELOG.md`;
+- current release notes/QA checklist;
+- screenshots; and
+- the Development/Stage/Production Reference source SHA and immutable digest.
