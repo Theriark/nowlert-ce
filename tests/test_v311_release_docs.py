@@ -90,6 +90,7 @@ def test_v311_release_notes_cover_cumulative_qa_and_immutable_release():
 def test_v311_deployment_docs_contain_cli_promotion_chain():
     deployment = (ROOT / "docs" / "deployment.md").read_text(encoding="utf-8")
     normalized_deployment = " ".join(deployment.split())
+    normalized_deployment_folded = normalized_deployment.casefold()
 
     for workflow in (
         "promote-stage.yml",
@@ -100,10 +101,10 @@ def test_v311_deployment_docs_contain_cli_promotion_chain():
         assert f"gh workflow run {workflow}" in deployment
 
     assert "-F force=false" in deployment
-    assert "image rebuild is performed from the release tag" in normalized_deployment.casefold()
+    assert "image rebuild is performed from the release tag" in normalized_deployment_folded
     assert (
-        "there is no additional CE Dokploy `Production` deployment workflow"
-        in normalized_deployment
+        "there is no additional ce dokploy `production` deployment workflow"
+        in normalized_deployment_folded
     )
 
 
