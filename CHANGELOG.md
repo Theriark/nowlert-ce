@@ -2,21 +2,60 @@
 
 ## Unreleased
 
-- Restore the comprehensive README and update its existing sections for v2.5.2 without removing the detailed project, architecture, deployment, roadmap, and contribution documentation.
-- Complete the Nowlert identity cleanup across runtime paths, protocols,
-  persistent filenames, tests, fixtures, workflows, and documentation.
-- Remove pre-v3 identifier aliases. Fresh deployments must use the documented
-  `NOWLERT_*` variables, `X-Nowlert-*` headers, `/nowlert` paths, and
-  `nowlert.*` schemas.
+- No unreleased changes recorded after the v3.1.1 release candidate.
 
-### Documentation
+## 3.1.1 - 2026-08-14
 
-- Replace legacy v1.9.6 previews with current v2.5.2 WebUI, Discord, and
-  Microsoft Teams screenshots.
-- Align README, Docker Hub, WebUI, integration, roadmap, and public
-  configuration guidance with the schema-8 database-authoritative model.
-- Align the public platform state path with the production `/nowlert/state`
-  mount and add the v2.3.3-to-v2.5.2 implementation sequence.
+### Added
+
+- Add administrator-only permanent user deletion with server-side safety checks,
+  explicit WebUI confirmation, and audit coverage.
+- Add administrator deletion of individual private state backups without
+  affecting unrelated snapshots.
+- Add current v3.1.1 release notes, QA checklist, documentation index, and a
+  documentation validator that binds public docs/screenshots to the release.
+
+### Changed
+
+- Simplify route editing to Included Severities and Included Statuses; values not
+  selected in those controls are implicitly excluded.
+- Keep native selected-option styling while supporting normal single-click
+  additive/subtractive severity and status selection and preserving range/drag
+  behavior.
+- Scope route criteria to the selected integration/input contract and preserve
+  full-list selections in the Routes summary.
+- Unify Delivery History and Audit Log pagination around an editable
+  `Page [n] of N - X items` control, left-aligned Top navigation, and a
+  right-aligned Entries selector.
+- Refresh README, Docker Hub text, WebUI, API, state, routing, output,
+  deployment, portability, roadmap, contribution, and configuration guidance
+  around the current database-authoritative v3.1.1 model.
+
+### Fixed
+
+- Display the authoritative Admin/User role in the signed-in profile chip.
+- Remove duplicate/redundant Delivery History status decoration.
+- Keep saved full-list route criteria visible when the other criterion uses a
+  partial selection.
+
+### Release engineering
+
+- Align cumulative work with `development`, Stage-approved source with `stage`,
+  and Production Reference/release source with `main`.
+- Build the CE image once in Development, promote the exact immutable digest to
+  Stage and Production Reference without rebuilding, and record desired-state
+  ledger evidence.
+- Require Production Reference source to equal both current `main` and the
+  Stage-approved source.
+- Create the release tag on the exact current `main` commit and publish stable
+  GHCR/Docker Hub version and `latest` aliases by registry copy rather than by
+  rebuilding from the release tag.
+
+### Compatibility
+
+- Database schema remains 9 and the configuration model remains
+  `platform_database_v1`.
+- No database migration is required from v3.1.0.
 
 ## 3.1.0 - 2026-08-08
 
@@ -1003,8 +1042,8 @@
   cluster, storage, availability, security, guest, and system notifications.
 - A versioned Proxmox webhook contract at `POST /proxmox/events`, protected by
   the existing `X-Nowlert-Token` HTTP authentication boundary.
-- Dedicated Proxmox VE Discord embeds, Microsoft Teams Adaptive Cards,
-  routing examples, synthetic email/JSON fixtures, and integration guidance.
+- Dedicated Proxmox VE Discord embeds, Microsoft Teams Adaptive Cards, routing
+  examples, synthetic email/JSON fixtures, and integration guidance.
 - Native Portainer BE Alerting ingestion at `POST /portainer/alerts`, including
   grouped firing/resolved events and URL query-token authentication for
   Portainer's URL-only webhook channel.
