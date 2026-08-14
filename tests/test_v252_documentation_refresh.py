@@ -1,4 +1,4 @@
-"""Historical v2.5.2 assets and current v3.1.0 documentation contract."""
+"""Preserve historical v2.5.2 assets and validate current v3.1.1 docs."""
 
 from pathlib import Path
 
@@ -8,24 +8,26 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_stable_documentation_uses_v310_and_preserves_v252_assets():
+def test_stable_documentation_uses_v311_and_preserves_v252_assets():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     dockerhub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
+    webui = (ROOT / "docs" / "webui.md").read_text(encoding="utf-8")
 
-    assert "v3.1.0" in readme
-    assert "v3.1.0" in dockerhub
+    assert "v3.1.1" in readme
+    assert "v3.1.1" in dockerhub
 
     current = (
-        "v3.1.0-dashboard.png",
-        "v3.1.0-routing-flow.png",
-        "v3.1.0-destinations.png",
-        "v3.1.0-delivery-history.png",
-        "v3.1.0-discord-xen-orchestra.png",
-        "v3.1.0-teams-xen-orchestra.png",
+        "v3.1.1-dashboard.png",
+        "v3.1.1-routes.png",
+        "v3.1.1-route-editor.png",
+        "v3.1.1-users.png",
+        "v3.1.1-backups.png",
+        "v3.1.1-delivery-history.png",
+        "v3.1.1-audit-log.png",
     )
     for name in current:
-        assert (ROOT / "docs" / "images" / name).is_file()
-        assert name in readme
+        assert (ROOT / "docs" / "images" / name).is_file(), name
+        assert name in readme or name in webui
 
     historical = (
         "v2.5.2-overview.png",
@@ -38,7 +40,7 @@ def test_stable_documentation_uses_v310_and_preserves_v252_assets():
         "v2.5.2-teams.png",
     )
     for name in historical:
-        assert (ROOT / "docs" / "images" / name).is_file()
+        assert (ROOT / "docs" / "images" / name).is_file(), name
 
     assert "v2.5.2-overview.png" not in readme
     assert "teams-xen-orchestra-v1.9.6.png" not in readme
@@ -62,7 +64,14 @@ def test_public_config_matches_production_state_mount():
     assert config["platform"]["configuration_model"] == "platform_database_v1"
     assert config["platform"]["state_dir"] == "/nowlert/state"
 
-    for removed in ("outputs", "routing", "notifications", "presentation", "home_assistant", "redfish"):
+    for removed in (
+        "outputs",
+        "routing",
+        "notifications",
+        "presentation",
+        "home_assistant",
+        "redfish",
+    ):
         assert removed not in config
 
     assert "tokens" not in config["api"]
@@ -72,10 +81,16 @@ def test_public_config_matches_production_state_mount():
 
 def test_current_docs_and_roadmap_exist():
     required = (
+        "docs/README.md",
         "docs/current-configuration-model.md",
+        "docs/deployment.md",
         "docs/integrations-and-inputs.md",
+        "docs/platform-api.md",
+        "docs/platform-routing.md",
+        "docs/platform-state.md",
+        "docs/releases/v3.1.1.md",
         "docs/roadmap.md",
-        "docs/version-history-2.3.3-to-2.5.2.md",
+        "docs/v3.1.1-qa-checklist.md",
         "docs/webui.md",
     )
     for relative in required:
