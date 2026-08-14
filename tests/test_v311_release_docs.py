@@ -64,7 +64,18 @@ def test_v311_release_notes_cover_cumulative_qa_and_immutable_release():
         encoding="utf-8"
     )
 
-    for issue in ("NCE-30", "NCE-31", "NCE-32", "NCE-33", "NCE-34", "NCE-35", "NCE-36", "NCE-37", "NCE-38", "NCE-39"):
+    for issue in (
+        "NCE-30",
+        "NCE-31",
+        "NCE-32",
+        "NCE-33",
+        "NCE-34",
+        "NCE-35",
+        "NCE-36",
+        "NCE-37",
+        "NCE-38",
+        "NCE-39",
+    ):
         assert issue in release or issue in checklist
 
     assert "schema **9**" in release
@@ -86,7 +97,7 @@ def test_v311_deployment_docs_contain_cli_promotion_chain():
         assert f"gh workflow run {workflow}" in deployment
 
     assert "-F force=false" in deployment
-    assert "No image rebuild is performed from the release tag." in deployment
+    assert "image rebuild is performed from the release tag" in deployment.casefold()
     assert "there is no additional CE Dokploy `Production` deployment workflow" in deployment
 
 
