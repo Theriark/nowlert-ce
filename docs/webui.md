@@ -4,6 +4,10 @@ Nowlert v3.1.1 packages a responsive, dependency-free management interface in
 the application image. The browser uses the authenticated same-origin
 `/api/v2` contract and never needs direct access to SQLite or secret files.
 
+The v3.1.1 patch keeps the approved v3.1.0 visual design. Existing approved
+screenshots therefore remain the visual baseline where a screenshot is useful;
+new screenshots are required only when the rendered UI materially changes.
+
 ## Activation
 
 ```yaml
@@ -58,7 +62,7 @@ administration:
 - complete Integration/Input → Route → Destination flow; and
 - independent working, disabled, warning, and error states.
 
-![Nowlert v3.1.1 Dashboard](images/v3.1.1-dashboard.png)
+![Nowlert Dashboard](images/v3.1.0-dashboard.png)
 
 ### Sources
 
@@ -105,10 +109,6 @@ save.
 Wildcard routes are labelled **Fallback**. They are evaluated only when no
 enabled dedicated integration route matches the event.
 
-![Nowlert v3.1.1 Routes](images/v3.1.1-routes.png)
-
-![Nowlert v3.1.1 Route editor](images/v3.1.1-route-editor.png)
-
 ### Event API tokens
 
 Event API tokens authorize external applications to submit
@@ -138,7 +138,7 @@ Pagination behavior is shared with Audit Log:
 - page size persists; and
 - the header **Bottom** shortcut and page-change scroll behavior remain.
 
-![Nowlert v3.1.1 Delivery History](images/v3.1.1-delivery-history.png)
+![Nowlert Delivery History](images/v3.1.0-delivery-history.png)
 
 ### Audit Log
 
@@ -147,8 +147,6 @@ see activity allowed by the ownership model; administrators can inspect all
 retained audit events.
 
 It uses the same v3.1.1 pagination contract as Delivery History.
-
-![Nowlert v3.1.1 Audit Log](images/v3.1.1-audit-log.png)
 
 ### Users
 
@@ -166,8 +164,6 @@ would leave the platform without administrative access.
 The sidebar profile chip uses the same authoritative account role as access
 control, so administrator accounts display **Admin** and regular accounts
 display **User**.
-
-![Nowlert v3.1.1 Users](images/v3.1.1-users.png)
 
 ### Settings
 
@@ -205,8 +201,6 @@ The administration UI provides:
 Deleting one private state backup does not affect other backups and is audited.
 Restore remains a separate confirmed operation with integrity verification and
 a safety snapshot.
-
-![Nowlert v3.1.1 Backups](images/v3.1.1-backups.png)
 
 ## Browser security
 
