@@ -1,124 +1,142 @@
 # Platform data portability and migration
 
-Nowlert provides administrator-only, preview-first tools for moving platform
-destinations and routes and for protecting private platform state. v2.1.0 keeps
-the configuration mounted inside the running container authoritative while
-mirroring it privately for delivery operations.
+Nowlert v3.1.1 provides two intentionally different mechanisms:
 
-## Mounted configuration inventory
+1. **credential-free portability** for moving safe platform configuration; and
+2. **private state backups** for recovery/rollback of the full local platform
+   state.
 
-The WebUI reads `config.yaml` only on the server and returns credential-free
-resource metadata. It never returns webhook URLs, shared secrets, passwords,
-token values, hashes, environment values, or secret-file contents.
+Do not treat a portability export as a disaster-recovery backup.
 
-## Live mounted-configuration synchronization
+## Current authority model
 
-Every administrator destination, route, and regional-setting change validates
-the complete candidate document, creates a timestamped configuration backup,
-atomically replaces `config.yaml`, and reloads it. Valid external file edits are
-detected before routing and WebUI refresh. Invalid YAML does not replace the
-last known-good runtime state; Data tools reports the validation error until the
-operator repairs the file.
+Normal v3.1.1 deployments use `platform_database_v1`.
 
-The first v2.1.0 synchronization matches v2.0.2-imported resources to their YAML
-counterparts and adopts any remaining database-only resources into YAML once.
-This removes fallback duplicates without losing configured credentials.
+- SQLite is authoritative for WebUI-managed resources.
+- `config.yaml` contains process/bootstrap and listener/security settings.
+- destination credentials remain in private owner-scoped secret files.
+
+Legacy YAML inventory/import endpoints exist for migration and compatibility,
+not as the normal current editing model.
 
 ## Safe platform export
 
-The WebUI **Data tools** page can download a versioned
-`nowlert.platform.v1` JSON document. It contains:
+The administrator-only portability export produces a versioned
+`nowlert.platform.v1` JSON document containing safe resource metadata such as:
 
 - destination owner names, display names, output types, public settings,
   sharing, and enabled state; and
-- route owner names, sources, filters, priorities, enabled state, and portable
-  destination references.
+- route owner names, integrations/sources, input types, filters, priorities,
+  enabled state, and portable destination references.
 
-The export never contains password hashes, session material, API-token hashes
-or values, secret identifiers, secret-file paths, stored digests, webhook URLs,
-passwords, or other destination credentials. A destination records only that a
-credential is required.
+The export deliberately excludes:
 
-Import requires the owner account to exist on the target instance. It is
-merge-only: an existing destination or route name is rejected rather than
-overwritten. A credential-dependent destination imported from safe JSON is
-disabled, and its imported routes are disabled, until an administrator enters
-the credential through the normal write-only destination form.
+- password hashes;
+- browser session material;
+- Event API token values/digests;
+- destination credentials;
+- secret identifiers and file paths;
+- webhook URLs stored as secrets; and
+- other private recovery material.
+
+A credential-dependent destination imported from safe JSON remains disabled
+until an administrator supplies its credential through the normal write-only
+form.
 
 ## Preview and fingerprint boundary
 
-JSON and YAML documents are limited to 1 MiB. The backend performs all
-normalization, ownership, output-setting, route-filter, and name-collision
-checks. The preview returns a SHA-256 fingerprint plus credential-free actions,
-warnings, and errors.
+Import is preview-first.
+
+The backend validates normalization, ownership, output settings, route filters,
+and name collisions, then returns a fingerprint plus bounded actions/warnings.
 
 Apply succeeds only when:
 
-1. the preview has no errors;
+1. preview has no blocking errors;
 2. the administrator explicitly confirms the operation; and
-3. the submitted document produces the exact preview fingerprint.
+3. the submitted document produces the same fingerprint.
 
-New resources are rolled back if any unexpected create fails. Imports never
-update or delete existing resources.
+Unexpected partial creation is rolled back. Import does not silently overwrite
+unrelated existing resources.
 
-## v1.x YAML migration
+## Legacy v1 YAML migration
 
-The YAML migration accepts the existing `outputs.discord`, `outputs.teams`,
-and `routing` structures. It creates shared administrator-owned destinations,
-owner routes, and owner-only secret files. Supported v1 host match filters are
-translated to platform route filters.
+The compatibility migration path can translate supported legacy output/routing
+structures into database-authoritative destinations/routes and owner-scoped
+secrets.
 
-Placeholders and routes whose target was not imported are skipped with a safe
-warning. Webhook values are accepted only as credential-free HTTPS URLs and
-never appear in the preview, audit event, or API response. Unsupported output
-types and match fields are rejected rather than guessed.
+Placeholders, unsupported output types, and unsupported match fields are
+rejected or skipped with bounded warnings rather than guessed. Credential values
+must never be echoed into previews, audit detail, or normal API responses.
 
-Manual v1 YAML import remains available through the API for compatibility. Its
-created resources are immediately adopted into the authoritative mounted file.
+This path is for supported upgrades from old installations. A healthy current
+v3.1.1 deployment should not be converted back to legacy YAML resource
+authority.
 
 ## Private state backups
 
-State backups are directories below `platform.state_dir/backups`. Each backup
-contains a consistent SQLite snapshot, owner-scoped secret files, and a
-SHA-256 integrity manifest. Directories are mode `0700`; database, manifest,
-and secret files are mode `0600`. Backup bytes are never downloadable through
-the platform API or WebUI.
+Private state snapshots live below `platform.state_dir/backups` and contain:
 
-`platform.backup_retention` keeps 20 snapshots by default and accepts values
-from 1 through 100. Create a backup before migration, account changes, or a
-platform upgrade. Continue to include the entire state bind mount in the
-host's encrypted backup policy; the WebUI snapshots are not a substitute for
-off-host disaster recovery.
+- a consistent SQLite snapshot;
+- owner-scoped secret files; and
+- a SHA-256 integrity manifest.
 
-Restore requires the exact backup identifier. Before restoring, Nowlert
-creates a safety backup of the current state, verifies every stored digest,
-runs SQLite integrity and schema checks, and stages the replacement. A failed
-swap rolls back to the live database and secret directory.
+Directories are private and backup bytes are not downloadable through normal
+WebUI/API endpoints.
 
-Every browser session is revoked after a successful restore. Application-token
-records return to the selected snapshot, which can revive a token that was
-valid at backup time or remove one created later. Review and rotate application
-tokens after restore when that history is security-sensitive.
+`platform.backup_retention` defaults to 20 snapshots and accepts a bounded
+configured value.
+
+Create a backup before:
+
+- platform upgrades;
+- risky account/ownership changes;
+- configuration migrations; and
+- restore tests.
+
+Also include the complete state bind mount in encrypted off-host backups.
+Application-managed snapshots are not a replacement for host-level disaster
+recovery.
+
+### Restore
+
+Restore requires the exact backup identifier. Nowlert creates a safety snapshot
+first, verifies the selected snapshot, checks SQLite integrity/schema, stages the
+replacement, and swaps only after validation.
+
+A successful restore revokes browser sessions. Event API token records and
+other private state return to the selected point in time; review/rotate tokens
+when that rollback history matters.
+
+### Delete one snapshot
+
+v3.1.1 adds administrator deletion of an individual private state snapshot.
+
+Deletion:
+
+- requires administrator authority and CSRF protection;
+- targets the exact backup identifier;
+- is separate from restore;
+- removes only the selected snapshot; and
+- writes an audit event.
+
+Use this for lifecycle cleanup after confirming the snapshot is no longer needed.
+It is not an automatic substitute for the configured retention policy.
 
 ## API routes
 
-All routes require an administrator session. Every POST additionally requires
-the session CSRF token.
-
 | Method | Route | Purpose |
-| --- | --- | --- |
-| GET | `/api/v2/portability/export` | return a credential-free JSON document |
-| POST | `/api/v2/portability/preview` | validate and fingerprint platform JSON |
-| POST | `/api/v2/portability/import` | apply the unchanged confirmed JSON import |
-| POST | `/api/v2/migrations/v1/preview` | validate and fingerprint v1.x YAML |
-| POST | `/api/v2/migrations/v1/import` | apply the unchanged confirmed YAML migration |
-| GET | `/api/v2/configuration/inventory` | inspect mounted configuration without secrets |
-| GET | `/api/v2/preferences` | read mounted regional presentation settings |
-| PUT | `/api/v2/preferences` | update mounted regional presentation settings |
-| GET | `/api/v2/backups` | list verified server-side snapshots |
-| POST | `/api/v2/backups` | create a server-side snapshot |
+|---|---|---|
+| GET | `/api/v2/portability/export` | credential-free JSON export |
+| POST | `/api/v2/portability/preview` | validate/fingerprint platform JSON |
+| POST | `/api/v2/portability/import` | apply unchanged confirmed JSON |
+| POST | `/api/v2/migrations/v1/preview` | validate/fingerprint legacy YAML |
+| POST | `/api/v2/migrations/v1/import` | apply confirmed legacy import |
+| GET | `/api/v2/configuration/inventory` | inspect mounted bootstrap/migration metadata without secrets |
+| GET | `/api/v2/backups` | list verified private snapshots |
+| POST | `/api/v2/backups` | create private snapshot |
+| DELETE | `/api/v2/backups/{id}` | permanently delete selected snapshot |
 | POST | `/api/v2/backups/{id}/restore` | restore after exact-ID confirmation |
 
-All responses use the platform no-store and browser-security headers. Audit
-details contain only bounded counts, identifiers, outcomes, and explicit
-secret-redaction facts.
+See [platform-api.md](platform-api.md) for the complete authenticated API and
+[platform-state.md](platform-state.md) for storage/recovery boundaries.
