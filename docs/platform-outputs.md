@@ -1,88 +1,71 @@
-# v2 platform output adapters and previews
+# Platform output adapters and previews
 
-Phase 3 implements the disabled output-adapter layer for Discord, Microsoft
-Teams, Slack, generic outbound webhooks, MQTT, and ntfy. It uses the ownership,
-secret, route, retry, history, and audit services from Phases 1 and 2.
+Nowlert v3.1.1 exposes database-authoritative destinations through a shared
+output-adapter layer for Discord, Microsoft Teams, Slack, generic outbound
+webhooks, MQTT, and ntfy.
 
-Phase 4 exposes these adapters through authenticated, ownership-safe preview,
-test, and platform event endpoints. v2.1.0 mirrors the authoritative YAML
-destinations into the same delivery services for all legacy inputs. See the
-[platform API guide](platform-api.md).
+Adapters receive safe public destination metadata, an internally resolved
+owner-scoped secret, and the normalized `Notification` model.
 
 ## Common contract
 
-Every adapter accepts public destination metadata, an internally resolved
-secret value, and the shared `Notification` model. It provides:
+Every adapter provides:
 
-- a credential-free preview built by backend formatters;
-- one bounded transport attempt returning a structured `DeliveryResult`;
-- no response-body, exception-text, or credential persistence; and
-- compatibility with the Phase 2 route delivery and retry service.
+- credential-free preview using backend formatters;
+- one bounded transport attempt returning a structured result;
+- no response-body, raw exception-text, or credential persistence; and
+- compatibility with the shared retry/delivery-history service.
 
-HTTP 408, 409, 425, 429, and 5xx responses are retryable. Other 4xx responses
-are terminal. MQTT connection and timeout failures are retryable. The Phase 2
-service still enforces the maximum of five total attempts and records only safe
-per-attempt history.
+Retry policy is intentionally bounded. Retryable transport/server failures may
+be retried by the delivery service; terminal client/configuration failures are
+not retried indefinitely.
 
 ## Destination settings and secrets
 
-Destination settings are public metadata. Unknown settings, oversized values,
-credential-like keys, invalid headers, MQTT wildcard publish topics, and
-non-HTTPS outbound URLs are rejected. Credential values belong only in the
-owner-scoped secret store.
+Public destination settings and private credentials are separate.
+Credential-like values must not be placed in the public settings document.
 
 | Output | Public settings | Owner-scoped secret |
-| --- | --- | --- |
-| Discord | `components_v2` | webhook URL or `{"url":"..."}` |
-| Teams | none | workflow webhook URL or `{"url":"..."}` |
-| Slack | `include_metadata` | Slack webhook URL or `{"url":"..."}` |
-| Webhook | method, timeout, safe headers, JSON template, HMAC flag | URL; optional HMAC key and credential headers |
-| MQTT | host, port, topic template, QoS, retain, TLS, keepalive, client ID | optional username/password JSON |
-| ntfy | server, topic, priority, tags, title template, action flag, timeout | optional access token or username/password JSON |
+|---|---|---|
+| Discord | Components/presentation options | webhook URL |
+| Microsoft Teams | presentation uses source image mapping | workflow webhook URL |
+| Slack | safe presentation options | Slack webhook URL |
+| Webhook | method, timeout, safe headers, JSON template, HMAC flag | URL; optional HMAC key/credential headers |
+| MQTT | host, port, topic, QoS, retain, TLS, keepalive, client ID | optional username/password |
+| ntfy | server, topic, priority, tags, title/action/timeout options | optional access token or username/password |
 
-Plain secret values are accepted for the common one-value case. Outputs that
-need multiple values use a JSON object. For example, a signed webhook secret
-record can contain:
+Outputs requiring multiple private values store a JSON object inside the
+owner-only secret record, never in API-facing metadata.
 
-```json
-{
-  "url": "https://events.example.com/nowlert",
-  "hmac_secret": "REPLACE_IN_SECRET_STORE",
-  "headers": {
-    "Authorization": "Bearer REPLACE_IN_SECRET_STORE"
-  }
-}
-```
+## Discord
 
-The JSON object is stored in the owner-only secret file, never in destination
-settings or API-facing metadata.
-
-## Slack
-
-Slack previews use bounded Block Kit with a plain-text fallback, normalized
-source/severity/host context, credential sanitization, and an optional safe
-HTTPS action. Delivery accepts official `hooks.slack.com` and
-`hooks.slack-gov.com` incoming-webhook hosts.
+Discord uses source-aware rich presentation and packaged image assets. The
+adapter uploads/uses the selected packaged artwork rather than exposing an
+internal asset reference to Discord.
 
 ## Microsoft Teams
 
-Microsoft Teams cards use public HTTPS source-image URLs because Teams clients
-do not reliably render Base64 data URIs. Published images pin
-`NOWLERT_TEAMS_ICON_BASE_URL` to the immutable release commit. A deployment
-may override it with another credential-free public HTTPS directory containing
-the mapped icon filenames.
+Microsoft Teams uses Adaptive Card-style payloads and public HTTPS source-image
+URLs because Teams clients do not reliably render embedded data-URI artwork.
+Published release images pin the default source-image base to immutable release
+content.
 
-Nowlert measures each serialized Teams payload and rejects messages larger
-than 28 KiB before making a webhook request. Platform destination tests persist
-the safe `teams_payload_too_large` error. HTTP 202 means the Teams Workflow
-accepted the request; the WebUI does not claim channel delivery and asks the
-operator to confirm that the card appeared.
+Serialized Teams payloads are bounded to 28 KiB before transport. HTTP 202 means
+the Teams workflow accepted the request; the UI does not claim that the card
+was rendered in the destination channel without operator confirmation.
+
+## Slack
+
+Slack previews/delivery use bounded Block Kit-style content with plain-text
+fallback and normalized source/severity/host context. Credential sanitization
+is applied before payload construction.
 
 ## Generic outbound webhook
 
-The default body is the versioned `nowlert.event.v1` JSON envelope. Metadata
-is bounded recursively and credential-like keys are redacted. An optional JSON
-object template supports a fixed set of escaped substitutions:
+The default body is the versioned `nowlert.event.v1` envelope. Metadata is
+bounded recursively and credential-like keys are redacted.
+
+An optional JSON template may use the supported safe substitutions:
 
 ```json
 {
@@ -93,46 +76,43 @@ object template supports a fixed set of escaped substitutions:
 }
 ```
 
-Supported substitutions are `body`, `category`, `event_id`, `host`,
-`severity`, `source`, `status`, and `title`. Methods are limited to POST, PUT,
-and PATCH. Unsafe hop-by-hop and credential headers cannot be stored in public
-settings. Credential headers can be supplied only in the owner-scoped secret.
+Supported substitutions include `body`, `category`, `event_id`, `host`,
+`severity`, `source`, `status`, and `title`.
 
-Every request receives `X-Nowlert-Idempotency-Key`. When HMAC is enabled,
-the canonical UTF-8 JSON body is signed with HMAC-SHA256 and sent in
-`X-Nowlert-Signature` as `sha256=<hex digest>`.
+Requests receive `X-Nowlert-Idempotency-Key`. When HMAC signing is enabled, the
+canonical UTF-8 JSON body is signed with HMAC-SHA256 and sent in
+`X-Nowlert-Signature`.
 
 ## MQTT
 
-MQTT publishes the same stable `nowlert.event.v1` envelope using Eclipse
-Paho's one-shot publisher. Topic templates use the fixed substitutions above.
-QoS is limited to 0, 1, or 2; publish topics cannot contain `+` or `#`; TLS is
-enabled by default; and authentication remains inside the secret store.
+MQTT publishes the normalized event envelope to a bounded topic template. QoS
+is limited to 0, 1, or 2; publish topics cannot contain wildcard subscription
+characters; TLS is enabled by default; and credentials remain in the secret
+store.
 
 ## ntfy
 
-ntfy sends the normalized title, bounded message, configured priority/tags,
-and an optional HTTPS `view` action. Hosted and self-hosted HTTPS servers are
-supported. Access tokens or basic-auth credentials remain in the secret store
-and never appear in previews.
+ntfy sends normalized title/message plus configured priority/tags and optional
+safe action metadata. Hosted and self-hosted HTTPS servers are supported.
+Credentials are private and excluded from previews/history.
 
 ## Outbound network policy
 
-Outbound URLs and MQTT hosts resolve only to globally routable addresses by
-default. This blocks accidental loopback, link-local, and private-network
-delivery. Only an administrator can enable `allow_private_network` on webhook,
-MQTT, or ntfy destinations for an intentional self-hosted deployment.
+Webhook, MQTT, and ntfy destinations reject unsafe private/loopback resolution
+by default. An administrator may explicitly enable private-network delivery for
+an intentional self-hosted target.
 
-Discord, Teams, and Slack platform destinations never offer that override.
+Discord, Microsoft Teams, and Slack destination types do not expose that generic
+private-network override.
 
 ## Preview and test delivery
 
-`PlatformOutputService` applies destination visibility before preview and
-enabled-state checks before test delivery. Private destinations remain
-owner/admin only. Shared destinations may be previewed or tested by an
-authorized user, while their secret is resolved internally as the real owner
-and never returned.
+Preview is credential-free. Test delivery resolves the real destination secret
+internally and returns only safe outcome metadata such as success, retryability,
+HTTP-like status, and bounded error code/text.
 
-Preview and test actions can write database-backed audit events. Test results
-contain only success, retryability, HTTP-like status, and a safe error code.
-Real response bodies and adapter exceptions are discarded.
+Test outcome can be stored as destination health state and surfaced in the
+WebUI/routing flow without storing response bodies or credentials.
+
+See [platform-routing.md](platform-routing.md) and
+[platform-api.md](platform-api.md).
