@@ -1,25 +1,26 @@
 # SMTP security
 
-Nowlert can protect its SMTP listener with explicit STARTTLS and SMTP AUTH.
-Both features are disabled by default so existing deployments remain compatible.
+Nowlert v3.1.1 can protect its SMTP listener with explicit STARTTLS and SMTP
+AUTH. Both features remain disabled by default so existing trusted-network SMTP
+deployments remain compatible.
 
 ## Threat model
 
 Without TLS, SMTP message content and credentials can be observed or modified by
 anyone able to intercept traffic between the sender and Nowlert. SMTP AUTH by
-itself does not protect credentials because the built-in `LOGIN` and `PLAIN`
-mechanisms encode credentials but do not encrypt them.
+itself does not protect credentials because `LOGIN` and `PLAIN` encode rather
+than encrypt them.
 
-Nowlert therefore never exposes or accepts SMTP AUTH before TLS. Authentication
-requires STARTTLS support and uses TLS 1.2 or newer.
+Nowlert therefore does not advertise or accept SMTP AUTH before TLS.
+Authentication requires STARTTLS support and TLS 1.2 or newer.
 
-TLS and authentication do not replace network controls. Continue restricting the
-published SMTP port to trusted appliance addresses with host and network
+TLS and authentication do not replace network controls. Restrict the published
+SMTP port to the intended appliance/source addresses with host and network
 firewalls.
 
 ## Backward-compatible default
 
-An existing configuration containing only:
+A configuration containing only:
 
 ```yaml
 smtp:
@@ -117,25 +118,26 @@ smtp:
     password_file: ""
 ```
 
-Docker Compose or Portainer stack example:
+Production Compose/Portainer example:
 
 ```yaml
 services:
-  nowlert:
-    image: fortpt/nowlert:latest
+  nowlert-ce:
+    image: theriark/nowlert-ce:3.1.1
     environment:
       NOWLERT_SMTP_PASSWORD: "${NOWLERT_SMTP_PASSWORD}"
     volumes:
       - ./config:/nowlert/config
       - ./config/tls:/nowlert/config/tls:ro
       - ./logs:/nowlert/logs
+      - ./state:/nowlert/state
     ports:
       - "8025:8025"
       - "18080:8080"
 ```
 
-Define `NOWLERT_SMTP_PASSWORD` through the deployment environment or
-Portainer environment-variable interface. Do not commit it to the repository.
+Define `NOWLERT_SMTP_PASSWORD` through the deployment environment or Portainer
+environment-variable interface. Do not commit it to the repository.
 
 ## Password from a Docker secret or mounted file
 
@@ -154,14 +156,15 @@ Docker Swarm secret example:
 
 ```yaml
 services:
-  nowlert:
-    image: fortpt/nowlert:latest
+  nowlert-ce:
+    image: theriark/nowlert-ce:3.1.1
     secrets:
       - nowlert_smtp_password
     volumes:
       - ./config:/nowlert/config
       - ./config/tls:/nowlert/config/tls:ro
       - ./logs:/nowlert/logs
+      - ./state:/nowlert/state
 
 secrets:
   nowlert_smtp_password:
@@ -169,7 +172,8 @@ secrets:
 ```
 
 For standalone Docker or Portainer, mount a root-owned, read-only file at the
-configured path instead. Confirm the container user can read it before rollout.
+configured path instead. Confirm the configured non-root container user can read
+it before rollout.
 
 Exactly one usable source must be configured when authentication is enabled:
 `password_env` or `password_file`. Startup fails when both or neither are usable.
@@ -178,12 +182,13 @@ secret files commonly end with a newline. Other spaces are preserved.
 
 ## Certificates
 
-The configured certificate must match the hostname used by sending appliances.
-Use a certificate issued by an authority the appliances trust whenever possible.
+The configured certificate should match the hostname used by sending
+appliances. Use a certificate issued by an authority the appliances trust
+whenever possible.
 
 A self-signed certificate can be used for controlled testing, but each sender
 must explicitly trust it or support certificate-verification exceptions. Avoid
-turning off certificate verification globally.
+disabling certificate verification globally.
 
 Recommended permissions:
 
@@ -193,22 +198,19 @@ chmod 600 config/tls/key.pem
 ```
 
 Restrict access to the private key and include certificate renewal in normal
-operations.
-
-The certificate and key under `tests/fixtures/tls` are synthetic test fixtures.
-They must never be used for deployment.
+operations. The certificate and key under `tests/fixtures/tls` are synthetic
+test fixtures and must never be used for deployment.
 
 ## Startup validation
 
 Nowlert fails startup when an enabled security mode is incomplete, including:
 
 - authentication enabled without TLS;
-- missing certificate or private key;
-- unreadable certificate or private key;
+- missing or unreadable certificate/private key;
 - empty SMTP username;
 - missing or empty password environment variable;
 - missing, unreadable, or empty password file;
-- both password sources configured;
+- both password sources configured; or
 - invalid boolean settings.
 
 Errors identify the invalid setting but never include password values or AUTH
@@ -216,13 +218,14 @@ payloads.
 
 ## Sender compatibility
 
-Before production rollout, confirm each appliance supports:
+Before rollout, confirm each appliance supports the security mode you intend to
+enforce:
 
 - explicit STARTTLS on the configured SMTP port;
 - TLS 1.2 or newer;
 - certificate hostname and trust validation;
-- SMTP AUTH `LOGIN` or `PLAIN` after STARTTLS;
-- the configured service-account username and password.
+- SMTP AUTH `LOGIN` or `PLAIN` after STARTTLS; and
+- the configured service-account username/password.
 
 Some infrastructure appliances support STARTTLS but cannot authenticate, while
 others authenticate but cannot trust a private certificate authority. Validate
@@ -265,14 +268,9 @@ Restart the container, restore the previous sender settings, and retain firewall
 restrictions. Certificate and secret mounts may remain present while their
 features are disabled.
 
-## What is not included
+## Scope
 
-The SMTP security feature does not add:
-
-- implicit SMTPS;
-- multiple SMTP accounts;
-- mutual TLS;
-- rate limiting;
-- account lockout;
-- certificate provisioning or renewal;
-- generic authentication for HTTP or output integrations.
+SMTP security does not add implicit SMTPS, multiple SMTP accounts, mutual TLS,
+certificate provisioning/renewal, or mailbox polling. HTTP/API authentication,
+destination credentials, browser sessions, and Event API token controls are
+separate platform security boundaries.
