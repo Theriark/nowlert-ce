@@ -5,8 +5,8 @@
 <h1 align="center">Nowlert CE</h1>
 
 <p align="center">
-  <strong>Community Edition · Infrastructure Notification Engine</strong><br>
-  Built for homelabs · ready for production
+  <strong>Infrastructure reports. Nowlert delivers.</strong><br>
+  Community Edition · free & open source · self-hosted
 </p>
 
 <p align="center">
@@ -16,13 +16,67 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
 </p>
 
-Nowlert receives infrastructure events over **SMTP**, **HTTP**, and **Redfish**,
-normalizes vendor-specific payloads, evaluates deterministic database-backed
-routes, and delivers concise notifications to collaboration and automation
-platforms.
+**Self-hosted infrastructure notifications from SMTP, HTTP and Redfish to Teams, Slack, Discord and more.**
 
-It is deliberately self-hosted and dependency-light: one container, local
-SQLite state, owner-scoped secret files, and a same-origin management WebUI.
+Nowlert CE is the free, open-source, self-hosted edition of Nowlert. It receives
+infrastructure signals, normalizes vendor-specific events, applies deterministic
+routing, and delivers clear operational notifications through the tools and
+workflows teams already use.
+
+**Receive → Normalise → Route → Deliver**
+
+**MIT · Docker-ready · Local SQLite · Same-origin WebUI**
+
+[Quick Start](#-quick-start) · [Supported integrations](#-supported-integrations) · [Documentation](docs/README.md) · [Releases](https://github.com/Theriark/nowlert-ce/releases)
+
+---
+
+# 🚀 Quick Start
+
+## 1. Clone and prepare configuration
+
+```bash
+git clone https://github.com/Theriark/nowlert-ce.git
+cd nowlert-ce
+
+cp .env.example .env
+cp config/config.example.yaml config/config.yaml
+mkdir -p logs/emails secrets state external-backups
+chmod 600 .env config/config.yaml
+chmod 700 logs logs/emails secrets state external-backups
+```
+
+Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the numeric user/group that
+owns the mounted directories:
+
+```bash
+id -u
+id -g
+```
+
+## 2. Validate and start
+
+```bash
+docker compose -f compose.production.yaml config
+docker compose -f compose.production.yaml pull
+docker compose -f compose.production.yaml up -d
+docker compose -f compose.production.yaml ps
+docker logs -f nowlert-ce
+```
+
+The default production image is:
+
+```text
+theriark/nowlert-ce:3.1.1
+```
+
+## 3. Create the first administrator
+
+On an empty platform database, the container log prints a short-lived,
+single-use setup token. Open the WebUI and use that token to choose the first
+administrator username and password.
+
+There is no default password.
 
 ---
 
@@ -98,10 +152,12 @@ More UI behavior is documented in the [WebUI guide](docs/webui.md).
 
 # What is Nowlert?
 
-**Nowlert** is a parser-driven Infrastructure Notification Engine and
-self-hosted notification platform.
+**Nowlert is an infrastructure operations platform that transforms system
+signals into clear, structured operational information and delivers it through
+the tools and workflows teams already use.**
 
-It accepts events from infrastructure products, converts them into one shared
+In Community Edition, that foundation is parser-driven and self-hosted. It
+accepts events from infrastructure products, converts them into one shared
 notification model, applies deterministic routes, and renders destination-aware
 notifications. The goal is not to replace monitoring, storage, virtualization,
 networking, backup, or hardware-management systems. The goal is to make the
@@ -410,55 +466,6 @@ read APIs, history, or audit views.
 
 One damaged destination, route, or settings record should not make unrelated
 resources or pages unavailable.
-
----
-
-# 🚀 Quick Start
-
-## 1. Clone and prepare configuration
-
-```bash
-git clone https://github.com/Theriark/nowlert-ce.git
-cd nowlert-ce
-
-cp .env.example .env
-cp config/config.example.yaml config/config.yaml
-mkdir -p logs/emails secrets state external-backups
-chmod 600 .env config/config.yaml
-chmod 700 logs logs/emails secrets state external-backups
-```
-
-Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the numeric user/group that
-owns the mounted directories:
-
-```bash
-id -u
-id -g
-```
-
-## 2. Validate and start
-
-```bash
-docker compose -f compose.production.yaml config
-docker compose -f compose.production.yaml pull
-docker compose -f compose.production.yaml up -d
-docker compose -f compose.production.yaml ps
-docker logs -f nowlert-ce
-```
-
-The default production image is:
-
-```text
-theriark/nowlert-ce:3.1.1
-```
-
-## 3. Create the first administrator
-
-On an empty platform database, the container log prints a short-lived,
-single-use setup token. Open the WebUI and use that token to choose the first
-administrator username and password.
-
-There is no default password.
 
 ---
 
