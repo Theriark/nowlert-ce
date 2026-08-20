@@ -31,7 +31,10 @@ def test_environment_branch_and_immutable_promotion_contract():
     assert "contents: write" in stage
     assert "refs/heads/development" in stage
     assert "refs/heads/stage" in stage
-    assert "force=true" in stage
+    assert "force=false" in stage
+    assert "force=true" not in stage
+    assert "Waiting for stage ref propagation" in stage
+    assert "cannot fast-forward" in stage
 
     assert "refs/heads/main" in production
     assert "refs/remotes/origin/main" in production
