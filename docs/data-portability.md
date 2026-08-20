@@ -1,6 +1,6 @@
 # Platform data portability and migration
 
-Nowlert v3.1.1 provides two intentionally different mechanisms:
+Nowlert v3.1.2 provides two intentionally different mechanisms:
 
 1. **credential-free portability** for moving safe platform configuration; and
 2. **private state backups** for recovery/rollback of the full local platform
@@ -10,7 +10,7 @@ Do not treat a portability export as a disaster-recovery backup.
 
 ## Current authority model
 
-Normal v3.1.1 deployments use `platform_database_v1`.
+Normal v3.1.2 deployments use `platform_database_v1`.
 
 - SQLite is authoritative for WebUI-managed resources.
 - `config.yaml` contains process/bootstrap and listener/security settings.
@@ -70,7 +70,7 @@ rejected or skipped with bounded warnings rather than guessed. Credential values
 must never be echoed into previews, audit detail, or normal API responses.
 
 This path is for supported upgrades from old installations. A healthy current
-v3.1.1 deployment should not be converted back to legacy YAML resource
+v3.1.2 deployment should not be converted back to legacy YAML resource
 authority.
 
 ## Private state backups

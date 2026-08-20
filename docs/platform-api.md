@@ -1,9 +1,9 @@
 # Authenticated platform API
 
-Nowlert v3.1.1 exposes the management plane and Event API through `/api/v2` on
+Nowlert v3.1.2 exposes the management plane and Event API through `/api/v2` on
 the same HTTP service as the WebUI.
 
-The normal v3.1.1 authority model is:
+The normal v3.1.2 authority model is:
 
 - `config.yaml` for process/bootstrap, listeners, transport security, state
   location, and WebUI publication;
@@ -93,10 +93,10 @@ Tokens are:
 | PUT | `/api/v2/account/password` | session + CSRF | change current password |
 | PUT/DELETE | `/api/v2/account/avatar` | session + CSRF | set/remove current avatar |
 
-v3.1.1 user deletion is server-side protected. An administrator cannot delete
-its own currently authenticated account, and storage ownership/integrity rules
-must permit the deletion. Successful deletion writes a `user.delete` audit
-event.
+The current user-deletion path is server-side protected. An administrator cannot
+delete its own currently authenticated account, and storage ownership/integrity
+rules must permit the deletion. Successful deletion writes a `user.delete`
+audit event.
 
 ### Integrations, preferences, and operations
 
@@ -177,8 +177,8 @@ or raw adapter exception text.
 | DELETE | `/api/v2/backups/{id}` | administrator + CSRF | permanently delete one private snapshot |
 | POST | `/api/v2/backups/{id}/restore` | administrator + CSRF | restore exact snapshot after confirmation |
 
-v3.1.1 exposes private snapshot deletion separately from restore. Deletion is
-audited and affects only the selected backup directory.
+Private snapshot deletion remains separate from restore. Deletion is audited and
+affects only the selected backup directory.
 
 ### Portability and legacy migration
 
@@ -192,7 +192,7 @@ audited and affects only the selected backup directory.
 | GET | `/api/v2/configuration/inventory` | administrator | secret-free mounted-config inventory |
 
 Compatibility/recovery endpoints for older configuration-authority transitions
-may remain present, but a normal v3.1.1 installation uses
+may remain present, but a normal v3.1.2 installation uses
 `platform_database_v1`. Do not switch a healthy current deployment back to
 legacy YAML resource authority.
 

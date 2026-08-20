@@ -1,6 +1,6 @@
 # Notification presentation contract
 
-Nowlert v3.1.1 uses shared presentation rules so integrations render
+Nowlert v3.1.2 uses shared presentation rules so integrations render
 consistently across Discord and Microsoft Teams without duplicating product
 logic in each formatter.
 
@@ -22,7 +22,7 @@ Regional timezone and clock-format preferences are managed through the current
 platform Settings UI/database model. The container `TZ` value remains the
 runtime fallback when no explicit platform preference is available.
 
-Do not add the removed legacy `presentation` YAML section to a fresh v3.1.1
+Do not add the removed legacy `presentation` YAML section to a fresh v3.1.2
 configuration.
 
 ## Microsoft Teams hierarchy

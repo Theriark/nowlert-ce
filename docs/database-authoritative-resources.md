@@ -1,6 +1,6 @@
 # Database-authoritative resources
 
-Nowlert v3.1.1 uses `platform_database_v1` to separate process bootstrap from
+Nowlert v3.1.2 uses `platform_database_v1` to separate process bootstrap from
 WebUI-managed resources.
 
 ## Bootstrap configuration
@@ -55,7 +55,7 @@ Private state snapshots preserve database resources and owner-scoped secrets.
 Portable exports intentionally omit passwords, Event API token values, and
 destination credentials.
 
-v3.1.1 keeps schema 9, so no database migration is required from v3.1.0.
+v3.1.2 keeps schema 9, so no database migration is required from v3.1.1.
 Historical rollback notes for older schema transitions remain in their original
 release/acceptance files.
 

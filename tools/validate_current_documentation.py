@@ -21,9 +21,25 @@ FILES = (
     ROOT / "docs" / "platform-outputs.md",
     ROOT / "docs" / "platform-routing.md",
     ROOT / "docs" / "platform-state.md",
+    ROOT / "docs" / "presentation-contract.md",
     ROOT / "docs" / "releases" / "v3.1.2.md",
     ROOT / "docs" / "roadmap.md",
+    ROOT / "docs" / "smtp-security.md",
     ROOT / "docs" / "v3.1.2-qa-checklist.md",
+    ROOT / "docs" / "webui.md",
+)
+
+CURRENT_RELEASE_GUIDES = (
+    ROOT / "docs" / "current-configuration-model.md",
+    ROOT / "docs" / "data-portability.md",
+    ROOT / "docs" / "database-authoritative-resources.md",
+    ROOT / "docs" / "integrations-and-inputs.md",
+    ROOT / "docs" / "platform-api.md",
+    ROOT / "docs" / "platform-outputs.md",
+    ROOT / "docs" / "platform-routing.md",
+    ROOT / "docs" / "platform-state.md",
+    ROOT / "docs" / "presentation-contract.md",
+    ROOT / "docs" / "smtp-security.md",
     ROOT / "docs" / "webui.md",
 )
 
@@ -80,6 +96,7 @@ checklist = (ROOT / "docs" / "v3.1.2-qa-checklist.md").read_text(encoding="utf-8
 version = (ROOT / "src" / "version.py").read_text(encoding="utf-8")
 environment = (ROOT / ".env.example").read_text(encoding="utf-8")
 compose = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
+changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
 required_pairs = (
     (readme, "stable-v3.1.2-F4C542"),
@@ -90,6 +107,7 @@ required_pairs = (
     (compose, "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.1.2}"),
     (release, "# Nowlert CE v3.1.2 release notes"),
     (checklist, "# Nowlert CE v3.1.2 QA checklist"),
+    (changelog, "## 3.1.2 - 2026-08-20"),
     (deployment, 'version="v3.1.2"'),
     (deployment, 'tag="v3.1.2"'),
     (deployment, "ghcr.io/theriark/nowlert-ce:3.1.2"),
@@ -104,6 +122,18 @@ required_pairs = (
 for document, required in required_pairs:
     if required not in document:
         raise SystemExit(f"ERROR: current documentation contract missing: {required}")
+
+for document in CURRENT_RELEASE_GUIDES:
+    text = document.read_text(encoding="utf-8")
+    relative = document.relative_to(ROOT)
+    if "Nowlert v3.1.2" not in text:
+        raise SystemExit(
+            f"ERROR: current guide does not identify v3.1.2: {relative}"
+        )
+    if "Nowlert v3.1.1" in text:
+        raise SystemExit(
+            f"ERROR: stale current guide identity remains in {relative}: Nowlert v3.1.1"
+        )
 
 for stale in (
     "stable-v3.1.1-F4C542",

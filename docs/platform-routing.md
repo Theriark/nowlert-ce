@@ -1,6 +1,6 @@
 # Platform routing and delivery
 
-Nowlert v3.1.1 uses database-authoritative Event API tokens, destinations,
+Nowlert v3.1.2 uses database-authoritative Event API tokens, destinations,
 routes, delivery history, and audit state. `config.yaml` is not the normal
 editing surface for these resources.
 
@@ -65,7 +65,7 @@ tie-breaking.
 
 ## Route filters
 
-The v3.1.1 WebUI presents four meaningful filter groups:
+The v3.1.2 WebUI presents four meaningful filter groups:
 
 - host patterns;
 - event patterns;
@@ -107,7 +107,7 @@ choices are scoped to the selected integration/input contract.
 
 ## Full-list criteria
 
-Selecting the full list is still meaningful configuration. v3.1.1 preserves and
+Selecting the full list is still meaningful configuration. v3.1.2 preserves and
 displays full-list severity/status criteria on the Routes page even when the
 other criterion is a partial selection. This prevents a saved route from
 appearing less constrained or differently configured than it really is.
@@ -159,7 +159,7 @@ Typical fields include:
 - safe error code/text; and
 - timestamp.
 
-v3.1.1 removes redundant visual status badges and standardizes paginated
+The current UI omits redundant visual status badges and standardizes paginated
 navigation with the Audit Log. The underlying delivery semantics are unchanged.
 
 ## Audit events
@@ -168,8 +168,8 @@ Protected token, destination, route, user, backup, settings, and operational
 mutations can write audit events. Sensitive keys and credential-like text are
 redacted/sanitized before persistence.
 
-v3.1.1 adds audited administrator workflows for user deletion and individual
-private-state backup deletion.
+Administrator workflows for user deletion and individual private-state backup
+deletion, introduced in v3.1.1, remain audited.
 
 ## Ownership model
 
@@ -193,7 +193,7 @@ Current installations use `platform_database_v1`:
 
 Legacy migration/compatibility code exists so older installations can be
 upgraded safely. It is not a reason to reintroduce removed WebUI-managed YAML
-sections into a healthy v3.1.1 deployment.
+sections into a healthy v3.1.2 deployment.
 
 See [current-configuration-model.md](current-configuration-model.md),
 [platform-api.md](platform-api.md), and [platform-state.md](platform-state.md).

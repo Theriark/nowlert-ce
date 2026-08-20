@@ -7,6 +7,19 @@ from version import EDITION, EDITION_SLUG, REPOSITORY, VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CURRENT_RELEASE_GUIDES = (
+    "docs/current-configuration-model.md",
+    "docs/data-portability.md",
+    "docs/database-authoritative-resources.md",
+    "docs/integrations-and-inputs.md",
+    "docs/platform-api.md",
+    "docs/platform-outputs.md",
+    "docs/platform-routing.md",
+    "docs/platform-state.md",
+    "docs/presentation-contract.md",
+    "docs/smtp-security.md",
+    "docs/webui.md",
+)
 
 
 def test_application_version_and_repository_are_current():
@@ -40,13 +53,22 @@ def test_readme_release_metadata_is_current():
 def test_changelog_preserves_release_history():
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
+    assert "## 3.1.2 - 2026-08-20" in changelog
     assert "## 3.1.1 - 2026-08-14" in changelog
     assert "## 3.1.0 - 2026-08-08" in changelog
     assert "## 3.0.0 - 2026-07-29" in changelog
     assert "## 2.5.5 - 2026-07-27" in changelog
-    assert changelog.index("## Unreleased") < changelog.index("## 3.1.1")
+    assert changelog.index("## Unreleased") < changelog.index("## 3.1.2")
+    assert changelog.index("## 3.1.2") < changelog.index("## 3.1.1")
     assert changelog.index("## 3.1.1") < changelog.index("## 3.1.0")
     assert changelog.index("## 3.1.0") < changelog.index("## 3.0.0")
+
+
+def test_current_guides_identify_v312_as_current():
+    for relative in CURRENT_RELEASE_GUIDES:
+        document = (ROOT / relative).read_text(encoding="utf-8")
+        assert "Nowlert v3.1.2" in document, relative
+        assert "Nowlert v3.1.1" not in document, relative
 
 
 def test_historical_v300_v310_and_v311_documents_remain_historical():

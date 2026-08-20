@@ -1,6 +1,6 @@
 # Integrations and inputs
 
-Nowlert v3.1.1 distinguishes an **integration** from the **input** that receives
+Nowlert v3.1.2 distinguishes an **integration** from the **input** that receives
 an event.
 
 Integrations are packaged with the image and provide source detection, parsing,
@@ -41,7 +41,7 @@ Fallback (Redfish)
 
 A route persists both source/integration identity and input type.
 
-v3.1.1 also scopes the route editor's severity/status choices to the selected
+The v3.1.2 route editor scopes severity/status choices to the selected
 integration/input contract. This avoids showing irrelevant criteria and makes
 the saved route representation match what the integration can emit.
 

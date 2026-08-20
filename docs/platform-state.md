@@ -1,6 +1,6 @@
 # Platform state and local accounts
 
-Nowlert v3.1.1 stores its management-plane state in SQLite plus owner-scoped
+Nowlert v3.1.2 stores its management-plane state in SQLite plus owner-scoped
 private secret files. PostgreSQL, Redis, and separate management services are
 not required for a normal single-instance deployment.
 
@@ -32,7 +32,7 @@ paths.
 
 ## Schema 9
 
-v3.1.1 keeps database schema **9**. It is the same schema used by v3.1.0, so no
+v3.1.2 keeps database schema **9**. It is the same schema used by v3.1.1, so no
 database migration is required for this patch release.
 
 The current schema covers:
@@ -156,11 +156,11 @@ disaster recovery. Keep the complete state mount in the host backup policy.
 
 ## Upgrade and rollback
 
-Before moving from v3.1.0 to v3.1.1:
+Before moving from v3.1.1 to v3.1.2:
 
 1. record the running image/digest;
 2. take a matched copy of `config`, `state`, and external `secrets`;
-3. deploy the exact promoted v3.1.1 image;
+3. deploy the exact promoted v3.1.2 image;
 4. verify login, routes, destinations, history, backups, and health; and
 5. retain the backup until acceptance passes.
 
@@ -168,7 +168,7 @@ Because the schema remains 9, no migration is expected. Even so, rollback
 should use a matched backup when private state has changed after the upgrade.
 
 Older schema transition notes remain in the historical release/acceptance
-files; they are not the current v3.1.1 deployment path.
+files; they are not the current v3.1.2 deployment path.
 
 See [platform-api.md](platform-api.md),
 [platform-routing.md](platform-routing.md), and

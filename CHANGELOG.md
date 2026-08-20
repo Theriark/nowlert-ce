@@ -2,7 +2,50 @@
 
 ## Unreleased
 
-- No unreleased changes recorded after the v3.1.1 release candidate.
+- No unreleased changes recorded after the v3.1.2 release candidate.
+
+## 3.1.2 - 2026-08-20
+
+### Changed
+
+- Improve the README first-screen Community Edition positioning and Quick Start
+  path while preserving the existing operator/deployment depth.
+- Refresh production dependencies included in the v3.1.2 candidate, including
+  `charset-normalizer` 3.5.1.
+- Synchronize the runtime version, production image defaults, README, Docker Hub
+  text, deployment examples, current operator guides, release notes, QA
+  checklist, and release tests on v3.1.2.
+- Keep the approved v3.1.0 screenshot set as the current visual baseline because
+  v3.1.2 does not introduce a visual redesign.
+
+### Fixed
+
+- Replace broken Docker Hub references to nonexistent v3.1.1 screenshots with
+  the packaged approved v3.1.0 visual baseline.
+- Remove stale v3.1.1 current-release identity from operator documentation while
+  preserving historical v3.1.1 release records and upgrade/rollback context.
+
+### Release engineering
+
+- Make Stage source advancement fast-forward-only instead of force-updating the
+  `stage` branch.
+- Poll the Stage ref after update so GitHub ref propagation cannot produce a
+  false-negative promotion failure.
+- Require release finalization to prove the requested `vMAJOR.MINOR.PATCH` tag
+  equals `v` plus the version embedded in the exact source commit.
+- Require the matching release notes and QA checklist to exist on the release
+  source before publication.
+- Extend release/documentation validation so stale current-guide version
+  identity and a missing v3.1.2 changelog entry fail automated validation.
+
+### Compatibility
+
+- Database schema remains 9 and the configuration model remains
+  `platform_database_v1`.
+- No database migration is required from v3.1.1.
+- The immutable release invariant remains build once in Development, then
+  promote the exact digest through Stage and Production Reference without
+  rebuilding.
 
 ## 3.1.1 - 2026-08-14
 
@@ -1036,8 +1079,8 @@
 - A versioned Synology contract at `POST /synology/events` accepting bounded
   JSON and form-encoded custom-provider fields with header or query-token
   authentication.
-- Dedicated Synology DSM Discord embeds, Microsoft Teams Adaptive Cards,
-  routing examples, synthetic email/JSON fixtures, and integration guidance.
+- Dedicated Synology DSM Discord embeds, Microsoft Teams Adaptive Cards, routing
+  examples, synthetic email/JSON fixtures, and integration guidance.
 - Fixture-validated Proxmox VE SMTP parsing for backup, replication, node,
   cluster, storage, availability, security, guest, and system notifications.
 - A versioned Proxmox webhook contract at `POST /proxmox/events`, protected by

@@ -1,10 +1,10 @@
 # WebUI
 
-Nowlert v3.1.1 packages a responsive, dependency-free management interface in
+Nowlert v3.1.2 packages a responsive, dependency-free management interface in
 the application image. The browser uses the authenticated same-origin
 `/api/v2` contract and never needs direct access to SQLite or secret files.
 
-The v3.1.1 patch keeps the approved v3.1.0 visual design. Existing approved
+The v3.1.2 patch keeps the approved v3.1.0 visual design. Existing approved
 screenshots therefore remain the visual baseline where a screenshot is useful;
 new screenshots are required only when the rendered UI materially changes.
 
@@ -87,7 +87,7 @@ saving a credential alone is not presented as validation.
 
 Routes connect an integration/input pair to a destination.
 
-v3.1.1 keeps route editing focused on meaningful criteria:
+The v3.1.2 route editor keeps route editing focused on meaningful criteria:
 
 - Host include/exclude patterns;
 - Event include/exclude patterns;
@@ -125,8 +125,8 @@ Delivery History shows normalized event identity, source/input, destination,
 attempt, outcome, safe error state, and time without exposing response bodies or
 credentials.
 
-v3.1.1 removes redundant/empty status decoration and keeps the corrected
-presentation used during Stage QA.
+The v3.1.2 UI keeps the corrected Delivery History presentation without
+redundant/empty status decoration.
 
 Pagination behavior is shared with Audit Log:
 
@@ -146,7 +146,7 @@ Audit Log records protected mutations using bounded, secret-free detail. Users
 see activity allowed by the ownership model; administrators can inspect all
 retained audit events.
 
-It uses the same v3.1.1 pagination contract as Delivery History.
+It uses the same v3.1.2 pagination contract as Delivery History.
 
 ### Users
 
@@ -221,8 +221,8 @@ WebUI-managed resources are database-authoritative under `/nowlert/state`.
 transport security, state location, and WebUI publication. See
 [current-configuration-model.md](current-configuration-model.md).
 
-## Upgrade from v3.1.0
+## Upgrade from v3.1.1
 
-v3.1.1 keeps database schema 9 and `platform_database_v1`. No database migration
-is required from v3.1.0. Take a matched backup of `config`, `state`, and external
+v3.1.2 keeps database schema 9 and `platform_database_v1`. No database migration
+is required from v3.1.1. Take a matched backup of `config`, `state`, and external
 `secrets` before upgrading and keep it until acceptance passes.

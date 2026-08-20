@@ -1,6 +1,6 @@
 # Platform output adapters and previews
 
-Nowlert v3.1.1 exposes database-authoritative destinations through a shared
+Nowlert v3.1.2 exposes database-authoritative destinations through a shared
 output-adapter layer for Discord, Microsoft Teams, Slack, generic outbound
 webhooks, MQTT, and ntfy.
 

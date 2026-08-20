@@ -1,6 +1,6 @@
 # Current configuration model
 
-Nowlert v3.1.1 separates **process bootstrap** from **database-authoritative
+Nowlert v3.1.2 separates **process bootstrap** from **database-authoritative
 platform resources**.
 
 The active model is `platform_database_v1`.
@@ -43,7 +43,7 @@ returned through normal read APIs.
 
 ## Removed legacy YAML resources
 
-Fresh v3.1.1 configurations must not recreate WebUI-managed legacy sections such
+Fresh v3.1.2 configurations must not recreate WebUI-managed legacy sections such
 as:
 
 - `outputs`;
@@ -92,11 +92,11 @@ Portable JSON export is useful for migration but is not a disaster-recovery
 backup because it deliberately omits credentials, passwords, sessions, token
 values, and other private state.
 
-## v3.1.0 -> v3.1.1
+## v3.1.1 -> v3.1.2
 
-v3.1.1 keeps database schema 9 and `platform_database_v1`. No database migration
-is required. The release adds UI/API behavior and release-pipeline corrections,
-not a new configuration authority model.
+v3.1.2 keeps database schema 9 and `platform_database_v1`. No database migration
+is required. This release changes documentation, dependencies, and release
+safety, not the configuration authority model.
 
-Take a matched backup before upgrading and keep it until the v3.1.1 acceptance
+Take a matched backup before upgrading and keep it until the v3.1.2 acceptance
 checks pass.
