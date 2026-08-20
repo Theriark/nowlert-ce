@@ -5,44 +5,43 @@
 <h1 align="center">Nowlert CE</h1>
 
 <p align="center">
-  <strong>Community Edition · Infrastructure Notification Engine</strong><br>
-  Built for homelabs · ready for production
+  <strong>Infrastructure reports. Nowlert delivers.</strong><br>
+  Community Edition · free & open source · self-hosted
 </p>
 
-Nowlert receives infrastructure events over **SMTP**, **HTTP**, and
-**Redfish**, normalizes vendor-specific payloads, evaluates deterministic
-routes, and delivers rich notifications to Discord, Microsoft Teams, Slack,
-generic webhooks, MQTT, and ntfy.
+Nowlert CE receives infrastructure signals over **SMTP**, **HTTP**, and
+**Redfish**, normalizes vendor-specific events, applies deterministic routing,
+and delivers clear operational notifications to Discord, Microsoft Teams,
+Slack, generic webhooks, MQTT, and ntfy.
 
-The current stable release is **v3.1.1**. The versioned Docker Hub image is:
+The current stable release is **v3.1.2**. The versioned Docker Hub image is:
 
 ```text
-theriark/nowlert-ce:3.1.1
+theriark/nowlert-ce:3.1.2
 ```
 
-## v3.1.1 highlights
+## v3.1.2 highlights
 
-- Administrator user deletion with safety checks and audit coverage
-- Individual private state backup deletion
-- Correct authoritative Admin/User profile role display
-- Cleaner Delivery History presentation
-- Shared Delivery History/Audit Log pagination footer
-- Simpler route severity/status selection with normal single-click multi-select
-- Integration-scoped route criteria and correct full-list display
+- Clearer first-time README and Community Edition positioning
+- Production dependency refresh, including `charset-normalizer` 3.5.1
 - Database-authoritative WebUI resources (`platform_database_v1`)
 - Build-once immutable Development → Stage → Production Reference release flow
+- Fast-forward-only Stage source advancement with propagation-safe verification
+- Release finalization rejects tags that do not match the source/runtime version
 - Stable GHCR/Docker Hub aliases copied from the approved digest without rebuild
 
-Database schema remains **9**; upgrading from v3.1.0 requires no database
+Database schema remains **9**; upgrading from v3.1.1 requires no database
 migration.
 
 ## Preview
 
-![Nowlert v3.1.1 Dashboard](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.1-dashboard.png)
+v3.1.2 keeps the approved v3.1.0 visual baseline.
 
-![Nowlert v3.1.1 Routes](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.1-routes.png)
+![Nowlert Dashboard](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-dashboard.png)
 
-![Nowlert v3.1.1 Delivery History](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.1-delivery-history.png)
+![Nowlert Routing Flow](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-routing-flow.png)
+
+![Nowlert Delivery History](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-delivery-history.png)
 
 ## Quick start
 
@@ -99,7 +98,7 @@ history are database-authoritative in private platform state.
 
 Do not add the legacy WebUI-managed `outputs`, `routing`, `api.tokens`,
 `notifications`, `presentation`, `home_assistant`, `redfish`,
-`platform.backups`, or `webui.language` sections to a fresh v3.1.1
+`platform.backups`, or `webui.language` sections to a fresh v3.1.2
 configuration.
 
 ## Built-in integrations
@@ -117,7 +116,7 @@ Nowlert evaluates enabled dedicated integration routes before wildcard fallback
 routes. Fallback routes run only when no dedicated route matches, and duplicate
 delivery to the same destination is suppressed.
 
-The v3.1.1 route editor supports host/event patterns plus included severities
+The v3.1.2 route editor supports host/event patterns plus included severities
 and statuses. Unselected severity/status values are implicitly excluded.
 
 ## Security
@@ -143,11 +142,11 @@ Before upgrading:
 
 1. back up `config`, `state`, and external `secrets` as one matched set;
 2. record the currently running image/digest;
-3. deploy the versioned v3.1.1 image;
+3. deploy the versioned v3.1.2 image;
 4. verify `/api/health`, login, routes, destinations, history, and backups; and
 5. keep the matched backup until acceptance passes.
 
-v3.1.1 keeps schema 9, so no v3.1.0 database migration is expected.
+v3.1.2 keeps schema 9, so no v3.1.1 database migration is expected.
 
 ## Immutable release provenance
 

@@ -1,6 +1,6 @@
 # SMTP security
 
-Nowlert v3.1.1 can protect its SMTP listener with explicit STARTTLS and SMTP
+Nowlert v3.1.2 can protect its SMTP listener with explicit STARTTLS and SMTP
 AUTH. Both features remain disabled by default so existing trusted-network SMTP
 deployments remain compatible.
 
@@ -123,7 +123,7 @@ Production Compose/Portainer example:
 ```yaml
 services:
   nowlert-ce:
-    image: theriark/nowlert-ce:3.1.1
+    image: theriark/nowlert-ce:3.1.2
     environment:
       NOWLERT_SMTP_PASSWORD: "${NOWLERT_SMTP_PASSWORD}"
     volumes:
@@ -157,7 +157,7 @@ Docker Swarm secret example:
 ```yaml
 services:
   nowlert-ce:
-    image: theriark/nowlert-ce:3.1.1
+    image: theriark/nowlert-ce:3.1.2
     secrets:
       - nowlert_smtp_password
     volumes:

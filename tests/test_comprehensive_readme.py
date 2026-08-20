@@ -9,9 +9,8 @@ def test_readme_remains_comprehensive_and_current():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     lines = readme.splitlines()
 
-    # The v3.1.1 rewrite removes accumulated historical release prose from the
-    # project front page while retaining the complete current product/operator
-    # contract.
+    # The current front page keeps the complete operator contract while making
+    # the first-screen product explanation and Quick Start easier to reach.
     assert len(lines) >= 350
 
     for heading in (
@@ -35,8 +34,8 @@ def test_readme_remains_comprehensive_and_current():
         assert heading in readme
 
     for value in (
-        "stable-v3.1.1-F4C542",
-        "| **Current Stable Release** | **v3.1.1** |",
+        "stable-v3.1.2-F4C542",
+        "| **Current Stable Release** | **v3.1.2** |",
         "v3.1.0-dashboard.png",
         "v3.1.0-routing-flow.png",
         "v3.1.0-destinations.png",
@@ -54,8 +53,8 @@ def test_readme_remains_comprehensive_and_current():
     ):
         assert value in readme
 
-    assert "stable-v3.1.0-F4C542" not in readme
-    assert "| **Current Stable Release** | **v3.1.0** |" not in readme
+    assert "stable-v3.1.1-F4C542" not in readme
+    assert "| **Current Stable Release** | **v3.1.1** |" not in readme
     assert "teams-xen-orchestra-v1.9.6.png" not in readme
     assert "discord-xen-orchestra-v1.9.6.png" not in readme
     assert "mounted `config.yaml` is the single configuration authority" not in readme

@@ -21,9 +21,9 @@ FILES = (
     ROOT / "docs" / "platform-outputs.md",
     ROOT / "docs" / "platform-routing.md",
     ROOT / "docs" / "platform-state.md",
-    ROOT / "docs" / "releases" / "v3.1.1.md",
+    ROOT / "docs" / "releases" / "v3.1.2.md",
     ROOT / "docs" / "roadmap.md",
-    ROOT / "docs" / "v3.1.1-qa-checklist.md",
+    ROOT / "docs" / "v3.1.2-qa-checklist.md",
     ROOT / "docs" / "webui.md",
 )
 
@@ -75,39 +75,48 @@ docs_index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
 webui = (ROOT / "docs" / "webui.md").read_text(encoding="utf-8")
 api = (ROOT / "docs" / "platform-api.md").read_text(encoding="utf-8")
 deployment = (ROOT / "docs" / "deployment.md").read_text(encoding="utf-8")
-release = (ROOT / "docs" / "releases" / "v3.1.1.md").read_text(encoding="utf-8")
+release = (ROOT / "docs" / "releases" / "v3.1.2.md").read_text(encoding="utf-8")
+checklist = (ROOT / "docs" / "v3.1.2-qa-checklist.md").read_text(encoding="utf-8")
 version = (ROOT / "src" / "version.py").read_text(encoding="utf-8")
 environment = (ROOT / ".env.example").read_text(encoding="utf-8")
 compose = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
 
 required_pairs = (
-    (readme, "stable-v3.1.1-F4C542"),
-    (readme, "**v3.1.1**"),
-    (dockerhub.casefold(), "current stable release is **v3.1.1**"),
-    (version, 'VERSION = "3.1.1"'),
-    (environment, "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.1"),
-    (compose, "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.1.1}"),
-    (release, "NCE-32"),
+    (readme, "stable-v3.1.2-F4C542"),
+    (readme, "**v3.1.2**"),
+    (dockerhub.casefold(), "current stable release is **v3.1.2**"),
+    (version, 'VERSION = "3.1.2"'),
+    (environment, "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.2"),
+    (compose, "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.1.2}"),
+    (release, "# Nowlert CE v3.1.2 release notes"),
+    (checklist, "# Nowlert CE v3.1.2 QA checklist"),
+    (deployment, 'version="v3.1.2"'),
+    (deployment, 'tag="v3.1.2"'),
+    (deployment, "ghcr.io/theriark/nowlert-ce:3.1.2"),
+    (deployment, "docker.io/theriark/nowlert-ce:3.1.2"),
     (deployment, "promote-production-reference.yml"),
     (deployment, "docker-release.yml"),
     (api, "DELETE | `/api/v2/users/{id}`"),
     (api, "DELETE | `/api/v2/backups/{id}`"),
-    (docs_index, "does not introduce a visual redesign"),
+    (docs_index, "current v3.1.2 release line"),
+    (docs_index, "does not introduce a\nvisual redesign"),
 )
 for document, required in required_pairs:
     if required not in document:
         raise SystemExit(f"ERROR: current documentation contract missing: {required}")
 
 for stale in (
-    "stable-v3.1.0-F4C542",
+    "stable-v3.1.1-F4C542",
+    "| **Current Stable Release** | **v3.1.1** |",
+    'version="v3.1.1"',
+    'tag="v3.1.1"',
+    "ghcr.io/theriark/nowlert-ce:3.1.1",
+    "docker.io/theriark/nowlert-ce:3.1.1",
     "teams-xen-orchestra-v1.9.6.png",
     "discord-xen-orchestra-v1.9.6.png",
 ):
-    if stale in readme:
-        raise SystemExit(f"ERROR: stale README reference remains: {stale}")
-
-if "current stable release is **v3.1.0**" in dockerhub.casefold():
-    raise SystemExit("ERROR: Docker Hub text still advertises v3.1.0 as current")
+    if stale in readme or stale in dockerhub or stale in deployment:
+        raise SystemExit(f"ERROR: stale current-release reference remains: {stale}")
 
 for legacy in ("\noutputs:\n", "\nrouting:\n"):
     if legacy in dockerhub:

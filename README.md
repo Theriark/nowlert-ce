@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Theriark/nowlert-ce/releases"><img src="https://img.shields.io/badge/stable-v3.1.1-F4C542" alt="Stable release v3.1.1"></a>
+  <a href="https://github.com/Theriark/nowlert-ce/releases"><img src="https://img.shields.io/badge/stable-v3.1.2-F4C542" alt="Stable release v3.1.2"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.13-blue" alt="Python 3.13"></a>
   <img src="https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker ready">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
@@ -67,7 +67,7 @@ docker logs -f nowlert-ce
 The default production image is:
 
 ```text
-theriark/nowlert-ce:3.1.1
+theriark/nowlert-ce:3.1.2
 ```
 
 ## 3. Create the first administrator
@@ -85,48 +85,38 @@ There is no default password.
 | Property | Value |
 |---|---|
 | **Status** | Stable · Production Ready |
-| **Current Stable Release** | **v3.1.1** |
+| **Current Stable Release** | **v3.1.2** |
 | **License** | MIT |
 | **Python** | 3.13 |
 | **Database schema** | 9 |
 | **Configuration model** | `platform_database_v1` |
 | **State path** | `/nowlert/state` |
 
-## What changed in v3.1.1
+## What changed in v3.1.2
 
-v3.1.1 is the post-v3.1.0 QA and release-flow hardening release. It keeps
-schema 9 and does not require a database migration.
+v3.1.2 is a maintenance, documentation, dependency, and release-safety update.
+It keeps schema 9 and does not require a database migration from v3.1.1.
 
 Highlights:
 
-- administrators can permanently delete users with safety checks and audit
-  coverage;
-- administrators can delete individual private state backups after explicit
-  confirmation;
-- the signed-in profile chip uses the authoritative account role and correctly
-  displays **Admin** for administrators;
-- Delivery History removes duplicate/empty status decoration and retains the
-  approved presentation;
-- Delivery History and Audit Log share a cleaner pagination footer with an
-  editable `Page [n] of N` control, Top shortcut, and right-aligned Entries
-  selector;
-- route editing removes redundant excluded severity/status controls;
-- included severities and statuses support normal single-click additive and
-  subtractive selection while preserving native range selection;
-- route criteria are scoped to the selected integration/input contract and the
-  Routes page displays full-list selections accurately; and
-- the release pipeline now binds `development`, `stage`, `main`, Development,
-  Stage, Production Reference, release tags, and immutable image digests to the
-  same source commit.
+- improves the first-screen README so new operators can understand what Nowlert
+  is, why it exists, and how to start it quickly;
+- updates the production dependency set, including `charset-normalizer` 3.5.1;
+- preserves the build-once immutable Development → Stage → Production Reference
+  release model;
+- makes the Stage branch advance fast-forward-only and tolerant of GitHub ref
+  propagation delay; and
+- makes release finalization reject a version tag that does not exactly match
+  the version embedded in the source candidate.
 
-See [v3.1.1 release notes](docs/releases/v3.1.1.md) and the
-[v3.1.1 QA checklist](docs/v3.1.1-qa-checklist.md).
+See [v3.1.2 release notes](docs/releases/v3.1.2.md) and the
+[v3.1.2 QA checklist](docs/v3.1.2-qa-checklist.md).
 
 ---
 
 # 📸 Preview
 
-v3.1.1 keeps the approved v3.1.0 visual design, so the existing screenshot set
+v3.1.2 keeps the approved v3.1.0 visual design, so the existing screenshot set
 remains the current visual baseline. New screenshots are added only when the
 rendered UI or notification presentation materially changes.
 
@@ -369,7 +359,7 @@ bounded metadata used by routing and presentation.
 ## Route
 
 A database record that connects an integration/input contract to a destination.
-Routes may constrain hosts, event patterns, severities, and statuses.
+Routes may constrain hosts, events, severities, and statuses.
 
 ## Destination
 
@@ -499,7 +489,7 @@ transport security, state location, and WebUI publication settings.
 
 Do **not** recreate legacy WebUI-managed YAML sections such as `outputs`,
 `routing`, `api.tokens`, `notifications`, `presentation`, `home_assistant`,
-`redfish`, `platform.backups`, or `webui.language` in a fresh v3.1.1
+`redfish`, `platform.backups`, or `webui.language` in a fresh v3.1.2
 configuration.
 
 See [Current configuration model](docs/current-configuration-model.md).

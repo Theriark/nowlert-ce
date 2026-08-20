@@ -79,7 +79,7 @@ Before an upgrade, keep a matched backup of:
 - the deployment definition; and
 - the currently running image reference/digest.
 
-v3.1.1 keeps schema 9, so upgrading from v3.1.0 does not require a database
+v3.1.2 keeps schema 9, so upgrading from v3.1.1 does not require a database
 migration. A matched backup is still required for safe rollback after state has
 changed.
 
@@ -134,7 +134,8 @@ The workflow:
 3. deploys the exact digest to Stage;
 4. runs a passive notification-silent live smoke;
 5. records desired state in the release ledger; and
-6. advances the `stage` branch to the approved source SHA.
+6. advances the `stage` branch to the approved source SHA using a guarded
+   fast-forward-only ref update with propagation-safe verification.
 
 No rebuild is performed.
 
@@ -146,7 +147,7 @@ gh workflow run promote-stage.yml \
   --ref development \
   -f ce_image="$FINAL_IMAGE" \
   -f source_commit="$SOURCE_COMMIT" \
-  -f change_reference="v3.1.1"
+  -f change_reference="v3.1.2"
 ```
 
 After success, record:
@@ -230,29 +231,32 @@ PRODUCTION_REFERENCE_RUN_ID=<run id>
 
 Release finalization runs from `main` and creates the annotated version tag and
 GitHub Release on that exact commit. It does not deploy or rebuild the image.
+The finalizer requires the requested tag to exactly match `src/version.py` and
+requires the matching release notes and QA checklist to exist on the source
+commit before it can publish anything.
 
 Inputs include the source commit, final immutable image, Development/Stage/
 Production Reference evidence run IDs, and human-readable release notes.
 
-Example for v3.1.1:
+Example for v3.1.2:
 
 ```bash
 gh workflow run finalize-release.yml \
   --repo Theriark/nowlert-ce \
   --ref main \
-  -f version="v3.1.1" \
+  -f version="v3.1.2" \
   -f final_image="$FINAL_IMAGE" \
   -f source_commit="$SOURCE_COMMIT" \
   -f development_run_id="$DEVELOPMENT_RUN_ID" \
   -f stage_promotion_run_id="$STAGE_PROMOTION_RUN_ID" \
   -f production_reference_run_id="$PRODUCTION_REFERENCE_RUN_ID" \
-  -f release_notes="Nowlert CE v3.1.1 QA and immutable promotion hardening"
+  -f release_notes="Nowlert CE v3.1.2 maintenance and release-safety update"
 ```
 
 The workflow refuses an existing tag/release, verifies current `main`, verifies
-the live Production Reference digest, validates promotion evidence, writes the
-release ledger record, creates the annotated tag/GitHub Release, and uploads
-release evidence.
+the requested tag matches the source version, verifies the live Production
+Reference digest, validates promotion evidence, writes the release ledger
+record, creates the annotated tag/GitHub Release, and uploads release evidence.
 
 ## Stable production image aliases
 
@@ -262,16 +266,16 @@ After the release tag exists, run **Docker Release Aliases** from `main`:
 gh workflow run docker-release.yml \
   --repo Theriark/nowlert-ce \
   --ref main \
-  -f tag="v3.1.1" \
+  -f tag="v3.1.2" \
   -f final_image="$FINAL_IMAGE"
 ```
 
 This workflow uses registry-copy tooling to publish:
 
 ```text
-ghcr.io/theriark/nowlert-ce:3.1.1
+ghcr.io/theriark/nowlert-ce:3.1.2
 ghcr.io/theriark/nowlert-ce:latest
-docker.io/theriark/nowlert-ce:3.1.1
+docker.io/theriark/nowlert-ce:3.1.2
 docker.io/theriark/nowlert-ce:latest
 ```
 

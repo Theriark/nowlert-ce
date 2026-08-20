@@ -5,7 +5,7 @@ release records.
 
 ## Current documentation
 
-Use these guides for the current v3.1.1 release line:
+Use these guides for the current v3.1.2 release line:
 
 | Guide | Purpose |
 |---|---|
@@ -47,8 +47,8 @@ payload examples, but routing always uses the shared integration + input model.
 
 Current release material:
 
-- [v3.1.1 release notes](releases/v3.1.1.md)
-- [v3.1.1 QA checklist](v3.1.1-qa-checklist.md)
+- [v3.1.2 release notes](releases/v3.1.2.md)
+- [v3.1.2 QA checklist](v3.1.2-qa-checklist.md)
 
 Historical notes under `releases/` and historical acceptance/QA checklists are
 version snapshots. They are intentionally preserved even when a newer release
@@ -56,7 +56,7 @@ changes current behavior.
 
 ## Screenshots
 
-Current public screenshots live under `images/`. v3.1.1 does not introduce a
+Current public screenshots live under `images/`. v3.1.2 does not introduce a
 visual redesign, so it deliberately reuses the approved v3.1.0 visual baseline
 rather than duplicating identical PNGs under new filenames.
 
@@ -83,7 +83,8 @@ python tools/validate_current_documentation.py
 python -m pytest -q tests/test_comprehensive_readme.py \
   tests/test_v252_documentation_refresh.py \
   tests/test_v310_release_docs.py \
-  tests/test_v311_release_docs.py
+  tests/test_v311_release_docs.py \
+  tests/test_v312_release_docs.py
 ```
 
 Documentation, release metadata, runtime version, Compose defaults, and the

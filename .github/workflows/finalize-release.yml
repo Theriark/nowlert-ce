@@ -107,12 +107,37 @@ jobs:
             exit 1
           }
 
-          git fetch origin             +refs/heads/main:refs/remotes/origin/main
+          git fetch origin \
+            +refs/heads/main:refs/remotes/origin/main
 
           MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
 
           [[ "${SOURCE_COMMIT}" == "${MAIN_SHA}" ]] || {
             echo "::error::Release source ${SOURCE_COMMIT} is not current main ${MAIN_SHA}"
+            exit 1
+          }
+
+          SOURCE_VERSION="$(
+            git show "${SOURCE_COMMIT}:src/version.py" |
+              sed -n 's/^VERSION = "\([^"[:space:]]*\)"$/\1/p'
+          )"
+          [[ -n "${SOURCE_VERSION}" ]] || {
+            echo "::error::Could not determine source version for ${SOURCE_COMMIT}"
+            exit 1
+          }
+
+          [[ "${VERSION}" == "v${SOURCE_VERSION}" ]] || {
+            echo "::error::Release tag ${VERSION} does not match source version v${SOURCE_VERSION}"
+            exit 1
+          }
+
+          git cat-file -e "${SOURCE_COMMIT}:docs/releases/${VERSION}.md" || {
+            echo "::error::Release notes docs/releases/${VERSION}.md are missing from ${SOURCE_COMMIT}"
+            exit 1
+          }
+
+          git cat-file -e "${SOURCE_COMMIT}:docs/${VERSION}-qa-checklist.md" || {
+            echo "::error::QA checklist docs/${VERSION}-qa-checklist.md is missing from ${SOURCE_COMMIT}"
             exit 1
           }
 

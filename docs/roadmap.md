@@ -55,6 +55,15 @@ tracked release scope.
 - release tag bound to current `main`; and
 - stable GHCR/Docker Hub aliases copied from the approved digest without rebuild.
 
+### v3.1.2 — Maintenance and release-safety hardening
+
+- clearer first-screen Community Edition positioning and Quick Start path;
+- production dependency refreshes;
+- fast-forward-only Stage source advancement with ref-propagation polling;
+- release tag/version equality enforced before publication;
+- current v3.1.2 release notes and QA acceptance contract; and
+- stable v3.1.2 image/tag references synchronized across deployment surfaces.
+
 ## Current maintenance priorities
 
 1. Keep runtime version, README, Docker Hub text, configuration examples,
