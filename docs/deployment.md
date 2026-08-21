@@ -79,7 +79,7 @@ Before an upgrade, keep a matched backup of:
 - the deployment definition; and
 - the currently running image reference/digest.
 
-v3.1.2 keeps schema 9, so upgrading from v3.1.1 does not require a database
+v3.1.3 keeps schema 9, so upgrading from v3.1.2 does not require a database
 migration. A matched backup is still required for safe rollback after state has
 changed.
 
@@ -147,7 +147,7 @@ gh workflow run promote-stage.yml \
   --ref development \
   -f ce_image="$FINAL_IMAGE" \
   -f source_commit="$SOURCE_COMMIT" \
-  -f change_reference="v3.1.2"
+  -f change_reference="v3.1.3"
 ```
 
 After success, record:
@@ -238,19 +238,19 @@ commit before it can publish anything.
 Inputs include the source commit, final immutable image, Development/Stage/
 Production Reference evidence run IDs, and human-readable release notes.
 
-Example for v3.1.2:
+Example for v3.1.3:
 
 ```bash
 gh workflow run finalize-release.yml \
   --repo Theriark/nowlert-ce \
   --ref main \
-  -f version="v3.1.2" \
+  -f version="v3.1.3" \
   -f final_image="$FINAL_IMAGE" \
   -f source_commit="$SOURCE_COMMIT" \
   -f development_run_id="$DEVELOPMENT_RUN_ID" \
   -f stage_promotion_run_id="$STAGE_PROMOTION_RUN_ID" \
   -f production_reference_run_id="$PRODUCTION_REFERENCE_RUN_ID" \
-  -f release_notes="Nowlert CE v3.1.2 maintenance and release-safety update"
+  -f release_notes="Nowlert CE v3.1.3 documentation and discoverability update"
 ```
 
 The workflow refuses an existing tag/release, verifies current `main`, verifies
@@ -266,16 +266,16 @@ After the release tag exists, run **Docker Release Aliases** from `main`:
 gh workflow run docker-release.yml \
   --repo Theriark/nowlert-ce \
   --ref main \
-  -f tag="v3.1.2" \
+  -f tag="v3.1.3" \
   -f final_image="$FINAL_IMAGE"
 ```
 
 This workflow uses registry-copy tooling to publish:
 
 ```text
-ghcr.io/theriark/nowlert-ce:3.1.2
+ghcr.io/theriark/nowlert-ce:3.1.3
 ghcr.io/theriark/nowlert-ce:latest
-docker.io/theriark/nowlert-ce:3.1.2
+docker.io/theriark/nowlert-ce:3.1.3
 docker.io/theriark/nowlert-ce:latest
 ```
 

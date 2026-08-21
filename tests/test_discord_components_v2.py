@@ -9,6 +9,7 @@ from formatters.discord_hardware import DellIDRACDiscordFormatter
 from models import Notification
 from outputs.discord import DiscordOutput
 import outputs.discord as discord_output_module
+from version import VERSION
 
 
 ALL_DISCORD_SOURCES = (
@@ -189,7 +190,7 @@ def test_dell_components_v2_uses_native_responsive_separators():
     assert "🕒 **Event time:**" in rendered
     assert "🌡️ **Sensor:** PSU 1" in rendered
     assert "📍 **Origin:** /redfish/v1/Chassis/1/Power" in rendered
-    assert "Theriark • Nowlert v3.1.2" in rendered
+    assert f"Theriark • Nowlert v{VERSION}" in rendered
     assert "─" not in rendered
     assert "embeds" not in payload
     assert "attachments" not in payload
@@ -245,7 +246,7 @@ def test_every_discord_integration_uses_approved_components_v2_contract():
         assert "**Category:**" in rendered, source
         assert "**Event time:**" in rendered, source
         assert "📋 Event details" in rendered, source
-        assert "Theriark • Nowlert v3.1.2" in rendered, source
+        assert f"Theriark • Nowlert v{VERSION}" in rendered, source
         assert len(flattened_components(payload)) <= 40, source
         assert len(rendered) <= 4000, source
 

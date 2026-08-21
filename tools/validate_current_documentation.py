@@ -17,19 +17,29 @@ FILES = (
     ROOT / "docs" / "database-authoritative-resources.md",
     ROOT / "docs" / "deployment.md",
     ROOT / "docs" / "integrations-and-inputs.md",
+    ROOT / "docs" / "integrations" / "README.md",
+    ROOT / "docs" / "guides" / "README.md",
+    ROOT / "docs" / "guides" / "xen-orchestra-to-discord.md",
+    ROOT / "docs" / "guides" / "xen-orchestra-to-teams.md",
+    ROOT / "docs" / "guides" / "centralise-homelab-smtp-alerts.md",
+    ROOT / "docs" / "guides" / "dell-idrac-redfish-routing.md",
+    ROOT / "docs" / "guides" / "zabbix-webhook-to-discord.md",
     ROOT / "docs" / "platform-api.md",
     ROOT / "docs" / "platform-outputs.md",
     ROOT / "docs" / "platform-routing.md",
     ROOT / "docs" / "platform-state.md",
     ROOT / "docs" / "presentation-contract.md",
-    ROOT / "docs" / "releases" / "v3.1.2.md",
+    ROOT / "docs" / "releases" / "v3.1.3.md",
     ROOT / "docs" / "roadmap.md",
     ROOT / "docs" / "smtp-security.md",
-    ROOT / "docs" / "v3.1.2-qa-checklist.md",
+    ROOT / "docs" / "v3.1.3-qa-checklist.md",
     ROOT / "docs" / "webui.md",
 )
 
-CURRENT_RELEASE_GUIDES = (
+# v3.1.3 intentionally does not change these runtime contracts. They continue
+# to document the v3.1.2 behavior baseline while the release identity and new
+# discoverability/use-case documentation advance to v3.1.3.
+UNCHANGED_RUNTIME_GUIDES = (
     ROOT / "docs" / "current-configuration-model.md",
     ROOT / "docs" / "data-portability.md",
     ROOT / "docs" / "database-authoritative-resources.md",
@@ -91,57 +101,70 @@ docs_index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
 webui = (ROOT / "docs" / "webui.md").read_text(encoding="utf-8")
 api = (ROOT / "docs" / "platform-api.md").read_text(encoding="utf-8")
 deployment = (ROOT / "docs" / "deployment.md").read_text(encoding="utf-8")
-release = (ROOT / "docs" / "releases" / "v3.1.2.md").read_text(encoding="utf-8")
-checklist = (ROOT / "docs" / "v3.1.2-qa-checklist.md").read_text(encoding="utf-8")
+release = (ROOT / "docs" / "releases" / "v3.1.3.md").read_text(encoding="utf-8")
+checklist = (ROOT / "docs" / "v3.1.3-qa-checklist.md").read_text(encoding="utf-8")
 version = (ROOT / "src" / "version.py").read_text(encoding="utf-8")
 environment = (ROOT / ".env.example").read_text(encoding="utf-8")
 compose = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
 changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+guide_index = (ROOT / "docs" / "guides" / "README.md").read_text(encoding="utf-8")
+integration_index = (ROOT / "docs" / "integrations" / "README.md").read_text(
+    encoding="utf-8"
+)
 
 required_pairs = (
-    (readme, "stable-v3.1.2-F4C542"),
-    (readme, "**v3.1.2**"),
-    (dockerhub.casefold(), "current stable release is **v3.1.2**"),
-    (version, 'VERSION = "3.1.2"'),
-    (environment, "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.2"),
-    (compose, "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.1.2}"),
-    (release, "# Nowlert CE v3.1.2 release notes"),
-    (checklist, "# Nowlert CE v3.1.2 QA checklist"),
+    (readme, "stable-v3.1.3-F4C542"),
+    (readme, "**v3.1.3**"),
+    (dockerhub.casefold(), "current stable release is **v3.1.3**"),
+    (version, 'VERSION = "3.1.3"'),
+    (environment, "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.3"),
+    (compose, "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.1.3}"),
+    (release, "# Nowlert CE v3.1.3 release notes"),
+    (checklist, "# Nowlert CE v3.1.3 QA checklist"),
     (changelog, "## 3.1.2 - 2026-08-20"),
-    (deployment, 'version="v3.1.2"'),
-    (deployment, 'tag="v3.1.2"'),
-    (deployment, "ghcr.io/theriark/nowlert-ce:3.1.2"),
-    (deployment, "docker.io/theriark/nowlert-ce:3.1.2"),
+    (deployment, 'version="v3.1.3"'),
+    (deployment, 'tag="v3.1.3"'),
+    (deployment, "ghcr.io/theriark/nowlert-ce:3.1.3"),
+    (deployment, "docker.io/theriark/nowlert-ce:3.1.3"),
     (deployment, "promote-production-reference.yml"),
     (deployment, "docker-release.yml"),
     (api, "DELETE | `/api/v2/users/{id}`"),
     (api, "DELETE | `/api/v2/backups/{id}`"),
-    (docs_index, "current v3.1.2 release line"),
+    (docs_index, "current v3.1.3 release line"),
     (docs_index, "does not introduce a\nvisual redesign"),
+    (guide_index, "xen-orchestra-to-discord.md"),
+    (guide_index, "xen-orchestra-to-teams.md"),
+    (guide_index, "centralise-homelab-smtp-alerts.md"),
+    (guide_index, "dell-idrac-redfish-routing.md"),
+    (guide_index, "zabbix-webhook-to-discord.md"),
+    (integration_index, "../redfish.md"),
+    (integration_index, "../guides/README.md"),
 )
 for document, required in required_pairs:
     if required not in document:
         raise SystemExit(f"ERROR: current documentation contract missing: {required}")
 
-for document in CURRENT_RELEASE_GUIDES:
+for document in UNCHANGED_RUNTIME_GUIDES:
     text = document.read_text(encoding="utf-8")
     relative = document.relative_to(ROOT)
     if "Nowlert v3.1.2" not in text:
         raise SystemExit(
-            f"ERROR: current guide does not identify v3.1.2: {relative}"
+            f"ERROR: unchanged runtime guide lost v3.1.2 behavior baseline: {relative}"
         )
     if "Nowlert v3.1.1" in text:
         raise SystemExit(
-            f"ERROR: stale current guide identity remains in {relative}: Nowlert v3.1.1"
+            f"ERROR: stale runtime guide identity remains in {relative}: Nowlert v3.1.1"
         )
 
+# v3.1.2 is expected in historical notes and in unchanged runtime-contract
+# prose. It must not remain as the current public release identity.
 for stale in (
-    "stable-v3.1.1-F4C542",
-    "| **Current Stable Release** | **v3.1.1** |",
-    'version="v3.1.1"',
-    'tag="v3.1.1"',
-    "ghcr.io/theriark/nowlert-ce:3.1.1",
-    "docker.io/theriark/nowlert-ce:3.1.1",
+    "stable-v3.1.2-F4C542",
+    "| **Current Stable Release** | **v3.1.2** |",
+    'version="v3.1.2"',
+    'tag="v3.1.2"',
+    "ghcr.io/theriark/nowlert-ce:3.1.2",
+    "docker.io/theriark/nowlert-ce:3.1.2",
     "teams-xen-orchestra-v1.9.6.png",
     "discord-xen-orchestra-v1.9.6.png",
 ):
@@ -151,6 +174,16 @@ for stale in (
 for legacy in ("\noutputs:\n", "\nrouting:\n"):
     if legacy in dockerhub:
         raise SystemExit("ERROR: legacy WebUI-managed YAML example remains in Docker Hub text")
+
+for path in (ROOT / "docs" / "guides").glob("*.md"):
+    if path.name == "README.md":
+        continue
+    text = path.read_text(encoding="utf-8")
+    for legacy in ("\noutputs:\n", "\nrouting:\n", "\napi:\n  tokens:\n"):
+        if legacy in text:
+            raise SystemExit(
+                f"ERROR: legacy WebUI-managed YAML example remains in {path.relative_to(ROOT)}"
+            )
 
 for stale_claim in (
     "Nowlert v2.5.2 packages",
@@ -165,4 +198,5 @@ if "The mounted file is authoritative" in api:
 print("documentation_links=passed")
 print("documentation_release_identity=passed")
 print("documentation_screenshots=passed")
+print("documentation_guides=passed")
 print("documentation_drift=passed")

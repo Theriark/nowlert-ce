@@ -5,7 +5,7 @@ release records.
 
 ## Current documentation
 
-Use these guides for the current v3.1.2 release line:
+Use these guides for the current v3.1.3 release line:
 
 | Guide | Purpose |
 |---|---|
@@ -13,6 +13,8 @@ Use these guides for the current v3.1.2 release line:
 | [Deployment](deployment.md) | Docker/Compose operation, immutable promotion flow, upgrade and rollback |
 | [WebUI](webui.md) | Current pages, permissions, route editing, history, users and backups |
 | [Integrations and inputs](integrations-and-inputs.md) | Built-in integration catalogue and SMTP/HTTP/Redfish input model |
+| [Integration setup index](integrations/README.md) | Stable index for product-specific setup notes |
+| [Technical use-case guides](guides/README.md) | Practical end-to-end SMTP/HTTP/Redfish flows to real destinations |
 | [Platform routing](platform-routing.md) | Tokens, destinations, routes, fallback behavior, delivery and audit rules |
 | [Platform outputs](platform-outputs.md) | Destination adapters and safe output contracts |
 | [Platform API](platform-api.md) | `/api/v2` authentication, endpoints, CSRF and event ingestion |
@@ -24,39 +26,34 @@ Use these guides for the current v3.1.2 release line:
 
 ## Integration guides
 
-Integration-specific setup lives under [`integrations/`](integrations/):
-
-- Dell iDRAC
-- Grafana
-- Home Assistant
-- HPE iLO
-- Portainer
-- Proxmox
-- QNAP
-- Redfish
-- Supermicro
-- Synology
-- TrueNAS
-- UniFi Network / Protect / Drive
+Integration-specific setup is indexed under [`integrations/`](integrations/).
+The existing product-specific guide files remain at their established top-level
+`docs/` paths so historical and inbound links continue to work.
 
 The built-in catalogue is authoritative for which normalized inputs are
 available to each integration. A guide may contain product-specific endpoint or
 payload examples, but routing always uses the shared integration + input model.
 
+## Practical use-case guides
+
+The [`guides/`](guides/) collection contains current end-to-end operator flows,
+including Xen Orchestra to Discord/Teams, direct homelab SMTP ingestion, Dell
+iDRAC/Redfish routing, and Zabbix Event API delivery to Discord.
+
 ## Release documentation
 
 Current release material:
 
-- [v3.1.2 release notes](releases/v3.1.2.md)
-- [v3.1.2 QA checklist](v3.1.2-qa-checklist.md)
+- [v3.1.3 release notes](releases/v3.1.3.md)
+- [v3.1.3 QA checklist](v3.1.3-qa-checklist.md)
 
 Historical notes under `releases/` and historical acceptance/QA checklists are
 version snapshots. They are intentionally preserved even when a newer release
-changes current behavior.
+changes current documentation.
 
 ## Screenshots
 
-Current public screenshots live under `images/`. v3.1.2 does not introduce a
+Current public screenshots live under `images/`. v3.1.3 does not introduce a
 visual redesign, so it deliberately reuses the approved v3.1.0 visual baseline
 rather than duplicating identical PNGs under new filenames.
 
@@ -68,6 +65,10 @@ The README/current WebUI documentation uses:
 - `v3.1.0-delivery-history.png`
 - `v3.1.0-discord-xen-orchestra.png`
 - `v3.1.0-teams-xen-orchestra.png`
+
+Additional packaged screenshots may be referenced by individual practical
+guides when they accurately demonstrate an existing integration/destination
+presentation.
 
 Refresh screenshots only when the rendered UI or notification presentation
 materially changes. Never publish captures that show passwords, destination
@@ -84,7 +85,7 @@ python -m pytest -q tests/test_comprehensive_readme.py \
   tests/test_v252_documentation_refresh.py \
   tests/test_v310_release_docs.py \
   tests/test_v311_release_docs.py \
-  tests/test_v312_release_docs.py
+  tests/test_v313_release_docs.py
 ```
 
 Documentation, release metadata, runtime version, Compose defaults, and the

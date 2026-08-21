@@ -1,4 +1,4 @@
-"""Release metadata invariants for Nowlert CE v3.1.2."""
+"""Release metadata invariants for Nowlert CE v3.1.3."""
 
 import json
 from pathlib import Path
@@ -23,7 +23,7 @@ CURRENT_RELEASE_GUIDES = (
 
 
 def test_application_version_and_repository_are_current():
-    assert VERSION == "3.1.2"
+    assert VERSION == "3.1.3"
     assert EDITION == "Community Edition"
     assert EDITION_SLUG == "ce"
     assert REPOSITORY == "https://github.com/Theriark/nowlert-ce"
@@ -44,15 +44,18 @@ def test_public_enterprise_release_manifest_is_valid():
 def test_readme_release_metadata_is_current():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert "stable-v3.1.2-F4C542" in readme
-    assert "| **Current Stable Release** | **v3.1.2** |" in readme
+    assert "stable-v3.1.3-F4C542" in readme
+    assert "| **Current Stable Release** | **v3.1.3** |" in readme
     assert "https://github.com/Theriark/nowlert-ce/releases" in readme
-    assert "stable-v3.1.1-F4C542" not in readme
+    assert "stable-v3.1.2-F4C542" not in readme
 
 
 def test_changelog_preserves_release_history():
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
+    # v3.1.3 is a documentation/discoverability patch whose authoritative
+    # release record is docs/releases/v3.1.3.md. Preserve the existing
+    # historical changelog order rather than rewriting old release records.
     assert "## 3.1.2 - 2026-08-20" in changelog
     assert "## 3.1.1 - 2026-08-14" in changelog
     assert "## 3.1.0 - 2026-08-08" in changelog
@@ -64,19 +67,23 @@ def test_changelog_preserves_release_history():
     assert changelog.index("## 3.1.0") < changelog.index("## 3.0.0")
 
 
-def test_current_guides_identify_v312_as_current():
+def test_unchanged_runtime_guides_remain_on_v312_contract():
+    """v3.1.3 changes docs/navigation, not the runtime contracts from v3.1.2."""
+
     for relative in CURRENT_RELEASE_GUIDES:
         document = (ROOT / relative).read_text(encoding="utf-8")
         assert "Nowlert v3.1.2" in document, relative
         assert "Nowlert v3.1.1" not in document, relative
 
 
-def test_historical_v300_v310_and_v311_documents_remain_historical():
+def test_historical_v300_v310_v311_and_v312_documents_remain_historical():
     v300_notes = ROOT / "docs" / "releases" / "v3.0.0.md"
     v300_checklist = ROOT / "docs" / "v3.0.0-acceptance-checklist.md"
     v310_notes = ROOT / "docs" / "releases" / "v3.1.0.md"
     v311_notes = ROOT / "docs" / "releases" / "v3.1.1.md"
     v311_checklist = ROOT / "docs" / "v3.1.1-qa-checklist.md"
+    v312_notes = ROOT / "docs" / "releases" / "v3.1.2.md"
+    v312_checklist = ROOT / "docs" / "v3.1.2-qa-checklist.md"
     docker_hub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
 
     assert v300_notes.read_text(encoding="utf-8").startswith(
@@ -94,8 +101,14 @@ def test_historical_v300_v310_and_v311_documents_remain_historical():
     assert v311_checklist.read_text(encoding="utf-8").startswith(
         "# Nowlert CE v3.1.1 QA checklist"
     )
-    assert "current stable release is **v3.1.2**" in docker_hub.casefold()
-    assert "theriark/nowlert-ce:3.1.2" in docker_hub
+    assert v312_notes.read_text(encoding="utf-8").startswith(
+        "# Nowlert CE v3.1.2 release notes"
+    )
+    assert v312_checklist.read_text(encoding="utf-8").startswith(
+        "# Nowlert CE v3.1.2 QA checklist"
+    )
+    assert "current stable release is **v3.1.3**" in docker_hub.casefold()
+    assert "theriark/nowlert-ce:3.1.3" in docker_hub
 
 
 def test_historical_v255_release_identity_is_preserved():
@@ -118,22 +131,22 @@ def test_production_defaults_are_versioned_and_compatible():
     environment = (ROOT / ".env.example").read_text(encoding="utf-8")
     compose = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
 
-    assert "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.2" in environment
-    assert "theriark/nowlert-ce:3.1.2" in compose
+    assert "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.3" in environment
+    assert "theriark/nowlert-ce:3.1.3" in compose
     assert "NOWLERT_IMAGE" in compose
     assert "NOWLERT_EXTERNAL_BACKUP_DIR" in compose
     assert "/nowlert/external-backups" in compose
 
 
-def test_release_notes_cover_v312_compatibility_and_rollback():
-    notes = (ROOT / "docs" / "releases" / "v3.1.2.md").read_text(
+def test_release_notes_cover_v313_compatibility_and_rollback():
+    notes = (ROOT / "docs" / "releases" / "v3.1.3.md").read_text(
         encoding="utf-8"
     )
 
     for heading in (
         "## Highlights",
         "## Compatibility",
-        "## Upgrade from v3.1.1",
+        "## Upgrade from v3.1.2",
         "## Rollback",
     ):
         assert heading in notes

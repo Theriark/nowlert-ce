@@ -14,28 +14,29 @@ Nowlert CE receives infrastructure signals over **SMTP**, **HTTP**, and
 and delivers clear operational notifications to Discord, Microsoft Teams,
 Slack, generic webhooks, MQTT, and ntfy.
 
-The current stable release is **v3.1.2**. The versioned Docker Hub image is:
+The current stable release is **v3.1.3**. The versioned Docker Hub image is:
 
 ```text
-theriark/nowlert-ce:3.1.2
+theriark/nowlert-ce:3.1.3
 ```
 
-## v3.1.2 highlights
+## v3.1.3 highlights
 
-- Clearer first-time README and Community Edition positioning
-- Production dependency refresh, including `charset-normalizer` 3.5.1
-- Database-authoritative WebUI resources (`platform_database_v1`)
+- Five practical end-to-end operator guides covering Xen Orchestra, SMTP,
+  Dell iDRAC/Redfish, Zabbix, Discord, and Microsoft Teams
+- Stable `docs/integrations/` and `docs/guides/` navigation paths
+- Current database-authoritative WebUI examples instead of legacy YAML-managed
+  destination/routing examples
+- Database schema 9 and `platform_database_v1` remain unchanged
 - Build-once immutable Development → Stage → Production Reference release flow
-- Fast-forward-only Stage source advancement with propagation-safe verification
-- Release finalization rejects tags that do not match the source/runtime version
 - Stable GHCR/Docker Hub aliases copied from the approved digest without rebuild
 
-Database schema remains **9**; upgrading from v3.1.1 requires no database
-migration.
+v3.1.3 is a documentation/discoverability patch. No runtime behavior or
+database migration is introduced from v3.1.2.
 
 ## Preview
 
-v3.1.2 keeps the approved v3.1.0 visual baseline.
+v3.1.3 keeps the approved v3.1.0 visual baseline.
 
 ![Nowlert Dashboard](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-dashboard.png)
 
@@ -98,7 +99,7 @@ history are database-authoritative in private platform state.
 
 Do not add the legacy WebUI-managed `outputs`, `routing`, `api.tokens`,
 `notifications`, `presentation`, `home_assistant`, `redfish`,
-`platform.backups`, or `webui.language` sections to a fresh v3.1.2
+`platform.backups`, or `webui.language` sections to a fresh v3.1.3
 configuration.
 
 ## Built-in integrations
@@ -116,8 +117,9 @@ Nowlert evaluates enabled dedicated integration routes before wildcard fallback
 routes. Fallback routes run only when no dedicated route matches, and duplicate
 delivery to the same destination is suppressed.
 
-The v3.1.2 route editor supports host/event patterns plus included severities
-and statuses. Unselected severity/status values are implicitly excluded.
+The v3.1.3 route editor behavior is unchanged from v3.1.2: host/event patterns
+plus included severities and statuses are supported, and unselected
+severity/status values are implicitly excluded.
 
 ## Security
 
@@ -142,11 +144,11 @@ Before upgrading:
 
 1. back up `config`, `state`, and external `secrets` as one matched set;
 2. record the currently running image/digest;
-3. deploy the versioned v3.1.2 image;
+3. deploy the versioned v3.1.3 image;
 4. verify `/api/health`, login, routes, destinations, history, and backups; and
 5. keep the matched backup until acceptance passes.
 
-v3.1.2 keeps schema 9, so no v3.1.1 database migration is expected.
+v3.1.3 keeps schema 9, so no v3.1.2 database migration is expected.
 
 ## Immutable release provenance
 
@@ -169,7 +171,8 @@ Current documentation includes:
 - routing/delivery model;
 - platform API/state model;
 - data portability and private backups;
-- integration-specific setup guides; and
+- integration-specific setup guides;
+- practical end-to-end use-case guides; and
 - release notes/QA checklists.
 
 MIT License · Powered by Theriark

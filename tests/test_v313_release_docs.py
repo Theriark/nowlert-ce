@@ -1,4 +1,4 @@
-"""Current Nowlert CE v3.1.2 release/documentation contract."""
+"""Current Nowlert CE v3.1.3 release/documentation contract."""
 
 from pathlib import Path
 
@@ -16,32 +16,40 @@ CURRENT_SCREENSHOTS = (
     "v3.1.0-teams-xen-orchestra.png",
 )
 
+CURRENT_GUIDES = (
+    "xen-orchestra-to-discord.md",
+    "xen-orchestra-to-teams.md",
+    "centralise-homelab-smtp-alerts.md",
+    "dell-idrac-redfish-routing.md",
+    "zabbix-webhook-to-discord.md",
+)
 
-def test_v312_release_identity_is_consistent():
-    assert VERSION == "3.1.2"
+
+def test_v313_release_identity_is_consistent():
+    assert VERSION == "3.1.3"
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     dockerhub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
     environment = (ROOT / ".env.example").read_text(encoding="utf-8")
     compose = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
-    release = (ROOT / "docs" / "releases" / "v3.1.2.md").read_text(
+    release = (ROOT / "docs" / "releases" / "v3.1.3.md").read_text(
         encoding="utf-8"
     )
-    checklist = (ROOT / "docs" / "v3.1.2-qa-checklist.md").read_text(
+    checklist = (ROOT / "docs" / "v3.1.3-qa-checklist.md").read_text(
         encoding="utf-8"
     )
 
-    assert "stable-v3.1.2-F4C542" in readme
-    assert "**Current Stable Release** | **v3.1.2**" in readme
-    assert "current stable release is **v3.1.2**" in dockerhub.casefold()
-    assert "theriark/nowlert-ce:3.1.2" in dockerhub
-    assert "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.2" in environment
-    assert "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.1.2}" in compose
-    assert release.startswith("# Nowlert CE v3.1.2 release notes")
-    assert checklist.startswith("# Nowlert CE v3.1.2 QA checklist")
+    assert "stable-v3.1.3-F4C542" in readme
+    assert "**Current Stable Release** | **v3.1.3**" in readme
+    assert "current stable release is **v3.1.3**" in dockerhub.casefold()
+    assert "theriark/nowlert-ce:3.1.3" in dockerhub
+    assert "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.3" in environment
+    assert "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.1.3}" in compose
+    assert release.startswith("# Nowlert CE v3.1.3 release notes")
+    assert checklist.startswith("# Nowlert CE v3.1.3 QA checklist")
 
 
-def test_v312_approved_visual_baseline_is_packaged_and_referenced():
+def test_v313_approved_visual_baseline_is_packaged_and_referenced():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     webui = (ROOT / "docs" / "webui.md").read_text(encoding="utf-8")
     docs_index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
@@ -57,7 +65,28 @@ def test_v312_approved_visual_baseline_is_packaged_and_referenced():
     assert "does not introduce a visual redesign" in normalized_index
 
 
-def test_v312_release_safety_contract():
+def test_v313_consolidated_guide_batch_is_packaged():
+    guide_index = (ROOT / "docs" / "guides" / "README.md").read_text(
+        encoding="utf-8"
+    )
+    integration_index = ROOT / "docs" / "integrations" / "README.md"
+
+    assert integration_index.is_file()
+    for filename in CURRENT_GUIDES:
+        path = ROOT / "docs" / "guides" / filename
+        assert path.is_file(), filename
+        assert path.stat().st_size > 0, filename
+        assert filename in guide_index
+
+    for forbidden in ("\noutputs:\n", "\nrouting:\n", "\napi:\n  tokens:\n"):
+        for filename in CURRENT_GUIDES:
+            text = (ROOT / "docs" / "guides" / filename).read_text(
+                encoding="utf-8"
+            )
+            assert forbidden not in text, filename
+
+
+def test_v313_release_safety_contract():
     finalizer = (
         ROOT / ".github" / "workflows" / "finalize-release.yml"
     ).read_text(encoding="utf-8")
@@ -76,7 +105,7 @@ def test_v312_release_safety_contract():
     assert "cannot fast-forward" in stage
 
 
-def test_v312_deployment_docs_contain_cli_promotion_chain():
+def test_v313_deployment_docs_contain_cli_promotion_chain():
     deployment = (ROOT / "docs" / "deployment.md").read_text(encoding="utf-8")
     normalized = " ".join(deployment.split()).casefold()
 
@@ -88,9 +117,9 @@ def test_v312_deployment_docs_contain_cli_promotion_chain():
     ):
         assert f"gh workflow run {workflow}" in deployment
 
-    assert 'version="v3.1.2"' in deployment
-    assert 'tag="v3.1.2"' in deployment
-    assert "ghcr.io/theriark/nowlert-ce:3.1.2" in deployment
-    assert "docker.io/theriark/nowlert-ce:3.1.2" in deployment
+    assert 'version="v3.1.3"' in deployment
+    assert 'tag="v3.1.3"' in deployment
+    assert "ghcr.io/theriark/nowlert-ce:3.1.3" in deployment
+    assert "docker.io/theriark/nowlert-ce:3.1.3" in deployment
     assert "image rebuild is performed from the release tag" in normalized
     assert "there is no additional ce dokploy `production` deployment workflow" in normalized

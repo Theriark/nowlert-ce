@@ -14,7 +14,7 @@ COMPANY = "Theriark"
 EDITION = "Community Edition"
 EDITION_SLUG = "ce"
 
-VERSION = "3.1.2"
+VERSION = "3.1.3"
 
 AUTHOR = "Ruben Rodrigues"
 
