@@ -1,4 +1,4 @@
-"""v2.2 operational notices, presentation, history, and backup contracts."""
+"""v2.2 presentation, history, and backup contracts."""
 
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ from storage.database import Database
 from storage.delivery import DeliveryHistoryStore, DeliveryResult
 from storage.destinations import DestinationStore
 from storage.health import HealthCheckService
-from storage.notices import NoticeStore
 from storage.ownership import Actor
 from storage.routes import RouteStore, route_priority_name, route_priority_value
 from storage.users import UserStore
@@ -46,49 +45,6 @@ def operations(tmp_path):
     admin = users.bootstrap_admin("administrator", "correct horse battery staple")
     user = users.create("observer", "observer secure password")
     return database, users, admin, user
-
-
-def test_notices_are_dismissed_per_user_and_system_notices_resolve(operations):
-    database, _users, admin, user = operations
-    with database.transaction() as connection:
-        connection.execute(
-            "UPDATE users SET first_login_at = ? WHERE id IN (?, ?)",
-            (1_699_999_999, user.id, admin.id),
-        )
-    store = NoticeStore(database, clock=lambda: 1_700_000_000)
-    announcement = store.create(admin.actor, "Maintenance", "Starts at 22:00", "warning")
-
-    assert {item.name for item in store.list_visible(user.actor)} >= {
-        "Maintenance",
-        "Notification operations",
-        "Mounted configuration",
-    }
-    store.dismiss(user.actor, announcement.id)
-    assert announcement.id not in {item.id for item in store.list_visible(user.actor)}
-    assert announcement.id in {item.id for item in store.list_visible(admin.actor)}
-
-    store.sync_system(
-        "synthetic-error",
-        "Synthetic failure",
-        "Repair the synthetic fault.",
-        status="severe",
-        kind="system_error",
-        persistent=True,
-        active=True,
-    )
-    persistent = next(item for item in store.list_visible(user.actor) if item.name == "Synthetic failure")
-    with pytest.raises(PermissionError, match="remain until resolved"):
-        store.dismiss(user.actor, persistent.id)
-    store.sync_system(
-        "synthetic-error",
-        "Synthetic failure",
-        "Healthy.",
-        status="severe",
-        kind="system_error",
-        persistent=True,
-        active=False,
-    )
-    assert persistent.id not in {item.id for item in store.list_visible(user.actor)}
 
 
 def test_profile_picture_is_validated_and_application_status_is_enforced(operations):

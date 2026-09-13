@@ -161,22 +161,6 @@
           <ul id="workspace-alert-list"></ul>
         </section>
         <section id="view-dashboard" class="view" data-page="dashboard">
-          <section id="notice-console" class="notice-console" hidden>
-            <article id="notice-composer" class="panel notice-composer" hidden>
-              <div class="panel-heading centered-heading"><h2>Administrator Notice</h2></div>
-              <form id="notice-form" class="notice-form">
-                <input id="notice-id" type="hidden">
-                <label><span>Notice name</span><input id="notice-name" required maxlength="120" placeholder="Maintenance window"></label>
-                <label><span>Status</span><select id="notice-status"><option value="information">Information</option><option value="warning">Warning</option><option value="severe">Severe</option></select></label>
-                <label class="wide"><span>Message</span><textarea id="notice-message" rows="2" required maxlength="2000" placeholder="Describe what users need to know."></textarea></label>
-                <button id="notice-submit" class="button primary" type="submit">Send notice</button>
-              </form>
-            </article>
-            <article id="notice-panel" class="panel notice-panel" hidden>
-              <div class="panel-heading centered-heading"><h2>Notices</h2></div>
-              <div id="notice-list" class="notice-list"></div>
-            </article>
-          </section>
           <div class="metric-grid dashboard-kpi-grid" aria-label="Workspace summary">
             <article class="metric-card"><span>Routed integrations</span><strong id="metric-sources">—</strong><small>Used by enabled routes</small></article>
             <article class="metric-card"><span>Active Destinations</span><strong id="metric-destinations">—</strong><small>Enabled outputs</small></article>
@@ -289,7 +273,7 @@
           <article class="panel update-panel">
             <div><strong>Running version</strong><span id="running-version">—</span></div>
             <div><strong>Available version</strong><span id="available-version">Not advertised</span></div>
-            <p id="update-status">Nowlert will show an update notice when a newer version is advertised.</p>
+            <p id="update-status">Nowlert will show when a newer version is advertised.</p>
           </article>
         </section>
 

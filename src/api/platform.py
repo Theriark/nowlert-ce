@@ -38,7 +38,6 @@ from storage.validation import ConflictError
 from storage.secrets import SecretStore
 from storage.sessions import SessionStore
 from storage.users import UserStore
-from storage.notices import NoticeStore
 from storage.health import HealthCheckService
 from storage.integrations import IntegrationCategoryStore
 from storage.backup_scheduler import BackupScheduler
@@ -89,7 +88,6 @@ class PlatformAPI:
         self.destinations = DestinationStore(database, audit=self.audit)
         self.routes = RouteStore(database, audit=self.audit)
         self.history = DeliveryHistoryStore(database)
-        self.notices = NoticeStore(database)
         self.integration_categories = IntegrationCategoryStore(database)
         self.registry = registry or PlatformOutputRegistry()
         self.outputs = PlatformOutputService(
@@ -252,8 +250,6 @@ class PlatformAPI:
             audit_page = re.fullmatch(r"/api/v2/audit-events/page/(\d+)", path)
             if audit_page:
                 return self._audit_page_endpoint(method, actor, int(audit_page.group(1)))
-            if path == "/api/v2/notices":
-                return self._notices_endpoint(method, payload, actor)
             if path == "/api/v2/health-checks":
                 return self._health_endpoint(method, actor)
             if path == "/api/v2/backup-settings":
@@ -815,78 +811,6 @@ class PlatformAPI:
             },
         )
 
-    def _notices_endpoint(self, method, payload, actor) -> APIResponse:
-        self._sync_system_notices()
-        if method == "GET":
-            return APIResponse(
-                200,
-                {"notices": [self._notice(item) for item in self.notices.list_visible(actor)]},
-            )
-        if method == "POST":
-            self._require_admin(actor)
-            data = self._object(payload, {"name", "message", "status"})
-            notice = self.notices.create(
-                actor,
-                data.get("name"),
-                data.get("message"),
-                data.get("status"),
-            )
-            self.audit.write(actor, "notice.create", "notice", notice.id, "success")
-            return APIResponse(201, {"notice": self._notice(notice)})
-        return self._method_not_allowed("GET, POST")
-
-    def _sync_system_notices(self) -> None:
-        sync = self.configuration_sync.synchronize() if self.configuration_sync else None
-        errors = list(sync.errors) if sync is not None else []
-        self.notices.sync_system(
-            "configuration-error",
-            "Configuration requires repair",
-            "; ".join(errors) or "Configuration is synchronized.",
-            status="severe",
-            kind="system_error",
-            persistent=True,
-            active=bool(errors),
-        )
-        checks = self.health.run()
-        routing_errors = [
-            item for item in checks
-            if item["key"] in {"destination_credentials", "routes"}
-            and item["status"] == "error"
-        ]
-        self.notices.sync_system(
-            "routing-error",
-            "Routing requires attention",
-            " · ".join(item["detail"] for item in routing_errors) or "Routing is healthy.",
-            status="severe",
-            kind="system_error",
-            persistent=True,
-            active=bool(routing_errors),
-        )
-        last_backup = self.backup_scheduler.last_run()
-        backup_failed = bool(last_backup and last_backup.get("outcome") == "failed")
-        self.notices.sync_system(
-            "scheduled-backup-error",
-            "Scheduled backup requires attention",
-            "The most recent scheduled backup failed. Verify the mounted backup path and run the health checks again.",
-            status="severe",
-            kind="system_error",
-            persistent=True,
-            active=backup_failed,
-        )
-        available = str(
-            compatible_environment("NOWLERT_AVAILABLE_VERSION", default="") or ""
-        ).strip()
-        update_available = self._version_key(available) > self._version_key(VERSION)
-        self.notices.sync_system(
-            "software-update",
-            "Nowlert update available",
-            f"Version {available} is available; the notice clears after that version is installed.",
-            status="warning",
-            kind="update",
-            persistent=True,
-            active=update_available,
-        )
-
     def _health_endpoint(self, method, actor) -> APIResponse:
         if method != "GET":
             return self._method_not_allowed("GET")
@@ -1034,7 +958,7 @@ class PlatformAPI:
             return self._method_not_allowed("POST")
         data = self._object(payload, {"yaml", "fingerprint", "confirm"})
         if self._boolean(data, "confirm") is not True:
-            raise ValueError("confirmed import is required")
+            raise ValueError("confirmed migration is required")
         result = self.portability.apply_v1_yaml(
             actor,
             data.get("yaml"),
@@ -1300,38 +1224,6 @@ class PlatformAPI:
         metrics_match = re.fullmatch(r"/api/v2/metrics/(10m|1h|1d|1m|1y)", path)
         if metrics_match:
             return self._metrics_endpoint(method, actor, metrics_match.group(1))
-
-        notice_match = re.fullmatch(r"/api/v2/notices/([0-9a-f]{32})/dismiss", path)
-        if notice_match:
-            if method != "POST":
-                return self._method_not_allowed("POST")
-            self.notices.dismiss(actor, notice_match.group(1))
-            self.audit.write(actor, "notice.dismiss", "notice", notice_match.group(1), "success")
-            return APIResponse(204)
-
-        notice_resource = re.fullmatch(r"/api/v2/notices/([0-9a-f]{32})", path)
-        if notice_resource:
-            notice_id = notice_resource.group(1)
-            if method == "PATCH":
-                data = self._object(payload, {"name", "message", "status"})
-                notice = self.notices.update(
-                    actor,
-                    notice_id,
-                    name=data.get("name"),
-                    message=data.get("message"),
-                    status=data.get("status"),
-                )
-                self.audit.write(
-                    actor, "notice.update", "notice", notice.id, "success"
-                )
-                return APIResponse(200, {"notice": self._notice(notice)})
-            if method == "DELETE":
-                self.notices.resolve(actor, notice_id)
-                self.audit.write(
-                    actor, "notice.resolve", "notice", notice_id, "success"
-                )
-                return APIResponse(204)
-            return self._method_not_allowed("PATCH, DELETE")
 
         target_match = re.fullmatch(
             r"/api/v2/backup-targets/([0-9a-f]{32})(?:/(test))?", path
@@ -2039,19 +1931,6 @@ class PlatformAPI:
             "outcome": item.outcome,
             "details": item.details,
             "created_at": item.created_at,
-        }
-
-    @staticmethod
-    def _notice(item):
-        return {
-            "id": item.id,
-            "name": item.name,
-            "message": item.message,
-            "status": item.status,
-            "kind": item.kind,
-            "persistent": item.persistent,
-            "created_at": item.created_at,
-            "updated_at": item.updated_at,
         }
 
     def _unexpected(self, path: str, error: Exception) -> APIResponse:

@@ -355,6 +355,14 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             "ALTER TABLE destinations ADD COLUMN last_test_safe_error TEXT",
         ),
     ),
+    (
+        10,
+        "remove notices",
+        (
+            "DROP TABLE IF EXISTS notice_dismissals",
+            "DROP TABLE IF EXISTS notices",
+        ),
+    ),
 )
 
 

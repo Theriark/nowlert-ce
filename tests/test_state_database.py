@@ -58,11 +58,11 @@ def test_database_migration_is_idempotent_and_records_all_foundation_tables(tmp_
         "routes",
         "audit_events",
         "delivery_attempts",
-        "notices",
-        "notice_dismissals",
         "application_usage",
         "backup_schedule_runs",
     } <= tables
+    assert {"notices", "notice_dismissals"}.isdisjoint(tables)
+    assert LATEST_SCHEMA_VERSION == 10
     assert (migration["version"], migration["name"]) == (
         1,
         "platform foundation",
