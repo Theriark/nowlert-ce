@@ -156,7 +156,9 @@
       const flow = byId("dashboard-flow");
       if (!flow) return;
       for (const detail of flow.querySelectorAll(".flow-route small")) {
-        detail.textContent = "Routing only";
+        if (detail.textContent !== "Routing only") {
+          detail.textContent = "Routing only";
+        }
       }
     };
     updateFlowCopy();
