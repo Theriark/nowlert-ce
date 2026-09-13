@@ -617,6 +617,7 @@ def test_administrator_can_list_another_owners_tokens_and_routes(platform_api):
     assert routes.status == 200
     assert routes.payload["routes"][0]["owner_user_id"] == owner_id
 
+
 def test_owned_event_submission_routes_through_platform_adapters(platform_api):
     headers = login(platform_api)
     destination = create_destination(platform_api, headers)
@@ -795,10 +796,47 @@ def test_route_update_revalidates_ownership_filters_and_enabled_type(platform_ap
     assert invalid.status == 400
 
 
-def test_notices_avatar_and_application_lifecycle_are_exposed_safely(
-    platform_api,
-    monkeypatch,
-):
+def test_removed_notice_endpoints_return_not_found(platform_api):
+    headers = login(platform_api)
+    notice_id = "a" * 32
+
+    assert call(
+        platform_api,
+        "GET",
+        "/api/v2/notices",
+        headers=headers,
+    ).status == 404
+    assert call(
+        platform_api,
+        "POST",
+        "/api/v2/notices",
+        {"name": "Maintenance", "message": "Starts at 22:00", "status": "warning"},
+        headers,
+    ).status == 404
+    assert call(
+        platform_api,
+        "POST",
+        f"/api/v2/notices/{notice_id}/dismiss",
+        {},
+        headers,
+    ).status == 404
+    assert call(
+        platform_api,
+        "PATCH",
+        f"/api/v2/notices/{notice_id}",
+        {"message": "Updated"},
+        headers,
+    ).status == 404
+    assert call(
+        platform_api,
+        "DELETE",
+        f"/api/v2/notices/{notice_id}",
+        {},
+        headers,
+    ).status == 404
+
+
+def test_avatar_and_application_lifecycle_are_exposed_safely(platform_api):
     admin_headers = login(platform_api)
     user_headers = login(
         platform_api,
@@ -806,27 +844,6 @@ def test_notices_avatar_and_application_lifecycle_are_exposed_safely(
         "owner secure password",
         client="127.0.0.2",
     )
-    created = call(
-        platform_api,
-        "POST",
-        "/api/v2/notices",
-        {"name": "Maintenance", "message": "Starts at 22:00", "status": "warning"},
-        admin_headers,
-    )
-    visible = call(platform_api, "GET", "/api/v2/notices", headers=user_headers)
-    notice = next(item for item in visible.payload["notices"] if item["name"] == "Maintenance")
-    dismissed = call(
-        platform_api,
-        "POST",
-        f"/api/v2/notices/{notice['id']}/dismiss",
-        {},
-        user_headers,
-    )
-    after = call(platform_api, "GET", "/api/v2/notices", headers=user_headers)
-
-    assert created.status == 201
-    assert dismissed.status == 204
-    assert notice["id"] not in {item["id"] for item in after.payload["notices"]}
 
     png = "data:image/png;base64,iVBORw0KGgo="
     avatar = call(
@@ -864,21 +881,6 @@ def test_notices_avatar_and_application_lifecycle_are_exposed_safely(
     )
     assert disabled.status == 200 and disabled.payload["token"]["enabled"] is False
     assert deleted.status == 204
-
-    monkeypatch.setenv("NOWLERT_AVAILABLE_VERSION", "99.0.0")
-    update = call(platform_api, "GET", "/api/v2/notices", headers=user_headers)
-    persistent = next(item for item in update.payload["notices"] if item["kind"] == "update")
-    denied = call(
-        platform_api,
-        "POST",
-        f"/api/v2/notices/{persistent['id']}/dismiss",
-        {},
-        user_headers,
-    )
-    assert denied.status == 403
-    monkeypatch.delenv("NOWLERT_AVAILABLE_VERSION")
-    resolved = call(platform_api, "GET", "/api/v2/notices", headers=user_headers)
-    assert persistent["id"] not in {item["id"] for item in resolved.payload["notices"]}
 
 
 def test_audit_visibility_and_database_exclude_submitted_credentials(platform_api):
@@ -1093,8 +1095,6 @@ def test_integrations_endpoint_is_complete_and_categories_are_database_backed(pl
     assert "Fallback (HTTP)" in labels
     assert "Fallback (Redfish)" in labels
 
-    # NCE-39: route filter values belong to the integration source,
-    # not to its SMTP/HTTP/Redfish transport.
     assert integrations_by_source["zabbix"]["route_filters"] == {
         "severities": [
             "not classified",
@@ -1242,7 +1242,6 @@ def test_resource_list_errors_are_isolated_per_destination_and_route(platform_ap
     assert routes.status == 200
     assert [item["id"] for item in routes.payload["routes"]] == [second_route["id"]]
     assert routes.payload["errors"][0]["resource_id"] == broken_route["id"]
-
 
 
 def test_admin_can_delete_users_and_state_backups(platform_api):

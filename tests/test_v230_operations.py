@@ -1,4 +1,4 @@
-"""v2.3 WebUI operations, notice visibility, and backup target contracts."""
+"""v2.3 WebUI operations and backup target contracts."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from storage.backup_targets import BackupTargetStore
 from storage.database import Database
 from storage.delivery import DeliveryHistoryStore, DeliveryResult
 from storage.destinations import DestinationStore
-from storage.notices import NoticeStore
 from storage.routes import RouteStore
 from storage.users import UserStore
 from webui.service import WebUIService
@@ -52,41 +51,6 @@ def platform_state(tmp_path):
     admin = users.bootstrap_admin("administrator", "correct horse battery staple")
     user = users.create("observer", "observer secure password")
     return now, database, users, admin, user
-
-
-def test_first_login_is_notice_visibility_boundary(platform_state):
-    now, database, users, admin, user = platform_state
-    notices = NoticeStore(database, clock=lambda: now[0])
-    notices.create(admin.actor, "Old maintenance", "Already completed", "warning")
-
-    assert {item.name for item in notices.list_visible(user.actor)} == {
-        "Notification operations",
-        "Mounted configuration",
-    }
-
-    now[0] += 1
-    assert users.authenticate("observer", "observer secure password") is not None
-    now[0] += 1
-    current = notices.create(admin.actor, "Current maintenance", "Starts soon", "warning")
-
-    visible = {item.name for item in notices.list_visible(user.actor)}
-    assert "Old maintenance" not in visible
-    assert "Current maintenance" in visible
-
-    changed = notices.update(
-        admin.actor,
-        current.id,
-        name="Updated maintenance",
-        message="Starts at 22:00",
-        status="severe",
-    )
-    assert (changed.name, changed.status, changed.updated_at) == (
-        "Updated maintenance",
-        "severe",
-        now[0],
-    )
-    notices.resolve(admin.actor, current.id)
-    assert current.id not in {item.id for item in notices.list_visible(user.actor)}
 
 
 def test_local_backup_target_write_test_and_manual_run(platform_state, tmp_path):
@@ -247,6 +211,8 @@ def test_https_redirect_and_v230_webui_contract():
     assert 'id="backup-target-dialog"' in markup
     assert 'id="restart-dialog"' in markup
     assert '<th>Order</th>' not in markup
+    assert 'request("/notices")' not in script
+    assert "renderNotices" not in script
     assert 'actionButton("Send test", "test-destination-card"' in script
     assert 'state.auditPageSize = Number' in script
     assert 'toDataURL("image/png")' in script

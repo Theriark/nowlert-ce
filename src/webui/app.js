@@ -197,7 +197,6 @@ const state = {
   versionStatus: null,
   managedMounts: false,
   configuration: null,
-  notices: [],
   metrics: null,
   healthChecks: [],
   backupSettings: null,
@@ -579,7 +578,6 @@ async function loadWorkspace() {
     deliveries: ["Delivery history", request("/deliveries"), (value) => { state.deliveries = value.deliveries; }],
     audit: ["Audit log", request("/audit-events"), (value) => { state.audit = value.audit_events; }],
     preferences: ["Regional settings", request("/preferences"), (value) => { state.preferences = value.preferences; }],
-    notices: ["Notices", request("/notices"), (value) => { state.notices = value.notices; }],
     metrics: ["Overview metrics", request(`/metrics/${state.historyRange}`), (value) => { state.metrics = value.metrics; }],
     version: ["Version status", request("/version"), (value) => { state.versionStatus = value.version; }],
   };
@@ -636,7 +634,6 @@ async function loadWorkspace() {
 
 function renderAll() {
   renderWorkspaceErrors();
-  renderNotices();
   renderDashboard();
   renderSources();
   renderDestinations();
@@ -742,52 +739,6 @@ function renderDashboard() {
       element("div", {}, [badge(item.outcome, outcome), element("small", { text: relativeTime(item.completed_at || item.created_at) })]),
     ]));
   }
-}
-
-function renderNotices() {
-  const console = byId("notice-console");
-  const composer = byId("notice-composer");
-  const panel = byId("notice-panel");
-  const list = byId("notice-list");
-  composer.hidden = !isAdmin();
-  panel.hidden = !state.notices.length;
-  console.hidden = !isAdmin() && !state.notices.length;
-  list.replaceChildren();
-  for (const item of state.notices) {
-    const status = item.status === "severe" ? "danger" : item.status === "warning" ? "warning" : "information";
-    const actions = element("div", { className: "notice-actions" });
-    if (item.persistent) {
-      const target = item.kind === "update" ? "updates" : "audit";
-      actions.append(actionButton("Resolve", "open-notice-target", target, item.kind === "update" ? "primary" : "danger"));
-    } else {
-      const close = actionButton("×", "dismiss-notice", item.id, "icon-button notice-close");
-      close.setAttribute("aria-label", `Close ${item.name}`);
-      close.title = "Close notice";
-      actions.append(close);
-    }
-    if (isAdmin() && item.kind === "announcement") {
-      actions.prepend(actionButton("Edit", "edit-notice", item.id));
-    }
-    list.append(element("div", { className: `notice-item ${status}` }, [
-      element("div", {}, [
-        element("div", { className: "notice-title" }, [element("strong", { text: item.name }), badge(capitalize(item.status), status)]),
-        element("p", { text: item.message }),
-        element("small", { text: formatTime(item.created_at) }),
-      ]),
-      actions,
-    ]));
-  }
-}
-
-function beginNoticeEdit(id) {
-  const item = state.notices.find((candidate) => candidate.id === id);
-  if (!item || item.kind !== "announcement" || !isAdmin()) return;
-  byId("notice-id").value = item.id;
-  byId("notice-name").value = item.name;
-  byId("notice-message").value = item.message;
-  byId("notice-status").value = item.status;
-  byId("notice-submit").textContent = "Update notice";
-  byId("notice-name").focus();
 }
 
 function capitalize(value) {
@@ -1416,10 +1367,6 @@ function routeFilterValuesForSource(source = "", key) {
 
   const integration = integrationBySource(source);
 
-  /*
-   * Unknown/legacy integrations keep the old generic choices rather
-   * than becoming destructive when edited.
-   */
   if (!integration || !integration.route_filters) {
     return fallback ? [...fallback] : [];
   }
@@ -1536,10 +1483,6 @@ function refreshRouteFilterLayout() {
     (field) => field.matches("label"),
   );
 
-  /*
-   * Route text filters are paired controls. Reset any previous layout
-   * state before assigning deterministic rows and columns.
-   */
   for (const field of fields) {
     field.style.gridRow = "";
     field.style.gridColumn = "";
@@ -1554,7 +1497,6 @@ function refreshRouteFilterLayout() {
     .filter(Boolean)
     .length;
 
-  /* The normal responsive form layout remains one column on narrow screens. */
   if (columns < 2) return;
 
   const visibleSelectors = [
@@ -1564,11 +1506,6 @@ function refreshRouteFilterLayout() {
     .map((select) => select && select.closest("label"))
     .filter((field) => field && !field.hidden);
 
-  /*
-   * Keep the enumerated selectors together on their own row. When only
-   * one selector exists, leave the other column empty instead of pulling
-   * a host/event field upward beside it.
-   */
   visibleSelectors.forEach((field, index) => {
     field.style.gridRow = "1";
     field.style.gridColumn = String(index + 1);
@@ -1703,7 +1640,6 @@ function filterSummary(filters, source = "") {
       continue;
     }
 
-    // Legacy routes may still contain these keys until edited.
     if (
       key === "exclude_severities"
       && routeFilterHasAllEvents(
@@ -1941,12 +1877,10 @@ function renderAudit() {
 
     body.append(element("tr", {}, [
       element("td", { text: formatTime(item.created_at) }),
-
       element("td", {}, [
         element("strong", { text: auditActionLabel(item.action) }),
         element("small", { text: item.action || "unknown" }),
       ]),
-
       element("td", {}, [
         element("strong", { text: actor }),
         item.actor_user_id
@@ -1956,14 +1890,12 @@ function renderAudit() {
             })
           : element("small", { text: "No authenticated user" }),
       ]),
-
       element("td", {}, [
         element("strong", { text: resource }),
         resourceId
           ? element("code", { text: resourceId, title: resourceId })
           : element("small", { text: "Platform-level action" }),
       ]),
-
       element(
         "td",
         {},
@@ -1972,7 +1904,6 @@ function renderAudit() {
           item.outcome === "success" ? "success" : "danger",
         ),
       ),
-
       element(
         "td",
         {},
@@ -2187,33 +2118,6 @@ async function savePreferences(event) {
     toast("Regional settings saved.");
   } catch (error) {
     toast(error.message || "Settings could not be saved.", "error");
-  }
-}
-
-async function saveNotice(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  try {
-    const id = byId("notice-id").value;
-    const response = await request(id ? `/notices/${id}` : "/notices", {
-      method: id ? "PATCH" : "POST",
-      body: {
-        name: byId("notice-name").value.trim(),
-        message: byId("notice-message").value.trim(),
-        status: byId("notice-status").value,
-      },
-    });
-    const notice = response.notice;
-    const current = state.notices.findIndex((item) => item.id === notice.id);
-    if (current >= 0) state.notices[current] = notice;
-    else state.notices.unshift(notice);
-    form.reset();
-    byId("notice-id").value = "";
-    byId("notice-submit").textContent = "Send notice";
-    renderNotices();
-    toast(id ? "Notice updated." : "Notice sent to users.");
-  } catch (error) {
-    toast(error.message || "Notice could not be sent.", "error");
   }
 }
 
@@ -2546,13 +2450,13 @@ async function previewImport(kind) {
     if (!local) {
       const content = await selectedFile(portable ? "portable-file" : "migration-file");
       if (portable) {
-      let documentValue;
-      try {
-        documentValue = JSON.parse(content);
-      } catch (_error) {
-        throw new Error("The selected JSON document is invalid.");
-      }
-      body = { document: documentValue };
+        let documentValue;
+        try {
+          documentValue = JSON.parse(content);
+        } catch (_error) {
+          throw new Error("The selected JSON document is invalid.");
+        }
+        body = { document: documentValue };
       } else {
         body = { yaml: content };
       }
@@ -2777,6 +2681,7 @@ function renderDestinationFields(settings = {}) {
   for (const input of secretsContainer.querySelectorAll("[required]")) input.required = !editing || typeChanged;
   if (typeChanged) byId("destination-help").textContent += " New credentials are required because the destination type changed.";
 }
+
 function openDestination(id = "") {
   const item = state.destinations.find((candidate) => candidate.id === id);
   byId("destination-form").reset();
@@ -2921,11 +2826,6 @@ function setRouteSourceOptions(
         select.dataset.routeFilterSource || "";
       const nextSource = routeSelectedSource();
 
-      /*
-       * SMTP <-> HTTP for the SAME integration keeps the current
-       * selection. Changing integration starts with that integration's
-       * complete native list selected.
-       */
       const filters = previousSource === nextSource
         ? currentRouteFilterSelections()
         : {};
@@ -2977,10 +2877,6 @@ async function saveRoute(event) {
       key,
     );
 
-    /*
-     * A dimension that does not exist for this integration is neither
-     * displayed nor persisted.
-     */
     if (!available.length) continue;
 
     const values = [...byId(`route-${key}`).selectedOptions]
@@ -3222,18 +3118,7 @@ function resolveConfirm(value) {
 
 async function resourceAction(action, id) {
   try {
-    if (action === "dismiss-notice") {
-      await request(`/notices/${id}/dismiss`, { method: "POST", body: {} });
-      state.notices = state.notices.filter((item) => item.id !== id);
-      renderNotices();
-      return;
-    } else if (action === "edit-notice") {
-      beginNoticeEdit(id);
-      return;
-    } else if (action === "open-notice-target") {
-      navigate(id === "updates" ? "updates" : "audit");
-      return;
-    } else if (action === "logout") {
+    if (action === "logout") {
       await logout();
       return;
     } else if (action === "run-health-checks") {
@@ -3446,7 +3331,6 @@ async function logout() {
   try {
     await request("/session", { method: "DELETE" });
   } catch (_error) {
-    // The browser still clears local state if the session already expired.
   }
   expireSession();
 }
@@ -3523,7 +3407,6 @@ function bindEvents() {
     event.preventDefault();
     closeIntegrationSettings();
   });
-  byId("notice-form").addEventListener("submit", saveNotice);
   byId("backup-settings-form").addEventListener("submit", saveBackupSettings);
   byId("backup-target-form").addEventListener("submit", saveBackupTarget);
   byId("backup-target-type").addEventListener("change", updateBackupTargetFields);
