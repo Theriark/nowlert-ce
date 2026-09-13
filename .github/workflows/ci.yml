@@ -60,6 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           node --check src/webui/app.js
+          node --check src/webui/filtering.js
 
       - name: Validate public YAML files
         shell: bash
