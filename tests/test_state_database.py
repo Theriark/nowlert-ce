@@ -302,4 +302,4 @@ def test_implicit_platform_state_failure_preserves_legacy_pipeline(
     assert "legacy notification pipeline will continue" in capsys.readouterr().err
 
     with pytest.raises(PermissionError, match="read only"):
-        initialize_state(Configuration({"platform": {"enabled": True}})
+        initialize_state(Configuration({"platform": {"enabled": True}}))
