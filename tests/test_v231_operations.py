@@ -133,8 +133,6 @@ def test_v231_webui_removes_old_header_and_exposes_corrective_controls():
     assert "<th>Available inputs</th>" in markup
     assert markup.index('id="audit-table"') < markup.index('id="audit-page-size"')
     assert "Shown in Routing Flow" not in script
-    assert 'const form = event.currentTarget;' in script
-    assert "form.reset();" in script
     assert '"Home Assistant"' in script
     assert '"Redfish"' in script
     assert 'semanticInformation ? "information"' in script

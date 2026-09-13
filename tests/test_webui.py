@@ -192,8 +192,6 @@ def test_webui_markup_is_semantic_external_and_complete():
         "view-account",
         "configuration-inputs",
         "source-table",
-        "notice-composer",
-        "notice-panel",
         "history-range",
         "dashboard-flow",
         "dashboard-delivery-chart",
@@ -212,6 +210,8 @@ def test_webui_markup_is_semantic_external_and_complete():
         "import-dialog",
     }
     assert required <= inspector.ids
+    for retired in ("notice-console", "notice-composer", "notice-form", "notice-panel", "notice-list"):
+        assert retired not in inspector.ids
     assert inspector.scripts == [
         "/ui/app.js",
         "/ui/enhancements.js",
@@ -256,13 +256,15 @@ def test_webui_uses_same_origin_api_without_unsafe_dom_or_secret_persistence():
         "/configuration/routing-authority",
         "/backups",
         "/backup-settings",
-        "/notices",
         "/health-checks",
         "/account/avatar",
         "/metrics/",
         "/account/password",
     ):
         assert endpoint in script
+    assert "/notices" not in script
+    assert "renderNotices" not in script
+    assert "saveNotice" not in script
     assert 'const API = "/api/v2"' in script
     assert 'credentials: "same-origin"' in script
     assert 'cache: "no-store"' in script
