@@ -8,6 +8,17 @@
     activeTextFields: new Set(),
   };
 
+  const LEGACY_FILTER_LABELS = {
+    hosts: "Host / device",
+    events: "Event",
+    severities: "Severity",
+    statuses: "Status",
+    exclude_hosts: "Exclude host / device",
+    exclude_events: "Exclude event",
+    exclude_severities: "Exclude severity",
+    exclude_statuses: "Exclude status",
+  };
+
   function canEditFilters() {
     return Boolean(state.user && state.user.role === "admin");
   }
@@ -48,7 +59,7 @@
       <div class="table-panel">
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Destination</th><th>Integrations</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+            <thead><tr><th>Destination</th><th>Filters</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
             <tbody id="filter-table"></tbody>
           </table>
         </div>
@@ -180,6 +191,78 @@
     return filteringState.overview;
   }
 
+  function filterFieldDescriptor(integration, key) {
+    const nativeKey = key.startsWith("exclude_") ? key.slice("exclude_".length) : key;
+    const aliases = { severities: "severity", statuses: "status" };
+    const lookup = aliases[nativeKey] || nativeKey;
+    return (integration.fields || []).find((field) => field.key === lookup) || null;
+  }
+
+  function filterFieldLabel(integration, key) {
+    if (LEGACY_FILTER_LABELS[key]) return LEGACY_FILTER_LABELS[key];
+    const descriptor = filterFieldDescriptor(integration, key);
+    return descriptor ? descriptor.label : friendlyName(key);
+  }
+
+  function filterValueText(integration, key, values) {
+    const descriptor = filterFieldDescriptor(integration, key);
+    const enumerated = Boolean(descriptor && descriptor.kind === "enum")
+      || ["severities", "statuses", "exclude_severities", "exclude_statuses"].includes(key);
+    return (values || [])
+      .map((value) => enumerated ? capitalize(value) : String(value))
+      .join(", ");
+  }
+
+  function filterSummaryClauses(integration) {
+    const rules = integration.rules && typeof integration.rules === "object"
+      ? integration.rules
+      : {};
+    if (Object.keys(rules).length) return [rules];
+    return Array.isArray(integration.legacy_clauses) ? integration.legacy_clauses : [];
+  }
+
+  function filterOverviewIntegration(integration) {
+    const clauses = filterSummaryClauses(integration);
+    const rules = element("div", { className: "filtering-overview-rules" });
+    clauses.forEach((clause, clauseIndex) => {
+      for (const [key, values] of Object.entries(clause || {})) {
+        if (!Array.isArray(values) || !values.length) continue;
+        const baseLabel = filterFieldLabel(integration, key);
+        const label = clauses.length > 1 ? `Rule ${clauseIndex + 1} · ${baseLabel}` : baseLabel;
+        rules.append(element("div", { className: "filtering-overview-rule" }, [
+          element("span", { className: "filtering-overview-rule-label", text: label }),
+          element("span", { className: "filtering-overview-rule-value", text: filterValueText(integration, key, values) }),
+        ]));
+      }
+    });
+    if (!rules.children.length) {
+      rules.append(element("span", { className: "filtering-overview-rule-value", text: "Filter configured" }));
+    }
+    return element("div", { className: "filtering-overview-integration" }, [
+      element("strong", { text: integration.name || friendlyName(integration.source) }),
+      rules,
+    ]);
+  }
+
+  function policyFilterSummary(policy, configuredCount) {
+    const integrations = Array.isArray(policy.integrations) ? policy.integrations : [];
+    const container = element("div", { className: "filtering-overview-list" });
+    for (const integration of integrations) {
+      container.append(filterOverviewIntegration(integration));
+    }
+    const unavailable = Math.max(0, configuredCount - integrations.length);
+    if (unavailable > 0) {
+      container.append(element("span", {
+        className: "filtering-overview-unavailable",
+        text: `${unavailable} configured integration${unavailable === 1 ? " is" : "s are"} currently unavailable`,
+      }));
+    }
+    if (!container.children.length) {
+      container.append(element("span", { className: "filtering-overview-unavailable", text: "—" }));
+    }
+    return container;
+  }
+
   function renderOverview() {
     const payload = filteringState.overview || { filters: [], destinations: [] };
     const body = byId("filter-table");
@@ -197,14 +280,8 @@
     }
 
     for (const policy of policies) {
-      const active = Array.isArray(policy.sources) ? policy.sources : [];
       const configuredCount = Number(policy.configured_count || 0);
       const activeCount = Number(policy.active_count || 0);
-      const integrationText = active.length
-        ? active.map((source) => friendlyName(source)).join(", ")
-        : configuredCount
-          ? "Configured integrations are currently unavailable"
-          : "—";
       const status = activeCount > 0 ? "Configured" : "Dormant";
       const actions = element("div", { className: "table-actions" });
       if (canEditFilters()) {
@@ -218,7 +295,7 @@
           element("strong", { text: policy.destination_name || "Destination" }),
           element("small", { text: friendlyName(policy.output_type) }),
         ]),
-        element("td", { text: integrationText }),
+        element("td", {}, [policyFilterSummary(policy, configuredCount)]),
         element("td", {}, [badge(status, activeCount > 0 ? "success" : "warning")]),
         element("td", {}, [actions]),
       ]));
@@ -574,6 +651,8 @@
     navigate = function filteringNavigate(view, historyMode = "push") {
       const result = previousNavigate(view, historyMode);
       if (state.currentView === "filtering") {
+        const pageTitle = byId("page-title");
+        if (pageTitle) byId("page-title").textContent = VIEW_TITLES.filtering;
         loadOverview().catch((error) => toast(error.message || "Filtering could not be loaded.", "error"));
       }
       return result;
