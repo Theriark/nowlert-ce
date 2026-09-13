@@ -8,7 +8,7 @@ from pathlib import Path
 
 from api.audit import AuditLog
 from api.config_service import ConfigService
-from api.platform import PlatformAPI
+from api.filtering import PlatformAPI
 from api.response import APIResponse
 from api.security import RateLimiter, TokenAuthenticator
 from formatters.presentation import PresentationMixin

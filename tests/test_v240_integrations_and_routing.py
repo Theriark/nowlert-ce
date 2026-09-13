@@ -55,7 +55,7 @@ def service(tmp_path, document):
     path.chmod(0o600)
     configuration = Configuration(path)
     database = Database(tmp_path / "state" / "nowlert.db")
-    assert database.migrate() == 10
+    assert database.migrate() == 11
     admin = UserStore(database, password_hasher=fast_hash).bootstrap_admin(
         "administrator", PASSWORD
     )

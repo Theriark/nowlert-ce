@@ -299,7 +299,6 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             "CREATE INDEX backup_targets_type_name ON backup_targets(target_type, name_normalized)",
         ),
     ),
-
     (
         7,
         "v2.4 integrations and route inputs",
@@ -336,7 +335,6 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             "CREATE INDEX settings_records_namespace ON settings_records(namespace, setting_key)",
         ),
     ),
-
     (
         9,
         "v2.5.4 destination test health",
@@ -361,6 +359,27 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
         (
             "DROP TABLE IF EXISTS notice_dismissals",
             "DROP TABLE IF EXISTS notices",
+        ),
+    ),
+    (
+        11,
+        "destination filtering",
+        (
+            """
+            CREATE TABLE destination_filters (
+                destination_id TEXT NOT NULL
+                    REFERENCES destinations(id) ON DELETE CASCADE,
+                source TEXT NOT NULL,
+                clauses_json TEXT NOT NULL DEFAULT '[]',
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY (destination_id, source)
+            )
+            """,
+            """
+            CREATE INDEX destination_filters_source
+            ON destination_filters(source, destination_id)
+            """,
         ),
     ),
 )

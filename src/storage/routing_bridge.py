@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from outputs.platform import PlatformOutputRegistry
-from storage.delivery import (
-    DeliveryHistoryStore,
-    DeliverySummary,
-    PlatformDeliveryService,
-)
+from storage.delivery import DeliveryHistoryStore, DeliverySummary
 from storage.destinations import DestinationStore
+from storage.filtering import (
+    DestinationFilterStore,
+    FilteredPlatformDeliveryService,
+    RoutingOnlyRouteStore,
+)
 from storage.ownership import Actor
-from storage.routes import RouteStore
 from storage.secrets import SecretStore
 
 
@@ -19,17 +19,19 @@ class PlatformRoutingBridge:
 
     def __init__(self, database, *, registry=None):
         self.database = database
-        self.routes = RouteStore(database)
+        self.routes = RoutingOnlyRouteStore(database)
+        self.filters = DestinationFilterStore(database)
         self.destinations = DestinationStore(database)
         self.secrets = SecretStore(database)
         self.history = DeliveryHistoryStore(database)
         self.registry = registry or PlatformOutputRegistry()
-        self.delivery = PlatformDeliveryService(
+        self.delivery = FilteredPlatformDeliveryService(
             self.routes,
             self.destinations,
             self.secrets,
             self.history,
             self.registry.delivery_adapters(),
+            filters=self.filters,
         )
 
     def route(self, notification) -> DeliverySummary:

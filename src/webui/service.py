@@ -96,6 +96,16 @@ class WebUIService:
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/filtering.js": (
+                "src/webui/filtering.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/filtering.css": (
+                "src/webui/filtering.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/icon.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
@@ -171,6 +181,13 @@ class WebUIService:
             body = asset.read_bytes()
         except OSError:
             return WebUIResponse(404)
+        if route in {"/", "/ui", "/ui/"}:
+            text = body.decode("utf-8")
+            extension = (
+                '  <link rel="stylesheet" href="/ui/filtering.css">\n'
+                '  <script src="/ui/filtering.js" defer></script>\n'
+            )
+            body = text.replace("</head>", extension + "</head>", 1).encode("utf-8")
         return WebUIResponse(200, body, content_type, cache_control)
 
     def redirect_location(self, path: str, headers) -> str | None:
