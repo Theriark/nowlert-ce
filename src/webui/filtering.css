@@ -1,5 +1,18 @@
+.modal {
+  background: var(--surface-solid);
+}
+
 .filtering-modal {
   width: min(760px, calc(100vw - 2rem));
+}
+
+.filtering-modal > section {
+  margin-left: 1.4rem;
+  margin-right: 1.4rem;
+}
+
+.filtering-modal > section:not([hidden]) {
+  margin-bottom: 1.4rem;
 }
 
 .filtering-destination-field {
@@ -189,12 +202,66 @@
   flex: 1 1 auto;
 }
 
+.filtering-add-field-row .button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 #filter-table td:first-child {
   display: grid;
 }
 
 #filter-table td:first-child small {
   color: var(--muted);
+}
+
+.filtering-overview-list {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 16rem;
+}
+
+.filtering-overview-integration {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.filtering-overview-integration + .filtering-overview-integration {
+  border-top: 1px solid var(--line);
+  padding-top: 0.65rem;
+}
+
+.filtering-overview-integration > strong {
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.filtering-overview-rules {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.filtering-overview-rule {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+}
+
+.filtering-overview-rule-label {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.filtering-overview-rule-value {
+  color: #c8d7e2;
+  font-size: 0.72rem;
+}
+
+.filtering-overview-unavailable {
+  color: var(--muted);
+  font-size: 0.7rem;
 }
 
 @media (max-width: 720px) {
@@ -208,5 +275,9 @@
 
   .filtering-integration-actions {
     justify-content: flex-start;
+  }
+
+  .filtering-overview-list {
+    min-width: 13rem;
   }
 }

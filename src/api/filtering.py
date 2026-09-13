@@ -77,10 +77,18 @@ class PlatformAPI(BasePlatformAPI):
                         "available_integration_count": len(available),
                     }
                 )
+            filters = self.filters.list_visible(actor)
+            for policy in filters:
+                view = self.filters.destination_view(actor, policy["destination_id"])
+                policy["integrations"] = [
+                    integration
+                    for integration in view["integrations"]
+                    if integration.get("configured")
+                ]
             return APIResponse(
                 200,
                 {
-                    "filters": self.filters.list_visible(actor),
+                    "filters": filters,
                     "destinations": choices,
                 },
             )
