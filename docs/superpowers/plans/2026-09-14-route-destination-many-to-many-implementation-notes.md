@@ -1,0 +1,3 @@
+# Implementation execution note
+
+The ChatGPT container used for this implementation cannot resolve external hosts, so the repository cannot be cloned into the local sandbox for pre-PR pytest execution. Implementation is therefore assembled on an isolated GitHub branch without an open PR; no GitHub Actions run is triggered during assembly. Before opening the PR, the branch is rewritten to one commit whose parent is the then-current `development` tip. The first PR CI run is the authoritative full-suite verification. If it fails, only that failure is corrected before rerunning CI, per the standing development workflow.
