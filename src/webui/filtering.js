@@ -190,16 +190,23 @@
 
   function compactRuleChips(integration) {
     const chips = element("div", { className: "filtering-overview-chips" });
-    const seen = new Set();
+    const seenValues = new Set();
     for (const clause of filterSummaryClauses(integration)) {
       for (const [key, values] of Object.entries(clause || {})) {
-        if (!Array.isArray(values) || !values.length || seen.has(key)) continue;
-        seen.add(key);
-        chips.append(element("span", {
-          className: "filtering-overview-chip filtering-overview-rule",
-          text: filterFieldLabel(integration, key),
-          title: values.join(", "),
-        }));
+        if (!Array.isArray(values) || !values.length) continue;
+        for (const value of values) {
+          const text = String(value).trim();
+          if (!text) continue;
+          const token = text.toLowerCase();
+          if (seenValues.has(token)) continue;
+          seenValues.add(token);
+          chips.append(element("span", {
+            className: "filtering-overview-chip filtering-overview-rule-value",
+            text: friendlyName(text),
+            title: values.join(", "),
+            attributes: { "aria-label": `${filterFieldLabel(integration, key)} ${friendlyName(text)}` },
+          }));
+        }
       }
     }
     return chips;
