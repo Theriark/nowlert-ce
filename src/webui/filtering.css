@@ -98,6 +98,27 @@
   white-space: normal;
 }
 .filtering-overview-rule::after { content: ": " attr(title); }
+.filtering-overview-rule-value { order: 5; }
+.filtering-overview-rule-value[aria-label^="Severity "] { order: 1; }
+.filtering-overview-rule-value[aria-label^="Status "] { order: 3; }
+.filtering-overview-chips:has(> .filtering-overview-rule-value[aria-label^="Severity "])::before,
+.filtering-overview-chips:has(> .filtering-overview-rule-value[aria-label^="Status "])::after {
+  color: var(--muted);
+  flex-basis: 100%;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.filtering-overview-chips:has(> .filtering-overview-rule-value[aria-label^="Severity "])::before {
+  content: "Severity";
+  order: 0;
+}
+.filtering-overview-chips:has(> .filtering-overview-rule-value[aria-label^="Status "])::after {
+  content: "Status";
+  order: 2;
+}
 .filtering-table-actions { justify-content: flex-end; }
 
 .filtering-destination-field { display: grid; gap: 0.45rem; margin-top: 1rem; }
