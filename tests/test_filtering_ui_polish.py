@@ -122,3 +122,13 @@ def test_filtering_webui_shows_active_filter_cards_and_reference_editor():
     assert "white-space: nowrap;" in styles
     assert "75%" not in script
     assert "25%" not in script
+
+
+def test_filtering_overview_cards_top_align_and_space_rule_groups():
+    styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
+
+    assert ".filtering-overview-integration {\n  align-content: start;\n  align-items: start;" in styles
+    assert ".filtering-overview-copy { display: grid; gap: 0.45rem; min-width: 0; }" in styles
+    assert ".filtering-overview-chips { display: flex; flex-wrap: wrap; column-gap: 0.2rem; row-gap: 0.28rem; min-width: 0; }" in styles
+    assert '.filtering-overview-chips:has(> .filtering-overview-rule-value[aria-label^="Severity "]):has(> .filtering-overview-rule-value[aria-label^="Status "])::after {' in styles
+    assert "margin-top: 0.16rem;" in styles
