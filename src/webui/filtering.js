@@ -225,18 +225,34 @@
     ]);
   }
 
+  function filterOverviewUnconfiguredIntegration(integration) {
+    const icon = sourceIcon(integration.source);
+    icon.classList.add("filtering-source-icon");
+    return element("article", { className: "filtering-overview-integration filtering-overview-unconfigured" }, [
+      icon,
+      element("div", { className: "filtering-overview-copy" }, [
+        element("strong", { text: integration.name || friendlyName(integration.source) }),
+        element("small", { className: "filtering-overview-unconfigured-note", text: "No filter · All notifications" }),
+      ]),
+    ]);
+  }
+
   function policyFilterSummary(policy) {
     const integrations = Array.isArray(policy.integrations) ? policy.integrations : [];
-    const active = integrations.length;
+    const unconfiguredIntegrations = Array.isArray(policy.unconfigured_integrations)
+      ? policy.unconfigured_integrations : [];
     const available = Number(policy.available_count || 0);
-    const unconfigured = Math.max(available - active, 0);
-    const container = element("div", { className: "filtering-overview-list" });
-    container.append(element("div", { className: "filtering-overview-header" }, [
+    const configured = Number(policy.configured_count ?? integrations.length);
+    const unconfigured = unconfiguredIntegrations.length || Math.max(available - configured, 0);
+    const container = element("details", { className: "filtering-overview-list filtering-overview-details" });
+    container.open = true;
+    container.append(element("summary", { className: "filtering-overview-header" }, [
       element("span", { className: "filtering-overview-header-check", text: "✓" }),
-      element("strong", { text: available ? `${active} configured · ${unconfigured} unconfigured` : `${active} configured` }),
+      element("strong", { text: available ? `${configured} configured · ${unconfigured} unconfigured` : `${configured} configured` }),
     ]));
     const grid = element("div", { className: "filtering-overview-grid" });
     integrations.forEach((integration) => grid.append(filterOverviewIntegration(integration)));
+    unconfiguredIntegrations.forEach((integration) => grid.append(filterOverviewUnconfiguredIntegration(integration)));
     container.append(grid);
     return container;
   }
@@ -251,6 +267,14 @@
         element("small", { text: friendlyName(policy.output_type) }),
       ]),
     ]);
+  }
+
+  function policyStatusBadge(policy) {
+    const available = Number(policy.available_count || 0);
+    const configured = Number(policy.configured_count ?? (policy.integrations || []).length);
+    if (available > 0 && configured >= available) return badge("Configured", "success");
+    if (configured > 0) return badge("Partial", "warning");
+    return badge("No filters", "");
   }
 
   function renderOverview() {
@@ -278,7 +302,7 @@
       body.append(element("tr", {}, [
         element("td", {}, [destinationSummary(policy)]),
         element("td", {}, [policyFilterSummary(policy)]),
-        element("td", {}, [badge("Configured", "success")]),
+        element("td", {}, [policyStatusBadge(policy)]),
         element("td", {}, [actions]),
       ]));
     }

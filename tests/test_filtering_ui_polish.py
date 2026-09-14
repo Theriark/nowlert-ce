@@ -80,6 +80,10 @@ def test_filtering_overview_api_exposes_active_configured_rule_details(tmp_path)
     policy = response.payload["filters"][0]
     assert policy["destination_id"] == target.id
     assert policy["sources"] == ["zabbix"]
+    assert policy["configured_count"] == 1
+    assert policy["unconfigured_integrations"] == [
+        {"source": "grafana", "name": "Grafana"}
+    ]
     assert len(policy["integrations"]) == 1
     integration = policy["integrations"][0]
     assert integration["source"] == "zabbix"
@@ -144,13 +148,26 @@ def test_filtering_overview_final_polish_contract():
     script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
 
-    assert "const unconfigured = Math.max(available - active, 0);" in script
-    assert "`${active} configured · ${unconfigured} unconfigured`" in script
+    assert "const configured = Number(policy.configured_count ?? integrations.length);" in script
+    assert "`${configured} configured · ${unconfigured} unconfigured`" in script
     assert 'actionButtonForFilter("✎ Configure", "manage-destination", policy.destination_id, "primary")' in script
     assert ".filtering-overview-integration:hover {" in styles
     assert '.filtering-source-icon[data-source-key="qnap"]' in styles
     assert '.filtering-source-icon[data-source-key="synology"]' in styles
     assert '.filtering-source-icon[data-source-key="unifi_network"]' in styles
     assert '.filtering-source-icon[data-source-key="dell_idrac"]' in styles
-    assert ".filtering-table tbody td:nth-child(3)," in styles
+    assert ".filtering-table tbody td:first-child," in styles
     assert "vertical-align: top;" in styles
+
+
+def test_filtering_overview_shows_partial_state_unconfigured_cards_and_collapse():
+    script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
+
+    assert "function filterOverviewUnconfiguredIntegration(integration)" in script
+    assert 'text: "No filter · All notifications"' in script
+    assert 'element("details", { className: "filtering-overview-list filtering-overview-details" })' in script
+    assert 'return badge("Partial", "warning");' in script
+    assert ".filtering-overview-unconfigured {" in styles
+    assert ".filtering-overview-details:not([open]) > .filtering-overview-header::after" in styles
+    assert "font-size: 0.6rem;" in styles
