@@ -150,3 +150,30 @@ def test_destination_editor_fix_summary_prefers_rendered_checkbox_state():
     assert 'querySelectorAll(\'#destination-route-options input[type="checkbox"]\')' in source
     assert "if (checkboxes.length)" in source
     assert "filter((checkbox) => checkbox.checked).length" in source
+
+
+def test_destination_editor_fix_summary_mirrors_authoritative_drawer_count():
+    source = FIX_SCRIPT.read_text(encoding="utf-8")
+
+    assert "function routeAssignmentCountFromDrawer()" in source
+    assert 'document.getElementById("destination-routes-count")' in source
+    assert "new MutationObserver(refreshRouteAssignmentSummary)" in source
+    assert "count.textContent =" not in source
+
+
+def test_destination_editor_fix_removes_route_status_and_routing_helper_from_dom():
+    source = FIX_SCRIPT.read_text(encoding="utf-8")
+
+    assert 'querySelectorAll(".route-assignment-option-state")' in source
+    assert "status.remove()" in source
+    assert 'document.getElementById("destination-route-summary-detail")?.remove()' in source
+
+
+def test_destination_editor_fix_clamps_route_icons_inside_two_column_rows():
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+
+    assert "grid-template-columns: auto minmax(0, 1fr);" in stylesheet
+    assert ".route-assignment-option-state" in stylesheet
+    assert "overflow: hidden" in stylesheet
+    assert "max-height: 18px !important" in stylesheet
+    assert "max-width: 22px !important" in stylesheet

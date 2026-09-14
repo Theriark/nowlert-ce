@@ -78,9 +78,15 @@
     for (const secondary of options.querySelectorAll(".route-assignment-option-copy small")) {
       secondary.remove();
     }
+    for (const status of options.querySelectorAll(".route-assignment-option-state")) {
+      status.remove();
+    }
   }
 
-  function routeAssignmentSelectionCount() {
+  function routeAssignmentCountFromDrawer() {
+    const count = document.getElementById("destination-routes-count");
+    const match = String(count?.textContent || "").match(/^(\d+)\s+of\s+\d+\s+selected$/i);
+    if (match) return Number(match[1]);
     const checkboxes = [
       ...document.querySelectorAll('#destination-route-options input[type="checkbox"]'),
     ];
@@ -100,12 +106,10 @@
     const routes = typeof state !== "undefined" && Array.isArray(state.routes)
       ? state.routes
       : [];
-    const selected = routeAssignmentSelectionCount();
-    const count = document.getElementById("destination-routes-count");
+    const selected = routeAssignmentCountFromDrawer();
     const summary = document.getElementById("destination-route-summary-count");
     const manage = document.getElementById("destination-routes-toggle");
 
-    if (count) count.textContent = `${selected} of ${routes.length} selected`;
     if (summary) {
       summary.textContent = selected === 0
         ? "No routes assigned"
@@ -116,11 +120,23 @@
     if (manage) manage.disabled = routes.length === 0;
   }
 
+  function bindRouteCountSummary() {
+    const count = document.getElementById("destination-routes-count");
+    if (!count || count.dataset.destinationSummaryObserved === "true") return;
+    count.dataset.destinationSummaryObserved = "true";
+    new MutationObserver(refreshRouteAssignmentSummary).observe(count, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+  }
+
   function normalizeRouteDrawer() {
     const manage = document.getElementById("destination-routes-toggle");
     const options = document.getElementById("destination-route-options");
 
     normalizeRouteOptionRows();
+    bindRouteCountSummary();
 
     if (options && options.dataset.destinationSummaryBound !== "true") {
       options.dataset.destinationSummaryBound = "true";
@@ -154,6 +170,7 @@
     normalizeDiscordMessageStyle();
     normalizeDestinationTitle();
     normalizeSharedControl();
+    document.getElementById("destination-route-summary-detail")?.remove();
     normalizeRouteDrawer();
     refreshRouteAssignmentSummary();
   }
@@ -164,6 +181,7 @@
     routeAssignmentRenderOptions = function routeAssignmentRenderOptionsWithSummary(...args) {
       const result = baseRouteAssignmentRenderOptions(...args);
       normalizeRouteOptionRows();
+      bindRouteCountSummary();
       refreshRouteAssignmentSummary();
       return result;
     };
