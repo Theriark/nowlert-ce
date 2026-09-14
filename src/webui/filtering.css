@@ -3,7 +3,7 @@
 .filtering-modal {
   max-height: min(92vh, 860px);
   overflow: auto;
-  width: min(1080px, calc(100vw - 2rem));
+  width: min(1040px, calc(100vw - 2rem));
 }
 
 .filtering-modal > section { margin: 0 1rem 1rem; }
