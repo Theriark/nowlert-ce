@@ -1,5 +1,9 @@
 "use strict";
 
+if (typeof routeAssignmentInstallStyles === "function") {
+  routeAssignmentInstallStyles = function routeAssignmentUseExternalStyles() {};
+}
+
 (() => {
   if (typeof routeAssignmentRenderOptions !== "function") return;
 

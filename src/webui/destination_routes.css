@@ -1,0 +1,92 @@
+.route-assignment-picker {
+  position: relative;
+}
+
+.route-assignment-toggle {
+  justify-content: space-between;
+  min-height: 44px;
+  width: 100%;
+}
+
+.route-assignment-popover {
+  background: var(--surface-2, #161b20);
+  border: 1px solid var(--border, #3d3b30);
+  border-radius: 10px;
+  margin-top: 0.55rem;
+  padding: 0.7rem;
+}
+
+.route-assignment-popover[hidden] {
+  display: none !important;
+}
+
+.route-assignment-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+  margin-bottom: 0.6rem;
+}
+
+.route-assignment-toolbar input {
+  flex: 1;
+  min-width: 0;
+}
+
+.route-assignment-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.45rem;
+}
+
+.route-assignment-options {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 19rem;
+  overflow: auto;
+  padding-right: 0.2rem;
+}
+
+.route-assignment-option {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.018);
+  border: 1px solid var(--border, #3d3b30);
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0.55rem 0.65rem;
+}
+
+.route-assignment-option:hover {
+  border-color: rgba(244, 183, 39, 0.55);
+}
+
+.route-assignment-option input {
+  height: auto;
+  margin: 0;
+  width: auto;
+}
+
+.route-assignment-option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.route-assignment-option-copy strong,
+.route-assignment-option-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-assignment-empty {
+  color: var(--muted, #aaa);
+  padding: 0.7rem;
+}
+
+.route-assignment-fieldset {
+  margin-top: 0.15rem;
+}
