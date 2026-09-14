@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from api.security import hash_password
+from integrations.filtering import filter_schema
 from models import Notification
 from storage.database import Database
 from storage.destinations import DestinationStore
@@ -95,6 +96,30 @@ def test_filter_enable_switch_preserves_rules_while_bypassing_matching(tmp_path)
     assert filters.matches(admin.actor, target.id, blocked) is False
 
 
+def test_redfish_filter_editors_expose_every_supported_severity():
+    expected = [
+        "critical",
+        "fatal",
+        "emergency",
+        "alert",
+        "warning",
+        "caution",
+        "ok",
+        "normal",
+        "cleared",
+        "informational",
+        "information",
+        "info",
+    ]
+    for source in ("supermicro", "hpe_ilo", "dell_idrac"):
+        schema = filter_schema(source)
+        severity = next(field for field in schema["fields"] if field["key"] == "severity")
+        assert severity["values"] == expected
+
+    script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
+    assert "for (const value of field.values || [])" in script
+
+
 def test_filtering_webui_matches_reference_controls_and_icons():
     script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
@@ -110,4 +135,6 @@ def test_filtering_webui_matches_reference_controls_and_icons():
     assert "filtering-integration-mark" not in script
     assert "grid-template-columns: repeat(3" in styles
     assert ".filtering-editor-identity" in styles
+    assert "max-height: min(calc(100vh - 8rem), 860px);" in styles
+    assert "max-height: min(92vh, 860px);" not in styles
     assert '{"rules", "enabled"}' in api
