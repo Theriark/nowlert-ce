@@ -1,4 +1,4 @@
-/* Restore the Nowlert 3.1.0 Amber Accent contract inside the destination editor. */
+/* Final compact destination editor polish on top of the Nowlert 3.1.0 Amber Accent. */
 .destination-editor-dialog {
   --destination-accent: var(--accent, #f4c542);
   --destination-accent-strong: var(--accent-strong, #d9a629);
@@ -7,6 +7,16 @@
 .destination-provider-icon {
   background: rgba(244, 197, 66, 0.13);
   border-color: rgba(244, 197, 66, 0.28);
+}
+
+/* The provider name remains clickable for type changes without a detached chevron. */
+.destination-provider-type::after {
+  content: none;
+  display: none;
+}
+
+.destination-provider-type select {
+  padding-right: 0;
 }
 
 .destination-provider-type select option {
@@ -19,6 +29,76 @@
   color: var(--text, #f2ebdd);
 }
 
+/* Put Shared / Private beside Enabled and keep the native checkbox only for form state. */
+.destination-shared-native {
+  display: none !important;
+}
+
+.destination-provider-actions {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+  justify-content: flex-end;
+}
+
+.destination-provider-sharing {
+  background: rgba(244, 197, 66, 0.10);
+  border: 1px solid rgba(244, 197, 66, 0.34);
+  border-radius: 999px;
+  color: #f4c542;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 9px;
+}
+
+.destination-provider-sharing.is-private {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: var(--destination-border);
+  color: var(--destination-muted);
+}
+
+/* Base modal fieldset rules are more specific than the feature stylesheet.
+ * Reset them explicitly so the connection section, credentials card and route
+ * drawer use the intended compact geometry. */
+.destination-editor-dialog fieldset.destination-connection-card {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.destination-editor-dialog fieldset.destination-credentials-card {
+  border: 1px solid var(--destination-border);
+  border-radius: 9px;
+  display: block;
+  margin: 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  padding: 10px 12px 12px;
+  width: 100%;
+}
+
+.destination-credentials-card .destination-section-heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.destination-credentials-card .destination-section-icon,
+.destination-credentials-card .qa-credential-state {
+  display: none;
+}
+
+/* The route drawer is also a fieldset, so override the generic modal fieldset
+ * margin/padding and pin it to the first grid row. */
+.destination-editor-dialog fieldset.route-assignment-drawer {
+  border: 0;
+  border-left: 1px solid var(--destination-border);
+  border-radius: 0;
+  grid-row: 1;
+  margin: 0;
+  padding: 0;
+}
+
 .route-assignment-option:hover {
   border-color: rgba(244, 197, 66, 0.52);
 }
@@ -28,13 +108,36 @@
   border-color: rgba(244, 197, 66, 0.22);
 }
 
-.destination-credentials-card .destination-share-row {
-  align-self: stretch;
-  background: transparent;
-  border: 0;
-  border-top: 1px solid var(--destination-border);
-  border-radius: 0;
-  margin: 10px 0 0;
-  padding: 10px 0 0;
-  width: 100%;
+/* source-product-icon has a larger global tile/padding contract; normalize it
+ * inside the compact drawer so logos do not collapse to a few pixels. */
+.route-assignment-source-icon {
+  height: 30px;
+  overflow: visible;
+  width: 30px;
+}
+
+.route-assignment-source-icon .source-product-icon {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  border-radius: 6px;
+  box-sizing: border-box;
+  height: 28px;
+  object-fit: contain;
+  padding: 3px;
+  width: 28px;
+}
+
+@media (max-width: 760px) {
+  .destination-provider-card {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .destination-provider-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .destination-editor-dialog fieldset.route-assignment-drawer {
+    border-left: 0;
+  }
 }
