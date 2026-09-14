@@ -229,12 +229,11 @@
     const integrations = Array.isArray(policy.integrations) ? policy.integrations : [];
     const active = integrations.length;
     const available = Number(policy.available_count || 0);
-    const allConfigured = available > 0 && active === available;
+    const unconfigured = Math.max(available - active, 0);
     const container = element("div", { className: "filtering-overview-list" });
     container.append(element("div", { className: "filtering-overview-header" }, [
       element("span", { className: "filtering-overview-header-check", text: "✓" }),
-      element("strong", { text: allConfigured ? "All filters configured" : `${active} active integration filter${active === 1 ? "" : "s"}` }),
-      available ? element("span", { text: `(${active}/${available} integrations)` }) : null,
+      element("strong", { text: available ? `${active} configured · ${unconfigured} unconfigured` : `${active} configured` }),
     ]));
     const grid = element("div", { className: "filtering-overview-grid" });
     integrations.forEach((integration) => grid.append(filterOverviewIntegration(integration)));
@@ -272,7 +271,7 @@
       const actions = element("div", { className: "table-actions filtering-table-actions" });
       if (canEditFilters()) {
         actions.append(
-          actionButtonForFilter("✎ Configure", "manage-destination", policy.destination_id),
+          actionButtonForFilter("✎ Configure", "manage-destination", policy.destination_id, "primary"),
           actionButtonForFilter("Delete", "delete-destination-filter", policy.destination_id, "danger"),
         );
       }
