@@ -96,6 +96,11 @@ class WebUIService:
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/destination_routes.js": (
+                "src/webui/destination_routes.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/filtering.js": (
                 "src/webui/filtering.js",
                 "text/javascript; charset=utf-8",
@@ -186,6 +191,7 @@ class WebUIService:
             extension = (
                 '  <link rel="stylesheet" href="/ui/filtering.css">\n'
                 '  <script src="/ui/filtering.js" defer></script>\n'
+                '  <script src="/ui/destination_routes.js" defer></script>\n'
             )
             body = text.replace("</head>", extension + "</head>", 1).encode("utf-8")
         return WebUIResponse(200, body, content_type, cache_control)
