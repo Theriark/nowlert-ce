@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from dispatcher import Dispatcher
@@ -26,6 +28,31 @@ def test_install_registers_all_matrix_http_application_token_sources():
     assert native_http.ENDPOINTS["/grafana/alerts"] == "grafana"
     for application, source in EXPECTED_SCOPED_SOURCES.items():
         assert native_http.SCOPED_SOURCES[application] == source
+
+
+def test_platform_runtime_uses_application_token_auth_for_matrix_sources(monkeypatch):
+    install()
+    calls = []
+
+    class API:
+        platform = object()
+
+        def authorize_source(self, headers, source, client):
+            calls.append((source, client, headers.get("Authorization")))
+            return object()
+
+    handler = object.__new__(native_http.HTTPHandler)
+    handler.server = SimpleNamespace(api=API(), shared_secret="legacy-shared-secret")
+    handler.headers = {"Authorization": "Bearer matrix-token"}
+    handler.client_address = ("10.42.20.67", 50000)
+    monkeypatch.setattr(handler, "_authenticated", lambda path, query: False)
+
+    assert handler._authenticated_application(
+        "portainer",
+        "/portainer/alerts",
+        "",
+    )
+    assert calls == [("portainer", "10.42.20.67", "Bearer matrix-token")]
 
 
 @pytest.mark.parametrize(
