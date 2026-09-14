@@ -159,13 +159,22 @@ class RouteDestinationStore:
                     (str(route_id),),
                 )
             return ()
-        destination = self._destination(actor, str(destination_id), write=False)
+        with self.database.connect() as connection:
+            destination = connection.execute(
+                """
+                SELECT id, owner_user_id, shared, enabled
+                FROM destinations WHERE id = ?
+                """,
+                (str(destination_id),),
+            ).fetchone()
+        if destination is None:
+            raise KeyError("destination not found")
         if (
             str(route["owner_user_id"]) != str(destination["owner_user_id"])
             and not bool(destination["shared"])
         ):
             raise PermissionError(
-                "route destination must be owned by the route owner or shared"
+                "route destination must be owned by the user or shared"
             )
         now = int(self.clock())
         with self.database.transaction() as connection:
