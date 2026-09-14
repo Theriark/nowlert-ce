@@ -20,6 +20,7 @@ _MATRIX_SCOPED_SOURCES = {
     "synology": "synology",
     "grafana": "grafana",
 }
+_PLATFORM_SCOPED_APPLICATIONS = frozenset(_MATRIX_SCOPED_SOURCES)
 
 
 def install() -> None:
@@ -30,6 +31,20 @@ def install() -> None:
 
     _http.ENDPOINTS[_GRAFANA_ENDPOINT] = _GRAFANA_APPLICATION
     _http.SCOPED_SOURCES.update(_MATRIX_SCOPED_SOURCES)
+
+    if not getattr(_http.HTTPHandler, "_ce_matrix_http_parity", False):
+        prior_authenticated_application = _http.HTTPHandler._authenticated_application
+
+        def authenticated_application(self, application: str, path: str, query: str) -> bool:
+            if (
+                application in _PLATFORM_SCOPED_APPLICATIONS
+                and getattr(self.server.api, "platform_database", None) is None
+            ):
+                return self._authenticated(path, query)
+            return prior_authenticated_application(self, application, path, query)
+
+        _http.HTTPHandler._authenticated_application = authenticated_application
+        _http.HTTPHandler._ce_matrix_http_parity = True
 
     if getattr(Dispatcher, "_ce_matrix_http_parity", False):
         return
