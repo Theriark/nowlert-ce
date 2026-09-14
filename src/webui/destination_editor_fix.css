@@ -90,6 +90,7 @@
 
 /* Remove secondary copy that duplicates the compact editor's labels/status. */
 .destination-connection-card > .field-help,
+#destination-routing-summary .destination-section-copy small,
 #destination-route-summary-detail,
 .destination-credentials-card .destination-section-copy small {
   display: none !important;
@@ -106,18 +107,15 @@
   padding: 0;
 }
 
-.route-assignment-option:hover {
-  border-color: rgba(244, 197, 66, 0.52);
-}
-
 .route-assignment-option:has(input:checked) {
   background: rgba(244, 197, 66, 0.055);
   border-color: rgba(244, 197, 66, 0.22);
 }
 
-/* Let the list use the drawer's remaining height instead of stopping at 19rem. */
+/* The list owns its own vertical scrolling. Keep the popover overflow visible
+ * so the native three-pixel amber input focus halo is not clipped. */
 .route-assignment-popover {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .route-assignment-options {
@@ -136,6 +134,30 @@
   grid-template-columns: auto minmax(0, 1fr);
   min-height: 34px;
   padding: 4px 6px;
+}
+
+/* Match custom editor cards to the native input/select amber interaction
+ * pattern: a subtle amber border on hover, stronger border + halo on focus. */
+.destination-provider-card,
+.destination-routing-summary,
+.destination-editor-dialog fieldset.destination-credentials-card,
+.route-assignment-option {
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.destination-editor-dialog .destination-provider-card:hover,
+.destination-editor-dialog .destination-routing-summary:hover,
+.destination-editor-dialog fieldset.destination-credentials-card:hover,
+.destination-editor-dialog .route-assignment-option:hover {
+  border-color: rgba(244, 197, 66, 0.24);
+}
+
+.destination-editor-dialog .destination-provider-card:focus-within,
+.destination-editor-dialog .destination-routing-summary:focus-within,
+.destination-editor-dialog fieldset.destination-credentials-card:focus-within,
+.destination-editor-dialog .route-assignment-option:focus-within {
+  border-color: rgba(244, 197, 66, 0.58);
+  box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.08);
 }
 
 /* Route rows are label elements. The global `label > span` rule adds a bottom

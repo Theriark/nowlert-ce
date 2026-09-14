@@ -83,6 +83,29 @@
     }
   }
 
+  function normalizeRoutingSummary() {
+    const routing = document.getElementById("destination-routing-summary");
+    if (!routing) return;
+    for (const helper of routing.querySelectorAll(".destination-section-copy small")) {
+      helper.remove();
+    }
+  }
+
+  function syncRouteAssignmentSelection(destinationId) {
+    if (
+      typeof routeAssignmentSelection === "undefined"
+      || typeof state === "undefined"
+      || !Array.isArray(state.routes)
+    ) {
+      return;
+    }
+    routeAssignmentSelection = new Set(
+      state.routes
+        .filter((route) => route.destination_id === destinationId)
+        .map((route) => route.id),
+    );
+  }
+
   function routeAssignmentCountFromDrawer() {
     const count = document.getElementById("destination-routes-count");
     const match = String(count?.textContent || "").match(/^(\d+)\s+of\s+\d+\s+selected$/i);
@@ -103,6 +126,7 @@
   }
 
   function refreshRouteAssignmentSummary() {
+    normalizeRoutingSummary();
     const routes = typeof state !== "undefined" && Array.isArray(state.routes)
       ? state.routes
       : [];
@@ -170,7 +194,7 @@
     normalizeDiscordMessageStyle();
     normalizeDestinationTitle();
     normalizeSharedControl();
-    document.getElementById("destination-route-summary-detail")?.remove();
+    normalizeRoutingSummary();
     normalizeRouteDrawer();
     refreshRouteAssignmentSummary();
   }
@@ -191,6 +215,9 @@
   if (baseOpenDestination) {
     openDestination = function openDestinationWithFinalEditorPolish(id = "") {
       const result = baseOpenDestination(id);
+      const destinationId = document.getElementById("destination-id")?.value || id;
+      syncRouteAssignmentSelection(destinationId);
+      if (typeof routeAssignmentRenderOptions === "function") routeAssignmentRenderOptions();
       window.requestAnimationFrame(normalizeDestinationEditor);
       return result;
     };

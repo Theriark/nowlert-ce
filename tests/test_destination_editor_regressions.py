@@ -94,6 +94,7 @@ def test_destination_editor_fix_removes_marked_helper_copy():
     stylesheet = FIX_STYLE.read_text(encoding="utf-8")
 
     assert ".destination-connection-card > .field-help" in stylesheet
+    assert "#destination-routing-summary .destination-section-copy small" in stylesheet
     assert "#destination-route-summary-detail" in stylesheet
     assert ".destination-credentials-card .destination-section-copy small" in stylesheet
     assert "display: none !important" in stylesheet
@@ -124,6 +125,16 @@ def test_destination_editor_fix_routing_summary_uses_assignment_set_and_resyncs_
     assert "routeAssignmentSelection.size" in source
     assert "routeAssignmentRenderOptions = function routeAssignmentRenderOptionsWithSummary" in source
     assert "refreshRouteAssignmentSummary();" in source
+
+
+def test_destination_editor_fix_resyncs_existing_assignments_from_route_destination_ids():
+    source = FIX_SCRIPT.read_text(encoding="utf-8")
+
+    assert "function syncRouteAssignmentSelection(destinationId)" in source
+    assert ".filter((route) => route.destination_id === destinationId)" in source
+    assert ".map((route) => route.id)" in source
+    assert "syncRouteAssignmentSelection(destinationId);" in source
+    assert "routeAssignmentRenderOptions();" in source
 
 
 def test_destination_editor_fix_removes_route_secondary_copy_after_each_render():
@@ -169,7 +180,35 @@ def test_destination_editor_fix_removes_route_status_and_routing_helper_from_dom
 
     assert 'querySelectorAll(".route-assignment-option-state")' in source
     assert "status.remove()" in source
-    assert 'document.getElementById("destination-route-summary-detail")?.remove()' in source
+    assert 'document.getElementById("destination-routing-summary")' in source
+    assert 'querySelectorAll(".destination-section-copy small")' in source
+    assert "helper.remove()" in source
+
+
+def test_destination_editor_fix_route_search_focus_halo_is_not_clipped():
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+
+    assert ".route-assignment-popover" in stylesheet
+    assert "overflow: visible" in stylesheet
+
+
+def test_destination_editor_fix_custom_boxes_match_native_amber_interaction():
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+
+    for selector in (
+        ".destination-provider-card:hover",
+        ".destination-routing-summary:hover",
+        "fieldset.destination-credentials-card:hover",
+        ".route-assignment-option:hover",
+        ".destination-provider-card:focus-within",
+        ".destination-routing-summary:focus-within",
+        "fieldset.destination-credentials-card:focus-within",
+        ".route-assignment-option:focus-within",
+    ):
+        assert selector in stylesheet
+    assert "border-color: rgba(244, 197, 66, 0.24)" in stylesheet
+    assert "border-color: rgba(244, 197, 66, 0.58)" in stylesheet
+    assert "box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.08)" in stylesheet
 
 
 def test_destination_editor_fix_clamps_route_icons_inside_two_column_rows():
