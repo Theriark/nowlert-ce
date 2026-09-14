@@ -894,3 +894,52 @@ qaLoadDeliveryPage = async function qaLoadDeliveryPageWithoutDuplicateBadges(
   await qaNce34OriginalLoadDeliveryPage(page);
   qaNormalizeDeliveryBadges();
 };
+
+/* Discord destination presentation selector. */
+function qaApplyDiscordMessageStyle() {
+  const settings = byId("destination-settings");
+  const checkbox = settings && settings.querySelector(
+    'input[data-field="components_v2"]',
+  );
+  if (!checkbox) return;
+
+  const field = checkbox.closest("label");
+  if (!field) return;
+
+  const select = element("select", {
+    attributes: {
+      "aria-label": "Message style",
+    },
+  });
+  select.append(
+    element("option", { value: "modern", text: "Modern Card" }),
+    element("option", { value: "classic", text: "Classic Embed" }),
+  );
+  select.value = checkbox.checked ? "modern" : "classic";
+  select.addEventListener("change", () => {
+    checkbox.checked = select.value === "modern";
+  });
+
+  checkbox.hidden = true;
+  checkbox.setAttribute("aria-hidden", "true");
+  field.className = "";
+  field.replaceChildren(
+    element("span", { text: "Message style" }),
+    select,
+    element("small", {
+      text: "Modern Card uses responsive structured sections; Classic Embed uses the traditional Discord embed layout.",
+    }),
+    checkbox,
+  );
+
+  const help = byId("destination-help");
+  if (help) {
+    help.textContent = "Choose how Nowlert notifications are presented in Discord.";
+  }
+}
+
+const qaMessageStyleOriginalRenderDestinationFields = renderDestinationFields;
+renderDestinationFields = function renderDestinationFieldsWithMessageStyle(settings = {}) {
+  qaMessageStyleOriginalRenderDestinationFields(settings);
+  qaApplyDiscordMessageStyle();
+};
