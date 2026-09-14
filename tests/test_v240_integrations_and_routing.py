@@ -55,7 +55,7 @@ def service(tmp_path, document):
     path.chmod(0o600)
     configuration = Configuration(path)
     database = Database(tmp_path / "state" / "nowlert.db")
-    assert database.migrate() == 11
+    assert database.migrate() == 12
     admin = UserStore(database, password_hasher=fast_hash).bootstrap_admin(
         "administrator", PASSWORD
     )
@@ -198,7 +198,7 @@ def test_destination_type_change_preserves_id_and_route_intent(tmp_path):
     assert changed.id == destination.id
     assert changed.output_type == "discord"
     mirrored_route = routes.get(actor, route.id)
-    assert mirrored_route.destination_id == destination.id
+    assert mirrored_route.destination_ids == (destination.id,)
     assert mirrored_route.source == "zabbix"
     assert mirrored_route.input_type == "smtp"
     assert path.read_bytes() == before
@@ -276,7 +276,6 @@ def test_route_matching_distinguishes_integration_input():
     base = dict(
         id="a" * 32,
         owner_user_id="b" * 32,
-        destination_id="c" * 32,
         name="route",
         source="zabbix",
         filters={},
@@ -284,6 +283,7 @@ def test_route_matching_distinguishes_integration_input():
         enabled=True,
         created_at=1,
         updated_at=1,
+        destination_ids=("c" * 32,),
     )
     smtp = Route(**base, input_type="smtp")
     http_values = dict(base)

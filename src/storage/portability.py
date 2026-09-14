@@ -17,6 +17,7 @@ from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.destinations import DestinationStore
 from storage.ownership import Actor
+from storage.route_destinations import RouteDestinationStore
 from storage.routes import RouteStore
 from storage.secrets import SecretStore
 from storage.validation import normalized_name
@@ -56,15 +57,17 @@ class ImportPlan:
                     "enabled": item["enabled"],
                     "secret_present": bool(item.get("secret_value")),
                     "secret_required": bool(item.get("secret_required")),
+                    "route_refs": list(item.get("route_refs") or ()),
                 }
                 for item in self.destinations
             ],
             "routes": [
                 {
+                    "ref": item["ref"],
                     "owner": item["owner"],
                     "name": item["name"],
                     "source": item["source"],
-                    "destination_ref": item["destination_ref"],
+                    "input_type": item.get("input_type", ""),
                     "enabled": item["enabled"],
                 }
                 for item in self.routes
@@ -95,6 +98,7 @@ class PlatformPortabilityService:
         self.clock = clock
         self.destinations = DestinationStore(database, audit=audit)
         self.routes = RouteStore(database, audit=audit)
+        self.relationships = RouteDestinationStore(database, audit=audit)
 
     def export_document(self, actor: Actor) -> dict:
         self._require_admin(actor)
@@ -116,16 +120,34 @@ class PlatformPortabilityService:
                          routes.name_normalized
                 """
             ).fetchall()
-        references = {
+            relationship_rows = connection.execute(
+                """
+                SELECT route_id, destination_id FROM route_destinations
+                ORDER BY destination_id, route_id
+                """
+            ).fetchall()
+        destination_refs = {
             str(row["id"]): f"destination-{index}"
             for index, row in enumerate(destination_rows, start=1)
         }
+        route_refs = {
+            str(row["id"]): f"route-{index}"
+            for index, row in enumerate(route_rows, start=1)
+        }
+        destination_routes: dict[str, list[str]] = {
+            str(row["id"]): [] for row in destination_rows
+        }
+        for relationship in relationship_rows:
+            destination_id = str(relationship["destination_id"])
+            route_id = str(relationship["route_id"])
+            if destination_id in destination_routes and route_id in route_refs:
+                destination_routes[destination_id].append(route_refs[route_id])
         document = {
             "schema": PORTABLE_SCHEMA,
             "exported_at": int(self.clock()),
             "destinations": [
                 {
-                    "ref": references[str(row["id"])],
+                    "ref": destination_refs[str(row["id"])],
                     "owner": str(row["owner_username"]),
                     "name": str(row["name"]),
                     "output_type": str(row["output_type"]),
@@ -133,15 +155,17 @@ class PlatformPortabilityService:
                     "shared": bool(row["shared"]),
                     "enabled": bool(row["enabled"]),
                     "secret_required": row["secret_id"] is not None,
+                    "route_refs": destination_routes[str(row["id"])],
                 }
                 for row in destination_rows
             ],
             "routes": [
                 {
+                    "ref": route_refs[str(row["id"])],
                     "owner": str(row["owner_username"]),
                     "name": str(row["name"]),
                     "source": str(row["source"]),
-                    "destination_ref": references[str(row["destination_id"])],
+                    "input_type": str(row["input_type"] or ""),
                     "filters": json.loads(str(row["filters_json"])),
                     "priority": int(row["priority"]),
                     "enabled": bool(row["enabled"]),
@@ -193,18 +217,18 @@ class PlatformPortabilityService:
         existing_destinations, existing_routes = self._existing_names()
         planned_destination_names = set(existing_destinations)
         planned_route_names = set(existing_routes)
-        references: dict[str, dict] = {}
+        destination_refs: dict[str, dict] = {}
         for index, raw in enumerate(raw_destinations, start=1):
             label = f"destination {index}"
             try:
                 item = self._portable_destination(raw, users)
-                if item["ref"] in references:
+                if item["ref"] in destination_refs:
                     raise ValueError("destination reference is duplicated")
                 key = (item["owner_id"], item["name_normalized"])
                 if key in planned_destination_names:
                     raise ValueError("destination name already exists for this owner")
                 planned_destination_names.add(key)
-                references[item["ref"]] = item
+                destination_refs[item["ref"]] = item
                 destinations.append(item)
                 if item["secret_required"]:
                     warnings.append(
@@ -214,17 +238,69 @@ class PlatformPortabilityService:
             except (TypeError, ValueError) as error:
                 errors.append(f"{label}: {error}")
 
+        route_refs: dict[str, dict] = {}
         for index, raw in enumerate(raw_routes, start=1):
             label = f"route {index}"
             try:
-                item = self._portable_route(raw, users, references)
+                item = self._portable_route(raw, users, destination_refs, index=index)
+                if item["ref"] in route_refs:
+                    raise ValueError("route reference is duplicated")
                 key = (item["owner_id"], item["name_normalized"])
                 if key in planned_route_names:
                     raise ValueError("route name already exists for this owner")
                 planned_route_names.add(key)
+                route_refs[item["ref"]] = item
                 routes.append(item)
             except (KeyError, TypeError, ValueError) as error:
                 errors.append(f"{label}: {error}")
+
+        # Validate new Destination-owned relationships after both resource sets
+        # have been parsed. Translate old Route.destination_ref documents into
+        # the same in-memory representation without mutating the submitted data.
+        for destination in destinations:
+            validated = []
+            for route_ref in destination.get("route_refs") or ():
+                route = route_refs.get(route_ref)
+                if route is None:
+                    errors.append(
+                        f"destination {destination['name']}: route reference {route_ref!r} does not exist"
+                    )
+                    continue
+                if (
+                    route["owner_id"] != destination["owner_id"]
+                    and not destination["shared"]
+                ):
+                    errors.append(
+                        f"destination {destination['name']}: route {route['name']} requires an owned or shared destination"
+                    )
+                    continue
+                if route_ref not in validated:
+                    validated.append(route_ref)
+            destination["route_refs"] = tuple(validated)
+
+        for route in routes:
+            legacy_destination_ref = route.pop("legacy_destination_ref", "")
+            if not legacy_destination_ref:
+                continue
+            destination = destination_refs.get(legacy_destination_ref)
+            if destination is None:
+                errors.append(
+                    f"route {route['name']}: destination reference does not exist"
+                )
+                continue
+            if (
+                route["owner_id"] != destination["owner_id"]
+                and not destination["shared"]
+            ):
+                errors.append(
+                    f"route {route['name']}: destination must be owned or shared"
+                )
+                continue
+            refs = list(destination.get("route_refs") or ())
+            if route["ref"] not in refs:
+                refs.append(route["ref"])
+            destination["route_refs"] = tuple(refs)
+
         return ImportPlan(
             "portable",
             fingerprint,
@@ -310,6 +386,7 @@ class PlatformPortabilityService:
                         "enabled": group_enabled,
                         "secret_required": True,
                         "secret_value": value,
+                        "route_refs": [],
                     }
                     references[(output_type, str(target))] = item
                     destinations.append(item)
@@ -320,6 +397,7 @@ class PlatformPortabilityService:
         if not isinstance(routing, dict):
             errors.append("routing must be an object")
             routing = {}
+        route_position = 0
         for source_name, raw_route in routing.items():
             if not isinstance(raw_route, dict):
                 errors.append(f"routing.{source_name} must be an object")
@@ -354,19 +432,25 @@ class PlatformPortabilityService:
                     planned_route_names.add(key)
                     source_value = RouteStore._source(source_name)
                     RouteStore._filters(filters)
+                    route_position += 1
+                    route_ref = f"route-{route_position}"
                     routes.append({
+                        "ref": route_ref,
                         "owner": admin_name,
                         "owner_id": actor.user_id,
                         "name": display,
                         "name_normalized": normalized,
                         "source": source_value,
-                        "destination_ref": destination["ref"],
+                        "input_type": "",
                         "filters": filters,
                         "priority": min(1000, 100 + position),
                         "enabled": bool(destination["enabled"]),
                     })
+                    destination["route_refs"].append(route_ref)
                 except (TypeError, ValueError) as error:
                     errors.append(f"routing.{source_name} entry {position}: {error}")
+        for destination in destinations:
+            destination["route_refs"] = tuple(destination["route_refs"])
         return ImportPlan(
             "v1_yaml",
             fingerprint,
@@ -450,7 +534,8 @@ class PlatformPortabilityService:
         created_routes: list[str] = []
         created_destinations: list[str] = []
         created_secrets: list[str] = []
-        references: dict[str, str] = {}
+        destination_ids: dict[str, str] = {}
+        route_ids: dict[str, str] = {}
         try:
             for item in plan.destinations:
                 secret_id = None
@@ -478,28 +563,27 @@ class PlatformPortabilityService:
                     enabled=enabled,
                 )
                 created_destinations.append(destination.id)
-                references[item["ref"]] = destination.id
+                destination_ids[item["ref"]] = destination.id
             for item in plan.routes:
-                destination_id = references[item["destination_ref"]]
-                destination = next(
-                    value for value in plan.destinations
-                    if value["ref"] == item["destination_ref"]
-                )
-                enabled = bool(item["enabled"] and not (
-                    destination.get("secret_required")
-                    and not destination.get("secret_value")
-                ))
                 route = self.routes.create(
                     actor,
                     item["owner_id"],
                     item["name"],
                     item["source"],
-                    destination_id,
+                    input_type=item.get("input_type", ""),
                     filters=item["filters"],
                     priority=item["priority"],
-                    enabled=enabled,
+                    enabled=item["enabled"],
                 )
                 created_routes.append(route.id)
+                route_ids[item["ref"]] = route.id
+            for item in plan.destinations:
+                selected = [route_ids[ref] for ref in item.get("route_refs") or ()]
+                self.relationships.replace_for_destination(
+                    actor,
+                    destination_ids[item["ref"]],
+                    selected,
+                )
         except Exception:
             for route_id in reversed(created_routes):
                 try:
@@ -541,7 +625,7 @@ class PlatformPortabilityService:
             raise ValueError("must be an object")
         allowed = {
             "ref", "owner", "name", "output_type", "settings", "shared",
-            "enabled", "secret_required",
+            "enabled", "secret_required", "route_refs",
         }
         unknown = set(raw) - allowed
         if unknown:
@@ -563,6 +647,16 @@ class PlatformPortabilityService:
         shared = self._boolean(raw, "shared", False)
         enabled = self._boolean(raw, "enabled", True)
         required = self._boolean(raw, "secret_required", False)
+        raw_route_refs = raw.get("route_refs", [])
+        if not isinstance(raw_route_refs, list):
+            raise ValueError("route_refs must be a list")
+        route_refs = []
+        for value in raw_route_refs:
+            route_ref = str(value or "").strip()
+            if not route_ref or len(route_ref) > 128:
+                raise ValueError("route reference must contain 1 to 128 characters")
+            if route_ref not in route_refs:
+                route_refs.append(route_ref)
         return {
             "ref": reference,
             "owner": owner_record["username"],
@@ -574,14 +668,15 @@ class PlatformPortabilityService:
             "shared": shared,
             "enabled": enabled,
             "secret_required": required,
+            "route_refs": tuple(route_refs),
         }
 
-    def _portable_route(self, raw, users, references) -> dict:
+    def _portable_route(self, raw, users, destination_refs, *, index: int) -> dict:
         if not isinstance(raw, dict):
             raise ValueError("must be an object")
         allowed = {
-            "owner", "name", "source", "destination_ref", "filters",
-            "priority", "enabled",
+            "ref", "owner", "name", "source", "input_type", "destination_ref",
+            "filters", "priority", "enabled",
         }
         unknown = set(raw) - allowed
         if unknown:
@@ -595,26 +690,28 @@ class PlatformPortabilityService:
         if owner_record is None:
             raise ValueError("owner does not exist on this instance")
         display, normalized = normalized_name(raw.get("name"), "route name")
-        reference = str(raw.get("destination_ref") or "")
-        destination = references[reference]
-        if (
-            destination["owner_id"] != owner_record["id"]
-            and not destination["shared"]
-        ):
-            raise ValueError("route destination must be owned or shared")
+        reference = str(raw.get("ref") or f"legacy-route-{index}").strip()
+        if not reference or len(reference) > 128:
+            raise ValueError("route reference must contain 1 to 128 characters")
         source = RouteStore._source(raw.get("source"))
+        input_type = RouteStore._input_type(raw.get("input_type", ""))
         filters = raw.get("filters") or {}
         RouteStore._filters(filters)
         priority = int(raw.get("priority", 100))
         if not 0 <= priority <= 1000:
             raise ValueError("route priority must be between 0 and 1000")
+        legacy_destination_ref = str(raw.get("destination_ref") or "").strip()
+        if legacy_destination_ref and legacy_destination_ref not in destination_refs:
+            raise KeyError(legacy_destination_ref)
         return {
+            "ref": reference,
             "owner": owner_record["username"],
             "owner_id": owner_record["id"],
             "name": display,
             "name_normalized": normalized,
             "source": source,
-            "destination_ref": reference,
+            "input_type": input_type,
+            "legacy_destination_ref": legacy_destination_ref,
             "filters": filters,
             "priority": priority,
             "enabled": self._boolean(raw, "enabled", True),

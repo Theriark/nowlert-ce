@@ -22,6 +22,8 @@ from storage.validation import normalized_identifier, normalized_name
 _SECRET_KEY = re.compile(
     r"(?i)(authorization|cookie|password|secret|token|webhook|api[_-]?key)"
 )
+
+
 @dataclass(frozen=True)
 class Destination:
     id: str
@@ -303,8 +305,11 @@ class DestinationStore:
                 external_routes = int(
                     connection.execute(
                         """
-                        SELECT COUNT(*) FROM routes
-                        WHERE destination_id = ? AND owner_user_id != ?
+                        SELECT COUNT(*)
+                        FROM route_destinations
+                        JOIN routes ON routes.id = route_destinations.route_id
+                        WHERE route_destinations.destination_id = ?
+                          AND routes.owner_user_id != ?
                         """,
                         (str(destination_id), str(row["owner_user_id"])),
                     ).fetchone()[0]
@@ -386,8 +391,11 @@ class DestinationStore:
                     external_routes = int(
                         connection.execute(
                             """
-                            SELECT COUNT(*) FROM routes
-                            WHERE destination_id = ? AND owner_user_id != ?
+                            SELECT COUNT(*)
+                            FROM route_destinations
+                            JOIN routes ON routes.id = route_destinations.route_id
+                            WHERE route_destinations.destination_id = ?
+                              AND routes.owner_user_id != ?
                             """,
                             (str(destination_id), owner_user_id),
                         ).fetchone()[0]
@@ -510,14 +518,11 @@ class DestinationStore:
     def delete(self, actor: Actor, destination_id: str) -> None:
         row = self._record(destination_id)
         OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
-        try:
-            with self.database.transaction() as connection:
-                connection.execute(
-                    "DELETE FROM destinations WHERE id = ?",
-                    (str(destination_id),),
-                )
-        except sqlite3.IntegrityError as error:
-            raise ValueError("destination is referenced by a route") from error
+        with self.database.transaction() as connection:
+            connection.execute(
+                "DELETE FROM destinations WHERE id = ?",
+                (str(destination_id),),
+            )
         self._audit(actor, "destination.delete", destination_id, "success")
 
     def _record(self, destination_id: str):

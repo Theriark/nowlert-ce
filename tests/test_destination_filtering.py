@@ -87,8 +87,8 @@ def route(platform, target, source, *, input_type="http", enabled=True, name=Non
 
 def test_schema_11_adds_destination_filter_storage(tmp_path):
     database = Database(tmp_path / "state" / "nowlert.db")
-    assert database.migrate() == 11
-    assert LATEST_SCHEMA_VERSION == 11
+    assert database.migrate() == 12
+    assert LATEST_SCHEMA_VERSION == 12
     with database.connect() as connection:
         tables = {
             row["name"]
@@ -97,6 +97,7 @@ def test_schema_11_adds_destination_filter_storage(tmp_path):
             )
         }
     assert "destination_filters" in tables
+    assert "route_destinations" in tables
 
 
 def test_every_builtin_integration_has_a_declared_safe_filter_schema():

@@ -20,10 +20,21 @@ from storage.delivery import (
 from storage.destinations import Destination, DestinationStore
 from storage.ownership import Actor, OwnershipPolicy
 from storage.portability import ImportPlan, PlatformPortabilityService
+from storage.route_destinations import RouteDestinationCandidate, RouteDestinationStore
 from storage.routes import Route, RouteStore
 from storage.secrets import SecretMetadata, SecretStore
 from storage.sessions import SessionCredentials, SessionPrincipal, SessionStore
 from storage.users import User, UserStore
+
+# Compatibility adapters keep the legacy configuration bridge and the existing
+# destination-filter fallback semantics while Routes move to schema 12.
+from storage.configuration_sync import UnifiedConfigurationService
+from storage.configuration_sync_v12 import apply_configuration_sync_v12
+from storage.filtering import FilteredPlatformDeliveryService, RoutingOnlyRouteStore
+from storage.filtering_v12 import apply_filtering_v12
+
+apply_configuration_sync_v12(UnifiedConfigurationService)
+apply_filtering_v12(RoutingOnlyRouteStore, FilteredPlatformDeliveryService)
 
 __all__ = [
     "Actor",
@@ -48,6 +59,8 @@ __all__ = [
     "PlatformPortabilityService",
     "PlatformDeliveryService",
     "Route",
+    "RouteDestinationCandidate",
+    "RouteDestinationStore",
     "RouteStore",
     "SecretMetadata",
     "SecretStore",

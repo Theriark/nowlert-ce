@@ -10,6 +10,7 @@ from storage.api_tokens import APITokenStore
 from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.destinations import DestinationStore
+from storage.route_destinations import RouteDestinationStore
 from storage.routes import RouteStore
 from storage.secrets import SecretStore
 from storage.users import UserStore
@@ -41,6 +42,7 @@ def platform(tmp_path):
     tokens = APITokenStore(database, audit=audit, clock=clock)
     destinations = DestinationStore(database, audit=audit, clock=clock)
     routes = RouteStore(database, audit=audit, clock=clock)
+    relationships = RouteDestinationStore(database, audit=audit, clock=clock)
     return {
         "database": database,
         "clock": clock,
@@ -53,6 +55,7 @@ def platform(tmp_path):
         "tokens": tokens,
         "destinations": destinations,
         "routes": routes,
+        "relationships": relationships,
     }
 
 
@@ -316,20 +319,14 @@ def test_route_filters_match_source_host_event_severity_and_status(platform):
     assert platform["routes"].matches(route, matching) is False
 
 
-def test_matching_routes_are_owner_scoped_ordered_and_respect_enabled_state(platform):
+def test_matching_routes_are_owner_scoped_and_destination_independent(platform):
     owner = platform["owner"]
     another = platform["another"]
     destinations = platform["destinations"]
     routes = platform["routes"]
-    first_destination = destinations.create(
-        owner.actor, owner.id, "First", "ntfy"
-    )
-    second_destination = destinations.create(
-        owner.actor, owner.id, "Second", "ntfy"
-    )
-    another_destination = destinations.create(
-        another.actor, another.id, "Other", "ntfy"
-    )
+    first_destination = destinations.create(owner.actor, owner.id, "First", "ntfy")
+    second_destination = destinations.create(owner.actor, owner.id, "Second", "ntfy")
+    another_destination = destinations.create(another.actor, another.id, "Other", "ntfy")
     second = routes.create(
         owner.actor, owner.id, "Second", "grafana", second_destination.id, priority=20
     )
@@ -352,7 +349,11 @@ def test_matching_routes_are_owner_scoped_ordered_and_respect_enabled_state(plat
     ]
     routes.set_enabled(owner.actor, first.id, False)
     destinations.set_enabled(owner.actor, second_destination.id, False)
-    assert routes.matching(owner.actor, owner.id, notification) == []
+    # Destination state is applied during candidate expansion, not Route matching.
+    assert [item.id for item in routes.matching(owner.actor, owner.id, notification)] == [
+        second.id,
+    ]
+    assert platform["relationships"].expand(owner.actor, [second]) == []
 
 
 def test_audit_events_are_scoped_and_sensitive_details_are_redacted(platform):
