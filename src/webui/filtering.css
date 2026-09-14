@@ -123,7 +123,7 @@
 .filtering-overview-chips:has(> .filtering-overview-rule-value[aria-label^="Severity "]):has(> .filtering-overview-rule-value[aria-label^="Status "])::after {
   margin-top: 0.16rem;
 }
-.filtering-table-actions { gap: 0.65rem; justify-content: flex-end; }
+.filtering-table-actions { display: flex; gap: 0.65rem; justify-content: flex-end; }
 
 .filtering-destination-field { display: grid; gap: 0.45rem; margin-top: 1rem; }
 .filtering-context {

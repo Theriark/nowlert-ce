@@ -137,4 +137,4 @@ def test_filtering_overview_cards_top_align_and_space_rule_groups():
 def test_filtering_overview_actions_have_clear_spacing():
     styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
 
-    assert ".filtering-table-actions { gap: 0.65rem; justify-content: flex-end; }" in styles
+    assert ".filtering-table-actions { display: flex; gap: 0.65rem; justify-content: flex-end; }" in styles
