@@ -138,3 +138,19 @@ def test_filtering_overview_actions_have_clear_spacing():
     styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
 
     assert ".filtering-table-actions { display: flex; gap: 0.65rem; justify-content: flex-end; }" in styles
+
+
+def test_filtering_overview_final_polish_contract():
+    script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
+
+    assert "const unconfigured = Math.max(available - active, 0);" in script
+    assert "`${active} configured · ${unconfigured} unconfigured`" in script
+    assert 'actionButtonForFilter("✎ Configure", "manage-destination", policy.destination_id, "primary")' in script
+    assert ".filtering-overview-integration:hover {" in styles
+    assert '.filtering-source-icon[data-source-key="qnap"]' in styles
+    assert '.filtering-source-icon[data-source-key="synology"]' in styles
+    assert '.filtering-source-icon[data-source-key="unifi_network"]' in styles
+    assert '.filtering-source-icon[data-source-key="dell_idrac"]' in styles
+    assert ".filtering-table tbody td:nth-child(3)," in styles
+    assert "vertical-align: top;" in styles

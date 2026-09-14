@@ -30,6 +30,11 @@
 .filtering-table th:nth-child(3) { width: 10%; }
 .filtering-table th:nth-child(4) { width: 15%; }
 .filtering-table td { vertical-align: middle; }
+.filtering-table tbody td:nth-child(3),
+.filtering-table tbody td:nth-child(4) {
+  padding-top: 2.7rem;
+  vertical-align: top;
+}
 
 .filtering-destination-summary {
   align-items: center;
@@ -81,10 +86,19 @@
   grid-template-columns: 1.65rem minmax(0, 1fr) auto;
   min-width: 0;
   padding: 0.42rem 0.48rem;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.filtering-overview-integration:hover {
+  background: color-mix(in srgb, var(--surface-raised) 90%, transparent);
+  border-color: var(--line-strong);
 }
 .filtering-overview-copy { display: grid; gap: 0.45rem; min-width: 0; }
 .filtering-overview-copy > strong { font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.filtering-source-icon { height: 1.6rem !important; object-fit: contain; width: 1.6rem !important; }
+.filtering-source-icon { height: 1.6rem !important; object-fit: contain; transform-origin: center; width: 1.6rem !important; }
+.filtering-source-icon[data-source-key="qnap"] { transform: scale(1.32); }
+.filtering-source-icon[data-source-key="synology"] { transform: scale(1.25); }
+.filtering-source-icon[data-source-key="unifi_network"] { transform: scale(1.2); }
+.filtering-source-icon[data-source-key="dell_idrac"] { transform: scale(1.4); }
 .filtering-overview-chips { display: flex; flex-wrap: wrap; column-gap: 0.2rem; row-gap: 0.28rem; min-width: 0; }
 .filtering-overview-chip,
 .filtering-overview-rule {
@@ -263,6 +277,7 @@
 @media (max-width: 720px) {
   .filtering-overview-grid { grid-template-columns: 1fr; }
   .filtering-table th:nth-child(1), .filtering-table th:nth-child(2), .filtering-table th:nth-child(3), .filtering-table th:nth-child(4) { width: auto; }
+  .filtering-table tbody td:nth-child(3), .filtering-table tbody td:nth-child(4) { padding-top: 0.85rem; }
   .filtering-integration-row { align-items: start; grid-template-columns: auto minmax(0, 1fr); }
   .filtering-integration-actions { grid-column: 2; justify-content: flex-start; }
   .filtering-editor-identity { align-items: flex-start; flex-direction: column; }
