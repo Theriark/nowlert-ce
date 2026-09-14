@@ -92,10 +92,12 @@
   border-radius: 999px;
   color: #cbd6df;
   font-size: 0.56rem;
-  line-height: 1;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
   padding: 0.2rem 0.34rem;
-  white-space: nowrap;
+  white-space: normal;
 }
+.filtering-overview-rule::after { content: ": " attr(title); }
 .filtering-table-actions { justify-content: flex-end; }
 
 .filtering-destination-field { display: grid; gap: 0.45rem; margin-top: 1rem; }

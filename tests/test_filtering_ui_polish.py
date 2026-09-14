@@ -101,6 +101,11 @@ def test_filtering_webui_shows_active_filter_cards_and_reference_editor():
     assert "<th>Filters</th>" in script
     assert "filtering-overview-list" in script
     assert "filtering-overview-rule" in script
+    assert 'title: values.join(", ")' in script
+    assert ".filtering-overview-rule::after" in styles
+    assert 'content: ": " attr(title);' in styles
+    assert "overflow-wrap: anywhere;" in styles
+    assert "white-space: normal;" in styles
     assert 'byId("page-title").textContent = VIEW_TITLES.filtering;' in script
     assert "width: min(1040px, calc(100vw - 2rem));" in styles
     assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in styles
