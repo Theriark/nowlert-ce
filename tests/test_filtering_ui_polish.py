@@ -54,6 +54,15 @@ def test_filtering_overview_api_exposes_active_configured_rule_details(tmp_path)
         input_type="smtp",
         enabled=True,
     )
+    routes.create(
+        admin.actor,
+        admin.id,
+        "Grafana Development",
+        "grafana",
+        target.id,
+        input_type="http",
+        enabled=True,
+    )
     filters.set_rules(
         admin.actor,
         target.id,
@@ -85,7 +94,7 @@ def test_filtering_overview_api_exposes_active_configured_rule_details(tmp_path)
     assert labels["host"] == "Host"
 
 
-def test_filtering_webui_shows_rule_details_and_uses_current_modal_surface():
+def test_filtering_webui_shows_active_filter_cards_and_wide_clean_editor():
     script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
 
@@ -93,7 +102,16 @@ def test_filtering_webui_shows_rule_details_and_uses_current_modal_surface():
     assert "filtering-overview-list" in script
     assert "filtering-overview-rule" in script
     assert 'byId("page-title").textContent = VIEW_TITLES.filtering;' in script
+    assert "width: min(1040px, calc(100vw - 2rem));" in styles
+    assert "grid-template-columns: repeat(auto-fit, minmax(13rem, 16rem));" in styles
+    assert "justify-content: center;" in styles
+    assert "margin-inline: auto;" in styles
+    assert "grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr);" in styles
+    assert "#filter-editor-step > .field-help" in styles
+    assert "display: none;" in styles
     assert ".filtering-modal > section" in styles
     assert "background: var(--surface-solid);" in styles
     assert ".filtering-add-field-row .button" in styles
     assert "white-space: nowrap;" in styles
+    assert "75%" not in script
+    assert "25%" not in script
