@@ -76,7 +76,7 @@ def test_destination_editor_fix_removes_provider_chevron_and_modal_fieldset_coll
 def test_destination_editor_fix_keeps_route_drawer_at_top_without_focus_scroll_jump():
     source = FIX_SCRIPT.read_text(encoding="utf-8")
 
-    assert "options.scrollTop = 0" in source
+    assert "drawerOptions.scrollTop = 0" in source
     assert "search.focus({ preventScroll: true })" in source
 
 
@@ -88,3 +88,39 @@ def test_destination_editor_fix_normalizes_route_icons_and_credentials_card():
     assert ".destination-credentials-card .destination-section-icon" in stylesheet
     assert ".destination-credentials-card .qa-credential-state" in stylesheet
     assert "min-inline-size: 0" in stylesheet
+
+
+def test_destination_editor_fix_removes_marked_helper_copy():
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+
+    assert ".destination-connection-card > .field-help" in stylesheet
+    assert "#destination-route-summary-detail" in stylesheet
+    assert ".destination-credentials-card .destination-section-copy small" in stylesheet
+    assert "display: none !important" in stylesheet
+
+
+def test_destination_editor_fix_drawer_list_fills_available_height_with_compact_rows():
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+
+    assert ".route-assignment-options" in stylesheet
+    assert "flex: 1 1 0" in stylesheet
+    assert "max-height: none" in stylesheet
+    assert "align-content: start" in stylesheet
+    assert "padding: 4px 6px" in stylesheet
+
+
+def test_destination_editor_fix_route_icons_have_spacing_without_global_tile_padding():
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+
+    assert ".route-assignment-source-icon .source-product-icon" in stylesheet
+    assert "padding: 0" in stylesheet
+    assert "margin: 0 4px 0 2px" in stylesheet
+
+
+def test_destination_editor_fix_routing_summary_uses_assignment_set_and_resyncs_after_render():
+    source = FIX_SCRIPT.read_text(encoding="utf-8")
+
+    assert "function refreshRouteAssignmentSummary" in source
+    assert "routeAssignmentSelection.size" in source
+    assert "routeAssignmentRenderOptions = function routeAssignmentRenderOptionsWithSummary" in source
+    assert "refreshRouteAssignmentSummary();" in source
