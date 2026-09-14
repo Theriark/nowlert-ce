@@ -41,11 +41,15 @@ def test_destination_editor_fix_removes_duplicate_message_style_and_duplicate_ti
     assert 'editing ? `Edit ${name}` : "Add destination"' in source
 
 
-def test_destination_editor_fix_keeps_sharing_with_credentials():
+def test_destination_editor_fix_moves_sharing_to_provider_header():
     source = FIX_SCRIPT.read_text(encoding="utf-8")
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
 
-    assert 'const credentials = secrets?.closest("fieldset");' in source
-    assert "credentials.append(shared);" in source
+    assert 'sharing.id = "destination-provider-sharing"' in source
+    assert 'status.textContent = sharedInput.checked ? "Shared" : "Private"' in source
+    assert 'sharedInput.checked = !sharedInput.checked' in source
+    assert "credentials.append(shared);" not in source
+    assert ".destination-shared-native" in stylesheet
 
 
 def test_destination_editor_fix_restores_amber_accent_and_dark_provider_options():
@@ -56,3 +60,31 @@ def test_destination_editor_fix_restores_amber_accent_and_dark_provider_options(
     assert ".destination-provider-type select option" in stylesheet
     assert "#16aef2" not in stylesheet
     assert "#0e97d6" not in stylesheet
+
+
+def test_destination_editor_fix_removes_provider_chevron_and_modal_fieldset_collisions():
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+
+    assert ".destination-provider-type::after" in stylesheet
+    assert "content: none" in stylesheet
+    assert "fieldset.destination-connection-card" in stylesheet
+    assert "fieldset.destination-credentials-card" in stylesheet
+    assert "fieldset.route-assignment-drawer" in stylesheet
+    assert "grid-row: 1" in stylesheet
+
+
+def test_destination_editor_fix_keeps_route_drawer_at_top_without_focus_scroll_jump():
+    source = FIX_SCRIPT.read_text(encoding="utf-8")
+
+    assert "options.scrollTop = 0" in source
+    assert "search.focus({ preventScroll: true })" in source
+
+
+def test_destination_editor_fix_normalizes_route_icons_and_credentials_card():
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+
+    assert ".route-assignment-source-icon .source-product-icon" in stylesheet
+    assert "box-sizing: border-box" in stylesheet
+    assert ".destination-credentials-card .destination-section-icon" in stylesheet
+    assert ".destination-credentials-card .qa-credential-state" in stylesheet
+    assert "min-inline-size: 0" in stylesheet
