@@ -65,3 +65,15 @@ def test_destination_route_picker_uses_stable_dom_anchor_and_idempotent_binding(
     assert 'attributes: { id: "destination-routes-clear" }' in source
     assert 'picker.dataset.routeAssignmentBound' in source
     assert 'textContent.trim() === "Write-only credentials"' not in source
+
+
+def test_route_assignment_submit_uses_current_destination_and_route_handlers():
+    source = (ROOT / "src" / "webui" / "destination_routes.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "event.stopImmediatePropagation();" in source
+    assert '"destination-form",\n      (event) => saveDestination(event),' in source
+    assert '"route-form",\n      (event) => saveRoute(event),' in source
+    assert 'form.dataset.routeAssignmentSubmitBound = "true"' in source
+    assert "      true,\n    );" in source

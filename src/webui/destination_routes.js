@@ -7,6 +7,21 @@ if (typeof routeAssignmentInstallStyles === "function") {
 (() => {
   if (typeof routeAssignmentRenderOptions !== "function") return;
 
+  function routeAssignmentBindCurrentSubmit(formId, submitHandler) {
+    const form = byId(formId);
+    if (!form || form.dataset.routeAssignmentSubmitBound === "true") return;
+
+    form.dataset.routeAssignmentSubmitBound = "true";
+    form.addEventListener(
+      "submit",
+      (event) => {
+        event.stopImmediatePropagation();
+        submitHandler(event);
+      },
+      true,
+    );
+  }
+
   routeAssignmentEnsureDestinationPicker = function routeAssignmentEnsureDestinationPickerStable() {
     const form = byId("destination-form");
     if (!form) return;
@@ -91,5 +106,15 @@ if (typeof routeAssignmentInstallStyles === "function") {
     });
   };
 
-  document.addEventListener("DOMContentLoaded", routeAssignmentEnsureDestinationPicker);
+  document.addEventListener("DOMContentLoaded", () => {
+    routeAssignmentEnsureDestinationPicker();
+    routeAssignmentBindCurrentSubmit(
+      "destination-form",
+      (event) => saveDestination(event),
+    );
+    routeAssignmentBindCurrentSubmit(
+      "route-form",
+      (event) => saveRoute(event),
+    );
+  });
 })();
