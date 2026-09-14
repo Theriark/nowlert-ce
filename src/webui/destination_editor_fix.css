@@ -1,0 +1,40 @@
+/* Restore the Nowlert 3.1.0 Amber Accent contract inside the destination editor. */
+.destination-editor-dialog {
+  --destination-accent: var(--accent, #f4c542);
+  --destination-accent-strong: var(--accent-strong, #d9a629);
+}
+
+.destination-provider-icon {
+  background: rgba(244, 197, 66, 0.13);
+  border-color: rgba(244, 197, 66, 0.28);
+}
+
+.destination-provider-type select option {
+  background: var(--surface-solid, #1b1f24);
+  color: var(--text, #f2ebdd);
+}
+
+.destination-provider-type select option:checked {
+  background: var(--surface-raised, #23282f);
+  color: var(--text, #f2ebdd);
+}
+
+.route-assignment-option:hover {
+  border-color: rgba(244, 197, 66, 0.52);
+}
+
+.route-assignment-option:has(input:checked) {
+  background: rgba(244, 197, 66, 0.055);
+  border-color: rgba(244, 197, 66, 0.22);
+}
+
+.destination-credentials-card .destination-share-row {
+  align-self: stretch;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--destination-border);
+  border-radius: 0;
+  margin: 10px 0 0;
+  padding: 10px 0 0;
+  width: 100%;
+}
