@@ -6,8 +6,8 @@
   width: min(1040px, calc(100vw - 2rem));
 }
 
-.filtering-modal > section { margin: 0 1rem 1rem; }
-.filtering-modal-heading { margin-bottom: 0.4rem; }
+.filtering-modal > section { margin: 0; }
+.filtering-modal-heading { margin-bottom: 1.2rem; }
 .filtering-modal-heading > .icon-button { order: 3; }
 .filtering-modal:has(#filter-editor-step:not([hidden]) #filter-remove-button:not([hidden])) .filtering-modal-heading::after {
   background: color-mix(in srgb, var(--success) 14%, transparent);

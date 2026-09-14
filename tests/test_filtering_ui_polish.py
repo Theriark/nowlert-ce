@@ -167,6 +167,7 @@ def test_filtering_overview_shows_only_active_filters_and_collapse():
     assert "function filterOverviewUnconfiguredIntegration(integration)" not in script
     assert 'text: "No filter · All notifications"' not in script
     assert 'element("details", { className: "filtering-overview-list filtering-overview-details" })' in script
+    assert "container.open = true;" not in script
     assert 'return badge("Active", "success");' in script
     assert '.filter((policy) => Array.isArray(policy.integrations) && policy.integrations.length > 0)' in script
     assert "unconfiguredIntegrations.forEach" not in script
@@ -174,3 +175,17 @@ def test_filtering_overview_shows_only_active_filters_and_collapse():
     assert 'toast(enabled ? "Filter enabled." : "Filter disabled; saved rules were kept.", "success");' in script
     assert ".filtering-overview-details:not([open]) > .filtering-overview-header::after" in styles
     assert "font-size: 0.6rem;" in styles
+
+
+def test_shared_modal_shell_has_consistent_inner_spacing():
+    professional = (ROOT / "src" / "webui" / "professional.css").read_text(encoding="utf-8")
+    filtering_styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
+    index = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
+
+    assert ".modal {\n  padding: 1.4rem;\n}" in professional
+    assert ".modal > form,\n.modal > div,\n.modal > p,\n.modal > .secret-value {" in professional
+    assert "  margin-left: 0;\n  margin-right: 0;" in professional
+    assert ".modal > form {\n  margin-bottom: 0;\n  margin-top: 0;\n}" in professional
+    assert ".filtering-modal > section { margin: 0; }" in filtering_styles
+    assert ".filtering-modal-heading { margin-bottom: 1.2rem; }" in filtering_styles
+    assert 'id="secret-dialog" class="modal small-modal"' in index
