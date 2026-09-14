@@ -72,16 +72,28 @@
     refreshSharingStatus();
   }
 
+  function normalizeRouteOptionRows() {
+    const options = document.getElementById("destination-route-options");
+    if (!options) return;
+    for (const secondary of options.querySelectorAll(".route-assignment-option-copy small")) {
+      secondary.remove();
+    }
+  }
+
   function routeAssignmentSelectionCount() {
+    const checkboxes = [
+      ...document.querySelectorAll('#destination-route-options input[type="checkbox"]'),
+    ];
+    if (checkboxes.length) {
+      return checkboxes.filter((checkbox) => checkbox.checked).length;
+    }
     if (
       typeof routeAssignmentSelection !== "undefined"
       && routeAssignmentSelection instanceof Set
     ) {
       return routeAssignmentSelection.size;
     }
-    return document.querySelectorAll(
-      '#destination-route-options input[type="checkbox"]:checked',
-    ).length;
+    return 0;
   }
 
   function refreshRouteAssignmentSummary() {
@@ -107,6 +119,8 @@
   function normalizeRouteDrawer() {
     const manage = document.getElementById("destination-routes-toggle");
     const options = document.getElementById("destination-route-options");
+
+    normalizeRouteOptionRows();
 
     if (options && options.dataset.destinationSummaryBound !== "true") {
       options.dataset.destinationSummaryBound = "true";
@@ -149,6 +163,7 @@
   if (baseRouteAssignmentRenderOptions) {
     routeAssignmentRenderOptions = function routeAssignmentRenderOptionsWithSummary(...args) {
       const result = baseRouteAssignmentRenderOptions(...args);
+      normalizeRouteOptionRows();
       refreshRouteAssignmentSummary();
       return result;
     };
