@@ -132,3 +132,9 @@ def test_filtering_overview_cards_top_align_and_space_rule_groups():
     assert ".filtering-overview-chips { display: flex; flex-wrap: wrap; column-gap: 0.2rem; row-gap: 0.28rem; min-width: 0; }" in styles
     assert '.filtering-overview-chips:has(> .filtering-overview-rule-value[aria-label^="Severity "]):has(> .filtering-overview-rule-value[aria-label^="Status "])::after {' in styles
     assert "margin-top: 0.16rem;" in styles
+
+
+def test_filtering_overview_actions_have_clear_spacing():
+    styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
+
+    assert ".filtering-table-actions { gap: 0.65rem; justify-content: flex-end; }" in styles
