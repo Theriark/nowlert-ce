@@ -123,7 +123,8 @@ def test_development_workflow_verifies_tag_digest_and_deploys_sha_tag():
 
     assert "Verify Development SHA tag matches build digest" in workflow
     assert 'SHA_TAG="${IMAGE}:sha-${SOURCE_SHA}"' in workflow
-    assert 'TAG_DIGEST="sha256:$(docker buildx imagetools inspect' in workflow
+    assert 'docker buildx imagetools inspect "${SHA_TAG}" --raw' in workflow
+    assert "sha256sum" in workflow
 
     deploy_block = workflow.split(
         "- name: Deploy exact CE SHA tag to Development", 1
