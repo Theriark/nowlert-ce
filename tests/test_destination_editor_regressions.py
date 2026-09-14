@@ -134,14 +134,17 @@ def test_destination_editor_fix_removes_route_secondary_copy_after_each_render()
     assert "normalizeRouteOptionRows();" in source
 
 
-def test_destination_editor_fix_centers_single_line_route_labels():
+def test_destination_editor_fix_centers_route_row_contents_without_label_spacing():
     stylesheet = FIX_STYLE.read_text(encoding="utf-8")
 
-    assert ".route-assignment-option-copy" in stylesheet
-    assert "align-self: stretch" in stylesheet
-    assert "justify-content: center" in stylesheet
-    assert ".route-assignment-option-copy small" in stylesheet
-    assert "display: none" in stylesheet
+    assert ".route-assignment-option > .route-assignment-option-leading" in stylesheet
+    assert ".route-assignment-option > .route-assignment-option-copy" in stylesheet
+    assert "align-self: center" in stylesheet
+    assert "margin-bottom: 0" in stylesheet
+    assert ".route-assignment-option-leading" in stylesheet
+    assert "height: 22px" in stylesheet
+    assert ".route-assignment-option-copy strong" in stylesheet
+    assert "min-height: 22px" in stylesheet
 
 
 def test_destination_editor_fix_summary_prefers_rendered_checkbox_state():
