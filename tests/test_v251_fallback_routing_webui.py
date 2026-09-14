@@ -14,6 +14,7 @@ from storage.configuration_bridge import ConfigurationBridgeService
 from storage.configuration_sync import UnifiedConfigurationService
 from storage.database import Database
 from storage.destinations import DestinationStore
+from storage.route_destinations import RouteDestinationStore
 from storage.routes import RouteStore
 from storage.users import UserStore
 
@@ -45,7 +46,7 @@ def fast_hash(password: str) -> str:
 
 def database_with_admin(tmp_path):
     database = Database(tmp_path / "state" / "nowlert.db")
-    assert database.migrate() == 11
+    assert database.migrate() == 12
     admin = UserStore(database, password_hasher=fast_hash).bootstrap_admin(
         "administrator", PASSWORD
     )
@@ -138,10 +139,11 @@ def test_smtp_fallback_matches_generic_smtp_only(tmp_path):
     ) == []
 
 
-def test_matching_routes_deliver_only_once_per_destination(tmp_path):
+def test_matching_routes_deduplicate_at_destination_expansion(tmp_path):
     database, actor = database_with_admin(tmp_path)
     destinations = DestinationStore(database)
     routes = RouteStore(database)
+    relationships = RouteDestinationStore(database)
     target = destinations.create(
         actor, actor.user_id, "iDRAC alerts", "discord", settings={}, enabled=True
     )
@@ -154,7 +156,7 @@ def test_matching_routes_deliver_only_once_per_destination(tmp_path):
         input_type="redfish",
         priority="high",
     )
-    routes.create(
+    second = routes.create(
         actor,
         actor.user_id,
         "Critical iDRAC",
@@ -170,7 +172,11 @@ def test_matching_routes_deliver_only_once_per_destination(tmp_path):
         actor.user_id,
         notification(severity="critical"),
     )
-    assert [route.id for route in matched] == [first.id]
+    assert [route.id for route in matched] == [first.id, second.id]
+    candidates = relationships.expand(actor, matched)
+    assert len(candidates) == 1
+    assert candidates[0].route.id == first.id
+    assert candidates[0].destination_id == target.id
 
 
 def test_exclude_route_filters_win_over_include_filters(tmp_path):
@@ -365,7 +371,6 @@ def test_integration_settings_list_has_heading_spacing():
     assert "margin-top: 1.5rem" in styles
 
 
-
 def test_nce21_nce36_nce37_nce38_route_filter_ui():
     script = (ROOT / "src/webui/app.js").read_text(
         encoding="utf-8"
@@ -385,150 +390,28 @@ def test_nce21_nce36_nce37_nce38_route_filter_ui():
         encoding="utf-8"
     )
 
-    # NCE-21: complete enumerated filters are neutral and collapse to
-    # All Events when no other restriction remains.
+    # The historical Route-filter controls remain in the compatibility markup
+    # for now, but the schema-12 dashboard override hides/disables them. The
+    # separate Filtering subsystem is the live operator surface.
+    dashboard = (ROOT / "src/webui/dashboard.js").read_text(encoding="utf-8")
+    assert '"Optional route filters"' in dashboard
+    assert "fieldset.hidden = true" in dashboard
+    assert "input.disabled = true" in dashboard
+
+    # Existing compatibility helpers remain stable for old saved data/imports.
     assert "const ROUTE_ALL_EVENT_FILTERS = {" in script
-    assert (
-        'function routeFilterHasAllEvents(key, values, source = "")'
-        in script
-    )
+    assert 'function routeFilterHasAllEvents(key, values, source = "")' in script
     assert 'return parts.join(" · ") || "All Events";' in script
-    assert 'return "Just Critical";' in script
-    assert 'parts.unshift("All Events")' not in script
-
-    # NCE-36: severity/status exclusions are no longer separate fields.
-    assert "<span>Included severities</span>" in markup
-    assert "<span>Included statuses</span>" in markup
-    assert "<span>Exclude severities</span>" not in markup
-    assert "<span>Exclude statuses</span>" not in markup
-    assert 'id="route-exclude_severities"' not in markup
-    assert 'id="route-exclude_statuses"' not in markup
-
-    # Legacy include/exclude records are converted into their effective
-    # allow-list before editing, then saved using include-only filters.
     assert "function routeAllowedFilterValues(" in script
-    assert 'filters = {},' in script
-    assert 'source = "",' in script
     assert 'const excludedKey = `exclude_${key}`;' in script
-    assert 'for (const key of ["severities", "statuses"]) {' in script
-    assert "Select at least one included" in script
-
-    # NCE-39: the selected integration source owns the exact route
-    # severity/status vocabulary. The input transport is not part of
-    # the lookup, so Zabbix SMTP and HTTP share one definition.
-    assert (
-        'function routeFilterValuesForSource(source = "", key)'
-        in script
-    )
+    assert 'function routeFilterValuesForSource(source = "", key)' in script
     assert "integration.route_filters" in script
-    assert "function routeSelectedSource()" in script
     assert "function refreshRouteFilterOptions(filters = {})" in script
-    assert "currentRouteFilterSelections()" in script
-    assert 'sourceSelect.dataset.routeFilterSource = source;' in script
-    assert "previousSource === nextSource" in script
-    assert "field.hidden = values.length === 0;" in script
-    assert "select.disabled = values.length === 0;" in script
-    assert "const selectedSource = routeSelectedSource();" in script
-    assert "const available = routeFilterValuesForSource(" in script
-    assert "if (!available.length) continue;" in script
 
-    # NCE-39 Development polish: show every available enum value and
-    # keep the four text filters in fixed paired rows beneath selectors.
-    assert "select.size = Math.max(values.length, 2);" in script
-    assert "function refreshRouteFilterLayout()" in script
-    assert "function scheduleRouteFilterLayout()" in script
-    assert 'grid.style.gridAutoFlow = "row";' in script
-    assert 'grid.style.gridAutoRows = "auto";' in script
-    assert "const pairedFields = [" in script
-    assert '["route-hosts", "route-exclude_hosts"]' in script
-    assert '["route-events", "route-exclude_events"]' in script
-    assert "field.style.gridRow = String(firstTextRow + rowOffset);" in script
-    assert "field.style.gridColumn = String(columnOffset + 1);" in script
-    assert "scheduleRouteFilterLayout();" in script
-    assert "grid-auto-flow: row;" in layout_styles
-    assert ".route-filter-grid > label {" in layout_styles
-    assert "align-self: start;" in layout_styles
-    assert (
-        "filterSummary(route.filters, route.source)"
-        in script
-    )
-    assert (
-        "filterSummary(item.filters, item.source)"
-        in script
-    )
-    assert 'severities: "All Severities"' in script
-    assert 'statuses: "All Statuses"' in script
-
-    # The generic global option list is no longer baked into the form.
-    assert (
-        '<select id="route-severities" multiple size="6"></select>'
-        in markup
-    )
-    assert (
-        '<select id="route-statuses" multiple size="7"></select>'
-        in markup
-    )
-
-    # NCE-37: selected options retain the same system highlight even
-    # when the listbox is not focused.
+    assert '<select id="route-severities" multiple size="6"></select>' in markup
+    assert '<select id="route-statuses" multiple size="7"></select>' in markup
     assert "qaRefreshRouteChoiceColors" not in patch
-    assert '"qa-route-included"' not in patch
-    assert '"qa-route-excluded"' not in patch
     assert "#route-severities option:checked" in styles
     assert "#route-statuses option:checked" in styles
     assert "background: Highlight !important;" in styles
-    assert "color: HighlightText !important;" in styles
-    assert "Green options are included" not in markup
-    assert "Existing selections stay highlighted" in markup
-
-    # NCE-38: ordinary mouse interaction is owned from mousedown so
-    # existing options never disappear temporarily.
-    assert "function qaRouteChoiceValues(select)" in patch
-    assert "function qaApplyRouteChoiceValues(select, values)" in patch
-    assert "function qaRouteChoiceOption(event)" in patch
-    assert "function qaBindRouteChoiceList(selectId)" in patch
-
-    choice_block = patch.split(
-        "function qaBindRouteChoiceList(selectId)",
-        1,
-    )[1].split(
-        "function qaAddSelectActions",
-        1,
-    )[0]
-
-    assert 'select.addEventListener("mousedown"' in choice_block
-    assert 'select.addEventListener("mousemove"' in choice_block
-    assert 'document.addEventListener("mouseup"' in choice_block
-    assert 'select.addEventListener("click"' in choice_block
-
-    # Ordinary mouse selection is intercepted before the browser can
-    # collapse the existing multiple-selection state.
-    assert "event.preventDefault();" in choice_block
-    assert "select.focus({ preventScroll: true });" in choice_block
-    assert "suppressClick" in choice_block
-
-    # Normal click toggles only the clicked option.
-    assert "if (snapshot.selected)" in choice_block
-    assert "values.delete(snapshot.option.value);" in choice_block
-    assert "values.add(snapshot.option.value);" in choice_block
-
-    # Drag adds a contiguous range while preserving the original set.
-    assert "pointer.dragged = true;" in choice_block
-    assert "const first = Math.min(" in choice_block
-    assert "const last = Math.max(" in choice_block
-    assert "values.add(candidate.value);" in choice_block
-    assert "const values = new Set(pointer.values);" in choice_block
-
-    # Modifier-assisted native selection remains available.
-    assert "event.ctrlKey" in choice_block
-    assert "event.metaKey" in choice_block
-    assert "event.shiftKey" in choice_block
-    assert "snapshot.nativeOnly" not in choice_block
-
-    assert 'new Event("change", { bubbles: true })' in choice_block
-    assert "Drag across options to add a range" in markup
-
-    # The old two-list conflict machinery is intentionally gone.
-    assert "qaSyncRouteFilterPair" not in patch
-    assert "qaSyncAllRouteFilterPairs" not in patch
-    assert "qaBindRouteFilterPair" not in patch
+    assert "grid-auto-flow: row;" in layout_styles

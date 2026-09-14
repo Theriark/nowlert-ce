@@ -91,7 +91,7 @@ def seed_destination(state, *, owner=None, name="Primary Discord"):
 
 def test_portable_export_never_contains_credentials_or_auth_material(platform_state):
     state = platform_state
-    seed_destination(state)
+    _secret, destination, route = seed_destination(state)
 
     document = state["portability"].export_document(state["admin"].actor)
     encoded = json.dumps(document, sort_keys=True)
@@ -100,6 +100,10 @@ def test_portable_export_never_contains_credentials_or_auth_material(platform_st
     assert len(document["destinations"]) == 1
     assert len(document["routes"]) == 1
     assert document["destinations"][0]["secret_required"] is True
+    assert document["destinations"][0]["route_refs"] == ["route-1"]
+    assert document["routes"][0]["ref"] == "route-1"
+    assert "destination_ref" not in document["routes"][0]
+    assert route.destination_ids == (destination.id,)
     for forbidden in (
         "private-value",
         "password_hash",
@@ -115,6 +119,8 @@ def test_portable_import_requires_preview_fingerprint_and_disables_missing_secre
     platform_state,
 ):
     state = platform_state
+    # Legacy singular destination_ref remains accepted during the compatibility
+    # window and is translated to one route_destinations relationship.
     document = {
         "schema": "nowlert.platform.v1",
         "destinations": [{
@@ -141,6 +147,7 @@ def test_portable_import_requires_preview_fingerprint_and_disables_missing_secre
 
     assert plan.valid is True
     assert plan.public()["destinations"][0]["secret_present"] is False
+    assert plan.public()["destinations"][0]["route_refs"]
     assert "credential was intentionally not exported" in plan.warnings[0]
     with pytest.raises(ValueError, match="fingerprint"):
         state["portability"].apply_document(
@@ -163,7 +170,9 @@ def test_portable_import_requires_preview_fingerprint_and_disables_missing_secre
     assert result["routes_created"] == 1
     assert destination.enabled is False
     assert destination.secret_configured is False
-    assert route.enabled is False
+    # Route enablement is independent from destination credential health.
+    assert route.enabled is True
+    assert route.destination_ids == (destination.id,)
 
 
 def test_portable_preview_rejects_ownership_conflicts_and_duplicate_names(
@@ -203,6 +212,62 @@ def test_portable_preview_rejects_ownership_conflicts_and_duplicate_names(
     assert any("owned or shared" in item for item in plan.errors)
     with pytest.raises(PermissionError):
         state["portability"].preview_document(state["owner"].actor, document)
+
+
+def test_portable_new_format_round_trips_destination_route_refs(platform_state):
+    state = platform_state
+    document = {
+        "schema": "nowlert.platform.v1",
+        "destinations": [{
+            "ref": "destination-1",
+            "owner": "owner-user",
+            "name": "Imported ntfy",
+            "output_type": "ntfy",
+            "settings": {},
+            "shared": False,
+            "enabled": True,
+            "secret_required": False,
+            "route_refs": ["route-a", "route-b"],
+        }],
+        "routes": [
+            {
+                "ref": "route-a",
+                "owner": "owner-user",
+                "name": "Grafana reusable",
+                "source": "grafana",
+                "input_type": "http",
+                "filters": {},
+                "priority": 25,
+                "enabled": True,
+            },
+            {
+                "ref": "route-b",
+                "owner": "owner-user",
+                "name": "Zabbix reusable",
+                "source": "zabbix",
+                "input_type": "smtp",
+                "filters": {},
+                "priority": 50,
+                "enabled": True,
+            },
+        ],
+    }
+    plan = state["portability"].preview_document(state["admin"].actor, document)
+    assert plan.valid is True
+    result = state["portability"].apply_document(
+        state["admin"].actor,
+        document,
+        plan.fingerprint,
+    )
+    assert result["routes_created"] == 2
+    destination = state["destinations"].list_visible(state["owner"].actor)[0]
+    routes = state["routes"].list_for_owner(state["owner"].actor, state["owner"].id)
+    assert {item.id for item in routes} == set(
+        state["portability"].relationships.route_ids_for_destination(
+            state["owner"].actor,
+            destination.id,
+        )
+    )
 
 
 def test_v1_yaml_preview_redacts_webhooks_and_imports_routes(platform_state):
@@ -253,6 +318,7 @@ routing:
     assert all(item.secret_configured for item in destinations)
     assert {item.enabled for item in destinations} == {False, True}
     assert routes[0].filters["hosts"] == ("monitor-01",)
+    assert all(item.destination_ids for item in routes)
 
 
 def test_failed_import_rolls_back_destinations_and_secret_files(

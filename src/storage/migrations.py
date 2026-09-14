@@ -120,7 +120,7 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
                 created_at INTEGER NOT NULL
             )
             """,
-            "CREATE INDEX audit_events_created_at ON audit_events(created_at)",
+            "CREATE INDEX audit_events_created_at ON audit_events(created_at DESC)",
         ),
     ),
     (
@@ -380,6 +380,126 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             CREATE INDEX destination_filters_source
             ON destination_filters(source, destination_id)
             """,
+        ),
+    ),
+    (
+        12,
+        "independent routes and destination assignments",
+        (
+            """
+            CREATE TABLE route_destination_seed AS
+            SELECT id AS route_id, destination_id FROM routes
+            """,
+            """
+            CREATE TABLE routes_new (
+                id TEXT PRIMARY KEY,
+                owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                name_normalized TEXT NOT NULL,
+                source TEXT NOT NULL,
+                filters_json TEXT NOT NULL DEFAULT '{}',
+                priority INTEGER NOT NULL DEFAULT 100,
+                enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                configuration_key TEXT,
+                input_type TEXT NOT NULL DEFAULT '',
+                UNIQUE (owner_user_id, name_normalized)
+            )
+            """,
+            """
+            INSERT INTO routes_new(
+                id, owner_user_id, name, name_normalized, source, filters_json,
+                priority, enabled, created_at, updated_at, configuration_key, input_type
+            )
+            SELECT
+                id, owner_user_id, name, name_normalized, source, filters_json,
+                priority, enabled, created_at, updated_at, configuration_key, input_type
+            FROM routes
+            """,
+            """
+            CREATE TABLE delivery_attempts_new (
+                id TEXT PRIMARY KEY,
+                delivery_id TEXT NOT NULL,
+                owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                route_id TEXT REFERENCES routes_new(id) ON DELETE SET NULL,
+                destination_id TEXT REFERENCES destinations(id) ON DELETE SET NULL,
+                source TEXT NOT NULL,
+                title TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                outcome TEXT NOT NULL CHECK (
+                    outcome IN ('delivered', 'failed', 'retry_scheduled')
+                ),
+                attempt_number INTEGER NOT NULL CHECK (attempt_number >= 1),
+                retryable INTEGER NOT NULL DEFAULT 0 CHECK (retryable IN (0, 1)),
+                response_status INTEGER,
+                error_code TEXT,
+                safe_error TEXT,
+                created_at INTEGER NOT NULL,
+                completed_at INTEGER NOT NULL,
+                input_type TEXT NOT NULL DEFAULT '',
+                device_name TEXT NOT NULL DEFAULT '',
+                event_name TEXT NOT NULL DEFAULT '',
+                event_description TEXT NOT NULL DEFAULT '',
+                event_status TEXT NOT NULL DEFAULT '',
+                UNIQUE (delivery_id, attempt_number)
+            )
+            """,
+            """
+            INSERT INTO delivery_attempts_new(
+                id, delivery_id, owner_user_id, route_id, destination_id,
+                source, title, severity, outcome, attempt_number, retryable,
+                response_status, error_code, safe_error, created_at, completed_at,
+                input_type, device_name, event_name, event_description, event_status
+            )
+            SELECT
+                id, delivery_id, owner_user_id, route_id, destination_id,
+                source, title, severity, outcome, attempt_number, retryable,
+                response_status, error_code, safe_error, created_at, completed_at,
+                input_type, device_name, event_name, event_description, event_status
+            FROM delivery_attempts
+            """,
+            "DROP TABLE delivery_attempts",
+            "DROP TABLE routes",
+            "ALTER TABLE routes_new RENAME TO routes",
+            "ALTER TABLE delivery_attempts_new RENAME TO delivery_attempts",
+            "CREATE INDEX routes_source ON routes(source, enabled, priority)",
+            """
+            CREATE UNIQUE INDEX routes_configuration_key
+            ON routes(configuration_key)
+            WHERE configuration_key IS NOT NULL
+            """,
+            """
+            CREATE INDEX delivery_attempts_owner_created
+            ON delivery_attempts(owner_user_id, created_at DESC)
+            """,
+            """
+            CREATE INDEX delivery_attempts_destination_created
+            ON delivery_attempts(destination_id, created_at DESC)
+            """,
+            """
+            CREATE TABLE route_destinations (
+                route_id TEXT NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
+                destination_id TEXT NOT NULL REFERENCES destinations(id) ON DELETE CASCADE,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (route_id, destination_id)
+            )
+            """,
+            """
+            INSERT INTO route_destinations(route_id, destination_id, created_at)
+            SELECT route_id, destination_id, unixepoch()
+            FROM route_destination_seed
+            WHERE destination_id IS NOT NULL
+            """,
+            """
+            CREATE INDEX route_destinations_destination
+            ON route_destinations(destination_id, route_id)
+            """,
+            """
+            CREATE INDEX route_destinations_route
+            ON route_destinations(route_id, destination_id)
+            """,
+            "DROP TABLE route_destination_seed",
         ),
     ),
 )

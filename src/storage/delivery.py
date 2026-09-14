@@ -12,6 +12,10 @@ from models import Notification
 from storage.database import Database
 from storage.destinations import DeliveryDestination, DestinationStore
 from storage.ownership import Actor, OwnershipPolicy
+from storage.route_destinations import (
+    RouteDestinationCandidate,
+    RouteDestinationStore,
+)
 from storage.routes import Route, RouteStore
 from storage.sanitize import sanitize_text
 from storage.secrets import SecretStore
@@ -82,9 +86,13 @@ class DeliveryHistoryStore:
         attempt_number: int,
         outcome: str,
         result: DeliveryResult,
+        destination_id: str | None = None,
     ) -> DeliveryAttempt:
         if outcome not in {"delivered", "failed", "retry_scheduled"}:
             raise ValueError("unsupported delivery outcome")
+        resolved_destination = destination_id or route.destination_id
+        if not resolved_destination:
+            raise ValueError("delivery destination is required")
         now = int(self.clock())
         attempt_id = uuid.uuid4().hex
         source = self._safe(notification.source, 64)
@@ -139,7 +147,7 @@ class DeliveryHistoryStore:
                     str(delivery_id),
                     str(owner_user_id),
                     route.id,
-                    route.destination_id,
+                    str(resolved_destination),
                     source,
                     title,
                     severity,
@@ -292,7 +300,7 @@ class DeliveryHistoryStore:
 
 
 class PlatformDeliveryService:
-    """Deliver matching user routes through injected output adapters."""
+    """Deliver matched reusable Routes through their bound Destinations."""
 
     def __init__(
         self,
@@ -302,6 +310,7 @@ class PlatformDeliveryService:
         history: DeliveryHistoryStore,
         adapters: dict[str, Callable],
         *,
+        relationships: RouteDestinationStore | None = None,
         maximum_attempts: int = 3,
         retry_delays: tuple[float, ...] = (0, 1, 5),
         sleeper: Callable[[float], None] = time.sleep,
@@ -311,6 +320,7 @@ class PlatformDeliveryService:
         self.secrets = secrets
         self.history = history
         self.adapters = dict(adapters)
+        self.relationships = relationships or RouteDestinationStore(routes.database)
         self.maximum_attempts = max(1, min(int(maximum_attempts), 5))
         self.retry_delays = tuple(max(0.0, float(value)) for value in retry_delays)
         self.sleeper = sleeper
@@ -321,14 +331,23 @@ class PlatformDeliveryService:
         notification: Notification,
     ) -> DeliverySummary:
         matching = self.routes.matching(actor, actor.user_id, notification)
+        candidates = self.relationships.expand(actor, matching)
+        return self._deliver_candidates(actor, notification, candidates)
+
+    def _deliver_candidates(
+        self,
+        actor: Actor,
+        notification: Notification,
+        candidates: list[RouteDestinationCandidate],
+    ) -> DeliverySummary:
         delivered = 0
         failed = 0
         attempts = 0
-        for route in matching:
+        for candidate in candidates:
             delivery_id = uuid.uuid4().hex
-            outcome, count = self._deliver_route(
+            outcome, count = self._deliver_candidate(
                 actor,
-                route,
+                candidate,
                 notification,
                 delivery_id,
             )
@@ -337,17 +356,19 @@ class PlatformDeliveryService:
                 delivered += 1
             else:
                 failed += 1
-        return DeliverySummary(len(matching), delivered, failed, attempts)
+        return DeliverySummary(len(candidates), delivered, failed, attempts)
 
-    def _deliver_route(
+    def _deliver_candidate(
         self,
         actor: Actor,
-        route: Route,
+        candidate: RouteDestinationCandidate,
         notification: Notification,
         delivery_id: str,
     ) -> tuple[bool, int]:
+        route = candidate.route
+        destination_id = candidate.destination_id
         try:
-            target = self.destinations.for_delivery(actor, route.destination_id)
+            target = self.destinations.for_delivery(actor, destination_id)
         except (KeyError, PermissionError):
             result = DeliveryResult(False, error_code="destination_unavailable")
             self.history.record(
@@ -358,6 +379,7 @@ class PlatformDeliveryService:
                 1,
                 "failed",
                 result,
+                destination_id=destination_id,
             )
             return False, 1
 
@@ -376,6 +398,7 @@ class PlatformDeliveryService:
                     1,
                     "failed",
                     result,
+                    destination_id=destination_id,
                 )
                 return False, 1
 
@@ -390,6 +413,7 @@ class PlatformDeliveryService:
                 1,
                 "failed",
                 result,
+                destination_id=destination_id,
             )
             return False, 1
 
@@ -414,6 +438,7 @@ class PlatformDeliveryService:
                 attempt_number,
                 outcome,
                 result,
+                destination_id=destination_id,
             )
             if result.success:
                 return True, attempt_number

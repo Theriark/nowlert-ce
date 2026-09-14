@@ -55,10 +55,13 @@ class HealthCheckService:
                 FROM destinations ORDER BY name_normalized
                 """
             ).fetchall()
-            broken_routes = connection.execute(
+            broken_bindings = connection.execute(
                 """
-                SELECT routes.name FROM routes
-                LEFT JOIN destinations ON destinations.id = routes.destination_id
+                SELECT DISTINCT routes.name
+                FROM route_destinations
+                JOIN routes ON routes.id = route_destinations.route_id
+                LEFT JOIN destinations
+                  ON destinations.id = route_destinations.destination_id
                 WHERE routes.enabled = 1
                   AND (destinations.id IS NULL OR destinations.enabled = 0)
                 ORDER BY routes.name_normalized
@@ -79,12 +82,12 @@ class HealthCheckService:
                 "available" if not missing else f"missing: {', '.join(missing[:5])}",
             )
         )
-        names = [str(row["name"]) for row in broken_routes]
+        names = [str(row["name"]) for row in broken_bindings]
         checks.append(
             self._check(
                 "routes",
                 not names,
-                "Enabled routes",
+                "Enabled route assignments",
                 "healthy" if not names else f"unavailable destination: {', '.join(names[:5])}",
             )
         )

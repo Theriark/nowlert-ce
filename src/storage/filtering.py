@@ -6,7 +6,6 @@ import fnmatch
 import json
 import time
 import unicodedata
-import uuid
 
 from dataclasses import replace
 
@@ -186,16 +185,17 @@ class DestinationFilterStore:
         return row
 
     def available_sources(self, actor: Actor, destination_id: str) -> tuple[str, ...]:
-        """Return built-in integrations reachable through enabled routes only."""
+        """Return built-in integrations reachable through enabled bound Routes."""
 
         self._destination(actor, destination_id)
         with self.database.connect() as connection:
             rows = connection.execute(
                 """
                 SELECT routes.source, routes.input_type
-                FROM routes
+                FROM route_destinations
+                JOIN routes ON routes.id = route_destinations.route_id
                 JOIN users ON users.id = routes.owner_user_id
-                WHERE routes.destination_id = ?
+                WHERE route_destinations.destination_id = ?
                   AND routes.enabled = 1
                   AND users.enabled = 1
                 ORDER BY routes.priority, routes.name_normalized
@@ -353,13 +353,16 @@ class DestinationFilterStore:
         return any(_clause_matches(source, clause, notification) for clause in clauses)
 
     def migrate_legacy_route_filters(self, *, force: bool = False) -> int:
-        """Move route-owned filters to destination policies as OR clauses."""
+        """Move route-owned filters to every currently bound Destination."""
 
         with self.database.connect() as connection:
             table = connection.execute(
                 "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'destination_filters'"
             ).fetchone()
-            if table is None:
+            relationships = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'route_destinations'"
+            ).fetchone()
+            if table is None or relationships is None:
                 return 0
             pending = connection.execute(
                 "SELECT 1 FROM routes WHERE filters_json <> '{}' LIMIT 1"
@@ -370,7 +373,7 @@ class DestinationFilterStore:
         with self.database.transaction() as connection:
             rows = connection.execute(
                 """
-                SELECT id, destination_id, source, input_type, filters_json
+                SELECT id, source, input_type, filters_json
                 FROM routes
                 WHERE filters_json <> '{}'
                 ORDER BY priority, name_normalized
@@ -383,10 +386,18 @@ class DestinationFilterStore:
                     decoded = json.loads(str(row["filters_json"] or "{}"))
                 except (TypeError, ValueError, json.JSONDecodeError):
                     continue
-                if not isinstance(decoded, dict):
+                if not isinstance(decoded, dict) or not decoded:
                     continue
-                if not decoded:
-                    migrated_ids.append(str(row["id"]))
+                destination_rows = connection.execute(
+                    """
+                    SELECT destination_id FROM route_destinations
+                    WHERE route_id = ? ORDER BY destination_id
+                    """,
+                    (str(row["id"]),),
+                ).fetchall()
+                destination_ids = [str(item["destination_id"]) for item in destination_rows]
+                if not destination_ids:
+                    # Keep compatibility filters until the Route is assigned.
                     continue
                 source = canonical_source(str(row["source"]))
                 target_sources = (
@@ -394,15 +405,20 @@ class DestinationFilterStore:
                     if source == "*"
                     else (source,)
                 )
-                for target_source in target_sources:
-                    if filter_schema(target_source) is None:
-                        continue
-                    clause = self._normalize_legacy(decoded)
-                    if clause:
+                clause = self._normalize_legacy(decoded)
+                if not clause:
+                    continue
+                wrote = False
+                for destination_id in destination_ids:
+                    for target_source in target_sources:
+                        if filter_schema(target_source) is None:
+                            continue
                         grouped.setdefault(
-                            (str(row["destination_id"]), target_source), []
+                            (destination_id, target_source), []
                         ).append(clause)
-                migrated_ids.append(str(row["id"]))
+                        wrote = True
+                if wrote:
+                    migrated_ids.append(str(row["id"]))
 
             now = int(self.clock())
             for (destination_id, source), clauses in grouped.items():
@@ -416,7 +432,11 @@ class DestinationFilterStore:
                 )
                 combined = list(existing)
                 signatures = {
-                    json.dumps(item, sort_keys=True, separators=(",", ":"))
+                    json.dumps(
+                        {key: list(values) for key, values in item.items()},
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
                     for item in combined
                 }
                 for clause in clauses:
@@ -542,7 +562,6 @@ class DestinationFilterStore:
                 if invalid:
                     raise ValueError(f"unsupported {descriptor['label']} value")
                 if set(patterns) == options:
-                    # All choices selected is deliberately equivalent to no filter.
                     continue
             result[key] = patterns
         encoded = json.dumps(
@@ -592,9 +611,17 @@ class DestinationFilterStore:
 
 
 class RoutingOnlyRouteStore(RouteStore):
-    """Use routes only for source/input candidates; filtering happens later."""
+    """Use Routes only for source/input candidates; filtering happens later."""
 
-    def create(self, actor, owner_user_id, name, source, destination_id, **kwargs):
+    def create(
+        self,
+        actor,
+        owner_user_id,
+        name,
+        source,
+        destination_id=None,
+        **kwargs,
+    ):
         kwargs["filters"] = {}
         return super().create(
             actor,
@@ -615,71 +642,26 @@ class RoutingOnlyRouteStore(RouteStore):
         owner_user_id: str,
         notification: Notification,
     ) -> list[Route]:
-        OwnershipPolicy.require_read(actor, str(owner_user_id))
-        source = canonical_source(notification.source)
-        observed_input = _normalized((notification.metadata or {}).get("_input_type"))
-        with self.database.connect() as connection:
-            rows = connection.execute(
-                """
-                SELECT routes.* FROM routes
-                JOIN destinations ON destinations.id = routes.destination_id
-                WHERE routes.owner_user_id = ?
-                  AND routes.enabled = 1
-                  AND destinations.enabled = 1
-                  AND (routes.source = ? OR routes.source = '*')
-                ORDER BY routes.priority, routes.name_normalized
-                """,
-                (str(owner_user_id), source),
-            ).fetchall()
-        candidates = []
-        for row in rows:
-            route = self._route(row)
-            if route.input_type and _normalized(route.input_type) != observed_input:
-                continue
-            candidates.append(replace(route, filters={}))
-        return candidates
+        return [
+            replace(route, filters={})
+            for route in super().matching(actor, owner_user_id, notification)
+        ]
 
 
 class FilteredPlatformDeliveryService(PlatformDeliveryService):
-    """Apply destination filtering before normal route fallback and delivery."""
+    """Apply Destination Filtering after Route/Destination candidate resolution."""
 
     def __init__(self, *args, filters: DestinationFilterStore, **kwargs):
         super().__init__(*args, **kwargs)
         self.filters = filters
 
     def deliver(self, actor: Actor, notification: Notification) -> DeliverySummary:
-        # Mounted/YAML configuration can create routes after startup. Migrate
-        # any legacy route filters before the candidate set is evaluated.
         self.filters.migrate_legacy_route_filters()
-        candidates = self.routes.matching(actor, actor.user_id, notification)
+        routes = self.routes.matching(actor, actor.user_id, notification)
+        candidates = self.relationships.expand(actor, routes)
         allowed = [
-            route
-            for route in candidates
-            if self.filters.matches(actor, route.destination_id, notification)
+            candidate
+            for candidate in candidates
+            if self.filters.matches(actor, candidate.destination_id, notification)
         ]
-
-        specific = [route for route in allowed if route.source != "*"]
-        selected = specific if specific else [route for route in allowed if route.source == "*"]
-        matching = []
-        seen_destinations = set()
-        for route in selected:
-            if route.destination_id in seen_destinations:
-                continue
-            seen_destinations.add(route.destination_id)
-            matching.append(route)
-
-        delivered = failed = attempts = 0
-        for route in matching:
-            delivery_id = uuid.uuid4().hex
-            outcome, count = self._deliver_route(
-                actor,
-                route,
-                notification,
-                delivery_id,
-            )
-            attempts += count
-            if outcome:
-                delivered += 1
-            else:
-                failed += 1
-        return DeliverySummary(len(matching), delivered, failed, attempts)
+        return self._deliver_candidates(actor, notification, allowed)

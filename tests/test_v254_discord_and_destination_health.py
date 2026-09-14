@@ -157,8 +157,8 @@ def xo_notification() -> Notification:
 def test_schema_9_adds_destination_test_health_columns(tmp_path):
     database = Database(tmp_path / "state.db")
 
-    assert database.migrate() == 11
-    assert LATEST_SCHEMA_VERSION == 11
+    assert database.migrate() == 12
+    assert LATEST_SCHEMA_VERSION == 12
 
     with database.connect() as connection:
         columns = {

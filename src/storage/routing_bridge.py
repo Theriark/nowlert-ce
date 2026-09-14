@@ -11,6 +11,7 @@ from storage.filtering import (
     RoutingOnlyRouteStore,
 )
 from storage.ownership import Actor
+from storage.route_destinations import RouteDestinationStore
 from storage.secrets import SecretStore
 
 
@@ -22,6 +23,7 @@ class PlatformRoutingBridge:
         self.routes = RoutingOnlyRouteStore(database)
         self.filters = DestinationFilterStore(database)
         self.destinations = DestinationStore(database)
+        self.relationships = RouteDestinationStore(database)
         self.secrets = SecretStore(database)
         self.history = DeliveryHistoryStore(database)
         self.registry = registry or PlatformOutputRegistry()
@@ -32,6 +34,7 @@ class PlatformRoutingBridge:
             self.history,
             self.registry.delivery_adapters(),
             filters=self.filters,
+            relationships=self.relationships,
         )
 
     def route(self, notification) -> DeliverySummary:
@@ -54,7 +57,10 @@ class PlatformRoutingBridge:
                 """
                 SELECT DISTINCT routes.owner_user_id
                 FROM routes
-                JOIN destinations ON destinations.id = routes.destination_id
+                JOIN route_destinations
+                  ON route_destinations.route_id = routes.id
+                JOIN destinations
+                  ON destinations.id = route_destinations.destination_id
                 JOIN users ON users.id = routes.owner_user_id
                 WHERE routes.enabled = 1
                   AND destinations.enabled = 1

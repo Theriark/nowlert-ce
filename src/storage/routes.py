@@ -1,4 +1,4 @@
-"""User-owned route CRUD and deterministic notification filter matching."""
+"""User-owned reusable Route definitions and deterministic traffic matching."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from models import Notification
 from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.ownership import Actor, OwnershipPolicy
+from storage.route_destinations import RouteDestinationStore
 from storage.validation import normalized_identifier, normalized_name
 
 
@@ -31,6 +32,7 @@ ROUTE_PRIORITY_VALUES = {
     "low": 75,
     "lowest": 100,
 }
+_UNSET = object()
 
 
 def route_priority_value(value) -> int:
@@ -59,7 +61,6 @@ def route_priority_name(value) -> str:
 class Route:
     id: str
     owner_user_id: str
-    destination_id: str
     name: str
     source: str
     filters: dict[str, tuple[str, ...]]
@@ -68,6 +69,13 @@ class Route:
     created_at: int
     updated_at: int
     input_type: str = ""
+    destination_ids: tuple[str, ...] = ()
+
+    @property
+    def destination_id(self) -> str | None:
+        """Deprecated singular view retained for one compatibility window."""
+
+        return self.destination_ids[0] if len(self.destination_ids) == 1 else None
 
 
 class RouteStore:
@@ -88,13 +96,15 @@ class RouteStore:
         owner_user_id: str,
         name: str,
         source: str,
-        destination_id: str,
+        destination_id: str | None = None,
         *,
         input_type: str = "",
         filters: dict | None = None,
         priority: int = 100,
         enabled: bool = True,
     ) -> Route:
+        """Create an independent Route; destination_id is legacy compatibility only."""
+
         OwnershipPolicy.require_write(actor, str(owner_user_id))
         display, normalized = normalized_name(name, "route name")
         normalized_source = self._source(source)
@@ -115,33 +125,17 @@ class RouteStore:
                     raise KeyError("route owner not found")
                 if not bool(owner["enabled"]):
                     raise PermissionError("disabled users cannot own new routes")
-                destination = connection.execute(
-                    """
-                    SELECT owner_user_id, shared FROM destinations WHERE id = ?
-                    """,
-                    (str(destination_id),),
-                ).fetchone()
-                if destination is None:
-                    raise KeyError("route destination not found")
-                if (
-                    str(destination["owner_user_id"]) != str(owner_user_id)
-                    and not bool(destination["shared"])
-                ):
-                    raise PermissionError(
-                        "route destination must be owned by the user or shared"
-                    )
                 connection.execute(
                     """
                     INSERT INTO routes(
-                        id, owner_user_id, destination_id, name,
-                        name_normalized, source, input_type, filters_json,
-                        priority, enabled, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        id, owner_user_id, name, name_normalized, source,
+                        input_type, filters_json, priority, enabled,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         route_id,
                         str(owner_user_id),
-                        str(destination_id),
                         display,
                         normalized,
                         normalized_source,
@@ -155,19 +149,46 @@ class RouteStore:
                 )
         except sqlite3.IntegrityError as error:
             raise ValueError("route name is already configured for this owner") from error
+
+        if destination_id not in (None, ""):
+            try:
+                RouteDestinationStore(self.database, audit=self.audit).replace_for_route_compat(
+                    actor,
+                    route_id,
+                    str(destination_id),
+                )
+            except Exception:
+                with self.database.transaction() as connection:
+                    connection.execute("DELETE FROM routes WHERE id = ?", (route_id,))
+                raise
+
         route = self.get(actor, route_id)
         self._audit(
             actor,
             "route.create",
             route_id,
             "success",
-            {"source": route.source, "destination_id": route.destination_id},
+            {"source": route.source, "destination_ids": list(route.destination_ids)},
         )
         return route
 
     def get(self, actor: Actor, route_id: str) -> Route:
         row = self._record(route_id)
-        OwnershipPolicy.require_read(actor, str(row["owner_user_id"]))
+        if not OwnershipPolicy.can_read(actor, str(row["owner_user_id"])):
+            with self.database.connect() as connection:
+                shared = connection.execute(
+                    """
+                    SELECT 1
+                    FROM route_destinations
+                    JOIN destinations
+                      ON destinations.id = route_destinations.destination_id
+                    WHERE route_destinations.route_id = ? AND destinations.shared = 1
+                    LIMIT 1
+                    """,
+                    (str(route_id),),
+                ).fetchone()
+            if shared is None:
+                raise PermissionError("resource is not available to this user")
         return self._route(row)
 
     def list_for_owner(self, actor: Actor, owner_user_id: str) -> list[Route]:
@@ -191,7 +212,7 @@ class RouteStore:
         return items
 
     def list_visible_safe(self, actor: Actor) -> tuple[list[Route], list[dict]]:
-        """Return every readable valid route plus per-row failures."""
+        """Return every readable valid Route plus per-row failures."""
 
         with self.database.connect() as connection:
             if actor.is_admin:
@@ -204,9 +225,12 @@ class RouteStore:
             else:
                 rows = connection.execute(
                     """
-                    SELECT routes.* FROM routes
-                    JOIN destinations
-                      ON destinations.id = routes.destination_id
+                    SELECT DISTINCT routes.*
+                    FROM routes
+                    LEFT JOIN route_destinations
+                      ON route_destinations.route_id = routes.id
+                    LEFT JOIN destinations
+                      ON destinations.id = route_destinations.destination_id
                     WHERE routes.owner_user_id = ? OR destinations.shared = 1
                     ORDER BY routes.priority, routes.name_normalized
                     """,
@@ -239,11 +263,12 @@ class RouteStore:
         with self.database.connect() as connection:
             rows = connection.execute(
                 """
-                SELECT routes.* FROM routes
-                JOIN destinations ON destinations.id = routes.destination_id
+                SELECT routes.*
+                FROM routes
+                JOIN users ON users.id = routes.owner_user_id
                 WHERE routes.owner_user_id = ?
                   AND routes.enabled = 1
-                  AND destinations.enabled = 1
+                  AND users.enabled = 1
                   AND (routes.source = ? OR routes.source = '*')
                 ORDER BY routes.priority, routes.name_normalized
                 """,
@@ -252,21 +277,9 @@ class RouteStore:
         routes = [self._route(row) for row in rows]
         matched = [route for route in routes if self.matches(route, notification)]
 
-        # Wildcard routes are fallback-only. A dedicated integration route must
-        # never duplicate the same event into a generic/default destination.
+        # Wildcard routes are fallback-only. Dedicated source Routes win.
         specific = [route for route in matched if route.source != "*"]
-        selected = specific if specific else [route for route in matched if route.source == "*"]
-
-        # Multiple matching filters may intentionally target the same output,
-        # but one event should produce at most one delivery per destination.
-        unique = []
-        seen_destinations = set()
-        for route in selected:
-            if route.destination_id in seen_destinations:
-                continue
-            seen_destinations.add(route.destination_id)
-            unique.append(route)
-        return unique
+        return specific if specific else [route for route in matched if route.source == "*"]
 
     def set_enabled(self, actor: Actor, route_id: str, enabled: bool) -> Route:
         row = self._record(route_id)
@@ -293,7 +306,7 @@ class RouteStore:
         name=None,
         source=None,
         input_type=None,
-        destination_id=None,
+        destination_id=_UNSET,
         filters=None,
         priority=None,
         enabled=None,
@@ -326,31 +339,14 @@ class RouteStore:
             enabled_value = enabled
         else:
             raise ValueError("route enabled must be a boolean")
-        next_destination = str(
-            row["destination_id"] if destination_id is None else destination_id
-        )
         now = int(self.clock())
         try:
             with self.database.transaction() as connection:
-                destination = connection.execute(
-                    "SELECT owner_user_id, shared FROM destinations WHERE id = ?",
-                    (next_destination,),
-                ).fetchone()
-                if destination is None:
-                    raise KeyError("route destination not found")
-                if (
-                    str(destination["owner_user_id"]) != owner_user_id
-                    and not bool(destination["shared"])
-                ):
-                    raise PermissionError(
-                        "route destination must be owned by the user or shared"
-                    )
                 connection.execute(
                     """
                     UPDATE routes
-                    SET name = ?, name_normalized = ?, source = ?,
-                        input_type = ?, destination_id = ?, filters_json = ?,
-                        priority = ?, enabled = ?, updated_at = ?
+                    SET name = ?, name_normalized = ?, source = ?, input_type = ?,
+                        filters_json = ?, priority = ?, enabled = ?, updated_at = ?
                     WHERE id = ?
                     """,
                     (
@@ -358,7 +354,6 @@ class RouteStore:
                         normalized,
                         normalized_source,
                         normalized_input,
-                        next_destination,
                         encoded_filters,
                         bounded_priority,
                         1 if enabled_value else 0,
@@ -370,13 +365,44 @@ class RouteStore:
             raise ValueError(
                 "route name is already configured for this owner"
             ) from error
+
+        if destination_id is not _UNSET:
+            try:
+                RouteDestinationStore(self.database, audit=self.audit).replace_for_route_compat(
+                    actor,
+                    route_id,
+                    destination_id,
+                )
+            except Exception:
+                with self.database.transaction() as connection:
+                    connection.execute(
+                        """
+                        UPDATE routes
+                        SET name = ?, name_normalized = ?, source = ?, input_type = ?,
+                            filters_json = ?, priority = ?, enabled = ?, updated_at = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            row["name"],
+                            row["name_normalized"],
+                            row["source"],
+                            row["input_type"],
+                            row["filters_json"],
+                            row["priority"],
+                            row["enabled"],
+                            row["updated_at"],
+                            str(route_id),
+                        ),
+                    )
+                raise
+
         route = self.get(actor, route_id)
         self._audit(
             actor,
             "route.update",
             route_id,
             "success",
-            {"source": route.source, "destination_id": route.destination_id},
+            {"source": route.source, "destination_ids": list(route.destination_ids)},
         )
         return route
 
@@ -473,13 +499,11 @@ class RouteStore:
             raise KeyError("route not found")
         return row
 
-    @staticmethod
-    def _route(row) -> Route:
+    def _route(self, row) -> Route:
         decoded = json.loads(str(row["filters_json"]))
         return Route(
             id=str(row["id"]),
             owner_user_id=str(row["owner_user_id"]),
-            destination_id=str(row["destination_id"]),
             name=str(row["name"]),
             source=str(row["source"]),
             filters={key: tuple(values) for key, values in decoded.items()},
@@ -488,7 +512,23 @@ class RouteStore:
             created_at=int(row["created_at"]),
             updated_at=int(row["updated_at"]),
             input_type=str(row["input_type"] or "") if "input_type" in row.keys() else "",
+            destination_ids=self._destination_ids(str(row["id"])),
         )
+
+    def _destination_ids(self, route_id: str) -> tuple[str, ...]:
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT destinations.id
+                FROM route_destinations
+                JOIN destinations
+                  ON destinations.id = route_destinations.destination_id
+                WHERE route_destinations.route_id = ?
+                ORDER BY destinations.name_normalized, destinations.id
+                """,
+                (str(route_id),),
+            ).fetchall()
+        return tuple(str(row["id"]) for row in rows)
 
     @classmethod
     def _filters(cls, filters: dict) -> str:
