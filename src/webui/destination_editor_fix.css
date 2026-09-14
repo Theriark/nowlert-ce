@@ -140,6 +140,15 @@
   gap: 6px;
 }
 
+.route-assignment-option-copy {
+  align-self: stretch;
+  justify-content: center;
+}
+
+.route-assignment-option-copy small {
+  display: none;
+}
+
 /* source-product-icon has a larger global tile/padding contract. Keep route
  * logos compact and give them predictable breathing room before the text. */
 .route-assignment-source-icon {

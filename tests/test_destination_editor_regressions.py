@@ -124,3 +124,29 @@ def test_destination_editor_fix_routing_summary_uses_assignment_set_and_resyncs_
     assert "routeAssignmentSelection.size" in source
     assert "routeAssignmentRenderOptions = function routeAssignmentRenderOptionsWithSummary" in source
     assert "refreshRouteAssignmentSummary();" in source
+
+
+def test_destination_editor_fix_removes_route_secondary_copy_after_each_render():
+    source = FIX_SCRIPT.read_text(encoding="utf-8")
+
+    assert 'querySelectorAll(".route-assignment-option-copy small")' in source
+    assert "secondary.remove()" in source
+    assert "normalizeRouteOptionRows();" in source
+
+
+def test_destination_editor_fix_centers_single_line_route_labels():
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+
+    assert ".route-assignment-option-copy" in stylesheet
+    assert "align-self: stretch" in stylesheet
+    assert "justify-content: center" in stylesheet
+    assert ".route-assignment-option-copy small" in stylesheet
+    assert "display: none" in stylesheet
+
+
+def test_destination_editor_fix_summary_prefers_rendered_checkbox_state():
+    source = FIX_SCRIPT.read_text(encoding="utf-8")
+
+    assert 'querySelectorAll(\'#destination-route-options input[type="checkbox"]\')' in source
+    assert "if (checkboxes.length)" in source
+    assert "filter((checkbox) => checkbox.checked).length" in source
