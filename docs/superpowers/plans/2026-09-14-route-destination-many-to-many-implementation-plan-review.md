@@ -1,0 +1,3 @@
+# Plan self-review
+
+The implementation plan covers schema migration, relationship storage, Route independence, delivery/filtering conversion, API contracts, Destination/Routes WebUI, dashboard/health/portability, and final full-suite/CI verification. During review, concrete existing test modules were identified for the broad checkpoints: `tests/test_destination_filtering.py`, `tests/test_filtering_reference_ui.py`, `tests/test_filtering_ui_polish.py`, `tests/test_platform_portability.py`, `tests/test_v254_discord_and_destination_health.py`, `tests/test_webui.py`, `tests/test_v240_webui_contract.py`, and `tests/test_v251_fallback_routing_webui.py`. No spec requirement is intentionally deferred.
