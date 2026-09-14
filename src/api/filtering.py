@@ -74,11 +74,25 @@ class PlatformAPI(BasePlatformAPI):
             filters = self.filters.list_visible(actor)
             for policy in filters:
                 view = self.filters.destination_view(actor, policy["destination_id"])
+                integrations = list(view["integrations"])
+                configured = [
+                    integration
+                    for integration in integrations
+                    if integration.get("configured")
+                ]
+                policy["configured_count"] = len(configured)
                 policy["integrations"] = [
                     integration
-                    for integration in view["integrations"]
-                    if integration.get("configured")
-                    and integration.get("filter_enabled", True)
+                    for integration in configured
+                    if integration.get("filter_enabled", True)
+                ]
+                policy["unconfigured_integrations"] = [
+                    {
+                        "source": integration["source"],
+                        "name": integration.get("name"),
+                    }
+                    for integration in integrations
+                    if not integration.get("configured")
                 ]
             return APIResponse(200, {"filters": filters, "destinations": choices})
 
