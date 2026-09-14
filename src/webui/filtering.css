@@ -71,7 +71,8 @@
   justify-content: center;
 }
 .filtering-overview-integration {
-  align-items: center;
+  align-content: start;
+  align-items: start;
   background: color-mix(in srgb, var(--surface-raised) 82%, transparent);
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -81,10 +82,10 @@
   min-width: 0;
   padding: 0.42rem 0.48rem;
 }
-.filtering-overview-copy { display: grid; gap: 0.22rem; min-width: 0; }
+.filtering-overview-copy { display: grid; gap: 0.45rem; min-width: 0; }
 .filtering-overview-copy > strong { font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .filtering-source-icon { height: 1.6rem !important; object-fit: contain; width: 1.6rem !important; }
-.filtering-overview-chips { display: flex; flex-wrap: wrap; gap: 0.2rem; min-width: 0; }
+.filtering-overview-chips { display: flex; flex-wrap: wrap; column-gap: 0.2rem; row-gap: 0.28rem; min-width: 0; }
 .filtering-overview-chip,
 .filtering-overview-rule {
   background: color-mix(in srgb, var(--surface-solid) 78%, transparent);
@@ -118,6 +119,9 @@
 .filtering-overview-chips:has(> .filtering-overview-rule-value[aria-label^="Status "])::after {
   content: "Status";
   order: 2;
+}
+.filtering-overview-chips:has(> .filtering-overview-rule-value[aria-label^="Severity "]):has(> .filtering-overview-rule-value[aria-label^="Status "])::after {
+  margin-top: 0.16rem;
 }
 .filtering-table-actions { justify-content: flex-end; }
 
