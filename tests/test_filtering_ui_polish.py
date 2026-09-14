@@ -148,8 +148,8 @@ def test_filtering_overview_final_polish_contract():
     script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
 
-    assert "const configured = Number(policy.configured_count ?? integrations.length);" in script
-    assert "`${configured} configured · ${unconfigured} unconfigured`" in script
+    assert "const active = integrations.length;" in script
+    assert '`${active} active filter${active === 1 ? "" : "s"}`' in script
     assert 'actionButtonForFilter("✎ Configure", "manage-destination", policy.destination_id, "primary")' in script
     assert ".filtering-overview-integration:hover {" in styles
     assert '.filtering-source-icon[data-source-key="qnap"]' in styles
@@ -160,14 +160,17 @@ def test_filtering_overview_final_polish_contract():
     assert "vertical-align: top;" in styles
 
 
-def test_filtering_overview_shows_partial_state_unconfigured_cards_and_collapse():
+def test_filtering_overview_shows_only_active_filters_and_collapse():
     script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
 
-    assert "function filterOverviewUnconfiguredIntegration(integration)" in script
-    assert 'text: "No filter · All notifications"' in script
+    assert "function filterOverviewUnconfiguredIntegration(integration)" not in script
+    assert 'text: "No filter · All notifications"' not in script
     assert 'element("details", { className: "filtering-overview-list filtering-overview-details" })' in script
-    assert 'return badge("Partial", "warning");' in script
-    assert ".filtering-overview-unconfigured {" in styles
+    assert 'return badge("Active", "success");' in script
+    assert '.filter((policy) => Array.isArray(policy.integrations) && policy.integrations.length > 0)' in script
+    assert "unconfiguredIntegrations.forEach" not in script
+    assert 'configured ? "Filter off" : "No filter / All notifications"' in script
+    assert 'toast(enabled ? "Filter enabled." : "Filter disabled; saved rules were kept.", "success");' in script
     assert ".filtering-overview-details:not([open]) > .filtering-overview-header::after" in styles
     assert "font-size: 0.6rem;" in styles
