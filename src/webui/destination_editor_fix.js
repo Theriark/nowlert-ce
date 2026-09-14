@@ -72,8 +72,50 @@
     refreshSharingStatus();
   }
 
+  function routeAssignmentSelectionCount() {
+    if (
+      typeof routeAssignmentSelection !== "undefined"
+      && routeAssignmentSelection instanceof Set
+    ) {
+      return routeAssignmentSelection.size;
+    }
+    return document.querySelectorAll(
+      '#destination-route-options input[type="checkbox"]:checked',
+    ).length;
+  }
+
+  function refreshRouteAssignmentSummary() {
+    const routes = typeof state !== "undefined" && Array.isArray(state.routes)
+      ? state.routes
+      : [];
+    const selected = routeAssignmentSelectionCount();
+    const count = document.getElementById("destination-routes-count");
+    const summary = document.getElementById("destination-route-summary-count");
+    const manage = document.getElementById("destination-routes-toggle");
+
+    if (count) count.textContent = `${selected} of ${routes.length} selected`;
+    if (summary) {
+      summary.textContent = selected === 0
+        ? "No routes assigned"
+        : selected === 1
+          ? "1 route assigned"
+          : `${selected} routes assigned`;
+    }
+    if (manage) manage.disabled = routes.length === 0;
+  }
+
   function normalizeRouteDrawer() {
     const manage = document.getElementById("destination-routes-toggle");
+    const options = document.getElementById("destination-route-options");
+
+    if (options && options.dataset.destinationSummaryBound !== "true") {
+      options.dataset.destinationSummaryBound = "true";
+      options.addEventListener("change", () => {
+        window.requestAnimationFrame(refreshRouteAssignmentSummary);
+      });
+    }
+    refreshRouteAssignmentSummary();
+
     if (!manage || manage.dataset.destinationDrawerFixBound === "true") return;
 
     manage.dataset.destinationDrawerFixBound = "true";
@@ -82,10 +124,10 @@
       const pageY = window.scrollY;
       window.requestAnimationFrame(() => {
         const drawer = document.getElementById("destination-routes-fieldset");
-        const options = document.getElementById("destination-route-options");
+        const drawerOptions = document.getElementById("destination-route-options");
         const search = document.getElementById("destination-route-search");
         if (drawer) drawer.scrollTop = 0;
-        if (options) options.scrollTop = 0;
+        if (drawerOptions) drawerOptions.scrollTop = 0;
         if (search) search.focus({ preventScroll: true });
         if (window.scrollX !== pageX || window.scrollY !== pageY) {
           window.scrollTo(pageX, pageY);
@@ -99,6 +141,17 @@
     normalizeDestinationTitle();
     normalizeSharedControl();
     normalizeRouteDrawer();
+    refreshRouteAssignmentSummary();
+  }
+
+  const baseRouteAssignmentRenderOptions =
+    typeof routeAssignmentRenderOptions === "function" ? routeAssignmentRenderOptions : null;
+  if (baseRouteAssignmentRenderOptions) {
+    routeAssignmentRenderOptions = function routeAssignmentRenderOptionsWithSummary(...args) {
+      const result = baseRouteAssignmentRenderOptions(...args);
+      refreshRouteAssignmentSummary();
+      return result;
+    };
   }
 
   const baseOpenDestination = typeof openDestination === "function" ? openDestination : null;

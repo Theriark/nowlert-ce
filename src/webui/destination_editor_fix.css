@@ -88,6 +88,13 @@
   display: none;
 }
 
+/* Remove secondary copy that duplicates the compact editor's labels/status. */
+.destination-connection-card > .field-help,
+#destination-route-summary-detail,
+.destination-credentials-card .destination-section-copy small {
+  display: none !important;
+}
+
 /* The route drawer is also a fieldset, so override the generic modal fieldset
  * margin/padding and pin it to the first grid row. */
 .destination-editor-dialog fieldset.route-assignment-drawer {
@@ -108,22 +115,50 @@
   border-color: rgba(244, 197, 66, 0.22);
 }
 
-/* source-product-icon has a larger global tile/padding contract; normalize it
- * inside the compact drawer so logos do not collapse to a few pixels. */
+/* Let the list use the drawer's remaining height instead of stopping at 19rem. */
+.route-assignment-popover {
+  overflow: hidden;
+}
+
+.route-assignment-options {
+  align-content: start;
+  flex: 1 1 0;
+  gap: 4px;
+  max-height: none;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 3px 0 0;
+}
+
+.route-assignment-option {
+  gap: 5px;
+  min-height: 38px;
+  padding: 4px 6px;
+}
+
+.route-assignment-option-leading {
+  gap: 6px;
+}
+
+/* source-product-icon has a larger global tile/padding contract. Keep route
+ * logos compact and give them predictable breathing room before the text. */
 .route-assignment-source-icon {
-  height: 30px;
+  flex: 0 0 28px;
+  height: 24px;
+  margin: 0 4px 0 2px;
   overflow: visible;
-  width: 30px;
+  width: 28px;
 }
 
 .route-assignment-source-icon .source-product-icon {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.20);
-  border-radius: 6px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   box-sizing: border-box;
-  height: 28px;
+  height: 24px;
+  margin: 0;
   object-fit: contain;
-  padding: 3px;
+  padding: 0;
   width: 28px;
 }
 
