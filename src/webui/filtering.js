@@ -229,7 +229,6 @@
     const integrations = Array.isArray(policy.integrations) ? policy.integrations : [];
     const active = integrations.length;
     const container = element("details", { className: "filtering-overview-list filtering-overview-details" });
-    container.open = true;
     container.append(element("summary", { className: "filtering-overview-header" }, [
       element("span", { className: "filtering-overview-header-check", text: "✓" }),
       element("strong", { text: `${active} active filter${active === 1 ? "" : "s"}` }),
