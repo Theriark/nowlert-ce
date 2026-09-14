@@ -9,11 +9,8 @@ from urllib.parse import unquote
 from api.platform import PlatformAPI as BasePlatformAPI
 from api.response import APIResponse
 from integrations.catalog import canonical_source
-from storage.filtering import (
-    DestinationFilterStore,
-    FilteredPlatformDeliveryService,
-    RoutingOnlyRouteStore,
-)
+from storage.filtering import FilteredPlatformDeliveryService, RoutingOnlyRouteStore
+from storage.filtering_toggle import DestinationFilterStore
 
 
 _DESTINATION_FILTER = re.compile(r"/api/v2/filters/destinations/([0-9a-f]{32})")
@@ -49,9 +46,6 @@ class PlatformAPI(BasePlatformAPI):
             legacy_filters = payload.get("filters") if "filters" in payload else None
             payload = {**payload, "filters": {}}
         response = super()._route_resource(method, payload, actor, route_id)
-        # Transitional compatibility for pre-decoupling clients: an explicitly
-        # submitted legacy filter is echoed only in this response. It is never
-        # persisted and never participates in route matching.
         if (
             legacy_filters is not None
             and response.status < 300
@@ -84,14 +78,9 @@ class PlatformAPI(BasePlatformAPI):
                     integration
                     for integration in view["integrations"]
                     if integration.get("configured")
+                    and integration.get("filter_enabled", True)
                 ]
-            return APIResponse(
-                200,
-                {
-                    "filters": filters,
-                    "destinations": choices,
-                },
-            )
+            return APIResponse(200, {"filters": filters, "destinations": choices})
 
         source_match = _SOURCE_FILTER.fullmatch(path)
         if source_match:
@@ -111,22 +100,31 @@ class PlatformAPI(BasePlatformAPI):
                     raise KeyError("destination integration not found")
                 return APIResponse(
                     200,
-                    {
-                        "destination": view["destination"],
-                        "integration": item,
-                    },
+                    {"destination": view["destination"], "integration": item},
                 )
             if method == "PUT":
                 self._require_admin(actor)
-                data = self._object(payload, {"rules"})
-                if set(data) != {"rules"}:
-                    raise ValueError("filter rules are required")
-                self.filters.set_rules(
-                    actor,
-                    destination_id,
-                    source,
-                    data["rules"],
-                )
+                data = self._object(payload, {"rules", "enabled"})
+                if not data:
+                    raise ValueError("filter rules or enabled state are required")
+                if "enabled" in data and not isinstance(data["enabled"], bool):
+                    raise ValueError("enabled must be a boolean")
+                policy = None
+                if "rules" in data:
+                    policy = self.filters.set_rules(
+                        actor,
+                        destination_id,
+                        source,
+                        data["rules"],
+                    )
+                if "enabled" in data:
+                    if "rules" not in data or policy is not None:
+                        self.filters.set_enabled(
+                            actor,
+                            destination_id,
+                            source,
+                            data["enabled"],
+                        )
                 view = self.filters.destination_view(actor, destination_id)
                 item = next(
                     integration
@@ -135,10 +133,7 @@ class PlatformAPI(BasePlatformAPI):
                 )
                 return APIResponse(
                     200,
-                    {
-                        "destination": view["destination"],
-                        "integration": item,
-                    },
+                    {"destination": view["destination"], "integration": item},
                 )
             if method == "DELETE":
                 self._require_admin(actor)
@@ -183,7 +178,5 @@ class PlatformAPI(BasePlatformAPI):
     @staticmethod
     def _route(item):
         data = BasePlatformAPI._route(item)
-        # Existing clients can continue parsing the key during the transition,
-        # but route filters are no longer a persisted or active control surface.
         data["filters"] = {}
         return data

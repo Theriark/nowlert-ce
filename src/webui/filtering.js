@@ -6,6 +6,7 @@
     destinationView: null,
     integration: null,
     activeTextFields: new Set(),
+    operators: new Map(),
   };
 
   const LEGACY_FILTER_LABELS = {
@@ -42,24 +43,23 @@
     if (byId("view-filtering")) return;
     const routesView = byId("view-routes");
     if (!routesView) return;
-
     const section = element("section", {
       className: "view",
       hidden: true,
       attributes: { id: "view-filtering", "data-page": "filtering" },
     });
     section.innerHTML = `
-      <div class="section-toolbar">
+      <div class="section-toolbar filtering-toolbar">
         <div>
           <h2>Filtering</h2>
           <p>Control which notifications can reach each destination.</p>
         </div>
-        <button id="add-filter-button" class="button primary" type="button" data-filter-action="new-filter">New filter</button>
+        <button id="add-filter-button" class="button primary" type="button" data-filter-action="new-filter">＋ New filter</button>
       </div>
-      <div class="table-panel">
+      <div class="table-panel filtering-table-panel">
         <div class="table-scroll">
-          <table>
-            <thead><tr><th>Destination</th><th>Filters</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <table class="filtering-table">
+            <thead><tr><th>Destination</th><th>Filters</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="filter-table"></tbody>
           </table>
         </div>
@@ -76,7 +76,7 @@
       attributes: { id: "filtering-dialog" },
     });
     dialog.innerHTML = `
-      <div class="modal-heading">
+      <div class="modal-heading filtering-modal-heading">
         <div><p class="eyebrow">Destination filtering</p><h2 id="filtering-dialog-title">New filter</h2></div>
         <button class="icon-button" type="button" data-filter-action="close" aria-label="Close">×</button>
       </div>
@@ -95,36 +95,28 @@
       </section>
 
       <section id="filter-integration-step" hidden>
-        <div class="filtering-context">
-          <span>Destination</span>
-          <strong id="filter-context-destination"></strong>
-        </div>
-        <p class="field-help">Only integrations currently available on this destination are shown.</p>
+        <div id="filtering-context" class="filtering-context"></div>
+        <p class="filtering-available-note">Only integrations currently enabled for this destination are shown.</p>
         <div id="filter-integration-list" class="filtering-integration-list"></div>
         <div class="modal-actions">
-          <button class="button secondary" type="button" data-filter-action="back-destination">Back</button>
-          <button class="button primary" type="button" data-filter-action="finish">Done</button>
+          <button class="button secondary" type="button" data-filter-action="close">Cancel</button>
+          <button class="button primary" type="button" data-filter-action="finish">Close</button>
         </div>
       </section>
 
       <section id="filter-editor-step" hidden>
-        <div class="filtering-editor-heading">
-          <div>
-            <span class="eyebrow" id="filter-editor-source"></span>
-            <h3 id="filter-editor-name"></h3>
-          </div>
-          <span id="filter-editor-state" class="badge"></span>
-        </div>
+        <div id="filter-editor-identity" class="filtering-editor-identity"></div>
         <p id="filter-legacy-warning" class="filtering-warning" hidden></p>
         <div id="filter-enum-fields" class="filtering-enum-fields"></div>
         <div id="filter-text-fields" class="filtering-text-fields"></div>
-        <div id="filter-add-field-row" class="filtering-add-field-row">
+        <div id="filter-add-field-row" class="filtering-add-field-row" hidden>
           <select id="filter-add-field-select" aria-label="Additional filter field"></select>
           <button class="button secondary small" type="button" data-filter-action="add-field">Add field</button>
         </div>
-        <p class="field-help">Within a field, values are matched as OR. Different configured fields are matched as AND. Text fields accept comma-separated wildcard patterns.</p>
-        <div class="modal-actions">
-          <button class="button secondary" type="button" data-filter-action="back-integrations">Back</button>
+        <div class="modal-actions filtering-editor-actions">
+          <button id="filter-remove-button" class="button danger" type="button" data-filter-action="remove-integration-filter">Remove filter</button>
+          <span class="filtering-action-spacer"></span>
+          <button class="button secondary" type="button" data-filter-action="back-integrations">Cancel</button>
           <button class="button primary" type="button" data-filter-action="save-integration">Save filter</button>
         </div>
       </section>
@@ -136,47 +128,33 @@
     const routeField = byId("route-severities");
     const fieldset = routeField && routeField.closest("fieldset");
     if (fieldset) fieldset.hidden = true;
-
     const routesView = byId("view-routes");
     const description = routesView && routesView.querySelector(".section-toolbar p");
-    if (description) {
-      description.textContent = "Connect integrations and inputs to destinations with routing priorities.";
-    }
-
+    if (description) description.textContent = "Connect integrations and inputs to destinations with routing priorities.";
     const table = byId("route-table") && byId("route-table").closest("table");
     const header = table && table.tHead && table.tHead.rows[0];
     if (header && !header.dataset.filteringDecoupled && header.cells.length >= 8) {
       header.cells[4].remove();
       header.dataset.filteringDecoupled = "true";
     }
-
     const stripRows = () => {
       const body = byId("route-table");
       if (!body) return;
-      for (const row of body.rows) {
-        if (row.cells.length >= 8) row.cells[4].remove();
-      }
+      for (const row of body.rows) if (row.cells.length >= 8) row.cells[4].remove();
     };
     stripRows();
     const routeBody = byId("route-table");
-    if (routeBody) {
-      new MutationObserver(stripRows).observe(routeBody, { childList: true });
-    }
-
+    if (routeBody) new MutationObserver(stripRows).observe(routeBody, { childList: true });
     const updateFlowCopy = () => {
       const flow = byId("dashboard-flow");
       if (!flow) return;
       for (const detail of flow.querySelectorAll(".flow-route small")) {
-        if (detail.textContent !== "Routing only") {
-          detail.textContent = "Routing only";
-        }
+        if (detail.textContent !== "Routing only") detail.textContent = "Routing only";
       }
     };
     updateFlowCopy();
     const flow = byId("dashboard-flow");
-    if (flow) {
-      new MutationObserver(updateFlowCopy).observe(flow, { childList: true, subtree: true });
-    }
+    if (flow) new MutationObserver(updateFlowCopy).observe(flow, { childList: true, subtree: true });
   }
 
   function resetDialogSteps() {
@@ -204,63 +182,69 @@
     return descriptor ? descriptor.label : friendlyName(key);
   }
 
-  function filterValueText(integration, key, values) {
-    const descriptor = filterFieldDescriptor(integration, key);
-    const enumerated = Boolean(descriptor && descriptor.kind === "enum")
-      || ["severities", "statuses", "exclude_severities", "exclude_statuses"].includes(key);
-    return (values || [])
-      .map((value) => enumerated ? capitalize(value) : String(value))
-      .join(", ");
-  }
-
   function filterSummaryClauses(integration) {
-    const rules = integration.rules && typeof integration.rules === "object"
-      ? integration.rules
-      : {};
+    const rules = integration.rules && typeof integration.rules === "object" ? integration.rules : {};
     if (Object.keys(rules).length) return [rules];
     return Array.isArray(integration.legacy_clauses) ? integration.legacy_clauses : [];
   }
 
-  function filterOverviewIntegration(integration) {
-    const clauses = filterSummaryClauses(integration);
-    const rules = element("div", { className: "filtering-overview-rules" });
-    clauses.forEach((clause, clauseIndex) => {
+  function compactRuleChips(integration) {
+    const chips = element("div", { className: "filtering-overview-chips" });
+    const seen = new Set();
+    for (const clause of filterSummaryClauses(integration)) {
       for (const [key, values] of Object.entries(clause || {})) {
-        if (!Array.isArray(values) || !values.length) continue;
-        const baseLabel = filterFieldLabel(integration, key);
-        const label = clauses.length > 1 ? `Rule ${clauseIndex + 1} · ${baseLabel}` : baseLabel;
-        rules.append(element("div", { className: "filtering-overview-rule" }, [
-          element("span", { className: "filtering-overview-rule-label", text: label }),
-          element("span", { className: "filtering-overview-rule-value", text: filterValueText(integration, key, values) }),
-        ]));
+        if (!Array.isArray(values) || !values.length || seen.has(key)) continue;
+        seen.add(key);
+        chips.append(element("span", {
+          className: "filtering-overview-chip filtering-overview-rule",
+          text: filterFieldLabel(integration, key),
+          title: values.join(", "),
+        }));
       }
-    });
-    if (!rules.children.length) {
-      rules.append(element("span", { className: "filtering-overview-rule-value", text: "Filter configured" }));
     }
-    return element("div", { className: "filtering-overview-integration" }, [
-      element("strong", { text: integration.name || friendlyName(integration.source) }),
-      rules,
+    return chips;
+  }
+
+  function filterOverviewIntegration(integration) {
+    const icon = sourceIcon(integration.source);
+    icon.classList.add("filtering-source-icon");
+    return element("article", { className: "filtering-overview-integration" }, [
+      icon,
+      element("div", { className: "filtering-overview-copy" }, [
+        element("strong", { text: integration.name || friendlyName(integration.source) }),
+        compactRuleChips(integration),
+      ]),
+      element("span", { className: "filtering-card-check", text: "✓", attributes: { "aria-label": "Filter enabled" } }),
     ]);
   }
 
-  function policyFilterSummary(policy, configuredCount) {
+  function policyFilterSummary(policy) {
     const integrations = Array.isArray(policy.integrations) ? policy.integrations : [];
+    const active = integrations.length;
+    const available = Number(policy.available_count || 0);
+    const allConfigured = available > 0 && active === available;
     const container = element("div", { className: "filtering-overview-list" });
-    for (const integration of integrations) {
-      container.append(filterOverviewIntegration(integration));
-    }
-    const unavailable = Math.max(0, configuredCount - integrations.length);
-    if (unavailable > 0) {
-      container.append(element("span", {
-        className: "filtering-overview-unavailable",
-        text: `${unavailable} configured integration${unavailable === 1 ? " is" : "s are"} currently unavailable`,
-      }));
-    }
-    if (!container.children.length) {
-      container.append(element("span", { className: "filtering-overview-unavailable", text: "—" }));
-    }
+    container.append(element("div", { className: "filtering-overview-header" }, [
+      element("span", { className: "filtering-overview-header-check", text: "✓" }),
+      element("strong", { text: allConfigured ? "All filters configured" : `${active} active integration filter${active === 1 ? "" : "s"}` }),
+      available ? element("span", { text: `(${active}/${available} integrations)` }) : null,
+    ]));
+    const grid = element("div", { className: "filtering-overview-grid" });
+    integrations.forEach((integration) => grid.append(filterOverviewIntegration(integration)));
+    container.append(grid);
     return container;
+  }
+
+  function destinationSummary(policy) {
+    const icon = outputIcon(policy.output_type);
+    icon.classList.add("filtering-destination-icon");
+    return element("div", { className: "filtering-destination-summary" }, [
+      icon,
+      element("div", {}, [
+        element("strong", { text: policy.destination_name || "Destination" }),
+        element("small", { text: friendlyName(policy.output_type) }),
+      ]),
+    ]);
   }
 
   function renderOverview() {
@@ -269,38 +253,29 @@
     const emptyState = byId("filter-empty");
     if (!body || !emptyState) return;
     body.replaceChildren();
-
     const policies = Array.isArray(payload.filters) ? payload.filters : [];
     emptyState.hidden = policies.length > 0;
     if (!policies.length) {
       emptyState.replaceChildren(
-        element("strong", { text: "No filters configured" }),
-        element("span", { text: canEditFilters() ? "Use New filter to configure one destination." : "No destination filters are currently configured." }),
+        element("strong", { text: "No active filters" }),
+        element("span", { text: canEditFilters() ? "Use New filter to configure one destination." : "No destination filters are currently enabled." }),
       );
     }
-
     for (const policy of policies) {
-      const configuredCount = Number(policy.configured_count || 0);
-      const activeCount = Number(policy.active_count || 0);
-      const status = activeCount > 0 ? "Configured" : "Dormant";
-      const actions = element("div", { className: "table-actions" });
+      const actions = element("div", { className: "table-actions filtering-table-actions" });
       if (canEditFilters()) {
         actions.append(
-          actionButtonForFilter("Configure", "manage-destination", policy.destination_id),
+          actionButtonForFilter("✎ Configure", "manage-destination", policy.destination_id),
           actionButtonForFilter("Delete", "delete-destination-filter", policy.destination_id, "danger"),
         );
       }
       body.append(element("tr", {}, [
-        element("td", {}, [
-          element("strong", { text: policy.destination_name || "Destination" }),
-          element("small", { text: friendlyName(policy.output_type) }),
-        ]),
-        element("td", {}, [policyFilterSummary(policy, configuredCount)]),
-        element("td", {}, [badge(status, activeCount > 0 ? "success" : "warning")]),
+        element("td", {}, [destinationSummary(policy)]),
+        element("td", {}, [policyFilterSummary(policy)]),
+        element("td", {}, [badge("Configured", "success")]),
         element("td", {}, [actions]),
       ]));
     }
-
     const addButton = byId("add-filter-button");
     if (addButton) addButton.hidden = !canEditFilters();
   }
@@ -314,12 +289,22 @@
     });
   }
 
+  function makeSwitch(checked, source, disabled = false, context = "list") {
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = Boolean(checked);
+    input.disabled = Boolean(disabled);
+    input.dataset.filterToggle = source;
+    input.dataset.filterToggleContext = context;
+    input.setAttribute("aria-label", `Enable filtering for ${source}`);
+    return element("label", { className: "filtering-switch" }, [input, element("span", { className: "filtering-switch-track" })]);
+  }
+
   function fillDestinationSelect(selectedId = "") {
     const select = byId("filter-destination-select");
     select.replaceChildren();
     const destinations = filteringState.overview && Array.isArray(filteringState.overview.destinations)
-      ? filteringState.overview.destinations
-      : [];
+      ? filteringState.overview.destinations : [];
     const available = destinations.filter((item) => Number(item.available_integration_count || 0) > 0);
     if (!available.length) {
       select.append(element("option", { text: "No destination has an enabled integration", value: "" }));
@@ -332,10 +317,7 @@
     byId("filter-destination-continue").disabled = false;
     for (const item of available) {
       const count = Number(item.available_integration_count || 0);
-      const option = element("option", {
-        value: item.id,
-        text: `${item.name} · ${count} integration${count === 1 ? "" : "s"}`,
-      });
+      const option = element("option", { value: item.id, text: `${item.name} · ${count} integration${count === 1 ? "" : "s"}` });
       if (item.id === selectedId) option.selected = true;
       select.append(option);
     }
@@ -356,8 +338,6 @@
 
   async function openDestinationFilter(destinationId) {
     if (!filteringState.overview) await loadOverview();
-    const selected = filteringState.overview.destinations.find((item) => item.id === destinationId);
-    if (!selected) throw new Error("Destination is no longer available.");
     filteringState.destinationView = await request(`/filters/destinations/${destinationId}`);
     filteringState.integration = null;
     byId("filtering-dialog-title").textContent = "Configure filter";
@@ -377,10 +357,18 @@
     if (!view) return;
     resetDialogSteps();
     byId("filter-integration-step").hidden = false;
-    byId("filter-context-destination").textContent = view.destination.name;
+    byId("filtering-dialog-title").textContent = "Configure filter";
+    const context = byId("filtering-context");
+    context.replaceChildren();
+    const destinationIcon = outputIcon(view.destination.output_type);
+    destinationIcon.classList.add("filtering-context-icon");
+    context.append(
+      element("span", { className: "filtering-context-label", text: "Destination" }),
+      destinationIcon,
+      element("strong", { text: view.destination.name }),
+    );
     const list = byId("filter-integration-list");
     list.replaceChildren();
-
     const integrations = Array.isArray(view.integrations) ? view.integrations : [];
     if (!integrations.length) {
       list.append(element("div", { className: "empty-state" }, [
@@ -389,22 +377,24 @@
       ]));
       return;
     }
-
     for (const integration of integrations) {
-      const status = integration.configured ? "Configured" : "No filter / All notifications";
+      const enabled = Boolean(integration.filter_enabled);
+      const configured = Boolean(integration.configured);
+      const status = enabled ? "Configured" : configured ? "Filter off" : "No filter / All notifications";
+      const icon = sourceIcon(integration.source);
+      icon.classList.add("filtering-source-icon");
       list.append(element("article", { className: "filtering-integration-row" }, [
+        makeSwitch(enabled, integration.source, !canEditFilters(), "list"),
         element("div", { className: "filtering-integration-identity" }, [
-          element("span", { className: "filtering-integration-mark", text: String(integration.name || integration.source).slice(0, 1).toUpperCase(), attributes: { "aria-hidden": "true" } }),
+          icon,
           element("div", {}, [
             element("strong", { text: integration.name || friendlyName(integration.source) }),
             element("small", { text: (integration.inputs || []).map((item) => item.name).join(" · ") || "Integration" }),
           ]),
         ]),
         element("div", { className: "filtering-integration-actions" }, [
-          badge(status, integration.configured ? "success" : ""),
-          canEditFilters()
-            ? actionButtonForFilter("Configure", "configure-integration", integration.source)
-            : null,
+          badge(status, enabled ? "success" : configured ? "warning" : ""),
+          canEditFilters() ? actionButtonForFilter("Configure", "configure-integration", integration.source) : null,
         ]),
       ]));
     }
@@ -414,6 +404,21 @@
     return new Set((values || []).map((value) => String(value).trim().toLowerCase()));
   }
 
+  function inferOperator(values) {
+    const list = (values || []).map(String);
+    if (list.length && list.every((value) => value.length >= 2 && value.startsWith("*") && value.endsWith("*") && !/[?\[]/.test(value.slice(1, -1)))) return "contains";
+    if (list.some((value) => /[*?\[]/.test(value))) return "wildcard";
+    return "equals";
+  }
+
+  function displayTextValues(values, operator) {
+    if (operator !== "contains") return (values || []).join(", ");
+    return (values || []).map((value) => {
+      const text = String(value);
+      return text.startsWith("*") && text.endsWith("*") ? text.slice(1, -1) : text;
+    }).join(", ");
+  }
+
   function openIntegrationEditor(source) {
     const view = filteringState.destinationView;
     if (!view) return;
@@ -421,11 +426,12 @@
     if (!integration) return;
     filteringState.integration = integration;
     filteringState.activeTextFields = new Set(
-      Object.keys(integration.rules || {}).filter((key) => {
-        const field = integration.fields.find((item) => item.key === key);
-        return field && field.kind === "text";
-      }),
+      (integration.fields || []).filter((item) => item.kind === "text").map((item) => item.key),
     );
+    filteringState.operators = new Map();
+    for (const field of (integration.fields || []).filter((item) => item.kind === "text")) {
+      filteringState.operators.set(field.key, inferOperator((integration.rules || {})[field.key] || []));
+    }
     renderEditor();
   }
 
@@ -434,19 +440,33 @@
     if (!integration) return;
     resetDialogSteps();
     byId("filter-editor-step").hidden = false;
-    byId("filter-editor-source").textContent = integration.name || friendlyName(integration.source);
-    byId("filter-editor-name").textContent = "Filter notifications";
-    const status = byId("filter-editor-state");
-    status.textContent = integration.configured ? "Configured" : "No filter / All notifications";
-    status.className = `badge${integration.configured ? " success" : ""}`;
-
+    byId("filtering-dialog-title").textContent = `Configure filter — ${integration.name || friendlyName(integration.source)}`;
+    const identity = byId("filter-editor-identity");
+    identity.replaceChildren();
+    const icon = sourceIcon(integration.source);
+    icon.classList.add("filtering-source-icon");
+    const enabled = integration.configured ? Boolean(integration.filter_enabled) : true;
+    identity.append(
+      element("div", { className: "filtering-editor-source" }, [
+        element("span", { className: "filtering-editor-source-label", text: "Integration" }),
+        icon,
+        element("div", {}, [
+          element("strong", { text: integration.name || friendlyName(integration.source) }),
+          element("small", { text: (integration.inputs || []).map((item) => item.name).join(" · ") || "Integration" }),
+        ]),
+      ]),
+      element("div", { className: "filtering-editor-toggle" }, [
+        element("span", { text: "Enable filtering" }),
+        makeSwitch(enabled, integration.source, !canEditFilters(), "editor"),
+      ]),
+    );
     const legacy = Array.isArray(integration.legacy_clauses) ? integration.legacy_clauses : [];
     const warning = byId("filter-legacy-warning");
     warning.hidden = legacy.length === 0;
     warning.textContent = legacy.length
       ? "This integration contains migrated route-filter clauses. Saving here replaces those clauses with this destination filter configuration."
       : "";
-
+    byId("filter-remove-button").hidden = !integration.configured;
     renderEnumFields();
     renderTextFields();
     renderAddFieldChoices();
@@ -467,15 +487,27 @@
         const input = element("input", { type: "checkbox", value });
         input.dataset.filterEnum = field.key;
         input.checked = restricted ? current.has(String(value).toLowerCase()) : true;
-        const label = element("label", { className: "filtering-choice" }, [
-          input,
-          element("span", { text: value }),
-        ]);
-        choices.append(label);
+        choices.append(element("label", { className: "filtering-choice" }, [input, element("span", { text: value })]));
       }
       group.append(choices);
       container.append(group);
     }
+  }
+
+  function operatorSelect(field) {
+    const select = element("select", { className: "filtering-operator", dataset: { filterOperator: field.key } });
+    const options = [
+      ["equals", "equals"],
+      ["wildcard", "matches wildcard"],
+      ["contains", "contains"],
+    ];
+    const current = filteringState.operators.get(field.key) || "equals";
+    for (const [value, label] of options) {
+      const option = element("option", { value, text: label });
+      if (value === current) option.selected = true;
+      select.append(option);
+    }
+    return select;
   }
 
   function renderTextFields() {
@@ -483,24 +515,20 @@
     const container = byId("filter-text-fields");
     container.replaceChildren();
     const rules = integration.rules || {};
-    for (const field of integration.fields.filter(
-      (item) => item.kind === "text" && filteringState.activeTextFields.has(item.key),
-    )) {
+    for (const field of integration.fields.filter((item) => item.kind === "text" && filteringState.activeTextFields.has(item.key))) {
       const values = Array.isArray(rules[field.key]) ? rules[field.key] : [];
+      const operator = filteringState.operators.get(field.key) || inferOperator(values);
       const input = element("input", {
-        value: values.join(", "),
-        attributes: {
-          "data-filter-text": field.key,
-          placeholder: "value, wildcard-*",
-          autocomplete: "off",
-        },
+        value: displayTextValues(values, operator),
+        attributes: { "data-filter-text": field.key, placeholder: field.placeholder || `e.g. ${field.key}`, autocomplete: "off" },
       });
-      container.append(element("label", { className: "filtering-text-field" }, [
-        element("span", { text: field.label }),
-        element("div", { className: "filtering-text-control" }, [
-          input,
-          actionButtonForFilter("Remove", "remove-field", field.key),
-        ]),
+      const clear = actionButtonForFilter("×", "remove-field", field.key, "secondary");
+      clear.classList.add("filtering-field-remove");
+      container.append(element("div", { className: "filtering-text-field" }, [
+        element("strong", { text: field.label }),
+        operatorSelect(field),
+        input,
+        clear,
       ]));
     }
   }
@@ -508,39 +536,27 @@
   function renderAddFieldChoices() {
     const integration = filteringState.integration;
     const select = byId("filter-add-field-select");
+    const row = byId("filter-add-field-row");
     select.replaceChildren();
-    const fields = integration.fields.filter(
-      (item) => item.kind === "text" && !filteringState.activeTextFields.has(item.key),
-    );
-    if (!fields.length) {
-      select.append(element("option", { text: "All available fields are shown", value: "" }));
-      select.disabled = true;
-      byId("filter-add-field-row").querySelector("button").disabled = true;
-      return;
-    }
-    select.disabled = false;
-    byId("filter-add-field-row").querySelector("button").disabled = false;
+    const fields = integration.fields.filter((item) => item.kind === "text" && !filteringState.activeTextFields.has(item.key));
+    row.hidden = fields.length === 0;
+    if (!fields.length) return;
     select.append(element("option", { text: "Add another field…", value: "" }));
-    for (const field of fields) {
-      select.append(element("option", { text: field.label, value: field.key }));
-    }
+    fields.forEach((field) => select.append(element("option", { text: field.label, value: field.key })));
   }
 
   function addTextField() {
     const key = byId("filter-add-field-select").value;
     if (!key) return;
     filteringState.activeTextFields.add(key);
+    filteringState.operators.set(key, "equals");
     renderTextFields();
     renderAddFieldChoices();
-    const input = document.querySelector(`[data-filter-text="${CSS.escape(key)}"]`);
-    if (input) input.focus();
   }
 
   function removeTextField(key) {
     filteringState.activeTextFields.delete(key);
-    if (filteringState.integration && filteringState.integration.rules) {
-      delete filteringState.integration.rules[key];
-    }
+    if (filteringState.integration && filteringState.integration.rules) delete filteringState.integration.rules[key];
     renderTextFields();
     renderAddFieldChoices();
   }
@@ -551,17 +567,15 @@
     for (const field of integration.fields.filter((item) => item.kind === "enum")) {
       const inputs = [...document.querySelectorAll(`[data-filter-enum="${CSS.escape(field.key)}"]`)];
       const selected = inputs.filter((input) => input.checked).map((input) => input.value);
-      if (selected.length > 0 && selected.length < inputs.length) {
-        rules[field.key] = selected;
-      }
+      if (selected.length > 0 && selected.length < inputs.length) rules[field.key] = selected;
     }
     for (const field of integration.fields.filter((item) => item.kind === "text")) {
       const input = document.querySelector(`[data-filter-text="${CSS.escape(field.key)}"]`);
       if (!input) continue;
-      const values = String(input.value || "")
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
+      const operatorNode = document.querySelector(`[data-filter-operator="${CSS.escape(field.key)}"]`);
+      const operator = operatorNode ? operatorNode.value : "equals";
+      let values = String(input.value || "").split(",").map((value) => value.trim()).filter(Boolean);
+      if (operator === "contains") values = values.map((value) => `*${value.replace(/^\*|\*$/g, "")}*`);
       if (values.length) rules[field.key] = values;
     }
     return rules;
@@ -571,18 +585,57 @@
     const integration = filteringState.integration;
     const destination = filteringState.destinationView && filteringState.destinationView.destination;
     if (!integration || !destination) return;
+    const rules = editorRules();
+    const toggle = document.querySelector('[data-filter-toggle-context="editor"]');
+    const enabled = Boolean(toggle && toggle.checked && Object.keys(rules).length);
     const response = await request(
       `/filters/destinations/${destination.id}/sources/${encodeURIComponent(integration.source)}`,
-      { method: "PUT", body: { rules: editorRules() } },
+      { method: "PUT", body: { rules, enabled } },
     );
-    const index = filteringState.destinationView.integrations.findIndex(
-      (item) => item.source === integration.source,
-    );
+    const index = filteringState.destinationView.integrations.findIndex((item) => item.source === integration.source);
     if (index >= 0) filteringState.destinationView.integrations[index] = response.integration;
     filteringState.integration = null;
     renderIntegrationStep();
     await loadOverview();
-    toast(response.integration.configured ? "Filter saved." : "No filter configured; all notifications are allowed.", "success");
+    toast(response.integration.filter_enabled ? "Filter saved and enabled." : response.integration.configured ? "Filter saved but disabled." : "No filter configured; all notifications are allowed.", "success");
+  }
+
+  async function toggleIntegration(source, enabled) {
+    const view = filteringState.destinationView;
+    if (!view) return;
+    const integration = view.integrations.find((item) => item.source === source);
+    if (!integration) return;
+    if (!integration.configured && enabled) {
+      openIntegrationEditor(source);
+      return;
+    }
+    const response = await request(
+      `/filters/destinations/${view.destination.id}/sources/${encodeURIComponent(source)}`,
+      { method: "PUT", body: { enabled } },
+    );
+    const index = view.integrations.findIndex((item) => item.source === source);
+    if (index >= 0) view.integrations[index] = response.integration;
+    renderIntegrationStep();
+    await loadOverview();
+    toast(enabled ? "Filter enabled." : "Filter disabled; saved rules were kept.", "success");
+  }
+
+  async function removeIntegrationFilter() {
+    const integration = filteringState.integration;
+    const view = filteringState.destinationView;
+    if (!integration || !view) return;
+    const accepted = await confirmAction(
+      "Remove integration filter?",
+      `The saved ${integration.name || friendlyName(integration.source)} filter rules will be deleted.`,
+      "Remove filter",
+    );
+    if (!accepted) return;
+    await request(`/filters/destinations/${view.destination.id}/sources/${encodeURIComponent(integration.source)}`, { method: "DELETE" });
+    filteringState.destinationView = await request(`/filters/destinations/${view.destination.id}`);
+    filteringState.integration = null;
+    renderIntegrationStep();
+    await loadOverview();
+    toast("Integration filter removed.");
   }
 
   async function deleteDestinationFilter(destinationId) {
@@ -614,18 +667,13 @@
       return;
     }
     if (action === "continue-destination") return continueDestination();
-    if (action === "back-destination") {
-      fillDestinationSelect(filteringState.destinationView && filteringState.destinationView.destination.id);
-      resetDialogSteps();
-      byId("filter-destination-step").hidden = false;
-      return;
-    }
     if (action === "manage-destination") return openDestinationFilter(id);
     if (action === "configure-integration") return openIntegrationEditor(id);
     if (action === "back-integrations") return renderIntegrationStep();
     if (action === "add-field") return addTextField();
     if (action === "remove-field") return removeTextField(id);
     if (action === "save-integration") return saveIntegration();
+    if (action === "remove-integration-filter") return removeIntegrationFilter();
     if (action === "delete-destination-filter") return deleteDestinationFilter(id);
   }
 
@@ -634,11 +682,18 @@
       const button = event.target.closest("button[data-filter-action]");
       if (!button) return;
       event.preventDefault();
-      handleFilterAction(button).catch((error) => {
-        toast(error.message || "The filtering action failed.", "error");
+      handleFilterAction(button).catch((error) => toast(error.message || "The filtering action failed.", "error"));
+    });
+    document.addEventListener("change", (event) => {
+      const operator = event.target.closest("select[data-filter-operator]");
+      if (operator) filteringState.operators.set(operator.dataset.filterOperator, operator.value);
+      const toggle = event.target.closest("input[data-filter-toggle]");
+      if (!toggle || toggle.dataset.filterToggleContext === "editor") return;
+      toggleIntegration(toggle.dataset.filterToggle, toggle.checked).catch((error) => {
+        toggle.checked = !toggle.checked;
+        toast(error.message || "The filter state could not be changed.", "error");
       });
     });
-
     const dialog = byId("filtering-dialog");
     dialog.addEventListener("cancel", (event) => {
       event.preventDefault();
