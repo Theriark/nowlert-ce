@@ -164,6 +164,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Verify Development SHA tag matches build digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA_TAG="${IMAGE}:sha-${SOURCE_SHA}"
+          BUILD_DIGEST="${{ steps.build.outputs.digest }}"
+          TAG_DIGEST="sha256:$(
+            docker buildx imagetools inspect "${SHA_TAG}" --raw |
+              sha256sum |
+              awk '{print $1}'
+          )"
+
+          [[ "${TAG_DIGEST}" == "${BUILD_DIGEST}" ]] || {
+            echo "::error::Development SHA tag ${SHA_TAG} resolves to ${TAG_DIGEST}, expected ${BUILD_DIGEST}"
+            exit 1
+          }
+          echo "Verified ${SHA_TAG} resolves to exact build digest ${BUILD_DIGEST}"
+
       - name: Verify Development image version and approved owl
         shell: bash
         run: |
@@ -187,7 +205,7 @@ jobs:
 
           echo "Verified image version ${EXPECTED_VERSION} and approved owl ${EXPECTED_ICON_SHA}"
 
-      - name: Deploy exact CE digest to Development
+      - name: Deploy exact CE SHA tag to Development
         id: deploy
         shell: bash
         run: |
@@ -195,9 +213,9 @@ jobs:
           EXPECTED_VERSION="$(
             PYTHONPATH=src python3 -c 'from version import VERSION; print(VERSION)'
           )"
-          python .github/scripts/dokploy_release.py deploy \
+          python .github/scripts/dokploy_swarm_deploy.py \
             --application-id "${DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID}" \
-            --image "${IMAGE}@${{ steps.build.outputs.digest }}" \
+            --image "${IMAGE}:sha-${SOURCE_SHA}" \
             --health-url https://ce-dev-nowlert.theriark.dev/api/health \
             --expected-version "${EXPECTED_VERSION}" \
             --title "CE Development ${SOURCE_SHA}" \
@@ -211,6 +229,7 @@ jobs:
             echo
             echo "- Source commit: \`${SOURCE_SHA}\`"
             echo "- Development tag: \`${IMAGE}:development\`"
-            echo "- Promotion tag: \`${IMAGE}:sha-${SOURCE_SHA}\`"
+            echo "- Dokploy deployment ref: \`${IMAGE}:sha-${SOURCE_SHA}\`"
             echo "- Immutable image: \`${IMAGE}@${{ steps.build.outputs.digest }}\`"
+            echo "- Dokploy deployment ID: \`${{ steps.deploy.outputs.deployment_id }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
