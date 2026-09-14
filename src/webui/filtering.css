@@ -75,7 +75,7 @@
   color: var(--muted);
   content: "▾";
   font-size: 0.72rem;
-  margin-left: auto;
+  margin-left: 0;
   transform: rotate(0deg);
   transition: transform 140ms ease;
 }
@@ -108,12 +108,12 @@
 .filtering-overview-unconfigured {
   background: color-mix(in srgb, var(--surface-raised) 58%, transparent);
   border-style: dashed;
-  opacity: 0.72;
+  opacity: 0.84;
 }
 .filtering-overview-unconfigured:hover {
   background: color-mix(in srgb, var(--surface-raised) 68%, transparent);
 }
-.filtering-overview-unconfigured .filtering-source-icon { filter: grayscale(0.35); opacity: 0.8; }
+.filtering-overview-unconfigured .filtering-source-icon { filter: grayscale(0.2); opacity: 0.92; }
 .filtering-overview-unconfigured-note { color: var(--muted); font-size: 0.6rem; line-height: 1.25; }
 .filtering-overview-copy { display: grid; gap: 0.45rem; min-width: 0; }
 .filtering-overview-copy > strong { font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
