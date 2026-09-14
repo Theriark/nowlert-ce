@@ -127,13 +127,12 @@ def test_destination_editor_fix_routing_summary_uses_assignment_set_and_resyncs_
     assert "refreshRouteAssignmentSummary();" in source
 
 
-def test_destination_editor_fix_resyncs_existing_assignments_from_route_destination_ids():
+def test_destination_editor_fix_preserves_schema12_destination_assignment_state():
     source = FIX_SCRIPT.read_text(encoding="utf-8")
 
-    assert "function syncRouteAssignmentSelection(destinationId)" in source
-    assert ".filter((route) => route.destination_id === destinationId)" in source
-    assert ".map((route) => route.id)" in source
-    assert "syncRouteAssignmentSelection(destinationId);" in source
+    assert "route.destination_id === destinationId" not in source
+    assert "function syncRouteAssignmentSelection(destinationId)" not in source
+    assert "syncRouteAssignmentSelection(destinationId);" not in source
     assert "routeAssignmentRenderOptions();" in source
 
 
@@ -192,23 +191,37 @@ def test_destination_editor_fix_route_search_focus_halo_is_not_clipped():
     assert "overflow: visible" in stylesheet
 
 
-def test_destination_editor_fix_custom_boxes_match_native_amber_interaction():
+def test_destination_editor_fix_custom_boxes_show_amber_halo_on_hover_and_focus():
     stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+
+    hover_start = stylesheet.index(
+        ".destination-editor-dialog .destination-provider-card:hover"
+    )
+    focus_start = stylesheet.index(
+        ".destination-editor-dialog .destination-provider-card:focus-within"
+    )
+    hover_block = stylesheet[hover_start:focus_start]
 
     for selector in (
         ".destination-provider-card:hover",
         ".destination-routing-summary:hover",
         "fieldset.destination-credentials-card:hover",
         ".route-assignment-option:hover",
+    ):
+        assert selector in hover_block
+    assert "border-color: rgba(244, 197, 66, 0.58)" in hover_block
+    assert "box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.08)" in hover_block
+
+    focus_block = stylesheet[focus_start:]
+    for selector in (
         ".destination-provider-card:focus-within",
         ".destination-routing-summary:focus-within",
         "fieldset.destination-credentials-card:focus-within",
         ".route-assignment-option:focus-within",
     ):
-        assert selector in stylesheet
-    assert "border-color: rgba(244, 197, 66, 0.24)" in stylesheet
-    assert "border-color: rgba(244, 197, 66, 0.58)" in stylesheet
-    assert "box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.08)" in stylesheet
+        assert selector in focus_block
+    assert "border-color: rgba(244, 197, 66, 0.58)" in focus_block
+    assert "box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.08)" in focus_block
 
 
 def test_destination_editor_fix_clamps_route_icons_inside_two_column_rows():
