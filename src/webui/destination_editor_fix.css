@@ -131,13 +131,15 @@
 }
 
 .route-assignment-option {
-  gap: 5px;
-  min-height: 38px;
+  gap: 7px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 34px;
   padding: 4px 6px;
 }
 
 .route-assignment-option-leading {
-  gap: 6px;
+  align-items: center;
+  gap: 5px;
 }
 
 .route-assignment-option-copy {
@@ -145,30 +147,39 @@
   justify-content: center;
 }
 
-.route-assignment-option-copy small {
-  display: none;
+.route-assignment-option-copy small,
+.route-assignment-option-state {
+  display: none !important;
 }
 
-/* source-product-icon has a larger global tile/padding contract. Keep route
- * logos compact and give them predictable breathing room before the text. */
+/* Keep every integration mark inside a predictable icon slot. Some source
+ * assets are wide wordmarks while others are square, so clamp both axes and
+ * let object-fit preserve their aspect ratio. */
 .route-assignment-source-icon {
-  flex: 0 0 28px;
-  height: 24px;
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 24px;
+  height: 22px;
+  justify-content: center;
   margin: 0 4px 0 2px;
-  overflow: visible;
-  width: 28px;
+  overflow: hidden;
+  width: 24px;
 }
 
-.route-assignment-source-icon .source-product-icon {
+.route-assignment-source-icon .source-product-icon,
+.route-assignment-source-icon img {
   background: transparent;
   border: 0;
   border-radius: 0;
   box-sizing: border-box;
-  height: 24px;
+  display: block;
+  height: auto !important;
   margin: 0;
+  max-height: 18px !important;
+  max-width: 22px !important;
   object-fit: contain;
   padding: 0;
-  width: 28px;
+  width: auto !important;
 }
 
 @media (max-width: 760px) {
