@@ -20,6 +20,7 @@ from threading import Event
 from config import config
 from dispatcher import Dispatcher
 from inputs.http import HTTPInput
+from inputs.http_matrix_parity import install as install_http_matrix_parity
 from inputs.smtp import SMTPInput
 from logger import log
 from router import Router
@@ -55,6 +56,8 @@ def main() -> int:
     signal.signal(signal.SIGINT, request_shutdown)
 
     try:
+
+        install_http_matrix_parity()
 
         state_database = initialize_state(config)
 
