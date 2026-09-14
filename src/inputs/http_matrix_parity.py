@@ -38,7 +38,7 @@ def install() -> None:
         def authenticated_application(self, application: str, path: str, query: str) -> bool:
             if (
                 application in _PLATFORM_SCOPED_APPLICATIONS
-                and getattr(self.server.api, "platform_database", None) is None
+                and getattr(self.server.api, "platform", None) is None
             ):
                 return self._authenticated(path, query)
             return prior_authenticated_application(self, application, path, query)
