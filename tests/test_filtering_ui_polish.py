@@ -94,7 +94,7 @@ def test_filtering_overview_api_exposes_active_configured_rule_details(tmp_path)
     assert labels["host"] == "Host"
 
 
-def test_filtering_webui_shows_active_filter_cards_and_wide_clean_editor():
+def test_filtering_webui_shows_active_filter_cards_and_reference_editor():
     script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
 
@@ -103,12 +103,14 @@ def test_filtering_webui_shows_active_filter_cards_and_wide_clean_editor():
     assert "filtering-overview-rule" in script
     assert 'byId("page-title").textContent = VIEW_TITLES.filtering;' in script
     assert "width: min(1040px, calc(100vw - 2rem));" in styles
-    assert "grid-template-columns: repeat(auto-fit, minmax(13rem, 16rem));" in styles
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in styles
     assert "justify-content: center;" in styles
     assert "margin-inline: auto;" in styles
-    assert "grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr);" in styles
-    assert "#filter-editor-step > .field-help" in styles
-    assert "display: none;" in styles
+    assert "grid-template-columns: minmax(4.8rem, 6rem) minmax(8rem, 9.5rem) minmax(0, 1fr) auto;" in styles
+    assert "sourceIcon(integration.source)" in script
+    assert "filtering-switch" in script
+    assert ".filtering-editor-identity" in styles
+    assert "#filter-editor-step > .field-help" not in styles
     assert ".filtering-modal > section" in styles
     assert "background: var(--surface-solid);" in styles
     assert ".filtering-add-field-row .button" in styles
