@@ -96,6 +96,11 @@ class WebUIService:
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/destination_routes.css": (
+                "src/webui/destination_routes.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/destination_routes.js": (
                 "src/webui/destination_routes.js",
                 "text/javascript; charset=utf-8",
@@ -190,6 +195,7 @@ class WebUIService:
             text = body.decode("utf-8")
             extension = (
                 '  <link rel="stylesheet" href="/ui/filtering.css">\n'
+                '  <link rel="stylesheet" href="/ui/destination_routes.css">\n'
                 '  <script src="/ui/filtering.js" defer></script>\n'
                 '  <script src="/ui/destination_routes.js" defer></script>\n'
             )

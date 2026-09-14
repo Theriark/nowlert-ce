@@ -13,17 +13,43 @@ class Configuration:
         return default
 
 
-def test_destination_route_runtime_asset_is_served_and_loaded():
+def test_destination_route_runtime_assets_are_served_and_loaded():
     service = WebUIService(Configuration(), root=ROOT)
 
     page = service.response("/")
     assert page is not None and page.status == 200
+    assert b'<link rel="stylesheet" href="/ui/destination_routes.css">' in page.body
     assert b'<script src="/ui/destination_routes.js" defer></script>' in page.body
+
+    stylesheet = service.response("/ui/destination_routes.css")
+    assert stylesheet is not None and stylesheet.status == 200
+    assert stylesheet.content_type == "text/css; charset=utf-8"
+    assert stylesheet.cache_control == "no-cache"
 
     script = service.response("/ui/destination_routes.js")
     assert script is not None and script.status == 200
     assert script.content_type == "text/javascript; charset=utf-8"
     assert script.cache_control == "no-cache"
+
+
+def test_destination_route_picker_styles_are_external_and_scrollable():
+    stylesheet = (ROOT / "src" / "webui" / "destination_routes.css").read_text(
+        encoding="utf-8"
+    )
+    script = (ROOT / "src" / "webui" / "destination_routes.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert ".route-assignment-toggle" in stylesheet
+    assert "max-height: 19rem" in stylesheet
+    assert "overflow: auto" in stylesheet
+    assert "grid-template-columns: auto minmax(0, 1fr) auto" in stylesheet
+    assert "width: auto" in stylesheet
+    assert "height: auto" in stylesheet
+    assert (
+        "routeAssignmentInstallStyles = function routeAssignmentUseExternalStyles() {};"
+        in script
+    )
 
 
 def test_destination_route_picker_uses_stable_dom_anchor_and_idempotent_binding():
