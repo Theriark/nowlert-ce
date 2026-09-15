@@ -26,8 +26,11 @@
 
   function installNavigation() {
     VIEW_TITLES.filtering = "Filtering";
-    const routesNav = document.querySelector('#primary-nav [data-view="routes"]');
-    if (!routesNav || document.querySelector('#primary-nav [data-view="filtering"]')) return;
+    delete VIEW_TITLES.routes;
+    const destinationsNav = document.querySelector('#primary-nav [data-view="destinations"]');
+    const legacyRoutesNav = document.querySelector('#primary-nav [data-view="routes"]');
+    if (legacyRoutesNav) legacyRoutesNav.remove();
+    if (!destinationsNav || document.querySelector('#primary-nav [data-view="filtering"]')) return;
     const button = element("button", {
       className: "nav-item",
       type: "button",
@@ -36,13 +39,13 @@
       element("span", { className: "nav-icon", text: "⊙", attributes: { "aria-hidden": "true" } }),
       element("span", { text: "Filtering" }),
     ]);
-    routesNav.after(button);
+    destinationsNav.after(button);
   }
 
   function installView() {
     if (byId("view-filtering")) return;
-    const routesView = byId("view-routes");
-    if (!routesView) return;
+    const destinationsView = byId("view-destinations");
+    if (!destinationsView) return;
     const section = element("section", {
       className: "view",
       hidden: true,
@@ -66,7 +69,7 @@
         <div id="filter-empty" class="empty-state" hidden></div>
       </div>
     `;
-    routesView.after(section);
+    destinationsView.after(section);
   }
 
   function installDialog() {
@@ -124,27 +127,7 @@
     document.body.append(dialog);
   }
 
-  function decoupleRouteUI() {
-    const routeField = byId("route-severities");
-    const fieldset = routeField && routeField.closest("fieldset");
-    if (fieldset) fieldset.hidden = true;
-    const routesView = byId("view-routes");
-    const description = routesView && routesView.querySelector(".section-toolbar p");
-    if (description) description.textContent = "Connect integrations and inputs to destinations with routing priorities.";
-    const table = byId("route-table") && byId("route-table").closest("table");
-    const header = table && table.tHead && table.tHead.rows[0];
-    if (header && !header.dataset.filteringDecoupled && header.cells.length >= 8) {
-      header.cells[4].remove();
-      header.dataset.filteringDecoupled = "true";
-    }
-    const stripRows = () => {
-      const body = byId("route-table");
-      if (!body) return;
-      for (const row of body.rows) if (row.cells.length >= 8) row.cells[4].remove();
-    };
-    stripRows();
-    const routeBody = byId("route-table");
-    if (routeBody) new MutationObserver(stripRows).observe(routeBody, { childList: true });
+  function normalizeRoutingFlowCopy() {
     const updateFlowCopy = () => {
       const flow = byId("dashboard-flow");
       if (!flow) return;
@@ -319,7 +302,7 @@
       select.append(element("option", { text: "No destination has an enabled integration", value: "" }));
       select.disabled = true;
       byId("filter-destination-continue").disabled = true;
-      byId("filter-destination-help").textContent = "Enable at least one route to a destination before creating a filter.";
+      byId("filter-destination-help").textContent = "Assign at least one integration to a destination before creating a filter.";
       return;
     }
     select.disabled = false;
@@ -382,7 +365,7 @@
     if (!integrations.length) {
       list.append(element("div", { className: "empty-state" }, [
         element("strong", { text: "No enabled integrations" }),
-        element("span", { text: "This destination currently has no enabled route/integration relationship." }),
+        element("span", { text: "This destination currently has no enabled integration." }),
       ]));
       return;
     }
@@ -713,6 +696,7 @@
   function wrapNavigation() {
     const previousNavigate = navigate;
     navigate = function filteringNavigate(view, historyMode = "push") {
+      if (view === "routes") view = "destinations";
       const result = previousNavigate(view, historyMode);
       if (state.currentView === "filtering") {
         const pageTitle = byId("page-title");
@@ -726,7 +710,8 @@
   installNavigation();
   installView();
   installDialog();
-  decoupleRouteUI();
+  normalizeRoutingFlowCopy();
   bindFilteringEvents();
   wrapNavigation();
+  if (state.currentView === "routes") navigate("destinations", "replace");
 })();
