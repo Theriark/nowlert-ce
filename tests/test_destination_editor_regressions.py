@@ -275,9 +275,9 @@ def test_destination_editor_fix_custom_boxes_show_amber_halo_on_hover_and_focus(
         ".destination-provider-card:focus-within",
         ".destination-routing-summary:focus-within",
         "fieldset.destination-credentials-card:focus-within",
-        ".route-assignment-option:focus-within",
     ):
         assert selector in focus_block
+    assert ".route-assignment-option:focus-within" not in focus_block
     assert "border-color: rgba(244, 197, 66, 0.58)" in focus_block
     assert "box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.08)" in focus_block
 

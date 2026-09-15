@@ -155,8 +155,7 @@
 
 .destination-editor-dialog .destination-provider-card:focus-within,
 .destination-editor-dialog .destination-routing-summary:focus-within,
-.destination-editor-dialog fieldset.destination-credentials-card:focus-within,
-.destination-editor-dialog .route-assignment-option:focus-within {
+.destination-editor-dialog fieldset.destination-credentials-card:focus-within {
   border-color: rgba(244, 197, 66, 0.58);
   box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.08);
 }
