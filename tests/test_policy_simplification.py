@@ -1,4 +1,4 @@
-"""Regression coverage for the deterministic Filtering/Settings simplification."""
+"""Regression coverage for deterministic Filtering and simplified Settings."""
 
 from __future__ import annotations
 
@@ -182,36 +182,40 @@ def test_legacy_dell_trusted_clients_migrate_to_destination_block_policy(tmp_pat
     assert row is None
     assert json.loads(stored["clauses_json"])["version"] == 2
 
-    # Re-instantiation is idempotent: the migrated BLOCK rule is not duplicated.
     filters = SystemDestinationFilterStore(database)
     view = filters.destination_view(owner.actor, destination.id)
     dell = next(item for item in view["integrations"] if item["source"] == "dell_idrac")
     assert len(dell["policy_rules"]) == 1
 
 
-def test_policy_webui_simplifies_settings_and_profile_shell():
+def test_policy_webui_simplifies_settings_and_restores_native_filter_editor():
     script = (ROOT / "src" / "webui" / "policy_simplification.js").read_text(encoding="utf-8")
     css = (ROOT / "src" / "webui" / "policy_simplification.css").read_text(encoding="utf-8")
+    filtering = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
     service = (ROOT / "src" / "webui" / "service.py").read_text(encoding="utf-8")
 
     assert 'const ADMIN_VIEWS = ["users", "settings", "updates", "data"]' in script
     assert 'document.getElementById("profile-settings")?.remove()' in script
     assert 'profileRow(document.getElementById("profile-api-access"), "◇", "API access")' in script
-    assert '["Aliases & normalization"' in script
-    assert '["unifi_protect", "home_assistant"]' in script
-    assert '["Event processing"' in script
-    assert '["redfish"]' in script
+    assert 'container.classList.remove("resource-grid")' in script
+    assert 'home_assistant: "Map Home Assistant endpoints and components to readable device names."' in script
+    assert '"Aliases & normalization"' in script
+    assert '"Event processing"' in script
     assert '"xo"' not in script.split("const SETTING_GROUPS", 1)[1].split("const SETTING_LABELS", 1)[0]
     assert '"dell_idrac"' not in script.split("const SETTING_GROUPS", 1)[1].split("const SETTING_LABELS", 1)[0]
     assert '"zabbix"' not in script.split("const SETTING_GROUPS", 1)[1].split("const SETTING_LABELS", 1)[0]
-    assert "policy-action-chip" in css
+
+    assert 'policy-filter-dialog' not in script
+    assert 'data-policy=' not in script
+    assert "BLOCK wins." not in script
+    assert 'if (action === "configure-integration") return openIntegrationEditor(id);' in filtering
+    assert 'if (!integration.configured && enabled)' in filtering
+    assert 'id: "filter-dell-trusted-ips"' in script
+    assert 'Session audit suppression' in script
+
+    assert ".administration-tabs" in css
+    assert "margin-bottom: 1rem" in css
+    assert ".settings-subsection-grid" in css
+    assert "#filter-destination-help" in css
     assert '/ui/policy_simplification.js' in service
     assert '/ui/policy_simplification.css' in service
-
-
-def test_policy_webui_exposes_allow_and_block_actions():
-    script = (ROOT / "src" / "webui" / "policy_simplification.js").read_text(encoding="utf-8")
-    assert "BLOCK wins." in script
-    assert 'data-policy="add-allow"' in script
-    assert 'data-policy="add-block"' in script
-    assert 'body: { rules: { policy }, enabled: true }' in script

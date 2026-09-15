@@ -2,17 +2,38 @@
 
 (() => {
   const ADMIN_VIEWS = ["users", "settings", "updates", "data"];
-  const LABELS = { users: "Users", settings: "Settings", updates: "Updates", data: "Data tools" };
+  const LABELS = {
+    users: "Users",
+    settings: "Settings",
+    updates: "Updates",
+    data: "Data tools",
+  };
   const SETTING_GROUPS = [
-    ["Aliases & normalization", "Turn stable infrastructure identifiers into readable names before Filtering and formatting.", ["unifi_protect", "home_assistant"]],
-    ["Event processing", "Control deterministic processing that happens before destination Filtering.", ["redfish"]],
+    [
+      "Aliases & normalization",
+      "Turn stable infrastructure identifiers into readable names before Filtering and formatting.",
+      ["unifi_protect", "home_assistant"],
+    ],
+    [
+      "Event processing",
+      "Control deterministic transport processing that happens before destination Filtering.",
+      ["redfish"],
+    ],
   ];
-  const SETTING_LABELS = { unifi_protect: "UniFi Protect", home_assistant: "Home Assistant", redfish: "Redfish transport" };
-  let destinationId = "";
-  let destination = null;
-  let integration = null;
-  let rules = [];
-  let policyDialog = null;
+  const SETTING_LABELS = {
+    unifi_protect: "UniFi Protect",
+    home_assistant: "Home Assistant",
+    redfish: "Redfish transport",
+  };
+  const SETTING_DESCRIPTIONS = {
+    unifi_protect: "Map camera and console identifiers to readable device names.",
+    home_assistant: "Map Home Assistant endpoints and components to readable device names.",
+    redfish: "Suppress duplicate Redfish events before destination Filtering.",
+  };
+
+  let filterDestinationId = "";
+  let filterSource = "";
+  let dellIntegration = null;
 
   function span(text, cls = "") {
     const node = document.createElement("span");
@@ -27,7 +48,11 @@
     button.setAttribute("role", "menuitem");
     const oldIcon = button.querySelector(":scope > .profile-menu-icon");
     const oldLabel = button.querySelector(":scope > .profile-menu-label");
-    if (button.children.length === 2 && oldIcon?.textContent === icon && oldLabel?.textContent === label) return;
+    if (
+      button.children.length === 2
+      && oldIcon?.textContent === icon
+      && oldLabel?.textContent === label
+    ) return;
     const iconNode = span(icon, "profile-menu-icon");
     iconNode.setAttribute("aria-hidden", "true");
     button.replaceChildren(iconNode, span(label, "profile-menu-label"));
@@ -37,17 +62,30 @@
     document.querySelector("#profile-menu-button .profile-chevron")?.remove();
     document.getElementById("profile-settings")?.remove();
     profileRow(document.getElementById("profile-api-access"), "◇", "API access");
-    profileRow(document.querySelector('#profile-menu-popover [data-view="account"]'), "◇", "Security");
-    profileRow(document.querySelector('#profile-menu-popover [data-action="logout"]'), "↪", "Sign out");
+    profileRow(
+      document.querySelector('#profile-menu-popover [data-view="account"]'),
+      "◇",
+      "Security",
+    );
+    profileRow(
+      document.querySelector('#profile-menu-popover [data-action="logout"]'),
+      "↪",
+      "Sign out",
+    );
   }
 
   function buildAdminTabs(section) {
     section.querySelector(".administration-tabs")?.remove();
-    const tabs = element("div", { className: "row-actions administration-tabs", attributes: { "aria-label": "Administration sections" } });
+    const tabs = element("div", {
+      className: "row-actions administration-tabs",
+      attributes: { "aria-label": "Administration sections" },
+    });
     for (const view of ADMIN_VIEWS) {
       tabs.append(element("button", {
         className: `button small ${view === state.currentView ? "primary" : "secondary"}`,
-        text: LABELS[view], type: "button", dataset: { view, administrationTab: view },
+        text: LABELS[view],
+        type: "button",
+        dataset: { view, administrationTab: view },
       }));
     }
     section.prepend(tabs);
@@ -59,7 +97,12 @@
       const section = document.getElementById(`view-${name}`);
       if (!section) continue;
       const tabs = section.querySelector(".administration-tabs");
-      if (!tabs || !ADMIN_VIEWS.every((v) => tabs.querySelector(`[data-administration-tab="${v}"]`))) buildAdminTabs(section);
+      if (
+        !tabs
+        || !ADMIN_VIEWS.every((candidate) => (
+          tabs.querySelector(`[data-administration-tab="${candidate}"]`)
+        ))
+      ) buildAdminTabs(section);
     }
     for (const button of document.querySelectorAll("[data-administration-tab]")) {
       const active = button.dataset.administrationTab === view;
@@ -68,21 +111,33 @@
     }
     const nav = document.getElementById("administration-nav");
     if (nav) nav.classList.toggle("active", ADMIN_VIEWS.includes(view));
-    if (ADMIN_VIEWS.includes(view)) document.getElementById("page-title").textContent = "Administration";
+    if (ADMIN_VIEWS.includes(view)) {
+      const pageTitle = document.getElementById("page-title");
+      if (pageTitle) pageTitle.textContent = "Administration";
+    }
   }
 
   function settingCard(source) {
     const settings = state.integrationSettings[source] || {};
-    const error = (state.integrationSettingsErrors || []).find((item) => item.resource === source);
-    return element("article", { className: "resource-card compact-resource-card" }, [
+    const error = (state.integrationSettingsErrors || []).find(
+      (item) => item.resource === source,
+    );
+    const summary = error ? error.message : integrationSettingSummary(source, settings);
+    return element("article", { className: "resource-card compact-resource-card settings-resource-card" }, [
       element("div", { className: "resource-card-heading" }, [
-        element("div", {}, [
+        element("div", { className: "settings-card-copy" }, [
           element("strong", { text: SETTING_LABELS[source] || friendlyName(source) }),
-          element("small", { text: error ? error.message : integrationSettingSummary(source, settings) }),
+          element("span", {
+            className: "settings-card-description",
+            text: SETTING_DESCRIPTIONS[source] || "",
+          }),
+          element("small", { className: "settings-card-summary", text: summary }),
         ]),
         error ? badge("Needs repair", "danger") : badge("Database", "success"),
       ]),
-      element("div", { className: "resource-actions" }, [actionButton("Edit", "edit-integration-settings", source)]),
+      element("div", { className: "resource-actions" }, [
+        actionButton("Edit", "edit-integration-settings", source),
+      ]),
     ]);
   }
 
@@ -90,25 +145,36 @@
     const container = byId("integration-settings-list");
     if (!container) return;
     container.replaceChildren();
+    container.classList.remove("resource-grid");
     container.classList.add("simplified-settings-groups");
     for (const [title, copy, sources] of SETTING_GROUPS) {
       const wrapper = element("section", { className: "settings-subsection" }, [
-        element("div", { className: "settings-subsection-heading" }, [element("h4", { text: title }), element("p", { text: copy })]),
+        element("div", { className: "settings-subsection-heading" }, [
+          element("h4", { text: title }),
+          element("p", { text: copy }),
+        ]),
       ]);
-      const grid = element("div", { className: "resource-grid settings-subsection-grid" });
+      const grid = element("div", { className: "settings-subsection-grid" });
       sources.forEach((source) => grid.append(settingCard(source)));
       wrapper.append(grid);
       container.append(wrapper);
     }
     const heading = container.closest("article.panel")?.querySelector(".panel-heading > div");
     if (heading) {
-      heading.querySelector(".eyebrow").textContent = "Deterministic processing";
-      heading.querySelector("h3").textContent = "Normalization and event processing";
-      heading.querySelector("p:not(.eyebrow)").textContent = "Configure readable aliases and transport processing. Delivery decisions belong only to Filtering.";
+      const eyebrow = heading.querySelector(".eyebrow");
+      const title = heading.querySelector("h3");
+      const description = heading.querySelector("p:not(.eyebrow)");
+      if (eyebrow) eyebrow.textContent = "Deterministic processing";
+      if (title) title.textContent = "Normalization and event processing";
+      if (description) {
+        description.textContent = "Configure readable aliases and transport processing. Delivery decisions belong only to Filtering.";
+      }
     }
   }
 
-  if (typeof renderIntegrationSettings === "function") renderIntegrationSettings = renderSimpleSettings;
+  if (typeof renderIntegrationSettings === "function") {
+    renderIntegrationSettings = renderSimpleSettings;
+  }
 
   function syncShell(view = state.currentView) {
     syncProfile();
@@ -117,148 +183,297 @@
   }
 
   const oldShowApp = showApp;
-  showApp = function policyShowApp(session) { const result = oldShowApp(session); syncShell(); return result; };
+  showApp = function policyShowApp(session) {
+    const result = oldShowApp(session);
+    syncShell();
+    return result;
+  };
+
   const oldNavigate = navigate;
-  navigate = function policyNavigate(view, mode = "push") { const result = oldNavigate(view, mode); syncShell(view); return result; };
+  navigate = function policyNavigate(view, mode = "push") {
+    const result = oldNavigate(view, mode);
+    syncShell(view);
+    return result;
+  };
 
-  function normalizeRules(item) {
-    if (Array.isArray(item.policy_rules) && item.policy_rules.length) return structuredClone(item.policy_rules);
-    if (item.rules && Object.keys(item.rules).length) return [{ action: "allow", conditions: structuredClone(item.rules) }];
-    return (item.legacy_clauses || []).map((conditions) => ({ action: "allow", conditions: structuredClone(conditions) }));
+  function normalized(value) {
+    return String(value || "").trim().toLowerCase();
   }
 
-  function ensureDialog() {
-    if (policyDialog) return policyDialog;
-    policyDialog = document.createElement("dialog");
-    policyDialog.id = "policy-filter-dialog";
-    policyDialog.className = "modal policy-filter-modal";
-    policyDialog.innerHTML = `
-      <div class="modal-heading"><div><p class="eyebrow">Deterministic destination policy</p><h2 id="policy-title">Filtering policy</h2><p id="policy-subtitle" class="field-help"></p></div><button class="icon-button" type="button" data-policy="close">×</button></div>
-      <div class="policy-explainer"><strong>BLOCK wins.</strong><span>ALLOW rules restrict delivery only when at least one ALLOW rule exists.</span></div>
-      <div id="policy-rules" class="policy-rule-list"></div>
-      <div class="policy-add-actions"><button class="button secondary small" type="button" data-policy="add-allow">＋ Allow rule</button><button class="button secondary small" type="button" data-policy="add-block">＋ Block rule</button></div>
-      <div class="modal-actions"><button class="button danger" type="button" data-policy="clear">Remove filtering</button><span class="filtering-action-spacer"></span><button class="button secondary" type="button" data-policy="close">Cancel</button><button class="button primary" type="button" data-policy="save">Save policy</button></div>`;
-    document.body.append(policyDialog);
-    policyDialog.addEventListener("click", onPolicyClick);
-    return policyDialog;
+  function isDellSessionSuppression(rule) {
+    if (!rule || rule.action !== "block" || !rule.conditions) return false;
+    const ids = new Set((rule.conditions.message_id || []).map(normalized));
+    const ips = (rule.conditions.source_ip || []).map((item) => String(item).trim()).filter(Boolean);
+    return ids.has("usr0030") && ids.has("usr0032") && ips.length > 0;
   }
 
-  function field(key) { return (integration?.fields || []).find((item) => item.key === key); }
+  function supportedDellPolicy(integration) {
+    const policyRules = Array.isArray(integration?.policy_rules) ? integration.policy_rules : [];
+    const allowRules = policyRules.filter((rule) => rule.action === "allow");
+    return allowRules.length <= 1 && policyRules.every(
+      (rule) => rule.action === "allow" || isDellSessionSuppression(rule),
+    );
+  }
 
-  function renderRules() {
-    const root = byId("policy-rules");
-    root.replaceChildren();
-    rules.forEach((rule, index) => {
-      const card = element("article", { className: `policy-rule policy-rule-${rule.action}`, dataset: { ruleIndex: index } });
-      const select = document.createElement("select");
-      select.dataset.ruleAction = index;
-      for (const action of ["allow", "block"]) {
-        const option = element("option", { text: action.toUpperCase(), value: action });
-        option.selected = rule.action === action;
-        select.append(option);
+  function dellTrustedIps(integration) {
+    const values = [];
+    const seen = new Set();
+    for (const rule of integration?.policy_rules || []) {
+      if (!isDellSessionSuppression(rule)) continue;
+      for (const value of rule.conditions.source_ip || []) {
+        const text = String(value).trim();
+        if (!text || seen.has(text.toLowerCase())) continue;
+        seen.add(text.toLowerCase());
+        values.push(text);
       }
-      card.append(element("div", { className: "policy-rule-heading" }, [
-        element("div", { className: "policy-rule-title" }, [element("span", { className: `policy-action-chip ${rule.action}`, text: rule.action.toUpperCase() }), element("strong", { text: `Rule ${index + 1}` })]),
-        select,
-        element("button", { className: "button danger small", text: "Remove rule", type: "button", dataset: { policy: "remove-rule", ruleIndex: index } }),
-      ]));
-      const conditions = element("div", { className: "policy-condition-list" });
-      for (const [key, values] of Object.entries(rule.conditions || {})) {
-        const descriptor = field(key);
-        if (!descriptor) continue;
-        const input = element("input", { type: "text", value: (values || []).join(", "), dataset: { condition: key, ruleIndex: index }, attributes: { placeholder: "value, wildcard*, another value" } });
-        conditions.append(element("label", { className: "policy-condition" }, [element("strong", { text: descriptor.label }), input, element("button", { className: "button secondary small", text: "Remove", type: "button", dataset: { policy: "remove-condition", ruleIndex: index, condition: key } })]));
+    }
+    return values;
+  }
+
+  function inferOperator(values) {
+    const list = (values || []).map(String);
+    if (
+      list.length
+      && list.every((value) => (
+        value.length >= 2
+        && value.startsWith("*")
+        && value.endsWith("*")
+        && !/[?\[]/.test(value.slice(1, -1))
+      ))
+    ) return "contains";
+    if (list.some((value) => /[*?\[]/.test(value))) return "wildcard";
+    return "equals";
+  }
+
+  function displayTextValues(values, operator) {
+    if (operator !== "contains") return (values || []).join(", ");
+    return (values || []).map((value) => {
+      const text = String(value);
+      return text.startsWith("*") && text.endsWith("*")
+        ? text.slice(1, -1)
+        : text;
+    }).join(", ");
+  }
+
+  function hydrateDellAllowRule(integration) {
+    const allowRules = (integration.policy_rules || []).filter((rule) => rule.action === "allow");
+    if (allowRules.length !== 1) return;
+    const conditions = allowRules[0].conditions || {};
+    for (const field of integration.fields || []) {
+      const values = Array.isArray(conditions[field.key]) ? conditions[field.key] : [];
+      if (field.kind === "enum") {
+        const selected = new Set(values.map(normalized));
+        const inputs = document.querySelectorAll(
+          `[data-filter-enum="${CSS.escape(field.key)}"]`,
+        );
+        for (const input of inputs) {
+          input.checked = selected.size ? selected.has(normalized(input.value)) : true;
+        }
+      } else if (field.kind === "text") {
+        const input = document.querySelector(
+          `[data-filter-text="${CSS.escape(field.key)}"]`,
+        );
+        const operator = document.querySelector(
+          `[data-filter-operator="${CSS.escape(field.key)}"]`,
+        );
+        if (!input) continue;
+        const mode = inferOperator(values);
+        input.value = displayTextValues(values, mode);
+        if (operator) operator.value = mode;
       }
-      card.append(conditions);
-      const add = document.createElement("select");
-      add.dataset.addCondition = index;
-      add.append(element("option", { value: "", text: "Add condition…" }));
-      (integration?.fields || []).filter((item) => !(item.key in (rule.conditions || {}))).forEach((item) => add.append(element("option", { value: item.key, text: item.label })));
-      card.append(element("div", { className: "policy-add-condition" }, [add, element("button", { className: "button secondary small", text: "Add condition", type: "button", dataset: { policy: "add-condition", ruleIndex: index } })]));
-      root.append(card);
-    });
-    if (!rules.length) root.append(element("div", { className: "empty-state" }, [element("strong", { text: "No filtering rules" }), element("span", { text: "With no rules, every normalized event is delivered." })]));
+    }
   }
 
-  function readRules() {
-    rules = rules.map((rule, index) => {
-      const card = byId("policy-rules").querySelector(`[data-rule-index="${index}"]`);
-      const action = card?.querySelector("[data-rule-action]")?.value === "block" ? "block" : "allow";
-      const conditions = {};
-      for (const input of card?.querySelectorAll("[data-condition]") || []) {
-        const values = input.value.split(",").map((value) => value.trim()).filter(Boolean);
-        if (values.length) conditions[input.dataset.condition] = values;
+  function removeDellPolicyPanel() {
+    document.getElementById("filter-dell-session-policy")?.remove();
+    dellIntegration = null;
+  }
+
+  function renderDellPolicyPanel(integration) {
+    removeDellPolicyPanel();
+    if (!integration || integration.source !== "dell_idrac") return;
+    dellIntegration = integration;
+    hydrateDellAllowRule(integration);
+
+    const warning = byId("filter-legacy-warning");
+    if (warning && supportedDellPolicy(integration)) {
+      warning.hidden = true;
+      warning.textContent = "";
+    }
+
+    const panel = element("section", {
+      className: "filtering-source-policy",
+      attributes: { id: "filter-dell-session-policy" },
+    }, [
+      element("div", { className: "filtering-source-policy-heading" }, [
+        element("strong", { text: "Session audit suppression" }),
+        element("p", {
+          text: "Ignore successful iDRAC session login/logout events from trusted management clients. Failed authentication is never suppressed.",
+        }),
+      ]),
+      element("label", { className: "filtering-source-policy-field" }, [
+        element("span", { text: "Trusted management client IPs" }),
+        element("textarea", {
+          value: dellTrustedIps(integration).join("\n"),
+          attributes: {
+            id: "filter-dell-trusted-ips",
+            rows: 4,
+            placeholder: "192.0.2.164\n192.0.2.251",
+          },
+        }),
+        element("small", {
+          text: "One address per line. This policy applies only to USR0030 and USR0032 session audit events.",
+        }),
+      ]),
+    ]);
+    const actions = document.querySelector("#filter-editor-step .filtering-editor-actions");
+    if (actions) actions.before(panel);
+  }
+
+  async function loadDellPolicyEditor(destinationId) {
+    if (!destinationId) return;
+    const payload = await request(`/filters/destinations/${destinationId}`);
+    const integration = (payload.integrations || []).find(
+      (item) => item.source === "dell_idrac",
+    );
+    if (!integration) return;
+    if (byId("filter-editor-step")?.hidden) return;
+    renderDellPolicyPanel(integration);
+  }
+
+  function editorRules(integration) {
+    const rules = {};
+    for (const field of integration.fields || []) {
+      if (field.kind === "enum") {
+        const inputs = [...document.querySelectorAll(
+          `[data-filter-enum="${CSS.escape(field.key)}"]`,
+        )];
+        const selected = inputs.filter((input) => input.checked).map((input) => input.value);
+        if (selected.length > 0 && selected.length < inputs.length) {
+          rules[field.key] = selected;
+        }
+        continue;
       }
-      return { action, conditions };
-    });
+      if (field.kind !== "text") continue;
+      const input = document.querySelector(
+        `[data-filter-text="${CSS.escape(field.key)}"]`,
+      );
+      if (!input) continue;
+      const operatorNode = document.querySelector(
+        `[data-filter-operator="${CSS.escape(field.key)}"]`,
+      );
+      const operator = operatorNode ? operatorNode.value : "equals";
+      let values = String(input.value || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      if (operator === "contains") {
+        values = values.map((value) => `*${value.replace(/^\*|\*$/g, "")}*`);
+      }
+      if (values.length) rules[field.key] = values;
+    }
+    return rules;
   }
 
-  async function openPolicy(id, source) {
-    const payload = await request(`/filters/destinations/${id}`);
-    integration = (payload.integrations || []).find((item) => item.source === source);
-    if (!integration) return toast("Integration is not available for this destination.", "error");
-    destination = payload.destination;
-    rules = normalizeRules(integration);
-    if (!rules.length) rules = [{ action: "allow", conditions: {} }];
-    const dialog = ensureDialog();
-    byId("policy-title").textContent = integration.name || friendlyName(source);
-    byId("policy-subtitle").textContent = `${destination.name} · ${friendlyName(destination.output_type)}`;
-    renderRules();
-    dialog.showModal();
+  function trustedIpsFromEditor() {
+    return String(byId("filter-dell-trusted-ips")?.value || "")
+      .split(/\r?\n|,/)
+      .map((value) => value.trim())
+      .filter(Boolean);
   }
 
-  async function savePolicy() {
-    readRules();
-    const policy = rules.filter((rule) => Object.keys(rule.conditions).length);
-    if (!policy.length) return clearPolicy();
-    await request(`/filters/destinations/${destination.id}/sources/${integration.source}`, { method: "PUT", body: { rules: { policy }, enabled: true } });
-    toast(`Filtering policy saved for ${integration.name}.`);
-    policyDialog.close();
-    document.getElementById("filtering-dialog")?.close();
+  async function saveDellFilter() {
+    if (!dellIntegration || !filterDestinationId) return;
+    const rules = editorRules(dellIntegration);
+    const policy = [];
+    if (Object.keys(rules).length) {
+      policy.push({ action: "allow", conditions: rules });
+    }
+    const trustedIps = trustedIpsFromEditor();
+    if (trustedIps.length) {
+      policy.push({
+        action: "block",
+        conditions: {
+          message_id: ["USR0030", "USR0032"],
+          source_ip: trustedIps,
+        },
+      });
+    }
+    const toggle = document.querySelector('[data-filter-toggle-context="editor"]');
+    const enabled = Boolean(toggle?.checked && policy.length);
+    const response = await request(
+      `/filters/destinations/${filterDestinationId}/sources/dell_idrac`,
+      { method: "PUT", body: { rules: { policy }, enabled } },
+    );
+    const current = response.integration || {};
+    if (current.filter_enabled) {
+      toast("Filter saved and enabled.", "success");
+    } else if (current.configured) {
+      toast("Filter saved but disabled.", "success");
+    } else {
+      toast("No filter configured; all notifications are allowed.", "success");
+    }
+    const dialog = byId("filtering-dialog");
+    if (dialog?.open) dialog.close();
+    removeDellPolicyPanel();
     navigate("filtering", "replace");
-  }
-
-  async function clearPolicy() {
-    await request(`/filters/destinations/${destination.id}/sources/${integration.source}`, { method: "DELETE" });
-    toast(`Filtering removed for ${integration.name}.`);
-    policyDialog.close();
-    document.getElementById("filtering-dialog")?.close();
-    navigate("filtering", "replace");
-  }
-
-  async function onPolicyClick(event) {
-    const button = event.target.closest("[data-policy]");
-    if (!button) return;
-    const action = button.dataset.policy;
-    const index = Number(button.dataset.ruleIndex);
-    if (action === "close") return policyDialog.close();
-    if (action === "add-allow" || action === "add-block") { readRules(); rules.push({ action: action === "add-block" ? "block" : "allow", conditions: {} }); return renderRules(); }
-    if (action === "remove-rule") { readRules(); rules.splice(index, 1); return renderRules(); }
-    if (action === "remove-condition") { readRules(); delete rules[index].conditions[button.dataset.condition]; return renderRules(); }
-    if (action === "add-condition") { readRules(); const key = policyDialog.querySelector(`[data-add-condition="${index}"]`)?.value; if (key) rules[index].conditions[key] = []; return renderRules(); }
-    try {
-      button.disabled = true;
-      if (action === "save") await savePolicy();
-      if (action === "clear") await clearPolicy();
-    } catch (error) { toast(error.message || "Filtering policy could not be updated.", "error"); }
-    finally { button.disabled = false; }
   }
 
   document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-filter-action]");
     if (!button) return;
-    if (button.dataset.filterAction === "manage-destination") { destinationId = button.dataset.filterId || ""; return; }
-    if (button.dataset.filterAction === "continue-destination") { destinationId = byId("filter-destination-select")?.value || ""; return; }
-    if (button.dataset.filterAction !== "configure-integration") return;
-    const id = destinationId || byId("filter-destination-select")?.value || "";
-    const source = button.dataset.filterId || "";
-    if (!id || !source) return;
+    const action = button.dataset.filterAction;
+    if (action === "manage-destination") {
+      filterDestinationId = button.dataset.filterId || "";
+      return;
+    }
+    if (action === "continue-destination") {
+      filterDestinationId = byId("filter-destination-select")?.value || "";
+      return;
+    }
+    if (action === "configure-integration") {
+      filterSource = button.dataset.filterId || "";
+      if (filterSource !== "dell_idrac") {
+        removeDellPolicyPanel();
+        return;
+      }
+      loadDellPolicyEditor(filterDestinationId).catch((error) => {
+        toast(error.message || "Dell filtering policy could not be loaded.", "error");
+      });
+      return;
+    }
+    if (action === "back-integrations" || action === "close" || action === "finish") {
+      filterSource = "";
+      removeDellPolicyPanel();
+    }
+  });
+
+  document.addEventListener("change", (event) => {
+    const toggle = event.target.closest('input[data-filter-toggle-context="list"]');
+    if (!toggle || !toggle.checked || toggle.dataset.filterToggle !== "dell_idrac") return;
+    filterSource = "dell_idrac";
+    window.setTimeout(() => {
+      if (byId("filter-editor-step")?.hidden) return;
+      loadDellPolicyEditor(filterDestinationId).catch((error) => {
+        toast(error.message || "Dell filtering policy could not be loaded.", "error");
+      });
+    }, 0);
+  });
+
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest('button[data-filter-action="save-integration"]');
+    if (!button || filterSource !== "dell_idrac" || byId("filter-editor-step")?.hidden) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    openPolicy(id, source).catch((error) => toast(error.message || "Filtering policy could not be loaded.", "error"));
+    button.disabled = true;
+    saveDellFilter()
+      .catch((error) => toast(error.message || "Dell filtering could not be saved.", "error"))
+      .finally(() => { button.disabled = false; });
   }, true);
 
   const popover = document.getElementById("profile-menu-popover");
-  if (popover) new MutationObserver(syncProfile).observe(popover, { childList: true, subtree: true });
+  if (popover) {
+    new MutationObserver(syncProfile).observe(popover, { childList: true, subtree: true });
+  }
   syncShell();
 })();
