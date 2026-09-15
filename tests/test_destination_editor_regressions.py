@@ -132,9 +132,12 @@ def test_destination_editor_fix_leaves_routing_summary_state_to_destination_rout
         "function destinationRouteSummaryModel",
         "function routeAssignmentRefreshSummary",
         'pills.id = "destination-route-summary-pills"',
-        'button.className = "destination-route-pill"',
+        "function routeAssignmentSummaryMoreMenu",
+        'id: "destination-route-more-toggle"',
+        'attributes: { id: "destination-route-more-menu", role: "menu" }',
+        "for (const route of model.overflow)",
+        "routeAssignmentMoreMenuOpen = !routeAssignmentMoreMenuOpen",
         "routeAssignmentSelection.delete(route.id)",
-        'remainder.textContent = `+${model.remainder} more`',
     ):
         assert marker in routes_source
 
@@ -180,11 +183,13 @@ const model = helpers.destinationRouteSummaryModel(routes, new Set(["a", "b", "c
 assert.equal(model.label, "4 routes assigned");
 assert.deepEqual(model.selectedRoutes.map((item) => item.id), ["a", "b", "c", "d"]);
 assert.deepEqual(model.visible.map((item) => item.id), ["a", "b", "c"]);
+assert.deepEqual(model.overflow.map((item) => item.id), ["d"]);
 assert.equal(model.remainder, 1);
 assert.equal(model.showPills, true);
 
 const all = helpers.destinationRouteSummaryModel(routes, new Set(routes.map((item) => item.id)), 3);
 assert.equal(all.label, "All routes assigned");
+assert.deepEqual(all.overflow.map((item) => item.id), ["d", "e"]);
 assert.equal(all.showPills, false);
 '''
     result = subprocess.run(
