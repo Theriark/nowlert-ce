@@ -32,8 +32,7 @@
   };
 
   let filterDestinationId = "";
-  let filterSource = "";
-  let dellIntegration = null;
+  let integrationListScrollTop = 0;
 
   function span(text, cls = "") {
     const node = document.createElement("span");
@@ -286,13 +285,11 @@
 
   function removeDellPolicyPanel() {
     document.getElementById("filter-dell-session-policy")?.remove();
-    dellIntegration = null;
   }
 
   function renderDellPolicyPanel(integration) {
     removeDellPolicyPanel();
     if (!integration || integration.source !== "dell_idrac") return;
-    dellIntegration = integration;
     hydrateDellAllowRule(integration);
 
     const warning = byId("filter-legacy-warning");
@@ -336,43 +333,8 @@
     const integration = (payload.integrations || []).find(
       (item) => item.source === "dell_idrac",
     );
-    if (!integration) return;
-    if (byId("filter-editor-step")?.hidden) return;
+    if (!integration || byId("filter-editor-step")?.hidden) return;
     renderDellPolicyPanel(integration);
-  }
-
-  function editorRules(integration) {
-    const rules = {};
-    for (const field of integration.fields || []) {
-      if (field.kind === "enum") {
-        const inputs = [...document.querySelectorAll(
-          `[data-filter-enum="${CSS.escape(field.key)}"]`,
-        )];
-        const selected = inputs.filter((input) => input.checked).map((input) => input.value);
-        if (selected.length > 0 && selected.length < inputs.length) {
-          rules[field.key] = selected;
-        }
-        continue;
-      }
-      if (field.kind !== "text") continue;
-      const input = document.querySelector(
-        `[data-filter-text="${CSS.escape(field.key)}"]`,
-      );
-      if (!input) continue;
-      const operatorNode = document.querySelector(
-        `[data-filter-operator="${CSS.escape(field.key)}"]`,
-      );
-      const operator = operatorNode ? operatorNode.value : "equals";
-      let values = String(input.value || "")
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
-      if (operator === "contains") {
-        values = values.map((value) => `*${value.replace(/^\*|\*$/g, "")}*`);
-      }
-      if (values.length) rules[field.key] = values;
-    }
-    return rules;
   }
 
   function trustedIpsFromEditor() {
@@ -382,12 +344,26 @@
       .filter(Boolean);
   }
 
-  async function saveDellFilter() {
-    if (!dellIntegration || !filterDestinationId) return;
-    const rules = editorRules(dellIntegration);
+  const oldRequest = request;
+  request = function policyRequest(path, options = {}) {
+    const method = String(options?.method || "GET").toUpperCase();
+    const destinationDellFilter = /\/filters\/destinations\/[^/]+\/sources\/dell_idrac$/.test(String(path || ""));
+    const body = options?.body;
+    const nativeRules = body && typeof body.rules === "object" && body.rules !== null
+      ? body.rules
+      : null;
+    if (
+      method !== "PUT"
+      || !destinationDellFilter
+      || nativeRules === null
+      || Object.prototype.hasOwnProperty.call(nativeRules, "policy")
+    ) {
+      return oldRequest(path, options);
+    }
+
     const policy = [];
-    if (Object.keys(rules).length) {
-      policy.push({ action: "allow", conditions: rules });
+    if (Object.keys(nativeRules).length) {
+      policy.push({ action: "allow", conditions: nativeRules });
     }
     const trustedIps = trustedIpsFromEditor();
     if (trustedIps.length) {
@@ -399,77 +375,118 @@
         },
       });
     }
-    const toggle = document.querySelector('[data-filter-toggle-context="editor"]');
-    const enabled = Boolean(toggle?.checked && policy.length);
-    const response = await request(
-      `/filters/destinations/${filterDestinationId}/sources/dell_idrac`,
-      { method: "PUT", body: { rules: { policy }, enabled } },
-    );
-    const current = response.integration || {};
-    if (current.filter_enabled) {
-      toast("Filter saved and enabled.", "success");
-    } else if (current.configured) {
-      toast("Filter saved but disabled.", "success");
-    } else {
-      toast("No filter configured; all notifications are allowed.", "success");
-    }
+    const editorToggle = document.querySelector('[data-filter-toggle-context="editor"]');
+    const transformed = {
+      ...options,
+      body: {
+        ...body,
+        rules: { policy },
+        enabled: Boolean(editorToggle?.checked && policy.length),
+      },
+    };
+    return oldRequest(path, transformed);
+  };
+
+  function restoreIntegrationScroll() {
     const dialog = byId("filtering-dialog");
-    if (dialog?.open) dialog.close();
-    removeDellPolicyPanel();
-    navigate("filtering", "replace");
+    const step = byId("filter-integration-step");
+    if (!dialog?.open || !step || step.hidden) return;
+    window.requestAnimationFrame(() => {
+      if (dialog.open && !step.hidden) dialog.scrollTop = integrationListScrollTop;
+    });
+  }
+
+  const integrationStep = byId("filter-integration-step");
+  if (integrationStep) {
+    new MutationObserver(restoreIntegrationScroll).observe(integrationStep, {
+      attributes: true,
+      attributeFilter: ["hidden"],
+    });
   }
 
   document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-filter-action]");
     if (!button) return;
     const action = button.dataset.filterAction;
+    const dialog = byId("filtering-dialog");
+    const editor = byId("filter-editor-step");
+
+    if (
+      action === "close"
+      && button.classList.contains("icon-button")
+      && editor
+      && !editor.hidden
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const cancelButton = editor.querySelector('button[data-filter-action="back-integrations"]');
+      if (cancelButton) cancelButton.click();
+      return;
+    }
+
     if (action === "manage-destination") {
       filterDestinationId = button.dataset.filterId || "";
+      integrationListScrollTop = 0;
       return;
     }
     if (action === "continue-destination") {
       filterDestinationId = byId("filter-destination-select")?.value || "";
+      integrationListScrollTop = 0;
       return;
     }
     if (action === "configure-integration") {
-      filterSource = button.dataset.filterId || "";
-      if (filterSource !== "dell_idrac") {
-        removeDellPolicyPanel();
-        return;
-      }
-      loadDellPolicyEditor(filterDestinationId).catch((error) => {
-        toast(error.message || "Dell filtering policy could not be loaded.", "error");
-      });
+      integrationListScrollTop = dialog?.scrollTop || 0;
+      const source = button.dataset.filterId || "";
+      const listToggle = button.closest(".filtering-integration-row")
+        ?.querySelector('input[data-filter-toggle-context="list"]');
+      const expectedEnabled = Boolean(listToggle?.checked);
+      window.setTimeout(() => {
+        if (byId("filter-editor-step")?.hidden) return;
+        const editorToggle = document.querySelector('[data-filter-toggle-context="editor"]');
+        if (editorToggle) editorToggle.checked = expectedEnabled;
+        if (source === "dell_idrac") {
+          loadDellPolicyEditor(filterDestinationId).catch((error) => {
+            toast(error.message || "Dell filtering policy could not be loaded.", "error");
+          });
+        } else {
+          removeDellPolicyPanel();
+        }
+      }, 0);
       return;
     }
-    if (action === "back-integrations" || action === "close" || action === "finish") {
-      filterSource = "";
+    if (action === "back-integrations") {
+      removeDellPolicyPanel();
+      return;
+    }
+    if (action === "close" || action === "finish") {
+      integrationListScrollTop = 0;
       removeDellPolicyPanel();
     }
-  });
+  }, true);
 
   document.addEventListener("change", (event) => {
     const toggle = event.target.closest('input[data-filter-toggle-context="list"]');
-    if (!toggle || !toggle.checked || toggle.dataset.filterToggle !== "dell_idrac") return;
-    filterSource = "dell_idrac";
+    if (!toggle) return;
+    const source = toggle.dataset.filterToggle || "";
+    if (!toggle.checked) {
+      if (source === "dell_idrac") removeDellPolicyPanel();
+      return;
+    }
+    const dialog = byId("filtering-dialog");
+    integrationListScrollTop = dialog?.scrollTop || integrationListScrollTop;
     window.setTimeout(() => {
       if (byId("filter-editor-step")?.hidden) return;
-      loadDellPolicyEditor(filterDestinationId).catch((error) => {
-        toast(error.message || "Dell filtering policy could not be loaded.", "error");
-      });
+      const editorToggle = document.querySelector('[data-filter-toggle-context="editor"]');
+      if (editorToggle) editorToggle.checked = true;
+      if (source === "dell_idrac") {
+        loadDellPolicyEditor(filterDestinationId).catch((error) => {
+          toast(error.message || "Dell filtering policy could not be loaded.", "error");
+        });
+      } else {
+        removeDellPolicyPanel();
+      }
     }, 0);
   });
-
-  document.addEventListener("click", (event) => {
-    const button = event.target.closest('button[data-filter-action="save-integration"]');
-    if (!button || filterSource !== "dell_idrac" || byId("filter-editor-step")?.hidden) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    button.disabled = true;
-    saveDellFilter()
-      .catch((error) => toast(error.message || "Dell filtering could not be saved.", "error"))
-      .finally(() => { button.disabled = false; });
-  }, true);
 
   const popover = document.getElementById("profile-menu-popover");
   if (popover) {
