@@ -158,6 +158,7 @@
     node.dataset.kind = kind;
     node.dataset.identity = identity;
     node.dataset.focusKey = `${kind}:${identity}`;
+    node.dataset.layoutRow = String(row);
     node.setAttribute("aria-label", label);
     node.style.gridColumn = String({ route: 1, filter: 2, destination: 3 }[kind]);
     node.style.gridRow = `${row} / span ${span}`;
@@ -175,17 +176,114 @@
       $("rf-metrics").append(box);
     }
   }
+
+  function average(values) {
+    return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+  }
+  function barycentricOrder(items, neighbors, neighborRanks) {
+    const fallback = new Map(items.map((item, index) => [item.id, index]));
+    const score = item => {
+      const ranks = neighbors(item).map(id => neighborRanks.get(id)).filter(Number.isFinite);
+      return average(ranks);
+    };
+    return [...items].sort((a, b) => {
+      const aScore = score(a), bScore = score(b);
+      if (aScore === null && bScore !== null) return 1;
+      if (aScore !== null && bScore === null) return -1;
+      if (aScore !== null && bScore !== null && aScore !== bScore) return aScore - bScore;
+      return fallback.get(a.id) - fallback.get(b.id);
+    });
+  }
+  function nearestFreeRow(preferred, used, minimum = 2) {
+    const base = Math.max(minimum, Math.round(preferred));
+    for (let offset = 0; offset < 10000; offset++) {
+      const down = base + offset;
+      if (!used.has(down)) { used.add(down); return down; }
+      if (offset > 0 && base - offset >= minimum && !used.has(base - offset)) {
+        const up = base - offset; used.add(up); return up;
+      }
+    }
+    return base;
+  }
+  function computeFlowLayout() {
+    const routeIds = new Set(data.routes.map(route => route.id));
+    const destinationIds = new Set(data.destinations.map(destination => destination.id));
+    const links = data.links.filter(link => routeIds.has(link.route_id) && destinationIds.has(link.destination_id));
+    const linksByRoute = new Map(data.routes.map(route => [route.id, links.filter(link => link.route_id === route.id)]));
+    const linksByDestination = new Map(data.destinations.map(destination => [destination.id, links.filter(link => link.destination_id === destination.id)]));
+    let routeOrder = [...data.routes], destinationOrder = [...data.destinations];
+
+    // Repeated barycentric ordering groups connected nodes together. It keeps
+    // existing order as the stable tie-breaker and only reorders where the
+    // topology gives us useful information, reducing avoidable crossings.
+    for (let pass = 0; pass < 4; pass++) {
+      const destinationRanks = new Map(destinationOrder.map((destination, index) => [destination.id, index]));
+      routeOrder = barycentricOrder(
+        routeOrder,
+        route => (linksByRoute.get(route.id) || []).map(link => link.destination_id),
+        destinationRanks,
+      );
+      const routeRanks = new Map(routeOrder.map((route, index) => [route.id, index]));
+      destinationOrder = barycentricOrder(
+        destinationOrder,
+        destination => (linksByDestination.get(destination.id) || []).map(link => link.route_id),
+        routeRanks,
+      );
+    }
+
+    const routeRows = new Map(routeOrder.map((route, index) => [route.id, index + 2]));
+    const preferredDestinations = destinationOrder.map((destination, order) => {
+      const connectedRows = (linksByDestination.get(destination.id) || [])
+        .map(link => routeRows.get(link.route_id))
+        .filter(Number.isFinite);
+      return { destination, order, preferred: average(connectedRows) ?? (order + 2) };
+    }).sort((a, b) => a.preferred - b.preferred || a.order - b.order);
+
+    const destinationRows = new Map();
+    let previousDestinationRow = 1;
+    for (const item of preferredDestinations) {
+      const row = Math.max(2, Math.round(item.preferred), previousDestinationRow + 1);
+      destinationRows.set(item.destination.id, row);
+      previousDestinationRow = row;
+    }
+    destinationOrder = preferredDestinations.map(item => item.destination);
+
+    const filterRows = new Map(), usedFilterRows = new Set();
+    for (const route of routeOrder) {
+      for (const link of linksByRoute.get(route.id) || []) {
+        if (!activePolicies(link).length) continue;
+        filterRows.set(linkKey(link.route_id, link.destination_id), nearestFreeRow(routeRows.get(route.id), usedFilterRows));
+      }
+    }
+
+    const allRows = [
+      ...routeRows.values(),
+      ...destinationRows.values(),
+      ...filterRows.values(),
+      2,
+    ];
+    return {
+      routeOrder,
+      destinationOrder,
+      linksByRoute,
+      routeRows,
+      destinationRows,
+      filterRows,
+      maxRow: Math.max(...allRows),
+    };
+  }
+
   function renderGraph() {
     const graph = $("rf-graph");
     graph.querySelectorAll(":scope > :not(svg)").forEach(n => n.remove());
-    const rows = Math.max(data.routes.reduce((n, r) => n + Math.max(1, data.links.filter(l => l.route_id === r.id).length), 0), data.destinations.length, 1);
+    const layout = computeFlowLayout();
+    graph.dataset.layoutRows = String(layout.maxRow);
     [["Integration routes", "Event sources with configured routes"], ["Active filters", "Per destination and integration"], ["Destinations", "Alert channels receiving events"]].forEach(([a, b]) => {
       const head = el("div", "rf-column-heading", a); head.append(el("small", "", b)); graph.append(head);
     });
-    let row = 2;
-    for (const r of data.routes) {
-      const links = data.links.filter(l => l.route_id === r.id), span = Math.max(links.length, 1);
-      const node = createNode("route", r.id, row, span, `${r.integration_name}: ${r.name}. View details`);
+    for (const r of layout.routeOrder) {
+      const links = layout.linksByRoute.get(r.id) || [], row = layout.routeRows.get(r.id);
+      const node = createNode("route", r.id, row, 1, `${r.integration_name}: ${r.name}. View details`);
       node.classList.toggle("rf-disabled", !r.enabled);
       node.append(sourceIcon(r.source));
       const text = el("div", "rf-node-copy");
@@ -195,21 +293,20 @@
         const blank = el("div", "rf-unassigned", "No visible destination assigned");
         blank.style.gridRow = String(row); blank.style.gridColumn = "2"; graph.append(blank);
       }
-      for (const [index, link] of links.entries()) {
-        const lines = activePolicyLines(link);
-        if (!lines.length) continue;
-        const key = linkKey(r.id, link.destination_id), filter = createNode("filter", key, row + index, 1, `${r.integration_name} filter for ${data.destinations.find(d => d.id === link.destination_id).name}`);
+      for (const link of links) {
+        const key = linkKey(r.id, link.destination_id), filterRow = layout.filterRows.get(key);
+        if (!filterRow) continue;
+        const lines = activePolicyLines(link), destination = data.destinations.find(d => d.id === link.destination_id);
+        const filter = createNode("filter", key, filterRow, 1, `${r.integration_name} filter for ${destination.name}`);
         filter.classList.toggle("rf-disabled", !link.enabled);
         const badge = el("span", "rf-funnel"); badge.append(icon("filter"));
         const copy = el("div", "rf-node-copy");
-        copy.append(el("strong", "", lines[0]), el("small", "", lines.length > 1 ? `+${lines.length - 1} policies · inspect details` : data.destinations.find(d => d.id === link.destination_id).name));
+        copy.append(el("strong", "", lines[0]), el("small", "", lines.length > 1 ? `+${lines.length - 1} policies · inspect details` : destination.name));
         filter.append(badge, copy);
       }
-      row += span;
     }
-    data.destinations.forEach((d, i) => {
-      const start = Math.floor(i * rows / data.destinations.length), end = Math.floor((i + 1) * rows / data.destinations.length);
-      const node = createNode("destination", d.id, start + 2, Math.max(1, end - start), `${d.name}. View destination details`);
+    for (const d of layout.destinationOrder) {
+      const node = createNode("destination", d.id, layout.destinationRows.get(d.id), 1, `${d.name}. View destination details`);
       node.classList.toggle("rf-disabled", !d.enabled);
       const top = el("div", "rf-destination-top"), copy = el("div", "rf-node-copy");
       copy.append(el("strong", "", d.name), el("small", "", d.channel || OUTPUT_NAMES[d.output_type] || d.output_type));
@@ -219,7 +316,7 @@
         const n = el("span", `rf-${color}`); n.append(dot(color), document.createTextNode(`${metricText(d.metrics[k])} ${label}`)); counts.append(n);
       });
       node.append(top, counts, el("small", "rf-last", `${d.enabled ? "Enabled" : "Disabled"} · ${d.route_ids.length} assigned routes`));
-    });
+    }
     $("rf-empty").hidden = Boolean(data.routes.length || data.destinations.length);
     $("rf-empty").textContent = "No visible routes or destinations yet. This overview reflects configuration from Destinations and Filtering.";
     graph.hidden = !(data.routes.length || data.destinations.length);
@@ -257,6 +354,19 @@
   function relevant(link) {
     return !selected || (selected.kind === "route" && selected.identity === link.route_id) || (selected.kind === "destination" && selected.identity === link.destination_id) || (selected.kind === "filter" && selected.identity === linkKey(link.route_id, link.destination_id));
   }
+  function edgeCurve(a, b, direct) {
+    const x = a.offsetLeft + a.offsetWidth, y = a.offsetTop + a.offsetHeight / 2;
+    const xx = b.offsetLeft, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x;
+    if (direct) {
+      // Keep unfiltered traffic level through the filter column, then turn
+      // toward its destination. This avoids visually passing through an
+      // unrelated active filter card whenever the topology allows it.
+      const turn = x + gap * .68;
+      return `M${x} ${y} L${turn} ${y} C${turn + gap * .08} ${y} ${xx - gap * .18} ${yy} ${xx} ${yy}`;
+    }
+    const bend = gap * .52;
+    return `M${x} ${y} C${x+bend} ${y} ${xx-bend} ${yy} ${xx} ${yy}`;
+  }
   function drawEdges() {
     stopPulses();
     if (!data || section.hidden) return;
@@ -269,10 +379,9 @@
       const key = linkKey(link.route_id, link.destination_id), route = nodeFor("route", link.route_id), filter = nodeFor("filter", key), destination = nodeFor("destination", link.destination_id);
       if (!route || !destination) continue;
       const paths = [];
-      const pairs = filter ? [[route,filter],[filter,destination]] : [[route,destination]];
-      for (const [a, b] of pairs) {
-        const x = a.offsetLeft+a.offsetWidth, y = a.offsetTop+a.offsetHeight/2, xx=b.offsetLeft, yy=b.offsetTop+b.offsetHeight/2, bend=(xx-x)*.52;
-        const path = svg("path", {d:`M${x} ${y} C${x+bend} ${y} ${xx-bend} ${yy} ${xx} ${yy}`, class:`rf-edge${!link.enabled?" rf-off":""}${relevant(link)?"":" rf-dim"}`, "marker-end":"url(#rf-arrow)"});
+      const pairs = filter ? [[route,filter,false],[filter,destination,false]] : [[route,destination,true]];
+      for (const [a, b, direct] of pairs) {
+        const path = svg("path", {d:edgeCurve(a,b,direct), class:`rf-edge${!link.enabled?" rf-off":""}${relevant(link)?"":" rf-dim"}`, "marker-end":"url(#rf-arrow)"});
         edges.append(path); paths.push(path);
       }
       edgePaths.set(key, paths);
