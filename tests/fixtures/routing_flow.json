@@ -1,0 +1,799 @@
+{
+  "range": "15m",
+  "since": 1789507181,
+  "generated_at": 1789508081,
+  "capabilities": {
+    "received": false,
+    "filtered": false,
+    "latency": false
+  },
+  "metrics": {
+    "received": null,
+    "filtered": null,
+    "delivered": 28,
+    "pending": 0,
+    "failed": 0
+  },
+  "routes": [
+    {
+      "id": "35cbe5b75d71480284320e2fcbee1307",
+      "name": "Grafana production",
+      "source": "grafana",
+      "integration_name": "Grafana",
+      "input_type": "http",
+      "enabled": true,
+      "destination_ids": [
+        "01974f968b264a92976548e07c5f7927",
+        "2a8b09b69be9445588e82e64685f8bbf"
+      ],
+      "metrics": {
+        "delivered": 8,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "id": "0364c2489e1142fda23e747868a07185",
+      "name": "Portainer production",
+      "source": "portainer",
+      "integration_name": "Portainer",
+      "input_type": "http",
+      "enabled": true,
+      "destination_ids": [
+        "01974f968b264a92976548e07c5f7927"
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "id": "38bf30dd57d34dc18df010b0417b3dd5",
+      "name": "Proxmox production",
+      "source": "proxmox",
+      "integration_name": "Proxmox",
+      "input_type": "http",
+      "enabled": true,
+      "destination_ids": [
+        "01974f968b264a92976548e07c5f7927"
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "id": "17171cf1f1df4c8496f0b902dd8e78bf",
+      "name": "Synology production",
+      "source": "synology",
+      "integration_name": "Synology",
+      "input_type": "http",
+      "enabled": true,
+      "destination_ids": [
+        "015b18ba610f4520a82dbc3bbfdc2974"
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "id": "8fd6ed760ef04b4cae54003e84156512",
+      "name": "Unifi_Network production",
+      "source": "unifi_network",
+      "integration_name": "UniFi Network",
+      "input_type": "http",
+      "enabled": true,
+      "destination_ids": [
+        "015b18ba610f4520a82dbc3bbfdc2974"
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "id": "c8f2d1ebfbef461999060dcbf96ee171",
+      "name": "Zabbix production",
+      "source": "zabbix",
+      "integration_name": "Zabbix",
+      "input_type": "http",
+      "enabled": true,
+      "destination_ids": [
+        "2a8b09b69be9445588e82e64685f8bbf"
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    }
+  ],
+  "destinations": [
+    {
+      "id": "01974f968b264a92976548e07c5f7927",
+      "name": "CE Operations \u00b7 Discord",
+      "output_type": "discord",
+      "channel": "#ce-operations",
+      "enabled": true,
+      "shared": false,
+      "route_ids": [
+        "35cbe5b75d71480284320e2fcbee1307",
+        "0364c2489e1142fda23e747868a07185",
+        "38bf30dd57d34dc18df010b0417b3dd5"
+      ],
+      "metrics": {
+        "delivered": 12,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "id": "2a8b09b69be9445588e82e64685f8bbf",
+      "name": "Infrastructure \u00b7 Teams",
+      "output_type": "teams",
+      "channel": "Infrastructure / Alerts",
+      "enabled": true,
+      "shared": false,
+      "route_ids": [
+        "35cbe5b75d71480284320e2fcbee1307",
+        "c8f2d1ebfbef461999060dcbf96ee171"
+      ],
+      "metrics": {
+        "delivered": 8,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "name": "Network \u00b7 Slack",
+      "output_type": "slack",
+      "channel": "#network-storage",
+      "enabled": true,
+      "shared": false,
+      "route_ids": [
+        "17171cf1f1df4c8496f0b902dd8e78bf",
+        "8fd6ed760ef04b4cae54003e84156512"
+      ],
+      "metrics": {
+        "delivered": 8,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    }
+  ],
+  "links": [
+    {
+      "route_id": "35cbe5b75d71480284320e2fcbee1307",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "enabled": true,
+      "fallback": false,
+      "policies": [
+        {
+          "source": "grafana",
+          "name": "Grafana",
+          "configured": true,
+          "enabled": true,
+          "rules": {
+            "alert_name": [
+              "disk*"
+            ]
+          },
+          "legacy_clauses": [],
+          "labels": {
+            "severity": "Severity",
+            "status": "Status",
+            "alert_name": "Alert name",
+            "alert_rule": "Alert rule",
+            "folder": "Folder",
+            "dashboard": "Dashboard",
+            "panel": "Panel",
+            "organization": "Organization",
+            "datasource": "Data source",
+            "labels": "Labels"
+          }
+        }
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "route_id": "0364c2489e1142fda23e747868a07185",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "enabled": true,
+      "fallback": false,
+      "policies": [
+        {
+          "source": "portainer",
+          "name": "Portainer",
+          "configured": false,
+          "enabled": false,
+          "rules": {},
+          "legacy_clauses": [],
+          "labels": {
+            "severity": "Severity",
+            "status": "Status",
+            "host": "Instance / host",
+            "alert_name": "Alert name",
+            "alert_source": "Alert source",
+            "metric": "Metric",
+            "source_label": "Source label",
+            "authentication_method": "Authentication method",
+            "username": "Username",
+            "created_by": "Created by"
+          }
+        }
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "route_id": "38bf30dd57d34dc18df010b0417b3dd5",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "enabled": true,
+      "fallback": false,
+      "policies": [
+        {
+          "source": "proxmox",
+          "name": "Proxmox",
+          "configured": false,
+          "enabled": false,
+          "rules": {},
+          "legacy_clauses": [],
+          "labels": {
+            "severity": "Severity",
+            "status": "Status",
+            "node": "Node",
+            "guest": "Guest",
+            "vmid": "VM / CT ID",
+            "category": "Category",
+            "event_type": "Event type",
+            "job_id": "Job ID",
+            "storage": "Storage"
+          }
+        }
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "route_id": "35cbe5b75d71480284320e2fcbee1307",
+      "destination_id": "2a8b09b69be9445588e82e64685f8bbf",
+      "enabled": true,
+      "fallback": false,
+      "policies": [
+        {
+          "source": "grafana",
+          "name": "Grafana",
+          "configured": true,
+          "enabled": true,
+          "rules": {
+            "alert_name": [
+              "cpu*"
+            ]
+          },
+          "legacy_clauses": [],
+          "labels": {
+            "severity": "Severity",
+            "status": "Status",
+            "alert_name": "Alert name",
+            "alert_rule": "Alert rule",
+            "folder": "Folder",
+            "dashboard": "Dashboard",
+            "panel": "Panel",
+            "organization": "Organization",
+            "datasource": "Data source",
+            "labels": "Labels"
+          }
+        }
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "route_id": "c8f2d1ebfbef461999060dcbf96ee171",
+      "destination_id": "2a8b09b69be9445588e82e64685f8bbf",
+      "enabled": true,
+      "fallback": false,
+      "policies": [
+        {
+          "source": "zabbix",
+          "name": "Zabbix",
+          "configured": false,
+          "enabled": false,
+          "rules": {},
+          "legacy_clauses": [],
+          "labels": {
+            "severity": "Severity",
+            "status": "Status",
+            "host": "Host",
+            "problem_name": "Problem name",
+            "event_type": "Event type",
+            "problem_id": "Problem ID",
+            "operational_data": "Operational data"
+          }
+        }
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "route_id": "17171cf1f1df4c8496f0b902dd8e78bf",
+      "destination_id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "enabled": true,
+      "fallback": false,
+      "policies": [
+        {
+          "source": "synology",
+          "name": "Synology",
+          "configured": false,
+          "enabled": false,
+          "rules": {},
+          "legacy_clauses": [],
+          "labels": {
+            "severity": "Severity",
+            "status": "Status",
+            "nas_name": "NAS name",
+            "model": "Model",
+            "storage": "Storage",
+            "storage_pool": "Storage pool",
+            "volume": "Volume",
+            "disk": "Disk / drive",
+            "package": "Package",
+            "task": "Task / job",
+            "username": "Username",
+            "source_ip": "Source IP",
+            "category": "Category",
+            "event_type": "Event type"
+          }
+        }
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    },
+    {
+      "route_id": "8fd6ed760ef04b4cae54003e84156512",
+      "destination_id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "enabled": true,
+      "fallback": false,
+      "policies": [
+        {
+          "source": "unifi_network",
+          "name": "UniFi Network",
+          "configured": false,
+          "enabled": false,
+          "rules": {},
+          "legacy_clauses": [],
+          "labels": {
+            "severity": "Severity",
+            "event_name": "Event name",
+            "category": "Category",
+            "controller": "Controller",
+            "client": "Client",
+            "client_ip": "Client IP",
+            "client_mac": "Client MAC",
+            "network_name": "Network",
+            "network_subnet": "Network subnet",
+            "network_vlan": "VLAN",
+            "wifi_name": "Wi-Fi",
+            "wifi_band": "Wi-Fi band",
+            "wifi_channel": "Wi-Fi channel",
+            "last_device_name": "Last device",
+            "alarm_id": "Alarm ID"
+          }
+        }
+      ],
+      "metrics": {
+        "delivered": 4,
+        "pending": 0,
+        "failed": 0,
+        "last_activity_at": 1789508081
+      }
+    }
+  ],
+  "history": [
+    {
+      "id": "f4fb340e336449a785a4c1847e9bfb1b",
+      "delivery_id": "fixture-5-015b18ba610f4520a82dbc3bbfdc2974-3",
+      "route_id": "17171cf1f1df4c8496f0b902dd8e78bf",
+      "destination_id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "source": "synology",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "ea42d9c28cdb4665bd50c89d18496ded",
+      "delivery_id": "fixture-2-01974f968b264a92976548e07c5f7927-2",
+      "route_id": "38bf30dd57d34dc18df010b0417b3dd5",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "proxmox",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "dc097cf4b6864fe98e3a931a1745e6d4",
+      "delivery_id": "fixture-0-01974f968b264a92976548e07c5f7927-2",
+      "route_id": "35cbe5b75d71480284320e2fcbee1307",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "grafana",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "d44ae1a7cc4c45dea1d59c4fbbeda567",
+      "delivery_id": "fixture-2-01974f968b264a92976548e07c5f7927-3",
+      "route_id": "38bf30dd57d34dc18df010b0417b3dd5",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "proxmox",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "ca899694a52b4486a5440b3ba2e9aa11",
+      "delivery_id": "fixture-4-015b18ba610f4520a82dbc3bbfdc2974-2",
+      "route_id": "8fd6ed760ef04b4cae54003e84156512",
+      "destination_id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "source": "unifi_network",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "c7a8a9ad071542a996cc3a7a305e9efc",
+      "delivery_id": "fixture-2-01974f968b264a92976548e07c5f7927-0",
+      "route_id": "38bf30dd57d34dc18df010b0417b3dd5",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "proxmox",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "c42f83f7a237428d82214e39823f3276",
+      "delivery_id": "fixture-4-015b18ba610f4520a82dbc3bbfdc2974-0",
+      "route_id": "8fd6ed760ef04b4cae54003e84156512",
+      "destination_id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "source": "unifi_network",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "baa57cf977d04d60b53ae66fc3b98856",
+      "delivery_id": "fixture-4-015b18ba610f4520a82dbc3bbfdc2974-1",
+      "route_id": "8fd6ed760ef04b4cae54003e84156512",
+      "destination_id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "source": "unifi_network",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "b727c4ca92cb46458684d7f7405fd7a0",
+      "delivery_id": "fixture-0-2a8b09b69be9445588e82e64685f8bbf-1",
+      "route_id": "35cbe5b75d71480284320e2fcbee1307",
+      "destination_id": "2a8b09b69be9445588e82e64685f8bbf",
+      "source": "grafana",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "a9b3cd918a514480a6558a2abf398297",
+      "delivery_id": "fixture-4-015b18ba610f4520a82dbc3bbfdc2974-3",
+      "route_id": "8fd6ed760ef04b4cae54003e84156512",
+      "destination_id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "source": "unifi_network",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "a9727977db674255867ec3acd6f864e8",
+      "delivery_id": "fixture-1-2a8b09b69be9445588e82e64685f8bbf-2",
+      "route_id": "c8f2d1ebfbef461999060dcbf96ee171",
+      "destination_id": "2a8b09b69be9445588e82e64685f8bbf",
+      "source": "zabbix",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "9c609666fa7642adbbfb59810f646fa8",
+      "delivery_id": "fixture-0-2a8b09b69be9445588e82e64685f8bbf-2",
+      "route_id": "35cbe5b75d71480284320e2fcbee1307",
+      "destination_id": "2a8b09b69be9445588e82e64685f8bbf",
+      "source": "grafana",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "8d2e50e839774388bc4357fb98e61e01",
+      "delivery_id": "fixture-2-01974f968b264a92976548e07c5f7927-1",
+      "route_id": "38bf30dd57d34dc18df010b0417b3dd5",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "proxmox",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "784289cf12b94cb6bc7161c3afa1617b",
+      "delivery_id": "fixture-5-015b18ba610f4520a82dbc3bbfdc2974-2",
+      "route_id": "17171cf1f1df4c8496f0b902dd8e78bf",
+      "destination_id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "source": "synology",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "705d910f6d89499ca6d0e0822dc775b4",
+      "delivery_id": "fixture-0-01974f968b264a92976548e07c5f7927-3",
+      "route_id": "35cbe5b75d71480284320e2fcbee1307",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "grafana",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "6371b8815282483fba1f84a56de6686a",
+      "delivery_id": "fixture-5-015b18ba610f4520a82dbc3bbfdc2974-0",
+      "route_id": "17171cf1f1df4c8496f0b902dd8e78bf",
+      "destination_id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "source": "synology",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "55e7c80870374cc9bac3b5ac0c5beab8",
+      "delivery_id": "fixture-0-01974f968b264a92976548e07c5f7927-1",
+      "route_id": "35cbe5b75d71480284320e2fcbee1307",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "grafana",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "5415e02924974a5ead6a89934b59c110",
+      "delivery_id": "fixture-0-2a8b09b69be9445588e82e64685f8bbf-3",
+      "route_id": "35cbe5b75d71480284320e2fcbee1307",
+      "destination_id": "2a8b09b69be9445588e82e64685f8bbf",
+      "source": "grafana",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "4a789679d37941a4b7fcafa511ca23c5",
+      "delivery_id": "fixture-3-01974f968b264a92976548e07c5f7927-3",
+      "route_id": "0364c2489e1142fda23e747868a07185",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "portainer",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "4615c62fc1e341f4b6013c7b6d164bf0",
+      "delivery_id": "fixture-3-01974f968b264a92976548e07c5f7927-1",
+      "route_id": "0364c2489e1142fda23e747868a07185",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "portainer",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "3f7f64eb409b41e6923bd6f6b186a449",
+      "delivery_id": "fixture-1-2a8b09b69be9445588e82e64685f8bbf-3",
+      "route_id": "c8f2d1ebfbef461999060dcbf96ee171",
+      "destination_id": "2a8b09b69be9445588e82e64685f8bbf",
+      "source": "zabbix",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "35451b642c754cab8a87b97cbce30290",
+      "delivery_id": "fixture-5-015b18ba610f4520a82dbc3bbfdc2974-1",
+      "route_id": "17171cf1f1df4c8496f0b902dd8e78bf",
+      "destination_id": "015b18ba610f4520a82dbc3bbfdc2974",
+      "source": "synology",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "2cf38d04e3a64aa29eb3d0aea9261b9f",
+      "delivery_id": "fixture-3-01974f968b264a92976548e07c5f7927-0",
+      "route_id": "0364c2489e1142fda23e747868a07185",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "portainer",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "24ad940a57624c7ea2d7b1293e95d495",
+      "delivery_id": "fixture-1-2a8b09b69be9445588e82e64685f8bbf-1",
+      "route_id": "c8f2d1ebfbef461999060dcbf96ee171",
+      "destination_id": "2a8b09b69be9445588e82e64685f8bbf",
+      "source": "zabbix",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "1fcddcf40c3c4e188b5641c4d33f0f0e",
+      "delivery_id": "fixture-1-2a8b09b69be9445588e82e64685f8bbf-0",
+      "route_id": "c8f2d1ebfbef461999060dcbf96ee171",
+      "destination_id": "2a8b09b69be9445588e82e64685f8bbf",
+      "source": "zabbix",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "1f251a78a96f4b569951408cb4c4cafb",
+      "delivery_id": "fixture-0-2a8b09b69be9445588e82e64685f8bbf-0",
+      "route_id": "35cbe5b75d71480284320e2fcbee1307",
+      "destination_id": "2a8b09b69be9445588e82e64685f8bbf",
+      "source": "grafana",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "1b1394dadc204f8689145a36319914e6",
+      "delivery_id": "fixture-3-01974f968b264a92976548e07c5f7927-2",
+      "route_id": "0364c2489e1142fda23e747868a07185",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "portainer",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    },
+    {
+      "id": "05804d7f5ca747bd9ede08e011725396",
+      "delivery_id": "fixture-0-01974f968b264a92976548e07c5f7927-0",
+      "route_id": "35cbe5b75d71480284320e2fcbee1307",
+      "destination_id": "01974f968b264a92976548e07c5f7927",
+      "source": "grafana",
+      "input_type": "HTTP",
+      "title": "Example alert",
+      "outcome": "delivered",
+      "attempt_number": 1,
+      "created_at": 1789508081,
+      "completed_at": 1789508081
+    }
+  ],
+  "errors": []
+}
