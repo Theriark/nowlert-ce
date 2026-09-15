@@ -141,6 +141,11 @@ class WebUIService:
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/acceptance_cleanup.js": (
+                "src/webui/acceptance_cleanup.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/icon.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
@@ -228,6 +233,7 @@ class WebUIService:
                 '  <script src="/ui/destination_routes.js" defer></script>\n'
                 '  <script src="/ui/destination_editor_fix.js" defer></script>\n'
                 '  <script src="/ui/policy_simplification.js" defer></script>\n'
+                '  <script src="/ui/acceptance_cleanup.js" defer></script>\n'
             )
             body = text.replace("</head>", extension + "</head>", 1).encode("utf-8")
         return WebUIResponse(200, body, content_type, cache_control)
