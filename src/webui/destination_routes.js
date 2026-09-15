@@ -1,5 +1,70 @@
 "use strict";
 
+const DESTINATION_ROUTE_SUMMARY_PILL_LIMIT = 3;
+
+function destinationRouteSummaryLabel(selectedCount, totalCount) {
+  const selected = Math.max(0, Number(selectedCount) || 0);
+  const total = Math.max(0, Number(totalCount) || 0);
+  if (selected === 0) return "No routes assigned";
+  if (total > 0 && selected === total) return "All routes assigned";
+  return selected === 1 ? "1 route assigned" : `${selected} routes assigned`;
+}
+
+function destinationRouteSelectedItems(routes, selectedIds) {
+  const selected = selectedIds instanceof Set ? selectedIds : new Set(selectedIds || []);
+  return (Array.isArray(routes) ? routes : []).filter((route) => selected.has(route.id));
+}
+
+function destinationRouteVisibleItems(selectedRoutes, limit = DESTINATION_ROUTE_SUMMARY_PILL_LIMIT) {
+  const items = Array.isArray(selectedRoutes) ? selectedRoutes : [];
+  const safeLimit = Math.max(0, Number(limit) || 0);
+  return {
+    visible: items.slice(0, safeLimit),
+    remainder: Math.max(0, items.length - safeLimit),
+  };
+}
+
+function destinationRouteSelectionForItem(item, routes) {
+  const selected = new Set(item && Array.isArray(item.route_ids) ? item.route_ids : []);
+  const destinationId = item && item.id ? String(item.id) : "";
+  if (destinationId) {
+    for (const route of Array.isArray(routes) ? routes : []) {
+      if (
+        route
+        && route.id
+        && Array.isArray(route.destination_ids)
+        && route.destination_ids.includes(destinationId)
+      ) {
+        selected.add(route.id);
+      }
+    }
+  }
+  return selected;
+}
+
+function destinationRouteSummaryModel(routes, selectedIds, limit = DESTINATION_ROUTE_SUMMARY_PILL_LIMIT) {
+  const allRoutes = Array.isArray(routes) ? routes : [];
+  const selectedRoutes = destinationRouteSelectedItems(allRoutes, selectedIds);
+  const compact = destinationRouteVisibleItems(selectedRoutes, limit);
+  return {
+    label: destinationRouteSummaryLabel(selectedRoutes.length, allRoutes.length),
+    selectedRoutes,
+    visible: compact.visible,
+    remainder: compact.remainder,
+    showPills: selectedRoutes.length > 0 && selectedRoutes.length < allRoutes.length,
+  };
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    destinationRouteSummaryLabel,
+    destinationRouteSelectedItems,
+    destinationRouteVisibleItems,
+    destinationRouteSelectionForItem,
+    destinationRouteSummaryModel,
+  };
+}
+
 if (typeof routeAssignmentInstallStyles === "function") {
   routeAssignmentInstallStyles = function routeAssignmentUseExternalStyles() {};
 }
@@ -310,31 +375,76 @@ if (typeof routeAssignmentInstallStyles === "function") {
     window.requestAnimationFrame(() => byId("destination-route-search")?.focus());
   }
 
-  function routeAssignmentSummaryDetail() {
-    const selected = (state.routes || []).filter((item) => routeAssignmentSelection.has(item.id));
-    const labels = [];
-    for (const route of selected) {
-      const label = routeSourceDescriptor(route.source, route.input_type).integration;
-      if (!labels.includes(label)) labels.push(label);
-    }
-    if (!labels.length) return "Choose routes that may deliver to this destination.";
-    const visible = labels.slice(0, 3);
-    const remainder = Math.max(0, labels.length - visible.length);
-    return `${visible.join(", ")}${remainder ? ` +${remainder}` : ""}`;
+  function routeAssignmentIntegrationName(route) {
+    return routeSourceDescriptor(route.source, route.input_type).integration;
+  }
+
+  function routeAssignmentSummaryPillsContainer(summary) {
+    let pills = byId("destination-route-summary-pills");
+    if (pills) return pills;
+    pills = element("div", { className: "destination-route-summary-pills" });
+    pills.id = "destination-route-summary-pills";
+    summary.after(pills);
+    return pills;
+  }
+
+  function routeAssignmentSummaryPill(route) {
+    const label = routeAssignmentIntegrationName(route);
+    const button = element("button", {
+      className: "destination-route-pill",
+      type: "button",
+      attributes: {
+        "aria-label": `Remove ${route.name || label} from this destination`,
+        title: `Remove ${route.name || label} from this destination`,
+      },
+      dataset: { routeId: route.id },
+    });
+    button.className = "destination-route-pill";
+    const icon = element("span", { className: "destination-route-pill-icon" }, sourceIcon(route.source));
+    const name = element("span", { className: "destination-route-pill-name", text: label });
+    const status = element("span", {
+      className: `destination-route-pill-status ${route.enabled === false ? "disabled" : "enabled"}`,
+      text: route.enabled === false ? "Disabled" : "Enabled",
+    });
+    button.append(icon, name, status);
+    button.addEventListener("click", () => {
+      routeAssignmentSelection.delete(route.id);
+      routeAssignmentRenderOptions();
+    });
+    return button;
   }
 
   function routeAssignmentRefreshSummary() {
     const allRoutes = state.routes || [];
-    const selected = allRoutes.filter((item) => routeAssignmentSelection.has(item.id)).length;
+    const model = destinationRouteSummaryModel(
+      allRoutes,
+      routeAssignmentSelection,
+      DESTINATION_ROUTE_SUMMARY_PILL_LIMIT,
+    );
     const count = byId("destination-routes-count");
     const summary = byId("destination-route-summary-count");
     const detail = byId("destination-route-summary-detail");
     const toggle = byId("destination-routes-toggle");
-    if (count) count.textContent = `${selected} of ${allRoutes.length} selected`;
-    if (summary) summary.textContent = selected === 0
-      ? "No routes assigned"
-      : selected === 1 ? "1 route assigned" : `${selected} routes assigned`;
-    if (detail) detail.textContent = routeAssignmentSummaryDetail();
+
+    if (count) count.textContent = `${model.selectedRoutes.length} of ${allRoutes.length} selected`;
+    if (summary) {
+      summary.textContent = model.label;
+      const pills = routeAssignmentSummaryPillsContainer(summary);
+      pills.replaceChildren();
+      pills.hidden = !model.showPills;
+      if (model.showPills) {
+        for (const route of model.visible) pills.append(routeAssignmentSummaryPill(route));
+        if (model.remainder > 0) {
+          const remainder = element("span", {
+            className: "destination-route-pill-more",
+            text: `+${model.remainder} more`,
+          });
+          remainder.textContent = `+${model.remainder} more`;
+          pills.append(remainder);
+        }
+      }
+    }
+    if (detail) detail.textContent = "";
     if (toggle) toggle.disabled = allRoutes.length === 0;
   }
 
@@ -490,9 +600,12 @@ if (typeof routeAssignmentInstallStyles === "function") {
 
   const destinationEditorBaseOpenDestination = openDestination;
   openDestination = function openDestinationWithEditor(id = "") {
+    const item = (state.destinations || []).find((candidate) => candidate.id === id) || null;
     destinationEditorBaseOpenDestination(id);
     destinationEditorEnsureLayout();
     routeAssignmentEnsureDestinationPicker();
+    routeAssignmentSelection = destinationRouteSelectionForItem(item, state.routes || []);
+    routeAssignmentRenderOptions();
     routeAssignmentCloseDrawer();
     destinationEditorRefreshDynamicFields();
     routeAssignmentRefreshSummary();

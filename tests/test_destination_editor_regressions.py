@@ -8,6 +8,7 @@ from webui.service import WebUIService
 
 ROOT = Path(__file__).resolve().parents[1]
 FIX_SCRIPT = ROOT / "src" / "webui" / "destination_editor_fix.js"
+ROUTES_SCRIPT = ROOT / "src" / "webui" / "destination_routes.js"
 FIX_STYLE = ROOT / "src" / "webui" / "destination_editor_fix.css"
 
 
@@ -119,26 +120,90 @@ def test_destination_editor_fix_route_icons_have_spacing_without_global_tile_pad
     assert "margin: 0 4px 0 2px" in stylesheet
 
 
-def test_destination_editor_fix_routing_summary_uses_assignment_set_and_resyncs_after_render():
+def test_destination_editor_fix_leaves_routing_summary_state_to_destination_routes():
+    fix_source = FIX_SCRIPT.read_text(encoding="utf-8")
+    routes_source = ROUTES_SCRIPT.read_text(encoding="utf-8")
+
+    for marker in (
+        "function destinationRouteSummaryLabel",
+        "function destinationRouteSelectedItems",
+        "function destinationRouteVisibleItems",
+        "function destinationRouteSelectionForItem",
+        "function destinationRouteSummaryModel",
+        "function routeAssignmentRefreshSummary",
+        'pills.id = "destination-route-summary-pills"',
+        'button.className = "destination-route-pill"',
+        "routeAssignmentSelection.delete(route.id)",
+        'remainder.textContent = `+${model.remainder} more`',
+    ):
+        assert marker in routes_source
+
+    for obsolete in (
+        "function destinationRouteSummaryLabel",
+        "function destinationRouteSelectedItems",
+        "function destinationRouteVisibleItems",
+        "function destinationRouteSelectionForItem",
+        "function refreshRouteAssignmentSummary",
+        "routeAssignmentRenderOptionsWithSummary",
+        "openDestinationWithFinalEditorPolish",
+        "routeAssignmentSelection",
+    ):
+        assert obsolete not in fix_source
+    assert "openDestinationWithVisualPolish" in fix_source
+
+
+def test_destination_routes_summary_model_runs_in_javascript():
+    program = r'''
+const assert = require("node:assert/strict");
+const helpers = require("./src/webui/destination_routes.js");
+
+assert.equal(helpers.destinationRouteSummaryLabel(0, 4), "No routes assigned");
+assert.equal(helpers.destinationRouteSummaryLabel(1, 4), "1 route assigned");
+assert.equal(helpers.destinationRouteSummaryLabel(3, 4), "3 routes assigned");
+assert.equal(helpers.destinationRouteSummaryLabel(4, 4), "All routes assigned");
+
+const routes = [
+  {id:"a", source:"zabbix", enabled:true, destination_ids:[]},
+  {id:"b", source:"home_assistant", enabled:true, destination_ids:["destination-1"]},
+  {id:"c", source:"xen_orchestra", enabled:false, destination_ids:[]},
+  {id:"d", source:"grafana", enabled:true, destination_ids:[]},
+  {id:"e", source:"portainer", enabled:true, destination_ids:[]},
+];
+
+const synced = helpers.destinationRouteSelectionForItem(
+  {id:"destination-1", route_ids:["a", "c", "d", "e"]},
+  routes,
+);
+assert.deepEqual([...synced], ["a", "c", "d", "e", "b"]);
+
+const model = helpers.destinationRouteSummaryModel(routes, new Set(["a", "b", "c", "d"]), 3);
+assert.equal(model.label, "4 routes assigned");
+assert.deepEqual(model.selectedRoutes.map((item) => item.id), ["a", "b", "c", "d"]);
+assert.deepEqual(model.visible.map((item) => item.id), ["a", "b", "c"]);
+assert.equal(model.remainder, 1);
+assert.equal(model.showPills, true);
+
+const all = helpers.destinationRouteSummaryModel(routes, new Set(routes.map((item) => item.id)), 3);
+assert.equal(all.label, "All routes assigned");
+assert.equal(all.showPills, false);
+'''
+    result = subprocess.run(
+        ["node", "-e", program],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_destination_editor_fix_preserves_visual_route_row_cleanup_without_state_wrappers():
     source = FIX_SCRIPT.read_text(encoding="utf-8")
 
-    assert "function refreshRouteAssignmentSummary" in source
-    assert "destinationRouteSelectedItems(routes, routeAssignmentSelection)" in source
-    assert "routeAssignmentRenderOptions = function routeAssignmentRenderOptionsWithSummary" in source
-    assert "refreshRouteAssignmentSummary();" in source
-
-
-def test_destination_editor_fix_preserves_schema12_destination_assignment_state():
-    source = FIX_SCRIPT.read_text(encoding="utf-8")
-
-    assert "route.destination_id === destinationId" not in source
-    assert "function syncRouteAssignmentSelection(destinationId)" not in source
-    assert "syncRouteAssignmentSelection(destinationId);" not in source
-    assert "destinationRouteSelectionForItem" in source
-    assert "Array.isArray(item.route_ids)" in source
-    assert "Array.isArray(route.destination_ids)" in source
-    assert "routeAssignmentSelection = destinationRouteSelectionForItem" in source
-    assert "routeAssignmentRenderOptions();" in source
+    assert "destinationPolishBound" in source
+    assert "new MutationObserver(normalizeRouteOptionRows)" in source
+    assert "routeAssignmentSelection" not in source
+    assert "destinationRouteSelectionForItem" not in source
 
 
 def test_destination_editor_fix_removes_route_secondary_copy_after_each_render():
@@ -160,54 +225,6 @@ def test_destination_editor_fix_centers_route_row_contents_without_label_spacing
     assert "height: 22px" in stylesheet
     assert ".route-assignment-option-copy strong" in stylesheet
     assert "min-height: 22px" in stylesheet
-
-
-def test_destination_editor_fix_summary_behavior_runs_in_javascript():
-    program = r'''
-const assert = require("node:assert/strict");
-const helpers = require("./src/webui/destination_editor_fix.js");
-assert.equal(helpers.destinationRouteSummaryLabel(0, 17), "No routes assigned");
-assert.equal(helpers.destinationRouteSummaryLabel(1, 17), "1 route assigned");
-assert.equal(helpers.destinationRouteSummaryLabel(15, 17), "15 routes assigned");
-assert.equal(helpers.destinationRouteSummaryLabel(17, 17), "All routes assigned");
-const routes = [{id:"a"}, {id:"b"}, {id:"c"}, {id:"d"}];
-const selected = helpers.destinationRouteSelectedItems(routes, new Set(["a", "c", "d"]));
-assert.deepEqual(selected.map((item) => item.id), ["a", "c", "d"]);
-assert.deepEqual(helpers.destinationRouteVisibleItems(selected, 2), {
-  visible: [routes[0], routes[2]], remainder: 1,
-});
-const synced = helpers.destinationRouteSelectionForItem(
-  {id:"destination-1", route_ids:["a"]},
-  [
-    {id:"a", destination_ids:[]},
-    {id:"b", destination_ids:["destination-1"]},
-    {id:"c", destination_ids:["destination-2"]},
-  ],
-);
-assert.deepEqual([...synced], ["a", "b"]);
-'''
-    result = subprocess.run(
-        ["node", "-e", program],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-
-
-def test_destination_editor_fix_summary_shows_only_selected_clickable_pills():
-    source = FIX_SCRIPT.read_text(encoding="utf-8")
-    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
-
-    assert 'pills.id = "destination-route-summary-pills"' in source
-    assert 'button.className = "destination-route-pill"' in source
-    assert "routeAssignmentSelection.delete(route.id)" in source
-    assert "ROUTE_SUMMARY_VISIBLE_PILLS = 3" in source
-    assert 'remainder.textContent = `+${compact.remainder} more`' in source
-    assert ".destination-route-summary-pills" in stylesheet
-    assert ".destination-route-pill-status.enabled" in stylesheet
-    assert ".destination-route-pill-more" in stylesheet
 
 
 def test_destination_editor_fix_removes_route_status_and_routing_helper_from_dom():
