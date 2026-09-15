@@ -15,6 +15,9 @@ if TYPE_CHECKING:
     from storage.routes import Route
 
 
+_FILTER_STATE_NAMESPACE = "destination_filter_enabled"
+
+
 @dataclass(frozen=True)
 class RouteDestinationCandidate:
     """One matched Route resolved to one concrete Destination."""
@@ -87,12 +90,13 @@ class RouteDestinationStore:
             destination_id,
             route_ids,
         )
-        previous = self.route_ids_for_destination(actor, str(destination["id"]))
+        destination_id = str(destination["id"])
+        previous = self.route_ids_for_destination(actor, destination_id)
         now = int(self.clock())
         with self.database.transaction() as connection:
             connection.execute(
                 "DELETE FROM route_destinations WHERE destination_id = ?",
-                (str(destination["id"]),),
+                (destination_id,),
             )
             for route_id in normalized:
                 connection.execute(
@@ -100,14 +104,32 @@ class RouteDestinationStore:
                     INSERT INTO route_destinations(route_id, destination_id, created_at)
                     VALUES (?, ?, ?)
                     """,
-                    (route_id, str(destination["id"]), now),
+                    (route_id, destination_id, now),
                 )
+            if not normalized:
+                configured = connection.execute(
+                    "SELECT source FROM destination_filters WHERE destination_id = ?",
+                    (destination_id,),
+                ).fetchall()
+                for row in configured:
+                    state_key = f"{destination_id}:{str(row['source'])}"
+                    connection.execute(
+                        """
+                        INSERT INTO settings_records(
+                            namespace, setting_key, value_json, updated_at
+                        ) VALUES (?, ?, 'false', ?)
+                        ON CONFLICT(namespace, setting_key) DO UPDATE SET
+                            value_json = excluded.value_json,
+                            updated_at = excluded.updated_at
+                        """,
+                        (_FILTER_STATE_NAMESPACE, state_key, now),
+                    )
         added = [item for item in normalized if item not in previous]
         removed = [item for item in previous if item not in normalized]
         self._audit(
             actor,
             "destination.routes_update",
-            str(destination["id"]),
+            destination_id,
             {"added_route_ids": added, "removed_route_ids": removed},
         )
         return normalized
