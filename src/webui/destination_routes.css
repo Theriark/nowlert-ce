@@ -44,6 +44,12 @@
   padding: 0 0 2px;
 }
 
+/* Keep the close control visually anchored to the modal corner instead of
+ * letting the generic 18px editor padding leave it too low and inset. */
+.destination-editor-heading > .icon-button {
+  transform: translate(8px, -8px);
+}
+
 .destination-editor-heading .eyebrow {
   display: none;
 }
