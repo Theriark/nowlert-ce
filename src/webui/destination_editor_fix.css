@@ -115,7 +115,7 @@
 }
 
 /* The list owns its own vertical scrolling. Keep the popover overflow visible
- * so the native three-pixel amber input focus halo is not clipped. */
+ * so the keyboard focus indicator is not clipped. */
 .route-assignment-popover {
   overflow: visible;
 }
@@ -158,6 +158,18 @@
  * after that stylesheet, so clicking/hovering a route never paints a full-row
  * highlight box. Keyboard focus remains visible on the checkbox itself. */
 .destination-editor-dialog .route-assignment-option:hover {
+  border-color: var(--destination-border);
+  box-shadow: none;
+}
+
+/* qa_patch.css gives every input amber hover/focus chrome. Route checkboxes are
+ * already their own selection indicator, so suppress only mouse interaction
+ * chrome here. Keyboard :focus-visible remains untouched and accessible. */
+.destination-editor-dialog .route-assignment-option input[type="checkbox"]:hover {
+  border-color: var(--destination-border);
+}
+
+.destination-editor-dialog .route-assignment-option input[type="checkbox"]:focus:not(:focus-visible) {
   border-color: var(--destination-border);
   box-shadow: none;
 }
