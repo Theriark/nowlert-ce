@@ -224,6 +224,108 @@
   width: auto !important;
 }
 
+/* Routing summary mirrors only the selected routes. Pills are intentionally
+ * compact: integration name plus route status, with three visible at a time. */
+.destination-route-summary-pills {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+  min-width: 0;
+}
+
+.destination-route-summary-pills[hidden] {
+  display: none !important;
+}
+
+.destination-route-pill {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--destination-border);
+  border-radius: 9px;
+  color: var(--text, #f2ebdd);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 6px;
+  max-width: 220px;
+  min-height: 28px;
+  padding: 3px 7px;
+}
+
+.destination-route-pill:hover,
+.destination-route-pill:focus-visible {
+  border-color: rgba(244, 197, 66, 0.58);
+  box-shadow: 0 0 0 2px rgba(244, 197, 66, 0.08);
+  outline: 0;
+}
+
+.destination-route-pill-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 20px;
+  height: 20px;
+  justify-content: center;
+  overflow: hidden;
+  width: 20px;
+}
+
+.destination-route-pill-icon .source-product-icon,
+.destination-route-pill-icon img {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  display: block;
+  height: auto !important;
+  margin: 0;
+  max-height: 17px !important;
+  max-width: 19px !important;
+  object-fit: contain;
+  padding: 0;
+  width: auto !important;
+}
+
+.destination-route-pill-name {
+  font-size: 0.69rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destination-route-pill-status {
+  border: 1px solid rgba(39, 212, 155, 0.36);
+  border-radius: 999px;
+  color: #8af0cc;
+  flex: 0 0 auto;
+  font-size: 0.61rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.destination-route-pill-status.enabled {
+  background: rgba(39, 212, 155, 0.11);
+}
+
+.destination-route-pill-status.disabled {
+  background: rgba(244, 183, 39, 0.10);
+  border-color: rgba(244, 183, 39, 0.30);
+  color: #f4c95e;
+}
+
+.destination-route-pill-more {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--destination-border);
+  border-radius: 999px;
+  color: var(--destination-muted);
+  display: inline-flex;
+  font-size: 0.65rem;
+  min-height: 28px;
+  padding: 3px 9px;
+}
+
 @media (max-width: 760px) {
   .destination-provider-card {
     grid-template-columns: 42px minmax(0, 1fr);
@@ -236,5 +338,9 @@
 
   .destination-editor-dialog fieldset.route-assignment-drawer {
     border-left: 0;
+  }
+
+  .destination-route-pill {
+    max-width: 180px;
   }
 }
