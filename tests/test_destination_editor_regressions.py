@@ -1,6 +1,7 @@
 """Destination editor regression fixes for the compact drawer UI."""
 
 from pathlib import Path
+import subprocess
 
 from webui.service import WebUIService
 
@@ -122,7 +123,7 @@ def test_destination_editor_fix_routing_summary_uses_assignment_set_and_resyncs_
     source = FIX_SCRIPT.read_text(encoding="utf-8")
 
     assert "function refreshRouteAssignmentSummary" in source
-    assert "routeAssignmentSelection.size" in source
+    assert "destinationRouteSelectedItems(routes, routeAssignmentSelection)" in source
     assert "routeAssignmentRenderOptions = function routeAssignmentRenderOptionsWithSummary" in source
     assert "refreshRouteAssignmentSummary();" in source
 
@@ -133,6 +134,10 @@ def test_destination_editor_fix_preserves_schema12_destination_assignment_state(
     assert "route.destination_id === destinationId" not in source
     assert "function syncRouteAssignmentSelection(destinationId)" not in source
     assert "syncRouteAssignmentSelection(destinationId);" not in source
+    assert "destinationRouteSelectionForItem" in source
+    assert "Array.isArray(item.route_ids)" in source
+    assert "Array.isArray(route.destination_ids)" in source
+    assert "routeAssignmentSelection = destinationRouteSelectionForItem" in source
     assert "routeAssignmentRenderOptions();" in source
 
 
@@ -157,21 +162,52 @@ def test_destination_editor_fix_centers_route_row_contents_without_label_spacing
     assert "min-height: 22px" in stylesheet
 
 
-def test_destination_editor_fix_summary_prefers_rendered_checkbox_state():
+def test_destination_editor_fix_summary_behavior_runs_in_javascript():
+    program = r'''
+const assert = require("node:assert/strict");
+const helpers = require("./src/webui/destination_editor_fix.js");
+assert.equal(helpers.destinationRouteSummaryLabel(0, 17), "No routes assigned");
+assert.equal(helpers.destinationRouteSummaryLabel(1, 17), "1 route assigned");
+assert.equal(helpers.destinationRouteSummaryLabel(15, 17), "15 routes assigned");
+assert.equal(helpers.destinationRouteSummaryLabel(17, 17), "All routes assigned");
+const routes = [{id:"a"}, {id:"b"}, {id:"c"}, {id:"d"}];
+const selected = helpers.destinationRouteSelectedItems(routes, new Set(["a", "c", "d"]));
+assert.deepEqual(selected.map((item) => item.id), ["a", "c", "d"]);
+assert.deepEqual(helpers.destinationRouteVisibleItems(selected, 2), {
+  visible: [routes[0], routes[2]], remainder: 1,
+});
+const synced = helpers.destinationRouteSelectionForItem(
+  {id:"destination-1", route_ids:["a"]},
+  [
+    {id:"a", destination_ids:[]},
+    {id:"b", destination_ids:["destination-1"]},
+    {id:"c", destination_ids:["destination-2"]},
+  ],
+);
+assert.deepEqual([...synced], ["a", "b"]);
+'''
+    result = subprocess.run(
+        ["node", "-e", program],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_destination_editor_fix_summary_shows_only_selected_clickable_pills():
     source = FIX_SCRIPT.read_text(encoding="utf-8")
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
 
-    assert 'querySelectorAll(\'#destination-route-options input[type="checkbox"]\')' in source
-    assert "if (checkboxes.length)" in source
-    assert "filter((checkbox) => checkbox.checked).length" in source
-
-
-def test_destination_editor_fix_summary_mirrors_authoritative_drawer_count():
-    source = FIX_SCRIPT.read_text(encoding="utf-8")
-
-    assert "function routeAssignmentCountFromDrawer()" in source
-    assert 'document.getElementById("destination-routes-count")' in source
-    assert "new MutationObserver(refreshRouteAssignmentSummary)" in source
-    assert "count.textContent =" not in source
+    assert 'pills.id = "destination-route-summary-pills"' in source
+    assert 'button.className = "destination-route-pill"' in source
+    assert "routeAssignmentSelection.delete(route.id)" in source
+    assert "ROUTE_SUMMARY_VISIBLE_PILLS = 3" in source
+    assert 'remainder.textContent = `+${compact.remainder} more`' in source
+    assert ".destination-route-summary-pills" in stylesheet
+    assert ".destination-route-pill-status.enabled" in stylesheet
+    assert ".destination-route-pill-more" in stylesheet
 
 
 def test_destination_editor_fix_removes_route_status_and_routing_helper_from_dom():
