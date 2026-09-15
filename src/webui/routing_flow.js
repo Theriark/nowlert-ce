@@ -110,6 +110,13 @@
     }
     return entries.length ? entries : ["All notifications"];
   }
+  function activePolicies(link) {
+    return (link.policies || []).filter(p => !p.restricted && p.configured && p.enabled);
+  }
+  function activePolicyLines(link) {
+    const policies = activePolicies(link);
+    return policies.length ? policyLines({ ...link, policies }) : [];
+  }
   function showDetails(kind, identity) {
     if (!data) return;
     selected = { kind, identity };
@@ -138,7 +145,7 @@
       const r = data.routes.find(r => r.id === link.route_id), d = data.destinations.find(d => d.id === link.destination_id);
       dialogTitle.textContent = `${r.integration_name} → ${d.name}`;
       dialogBody.append(detailRow("Route", r.name), detailRow("Filtering scope", "This destination and integration"), detailRow("Connection", link.enabled ? "Enabled" : "Disabled"));
-      policyLines(link).forEach((line, i) => dialogBody.append(detailRow(`Filter ${i + 1}`, line)));
+      activePolicyLines(link).forEach((line, i) => dialogBody.append(detailRow(`Filter ${i + 1}`, line)));
       if (link.fallback) dialogBody.append(detailRow("Fallback", "Only when no dedicated route matches"));
     }
     dialogBody.append(el("p", "rf-detail-note", "Read-only snapshot. Configuration remains in Destinations and Filtering."));
@@ -189,10 +196,12 @@
         blank.style.gridRow = String(row); blank.style.gridColumn = "2"; graph.append(blank);
       }
       for (const [index, link] of links.entries()) {
+        const lines = activePolicyLines(link);
+        if (!lines.length) continue;
         const key = linkKey(r.id, link.destination_id), filter = createNode("filter", key, row + index, 1, `${r.integration_name} filter for ${data.destinations.find(d => d.id === link.destination_id).name}`);
         filter.classList.toggle("rf-disabled", !link.enabled);
         const badge = el("span", "rf-funnel"); badge.append(icon("filter"));
-        const lines = policyLines(link), copy = el("div", "rf-node-copy");
+        const copy = el("div", "rf-node-copy");
         copy.append(el("strong", "", lines[0]), el("small", "", lines.length > 1 ? `+${lines.length - 1} policies · inspect details` : data.destinations.find(d => d.id === link.destination_id).name));
         filter.append(badge, copy);
       }
@@ -239,7 +248,7 @@
     renderMetrics(); renderGraph(); renderHistory();
     if (focusKey) Array.from(section.querySelectorAll("[data-focus-key]")).find(n => n.dataset.focusKey === focusKey)?.focus({ preventScroll: true });
     if (dialog.open && selected) {
-      const found = selected.kind === "route" ? data.routes.some(r => r.id === selected.identity) : selected.kind === "destination" ? data.destinations.some(d => d.id === selected.identity) : data.links.some(l => linkKey(l.route_id,l.destination_id) === selected.identity);
+      const found = selected.kind === "route" ? data.routes.some(r => r.id === selected.identity) : selected.kind === "destination" ? data.destinations.some(d => d.id === selected.identity) : data.links.some(l => linkKey(l.route_id,l.destination_id) === selected.identity && activePolicies(l).length);
       if (found) showDetails(selected.kind, selected.identity); else dialog.close();
     }
   }
@@ -258,9 +267,10 @@
     marker.append(svg("path", {d:"M0 0 L8 4 L0 8 Z", fill:"currentColor"})); defs.append(marker); edges.append(defs);
     for (const link of data.links) {
       const key = linkKey(link.route_id, link.destination_id), route = nodeFor("route", link.route_id), filter = nodeFor("filter", key), destination = nodeFor("destination", link.destination_id);
-      if (!route || !filter || !destination) continue;
+      if (!route || !destination) continue;
       const paths = [];
-      for (const [a, b] of [[route,filter],[filter,destination]]) {
+      const pairs = filter ? [[route,filter],[filter,destination]] : [[route,destination]];
+      for (const [a, b] of pairs) {
         const x = a.offsetLeft+a.offsetWidth, y = a.offsetTop+a.offsetHeight/2, xx=b.offsetLeft, yy=b.offsetTop+b.offsetHeight/2, bend=(xx-x)*.52;
         const path = svg("path", {d:`M${x} ${y} C${x+bend} ${y} ${xx-bend} ${yy} ${xx} ${yy}`, class:`rf-edge${!link.enabled?" rf-off":""}${relevant(link)?"":" rf-dim"}`, "marker-end":"url(#rf-arrow)"});
         edges.append(path); paths.push(path);
@@ -282,13 +292,13 @@
     const started = performance.now();
     for (const item of items.slice(0,12)) {
       const paths = edgePaths.get(linkKey(item.route_id,item.destination_id));
-      if (!paths) continue;
+      if (!paths?.length) continue;
       const circle = svg("circle", {r:3.2,class:`rf-particle ${item.outcome==='failed'?'rf-failed-particle':''}`});
       $("rf-edges").append(circle); pulses.push({dot:circle,paths,started});
     }
     function frame(now) {
       if (!active()) { stopPulses(); return; }
-      pulses = pulses.filter(p=>{const elapsed=(now-p.started)/1600;if(elapsed>=1){p.dot.remove();return false;}const path=p.paths[elapsed<.5?0:1];const pt=path.getPointAtLength(path.getTotalLength()*((elapsed*2)%1));p.dot.setAttribute("cx",pt.x);p.dot.setAttribute("cy",pt.y);return true;});
+      pulses = pulses.filter(p=>{const elapsed=(now-p.started)/1600;if(elapsed>=1){p.dot.remove();return false;}const scaled=elapsed*p.paths.length,index=Math.min(p.paths.length-1,Math.floor(scaled)),progress=scaled-index,path=p.paths[index];const pt=path.getPointAtLength(path.getTotalLength()*progress);p.dot.setAttribute("cx",pt.x);p.dot.setAttribute("cy",pt.y);return true;});
       pulseFrame = pulses.length ? requestAnimationFrame(frame) : null;
     }
     if (pulses.length && pulseFrame===null) pulseFrame=requestAnimationFrame(frame);

@@ -55,7 +55,9 @@ const fixture=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/routing_
  assert.equal(await page.locator('#primary-nav [data-view="routes"]').count(),0);
  assert.equal(await page.locator('.rf-route').count(),6);
  assert.equal(await page.locator('#page-title').innerText(),'Routing Flow','Header follows new menu after regional translation');
- assert.equal(await page.locator('.rf-filter').count(),7);
+ assert.equal(await page.locator('.rf-filter').count(),2,'Only configured and enabled filters belong in the active flow');
+ assert.equal(await page.locator('#rf-edges .rf-edge').count(),9,'Unfiltered connections must bypass the filter column instead of disappearing');
+ assert.equal(await page.locator('.rf-filter').filter({hasText:'Filter disabled'}).count(),0,'Disabled filters must not render as flow stages');
  assert.equal(await page.locator('.rf-destination').count(),3);
  assert.equal(await page.locator('.rf-metric').nth(0).innerText(),'—\nReceived\nNot recorded');
  await page.locator('.rf-route').filter({hasText:'Grafana'}).click();
@@ -102,6 +104,6 @@ const fixture=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/routing_
  delay=0;authFail=true;await page.locator('#rf-pause').click();await page.locator('#login-view').waitFor();assert.equal(await page.locator('.rf-route').count(),0,'Logout clears data');
  assert.deepEqual(writes,[],'Read-only overview must not issue mutations');
  assert.deepEqual(errors,[],'No browser runtime errors');
- console.log('PASS: actual shell navigation, retired menus, 6 routes/7 destination filters/3 destinations, brand images, details, ranges, pause, zoom, failed requests, stale responses, logout, read-only traffic and responsive layout.');
+ console.log('PASS: actual shell navigation, retired menus, 6 routes/2 active filters/7 connections/3 destinations, brand images, direct bypasses, details, ranges, pause, zoom, failed requests, stale responses, logout, read-only traffic and responsive layout.');
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});
