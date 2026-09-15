@@ -138,21 +138,28 @@
   padding: 4px 6px;
 }
 
-/* Match custom editor cards to the native input/select amber interaction
- * pattern with a clearly visible amber border and halo on hover or focus. */
+/* Match the custom editor cards to the native input/select amber interaction
+ * pattern. Route rows intentionally keep neutral row chrome; the checkbox is
+ * the route-selection indicator. */
 .destination-provider-card,
 .destination-routing-summary,
-.destination-editor-dialog fieldset.destination-credentials-card,
-.route-assignment-option {
+.destination-editor-dialog fieldset.destination-credentials-card {
   transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
 .destination-editor-dialog .destination-provider-card:hover,
 .destination-editor-dialog .destination-routing-summary:hover,
-.destination-editor-dialog fieldset.destination-credentials-card:hover,
-.destination-editor-dialog .route-assignment-option:hover {
+.destination-editor-dialog fieldset.destination-credentials-card:hover {
   border-color: rgba(244, 197, 66, 0.58);
   box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.08);
+}
+
+/* destination_routes.css has a base route-row hover border. Override it here,
+ * after that stylesheet, so clicking/hovering a route never paints a full-row
+ * highlight box. Keyboard focus remains visible on the checkbox itself. */
+.destination-editor-dialog .route-assignment-option:hover {
+  border-color: var(--destination-border);
+  box-shadow: none;
 }
 
 .destination-editor-dialog .destination-provider-card:focus-within,
