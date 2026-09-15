@@ -126,6 +126,11 @@ class WebUIService:
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/source_ui_retirement.js": (
+                "src/webui/source_ui_retirement.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/icon.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
@@ -208,6 +213,7 @@ class WebUIService:
                 '  <link rel="stylesheet" href="/ui/destination_routes.css">\n'
                 '  <link rel="stylesheet" href="/ui/destination_editor_fix.css">\n'
                 '  <script src="/ui/filtering.js" defer></script>\n'
+                '  <script src="/ui/source_ui_retirement.js" defer></script>\n'
                 '  <script src="/ui/destination_routes.js" defer></script>\n'
                 '  <script src="/ui/destination_editor_fix.js" defer></script>\n'
             )
