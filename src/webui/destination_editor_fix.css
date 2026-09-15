@@ -107,9 +107,11 @@
   padding: 0;
 }
 
+/* The checkbox itself is the selected-state indicator. Keep checked rows at
+ * their normal resting appearance so clicking a route does not draw a box. */
 .route-assignment-option:has(input:checked) {
-  background: rgba(244, 197, 66, 0.055);
-  border-color: rgba(244, 197, 66, 0.22);
+  background: rgba(255, 255, 255, 0.018);
+  border-color: var(--destination-border);
 }
 
 /* The list owns its own vertical scrolling. Keep the popover overflow visible
