@@ -45,9 +45,17 @@
 }
 
 /* Keep the close control visually anchored to the modal corner instead of
- * letting the generic 18px editor padding leave it too low and inset. */
+ * letting the generic 18px editor padding leave it too low and inset. Use
+ * layout offsets rather than transform so the global icon-button hover lift
+ * cannot replace the persistent corner placement. */
 .destination-editor-heading > .icon-button {
-  transform: translate(8px, -8px);
+  position: relative;
+  right: -8px;
+  top: -8px;
+}
+
+.destination-editor-heading > .icon-button:hover:not(:disabled) {
+  transform: none;
 }
 
 .destination-editor-heading .eyebrow {
