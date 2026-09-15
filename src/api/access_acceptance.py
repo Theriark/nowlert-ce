@@ -273,6 +273,13 @@ class PlatformAPI(BasePlatformAPI):
         )
 
     def _resource_endpoint(self, method, path, payload, actor):
+        if path.startswith("/api/v2/routing-flow/"):
+            if method != "GET":
+                return self._method_not_allowed("GET")
+            from api.routing_flow import snapshot
+
+            return APIResponse(200, snapshot(self, actor, path.rsplit("/", 1)[-1]))
+
         if path == "/api/v2/filters" and method == "GET":
             return self._filters_overview(actor)
 
