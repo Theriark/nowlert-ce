@@ -312,8 +312,8 @@ if (typeof routeAssignmentInstallStyles === "function") {
     const routingIcon = element("span", { className: "destination-section-icon", text: "⌘", attributes: { "aria-hidden": "true" } });
     const routingCopy = element("div", { className: "destination-section-copy" }, [
       element("strong", { text: "Routing" }),
-      element("span", { id: "destination-route-summary-count", text: "No routes assigned" }),
-      element("small", { id: "destination-route-summary-detail", text: "Choose routes that may deliver to this destination." }),
+      element("span", { text: "No routes assigned", attributes: { id: "destination-route-summary-count" } }),
+      element("small", { text: "Choose routes that may deliver to this destination.", attributes: { id: "destination-route-summary-detail" } }),
     ]);
     const manage = element("button", {
       className: "button primary destination-manage-routes",
