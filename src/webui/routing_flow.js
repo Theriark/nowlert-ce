@@ -17,6 +17,7 @@
   let generation = 0, paused = false, range = "15m", zoom = 1, busy = false;
   let owner = null, selected = null, seen = new Set(), allHistory = false;
   let pulseFrame = null, pulses = [], edgePaths = new Map(), resizeFrame = null;
+  let graphModel = null;
 
   function el(tag, cls = "", text = "") {
     const n = document.createElement(tag);
@@ -117,32 +118,51 @@
     const policies = activePolicies(link);
     return policies.length ? policyLines({ ...link, policies }) : [];
   }
+  function activeFlowGraph() {
+    if (!data) return { routes: [], destinations: [], links: [] };
+    const enabledRoutes = data.routes.filter(route => route.enabled);
+    const enabledDestinations = data.destinations.filter(destination => destination.enabled);
+    const routeIds = new Set(enabledRoutes.map(route => route.id));
+    const destinationIds = new Set(enabledDestinations.map(destination => destination.id));
+    const links = data.links.filter(link => link.enabled && routeIds.has(link.route_id) && destinationIds.has(link.destination_id));
+    const connectedRouteIds = new Set(links.map(link => link.route_id));
+    const connectedDestinationIds = new Set(links.map(link => link.destination_id));
+    return {
+      routes: enabledRoutes.filter(route => connectedRouteIds.has(route.id)),
+      destinations: enabledDestinations.filter(destination => connectedDestinationIds.has(destination.id)),
+      links,
+    };
+  }
   function showDetails(kind, identity) {
-    if (!data) return;
+    const current = graphModel || activeFlowGraph();
+    if (!data || !current.links.length) return;
     selected = { kind, identity };
     dialogBody.replaceChildren();
     if (kind === "route") {
-      const route = data.routes.find(r => r.id === identity);
+      const route = current.routes.find(r => r.id === identity);
+      if (!route) return;
       dialogTitle.textContent = route.integration_name;
       dialogBody.append(detailRow("Route", route.name), detailRow("Input", route.input_type || "Any input"), detailRow("State", route.enabled ? "Enabled" : "Disabled"));
-      const targets = data.links.filter(l => l.route_id === identity);
+      const targets = current.links.filter(l => l.route_id === identity);
       for (const link of targets) {
-        const d = data.destinations.find(d => d.id === link.destination_id);
-        dialogBody.append(detailRow(d.name, policyLines(link).join("; ")));
+        const d = current.destinations.find(d => d.id === link.destination_id);
+        if (d) dialogBody.append(detailRow(d.name, policyLines(link).join("; ")));
       }
-      if (!targets.length) dialogBody.append(detailRow("Assignment", "No visible destination assigned"));
     } else if (kind === "destination") {
-      const d = data.destinations.find(d => d.id === identity);
+      const d = current.destinations.find(d => d.id === identity);
+      if (!d) return;
       dialogTitle.textContent = d.name;
       dialogBody.append(detailRow("Platform", OUTPUT_NAMES[d.output_type] || d.output_type), detailRow("Channel", d.channel || "Not labelled"), detailRow("State", d.enabled ? "Enabled" : "Disabled"));
-      data.links.filter(l => l.destination_id === identity).forEach(l => {
-        const r = data.routes.find(r => r.id === l.route_id);
-        dialogBody.append(detailRow(r.name, policyLines(l).join("; ")));
+      current.links.filter(l => l.destination_id === identity).forEach(l => {
+        const r = current.routes.find(r => r.id === l.route_id);
+        if (r) dialogBody.append(detailRow(r.name, policyLines(l).join("; ")));
       });
       ["delivered", "pending", "failed"].forEach(k => dialogBody.append(detailRow(k === "pending" ? "Retry scheduled" : capitalize(k), metricText(d.metrics[k]))));
     } else {
-      const link = data.links.find(l => linkKey(l.route_id, l.destination_id) === identity);
-      const r = data.routes.find(r => r.id === link.route_id), d = data.destinations.find(d => d.id === link.destination_id);
+      const link = current.links.find(l => linkKey(l.route_id, l.destination_id) === identity);
+      if (!link) return;
+      const r = current.routes.find(r => r.id === link.route_id), d = current.destinations.find(d => d.id === link.destination_id);
+      if (!r || !d) return;
       dialogTitle.textContent = `${r.integration_name} → ${d.name}`;
       dialogBody.append(detailRow("Route", r.name), detailRow("Filtering scope", "This destination and integration"), detailRow("Connection", link.enabled ? "Enabled" : "Disabled"));
       activePolicyLines(link).forEach((line, i) => dialogBody.append(detailRow(`Filter ${i + 1}`, line)));
@@ -153,15 +173,13 @@
     if (!dialog.open) dialog.showModal();
   }
 
-  function createNode(kind, identity, row, span, label) {
+  function createNode(kind, identity, label) {
     const node = button("", () => showDetails(kind, identity), `rf-node rf-${kind}`);
     node.dataset.kind = kind;
     node.dataset.identity = identity;
     node.dataset.focusKey = `${kind}:${identity}`;
-    node.dataset.layoutRow = String(row);
     node.setAttribute("aria-label", label);
     node.style.gridColumn = String({ route: 1, filter: 2, destination: 3 }[kind]);
-    node.style.gridRow = `${row} / span ${span}`;
     $("rf-graph").append(node);
     return node;
   }
@@ -194,120 +212,129 @@
       return fallback.get(a.id) - fallback.get(b.id);
     });
   }
-  function nearestFreeRow(preferred, used, minimum = 2) {
-    const base = Math.max(minimum, Math.round(preferred));
-    for (let offset = 0; offset < 10000; offset++) {
-      const down = base + offset;
-      if (!used.has(down)) { used.add(down); return down; }
-      if (offset > 0 && base - offset >= minimum && !used.has(base - offset)) {
-        const up = base - offset; used.add(up); return up;
-      }
-    }
-    return base;
-  }
-  function computeFlowLayout() {
-    const routeIds = new Set(data.routes.map(route => route.id));
-    const destinationIds = new Set(data.destinations.map(destination => destination.id));
-    const links = data.links.filter(link => routeIds.has(link.route_id) && destinationIds.has(link.destination_id));
-    const linksByRoute = new Map(data.routes.map(route => [route.id, links.filter(link => link.route_id === route.id)]));
-    const linksByDestination = new Map(data.destinations.map(destination => [destination.id, links.filter(link => link.destination_id === destination.id)]));
-    let routeOrder = [...data.routes], destinationOrder = [...data.destinations];
-
-    // Repeated barycentric ordering groups connected nodes together. It keeps
-    // existing order as the stable tie-breaker and only reorders where the
-    // topology gives us useful information, reducing avoidable crossings.
-    for (let pass = 0; pass < 4; pass++) {
+  function orderFlowGraph(current) {
+    const linksByRoute = new Map(current.routes.map(route => [route.id, current.links.filter(link => link.route_id === route.id)]));
+    const linksByDestination = new Map(current.destinations.map(destination => [destination.id, current.links.filter(link => link.destination_id === destination.id)]));
+    let routeOrder = [...current.routes], destinationOrder = [...current.destinations];
+    for (let pass = 0; pass < 6; pass++) {
       const destinationRanks = new Map(destinationOrder.map((destination, index) => [destination.id, index]));
-      routeOrder = barycentricOrder(
-        routeOrder,
-        route => (linksByRoute.get(route.id) || []).map(link => link.destination_id),
-        destinationRanks,
-      );
+      routeOrder = barycentricOrder(routeOrder, route => (linksByRoute.get(route.id) || []).map(link => link.destination_id), destinationRanks);
       const routeRanks = new Map(routeOrder.map((route, index) => [route.id, index]));
-      destinationOrder = barycentricOrder(
-        destinationOrder,
-        destination => (linksByDestination.get(destination.id) || []).map(link => link.route_id),
-        routeRanks,
-      );
+      destinationOrder = barycentricOrder(destinationOrder, destination => (linksByDestination.get(destination.id) || []).map(link => link.route_id), routeRanks);
     }
-
-    const routeRows = new Map(routeOrder.map((route, index) => [route.id, index + 2]));
-    const preferredDestinations = destinationOrder.map((destination, order) => {
-      const connectedRows = (linksByDestination.get(destination.id) || [])
-        .map(link => routeRows.get(link.route_id))
-        .filter(Number.isFinite);
-      return { destination, order, preferred: average(connectedRows) ?? (order + 2) };
-    }).sort((a, b) => a.preferred - b.preferred || a.order - b.order);
-
-    const destinationRows = new Map();
-    let previousDestinationRow = 1;
-    for (const item of preferredDestinations) {
-      const row = Math.max(2, Math.round(item.preferred), previousDestinationRow + 1);
-      destinationRows.set(item.destination.id, row);
-      previousDestinationRow = row;
-    }
-    destinationOrder = preferredDestinations.map(item => item.destination);
-
-    const filterRows = new Map(), usedFilterRows = new Set();
-    for (const route of routeOrder) {
-      for (const link of linksByRoute.get(route.id) || []) {
-        if (!activePolicies(link).length) continue;
-        filterRows.set(linkKey(link.route_id, link.destination_id), nearestFreeRow(routeRows.get(route.id), usedFilterRows));
-      }
-    }
-
-    const allRows = [
-      ...routeRows.values(),
-      ...destinationRows.values(),
-      ...filterRows.values(),
-      2,
-    ];
-    return {
-      routeOrder,
-      destinationOrder,
-      linksByRoute,
-      routeRows,
-      destinationRows,
-      filterRows,
-      maxRow: Math.max(...allRows),
-    };
+    return { routeOrder, destinationOrder, linksByRoute, linksByDestination };
   }
+  function resolveCenters(items, desired, heights, gap, minimumTop) {
+    const centers = new Map();
+    let cursor = minimumTop;
+    for (const item of items) {
+      const height = heights.get(item.id) || 80;
+      const target = desired.get(item.id);
+      const center = Math.max(Number.isFinite(target) ? target : cursor + height / 2, cursor + height / 2);
+      centers.set(item.id, center);
+      cursor = center + height / 2 + gap;
+    }
+    const wanted = items.map(item => desired.get(item.id)).filter(Number.isFinite);
+    if (wanted.length && items.length) {
+      const actualMean = average(items.map(item => centers.get(item.id)));
+      const wantedMean = average(wanted);
+      const availableUp = Math.min(...items.map(item => centers.get(item.id) - (heights.get(item.id) || 80) / 2 - minimumTop));
+      const shift = Math.min(Math.max(0, actualMean - wantedMean), Math.max(0, availableUp));
+      if (shift > 0) for (const item of items) centers.set(item.id, centers.get(item.id) - shift);
+    }
+    return centers;
+  }
+  function computeFlowLayout(current, ordered, headerBottom) {
+    const routeHeights = new Map(ordered.routeOrder.map(route => [route.id, nodeFor("route", route.id)?.offsetHeight || 80]));
+    const destinationHeights = new Map(ordered.destinationOrder.map(destination => [destination.id, nodeFor("destination", destination.id)?.offsetHeight || 150]));
+    let filterItems = current.links.filter(link => activePolicies(link).length).map(link => ({ id: linkKey(link.route_id, link.destination_id), link }));
+    const filterHeights = new Map(filterItems.map(item => [item.id, nodeFor("filter", item.id)?.offsetHeight || 66]));
 
+    const destinationSeed = new Map();
+    let seedCursor = headerBottom;
+    for (const destination of ordered.destinationOrder) {
+      const incoming = ordered.linksByDestination.get(destination.id) || [];
+      const averageRouteHeight = average(incoming.map(link => routeHeights.get(link.route_id)).filter(Number.isFinite)) || 80;
+      const bandHeight = Math.max(destinationHeights.get(destination.id) || 150, incoming.length * (averageRouteHeight + 12));
+      destinationSeed.set(destination.id, seedCursor + bandHeight / 2);
+      seedCursor += bandHeight + 24;
+    }
+
+    const routeDesired = new Map(ordered.routeOrder.map(route => [route.id, average((ordered.linksByRoute.get(route.id) || []).map(link => destinationSeed.get(link.destination_id)).filter(Number.isFinite))]));
+    let routeCenters = resolveCenters(ordered.routeOrder, routeDesired, routeHeights, 12, headerBottom);
+    const destinationDesired = new Map(ordered.destinationOrder.map(destination => [destination.id, average((ordered.linksByDestination.get(destination.id) || []).map(link => routeCenters.get(link.route_id)).filter(Number.isFinite))]));
+    let destinationCenters = resolveCenters(ordered.destinationOrder, destinationDesired, destinationHeights, 24, headerBottom);
+    let filterCenters = new Map();
+
+    for (let pass = 0; pass < 5; pass++) {
+      const filterDesired = new Map(filterItems.map(item => [item.id, average([routeCenters.get(item.link.route_id), destinationCenters.get(item.link.destination_id)].filter(Number.isFinite))]));
+      filterItems = [...filterItems].sort((a, b) => (filterDesired.get(a.id) ?? 0) - (filterDesired.get(b.id) ?? 0) || a.id.localeCompare(b.id));
+      filterCenters = resolveCenters(filterItems, filterDesired, filterHeights, 12, headerBottom);
+
+      const nextRouteDesired = new Map(ordered.routeOrder.map(route => [route.id, average((ordered.linksByRoute.get(route.id) || []).map(link => {
+        const key = linkKey(link.route_id, link.destination_id);
+        return filterCenters.get(key) ?? destinationCenters.get(link.destination_id);
+      }).filter(Number.isFinite))]));
+      routeCenters = resolveCenters(ordered.routeOrder, nextRouteDesired, routeHeights, 12, headerBottom);
+
+      const nextDestinationDesired = new Map(ordered.destinationOrder.map(destination => [destination.id, average((ordered.linksByDestination.get(destination.id) || []).map(link => {
+        const key = linkKey(link.route_id, link.destination_id);
+        return filterCenters.get(key) ?? routeCenters.get(link.route_id);
+      }).filter(Number.isFinite))]));
+      destinationCenters = resolveCenters(ordered.destinationOrder, nextDestinationDesired, destinationHeights, 24, headerBottom);
+    }
+
+    const finalFilterDesired = new Map(filterItems.map(item => [item.id, average([routeCenters.get(item.link.route_id), destinationCenters.get(item.link.destination_id)].filter(Number.isFinite))]));
+    filterItems = [...filterItems].sort((a, b) => (finalFilterDesired.get(a.id) ?? 0) - (finalFilterDesired.get(b.id) ?? 0) || a.id.localeCompare(b.id));
+    filterCenters = resolveCenters(filterItems, finalFilterDesired, filterHeights, 12, headerBottom);
+
+    const bottoms = [headerBottom];
+    for (const route of ordered.routeOrder) bottoms.push(routeCenters.get(route.id) + (routeHeights.get(route.id) || 80) / 2);
+    for (const destination of ordered.destinationOrder) bottoms.push(destinationCenters.get(destination.id) + (destinationHeights.get(destination.id) || 150) / 2);
+    for (const item of filterItems) bottoms.push(filterCenters.get(item.id) + (filterHeights.get(item.id) || 66) / 2);
+    return { ...ordered, routeCenters, destinationCenters, filterCenters, filterItems, height: Math.max(...bottoms) + 20 };
+  }
+  function positionNode(node, column, center, headerBottom) {
+    if (!node || !column || !Number.isFinite(center)) return;
+    node.style.position = "absolute";
+    node.style.left = `${column.left}px`;
+    node.style.width = `${column.width}px`;
+    node.style.top = `${Math.max(headerBottom, center - node.offsetHeight / 2)}px`;
+    node.style.gridColumn = "auto";
+    node.style.gridRow = "auto";
+    node.dataset.layoutY = String(Math.round(center));
+  }
   function renderGraph() {
     const graph = $("rf-graph");
     graph.querySelectorAll(":scope > :not(svg)").forEach(n => n.remove());
-    const layout = computeFlowLayout();
-    graph.dataset.layoutRows = String(layout.maxRow);
-    [["Integration routes", "Event sources with configured routes"], ["Active filters", "Per destination and integration"], ["Destinations", "Alert channels receiving events"]].forEach(([a, b]) => {
-      const head = el("div", "rf-column-heading", a); head.append(el("small", "", b)); graph.append(head);
+    graphModel = activeFlowGraph();
+    const current = graphModel;
+    const ordered = orderFlowGraph(current);
+    const headingNodes = new Map();
+    [["route", "Integration routes", "Event sources with configured routes"], ["filter", "Active filters", "Per destination and integration"], ["destination", "Destinations", "Alert channels receiving events"]].forEach(([kind, a, b]) => {
+      const head = el("div", "rf-column-heading", a); head.append(el("small", "", b)); graph.append(head); headingNodes.set(kind, head);
     });
-    for (const r of layout.routeOrder) {
-      const links = layout.linksByRoute.get(r.id) || [], row = layout.routeRows.get(r.id);
-      const node = createNode("route", r.id, row, 1, `${r.integration_name}: ${r.name}. View details`);
-      node.classList.toggle("rf-disabled", !r.enabled);
+
+    for (const r of ordered.routeOrder) {
+      const node = createNode("route", r.id, `${r.integration_name}: ${r.name}. View details`);
       node.append(sourceIcon(r.source));
       const text = el("div", "rf-node-copy");
-      text.append(el("strong", "", r.integration_name), el("small", "", r.name), el("span", r.enabled ? "rf-green" : "rf-muted", `${r.enabled ? "Enabled" : "Disabled"} · ${r.input_type || "Any input"}`));
+      text.append(el("strong", "", r.integration_name), el("small", "", r.name), el("span", "rf-green", `Enabled · ${r.input_type || "Any input"}`));
       node.append(text);
-      if (!links.length) {
-        const blank = el("div", "rf-unassigned", "No visible destination assigned");
-        blank.style.gridRow = String(row); blank.style.gridColumn = "2"; graph.append(blank);
-      }
-      for (const link of links) {
-        const key = linkKey(r.id, link.destination_id), filterRow = layout.filterRows.get(key);
-        if (!filterRow) continue;
-        const lines = activePolicyLines(link), destination = data.destinations.find(d => d.id === link.destination_id);
-        const filter = createNode("filter", key, filterRow, 1, `${r.integration_name} filter for ${destination.name}`);
-        filter.classList.toggle("rf-disabled", !link.enabled);
+      for (const link of ordered.linksByRoute.get(r.id) || []) {
+        const lines = activePolicyLines(link);
+        if (!lines.length) continue;
+        const key = linkKey(r.id, link.destination_id), destination = current.destinations.find(d => d.id === link.destination_id);
+        if (!destination) continue;
+        const filter = createNode("filter", key, `${r.integration_name} filter for ${destination.name}`);
         const badge = el("span", "rf-funnel"); badge.append(icon("filter"));
         const copy = el("div", "rf-node-copy");
         copy.append(el("strong", "", lines[0]), el("small", "", lines.length > 1 ? `+${lines.length - 1} policies · inspect details` : destination.name));
         filter.append(badge, copy);
       }
     }
-    for (const d of layout.destinationOrder) {
-      const node = createNode("destination", d.id, layout.destinationRows.get(d.id), 1, `${d.name}. View destination details`);
-      node.classList.toggle("rf-disabled", !d.enabled);
+    for (const d of ordered.destinationOrder) {
+      const node = createNode("destination", d.id, `${d.name}. View destination details`);
       const top = el("div", "rf-destination-top"), copy = el("div", "rf-node-copy");
       copy.append(el("strong", "", d.name), el("small", "", d.channel || OUTPUT_NAMES[d.output_type] || d.output_type));
       top.append(destinationLogo(d), copy);
@@ -315,12 +342,29 @@
       [["delivered", "delivered", "green"], ["pending", "retry scheduled", "amber"], ["failed", "failed", "red"]].forEach(([k, label, color]) => {
         const n = el("span", `rf-${color}`); n.append(dot(color), document.createTextNode(`${metricText(d.metrics[k])} ${label}`)); counts.append(n);
       });
-      node.append(top, counts, el("small", "rf-last", `${d.enabled ? "Enabled" : "Disabled"} · ${d.route_ids.length} assigned routes`));
+      const assigned = current.links.filter(link => link.destination_id === d.id).length;
+      node.append(top, counts, el("small", "rf-last", `Enabled · ${assigned} active route${assigned === 1 ? "" : "s"}`));
     }
-    $("rf-empty").hidden = Boolean(data.routes.length || data.destinations.length);
-    $("rf-empty").textContent = "No visible routes or destinations yet. This overview reflects configuration from Destinations and Filtering.";
-    graph.hidden = !(data.routes.length || data.destinations.length);
-    $("rf-counts").textContent = `${data.routes.length} routes · ${data.links.length} connections · ${data.destinations.length} destinations`;
+
+    const hasFlow = current.links.length > 0;
+    $("rf-empty").hidden = hasFlow;
+    $("rf-empty").textContent = "No active connected routes and destinations.";
+    graph.hidden = !hasFlow;
+    $("rf-counts").textContent = `${current.routes.length} routes · ${current.links.length} connections · ${current.destinations.length} destinations`;
+
+    if (hasFlow && window.innerWidth > 640) {
+      const columns = new Map([...headingNodes].map(([kind, head]) => [kind, { left: head.offsetLeft, width: head.offsetWidth }]));
+      const headerBottom = Math.max(...[...headingNodes.values()].map(head => head.offsetTop + head.offsetHeight)) + 18;
+      const layout = computeFlowLayout(current, ordered, headerBottom);
+      graph.style.height = `${Math.ceil(layout.height)}px`;
+      graph.dataset.layoutMode = "connected-pixel-auto";
+      for (const route of layout.routeOrder) positionNode(nodeFor("route", route.id), columns.get("route"), layout.routeCenters.get(route.id), headerBottom);
+      for (const item of layout.filterItems) positionNode(nodeFor("filter", item.id), columns.get("filter"), layout.filterCenters.get(item.id), headerBottom);
+      for (const destination of layout.destinationOrder) positionNode(nodeFor("destination", destination.id), columns.get("destination"), layout.destinationCenters.get(destination.id), headerBottom);
+    } else {
+      graph.style.height = "";
+      graph.dataset.layoutMode = "stacked";
+    }
     drawEdges();
   }
   function renderHistory() {
@@ -345,7 +389,8 @@
     renderMetrics(); renderGraph(); renderHistory();
     if (focusKey) Array.from(section.querySelectorAll("[data-focus-key]")).find(n => n.dataset.focusKey === focusKey)?.focus({ preventScroll: true });
     if (dialog.open && selected) {
-      const found = selected.kind === "route" ? data.routes.some(r => r.id === selected.identity) : selected.kind === "destination" ? data.destinations.some(d => d.id === selected.identity) : data.links.some(l => linkKey(l.route_id,l.destination_id) === selected.identity && activePolicies(l).length);
+      const current = graphModel || activeFlowGraph();
+      const found = selected.kind === "route" ? current.routes.some(r => r.id === selected.identity) : selected.kind === "destination" ? current.destinations.some(d => d.id === selected.identity) : current.links.some(l => linkKey(l.route_id,l.destination_id) === selected.identity && activePolicies(l).length);
       if (found) showDetails(selected.kind, selected.identity); else dialog.close();
     }
   }
@@ -354,17 +399,9 @@
   function relevant(link) {
     return !selected || (selected.kind === "route" && selected.identity === link.route_id) || (selected.kind === "destination" && selected.identity === link.destination_id) || (selected.kind === "filter" && selected.identity === linkKey(link.route_id, link.destination_id));
   }
-  function edgeCurve(a, b, direct) {
+  function edgeCurve(a, b) {
     const x = a.offsetLeft + a.offsetWidth, y = a.offsetTop + a.offsetHeight / 2;
-    const xx = b.offsetLeft, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x;
-    if (direct) {
-      // Keep unfiltered traffic level through the filter column, then turn
-      // toward its destination. This avoids visually passing through an
-      // unrelated active filter card whenever the topology allows it.
-      const turn = x + gap * .68;
-      return `M${x} ${y} L${turn} ${y} C${turn + gap * .08} ${y} ${xx - gap * .18} ${yy} ${xx} ${yy}`;
-    }
-    const bend = gap * .52;
+    const xx = b.offsetLeft, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x, bend = gap * .52;
     return `M${x} ${y} C${x+bend} ${y} ${xx-bend} ${yy} ${xx} ${yy}`;
   }
   function drawEdges() {
@@ -375,13 +412,13 @@
     edges.setAttribute("viewBox", `0 0 ${graph.clientWidth} ${graph.clientHeight}`);
     const defs = svg("defs"), marker = svg("marker", { id:"rf-arrow", viewBox:"0 0 8 8", refX:7, refY:4, markerWidth:7, markerHeight:7, orient:"auto" });
     marker.append(svg("path", {d:"M0 0 L8 4 L0 8 Z", fill:"currentColor"})); defs.append(marker); edges.append(defs);
-    for (const link of data.links) {
+    const current = graphModel || activeFlowGraph();
+    for (const link of current.links) {
       const key = linkKey(link.route_id, link.destination_id), route = nodeFor("route", link.route_id), filter = nodeFor("filter", key), destination = nodeFor("destination", link.destination_id);
       if (!route || !destination) continue;
-      const paths = [];
-      const pairs = filter ? [[route,filter,false],[filter,destination,false]] : [[route,destination,true]];
-      for (const [a, b, direct] of pairs) {
-        const path = svg("path", {d:edgeCurve(a,b,direct), class:`rf-edge${!link.enabled?" rf-off":""}${relevant(link)?"":" rf-dim"}`, "marker-end":"url(#rf-arrow)"});
+      const paths = [], pairs = filter ? [[route, filter], [filter, destination]] : [[route, destination]];
+      for (const [a, b] of pairs) {
+        const path = svg("path", {d:edgeCurve(a,b), class:`rf-edge${relevant(link)?"":" rf-dim"}`, "marker-end":"url(#rf-arrow)"});
         edges.append(path); paths.push(path);
       }
       edgePaths.set(key, paths);
@@ -419,7 +456,7 @@
     stopPulses();
   }
   function clearPrivateData() {
-    data=null; signature=""; owner=null; seen=new Set();
+    data=null; signature=""; owner=null; seen=new Set(); graphModel=null;
     $("rf-metrics").replaceChildren(); $("rf-history-body").replaceChildren();
     $("rf-graph").querySelectorAll(":scope > :not(svg)").forEach(n=>n.remove());
     $("rf-edges").replaceChildren(); $("rf-minimap").replaceChildren();
@@ -480,6 +517,6 @@
   function setZoom(value){zoom=Math.min(1,Math.max(.7,Math.round(value*10)/10));$("rf-graph").style.transform=`scale(${zoom})`;$("rf-zoom-value").textContent=`${Math.round(zoom*100)}%`;$("rf-plus").disabled=zoom===1;$("rf-minus").disabled=zoom===.7;}
   $("rf-minus").addEventListener("click",()=>setZoom(zoom-.1));$("rf-plus").addEventListener("click",()=>setZoom(zoom+.1));$("rf-fit").addEventListener("click",()=>setZoom(1));
   $("rf-history-toggle").addEventListener("click",()=>{allHistory=!allHistory;if(data)renderHistory();});
-  new ResizeObserver(()=>{if(resizeFrame!==null)cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>{resizeFrame=null;drawEdges();});}).observe($("rf-graph"));
+  new ResizeObserver(()=>{if(resizeFrame!==null)cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>{resizeFrame=null;if(data&&active())renderGraph();else drawEdges();});}).observe($("rf-graph"));
   setZoom(1);sync();
 })();
