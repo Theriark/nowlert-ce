@@ -435,16 +435,15 @@
   }
   function animateAttempts(items) {
     if (!active() || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const started = performance.now();
     for (const item of items.slice(0,12)) {
       const key = linkKey(item.route_id,item.destination_id), paths = edgePaths.get(key);
       if (!paths?.length) continue;
       const circle = svg("circle", {r:3.2,class:`rf-particle ${item.outcome==='failed'?'rf-failed-particle':''}`});
-      $("rf-particle-layer").append(circle); pulses.push({dot:circle,key,started});
+      $("rf-particle-layer").append(circle); pulses.push({dot:circle,key,started:null});
     }
     function frame(now) {
       if (!active()) { stopPulses(); return; }
-      pulses = pulses.filter(p=>{const elapsed=(now-p.started)/1600;if(elapsed>=1){p.dot.remove();return false;}const paths=edgePaths.get(p.key);if(!paths?.length){p.dot.remove();return false;}const scaled=elapsed*paths.length,index=Math.min(paths.length-1,Math.floor(scaled)),progress=scaled-index,path=paths[index];const pt=path.getPointAtLength(path.getTotalLength()*progress);p.dot.setAttribute("cx",pt.x);p.dot.setAttribute("cy",pt.y);return true;});
+      pulses = pulses.filter(p=>{if(p.started===null)p.started=now;const elapsed=(now-p.started)/1600;if(elapsed>=1){p.dot.remove();return false;}const paths=edgePaths.get(p.key);if(!paths?.length){p.dot.remove();return false;}const scaled=elapsed*paths.length,index=Math.min(paths.length-1,Math.floor(scaled)),progress=scaled-index,path=paths[index];const pt=path.getPointAtLength(path.getTotalLength()*progress);p.dot.setAttribute("cx",pt.x);p.dot.setAttribute("cy",pt.y);return true;});
       pulseFrame = pulses.length ? requestAnimationFrame(frame) : null;
     }
     if (pulses.length && pulseFrame===null) pulseFrame=requestAnimationFrame(frame);
