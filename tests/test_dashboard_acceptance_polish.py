@@ -87,6 +87,12 @@ def test_dashboard_has_inner_toolbar_with_live_then_range_controls():
     assert "content: none" in css
 
 
+def test_dashboard_toolbar_reordering_is_idempotent_under_mutation_observer():
+    script = _read("src/webui/operations_acceptance.js")
+    assert "controls.firstElementChild !== live || live.nextElementSibling !== range" in script
+    assert 'if (live && range) controls.append(live, range);' not in script
+
+
 def test_recent_activity_uses_stable_status_columns():
     css = _read("src/webui/operations_acceptance.css")
     assert "grid-template-columns: 36px minmax(110px, 1fr) 82px 62px 82px 64px;" in css
