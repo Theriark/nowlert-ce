@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from urllib.parse import unquote
 
@@ -21,9 +22,13 @@ from storage.system_filtering import SystemDestinationFilterStore
 
 
 _DESTINATION_FILTER = re.compile(r"/api/v2/filters/destinations/([0-9a-f]{32})")
+_DESTINATION_FILTER_ENABLED = re.compile(
+    r"/api/v2/filters/destinations/([0-9a-f]{32})/enabled"
+)
 _SOURCE_FILTER = re.compile(
     r"/api/v2/filters/destinations/([0-9a-f]{32})/sources/([^/]+)"
 )
+_MASTER_FILTER_NAMESPACE = "destination_filter_master_enabled"
 
 
 class AcceptanceDestinationAccessStore(DestinationAccessStore):
@@ -148,9 +153,62 @@ class AcceptanceRouteDestinationStore(AccessControlledRouteDestinationStore):
 
 
 class AcceptanceFilterStore(SystemDestinationFilterStore):
-    """Evaluate private filters at runtime without exposing them to the event actor."""
+    """Evaluate owner-private filters with a non-destructive destination master switch."""
+
+    def destination_filtering_enabled(self, destination_id: str) -> bool:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT value_json FROM settings_records "
+                "WHERE namespace = ? AND setting_key = ?",
+                (_MASTER_FILTER_NAMESPACE, str(destination_id)),
+            ).fetchone()
+        if row is None:
+            return True
+        try:
+            return bool(json.loads(str(row["value_json"])))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return True
+
+    def set_destination_filtering_enabled(
+        self, actor, destination_id: str, enabled: bool
+    ) -> bool:
+        self._destination(actor, destination_id, write=True)
+        with self.database.transaction() as connection:
+            if enabled:
+                connection.execute(
+                    "DELETE FROM settings_records WHERE namespace = ? AND setting_key = ?",
+                    (_MASTER_FILTER_NAMESPACE, str(destination_id)),
+                )
+            else:
+                connection.execute(
+                    """
+                    INSERT INTO settings_records(namespace, setting_key, value_json, updated_at)
+                    VALUES (?, ?, 'false', ?)
+                    ON CONFLICT(namespace, setting_key) DO UPDATE SET
+                        value_json = excluded.value_json,
+                        updated_at = excluded.updated_at
+                    """,
+                    (_MASTER_FILTER_NAMESPACE, str(destination_id), int(self.clock())),
+                )
+        self._audit(
+            actor,
+            "filter.destination.enable" if enabled else "filter.destination.disable",
+            destination_id,
+            {"enabled": bool(enabled)},
+        )
+        return bool(enabled)
+
+    def clear_destination(self, actor, destination_id: str) -> None:
+        super().clear_destination(actor, destination_id)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "DELETE FROM settings_records WHERE namespace = ? AND setting_key = ?",
+                (_MASTER_FILTER_NAMESPACE, str(destination_id)),
+            )
 
     def matches(self, actor, destination_id: str, notification) -> bool:
+        if not self.destination_filtering_enabled(destination_id):
+            return True
         source = canonical_source(notification.source)
         policy = self._policy(destination_id, source)
         policy_rules = list(policy.get("policy_rules") or []) if policy else []
@@ -225,50 +283,118 @@ class PlatformAPI(BasePlatformAPI):
             raise PermissionError("destination filtering is private to its owner")
         return row
 
+    @staticmethod
+    def _sanitized_integration(item, *, effective_enabled: bool) -> dict:
+        return {
+            "source": item["source"],
+            "name": item.get("name"),
+            "inputs": list(item.get("inputs") or []),
+            "configured": True,
+            "filter_enabled": bool(effective_enabled),
+            "restricted": True,
+            "fields": [],
+            "rules": {},
+            "legacy_clauses": [],
+            "policy_rules": [],
+        }
+
     def _filters_overview(self, actor) -> APIResponse:
+        self.filters.migrate_legacy_route_filters()
         choices = []
+        policies = []
         for destination in self.destinations.list_visible(actor):
-            if actor.user_id != destination.owner_user_id:
-                continue
+            row = self.destination_access.destination_row(destination.id)
+            owned = actor.user_id == destination.owner_user_id
+            can_manage = self.destination_access.can_manage_filters(actor, row)
             available = self.filters.available_sources(actor, destination.id)
-            choices.append(
+            master_enabled = self.filters.destination_filtering_enabled(destination.id)
+            if owned and can_manage:
+                choices.append(
+                    {
+                        "id": destination.id,
+                        "name": destination.name,
+                        "output_type": destination.output_type,
+                        "enabled": destination.enabled,
+                        "shared": destination.shared,
+                        "owned": True,
+                        "can_manage_filters": True,
+                        "can_change_sharing": bool(actor.is_admin),
+                        "filtering_enabled": master_enabled,
+                        "available_integration_count": len(available),
+                    }
+                )
+
+            stored = self.filters._policies_for_destination(destination.id)
+            if not stored:
+                continue
+            view = self.filters.destination_view(actor, destination.id)
+            configured = [
+                item for item in view["integrations"] if item.get("configured")
+            ]
+            if not configured:
+                continue
+
+            managed_by_admin = False
+            if not owned:
+                owner = self.destination_access._user_row(destination.owner_user_id)
+                managed_by_admin = bool(destination.shared) and str(owner["role"]) == "admin"
+                if not managed_by_admin:
+                    continue
+
+            effective = [
+                bool(master_enabled and item.get("filter_enabled", True))
+                for item in configured
+            ]
+            public_integrations = (
+                [
+                    {**item, "filter_enabled": enabled}
+                    for item, enabled in zip(configured, effective)
+                ]
+                if owned
+                else [
+                    self._sanitized_integration(item, effective_enabled=enabled)
+                    for item, enabled in zip(configured, effective)
+                ]
+            )
+            policies.append(
                 {
-                    "id": destination.id,
-                    "name": destination.name,
+                    "destination_id": destination.id,
+                    "destination_name": destination.name,
                     "output_type": destination.output_type,
                     "enabled": destination.enabled,
                     "shared": destination.shared,
-                    "owned": True,
-                    "can_manage_filters": True,
-                    "available_integration_count": len(available),
+                    "owned": owned,
+                    "can_manage_filters": bool(can_manage),
+                    "can_change_sharing": bool(actor.is_admin and owned),
+                    "managed_by_admin": managed_by_admin,
+                    "filtering_enabled": master_enabled,
+                    "configured_count": len(configured),
+                    "active_count": sum(effective),
+                    "available_count": len(view["integrations"]),
+                    "sources": [
+                        item["source"]
+                        for item, enabled in zip(configured, effective)
+                        if enabled
+                    ],
+                    "integrations": public_integrations,
+                    "unconfigured_integrations": (
+                        [
+                            {"source": item["source"], "name": item.get("name")}
+                            for item in view["integrations"]
+                            if not item.get("configured")
+                        ]
+                        if owned
+                        else []
+                    ),
                 }
             )
-
-        policies = [
-            policy
-            for policy in self.filters.list_visible(actor)
-            if policy.get("owned") is True
-        ]
-        for policy in policies:
-            view = self.filters.destination_view(actor, policy["destination_id"])
-            integrations = list(view["integrations"])
-            configured = [item for item in integrations if item.get("configured")]
-            active = [item for item in configured if item.get("filter_enabled", True)]
-            policy["configured_count"] = len(configured)
-            policy["active_count"] = len(active)
-            policy["integrations"] = configured
-            policy["unconfigured_integrations"] = [
-                {"source": item["source"], "name": item.get("name")}
-                for item in integrations
-                if not item.get("configured")
-            ]
 
         return APIResponse(
             200,
             {
                 "filters": policies,
                 "destinations": choices,
-                "private_resources": self.destination_access.private_filter_metadata(actor),
+                "private_resources": [],
             },
         )
 
@@ -282,6 +408,33 @@ class PlatformAPI(BasePlatformAPI):
 
         if path == "/api/v2/filters" and method == "GET":
             return self._filters_overview(actor)
+
+        enabled_match = _DESTINATION_FILTER_ENABLED.fullmatch(path)
+        if enabled_match:
+            destination_id = enabled_match.group(1)
+            self._owner_filter_destination(actor, destination_id)
+            if method == "GET":
+                return APIResponse(
+                    200,
+                    {
+                        "destination_id": destination_id,
+                        "enabled": self.filters.destination_filtering_enabled(
+                            destination_id
+                        ),
+                    },
+                )
+            if method == "PUT":
+                data = self._object(payload, {"enabled"})
+                if set(data) != {"enabled"} or not isinstance(data["enabled"], bool):
+                    raise ValueError("enabled must be a boolean")
+                enabled = self.filters.set_destination_filtering_enabled(
+                    actor, destination_id, data["enabled"]
+                )
+                return APIResponse(
+                    200,
+                    {"destination_id": destination_id, "enabled": enabled},
+                )
+            return self._method_not_allowed("GET, PUT")
 
         source_match = _SOURCE_FILTER.fullmatch(path)
         if source_match:
@@ -309,6 +462,10 @@ class PlatformAPI(BasePlatformAPI):
         if destination_match and method == "GET":
             destination_id = destination_match.group(1)
             self._owner_filter_destination(actor, destination_id)
-            return APIResponse(200, self.filters.destination_view(actor, destination_id))
+            view = self.filters.destination_view(actor, destination_id)
+            view["destination"]["filtering_enabled"] = (
+                self.filters.destination_filtering_enabled(destination_id)
+            )
+            return APIResponse(200, view)
 
         return super()._resource_endpoint(method, path, payload, actor)

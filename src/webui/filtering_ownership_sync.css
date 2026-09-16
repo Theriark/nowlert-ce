@@ -1,0 +1,43 @@
+/* Ownership/status alignment layered after Filtering and Routing Flow styles. */
+.filtering-table th:nth-child(2) {
+  padding-left: 0.75rem;
+  text-align: left !important;
+}
+.filtering-table td:nth-child(2) { text-align: left; }
+.filtering-overview-list {
+  margin-inline: 0 !important;
+  max-width: none !important;
+}
+.filtering-status-stack {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.filtering-status-control {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+}
+.filtering-status-control:hover {
+  filter: brightness(1.15);
+  outline: 1px solid color-mix(in srgb, currentColor 42%, transparent);
+}
+.filtering-status-control:focus-visible {
+  outline: 2px solid #7ea8ff;
+  outline-offset: 2px;
+}
+.filtering-managed-note {
+  color: var(--muted);
+  display: block;
+  font-size: 0.6rem;
+  line-height: 1.25;
+  margin-top: 0.15rem;
+}
+.filtering-managed-integration .filtering-overview-chips { display: none; }
+.filtering-owner-picker { width: min(620px, calc(100vw - 2rem)); }
+.rf-column-heading {
+  box-sizing: border-box;
+  padding-left: 0 !important;
+  text-align: left;
+}

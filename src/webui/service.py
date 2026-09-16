@@ -156,6 +156,16 @@ class WebUIService:
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/filtering_ownership_sync.js": (
+                "src/webui/filtering_ownership_sync.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/filtering_ownership_sync.css": (
+                "src/webui/filtering_ownership_sync.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/icon.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
@@ -249,6 +259,7 @@ class WebUIService:
                 '  <link rel="stylesheet" href="/ui/destination_editor_fix.css">\n'
                 '  <link rel="stylesheet" href="/ui/policy_simplification.css">\n'
                 '  <link rel="stylesheet" href="/ui/routing_flow.css">\n'
+                '  <link rel="stylesheet" href="/ui/filtering_ownership_sync.css">\n'
                 '  <script src="/ui/filtering.js" defer></script>\n'
                 '  <script src="/ui/source_ui_retirement.js" defer></script>\n'
                 '  <script src="/ui/destination_routes.js" defer></script>\n'
@@ -256,6 +267,7 @@ class WebUIService:
                 '  <script src="/ui/policy_simplification.js" defer></script>\n'
                 '  <script src="/ui/acceptance_cleanup.js" defer></script>\n'
                 '  <script src="/ui/routing_flow.js" defer></script>\n'
+                '  <script src="/ui/filtering_ownership_sync.js" defer></script>\n'
             )
             body = text.replace("</head>", extension + "</head>", 1).encode("utf-8")
         return WebUIResponse(200, body, content_type, cache_control)
