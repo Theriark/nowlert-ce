@@ -59,6 +59,15 @@ def test_particles_survive_dynamic_edge_redraw_and_follow_current_paths():
     assert "edgeLayer.replaceChildren()" in draw_edges
     assert "edgeLayer.append(path)" in draw_edges
     assert '$("rf-particle-layer").append(circle)' in animate
-    assert "pulses.push({dot:circle,key,started})" in animate
+    assert "pulses.push({dot:circle,key,started:null})" in animate
     assert "edgePaths.get(p.key)" in animate
     assert "p.paths" not in animate
+
+
+def test_particle_animation_uses_first_raf_timestamp_as_clock_origin():
+    script = ROUTING_FLOW.read_text(encoding="utf-8")
+    animate = script.split("function animateAttempts(items)", 1)[1]
+
+    assert "const started = performance.now();" not in animate
+    assert "pulses.push({dot:circle,key,started:null})" in animate
+    assert "if(p.started===null)p.started=now;" in animate
