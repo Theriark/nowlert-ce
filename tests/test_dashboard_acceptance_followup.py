@@ -58,3 +58,12 @@ def test_dashboard_workspace_summary_preserves_live_configuration_metrics():
     assert '.ops-config-status.is-neutral' in styles
     assert '.ops-config-status.is-shared' in styles
     assert '.ops-config-status.is-review' in styles
+
+
+def test_destination_test_refresh_skips_removed_legacy_dashboard_flow():
+    script = _read("src/webui/acceptance_cleanup.js")
+
+    assert 'const previousRenderFlow = typeof renderFlow === "function" ? renderFlow : null;' in script
+    assert 'renderFlow = function renderFlowAcceptance()' in script
+    assert 'if (!byId("dashboard-flow")) return;' in script
+    assert 'return previousRenderFlow();' in script
