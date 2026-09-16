@@ -8,12 +8,6 @@
   const FLOW_LIVE_MS = 15_000;
   const DASHBOARD_RANGES = new Set(["10m", "1h", "1d", "1m", "1y"]);
   const FLOW_RANGES = new Set(["15m", "1h", "3h", "6h", "1d"]);
-  const DASHBOARD_CONFIGURATION_IDS = [
-    "ops-config-tokens",
-    "ops-config-filters",
-    "ops-config-shared",
-    "ops-config-audit",
-  ];
   const dashboardFeeds = Object.fromEntries(
     DASHBOARD_FEED_KEYS.map(key => [key, { lastAttempt: 0, lastSuccess: 0, ok: null }]),
   );
@@ -325,21 +319,8 @@
     }
   }
 
-  function removeDashboardConfigurationStrip() {
-    const strip = document.querySelector("#view-dashboard .ops-configuration");
-    if (!strip) return;
-    let sink = byId("ops-dashboard-configuration-sink");
-    if (!sink) {
-      sink = element("div");
-      sink.id = "ops-dashboard-configuration-sink";
-      sink.hidden = true;
-      for (const id of DASHBOARD_CONFIGURATION_IDS) {
-        const item = element("span", "", byId(id)?.textContent || "-");
-        item.id = id;
-        sink.append(item);
-      }
-    }
-    strip.replaceWith(sink);
+  function removeDashboardConfigurationHeading() {
+    document.querySelector("#view-dashboard .ops-configuration .ops-config-heading")?.remove();
   }
 
   function polishAdministrationTabs() {
@@ -364,7 +345,7 @@
     if (routeNote && routeNote.textContent !== "Enabled routing rules") routeNote.textContent = "Enabled routing rules";
 
     polishDashboardRange();
-    removeDashboardConfigurationStrip();
+    removeDashboardConfigurationHeading();
     ensureDashboardToolbar();
     ensureDashboardStatus();
     bindRangePersistence();
