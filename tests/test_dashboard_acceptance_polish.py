@@ -67,3 +67,40 @@ def test_acceptance_assets_load_after_operations_dashboard():
     assert '/ui/operations_acceptance.css' in service
     assert '/ui/operations_acceptance.js' in service
     assert service.index('/ui/operations_dashboard.js') < service.index('/ui/operations_acceptance.js')
+
+
+def test_dashboard_liveness_waits_for_complete_refresh_batch():
+    script = _read("src/webui/operations_acceptance.js")
+    assert "dashboardRefreshBatch" in script
+    assert "DASHBOARD_FEED_KEYS.every(key => batch.started.has(key))" in script
+    assert "if (batch.pending.size) return;" in script
+    assert "commitDashboardRefreshBatch(batch)" in script
+
+
+def test_dashboard_has_inner_toolbar_with_live_then_range_controls():
+    script = _read("src/webui/operations_acceptance.js")
+    css = _read("src/webui/operations_acceptance.css")
+    assert "ops-dashboard-toolbar" in script
+    assert "toolbar.append(controls)" in script
+    assert "controls.append(live, range)" in script
+    assert "#view-dashboard > .ops-dashboard-toolbar" in css
+    assert "content: none" in css
+
+
+def test_recent_activity_uses_stable_status_columns():
+    css = _read("src/webui/operations_acceptance.css")
+    assert "grid-template-columns: 36px minmax(110px, 1fr) 82px 62px 82px 64px;" in css
+    assert ".ops-activity-row .ops-severity" in css
+    assert ".ops-activity-row .ops-activity-time" in css
+
+
+def test_administration_tabs_follow_the_page_title_box():
+    script = _read("src/webui/operations_acceptance.js")
+    assert "polishAdministrationTabs" in script
+    assert "toolbar.after(tabs)" in script
+
+
+def test_live_tooltips_state_their_actual_scope():
+    script = _read("src/webui/operations_acceptance.js")
+    assert "not an external integration heartbeat" in script
+    assert "not an integration or destination heartbeat" in script

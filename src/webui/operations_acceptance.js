@@ -13,6 +13,7 @@
   );
 
   let dashboardLastCompleteAt = 0;
+  let dashboardRefreshBatch = null;
   let flowLastAttempt = 0;
   let flowLastSuccess = 0;
   let flowLatestOk = null;
@@ -128,7 +129,7 @@
       container.replaceChildren(dot, copy);
       container.dataset.liveContract = "data-feed";
       container.setAttribute("aria-live", "polite");
-      container.title = "Live means Dashboard metrics, deliveries, filtering, and audit data have all refreshed successfully within the freshness window.";
+      container.title = "Live means Nowlert successfully refreshed Dashboard metrics, deliveries, filtering, and audit data within the freshness window; it is not an external integration heartbeat.";
     }
     return container;
   }
@@ -187,19 +188,46 @@
     return "";
   }
 
-  function markDashboardFeed(key, ok) {
-    if (!key || !dashboardFeeds[key]) return;
+  function beginDashboardRefreshRequest(key) {
+    if (state.currentView !== "dashboard") return null;
+    if (!dashboardRefreshBatch) {
+      dashboardRefreshBatch = {
+        started: new Set(),
+        pending: new Set(),
+        results: new Map(),
+      };
+    }
+    const batch = dashboardRefreshBatch;
+    batch.started.add(key);
+    batch.pending.add(key);
+    return batch;
+  }
+
+  function commitDashboardRefreshBatch(batch) {
+    if (!batch || dashboardRefreshBatch !== batch) return;
+    if (batch.pending.size) return;
+    dashboardRefreshBatch = null;
+    if (!DASHBOARD_FEED_KEYS.every(key => batch.started.has(key))) return;
+
     const now = Date.now();
-    const feed = dashboardFeeds[key];
-    feed.lastAttempt = now;
-    feed.ok = Boolean(ok);
-    if (ok) feed.lastSuccess = now;
-    if (DASHBOARD_FEED_KEYS.every(name => dashboardFeeds[name].ok === true)) {
-      dashboardLastCompleteAt = Math.min(
-        ...DASHBOARD_FEED_KEYS.map(name => dashboardFeeds[name].lastSuccess),
-      );
+    for (const key of DASHBOARD_FEED_KEYS) {
+      const feed = dashboardFeeds[key];
+      const ok = batch.results.get(key) === true;
+      feed.lastAttempt = now;
+      feed.ok = ok;
+      if (ok) feed.lastSuccess = now;
+    }
+    if (DASHBOARD_FEED_KEYS.every(key => batch.results.get(key) === true)) {
+      dashboardLastCompleteAt = now;
     }
     updateDashboardStatus();
+  }
+
+  function finishDashboardRefreshRequest(batch, key, ok) {
+    if (!batch || dashboardRefreshBatch !== batch) return;
+    batch.results.set(key, Boolean(ok));
+    batch.pending.delete(key);
+    commitDashboardRefreshBatch(batch);
   }
 
   function ensureRoutingFlowStatus() {
@@ -211,7 +239,7 @@
       container = element("span", "rf-live-status is-connecting");
       container.id = "rf-live-status";
       container.setAttribute("aria-live", "polite");
-      container.title = "Live means the Routing Flow endpoint returned a successful fresh snapshot within the last 15 seconds.";
+      container.title = "Live means Nowlert received a successful fresh Routing Flow snapshot within the last 15 seconds; it is not an integration or destination heartbeat.";
       const dot = element("span", "rf-live-dot");
       dot.setAttribute("aria-hidden", "true");
       const copy = element("span", "rf-live-copy");
@@ -252,6 +280,42 @@
     byId("rf-live-age").textContent = status.detail;
   }
 
+  function ensureDashboardToolbar() {
+    const dashboard = byId("view-dashboard");
+    const controls = byId("ops-dashboard-top-actions");
+    if (!dashboard || !controls) return null;
+
+    let toolbar = dashboard.querySelector(":scope > .ops-dashboard-toolbar");
+    if (!toolbar) {
+      toolbar = element("div", "section-toolbar ops-dashboard-toolbar");
+      const copy = element("div", "ops-dashboard-toolbar-copy");
+      copy.append(
+        element("h2", "", "Dashboard"),
+        element("p", "", "Monitor your alert delivery pipeline and system health."),
+      );
+      toolbar.append(copy);
+      dashboard.prepend(toolbar);
+    }
+
+    const live = controls.querySelector(".ops-live");
+    const range = controls.querySelector(".ops-global-range");
+    if (live && range) controls.append(live, range);
+    if (controls.parentElement !== toolbar) toolbar.append(controls);
+    controls.hidden = state.currentView !== "dashboard";
+    byId("page-title")?.removeAttribute("data-dashboard-subtitle");
+    return toolbar;
+  }
+
+  function polishAdministrationTabs() {
+    for (const view of ["users", "settings", "updates", "data"]) {
+      const section = byId(`view-${view}`);
+      const toolbar = section?.querySelector(":scope > .section-toolbar");
+      const tabs = section?.querySelector(":scope > .administration-tabs");
+      if (!toolbar || !tabs || toolbar.nextElementSibling === tabs) continue;
+      toolbar.after(tabs);
+    }
+  }
+
   function polishDashboardStructure() {
     document.querySelector("#view-dashboard .ops-delivery-panel .ops-range")?.remove();
     document.querySelectorAll("#view-dashboard .ops-kpi-config .ops-kpi-delta").forEach(item => item.remove());
@@ -263,6 +327,7 @@
     if (destinationNote && destinationNote.textContent !== "Enabled destinations") destinationNote.textContent = "Enabled destinations";
     if (routeNote && routeNote.textContent !== "Enabled routing rules") routeNote.textContent = "Enabled routing rules";
 
+    ensureDashboardToolbar();
     ensureDashboardStatus();
     bindRangePersistence();
     compactPercentages();
@@ -271,14 +336,15 @@
   const previousRequest = request;
   request = async function operationsAcceptanceRequest(path, options = {}) {
     const key = dashboardFeedKey(path);
-    if (!key) return previousRequest(path, options);
-    dashboardFeeds[key].lastAttempt = Date.now();
+    if (!key || state.currentView !== "dashboard") return previousRequest(path, options);
+    syncAuthenticatedUser();
+    const batch = beginDashboardRefreshRequest(key);
     try {
       const response = await previousRequest(path, options);
-      markDashboardFeed(key, true);
+      finishDashboardRefreshRequest(batch, key, true);
       return response;
     } catch (error) {
-      markDashboardFeed(key, false);
+      finishDashboardRefreshRequest(batch, key, false);
       throw error;
     }
   };
@@ -308,6 +374,7 @@
     const result = previousNavigate(view, historyMode);
     window.queueMicrotask(() => {
       polishDashboardStructure();
+      polishAdministrationTabs();
       ensureRoutingFlowStatus();
       restorePersistedRanges(view);
       updateDashboardStatus();
@@ -321,6 +388,7 @@
       dashboardFeeds[key] = { lastAttempt: 0, lastSuccess: 0, ok: null };
     }
     dashboardLastCompleteAt = 0;
+    dashboardRefreshBatch = null;
     flowLastAttempt = 0;
     flowLastSuccess = 0;
     flowLatestOk = null;
@@ -338,6 +406,7 @@
   }
 
   polishDashboardStructure();
+  polishAdministrationTabs();
   ensureRoutingFlowStatus();
   bindRangePersistence();
 
