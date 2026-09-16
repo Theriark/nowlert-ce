@@ -10,6 +10,7 @@
   let decorating = false;
   let authenticatedUsername = "";
   let profileIdentityObserver = null;
+  let dialogPatchQueued = false;
 
   function node(tag, className = "", text = "") {
     const item = document.createElement(tag);
@@ -332,6 +333,15 @@
     timer = window.setTimeout(refresh, delay);
   }
 
+  function scheduleDialogPatch() {
+    if (dialogPatchQueued) return;
+    dialogPatchQueued = true;
+    queueMicrotask(() => {
+      dialogPatchQueued = false;
+      patchDialog();
+    });
+  }
+
   function picker() {
     let dialog = document.getElementById("filter-owner-picker");
     if (dialog) return dialog;
@@ -407,7 +417,7 @@
       destinationId,
       true,
     );
-    window.setTimeout(patchDialog, 0);
+    scheduleDialogPatch();
   }
 
   function patchDialog() {
@@ -521,14 +531,14 @@
     if (coreAction?.dataset.filterAction === "manage-destination") {
       activeDestinationId = coreAction.dataset.filterId || "";
       if (coreAction.dataset.filterViewReadonly !== "true") readOnlyDestinationId = "";
-      window.setTimeout(patchDialog, 0);
+      scheduleDialogPatch();
     }
     if (coreAction?.dataset.filterAction === "view-destination-filter") {
       activeDestinationId = coreAction.dataset.filterId || "";
       if (coreAction.dataset.filterViewReadonly === "true") {
         readOnlyDestinationId = activeDestinationId;
       }
-      window.setTimeout(patchDialog, 0);
+      scheduleDialogPatch();
     }
 
     const sync = event.target.closest("[data-filter-sync-action]");
@@ -597,12 +607,17 @@
     }
     const dialog = document.getElementById("filtering-dialog");
     if (dialog) {
-      new MutationObserver(() => window.setTimeout(patchDialog, 0)).observe(dialog, {
-        childList: true,
-        subtree: true,
+      const dialogPatchObserver = new MutationObserver(scheduleDialogPatch);
+      dialogPatchObserver.observe(dialog, {
         attributes: true,
-        attributeFilter: ["hidden", "open"],
+        attributeFilter: ["open"],
       });
+      for (const step of dialog.querySelectorAll(":scope > section")) {
+        dialogPatchObserver.observe(step, {
+          attributes: true,
+          attributeFilter: ["hidden"],
+        });
+      }
       dialog.addEventListener("close", () => {
         activeDestinationId = "";
         readOnlyDestinationId = "";
