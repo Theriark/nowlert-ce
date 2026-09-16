@@ -8,6 +8,12 @@
   const FLOW_LIVE_MS = 15_000;
   const DASHBOARD_RANGES = new Set(["10m", "1h", "1d", "1m", "1y"]);
   const FLOW_RANGES = new Set(["15m", "1h", "3h", "6h", "1d"]);
+  const DASHBOARD_CONFIGURATION_IDS = [
+    "ops-config-tokens",
+    "ops-config-filters",
+    "ops-config-shared",
+    "ops-config-audit",
+  ];
   const dashboardFeeds = Object.fromEntries(
     DASHBOARD_FEED_KEYS.map(key => [key, { lastAttempt: 0, lastSuccess: 0, ok: null }]),
   );
@@ -298,7 +304,7 @@
     }
 
     const live = controls.querySelector(".ops-live");
-    const range = controls.querySelector(".ops-global-range");
+    const range = byId("ops-dashboard-range")?.closest("label");
     if (live && range && (controls.firstElementChild !== live || live.nextElementSibling !== range)) {
       controls.append(live, range);
     }
@@ -306,6 +312,34 @@
     controls.hidden = state.currentView !== "dashboard";
     byId("page-title")?.removeAttribute("data-dashboard-subtitle");
     return toolbar;
+  }
+
+  function polishDashboardRange() {
+    const select = byId("ops-dashboard-range");
+    const control = select?.closest("label");
+    if (!control) return;
+    control.querySelector(".ops-calendar")?.remove();
+    if (control.classList.contains("ops-global-range")) {
+      control.classList.remove("ops-global-range");
+      control.classList.add("rf-range", "ops-dashboard-range-control");
+    }
+  }
+
+  function removeDashboardConfigurationStrip() {
+    const strip = document.querySelector("#view-dashboard .ops-configuration");
+    if (!strip) return;
+    let sink = byId("ops-dashboard-configuration-sink");
+    if (!sink) {
+      sink = element("div");
+      sink.id = "ops-dashboard-configuration-sink";
+      sink.hidden = true;
+      for (const id of DASHBOARD_CONFIGURATION_IDS) {
+        const item = element("span", "", byId(id)?.textContent || "-");
+        item.id = id;
+        sink.append(item);
+      }
+    }
+    strip.replaceWith(sink);
   }
 
   function polishAdministrationTabs() {
@@ -329,6 +363,8 @@
     if (destinationNote && destinationNote.textContent !== "Enabled destinations") destinationNote.textContent = "Enabled destinations";
     if (routeNote && routeNote.textContent !== "Enabled routing rules") routeNote.textContent = "Enabled routing rules";
 
+    polishDashboardRange();
+    removeDashboardConfigurationStrip();
     ensureDashboardToolbar();
     ensureDashboardStatus();
     bindRangePersistence();
@@ -385,6 +421,13 @@
     return result;
   };
 
+  const previousShowApp = showApp;
+  showApp = function operationsAcceptanceShowApp(session) {
+    const result = previousShowApp(session);
+    syncAuthenticatedUser();
+    return result;
+  };
+
   function resetLiveState() {
     for (const key of DASHBOARD_FEED_KEYS) {
       dashboardFeeds[key] = { lastAttempt: 0, lastSuccess: 0, ok: null };
@@ -404,7 +447,8 @@
     lastUserKey = current;
     resetLiveState();
     if (!current) return;
-    restorePersistedRanges();
+    restorePersistedRanges("dashboard");
+    restorePersistedRanges("routing-flow");
   }
 
   polishDashboardStructure();
