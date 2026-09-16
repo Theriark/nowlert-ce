@@ -8,6 +8,12 @@
   const FLOW_LIVE_MS = 15_000;
   const DASHBOARD_RANGES = new Set(["10m", "1h", "1d", "1m", "1y"]);
   const FLOW_RANGES = new Set(["15m", "1h", "3h", "6h", "1d"]);
+  const WORKSPACE_SUMMARY_ITEMS = [
+    { key: "tokens", valueId: "ops-config-tokens" },
+    { key: "filters", valueId: "ops-config-filters" },
+    { key: "shared", valueId: "ops-config-shared" },
+    { key: "audit", valueId: "ops-config-audit" },
+  ];
   const dashboardFeeds = Object.fromEntries(
     DASHBOARD_FEED_KEYS.map(key => [key, { lastAttempt: 0, lastSuccess: 0, ok: null }]),
   );
@@ -319,8 +325,57 @@
     }
   }
 
-  function removeDashboardConfigurationHeading() {
-    document.querySelector("#view-dashboard .ops-configuration .ops-config-heading")?.remove();
+  function workspaceSummaryStatus(key, value) {
+    const count = Number.parseInt(String(value || "0").replace(/,/g, ""), 10) || 0;
+    if (key === "tokens") return { label: count ? "Healthy" : "No tokens", tone: count ? "healthy" : "neutral" };
+    if (key === "filters") return { label: count ? "Active" : "No filters", tone: count ? "healthy" : "neutral" };
+    if (key === "shared") return { label: count ? "Shared" : "Not shared", tone: count ? "shared" : "neutral" };
+    return { label: count ? "Review" : "Clear", tone: count ? "review" : "healthy" };
+  }
+
+  function ensureWorkspaceSummary() {
+    const strip = document.querySelector("#view-dashboard .ops-configuration");
+    if (!strip) return;
+
+    let summary = strip.querySelector(":scope > .ops-config-heading");
+    if (!summary) {
+      summary = element("div", "ops-config-heading");
+      strip.prepend(summary);
+    }
+    if (summary.dataset.workspaceSummary !== "1") {
+      summary.className = "ops-config-heading ops-workspace-summary";
+      const icon = element("span", "ops-workspace-summary-icon");
+      icon.setAttribute("aria-hidden", "true");
+      for (let index = 0; index < 4; index += 1) icon.append(element("i"));
+      const copy = element("span", "ops-workspace-summary-copy");
+      copy.append(
+        element("strong", "", "Workspace Summary"),
+        element("small", "", "Quick overview of configuration and collaboration"),
+      );
+      summary.replaceChildren(icon, copy);
+      summary.dataset.workspaceSummary = "1";
+    }
+
+    for (const { key, valueId } of WORKSPACE_SUMMARY_ITEMS) {
+      const value = byId(valueId);
+      const item = value?.closest(".ops-config-item");
+      if (!value || !item) continue;
+      let status = item.querySelector(`[data-summary-status="${key}"]`);
+      if (!status) {
+        status = element("span", "ops-config-status");
+        status.setAttribute("data-summary-status", key);
+        item.append(status);
+      }
+      const next = workspaceSummaryStatus(key, value.textContent);
+      const nextClass = `ops-config-status is-${next.tone}`;
+      if (status.className !== nextClass) status.className = nextClass;
+      if (status.dataset.statusLabel !== next.label) {
+        const dot = element("i", "ops-config-status-dot");
+        dot.setAttribute("aria-hidden", "true");
+        status.replaceChildren(dot, document.createTextNode(next.label));
+        status.dataset.statusLabel = next.label;
+      }
+    }
   }
 
   function polishAdministrationTabs() {
@@ -345,7 +400,7 @@
     if (routeNote && routeNote.textContent !== "Enabled routing rules") routeNote.textContent = "Enabled routing rules";
 
     polishDashboardRange();
-    removeDashboardConfigurationHeading();
+    ensureWorkspaceSummary();
     ensureDashboardToolbar();
     ensureDashboardStatus();
     bindRangePersistence();

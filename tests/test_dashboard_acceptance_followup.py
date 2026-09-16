@@ -24,15 +24,18 @@ def test_persisted_ranges_restore_before_first_authenticated_paint():
     assert 'restorePersistedRanges("routing-flow")' in script
 
 
-def test_dashboard_keeps_configuration_metrics_and_removes_only_heading():
+def test_dashboard_workspace_summary_preserves_live_configuration_metrics():
     script = _read("src/webui/operations_acceptance.js")
     dashboard = _read("src/webui/operations_dashboard.js")
-    assert 'function removeDashboardConfigurationHeading()' in script
-    assert 'document.querySelector("#view-dashboard .ops-configuration .ops-config-heading")?.remove()' in script
-    assert 'removeDashboardConfigurationHeading();' in script
-    assert 'strip.replaceWith(sink)' not in script
-    assert 'ops-dashboard-configuration-sink' not in script
+    styles = _read("src/webui/operations_acceptance.css")
+
+    assert 'function ensureWorkspaceSummary()' in script
+    assert '"Workspace Summary"' in script
+    assert '"Quick overview of configuration and collaboration"' in script
+    assert 'ensureWorkspaceSummary();' in script
+    assert 'removeDashboardConfigurationHeading' not in script
     assert '<section class="panel ops-configuration"' in dashboard
+
     for item_id in (
         "ops-config-tokens",
         "ops-config-filters",
@@ -40,3 +43,18 @@ def test_dashboard_keeps_configuration_metrics_and_removes_only_heading():
         "ops-config-audit",
     ):
         assert item_id in dashboard
+
+    for key in ("tokens", "filters", "shared", "audit"):
+        assert f'key: "{key}"' in script
+
+    for label in ("Healthy", "No filters", "Shared", "Review"):
+        assert f'"{label}"' in script
+
+    assert 'status.setAttribute("data-summary-status", key)' in script
+    assert '.ops-workspace-summary' in styles
+    assert '.ops-workspace-summary-icon' in styles
+    assert '.ops-config-status' in styles
+    assert '.ops-config-status.is-healthy' in styles
+    assert '.ops-config-status.is-neutral' in styles
+    assert '.ops-config-status.is-shared' in styles
+    assert '.ops-config-status.is-review' in styles
