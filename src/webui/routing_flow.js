@@ -73,7 +73,7 @@
     <div id="rf-metrics" class="rf-metrics"></div>
     <div class="rf-canvas">
       <div id="rf-empty" class="rf-empty" hidden></div>
-      <div id="rf-graph" class="rf-graph"><svg id="rf-edges" class="rf-edges" aria-hidden="true"></svg></div>
+      <div id="rf-graph" class="rf-graph"><svg id="rf-edges" class="rf-edges" aria-hidden="true"><g id="rf-edge-layer"></g><g id="rf-particle-layer"></g></svg></div>
       <div class="rf-canvas-footer"><div class="rf-controls"><div class="rf-zoom"><button id="rf-minus" type="button" aria-label="Zoom out">−</button><span id="rf-zoom-value">100%</span><button id="rf-plus" type="button" aria-label="Zoom in">+</button></div><button id="rf-fit" class="rf-control" type="button">Fit to view</button></div><small id="rf-counts"></small><svg id="rf-minimap" class="rf-minimap" viewBox="0 0 130 46" role="img" aria-label="Routing overview minimap"></svg></div>
     </div>
     <div class="rf-history"><div class="rf-history-heading"><h3>Recent Deliveries</h3><button id="rf-history-toggle" class="rf-control" type="button">View all</button></div><div class="rf-table-scroll"><table><thead><tr><th>Time</th><th>Integration</th><th>Destination</th><th>Status</th><th>Attempt</th></tr></thead><tbody id="rf-history-body"></tbody></table></div><p id="rf-history-empty" class="rf-empty" hidden>No deliveries recorded in this window.</p></div>
@@ -405,13 +405,13 @@
     return `M${x} ${y} C${x+bend} ${y} ${xx-bend} ${yy} ${xx} ${yy}`;
   }
   function drawEdges() {
-    stopPulses();
     if (!data || section.hidden) return;
-    const graph = $("rf-graph"), edges = $("rf-edges"); edges.replaceChildren(); edgePaths = new Map();
+    const graph = $("rf-graph"), edges = $("rf-edges");
+    const edgeLayer = $("rf-edge-layer"); edgeLayer.replaceChildren(); edgePaths = new Map();
     if (graph.hidden || graph.clientWidth === 0 || window.innerWidth <= 640) return;
     edges.setAttribute("viewBox", `0 0 ${graph.clientWidth} ${graph.clientHeight}`);
     const defs = svg("defs"), marker = svg("marker", { id:"rf-arrow", viewBox:"0 0 8 8", refX:7, refY:4, markerWidth:7, markerHeight:7, orient:"auto" });
-    marker.append(svg("path", {d:"M0 0 L8 4 L0 8 Z", fill:"currentColor"})); defs.append(marker); edges.append(defs);
+    marker.append(svg("path", {d:"M0 0 L8 4 L0 8 Z", fill:"currentColor"})); defs.append(marker); edgeLayer.append(defs);
     const current = graphModel || activeFlowGraph();
     for (const link of current.links) {
       const key = linkKey(link.route_id, link.destination_id), route = nodeFor("route", link.route_id), filter = nodeFor("filter", key), destination = nodeFor("destination", link.destination_id);
@@ -419,7 +419,7 @@
       const paths = [], pairs = filter ? [[route, filter], [filter, destination]] : [[route, destination]];
       for (const [a, b] of pairs) {
         const path = svg("path", {d:edgeCurve(a,b), class:`rf-edge${relevant(link)?"":" rf-dim"}`, "marker-end":"url(#rf-arrow)"});
-        edges.append(path); paths.push(path);
+        edgeLayer.append(path); paths.push(path);
       }
       edgePaths.set(key, paths);
     }
@@ -437,14 +437,14 @@
     if (!active() || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const started = performance.now();
     for (const item of items.slice(0,12)) {
-      const paths = edgePaths.get(linkKey(item.route_id,item.destination_id));
+      const key = linkKey(item.route_id,item.destination_id), paths = edgePaths.get(key);
       if (!paths?.length) continue;
       const circle = svg("circle", {r:3.2,class:`rf-particle ${item.outcome==='failed'?'rf-failed-particle':''}`});
-      $("rf-edges").append(circle); pulses.push({dot:circle,paths,started});
+      $("rf-particle-layer").append(circle); pulses.push({dot:circle,key,started});
     }
     function frame(now) {
       if (!active()) { stopPulses(); return; }
-      pulses = pulses.filter(p=>{const elapsed=(now-p.started)/1600;if(elapsed>=1){p.dot.remove();return false;}const scaled=elapsed*p.paths.length,index=Math.min(p.paths.length-1,Math.floor(scaled)),progress=scaled-index,path=p.paths[index];const pt=path.getPointAtLength(path.getTotalLength()*progress);p.dot.setAttribute("cx",pt.x);p.dot.setAttribute("cy",pt.y);return true;});
+      pulses = pulses.filter(p=>{const elapsed=(now-p.started)/1600;if(elapsed>=1){p.dot.remove();return false;}const paths=edgePaths.get(p.key);if(!paths?.length){p.dot.remove();return false;}const scaled=elapsed*paths.length,index=Math.min(paths.length-1,Math.floor(scaled)),progress=scaled-index,path=paths[index];const pt=path.getPointAtLength(path.getTotalLength()*progress);p.dot.setAttribute("cx",pt.x);p.dot.setAttribute("cy",pt.y);return true;});
       pulseFrame = pulses.length ? requestAnimationFrame(frame) : null;
     }
     if (pulses.length && pulseFrame===null) pulseFrame=requestAnimationFrame(frame);
@@ -456,10 +456,11 @@
     stopPulses();
   }
   function clearPrivateData() {
+    stopPulses();
     data=null; signature=""; owner=null; seen=new Set(); graphModel=null;
     $("rf-metrics").replaceChildren(); $("rf-history-body").replaceChildren();
     $("rf-graph").querySelectorAll(":scope > :not(svg)").forEach(n=>n.remove());
-    $("rf-edges").replaceChildren(); $("rf-minimap").replaceChildren();
+    $("rf-edge-layer").replaceChildren(); $("rf-particle-layer").replaceChildren(); edgePaths = new Map(); $("rf-minimap").replaceChildren();
     $("rf-counts").textContent=""; $("rf-error").hidden=true;
     if(dialog.open) dialog.close();
   }

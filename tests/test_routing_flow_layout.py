@@ -46,3 +46,19 @@ def test_routing_flow_reflows_when_canvas_size_changes():
     script = ROUTING_FLOW.read_text(encoding="utf-8")
 
     assert "if(data&&active())renderGraph();else drawEdges();" in script
+
+
+def test_particles_survive_dynamic_edge_redraw_and_follow_current_paths():
+    script = ROUTING_FLOW.read_text(encoding="utf-8")
+    draw_edges = script.split("function drawEdges()", 1)[1].split("function stopPulses()", 1)[0]
+    animate = script.split("function animateAttempts(items)", 1)[1]
+
+    assert '<g id="rf-edge-layer"></g><g id="rf-particle-layer"></g>' in script
+    assert "stopPulses();" not in draw_edges
+    assert 'const edgeLayer = $("rf-edge-layer")' in draw_edges
+    assert "edgeLayer.replaceChildren()" in draw_edges
+    assert "edgeLayer.append(path)" in draw_edges
+    assert '$("rf-particle-layer").append(circle)' in animate
+    assert "pulses.push({dot:circle,key,started})" in animate
+    assert "edgePaths.get(p.key)" in animate
+    assert "p.paths" not in animate
