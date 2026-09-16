@@ -87,6 +87,26 @@
   overflow-y: auto;
 }
 
+/* The editor body is a vertical flex container in destination_routes.css. Its
+ * children must retain their intrinsic height so expanded details add to the
+ * scroll height instead of shrinking cards and letting their fields overlap. */
+.destination-editor-main > * {
+  flex-shrink: 0;
+}
+
+.destination-provider-settings-group details {
+  min-width: 0;
+  width: 100%;
+}
+
+.destination-provider-settings-group summary {
+  cursor: pointer;
+}
+
+.destination-provider-settings-group details[open] > .form-grid {
+  margin-top: 10px;
+}
+
 .destination-editor-actions.destination-editor-footer-fixed {
   background: var(--destination-surface, #10161c);
   grid-column: 1;

@@ -312,7 +312,7 @@ def test_shared_destination_can_deliver_without_revealing_owner_secret(
 def test_missing_adapter_is_a_safe_terminal_failure(delivery_platform):
     owner, _destination, _route = configured_route(
         delivery_platform,
-        output_type="ntfy",
+        output_type="webhook",
     )
     service = PlatformDeliveryService(
         delivery_platform["routes"],
