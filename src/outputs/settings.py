@@ -8,8 +8,7 @@ import re
 from urllib.parse import urlsplit
 
 
-OUTPUT_TYPES = {"discord", "teams", "slack", "webhook", "mqtt", "ntfy"}
-_HOST = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9._:-]{0,251}[A-Za-z0-9])?$")
+OUTPUT_TYPES = {"discord", "teams", "slack", "webhook"}
 _HEADER = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$")
 _FORBIDDEN_HEADERS = {
     "authorization",
@@ -52,8 +51,6 @@ def normalize_output_settings(
         "teams": _teams,
         "slack": _slack,
         "webhook": _webhook,
-        "mqtt": _mqtt,
-        "ntfy": _ntfy,
     }
     normalized = {**validators[kind](specific, require_complete), **common}
     encoded = json.dumps(
@@ -148,122 +145,6 @@ def _webhook(settings, _complete):
     if template is not None:
         result["body_template"] = template
     return result
-
-
-def _mqtt(settings, complete):
-    allowed = {
-        "allow_private_network",
-        "client_id",
-        "host",
-        "keepalive_seconds",
-        "port",
-        "qos",
-        "retain",
-        "tls",
-        "topic",
-    }
-    _unknown(settings, allowed)
-    host = str(settings.get("host") or "").strip()
-    topic = str(settings.get("topic") or "").strip()
-    if complete and not host:
-        raise ValueError("mqtt host is required")
-    if complete and not topic:
-        raise ValueError("mqtt topic is required")
-    if host and (len(host) > 253 or not _HOST.fullmatch(host)):
-        raise ValueError("mqtt host is invalid")
-    if topic and (len(topic.encode("utf-8")) > 256 or "\x00" in topic):
-        raise ValueError("mqtt topic must not exceed 256 bytes")
-    if "#" in topic or "+" in topic:
-        raise ValueError("mqtt publish topic must not contain wildcards")
-    tls = _boolean(settings, "tls", True)
-    client_id = str(settings.get("client_id") or "").strip()
-    if len(client_id) > 128:
-        raise ValueError("mqtt client_id must not exceed 128 characters")
-    result = {
-        "host": host,
-        "port": _integer(settings, "port", 8883 if tls else 1883, 1, 65535),
-        "topic": topic,
-        "qos": _integer(settings, "qos", 1, 0, 2),
-        "retain": _boolean(settings, "retain", False),
-        "tls": tls,
-        "keepalive_seconds": _integer(
-            settings,
-            "keepalive_seconds",
-            60,
-            10,
-            300,
-        ),
-        "allow_private_network": _boolean(
-            settings,
-            "allow_private_network",
-            False,
-        ),
-    }
-    if client_id:
-        result["client_id"] = client_id
-    return result
-
-
-def _ntfy(settings, complete):
-    allowed = {
-        "allow_private_network",
-        "include_action",
-        "priority",
-        "server",
-        "tags",
-        "timeout_seconds",
-        "title",
-        "topic",
-    }
-    _unknown(settings, allowed)
-    server = str(settings.get("server") or "").strip()
-    topic = str(settings.get("topic") or "").strip()
-    if complete and not server:
-        raise ValueError("ntfy server is required")
-    if complete and not topic:
-        raise ValueError("ntfy topic is required")
-    if server:
-        server = validate_public_https_url(server, "ntfy server").rstrip("/")
-    if topic and (
-        len(topic) > 128
-        or not re.fullmatch(r"[A-Za-z0-9_-]+", topic)
-    ):
-        raise ValueError("ntfy topic must use letters, numbers, underscore, or hyphen")
-    priority = settings.get("priority", "default")
-    if isinstance(priority, int) and not isinstance(priority, bool):
-        if not 1 <= priority <= 5:
-            raise ValueError("ntfy priority must be between 1 and 5")
-    else:
-        priority = str(priority or "default").strip().casefold()
-        if priority not in {"min", "low", "default", "high", "max"}:
-            raise ValueError("ntfy priority is invalid")
-    tags = settings.get("tags", [])
-    if not isinstance(tags, list) or len(tags) > 12:
-        raise ValueError("ntfy tags must be a list with at most 12 entries")
-    normalized_tags = []
-    for tag in tags:
-        text = str(tag or "").strip()
-        if not text or len(text) > 32 or not re.fullmatch(r"[A-Za-z0-9_+-]+", text):
-            raise ValueError("ntfy tags contain an invalid value")
-        if text not in normalized_tags:
-            normalized_tags.append(text)
-    title = str(settings.get("title") or "${title}").strip()
-    if not title or len(title) > 256:
-        raise ValueError("ntfy title must contain 1 to 256 characters")
-    return {
-        "server": server,
-        "topic": topic,
-        "priority": priority,
-        "tags": normalized_tags,
-        "title": title,
-        "include_action": _boolean(settings, "include_action", True),
-        "timeout_seconds": _integer(settings, "timeout_seconds", 15, 1, 30),
-        "allow_private_network": _boolean(
-            settings,
-            "allow_private_network",
-            False,
-        ),
-    }
 
 
 def _unknown(settings, allowed):

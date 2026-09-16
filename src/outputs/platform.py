@@ -7,17 +7,11 @@ import hmac
 import json
 import re
 import socket
-import base64
 
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 import requests
-
-try:
-    import paho.mqtt.publish as mqtt_publish
-except ImportError:  # pragma: no cover - production requirements include paho
-    mqtt_publish = None
 
 from formatters.slack import SlackFormatter
 from models import Notification
@@ -26,13 +20,10 @@ from outputs.platform_common import (
     decode_secret,
     event_identifier,
     http_delivery_result,
-    notification_context,
     render_template,
     request_failure,
-    safe_action_url,
     safe_event_envelope,
     secret_url,
-    validate_network_host,
     validate_outbound_url,
 )
 from outputs.settings import normalize_output_settings
@@ -407,153 +398,6 @@ class WebhookPlatformAdapter(_HTTPAdapter):
         return http_delivery_result(response)
 
 
-class MQTTPlatformAdapter(PlatformOutputAdapter):
-    output_type = "mqtt"
-
-    def __init__(self, *, publisher=None, resolver=socket.getaddrinfo):
-        self.publisher = publisher or (mqtt_publish.single if mqtt_publish else None)
-        self.resolver = resolver
-
-    def preview(self, destination, notification):
-        settings = normalize_output_settings(
-            "mqtt",
-            destination.settings,
-            require_complete=True,
-        )
-        topic = render_template(settings["topic"], notification)
-        normalized = normalize_output_settings(
-            "mqtt",
-            {**settings, "topic": topic},
-            require_complete=True,
-        )
-        return OutputPreview(
-            "mqtt",
-            "application/json",
-            safe_event_envelope(notification),
-            {
-                "topic": normalized["topic"],
-                "qos": normalized["qos"],
-                "retain": normalized["retain"],
-            },
-        )
-
-    def deliver(self, destination, secret_value, notification):
-        if self.publisher is None:
-            return DeliveryResult(False, error_code="adapter_dependency_unavailable")
-        try:
-            settings = normalize_output_settings(
-                "mqtt",
-                destination.settings,
-                require_complete=True,
-            )
-            preview = self.preview(destination, notification)
-            validate_network_host(
-                settings["host"],
-                settings["port"],
-                allow_private_network=settings["allow_private_network"],
-                resolver=self.resolver,
-            )
-            credentials = decode_secret(secret_value)
-            username = credentials.get("username")
-            password = credentials.get("password")
-            if password and not username:
-                raise ValueError("MQTT username is required with a password")
-            auth = (
-                {"username": str(username), "password": str(password or "")}
-                if username
-                else None
-            )
-            body = json.dumps(
-                preview.payload,
-                sort_keys=True,
-                separators=(",", ":"),
-                ensure_ascii=False,
-            )
-            self.publisher(
-                preview.metadata["topic"],
-                payload=body,
-                qos=settings["qos"],
-                retain=settings["retain"],
-                hostname=settings["host"],
-                port=settings["port"],
-                client_id=settings.get("client_id", ""),
-                keepalive=settings["keepalive_seconds"],
-                auth=auth,
-                tls={} if settings["tls"] else None,
-            )
-        except ValueError:
-            return DeliveryResult(False, error_code="invalid_destination")
-        except (OSError, TimeoutError):
-            return DeliveryResult(
-                False,
-                retryable=True,
-                error_code="transport_unavailable",
-            )
-        except Exception:
-            return DeliveryResult(False, error_code="transport_error")
-        return DeliveryResult(True)
-
-
-class NtfyPlatformAdapter(_HTTPAdapter):
-    output_type = "ntfy"
-
-    def preview(self, destination, notification):
-        settings = normalize_output_settings(
-            "ntfy",
-            destination.settings,
-            require_complete=True,
-        )
-        context = notification_context(notification)
-        payload = {
-            "topic": settings["topic"],
-            "title": render_template(settings["title"], notification)[:256],
-            "message": context["body"][:4096],
-            "priority": settings["priority"],
-            "tags": settings["tags"],
-        }
-        action = safe_action_url((notification.metadata or {}).get("action_link"))
-        if settings["include_action"] and action:
-            payload["actions"] = [
-                {"action": "view", "label": "Open event", "url": action}
-            ]
-        return OutputPreview(
-            "ntfy",
-            "application/json",
-            payload,
-            {"server": settings["server"]},
-        )
-
-    def deliver(self, destination, secret_value, notification):
-        try:
-            settings = normalize_output_settings(
-                "ntfy",
-                destination.settings,
-                require_complete=True,
-            )
-            preview = self.preview(destination, notification)
-            url = self._url(settings["server"], settings)
-            credentials = decode_secret(secret_value)
-            headers = None
-            token = credentials.get("token") or credentials.get("value")
-            username = credentials.get("username")
-            password = credentials.get("password")
-            if token:
-                headers = {"Authorization": f"Bearer {token}"}
-            elif username:
-                encoded = base64.b64encode(
-                    f"{username}:{password or ''}".encode("utf-8")
-                ).decode("ascii")
-                headers = {"Authorization": f"Basic {encoded}"}
-        except ValueError:
-            return DeliveryResult(False, error_code="invalid_destination")
-        return self._post(
-            url,
-            payload=preview.payload,
-            timeout=settings["timeout_seconds"],
-            headers=headers,
-        )
-
-
 class PlatformOutputRegistry:
     def __init__(self, adapters: list[PlatformOutputAdapter] | None = None):
         configured = (
@@ -564,8 +408,6 @@ class PlatformOutputRegistry:
                 TeamsPlatformAdapter(),
                 SlackPlatformAdapter(),
                 WebhookPlatformAdapter(),
-                MQTTPlatformAdapter(),
-                NtfyPlatformAdapter(),
             ]
         )
         self.adapters = {adapter.output_type: adapter for adapter in configured}
