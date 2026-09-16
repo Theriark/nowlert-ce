@@ -8,7 +8,7 @@ from integrations.filtering import filter_schema, sources_for_input
 from storage.routing_flow import delivery_snapshot, empty_metrics
 
 
-WINDOWS = {"15m": 900, "1h": 3600, "1d": 86400}
+WINDOWS = {"15m": 900, "1h": 3600, "3h": 10800, "6h": 21600, "1d": 86400}
 
 
 def _public_policy_rules(filters, policy):
