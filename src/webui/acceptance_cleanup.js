@@ -181,6 +181,14 @@
     dialog?.remove();
   }
 
+  const previousRenderFlow = typeof renderFlow === "function" ? renderFlow : null;
+  if (previousRenderFlow) {
+    renderFlow = function renderFlowAcceptance() {
+      if (!byId("dashboard-flow")) return;
+      return previousRenderFlow();
+    };
+  }
+
   const previousRenderDestinations = renderDestinations;
   renderDestinations = function renderDestinationsAcceptance() {
     const result = previousRenderDestinations();
