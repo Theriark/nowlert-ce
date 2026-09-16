@@ -64,10 +64,55 @@ def test_filtering_actions_stay_on_one_line_with_room_for_two_controls():
     style = _read("src/webui/filtering_ownership_sync.css")
 
     assert ".filtering-table td:last-child" in style
-    assert ".filtering-table th:nth-child(5) { width: 17%; }" in style
+    assert ".filtering-table th:nth-child(5) { width: 22%; }" in style
     assert "flex-wrap: nowrap" in style
-    assert "gap: 0.65rem" in style
+    assert "gap: 0.75rem" in style
     assert "white-space: nowrap" in style
+
+
+def test_filtering_approved_actions_are_role_specific_and_icon_labeled():
+    sync = _read("src/webui/filtering_ownership_sync.js")
+
+    assert 'rowAction("View", "eye", "secondary", policy, "view-filter", true)' in sync
+    assert 'rowAction("Configure", "configure", "primary", policy, "manage-destination")' in sync
+    assert 'rowAction("Delete", "delete", "danger", policy, "delete-destination-filter")' in sync
+    assert "else if (policy.managed_by_admin)" in sync
+    assert 'actions.append(rowAction("View", "eye", "secondary", policy, "view-filter", true));' in sync
+    assert 'badge("Read only", "warning")' not in sync
+    for icon_name in ("eye", "share", "configure", "delete"):
+        assert f"{icon_name}:" in sync
+
+
+def test_filtering_status_and_sharing_match_approved_control_treatment():
+    sync = _read("src/webui/filtering_ownership_sync.js")
+    style = _read("src/webui/filtering_ownership_sync.css")
+
+    assert 'node("span", "filtering-status-dot")' in sync
+    assert 'item.append(icon("share"), node("span", "", label));' in sync
+    assert "filtering-sharing-control" in style
+    assert "filtering-row-action-eye" in style
+    assert "vertical-align: middle" in style
+
+
+def test_read_only_filter_modal_has_one_footer_close_action():
+    sync = _read("src/webui/filtering_ownership_sync.js")
+
+    assert 'const cancel = footer?.querySelector(\'[data-filter-action="close"]\');' in sync
+    assert 'const finish = footer?.querySelector(\'[data-filter-action="finish"]\');' in sync
+    assert "if (cancel) cancel.hidden = true;" in sync
+    assert 'finish.textContent = "Close";' in sync
+    assert "filtering-readonly-view" in sync
+    assert "readOnlyDestinationId" in sync
+
+
+def test_authenticated_username_is_preserved_in_sidebar_identity():
+    sync = _read("src/webui/filtering_ownership_sync.js")
+
+    assert 'authenticatedUsername = String(session?.user?.username || "");' in sync
+    assert "function syncProfileIdentity()" in sync
+    assert 'document.getElementById("profile-name")' in sync
+    assert "profileIdentityObserver = new MutationObserver" in sync
+    assert "syncProfileIdentity();" in sync
 
 
 def test_routing_flow_keeps_enabled_visible_destinations_without_active_links():

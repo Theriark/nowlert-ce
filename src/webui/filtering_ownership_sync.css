@@ -1,18 +1,19 @@
 /* Ownership/status alignment layered after Filtering and Routing Flow styles. */
-.filtering-table th:nth-child(1) { width: 18%; }
+.filtering-table th:nth-child(1) { width: 19%; }
 .filtering-table th:nth-child(2) {
   padding-left: 0.75rem;
   text-align: left !important;
-  width: 47%;
+  width: 36%;
 }
-.filtering-table th:nth-child(3) { width: 9%; }
-.filtering-table th:nth-child(4) { width: 9%; }
-.filtering-table th:nth-child(5) { width: 17%; }
+.filtering-table th:nth-child(3) { width: 11%; }
+.filtering-table th:nth-child(4) { width: 12%; }
+.filtering-table th:nth-child(5) { width: 22%; }
 .filtering-table td:nth-child(2) { text-align: left; }
+.filtering-table tbody td:nth-child(3),
 .filtering-table tbody td:nth-child(4),
 .filtering-table tbody td:nth-child(5) {
-  padding-top: 1.25rem;
-  vertical-align: top;
+  padding-block: 1rem;
+  vertical-align: middle;
 }
 .filtering-overview-list {
   margin-inline: 0 !important;
@@ -20,9 +21,13 @@
 }
 .filtering-status-control {
   appearance: none;
-  cursor: pointer;
+  border: 1px solid color-mix(in srgb, currentColor 26%, transparent);
+  border-radius: 0.7rem;
+  cursor: default;
   font: inherit;
+  font-weight: 700;
 }
+button.filtering-status-control { cursor: pointer; }
 .filtering-status-control:hover {
   filter: brightness(1.15);
   outline: 1px solid color-mix(in srgb, currentColor 42%, transparent);
@@ -30,6 +35,10 @@
 .filtering-status-control:focus-visible {
   outline: 2px solid #7ea8ff;
   outline-offset: 2px;
+}
+.filtering-sharing-control {
+  border-width: 1px;
+  border-style: solid;
 }
 .filtering-sharing-cell .badge,
 .filtering-sharing-cell .filtering-status-control {
@@ -50,9 +59,30 @@
   align-items: center;
   display: flex;
   flex-wrap: nowrap;
-  gap: 0.65rem;
+  gap: 0.75rem;
   justify-content: flex-end;
   white-space: nowrap;
+}
+.filtering-row-action {
+  border-radius: 0.65rem;
+  min-height: 2.2rem;
+  padding-inline: 0.85rem;
+}
+.filtering-row-action-eye {
+  background: #10161c;
+  border-color: #65717d;
+  color: #f4f1e9;
+}
+.filtering-row-action-eye:hover {
+  background: #151d25;
+  border-color: #8b98a6;
+}
+.filtering-control-icon { flex: 0 0 auto; }
+.filtering-readonly-view #filter-integration-step .modal-actions {
+  justify-content: flex-end;
+}
+.filtering-readonly-view #filter-integration-step .modal-actions [data-filter-action="close"][hidden] {
+  display: none !important;
 }
 .rf-column-heading {
   box-sizing: border-box;

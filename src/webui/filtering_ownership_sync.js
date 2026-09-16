@@ -6,13 +6,39 @@
   let latest = null;
   let timer = 0;
   let activeDestinationId = "";
+  let readOnlyDestinationId = "";
   let decorating = false;
+  let authenticatedUsername = "";
+  let profileIdentityObserver = null;
 
   function node(tag, className = "", text = "") {
     const item = document.createElement(tag);
     if (className) item.className = className;
     if (text !== "") item.textContent = String(text);
     return item;
+  }
+
+  function icon(kind) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "16");
+    svg.setAttribute("height", "16");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    svg.classList.add("filtering-control-icon");
+
+    const paths = {
+      eye: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path><circle cx="12" cy="12" r="2.5"></circle>',
+      share: '<circle cx="18" cy="5" r="2"></circle><circle cx="6" cy="12" r="2"></circle><circle cx="18" cy="19" r="2"></circle><path d="m8 11 8-5M8 13l8 5"></path>',
+      configure: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"></path>',
+      delete: '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path>',
+    };
+    svg.innerHTML = paths[kind] || "";
+    return svg;
   }
 
   function policyRows(payload) {
@@ -37,22 +63,100 @@
     return ownedChoices(latest).find(item => item.id === destinationId) || null;
   }
 
-  function statusBadge(label, style = "") {
-    return node("span", `badge ${style}`.trim(), label);
+  function syncProfileIdentity() {
+    if (!authenticatedUsername && state.user?.username) {
+      authenticatedUsername = String(state.user.username);
+    }
+    const username = authenticatedUsername || String(state.user?.username || "");
+    if (!username) return;
+    const profileName = document.getElementById("profile-name");
+    const accountName = document.getElementById("account-name");
+    if (profileName && profileName.textContent !== username) profileName.textContent = username;
+    if (accountName && accountName.textContent !== username) accountName.textContent = username;
   }
 
-  function statusControl(label, style, action, policy) {
-    if (!action) return statusBadge(label, style);
-    const button = node("button", `badge filtering-status-control ${style}`.trim(), label);
-    button.type = "button";
-    button.dataset.filterSyncAction = action;
-    button.dataset.filterSyncId = policy.destination_id;
-    button.dataset.filterSyncValue = action === "filtering"
+  function observeProfileIdentity() {
+    const profileName = document.getElementById("profile-name");
+    if (!profileName || profileIdentityObserver) return;
+    profileIdentityObserver = new MutationObserver(() => syncProfileIdentity());
+    profileIdentityObserver.observe(profileName, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+  }
+
+  function statusControl(label, kind, action, policy) {
+    const interactive = Boolean(action);
+    const item = node(
+      interactive ? "button" : "span",
+      `badge filtering-status-control filtering-${kind}-control ${kind === "filtering" ? (policy.filtering_enabled ? "success" : "warning") : ""}`.trim(),
+    );
+    if (interactive) item.type = "button";
+
+    if (kind === "filtering") {
+      const dot = node("span", "filtering-status-dot");
+      Object.assign(dot.style, {
+        width: "0.65rem",
+        height: "0.65rem",
+        borderRadius: "999px",
+        background: policy.filtering_enabled ? "#35d66f" : "#f0b93c",
+        boxShadow: policy.filtering_enabled ? "0 0 8px rgba(53,214,111,.45)" : "none",
+        flex: "0 0 auto",
+      });
+      item.append(dot, node("span", "", label));
+    } else {
+      item.append(icon("share"), node("span", "", label));
+      Object.assign(item.style, policy.shared ? {
+        color: "#a8c7ff",
+        borderColor: "#4c7fe7",
+        background: "rgba(45, 104, 220, 0.10)",
+      } : {
+        color: "#f1c45f",
+        borderColor: "rgba(241,196,95,.42)",
+        background: "rgba(241,196,95,.08)",
+      });
+    }
+
+    Object.assign(item.style, {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "0.5rem",
+      minHeight: "2rem",
+      paddingInline: "0.75rem",
+      whiteSpace: "nowrap",
+    });
+
+    if (!interactive) return item;
+    item.dataset.filterSyncAction = action;
+    item.dataset.filterSyncId = policy.destination_id;
+    item.dataset.filterSyncValue = action === "filtering"
       ? String(Boolean(policy.filtering_enabled))
       : String(Boolean(policy.shared));
-    button.setAttribute("aria-label", action === "filtering"
+    item.setAttribute("aria-label", action === "filtering"
       ? `${label}. Change destination filtering state`
       : `${label}. Change destination sharing`);
+    return item;
+  }
+
+  function rowAction(label, iconName, style, policy, action, sync = false) {
+    const button = node("button", `button small ${style} filtering-row-action filtering-row-action-${iconName}`.trim());
+    button.type = "button";
+    button.append(icon(iconName), node("span", "", label));
+    Object.assign(button.style, {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "0.45rem",
+      whiteSpace: "nowrap",
+    });
+    if (sync) {
+      button.dataset.filterSyncAction = action;
+      button.dataset.filterSyncId = policy.destination_id;
+    } else {
+      button.dataset.filterAction = action;
+      button.dataset.filterId = policy.destination_id;
+    }
     return button;
   }
 
@@ -111,28 +215,29 @@
     });
   }
 
-  function ensureOwnerActions(row, policy) {
-    const actions = row.lastElementChild;
-    if (!actions || !policy.can_manage_filters) return;
-    let container = actions.querySelector(".filtering-table-actions");
-    if (!container) {
-      container = node("div", "table-actions filtering-table-actions");
-      actions.replaceChildren(container);
+  function renderActions(row, policy) {
+    const cell = row.lastElementChild;
+    if (!cell) return;
+    const actions = node("div", "table-actions filtering-table-actions");
+    Object.assign(actions.style, {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      flexWrap: "nowrap",
+      gap: "0.75rem",
+      whiteSpace: "nowrap",
+    });
+
+    if (policy.can_manage_filters) {
+      actions.append(
+        rowAction("View", "eye", "secondary", policy, "view-filter", true),
+        rowAction("Configure", "configure", "primary", policy, "manage-destination"),
+        rowAction("Delete", "delete", "danger", policy, "delete-destination-filter"),
+      );
+    } else if (policy.managed_by_admin) {
+      actions.append(rowAction("View", "eye", "secondary", policy, "view-filter", true));
     }
-    if (!container.querySelector('[data-filter-action="manage-destination"]')) {
-      const configure = node("button", "button small primary", "✎ Configure");
-      configure.type = "button";
-      configure.dataset.filterAction = "manage-destination";
-      configure.dataset.filterId = policy.destination_id;
-      container.append(configure);
-    }
-    if (!container.querySelector('[data-filter-action="delete-destination-filter"]')) {
-      const remove = node("button", "button small danger", "Delete");
-      remove.type = "button";
-      remove.dataset.filterAction = "delete-destination-filter";
-      remove.dataset.filterId = policy.destination_id;
-      container.append(remove);
-    }
+    cell.replaceChildren(actions);
   }
 
   function decorateRow(row, policy) {
@@ -146,7 +251,7 @@
         : `${configured} configured · disabled`;
     }
     decorateManagedIntegrations(row, policy);
-    ensureOwnerActions(row, policy);
+    renderActions(row, policy);
     removeLegacyVisibility(row);
 
     const statusCell = row.children[2];
@@ -154,7 +259,7 @@
     statusCell.replaceChildren(
       statusControl(
         policy.filtering_enabled ? "Active" : "Disabled",
-        policy.filtering_enabled ? "success" : "warning",
+        "filtering",
         policy.can_manage_filters ? "filtering" : "",
         policy,
       ),
@@ -162,7 +267,7 @@
     sharingCell.replaceChildren(
       statusControl(
         policy.shared ? "Shared" : "Private",
-        policy.shared ? "success" : "warning",
+        "sharing",
         policy.can_change_sharing ? "sharing" : "",
         policy,
       ),
@@ -189,6 +294,7 @@
     decorating = true;
     try {
       latest = payload;
+      syncProfileIdentity();
       ensureSharingColumn();
       document.querySelectorAll("#filter-table > .acceptance-private-filter").forEach(item => item.remove());
       const rows = [...document.querySelectorAll("#filter-table > tr:not(.acceptance-private-filter)")];
@@ -273,52 +379,105 @@
     dialog.showModal();
   }
 
-  function openCoreDestination(destinationId) {
-    activeDestinationId = destinationId;
+  function triggerCoreFilterAction(action, destinationId, readOnly = false) {
     const trigger = node("button");
     trigger.type = "button";
     trigger.hidden = true;
-    trigger.dataset.filterAction = "manage-destination";
+    trigger.dataset.filterAction = action;
     trigger.dataset.filterId = destinationId;
+    if (readOnly) trigger.dataset.filterViewReadonly = "true";
     document.body.append(trigger);
     trigger.click();
     trigger.remove();
   }
 
+  function openCoreDestination(destinationId) {
+    activeDestinationId = destinationId;
+    readOnlyDestinationId = "";
+    triggerCoreFilterAction("manage-destination", destinationId);
+  }
+
+  function openReadOnlyView(destinationId) {
+    const policy = policyFor(destinationId);
+    if (!policy) return;
+    activeDestinationId = destinationId;
+    readOnlyDestinationId = destinationId;
+    triggerCoreFilterAction(
+      policy.can_manage_filters ? "manage-destination" : "view-destination-filter",
+      destinationId,
+      true,
+    );
+    window.setTimeout(patchDialog, 0);
+  }
+
   function patchDialog() {
-    if (!activeDestinationId || !choiceFor(activeDestinationId)) return;
+    if (!activeDestinationId) return;
+    const policy = policyFor(activeDestinationId);
+    const choice = choiceFor(activeDestinationId);
+    if (!policy && !choice) return;
     const dialog = document.getElementById("filtering-dialog");
     if (!dialog?.open) return;
-    dialog.querySelectorAll('input[data-filter-toggle]').forEach(input => {
-      input.disabled = false;
-    });
-    const list = document.getElementById("filter-integration-list");
-    if (list) {
-      for (const row of list.querySelectorAll(":scope > .filtering-integration-row")) {
-        const source = row.querySelector('input[data-filter-toggle]')?.dataset.filterToggle;
-        const actions = row.querySelector(".filtering-integration-actions");
-        if (!source || !actions || actions.querySelector('[data-filter-action="configure-integration"]')) continue;
-        const configure = node("button", "button small secondary", "Configure");
-        configure.type = "button";
-        configure.dataset.filterAction = "configure-integration";
-        configure.dataset.filterId = source;
-        actions.append(configure);
+
+    const readOnly = readOnlyDestinationId === activeDestinationId;
+    const canManage = Boolean(policy?.can_manage_filters || choice?.can_manage_filters);
+    dialog.classList.toggle("filtering-readonly-view", readOnly);
+
+    const title = document.getElementById("filtering-dialog-title");
+    const note = document.querySelector(".filtering-available-note");
+    const integrationStep = document.getElementById("filter-integration-step");
+    const footer = integrationStep?.querySelector(".modal-actions");
+    const cancel = footer?.querySelector('[data-filter-action="close"]');
+    const finish = footer?.querySelector('[data-filter-action="finish"]');
+
+    if (readOnly) {
+      if (title && integrationStep && !integrationStep.hidden) title.textContent = "View filter";
+      if (note && integrationStep && !integrationStep.hidden) {
+        note.textContent = "Read-only view. Filter rules remain private to the destination owner.";
+      }
+      if (cancel) cancel.hidden = true;
+      if (finish) {
+        finish.hidden = false;
+        finish.textContent = "Close";
+      }
+      dialog.querySelectorAll('input[data-filter-toggle]').forEach(input => {
+        input.disabled = true;
+      });
+      dialog.querySelectorAll('[data-filter-action="configure-integration"]').forEach(button => button.remove());
+    } else {
+      if (cancel) cancel.hidden = false;
+      if (canManage) {
+        dialog.querySelectorAll('input[data-filter-toggle]').forEach(input => {
+          input.disabled = false;
+        });
+        const list = document.getElementById("filter-integration-list");
+        if (list) {
+          for (const row of list.querySelectorAll(":scope > .filtering-integration-row")) {
+            const source = row.querySelector('input[data-filter-toggle]')?.dataset.filterToggle;
+            const actions = row.querySelector(".filtering-integration-actions");
+            if (!source || !actions || actions.querySelector('[data-filter-action="configure-integration"]')) continue;
+            const configure = node("button", "button small secondary", "Configure");
+            configure.type = "button";
+            configure.dataset.filterAction = "configure-integration";
+            configure.dataset.filterId = source;
+            actions.append(configure);
+          }
+        }
       }
     }
-    const policy = policyFor(activeDestinationId);
-    let notice = dialog.querySelector(".filtering-master-disabled-note");
-    if (policy && !policy.filtering_enabled) {
-      if (!notice) {
-        notice = node(
+
+    let masterNotice = dialog.querySelector(".filtering-master-disabled-note");
+    if (!readOnly && policy && !policy.filtering_enabled) {
+      if (!masterNotice) {
+        masterNotice = node(
           "p",
           "filtering-warning filtering-master-disabled-note",
           "Destination filtering is disabled. Saved integration filter states are preserved and will resume when filtering is enabled.",
         );
         const visibleSection = [...dialog.querySelectorAll(":scope > section")].find(section => !section.hidden);
-        visibleSection?.prepend(notice);
+        visibleSection?.prepend(masterNotice);
       }
     } else {
-      notice?.remove();
+      masterNotice?.remove();
     }
   }
 
@@ -361,8 +520,17 @@
     const coreAction = event.target.closest("[data-filter-action]");
     if (coreAction?.dataset.filterAction === "manage-destination") {
       activeDestinationId = coreAction.dataset.filterId || "";
+      if (coreAction.dataset.filterViewReadonly !== "true") readOnlyDestinationId = "";
       window.setTimeout(patchDialog, 0);
     }
+    if (coreAction?.dataset.filterAction === "view-destination-filter") {
+      activeDestinationId = coreAction.dataset.filterId || "";
+      if (coreAction.dataset.filterViewReadonly === "true") {
+        readOnlyDestinationId = activeDestinationId;
+      }
+      window.setTimeout(patchDialog, 0);
+    }
+
     const sync = event.target.closest("[data-filter-sync-action]");
     if (!sync) return;
     const action = sync.dataset.filterSyncAction;
@@ -370,6 +538,12 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       openOwnerPicker();
+      return;
+    }
+    if (action === "view-filter") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      openReadOnlyView(sync.dataset.filterSyncId || "");
       return;
     }
     if (action === "filtering") {
@@ -383,9 +557,19 @@
     }
   }, true);
 
+  const previousShowApp = showApp;
+  showApp = function filteringOwnershipShowApp(session) {
+    authenticatedUsername = String(session?.user?.username || "");
+    const result = previousShowApp(session);
+    syncProfileIdentity();
+    observeProfileIdentity();
+    return result;
+  };
+
   const previousNavigate = navigate;
   navigate = function filteringOwnershipNavigate(view, historyMode = "push") {
     const result = previousNavigate(view, historyMode);
+    syncProfileIdentity();
     if (state.currentView === FILTER_VIEW) schedule();
     if (state.currentView === "destinations") {
       refreshDestinationsState().catch(() => {
@@ -396,6 +580,9 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    if (state.user?.username) authenticatedUsername = String(state.user.username);
+    syncProfileIdentity();
+    observeProfileIdentity();
     normalizeRoutingHeadings();
     ensureSharingColumn();
     const graph = document.getElementById("rf-graph");
@@ -415,6 +602,13 @@
         subtree: true,
         attributes: true,
         attributeFilter: ["hidden", "open"],
+      });
+      dialog.addEventListener("close", () => {
+        activeDestinationId = "";
+        readOnlyDestinationId = "";
+        dialog.classList.remove("filtering-readonly-view");
+        const cancel = document.querySelector('#filter-integration-step .modal-actions [data-filter-action="close"]');
+        if (cancel) cancel.hidden = false;
       });
     }
     if (state.currentView === FILTER_VIEW) schedule(0);
