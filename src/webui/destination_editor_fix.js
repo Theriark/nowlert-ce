@@ -3,6 +3,30 @@
 (() => {
   if (typeof document === "undefined") return;
 
+  const LONG_PROVIDER_LAYOUTS = {
+    webhook: [
+      { title: "Request", keys: ["channel_name", "method"] },
+      {
+        title: "Payload & security",
+        keys: ["timeout_seconds", "headers", "body_template", "sign_hmac", "allow_private_network"],
+      },
+    ],
+    mqtt: [
+      { title: "Broker & topic", keys: ["host", "port", "topic"] },
+      {
+        title: "Delivery options",
+        keys: ["channel_name", "qos", "keepalive_seconds", "client_id", "tls", "retain", "allow_private_network"],
+      },
+    ],
+    ntfy: [
+      { title: "Server & topic", keys: ["server", "topic", "priority"] },
+      {
+        title: "Message options",
+        keys: ["channel_name", "tags", "title", "timeout_seconds", "include_action", "allow_private_network"],
+      },
+    ],
+  };
+
   function normalizeDestinationProviderIcons() {
     if (typeof OUTPUT_ICONS !== "object" || !OUTPUT_ICONS) return;
     OUTPUT_ICONS.teams = "/ui/icons/routing-teams.svg";
@@ -45,6 +69,40 @@
       helper.className = "destination-message-options-help";
       helper.textContent = "Controls Slack message detail; it does not filter events.";
       label.append(helper);
+    }
+  }
+
+  function normalizeLongDestinationProviderLayout() {
+    const settings = document.getElementById("destination-settings");
+    const type = document.getElementById("destination-type")?.value || "";
+    const layout = LONG_PROVIDER_LAYOUTS[type];
+    if (!settings || !layout) return;
+    if (settings.querySelector(".destination-provider-settings-group")) return;
+
+    for (const section of layout) {
+      const group = document.createElement("fieldset");
+      group.className = "destination-credentials-card destination-provider-settings-group wide";
+
+      const heading = document.createElement("div");
+      heading.className = "destination-section-heading";
+      const copy = document.createElement("div");
+      copy.className = "destination-section-copy";
+      const title = document.createElement("strong");
+      title.textContent = section.title;
+      copy.append(title);
+      heading.append(copy);
+
+      const groupFields = document.createElement("div");
+      groupFields.className = "form-grid";
+      for (const key of section.keys) {
+        const input = settings.querySelector(`[data-field="${key}"]`);
+        const label = input?.closest("label");
+        if (label) groupFields.append(label);
+      }
+
+      if (!groupFields.children.length) continue;
+      group.append(heading, groupFields);
+      settings.append(group);
     }
   }
 
@@ -179,6 +237,7 @@
     normalizeDestinationProviderIcons();
     normalizeDiscordMessageStyle();
     normalizeSlackMessageOptions();
+    normalizeLongDestinationProviderLayout();
     normalizeDestinationTitle();
     normalizeSharedControl();
     normalizeDestinationFooter();
@@ -200,7 +259,10 @@
     const title = document.getElementById("destination-dialog-title");
 
     if (settings) {
-      new MutationObserver(normalizeDiscordMessageStyle).observe(settings, {
+      new MutationObserver(() => {
+        normalizeDiscordMessageStyle();
+        normalizeLongDestinationProviderLayout();
+      }).observe(settings, {
         childList: true,
       });
     }
