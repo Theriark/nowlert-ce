@@ -12,6 +12,13 @@
   let profileIdentityObserver = null;
   let dialogPatchQueued = false;
 
+  const previousRequest = request;
+  request = async function filteringOwnershipRequest(path, options = {}) {
+    const response = await previousRequest(path, options);
+    if (path === "/filters") latest = response;
+    return response;
+  };
+
   function node(tag, className = "", text = "") {
     const item = document.createElement(tag);
     if (className) item.className = className;
@@ -602,7 +609,8 @@
     const table = document.getElementById("filter-table");
     if (table) {
       new MutationObserver(() => {
-        if (!decorating && state.currentView === FILTER_VIEW) schedule();
+        if (decorating || state.currentView !== FILTER_VIEW) return;
+        if (latest) decorate(latest);
       }).observe(table, { childList: true, subtree: false });
     }
     const dialog = document.getElementById("filtering-dialog");
