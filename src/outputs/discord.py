@@ -219,11 +219,13 @@ class DiscordOutput:
         """Enable Components V2 and optional returned-message verification."""
 
         flags = payload.get("flags", 0) if isinstance(payload, dict) else 0
-        if not isinstance(flags, int) or not flags & (1 << 15):
+        components_v2 = isinstance(flags, int) and bool(flags & (1 << 15))
+        if not components_v2 and not wait:
             return webhook
         parts = urlsplit(webhook)
         query = dict(parse_qsl(parts.query, keep_blank_values=True))
-        query["with_components"] = "true"
+        if components_v2:
+            query["with_components"] = "true"
         if wait:
             query["wait"] = "true"
         return urlunsplit((
