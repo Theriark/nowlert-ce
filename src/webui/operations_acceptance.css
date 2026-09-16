@@ -108,3 +108,70 @@
     margin-left: 0;
   }
 }
+
+/* Keep Dashboard chrome consistent with the Routing Flow management header. */
+.topbar.ops-dashboard-topbar > #page-title {
+  display: flex;
+  align-items: center;
+}
+
+.topbar.ops-dashboard-topbar > #page-title::before {
+  grid-row: auto;
+  align-self: center;
+}
+
+.topbar.ops-dashboard-topbar > #page-title::after {
+  content: none;
+}
+
+#view-dashboard > .ops-dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: linear-gradient(145deg, rgba(31, 35, 41, 0.72), rgba(21, 25, 30, 0.65));
+  border: 1px solid rgba(244, 197, 66, 0.1);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+}
+
+.ops-dashboard-toolbar-copy h2 {
+  margin: 0;
+}
+
+.ops-dashboard-toolbar-copy p {
+  color: var(--muted, #aeb5bd);
+  margin: 0.25rem 0 0;
+}
+
+#view-dashboard .ops-dashboard-top-actions {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* Fixed status columns keep every Recent Activity row vertically aligned. */
+.ops-activity-row {
+  grid-template-columns: 36px minmax(110px, 1fr) 82px 62px 82px 64px;
+}
+
+.ops-activity-row .ops-severity,
+.ops-activity-row .ops-attempt,
+.ops-activity-row .ops-outcome {
+  justify-self: center;
+}
+
+.ops-activity-row .ops-activity-time {
+  justify-self: end;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  #view-dashboard > .ops-dashboard-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  #view-dashboard .ops-dashboard-top-actions {
+    margin-left: 0;
+  }
+}
