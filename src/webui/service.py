@@ -176,6 +176,16 @@ class WebUIService:
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/operations_acceptance.js": (
+                "src/webui/operations_acceptance.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/operations_acceptance.css": (
+                "src/webui/operations_acceptance.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/icon.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
@@ -271,6 +281,7 @@ class WebUIService:
                 '  <link rel="stylesheet" href="/ui/routing_flow.css">\n'
                 '  <link rel="stylesheet" href="/ui/filtering_ownership_sync.css">\n'
                 '  <link rel="stylesheet" href="/ui/operations_dashboard.css">\n'
+                '  <link rel="stylesheet" href="/ui/operations_acceptance.css">\n'
                 '  <script src="/ui/filtering.js" defer></script>\n'
                 '  <script src="/ui/source_ui_retirement.js" defer></script>\n'
                 '  <script src="/ui/destination_routes.js" defer></script>\n'
@@ -280,6 +291,7 @@ class WebUIService:
                 '  <script src="/ui/routing_flow.js" defer></script>\n'
                 '  <script src="/ui/filtering_ownership_sync.js" defer></script>\n'
                 '  <script src="/ui/operations_dashboard.js" defer></script>\n'
+                '  <script src="/ui/operations_acceptance.js" defer></script>\n'
             )
             body = text.replace("</head>", extension + "</head>", 1).encode("utf-8")
         return WebUIResponse(200, body, content_type, cache_control)
