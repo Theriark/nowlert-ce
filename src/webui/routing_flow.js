@@ -1,6 +1,6 @@
 "use strict";
 
-/* Read-only, destination-aware routing canvas. No routing mutation or demo data. */
+/* Destination-aware routing canvas. No routing mutation or demo data. */
 (() => {
   const NS = "http://www.w3.org/2000/svg";
   const PAGE = "routing-flow";
@@ -14,7 +14,7 @@
     fit: "M8 3H3v5 M16 3h5v5 M21 16v5h-5 M8 21H3v-5 M8 8h8v8H8z",
   };
   let data = null, signature = "", timer = null, controller = null;
-  let generation = 0, paused = false, range = "15m", zoom = 1, busy = false;
+  let generation = 0, range = "15m", zoom = 1, busy = false;
   let owner = null, selected = null, seen = new Set(), allHistory = false;
   let pulseFrame = null, pulses = [], edgePaths = new Map(), resizeFrame = null;
   let graphModel = null;
@@ -43,7 +43,7 @@
   }
   function dot(kind = "") { return el("span", `rf-dot ${kind}`); }
   function metricText(value) { return value === null || value === undefined ? "—" : Number(value).toLocaleString(); }
-  function active() { return Boolean(state.user && state.currentView === PAGE && !document.hidden && !paused); }
+  function active() { return Boolean(state.user && state.currentView === PAGE && !document.hidden); }
   function linkKey(route, destination) { return JSON.stringify([route, destination]); }
   function destinationLogo(destination) {
     const path = OUTPUT_LOGOS[destination.output_type];
@@ -64,20 +64,18 @@
   section.dataset.page = PAGE;
   section.hidden = true;
   section.innerHTML = `
-    <div class="rf-toolbar">
-      <div><h2>Routing Flow <span class="rf-badge">Read-only</span></h2><p>Automatically mapped from existing configuration</p></div>
-      <div class="rf-controls"><span id="rf-live" class="rf-live" role="status">Loading overview…</span><button id="rf-pause" class="rf-control" type="button">Pause live</button><label class="rf-range"><span class="sr-only">History window</span><select id="rf-range"><option value="15m">Last 15 minutes</option><option value="1h">Last hour</option><option value="1d">Last 24 hours</option></select></label></div>
+    <div class="section-toolbar rf-toolbar">
+      <div><h2>Routing Flow</h2><p>Visualize active routes, filters, and destinations.</p></div>
+      <label class="rf-range"><span class="sr-only">History window</span><select id="rf-range"><option value="15m">Last 15 minutes</option><option value="1h">Last hour</option><option value="1d">Last 24 hours</option></select></label>
     </div>
-    <p class="rf-scope">Delivery counts use the latest attempt per delivery. One source event can reach multiple destinations.</p>
     <div id="rf-error" class="rf-error" role="alert" hidden></div>
     <div id="rf-metrics" class="rf-metrics"></div>
     <div class="rf-canvas">
       <div id="rf-empty" class="rf-empty" hidden></div>
       <div id="rf-graph" class="rf-graph"><svg id="rf-edges" class="rf-edges" aria-hidden="true"><g id="rf-edge-layer"></g><g id="rf-particle-layer"></g></svg></div>
-      <div class="rf-canvas-footer"><div class="rf-controls"><div class="rf-zoom"><button id="rf-minus" type="button" aria-label="Zoom out">−</button><span id="rf-zoom-value">100%</span><button id="rf-plus" type="button" aria-label="Zoom in">+</button></div><button id="rf-fit" class="rf-control" type="button">Fit to view</button></div><small id="rf-counts"></small><svg id="rf-minimap" class="rf-minimap" viewBox="0 0 130 46" role="img" aria-label="Routing overview minimap"></svg></div>
+      <div class="rf-canvas-footer"><div class="rf-controls"><div class="rf-zoom"><button id="rf-minus" type="button" aria-label="Zoom out">−</button><span id="rf-zoom-value">100%</span><button id="rf-plus" type="button" aria-label="Zoom in">+</button></div><button id="rf-fit" class="rf-control" type="button">Fit to view</button></div><svg id="rf-minimap" class="rf-minimap" viewBox="0 0 130 46" role="img" aria-label="Routing overview minimap"></svg></div>
     </div>
     <div class="rf-history"><div class="rf-history-heading"><h3>Recent Deliveries</h3><button id="rf-history-toggle" class="rf-control" type="button">View all</button></div><div class="rf-table-scroll"><table><thead><tr><th>Time</th><th>Integration</th><th>Destination</th><th>Status</th><th>Attempt</th></tr></thead><tbody id="rf-history-body"></tbody></table></div><p id="rf-history-empty" class="rf-empty" hidden>No deliveries recorded in this window.</p></div>
-    <p class="rf-footnote">Refreshes every 5 seconds while visible. Source-event and filtered-out totals are not recorded by the current pipeline.</p>
   `;
   byId("view-dashboard").after(section);
   const $ = id => section.querySelector(`#${id}`);
@@ -94,10 +92,34 @@
   document.body.append(dialog);
   dialog.addEventListener("close", () => { selected = null; drawEdges(); });
 
+  function setDialogTitle(text, visual = null) {
+    dialogTitle.replaceChildren();
+    if (visual) {
+      visual.classList.add("rf-dialog-title-icon");
+      dialogTitle.append(visual);
+    }
+    dialogTitle.append(el("span", "", text));
+  }
   function detailRow(label, value) {
     const row = el("div", "rf-detail-row");
     row.append(el("span", "", label), el("strong", "", value));
     return row;
+  }
+  function detailIdentityRow(label, visual, value) {
+    const row = el("div", "rf-detail-row");
+    const identity = el("strong", "rf-detail-identity");
+    if (visual) {
+      visual.classList.add("rf-detail-icon");
+      identity.append(visual);
+    }
+    identity.append(document.createTextNode(value));
+    row.append(el("span", "", label), identity);
+    return row;
+  }
+  function appendMetricRows(target, metrics) {
+    [["Delivered", "delivered"], ["Retry scheduled", "pending"], ["Failed", "failed"]].forEach(([label, key]) => {
+      target.append(detailRow(label, metricText((metrics || {})[key])));
+    });
   }
   function policyLines(link) {
     const entries = [];
@@ -117,6 +139,16 @@
   function activePolicyLines(link) {
     const policies = activePolicies(link);
     return policies.length ? policyLines({ ...link, policies }) : [];
+  }
+  function policyDetailRows(link) {
+    const policies = activePolicies(link);
+    return policies.map((policy, index) => {
+      const line = policyLines({ ...link, policies: [policy] })[0] || "All notifications";
+      const prefix = `${policy.name}: `;
+      const summary = link.fallback && line.startsWith(prefix) ? line.slice(prefix.length) : line;
+      const label = link.fallback ? policy.name : (policies.length > 1 ? `Rule ${index + 1}` : "Rules");
+      return detailRow(label, summary);
+    });
   }
   function activeFlowGraph() {
     if (!data) return { routes: [], destinations: [], links: [] };
@@ -141,34 +173,41 @@
     if (kind === "route") {
       const route = current.routes.find(r => r.id === identity);
       if (!route) return;
-      dialogTitle.textContent = route.integration_name;
-      dialogBody.append(detailRow("Route", route.name), detailRow("Input", route.input_type || "Any input"), detailRow("State", route.enabled ? "Enabled" : "Disabled"));
       const targets = current.links.filter(l => l.route_id === identity);
-      for (const link of targets) {
-        const d = current.destinations.find(d => d.id === link.destination_id);
-        if (d) dialogBody.append(detailRow(d.name, policyLines(link).join("; ")));
-      }
+      const destinationNames = targets.map(link => current.destinations.find(d => d.id === link.destination_id)?.name).filter(Boolean);
+      setDialogTitle(route.integration_name, sourceIcon(route.source));
+      dialogBody.append(
+        detailRow("Route", route.name),
+        detailRow("Integration", route.integration_name),
+        detailRow("Input / protocol", route.input_type || "Any input"),
+        detailRow("Active destinations", destinationNames.join(", ") || "None"),
+      );
+      appendMetricRows(dialogBody, route.metrics);
     } else if (kind === "destination") {
       const d = current.destinations.find(d => d.id === identity);
       if (!d) return;
-      dialogTitle.textContent = d.name;
-      dialogBody.append(detailRow("Platform", OUTPUT_NAMES[d.output_type] || d.output_type), detailRow("Channel", d.channel || "Not labelled"), detailRow("State", d.enabled ? "Enabled" : "Disabled"));
-      current.links.filter(l => l.destination_id === identity).forEach(l => {
-        const r = current.routes.find(r => r.id === l.route_id);
-        if (r) dialogBody.append(detailRow(r.name, policyLines(l).join("; ")));
-      });
-      ["delivered", "pending", "failed"].forEach(k => dialogBody.append(detailRow(k === "pending" ? "Retry scheduled" : capitalize(k), metricText(d.metrics[k]))));
+      const targets = current.links.filter(l => l.destination_id === identity);
+      setDialogTitle(d.name, destinationLogo(d));
+      dialogBody.append(
+        detailRow("Platform", OUTPUT_NAMES[d.output_type] || d.output_type),
+        detailRow("Channel", d.channel || "Not labelled"),
+        detailRow("Visibility", d.shared ? "Shared" : "Private"),
+        detailRow("Active routes", String(targets.length)),
+      );
+      appendMetricRows(dialogBody, d.metrics);
     } else {
       const link = current.links.find(l => linkKey(l.route_id, l.destination_id) === identity);
       if (!link) return;
       const r = current.routes.find(r => r.id === link.route_id), d = current.destinations.find(d => d.id === link.destination_id);
       if (!r || !d) return;
-      dialogTitle.textContent = `${r.integration_name} → ${d.name}`;
-      dialogBody.append(detailRow("Route", r.name), detailRow("Filtering scope", "This destination and integration"), detailRow("Connection", link.enabled ? "Enabled" : "Disabled"));
-      activePolicyLines(link).forEach((line, i) => dialogBody.append(detailRow(`Filter ${i + 1}`, line)));
-      if (link.fallback) dialogBody.append(detailRow("Fallback", "Only when no dedicated route matches"));
+      setDialogTitle("Active filter", icon("filter"));
+      dialogBody.append(
+        detailIdentityRow("Integration", sourceIcon(r.source), r.integration_name),
+        detailIdentityRow("Destination", destinationLogo(d), d.name),
+        detailRow("Status", "Active"),
+      );
+      policyDetailRows(link).forEach(row => dialogBody.append(row));
     }
-    dialogBody.append(el("p", "rf-detail-note", "Read-only snapshot. Configuration remains in Destinations and Filtering."));
     drawEdges();
     if (!dialog.open) dialog.showModal();
   }
@@ -311,8 +350,8 @@
     const current = graphModel;
     const ordered = orderFlowGraph(current);
     const headingNodes = new Map();
-    [["route", "Integration routes", "Event sources with configured routes"], ["filter", "Active filters", "Per destination and integration"], ["destination", "Destinations", "Alert channels receiving events"]].forEach(([kind, a, b]) => {
-      const head = el("div", "rf-column-heading", a); head.append(el("small", "", b)); graph.append(head); headingNodes.set(kind, head);
+    [["route", "Integration routes"], ["filter", "Active filters"], ["destination", "Destinations"]].forEach(([kind, label]) => {
+      const head = el("div", "rf-column-heading", label); graph.append(head); headingNodes.set(kind, head);
     });
 
     for (const r of ordered.routeOrder) {
@@ -350,7 +389,6 @@
     $("rf-empty").hidden = hasFlow;
     $("rf-empty").textContent = "No active connected routes and destinations.";
     graph.hidden = !hasFlow;
-    $("rf-counts").textContent = `${current.routes.length} routes · ${current.links.length} connections · ${current.destinations.length} destinations`;
 
     if (hasFlow && window.innerWidth > 640) {
       const columns = new Map([...headingNodes].map(([kind, head]) => [kind, { left: head.offsetLeft, width: head.offsetWidth }]));
@@ -460,7 +498,7 @@
     $("rf-metrics").replaceChildren(); $("rf-history-body").replaceChildren();
     $("rf-graph").querySelectorAll(":scope > :not(svg)").forEach(n=>n.remove());
     $("rf-edge-layer").replaceChildren(); $("rf-particle-layer").replaceChildren(); edgePaths = new Map(); $("rf-minimap").replaceChildren();
-    $("rf-counts").textContent=""; $("rf-error").hidden=true;
+    $("rf-error").hidden=true;
     if(dialog.open) dialog.close();
   }
   async function refresh() {
@@ -481,14 +519,11 @@
       seen=new Set(next.history.map(h=>h.id));
       const nextSignature=JSON.stringify({...next,generated_at:0,since:0});data=next;
       if(nextSignature!==signature){signature=nextSignature;render();}
-      $("rf-live").textContent=`● Live · updated ${formatTime(next.generated_at)}`;
-      $("rf-live").classList.remove("rf-stale");
       $("rf-error").hidden=!next.errors?.length;
       $("rf-error").textContent=(next.errors||[]).map(e=>`${e.component}: ${e.message}`).join(" · ");
       animateAttempts(fresh);
     } catch(error) {
       if(token!==generation || !active()) return;
-      $("rf-live").textContent="● Connection interrupted";$("rf-live").classList.add("rf-stale");
       $("rf-error").hidden=false;
       $("rf-error").textContent=`${error.name==='AbortError'?'Overview request timed out.':error.message} ${data?'Showing the last successful snapshot.':'No overview loaded.'} Retrying automatically.`;
     } finally {
@@ -512,8 +547,7 @@
   const previousExpire=expireSession;
   expireSession=function routingFlowExpireSession(){invalidate();clearPrivateData();return previousExpire();};
   document.addEventListener("visibilitychange",sync);
-  $("rf-pause").addEventListener("click",()=>{paused=!paused;$("rf-pause").textContent=paused?"Resume live":"Pause live";$("rf-live").textContent=paused?"Ⅱ Paused · snapshot frozen":"Reconnecting…";sync();});
-  $("rf-range").addEventListener("change",()=>{range=$("rf-range").value;signature="";invalidate();clearPrivateData();$("rf-live").textContent=paused?"Paused · resume to load this range":"Loading window…";refresh();});
+  $("rf-range").addEventListener("change",()=>{range=$("rf-range").value;signature="";invalidate();clearPrivateData();refresh();});
   function setZoom(value){zoom=Math.min(1,Math.max(.7,Math.round(value*10)/10));$("rf-graph").style.transform=`scale(${zoom})`;$("rf-zoom-value").textContent=`${Math.round(zoom*100)}%`;$("rf-plus").disabled=zoom===1;$("rf-minus").disabled=zoom===.7;}
   $("rf-minus").addEventListener("click",()=>setZoom(zoom-.1));$("rf-plus").addEventListener("click",()=>setZoom(zoom+.1));$("rf-fit").addEventListener("click",()=>setZoom(1));
   $("rf-history-toggle").addEventListener("click",()=>{allHistory=!allHistory;if(data)renderHistory();});
