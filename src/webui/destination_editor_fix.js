@@ -3,6 +3,7 @@
 (() => {
   if (typeof document === "undefined") return;
 
+  const REMOVED_DESTINATION_TYPES = new Set(["mqtt", "ntfy"]);
   const LONG_PROVIDER_LAYOUTS = {
     webhook: [
       { title: "Request", keys: ["channel_name", "method"] },
@@ -11,21 +12,28 @@
         keys: ["timeout_seconds", "headers", "body_template", "sign_hmac", "allow_private_network"],
       },
     ],
-    mqtt: [
-      { title: "Broker & topic", keys: ["host", "port", "topic"] },
-      {
-        title: "Delivery options",
-        keys: ["channel_name", "qos", "keepalive_seconds", "client_id", "tls", "retain", "allow_private_network"],
-      },
-    ],
-    ntfy: [
-      { title: "Server & topic", keys: ["server", "topic", "priority"] },
-      {
-        title: "Message options",
-        keys: ["channel_name", "tags", "title", "timeout_seconds", "include_action", "allow_private_network"],
-      },
-    ],
   };
+
+  function normalizeSupportedDestinationTypes() {
+    const typeSelect = document.getElementById("destination-type");
+    if (typeSelect) {
+      for (const option of [...typeSelect.options]) {
+        if (REMOVED_DESTINATION_TYPES.has(option.value)) option.remove();
+      }
+    }
+
+    if (typeof OUTPUT_NAMES === "object" && OUTPUT_NAMES) {
+      for (const type of REMOVED_DESTINATION_TYPES) delete OUTPUT_NAMES[type];
+    }
+    if (typeof OUTPUT_ICONS === "object" && OUTPUT_ICONS) {
+      for (const type of REMOVED_DESTINATION_TYPES) delete OUTPUT_ICONS[type];
+    }
+
+    const copy = document.querySelector("#view-destinations .section-toolbar p");
+    if (copy) {
+      copy.textContent = "Configure delivery targets for Discord, Microsoft Teams, Slack, and generic webhooks.";
+    }
+  }
 
   function normalizeDestinationProviderIcons() {
     if (typeof OUTPUT_ICONS !== "object" || !OUTPUT_ICONS) return;
@@ -234,6 +242,7 @@
   }
 
   function normalizeDestinationEditor() {
+    normalizeSupportedDestinationTypes();
     normalizeDestinationProviderIcons();
     normalizeDiscordMessageStyle();
     normalizeSlackMessageOptions();
@@ -257,6 +266,8 @@
   document.addEventListener("DOMContentLoaded", () => {
     const settings = document.getElementById("destination-settings");
     const title = document.getElementById("destination-dialog-title");
+
+    normalizeSupportedDestinationTypes();
 
     if (settings) {
       new MutationObserver(() => {
@@ -305,36 +316,6 @@
           headers: "{}",
           body_template: "",
           sign_hmac: false,
-          allow_private_network: false,
-        },
-      },
-    },
-    mqtt: {
-      primary: { title: "Broker & topic", keys: ["host", "port", "topic", "tls"] },
-      advanced: {
-        title: "Advanced delivery options",
-        keys: ["channel_name", "qos", "keepalive_seconds", "client_id", "retain", "allow_private_network"],
-        defaults: {
-          channel_name: "",
-          qos: "1",
-          keepalive_seconds: "60",
-          client_id: "",
-          retain: false,
-          allow_private_network: false,
-        },
-      },
-    },
-    ntfy: {
-      primary: { title: "Server & topic", keys: ["server", "topic", "priority"] },
-      advanced: {
-        title: "Message options",
-        keys: ["channel_name", "tags", "title", "timeout_seconds", "include_action", "allow_private_network"],
-        defaults: {
-          channel_name: "",
-          tags: "",
-          title: "${title}",
-          timeout_seconds: "15",
-          include_action: true,
           allow_private_network: false,
         },
       },
@@ -434,19 +415,9 @@
     settings.dataset.destinationProgressiveType = type;
   }
 
-  function currentDestination() {
-    const id = document.getElementById("destination-id")?.value || "";
-    return (state.destinations || []).find((item) => item.id === id) || null;
-  }
-
   function resetCredentialPresentation(credentials, secrets) {
     const heading = document.getElementById("destination-credentials-heading");
     const status = document.getElementById("destination-credential-status");
-    const auth = credentials.querySelector(".destination-progressive-authentication");
-    if (auth) {
-      credentials.append(secrets);
-      auth.remove();
-    }
     if (heading) {
       heading.hidden = false;
       const title = heading.querySelector(".destination-section-copy strong");
@@ -492,28 +463,6 @@
     syncWebhookSecrets();
   }
 
-  function normalizeAuthentication(type, credentials, secrets) {
-    const heading = document.getElementById("destination-credentials-heading");
-    const status = document.getElementById("destination-credential-status");
-    const details = document.createElement("details");
-    details.className = "destination-progressive-authentication";
-    details.open = Boolean(currentDestination()?.secret_configured);
-    const summary = document.createElement("summary");
-    summary.append(sectionHeading("Authentication"));
-    if (status) summary.querySelector(".destination-section-heading")?.append(status);
-    const help = document.createElement("small");
-    help.className = "field-help";
-    help.textContent = type === "mqtt"
-      ? "Optional broker username and password. Leave blank when anonymous access is allowed."
-      : "Use an access token or username and password. Leave blank for public ntfy servers.";
-    const body = document.createElement("div");
-    body.className = "form-grid";
-    body.append(help, secrets);
-    details.append(summary, body);
-    credentials.append(details);
-    if (heading) heading.hidden = true;
-  }
-
   function normalizeProgressiveCredentials() {
     const type = document.getElementById("destination-type")?.value || "";
     const secrets = document.getElementById("destination-secrets");
@@ -526,7 +475,6 @@
 
     resetCredentialPresentation(credentials, secrets);
     if (type === "webhook") normalizeWebhookCredentials(credentials, secrets);
-    if (type === "mqtt" || type === "ntfy") normalizeAuthentication(type, credentials, secrets);
     credentials.dataset.destinationProgressiveCredentials = type;
   }
 

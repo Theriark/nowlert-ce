@@ -14,8 +14,6 @@ from api.security import hash_password
 from models import Notification
 from outputs.platform import (
     DiscordPlatformAdapter,
-    MQTTPlatformAdapter,
-    NtfyPlatformAdapter,
     OutputPreview,
     PlatformOutputAdapter,
     PlatformOutputRegistry,
@@ -128,15 +126,13 @@ def platform(tmp_path):
     }
 
 
-def test_registry_exposes_all_six_platform_output_types():
+def test_registry_exposes_supported_platform_output_types():
     registry = PlatformOutputRegistry()
     assert set(registry.delivery_adapters()) == {
         "discord",
         "teams",
         "slack",
         "webhook",
-        "mqtt",
-        "ntfy",
     }
     assert PlatformOutputRegistry([]).delivery_adapters() == {}
 
@@ -196,36 +192,6 @@ def test_webhook_preview_uses_stable_secret_safe_envelope_and_templates():
         "host": "vm-09",
         "id": "grafana-42",
     }
-
-
-def test_mqtt_and_ntfy_previews_include_transport_metadata_without_credentials():
-    mqtt = MQTTPlatformAdapter(
-        publisher=lambda *_args, **_kwargs: None,
-        resolver=public_resolver,
-    ).preview(
-        destination(
-            "mqtt",
-            {"host": "mqtt.example.com", "topic": "nowlert/${host}"},
-        ),
-        notification(),
-    )
-    ntfy = NtfyPlatformAdapter(resolver=public_resolver).preview(
-        destination(
-            "ntfy",
-            {
-                "server": "https://ntfy.example.com",
-                "topic": "alerts",
-                "tags": ["warning"],
-            },
-        ),
-        notification(),
-    )
-
-    assert mqtt.metadata == {"topic": "nowlert/vm-09", "qos": 1, "retain": False}
-    assert mqtt.payload["schema"] == "nowlert.event.v1"
-    assert ntfy.payload["topic"] == "alerts"
-    assert ntfy.payload["actions"][0]["url"].startswith("https://")
-    assert "Authorization" not in json.dumps(ntfy.payload)
 
 
 def test_http_delivery_maps_retryable_and_terminal_status_without_response_body():
@@ -294,63 +260,10 @@ def test_outbound_http_rejects_private_resolution_by_default():
     assert result == DeliveryResult(False, error_code="invalid_destination")
 
 
-def test_mqtt_delivery_uses_tls_auth_qos_and_safe_retry_result():
-    calls = []
-
-    def publisher(topic, **kwargs):
-        calls.append((topic, kwargs))
-
-    adapter = MQTTPlatformAdapter(publisher=publisher, resolver=public_resolver)
-    target = destination(
-        "mqtt",
-        {
-            "host": "mqtt.example.com",
-            "topic": "alerts/${source}",
-            "qos": 2,
-            "retain": True,
-            "tls": True,
-        },
-    )
-    secret = json.dumps({"username": "nowlert", "password": "private"}).encode()
-    result = adapter.deliver(target, secret, notification())
-
-    assert result.success is True
-    assert calls[0][0] == "alerts/grafana"
-    assert calls[0][1]["qos"] == 2
-    assert calls[0][1]["retain"] is True
-    assert calls[0][1]["tls"] == {}
-    assert calls[0][1]["auth"] == {"username": "nowlert", "password": "private"}
-    assert "private" not in calls[0][1]["payload"]
-
-
-def test_mqtt_network_failure_is_retryable_without_exception_text():
-    def unavailable(*_args, **_kwargs):
-        raise OSError("password=private broker details")
-
-    adapter = MQTTPlatformAdapter(publisher=unavailable, resolver=public_resolver)
-    result = adapter.deliver(
-        destination("mqtt", {"host": "mqtt.example.com", "topic": "alerts"}),
-        None,
-        notification(),
-    )
-    assert result.retryable is True
-    assert result.error_code == "transport_unavailable"
-    assert "private" not in repr(result)
-
-
-def test_ntfy_delivery_uses_secret_auth_but_preview_does_not():
-    client = HTTPClient((200,))
-    adapter = NtfyPlatformAdapter(http_client=client, resolver=public_resolver)
-    target = destination(
-        "ntfy",
-        {"server": "https://ntfy.example.com", "topic": "operations"},
-    )
-    result = adapter.deliver(target, b"private-ntfy-token", notification())
-    _method, _url, kwargs = client.calls[0]
-
-    assert result.success is True
-    assert kwargs["headers"] == {"Authorization": "Bearer private-ntfy-token"}
-    assert "private-ntfy-token" not in json.dumps(kwargs["json"])
+def test_removed_destination_types_are_rejected():
+    for removed in ("mqtt", "ntfy"):
+        with pytest.raises(ValueError, match="unsupported destination output type"):
+            normalize_output_settings(removed, {})
 
 
 def test_destination_settings_reject_unknown_unsafe_and_unbounded_values(platform):
@@ -363,18 +276,6 @@ def test_destination_settings_reject_unknown_unsafe_and_unbounded_values(platfor
             "Unknown",
             "slack",
             settings={"channel": "secret"},
-        )
-    with pytest.raises(ValueError, match="wildcards"):
-        normalize_output_settings(
-            "mqtt",
-            {"host": "mqtt.example.com", "topic": "alerts/#"},
-            require_complete=True,
-        )
-    with pytest.raises(ValueError, match="credential-free HTTPS"):
-        normalize_output_settings(
-            "ntfy",
-            {"server": "http://ntfy.example.com", "topic": "alerts"},
-            require_complete=True,
         )
     with pytest.raises(ValueError, match="must be an object"):
         platform["destinations"].create(
@@ -393,24 +294,16 @@ def test_only_administrators_can_enable_private_network_destinations(platform):
         platform["destinations"].create(
             owner.actor,
             owner.id,
-            "Private MQTT",
-            "mqtt",
-            settings={
-                "host": "mqtt.internal",
-                "topic": "alerts",
-                "allow_private_network": True,
-            },
+            "Private webhook",
+            "webhook",
+            settings={"allow_private_network": True},
         )
     created = platform["destinations"].create(
         admin.actor,
         admin.id,
-        "Administrator MQTT",
-        "mqtt",
-        settings={
-            "host": "mqtt.internal",
-            "topic": "alerts",
-            "allow_private_network": True,
-        },
+        "Administrator webhook",
+        "webhook",
+        settings={"allow_private_network": True},
     )
     assert created.settings["allow_private_network"] is True
 

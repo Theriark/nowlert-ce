@@ -192,8 +192,8 @@ def test_destination_can_select_multiple_routes(platform):
 def test_one_route_can_feed_multiple_destinations(platform):
     owner = platform["owner"]
     route = platform["routes"].create(owner.actor, owner.id, "Grafana", "grafana")
-    first = platform["destinations"].create(owner.actor, owner.id, "First", "ntfy")
-    second = platform["destinations"].create(owner.actor, owner.id, "Second", "ntfy")
+    first = platform["destinations"].create(owner.actor, owner.id, "First", "teams")
+    second = platform["destinations"].create(owner.actor, owner.id, "Second", "teams")
 
     platform["relationships"].replace_for_destination(owner.actor, first.id, [route.id])
     platform["relationships"].replace_for_destination(owner.actor, second.id, [route.id])
@@ -206,7 +206,7 @@ def test_one_route_can_feed_multiple_destinations(platform):
 
 def test_assignment_replacement_is_atomic(platform):
     owner = platform["owner"]
-    destination = platform["destinations"].create(owner.actor, owner.id, "Target", "ntfy")
+    destination = platform["destinations"].create(owner.actor, owner.id, "Target", "teams")
     route = platform["routes"].create(owner.actor, owner.id, "Grafana", "grafana")
     platform["relationships"].replace_for_destination(owner.actor, destination.id, [route.id])
 
@@ -225,7 +225,7 @@ def test_private_foreign_destination_cannot_bind_route(platform):
     another = platform["another"]
     route = platform["routes"].create(owner.actor, owner.id, "Owner route", "grafana")
     destination = platform["destinations"].create(
-        another.actor, another.id, "Private", "ntfy", shared=False
+        another.actor, another.id, "Private", "teams", shared=False
     )
 
     with pytest.raises(PermissionError):
@@ -236,7 +236,7 @@ def test_private_foreign_destination_cannot_bind_route(platform):
 
 def test_expand_deduplicates_destination_by_route_order(platform):
     owner = platform["owner"]
-    destination = platform["destinations"].create(owner.actor, owner.id, "Target", "ntfy")
+    destination = platform["destinations"].create(owner.actor, owner.id, "Target", "teams")
     first = platform["routes"].create(
         owner.actor, owner.id, "First", "grafana", priority=10
     )
@@ -257,8 +257,8 @@ def test_expand_deduplicates_destination_by_route_order(platform):
 def test_one_route_delivers_once_to_each_bound_destination(platform):
     owner = platform["owner"]
     route = platform["routes"].create(owner.actor, owner.id, "Grafana", "grafana")
-    first = platform["destinations"].create(owner.actor, owner.id, "First", "ntfy")
-    second = platform["destinations"].create(owner.actor, owner.id, "Second", "ntfy")
+    first = platform["destinations"].create(owner.actor, owner.id, "First", "teams")
+    second = platform["destinations"].create(owner.actor, owner.id, "Second", "teams")
     platform["relationships"].replace_for_destination(owner.actor, first.id, [route.id])
     platform["relationships"].replace_for_destination(owner.actor, second.id, [route.id])
     history = DeliveryHistoryStore(platform["database"])
@@ -268,7 +268,7 @@ def test_one_route_delivers_once_to_each_bound_destination(platform):
         platform["destinations"],
         SecretStore(platform["database"]),
         history,
-        {"ntfy": lambda target, *_args: calls.append(target.id) or DeliveryResult(True)},
+        {"teams": lambda target, *_args: calls.append(target.id) or DeliveryResult(True)},
         relationships=platform["relationships"],
     )
 
@@ -286,7 +286,7 @@ def test_one_route_delivers_once_to_each_bound_destination(platform):
 def test_deleting_destination_leaves_route_intact(platform):
     owner = platform["owner"]
     route = platform["routes"].create(owner.actor, owner.id, "Grafana", "grafana")
-    destination = platform["destinations"].create(owner.actor, owner.id, "Target", "ntfy")
+    destination = platform["destinations"].create(owner.actor, owner.id, "Target", "teams")
     platform["relationships"].replace_for_destination(owner.actor, destination.id, [route.id])
 
     platform["destinations"].delete(owner.actor, destination.id)
