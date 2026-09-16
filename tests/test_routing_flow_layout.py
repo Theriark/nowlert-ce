@@ -5,15 +5,16 @@ ROOT = Path(__file__).resolve().parents[1]
 ROUTING_FLOW = ROOT / "src" / "webui" / "routing_flow.js"
 
 
-def test_routing_flow_only_contains_active_connected_paths():
+def test_routing_flow_keeps_visible_destinations_while_links_stay_active():
     script = ROUTING_FLOW.read_text(encoding="utf-8")
 
     assert "function activeFlowGraph()" in script
     assert "link.enabled && routeIds.has(link.route_id) && destinationIds.has(link.destination_id)" in script
     assert "connectedRouteIds" in script
-    assert "connectedDestinationIds" in script
+    assert "destinations: enabledDestinations," in script
+    assert "connectedDestinationIds" not in script
     assert "No visible destination assigned" not in script
-    assert "No active connected routes and destinations." in script
+    assert "No enabled routes or destinations." in script
     assert "const assigned = current.links.filter(link => link.destination_id === d.id).length" in script
 
 

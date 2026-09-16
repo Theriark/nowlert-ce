@@ -158,16 +158,15 @@
     const destinationIds = new Set(enabledDestinations.map(destination => destination.id));
     const links = data.links.filter(link => link.enabled && routeIds.has(link.route_id) && destinationIds.has(link.destination_id));
     const connectedRouteIds = new Set(links.map(link => link.route_id));
-    const connectedDestinationIds = new Set(links.map(link => link.destination_id));
     return {
       routes: enabledRoutes.filter(route => connectedRouteIds.has(route.id)),
-      destinations: enabledDestinations.filter(destination => connectedDestinationIds.has(destination.id)),
+      destinations: enabledDestinations,
       links,
     };
   }
   function showDetails(kind, identity) {
     const current = graphModel || activeFlowGraph();
-    if (!data || !current.links.length) return;
+    if (!data) return;
     selected = { kind, identity };
     dialogBody.replaceChildren();
     if (kind === "route") {
@@ -385,12 +384,12 @@
       node.append(top, counts, el("small", "rf-last", `Enabled · ${assigned} active route${assigned === 1 ? "" : "s"}`));
     }
 
-    const hasFlow = current.links.length > 0;
-    $("rf-empty").hidden = hasFlow;
-    $("rf-empty").textContent = "No active connected routes and destinations.";
-    graph.hidden = !hasFlow;
+    const hasGraph = current.routes.length > 0 || current.destinations.length > 0;
+    $("rf-empty").hidden = hasGraph;
+    $("rf-empty").textContent = "No enabled routes or destinations.";
+    graph.hidden = !hasGraph;
 
-    if (hasFlow && window.innerWidth > 640) {
+    if (hasGraph && window.innerWidth > 640) {
       const columns = new Map([...headingNodes].map(([kind, head]) => [kind, { left: head.offsetLeft, width: head.offsetWidth }]));
       const headerBottom = Math.max(...[...headingNodes.values()].map(head => head.offsetTop + head.offsetHeight)) + 18;
       const layout = computeFlowLayout(current, ordered, headerBottom);

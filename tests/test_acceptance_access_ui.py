@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_acceptance_cleanup_keeps_filter_rows_stable_and_private_badges_out_of_names():
+def test_acceptance_cleanup_keeps_filter_rows_stable_without_owning_status_columns():
     script = (ROOT / "src" / "webui" / "acceptance_cleanup.js").read_text(
         encoding="utf-8"
     )
@@ -15,10 +15,10 @@ def test_acceptance_cleanup_keeps_filter_rows_stable_and_private_badges_out_of_n
     assert "stabilizeIntegrationOrder" in script
     assert "sourceFromRow" in script
     assert "relocateLegacyVisibilityBadges" in script
-    assert 'statusCell.append(visibility)' in script
-    assert 'destinationCell?.querySelectorAll(".filtering-access-badge")' in script
+    assert 'row.querySelectorAll(".filtering-access-badge, .acceptance-visibility-badge")' in script
     assert 'marker.textContent = "○"' in script
-    assert 'badge(activeCount ? "Active" : "Disabled"' in script
+    assert "statusCell.append(visibility)" not in script
+    assert "statusCell.replaceChildren" not in script
 
 
 def test_private_destination_metadata_stays_admin_only_while_filter_metadata_is_retired():
@@ -51,7 +51,7 @@ def test_api_service_uses_owner_private_filtering_with_destination_master_state(
     assert '"private_resources": []' in access
 
 
-def test_ownership_sync_extension_loads_after_routing_flow_and_uses_permission_flags():
+def test_ownership_sync_extension_loads_after_routing_flow_and_uses_distinct_columns():
     script = (ROOT / "src" / "webui" / "filtering_ownership_sync.js").read_text(
         encoding="utf-8"
     )
@@ -65,10 +65,12 @@ def test_ownership_sync_extension_loads_after_routing_flow_and_uses_permission_f
     assert 'data-filter-sync-action' in script
     assert '"Integrations", "Filters", "Destinations"' in script
     assert "Managed by administrator" in script
-    assert "filtering-status-stack" in script
-    assert ".filtering-status-stack" in style
+    assert "filtering-sharing-cell" in script
+    assert "filtering-status-stack" not in script
+    assert ".filtering-sharing-cell" in style
     assert ".filtering-overview-list" in style
     assert ".rf-column-heading" in style
+    assert "refreshDestinationsState" in script
     assert 'method: "PATCH"' in script and 'body: { shared: !current }' in script
     assert 'method: "PUT"' in script and 'body: { enabled: !current }' in script
     assert '"/ui/filtering_ownership_sync.js"' in service

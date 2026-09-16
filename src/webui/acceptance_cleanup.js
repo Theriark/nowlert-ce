@@ -90,33 +90,9 @@
 
   function relocateLegacyVisibilityBadges() {
     for (const row of document.querySelectorAll("#filter-table > tr:not(.acceptance-private-filter)")) {
-      const destinationCell = row.children[0];
-      const statusCell = row.children[2];
-      if (!destinationCell || !statusCell) continue;
-      for (const legacy of destinationCell.querySelectorAll(".filtering-access-badge")) {
-        const existing = statusCell.querySelector(".acceptance-visibility-badge");
-        if (existing) {
-          legacy.remove();
-          continue;
-        }
-        const shared = String(legacy.textContent || "").toLowerCase().includes("shared");
-        legacy.textContent = shared ? "Shared" : "Private";
-        legacy.classList.remove("filtering-access-badge");
-        legacy.classList.add("acceptance-visibility-badge");
-        statusCell.append(legacy);
-      }
+      row.querySelectorAll(".filtering-access-badge, .acceptance-visibility-badge")
+        .forEach((node) => node.remove());
     }
-  }
-
-  function moveVisibilityBadge(row, policy) {
-    const destinationCell = row.children[0];
-    const statusCell = row.children[2];
-    if (!statusCell) return;
-    destinationCell?.querySelectorAll(".filtering-access-badge").forEach((node) => node.remove());
-    statusCell.querySelectorAll(".acceptance-visibility-badge").forEach((node) => node.remove());
-    const visibility = badge(policy.shared ? "Shared" : "Private", policy.shared ? "success" : "warning");
-    visibility.classList.add("acceptance-visibility-badge");
-    statusCell.append(visibility);
   }
 
   function decorateConfiguredFilters(row, policy) {
@@ -144,13 +120,7 @@
         card.classList.remove("acceptance-filter-disabled");
       }
     });
-    const statusCell = row.children[2];
-    if (statusCell) {
-      statusCell.replaceChildren(
-        badge(activeCount ? "Active" : "Disabled", activeCount ? "success" : "warning"),
-      );
-      moveVisibilityBadge(row, policy);
-    }
+    relocateLegacyVisibilityBadges();
   }
 
   function appendPrivateFilterMetadata(items) {

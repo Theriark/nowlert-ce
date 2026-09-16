@@ -1,18 +1,22 @@
 /* Ownership/status alignment layered after Filtering and Routing Flow styles. */
+.filtering-table th:nth-child(1) { width: 18%; }
 .filtering-table th:nth-child(2) {
   padding-left: 0.75rem;
   text-align: left !important;
+  width: 52%;
 }
+.filtering-table th:nth-child(3) { width: 9%; }
+.filtering-table th:nth-child(4) { width: 9%; }
+.filtering-table th:nth-child(5) { width: 12%; }
 .filtering-table td:nth-child(2) { text-align: left; }
+.filtering-table tbody td:nth-child(4),
+.filtering-table tbody td:nth-child(5) {
+  padding-top: 1.25rem;
+  vertical-align: top;
+}
 .filtering-overview-list {
   margin-inline: 0 !important;
   max-width: none !important;
-}
-.filtering-status-stack {
-  align-items: flex-start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
 }
 .filtering-status-control {
   appearance: none;
@@ -27,6 +31,10 @@
   outline: 2px solid #7ea8ff;
   outline-offset: 2px;
 }
+.filtering-sharing-cell .badge,
+.filtering-sharing-cell .filtering-status-control {
+  white-space: nowrap;
+}
 .filtering-managed-note {
   color: var(--muted);
   display: block;
@@ -36,6 +44,15 @@
 }
 .filtering-managed-integration .filtering-overview-chips { display: none; }
 .filtering-owner-picker { width: min(620px, calc(100vw - 2rem)); }
+.filtering-table td:last-child > div,
+.filtering-table td:last-child > .filtering-table-actions,
+.filtering-table td:last-child > .table-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+}
 .rf-column-heading {
   box-sizing: border-box;
   padding-left: 0 !important;
