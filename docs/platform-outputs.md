@@ -1,8 +1,8 @@
 # Platform output adapters and previews
 
-Nowlert v3.1.2 exposes database-authoritative destinations through a shared
-output-adapter layer for Discord, Microsoft Teams, Slack, generic outbound
-webhooks, MQTT, and ntfy.
+The platform output layer introduced in Nowlert v3.1.2 exposes database-authoritative
+destinations through a shared output-adapter layer for Discord, Microsoft Teams, Slack,
+and generic outbound webhooks.
 
 Adapters receive safe public destination metadata, an internally resolved
 owner-scoped secret, and the normalized `Notification` model.
@@ -27,21 +27,17 @@ Credential-like values must not be placed in the public settings document.
 
 | Output | Public settings | Owner-scoped secret |
 |---|---|---|
-| Discord | Components/presentation options | webhook URL |
-| Microsoft Teams | presentation uses source image mapping | workflow webhook URL |
-| Slack | safe presentation options | Slack webhook URL |
-| Webhook | method, timeout, safe headers, JSON template, HMAC flag | URL; optional HMAC key/credential headers |
-| MQTT | host, port, topic, QoS, retain, TLS, keepalive, client ID | optional username/password |
-| ntfy | server, topic, priority, tags, title/action/timeout options | optional access token or username/password |
-
-Outputs requiring multiple private values store a JSON object inside the
-owner-only secret record, never in API-facing metadata.
+| Discord | message style and destination label | webhook URL |
+| Microsoft Teams | destination label | workflow webhook URL |
+| Slack | message-detail option and destination label | Slack webhook URL |
+| Webhook | message style and destination label | webhook URL |
 
 ## Discord
 
-Discord uses source-aware rich presentation and packaged image assets. The
-adapter uploads/uses the selected packaged artwork rather than exposing an
-internal asset reference to Discord.
+Discord uses source-aware rich presentation and packaged image assets. Operators
+can choose **Modern Card** or **Classic Embed**. The adapter uploads/uses the
+selected packaged artwork rather than exposing an internal asset reference to
+Discord.
 
 ## Microsoft Teams
 
@@ -62,48 +58,32 @@ is applied before payload construction.
 
 ## Generic outbound webhook
 
-The default body is the versioned `nowlert.event.v1` envelope. Metadata is
-bounded recursively and credential-like keys are redacted.
+Generic Webhook is intentionally backend-owned rather than a raw HTTP request
+builder. Operators provide a webhook URL, a destination label, and select one of
+two Nowlert presentation models:
 
-An optional JSON template may use the supported safe substitutions:
+- **Modern Card** (default) — structured card-style presentation metadata; or
+- **Classic Embed** — compact embed-style presentation metadata.
 
-```json
-{
-  "summary": "${source}: ${title}",
-  "host": "${host}",
-  "severity": "${severity}",
-  "event_id": "${event_id}"
-}
-```
+Both modes send the stable, versioned `nowlert.event.v1` envelope. Metadata is
+bounded recursively and credential-like keys are redacted. The selected
+presentation is included under the envelope's `presentation` object so a generic
+receiver can render the event without requiring operators to author JSON
+payloads in the WebUI.
 
-Supported substitutions include `body`, `category`, `event_id`, `host`,
-`severity`, `source`, `status`, and `title`.
+Delivery uses a fixed HTTPS `POST` with JSON, a 15-second timeout, and the
+`X-Nowlert-Idempotency-Key` header. The WebUI does not expose request methods,
+custom headers, payload templates, HMAC keys, or private-network overrides.
 
-Requests receive `X-Nowlert-Idempotency-Key`. When HMAC signing is enabled, the
-canonical UTF-8 JSON body is signed with HMAC-SHA256 and sent in
-`X-Nowlert-Signature`.
-
-## MQTT
-
-MQTT publishes the normalized event envelope to a bounded topic template. QoS
-is limited to 0, 1, or 2; publish topics cannot contain wildcard subscription
-characters; TLS is enabled by default; and credentials remain in the secret
-store.
-
-## ntfy
-
-ntfy sends normalized title/message plus configured priority/tags and optional
-safe action metadata. Hosted and self-hosted HTTPS servers are supported.
-Credentials are private and excluded from previews/history.
+Existing destinations created by older versions may retain the former advanced
+HTTP settings until they are saved through the simplified editor. This is an
+upgrade-compatibility path only; new Generic Webhook destinations use the
+backend-owned contract above.
 
 ## Outbound network policy
 
-Webhook, MQTT, and ntfy destinations reject unsafe private/loopback resolution
-by default. An administrator may explicitly enable private-network delivery for
-an intentional self-hosted target.
-
-Discord, Microsoft Teams, and Slack destination types do not expose that generic
-private-network override.
+All supported destination types require public HTTPS delivery targets. Generic
+Webhook does not expose a private-network override in the simplified editor.
 
 ## Preview and test delivery
 

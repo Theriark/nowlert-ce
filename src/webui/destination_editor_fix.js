@@ -4,15 +4,15 @@
   if (typeof document === "undefined") return;
 
   const REMOVED_DESTINATION_TYPES = new Set(["mqtt", "ntfy"]);
-  const LONG_PROVIDER_LAYOUTS = {
-    webhook: [
-      { title: "Request", keys: ["channel_name", "method"] },
-      {
-        title: "Payload & security",
-        keys: ["timeout_seconds", "headers", "body_template", "sign_hmac", "allow_private_network"],
-      },
-    ],
-  };
+  const WEBHOOK_ADVANCED_FIELDS = new Set([
+    "method",
+    "timeout_seconds",
+    "headers",
+    "body_template",
+    "sign_hmac",
+    "allow_private_network",
+  ]);
+  const WEBHOOK_ADVANCED_SECRETS = new Set(["hmac_secret", "headers"]);
 
   function normalizeSupportedDestinationTypes() {
     const typeSelect = document.getElementById("destination-type");
@@ -80,38 +80,109 @@
     }
   }
 
-  function normalizeLongDestinationProviderLayout() {
+  function webhookStoredStyle() {
+    const id = document.getElementById("destination-id")?.value || "";
+    if (!id || typeof state !== "object" || !Array.isArray(state.destinations)) {
+      return "modern";
+    }
+    const destination = state.destinations.find((item) => item.id === id);
+    return destination?.settings?.message_style === "classic" ? "classic" : "modern";
+  }
+
+  function normalizeWebhookSettings() {
     const settings = document.getElementById("destination-settings");
     const type = document.getElementById("destination-type")?.value || "";
-    const layout = LONG_PROVIDER_LAYOUTS[type];
-    if (!settings || !layout) return;
-    if (settings.querySelector(".destination-provider-settings-group")) return;
+    if (!settings || type !== "webhook") return;
 
-    for (const section of layout) {
-      const group = document.createElement("fieldset");
-      group.className = "destination-credentials-card destination-provider-settings-group wide";
+    const existingStyle = settings.querySelector('[data-field="message_style"]')?.value;
+    const channelInput = settings.querySelector('[data-field="channel_name"]');
+    const channel = channelInput?.closest("label");
+    const existingStyleField = settings.querySelector(".destination-message-style");
+    if (!channel) return;
 
-      const heading = document.createElement("div");
-      heading.className = "destination-section-heading";
-      const copy = document.createElement("div");
-      copy.className = "destination-section-copy";
-      const title = document.createElement("strong");
-      title.textContent = section.title;
-      copy.append(title);
-      heading.append(copy);
+    const alreadySimplified = (
+      settings.dataset.destinationWebhookSimplified === "true"
+      && settings.children.length === 2
+      && channel.parentElement === settings
+      && existingStyleField?.parentElement === settings
+      && ![...settings.querySelectorAll("[data-field]")].some(
+        (input) => WEBHOOK_ADVANCED_FIELDS.has(input.dataset.field),
+      )
+    );
+    if (alreadySimplified) return;
 
-      const groupFields = document.createElement("div");
-      groupFields.className = "form-grid";
-      for (const key of section.keys) {
-        const input = settings.querySelector(`[data-field="${key}"]`);
-        const label = input?.closest("label");
-        if (label) groupFields.append(label);
-      }
-
-      if (!groupFields.children.length) continue;
-      group.append(heading, groupFields);
-      settings.append(group);
+    for (const input of [...settings.querySelectorAll("[data-field]")]) {
+      if (WEBHOOK_ADVANCED_FIELDS.has(input.dataset.field)) input.closest("label")?.remove();
     }
+    for (const group of [...settings.querySelectorAll(".destination-provider-settings-group")]) {
+      for (const label of [...group.querySelectorAll("label")]) settings.append(label);
+      group.remove();
+    }
+
+    const channelTitle = channel.querySelector("span");
+    if (channelTitle) channelTitle.textContent = "Destination label";
+    channel.className = "";
+
+    let styleField = settings.querySelector(".destination-message-style");
+    if (!styleField) {
+      styleField = document.createElement("label");
+      styleField.className = "destination-message-style";
+      const title = document.createElement("span");
+      title.textContent = "Message style";
+      const select = document.createElement("select");
+      select.dataset.field = "message_style";
+      const modern = document.createElement("option");
+      modern.value = "modern";
+      modern.textContent = "Modern Card";
+      const classic = document.createElement("option");
+      classic.value = "classic";
+      classic.textContent = "Classic Embed";
+      select.append(modern, classic);
+      styleField.append(title, select);
+    }
+
+    const styleSelect = styleField.querySelector('[data-field="message_style"]');
+    if (styleSelect) {
+      styleSelect.value = existingStyle === "classic" ? "classic" : webhookStoredStyle();
+    }
+
+    settings.replaceChildren(channel, styleField);
+    settings.dataset.destinationWebhookSimplified = "true";
+
+    const help = document.getElementById("destination-help");
+    if (help) {
+      help.textContent = "Choose how Nowlert prepares the notification payload for this webhook.";
+    }
+  }
+
+  function normalizeWebhookCredentials() {
+    const type = document.getElementById("destination-type")?.value || "";
+    if (type !== "webhook") return;
+    const secrets = document.getElementById("destination-secrets");
+    const credentials = secrets?.closest("fieldset");
+    const routing = document.getElementById("destination-routing-summary");
+    if (!secrets || !credentials || !routing) return;
+
+    const urlInput = secrets.querySelector('[data-field="url"]');
+    const urlField = urlInput?.closest("label");
+    if (!urlField) return;
+
+    for (const input of [...secrets.querySelectorAll("[data-field]")]) {
+      if (WEBHOOK_ADVANCED_SECRETS.has(input.dataset.field)) input.closest("label")?.remove();
+    }
+    secrets.replaceChildren(urlField);
+    const urlTitle = urlField.querySelector("span");
+    if (urlTitle) urlTitle.textContent = "Webhook URL";
+
+    const heading = document.getElementById("destination-credentials-heading");
+    const title = heading?.querySelector(".destination-section-copy strong");
+    if (title) title.textContent = "Credentials";
+    if (credentials.previousElementSibling !== routing) routing.after(credentials);
+  }
+
+  function normalizeWebhookEditor() {
+    normalizeWebhookSettings();
+    normalizeWebhookCredentials();
   }
 
   function normalizeDestinationFooter() {
@@ -246,12 +317,24 @@
     normalizeDestinationProviderIcons();
     normalizeDiscordMessageStyle();
     normalizeSlackMessageOptions();
-    normalizeLongDestinationProviderLayout();
+    normalizeWebhookEditor();
     normalizeDestinationTitle();
     normalizeSharedControl();
     normalizeDestinationFooter();
     normalizeRoutingSummary();
     normalizeRouteDrawer();
+  }
+
+  const baseRenderDestinationFields = typeof renderDestinationFields === "function"
+    ? renderDestinationFields
+    : null;
+  if (baseRenderDestinationFields) {
+    renderDestinationFields = function renderDestinationFieldsWithWebhookTemplate(settings = {}) {
+      const result = baseRenderDestinationFields(settings);
+      normalizeSlackMessageOptions();
+      normalizeWebhookEditor();
+      return result;
+    };
   }
 
   const baseOpenDestination = typeof openDestination === "function" ? openDestination : null;
@@ -271,11 +354,12 @@
 
     if (settings) {
       new MutationObserver(() => {
-        normalizeDiscordMessageStyle();
-        normalizeLongDestinationProviderLayout();
-      }).observe(settings, {
-        childList: true,
-      });
+        window.requestAnimationFrame(() => {
+          normalizeDiscordMessageStyle();
+          normalizeSlackMessageOptions();
+          normalizeWebhookEditor();
+        });
+      }).observe(settings, { childList: true });
     }
     if (title) {
       new MutationObserver(normalizeDestinationTitle).observe(title, {
@@ -299,209 +383,5 @@
     }
 
     normalizeDestinationEditor();
-  });
-})();
-
-(() => {
-  if (typeof document === "undefined") return;
-
-  const PROGRESSIVE_DESTINATION_LAYOUTS = {
-    webhook: {
-      primary: { title: "Request", keys: ["channel_name", "method"] },
-      advanced: {
-        title: "Advanced request options",
-        keys: ["timeout_seconds", "headers", "body_template", "sign_hmac", "allow_private_network"],
-        defaults: {
-          timeout_seconds: "15",
-          headers: "{}",
-          body_template: "",
-          sign_hmac: false,
-          allow_private_network: false,
-        },
-      },
-    },
-  };
-
-  function labelFor(settings, key) {
-    return settings.querySelector(`[data-field="${key}"]`)?.closest("label") || null;
-  }
-
-  function differsFromDefault(input, expected) {
-    if (!input) return false;
-    if (input.type === "checkbox") return input.checked !== Boolean(expected);
-    return String(input.value ?? "").trim() !== String(expected ?? "").trim();
-  }
-
-  function sectionNeedsAttention(settings, section) {
-    return section.keys.some((key) => (
-      differsFromDefault(settings.querySelector(`[data-field="${key}"]`), section.defaults?.[key])
-    ));
-  }
-
-  function sectionHeading(title, status = "") {
-    const heading = document.createElement("div");
-    heading.className = "destination-section-heading";
-    const copy = document.createElement("div");
-    copy.className = "destination-section-copy";
-    const strong = document.createElement("strong");
-    strong.textContent = title;
-    copy.append(strong);
-    heading.append(copy);
-    if (status) {
-      const badge = document.createElement("span");
-      badge.className = "destination-credential-status optional";
-      badge.textContent = status;
-      heading.append(badge);
-    }
-    return heading;
-  }
-
-  function unwrapExistingGroups(settings) {
-    for (const group of [...settings.querySelectorAll(".destination-provider-settings-group")]) {
-      for (const label of [...group.querySelectorAll("label")]) settings.append(label);
-      group.remove();
-    }
-  }
-
-  function primaryGroup(settings, section) {
-    const card = document.createElement("fieldset");
-    card.className = "destination-credentials-card destination-provider-settings-group wide";
-    const fields = document.createElement("div");
-    fields.className = "form-grid";
-    for (const key of section.keys) {
-      const label = labelFor(settings, key);
-      if (label) fields.append(label);
-    }
-    if (!fields.children.length) return null;
-    card.append(sectionHeading(section.title), fields);
-    return card;
-  }
-
-  function advancedGroup(settings, type, section) {
-    const card = document.createElement("fieldset");
-    card.className = "destination-credentials-card destination-provider-settings-group wide";
-    const details = document.createElement("details");
-    details.dataset.destinationProgressive = `${type}-advanced`;
-    details.open = sectionNeedsAttention(settings, section);
-    const summary = document.createElement("summary");
-    summary.append(sectionHeading(section.title, "Optional"));
-    const fields = document.createElement("div");
-    fields.className = "form-grid";
-    for (const key of section.keys) {
-      const label = labelFor(settings, key);
-      if (label) fields.append(label);
-    }
-    if (!fields.children.length) return null;
-    details.append(summary, fields);
-    card.append(details);
-    return card;
-  }
-
-  function normalizeProgressiveSettings() {
-    const settings = document.getElementById("destination-settings");
-    const type = document.getElementById("destination-type")?.value || "";
-    const layout = PROGRESSIVE_DESTINATION_LAYOUTS[type];
-    if (!settings || !layout) return;
-    if (
-      settings.dataset.destinationProgressiveType === type
-      && settings.querySelector(`[data-destination-progressive="${type}-advanced"]`)
-    ) return;
-
-    unwrapExistingGroups(settings);
-    const primary = primaryGroup(settings, layout.primary);
-    const advanced = advancedGroup(settings, type, layout.advanced);
-    if (primary) settings.append(primary);
-    if (advanced) settings.append(advanced);
-    settings.dataset.destinationProgressiveType = type;
-  }
-
-  function resetCredentialPresentation(credentials, secrets) {
-    const heading = document.getElementById("destination-credentials-heading");
-    const status = document.getElementById("destination-credential-status");
-    if (heading) {
-      heading.hidden = false;
-      const title = heading.querySelector(".destination-section-copy strong");
-      if (title) title.textContent = "Credentials";
-      if (status && status.parentElement !== heading) heading.append(status);
-    }
-    for (const label of secrets.querySelectorAll("label")) label.hidden = false;
-    const routing = document.getElementById("destination-routing-summary");
-    if (routing && credentials.previousElementSibling !== routing) routing.after(credentials);
-    credentials.dataset.destinationProgressiveCredentials = "";
-  }
-
-  function syncWebhookSecrets() {
-    const settings = document.getElementById("destination-settings");
-    const secrets = document.getElementById("destination-secrets");
-    if (!settings || !secrets) return;
-    const signHmac = settings.querySelector('[data-field="sign_hmac"]');
-    const advanced = settings.querySelector('[data-destination-progressive="webhook-advanced"]');
-    const hmac = secrets.querySelector('[data-field="hmac_secret"]')?.closest("label");
-    const secretHeaders = secrets.querySelector('[data-field="headers"]')?.closest("label");
-    if (hmac && signHmac) hmac.hidden = !signHmac.checked;
-    if (secretHeaders) secretHeaders.hidden = !advanced?.open;
-  }
-
-  function normalizeWebhookCredentials(credentials, secrets) {
-    const routing = document.getElementById("destination-routing-summary");
-    const heading = document.getElementById("destination-credentials-heading");
-    const settings = document.getElementById("destination-settings");
-    if (!routing || !heading || !settings) return;
-    const title = heading.querySelector(".destination-section-copy strong");
-    if (title) title.textContent = "Endpoint";
-    routing.before(credentials);
-    const signHmac = settings.querySelector('[data-field="sign_hmac"]');
-    const advanced = settings.querySelector('[data-destination-progressive="webhook-advanced"]');
-    if (signHmac && signHmac.dataset.progressiveHmacBound !== "true") {
-      signHmac.dataset.progressiveHmacBound = "true";
-      signHmac.addEventListener("change", syncWebhookSecrets);
-    }
-    if (advanced && advanced.dataset.progressiveToggleBound !== "true") {
-      advanced.dataset.progressiveToggleBound = "true";
-      advanced.addEventListener("toggle", syncWebhookSecrets);
-    }
-    syncWebhookSecrets();
-  }
-
-  function normalizeProgressiveCredentials() {
-    const type = document.getElementById("destination-type")?.value || "";
-    const secrets = document.getElementById("destination-secrets");
-    const credentials = secrets?.closest("fieldset");
-    if (!secrets || !credentials) return;
-    if (credentials.dataset.destinationProgressiveCredentials === type) {
-      if (type === "webhook") syncWebhookSecrets();
-      return;
-    }
-
-    resetCredentialPresentation(credentials, secrets);
-    if (type === "webhook") normalizeWebhookCredentials(credentials, secrets);
-    credentials.dataset.destinationProgressiveCredentials = type;
-  }
-
-  function normalizeProgressiveDestinationEditor() {
-    normalizeProgressiveSettings();
-    normalizeProgressiveCredentials();
-  }
-
-  const previousOpenDestination = typeof openDestination === "function" ? openDestination : null;
-  if (previousOpenDestination) {
-    openDestination = function openDestinationWithProgressiveDisclosure(id = "") {
-      const result = previousOpenDestination(id);
-      window.requestAnimationFrame(normalizeProgressiveDestinationEditor);
-      return result;
-    };
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const settings = document.getElementById("destination-settings");
-    if (settings) {
-      new MutationObserver(() => {
-        window.requestAnimationFrame(normalizeProgressiveDestinationEditor);
-      }).observe(settings, { childList: true });
-    }
-    document.getElementById("destination-type")?.addEventListener("change", () => {
-      window.requestAnimationFrame(normalizeProgressiveDestinationEditor);
-    });
-    normalizeProgressiveDestinationEditor();
   });
 })();

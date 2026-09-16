@@ -310,6 +310,32 @@ class SlackPlatformAdapter(_HTTPAdapter):
 class WebhookPlatformAdapter(_HTTPAdapter):
     output_type = "webhook"
 
+    @staticmethod
+    def _presentation(payload: dict, style: str) -> dict:
+        if style == "classic":
+            return {
+                "style": "classic_embed",
+                "title": payload["title"],
+                "description": payload["body"],
+                "fields": {
+                    "severity": payload["severity"],
+                    "status": payload["status"],
+                    "source": payload["source"],
+                    "category": payload["category"],
+                },
+            }
+        return {
+            "style": "modern_card",
+            "title": payload["title"],
+            "message": payload["body"],
+            "facts": [
+                {"label": "Severity", "value": payload["severity"]},
+                {"label": "Status", "value": payload["status"]},
+                {"label": "Source", "value": payload["source"]},
+                {"label": "Category", "value": payload["category"]},
+            ],
+        }
+
     def preview(self, destination, notification):
         settings = normalize_output_settings(
             "webhook",
@@ -317,18 +343,22 @@ class WebhookPlatformAdapter(_HTTPAdapter):
             require_complete=True,
         )
         template = settings.get("body_template")
-        payload = (
-            render_template(template, notification)
-            if template is not None
-            else safe_event_envelope(notification)
-        )
+        if template is not None:
+            payload = render_template(template, notification)
+        else:
+            payload = safe_event_envelope(notification)
+            payload["presentation"] = self._presentation(
+                payload,
+                settings["message_style"],
+            )
         return OutputPreview(
             "webhook",
             "application/json",
             payload,
             {
-                "method": settings["method"],
-                "signed": settings["sign_hmac"],
+                "method": settings.get("method", "POST"),
+                "signed": settings.get("sign_hmac", False),
+                "message_style": settings["message_style"],
             },
         )
 
@@ -345,6 +375,32 @@ class WebhookPlatformAdapter(_HTTPAdapter):
                 credentials.get("url") or credentials.get("value"),
                 settings,
             )
+        except ValueError:
+            return DeliveryResult(False, error_code="invalid_destination")
+
+        legacy_transport = any(
+            key in settings
+            for key in (
+                "allow_private_network",
+                "body_template",
+                "headers",
+                "method",
+                "sign_hmac",
+                "timeout_seconds",
+            )
+        )
+        if not legacy_transport:
+            return self._post(
+                url,
+                payload=preview.payload,
+                timeout=15,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Nowlert-Idempotency-Key": event_identifier(notification),
+                },
+            )
+
+        try:
             headers = {"Content-Type": "application/json", **settings["headers"]}
             secret_headers = credentials.get("headers", {})
             if secret_headers:
@@ -369,8 +425,7 @@ class WebhookPlatformAdapter(_HTTPAdapter):
                 separators=(",", ":"),
                 ensure_ascii=False,
             ).encode("utf-8")
-            idempotency_key = event_identifier(notification)
-            headers["X-Nowlert-Idempotency-Key"] = idempotency_key
+            headers["X-Nowlert-Idempotency-Key"] = event_identifier(notification)
             if settings["sign_hmac"]:
                 signing_secret = credentials.get("hmac_secret")
                 if not signing_secret:
@@ -380,8 +435,7 @@ class WebhookPlatformAdapter(_HTTPAdapter):
                     body,
                     hashlib.sha256,
                 ).hexdigest()
-                signature = f"sha256={digest}"
-                headers["X-Nowlert-Signature"] = signature
+                headers["X-Nowlert-Signature"] = f"sha256={digest}"
             response = self.http_client.request(
                 settings["method"],
                 url,

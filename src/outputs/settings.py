@@ -101,7 +101,10 @@ def _slack(settings, _complete):
 
 
 def _webhook(settings, _complete):
-    allowed = {
+    # The normal editor exposes only message_style. Older releases exposed
+    # raw HTTP controls; accept and validate those only so existing records
+    # remain deliverable until they are saved through the simplified editor.
+    legacy = {
         "allow_private_network",
         "body_template",
         "headers",
@@ -109,7 +112,16 @@ def _webhook(settings, _complete):
         "sign_hmac",
         "timeout_seconds",
     }
-    _unknown(settings, allowed)
+    _unknown(settings, {"message_style", *legacy})
+
+    style = str(settings.get("message_style", "modern") or "").strip().casefold()
+    if style not in {"modern", "classic"}:
+        raise ValueError("webhook message_style must be modern or classic")
+    result = {"message_style": style}
+
+    if not any(key in settings for key in legacy):
+        return result
+
     method = str(settings.get("method", "POST")).strip().upper()
     if method not in {"POST", "PUT", "PATCH"}:
         raise ValueError("webhook method must be POST, PUT, or PATCH")
@@ -131,17 +143,20 @@ def _webhook(settings, _complete):
         if not isinstance(template, dict):
             raise ValueError("webhook body_template must be an object")
         _bounded_template(template)
-    result = {
-        "method": method,
-        "headers": normalized_headers,
-        "timeout_seconds": _integer(settings, "timeout_seconds", 15, 1, 30),
-        "sign_hmac": _boolean(settings, "sign_hmac", False),
-        "allow_private_network": _boolean(
-            settings,
-            "allow_private_network",
-            False,
-        ),
-    }
+
+    result.update(
+        {
+            "method": method,
+            "headers": normalized_headers,
+            "timeout_seconds": _integer(settings, "timeout_seconds", 15, 1, 30),
+            "sign_hmac": _boolean(settings, "sign_hmac", False),
+            "allow_private_network": _boolean(
+                settings,
+                "allow_private_network",
+                False,
+            ),
+        }
+    )
     if template is not None:
         result["body_template"] = template
     return result
