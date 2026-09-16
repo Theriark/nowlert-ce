@@ -36,6 +36,32 @@ def test_private_destination_metadata_stays_admin_only_while_filter_metadata_is_
     assert '<script src="/ui/acceptance_cleanup.js" defer></script>' in service
 
 
+def test_private_destination_metadata_is_reused_synchronously_across_destination_renders():
+    script = (ROOT / "src" / "webui" / "acceptance_cleanup.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "privateDestinationMetadata = []" in script
+    assert "privateDestinationMetadataSignature" in script
+    assert "privateDestinationSignature" in script
+    assert "list.dataset.privateDestinationSignature" in script
+    assert "appendPrivateDestinationMetadata(privateDestinationMetadata)" in script
+    assert script.index("appendPrivateDestinationMetadata(privateDestinationMetadata)") < script.index(
+        "refreshDestinationMetadata();",
+        script.index("renderDestinations = function renderDestinationsAcceptance"),
+    )
+
+
+def test_programmatic_main_focus_does_not_draw_workspace_outline():
+    script = (ROOT / "src" / "webui" / "acceptance_cleanup.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "suppressProgrammaticMainFocusOutline" in script
+    assert 'document.getElementById("main-content")' in script
+    assert 'main.style.outline = "none"' in script
+
+
 def test_api_service_uses_owner_private_filtering_with_destination_master_state():
     service = (ROOT / "src" / "api" / "service.py").read_text(encoding="utf-8")
     access = (ROOT / "src" / "api" / "access_acceptance.py").read_text(encoding="utf-8")

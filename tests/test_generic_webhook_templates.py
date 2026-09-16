@@ -7,6 +7,7 @@ import pytest
 from models import Notification
 from outputs.platform import WebhookPlatformAdapter
 from outputs.settings import normalize_output_settings
+from storage.delivery import DeliveryResult
 from storage.destinations import Destination
 
 
@@ -28,6 +29,15 @@ class HTTPClient:
     def post(self, url, **kwargs):
         self.calls.append(("POST", url, kwargs))
         return Response()
+
+
+class RecordingDiscordAdapter:
+    def __init__(self):
+        self.calls = []
+
+    def deliver(self, destination, secret_value, notification):
+        self.calls.append((destination, secret_value, notification))
+        return DeliveryResult(True, response_status=204)
 
 
 def destination(settings=None):
@@ -78,6 +88,55 @@ def test_webhook_preview_builds_backend_owned_modern_and_classic_presentations()
     assert classic.payload["presentation"]["description"] == (
         "The scheduled backup completed successfully."
     )
+
+
+def test_webhook_preview_ignores_legacy_body_template_immediately():
+    adapter = WebhookPlatformAdapter(resolver=public_resolver)
+    preview = adapter.preview(
+        destination(
+            {
+                "message_style": "modern",
+                "body_template": {"content": "legacy custom payload"},
+                "method": "PATCH",
+                "headers": {"X-Legacy": "true"},
+                "timeout_seconds": 29,
+                "sign_hmac": True,
+            }
+        ),
+        notification(),
+    )
+
+    assert preview.payload["schema"] == "nowlert.event.v1"
+    assert preview.payload["presentation"]["style"] == "modern_card"
+    assert "content" not in preview.payload
+    assert preview.metadata["method"] == "POST"
+    assert preview.metadata["signed"] is False
+
+
+def test_webhook_discord_target_uses_native_discord_message_style():
+    adapter = WebhookPlatformAdapter(resolver=public_resolver)
+    recorder = RecordingDiscordAdapter()
+    adapter.discord = recorder
+
+    modern = adapter.deliver(
+        destination({"message_style": "modern"}),
+        b"https://discord.com/api/webhooks/123/token",
+        notification(),
+    )
+    classic = adapter.deliver(
+        destination({"message_style": "classic"}),
+        b"https://discord.com/api/webhooks/123/token",
+        notification(),
+    )
+
+    assert modern.success is True
+    assert classic.success is True
+    modern_destination = recorder.calls[0][0]
+    classic_destination = recorder.calls[1][0]
+    assert modern_destination.output_type == "discord"
+    assert modern_destination.settings == {"components_v2": True}
+    assert classic_destination.output_type == "discord"
+    assert classic_destination.settings == {"components_v2": False}
 
 
 def test_webhook_new_contract_is_fixed_post_json_with_idempotency_header():
