@@ -105,6 +105,19 @@ def test_read_only_filter_modal_has_one_footer_close_action():
     assert "readOnlyDestinationId" in sync
 
 
+def test_filtering_dialog_patch_is_applied_before_browser_paint():
+    sync = _read("src/webui/filtering_ownership_sync.js")
+
+    assert "function scheduleDialogPatch()" in sync
+    assert "queueMicrotask" in sync
+    assert "new MutationObserver(scheduleDialogPatch)" in sync
+    assert "window.setTimeout(patchDialog, 0)" not in sync
+    assert 'dialogPatchObserver.observe(dialog, {' in sync
+    assert 'dialog.querySelectorAll(":scope > section")' in sync
+    assert 'attributeFilter: ["open"]' in sync
+    assert 'attributeFilter: ["hidden"]' in sync
+
+
 def test_authenticated_username_is_preserved_in_sidebar_identity():
     sync = _read("src/webui/filtering_ownership_sync.js")
 
