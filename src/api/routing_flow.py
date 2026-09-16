@@ -82,6 +82,7 @@ def snapshot(api, actor, range_key):
         )
 
     access = api.destination_access
+    master_state = getattr(api.filters, "destination_filtering_enabled", None)
     for destination in visible_destinations:
         assigned = [
             route
@@ -112,10 +113,11 @@ def snapshot(api, actor, range_key):
 
         destination_row = access.destination_row(destination.id)
         filter_visible = access.can_manage_filters(actor, destination_row)
-        policies = (
-            api.filters._policies_for_destination(destination.id)
-            if filter_visible
-            else {}
+        # The runtime may inspect owner-private policy state to build the topology,
+        # but rule contents remain redacted for viewers who are not the owner.
+        policies = api.filters._policies_for_destination(destination.id)
+        filtering_enabled = (
+            bool(master_state(destination.id)) if callable(master_state) else True
         )
         for route in assigned:
             source = canonical_source(route.source)
@@ -131,29 +133,58 @@ def snapshot(api, actor, range_key):
                     field["key"]: field["label"]
                     for field in schema["fields"]
                 }
+                policy = policies.get(key)
+                policy_rules = _public_policy_rules(api.filters, policy)
+                configured = bool(
+                    policy and (policy_rules or policy.get("clauses"))
+                )
+                source_enabled = bool(
+                    configured
+                    and api.filters.filter_enabled(destination.id, key)
+                    and filtering_enabled
+                )
                 if not filter_visible:
+                    # Keep the privacy marker for API consumers, and expose a
+                    # second sanitized presentation policy only when that real
+                    # owner-managed filter is configured. The WebUI ignores the
+                    # restricted marker and can render the managed policy without
+                    # learning any rule values.
                     source_policies.append(
                         {
                             "source": key,
                             "name": schema.get("name", key),
                             "restricted": True,
-                            "configured": True,
-                            "enabled": True,
+                            "configured": configured,
+                            "enabled": source_enabled,
                             "policy_rules": [],
-                            "rules": {"__restricted": ["Filter details private"]},
+                            "rules": (
+                                {"__restricted": ["Filter details private"]}
+                                if configured
+                                else {}
+                            ),
                             "legacy_clauses": [],
                             "labels": {**labels, "__restricted": "Access"},
                         }
                     )
+                    if configured:
+                        source_policies.append(
+                            {
+                                "source": key,
+                                "name": schema.get("name", key),
+                                "restricted": False,
+                                "managed": True,
+                                "configured": True,
+                                "enabled": source_enabled,
+                                "policy_rules": [],
+                                "rules": {"__managed": ["Managed by administrator"]},
+                                "legacy_clauses": [],
+                                "labels": {**labels, "__managed": "Filter"},
+                            }
+                        )
                     continue
 
-                policy = policies.get(key)
-                policy_rules = _public_policy_rules(api.filters, policy)
                 display_clauses, display_labels = _policy_display(
                     policy_rules, labels
-                )
-                configured = bool(
-                    policy and (policy_rules or policy.get("clauses"))
                 )
                 source_policies.append(
                     {
@@ -161,9 +192,7 @@ def snapshot(api, actor, range_key):
                         "name": schema.get("name", key),
                         "restricted": False,
                         "configured": configured,
-                        "enabled": api.filters.filter_enabled(
-                            destination.id, key
-                        ),
+                        "enabled": source_enabled,
                         "policy_rules": policy_rules,
                         "rules": (
                             {}
