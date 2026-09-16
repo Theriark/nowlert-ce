@@ -221,8 +221,8 @@ def test_portable_new_format_round_trips_destination_route_refs(platform_state):
         "destinations": [{
             "ref": "destination-1",
             "owner": "owner-user",
-            "name": "Imported ntfy",
-            "output_type": "ntfy",
+            "name": "Imported webhook",
+            "output_type": "webhook",
             "settings": {},
             "shared": False,
             "enabled": True,
