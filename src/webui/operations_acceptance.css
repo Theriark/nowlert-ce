@@ -165,6 +165,183 @@
   text-align: right;
 }
 
+/* Workspace Summary mirrors the approved Dashboard mock while preserving live metric values. */
+#view-dashboard .ops-configuration {
+  grid-template-columns: minmax(320px, 1.35fr) repeat(4, minmax(170px, 1fr));
+  min-height: 112px;
+  padding: 14px 18px !important;
+}
+
+#view-dashboard .ops-workspace-summary {
+  min-width: 0;
+  padding: 0 24px 0 8px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.ops-workspace-summary-icon {
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(85, 155, 205, .22);
+  border-radius: 11px;
+  background: linear-gradient(145deg, rgba(38, 64, 82, .7), rgba(20, 34, 45, .72));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 0 20px rgba(40, 111, 154, .08);
+  display: grid;
+  grid-template-columns: repeat(2, 11px);
+  grid-auto-rows: 11px;
+  place-content: center;
+  gap: 5px;
+}
+
+.ops-workspace-summary-icon i {
+  width: 11px;
+  height: 11px;
+  border: 2px solid #a9c9e8;
+  border-radius: 3px;
+  box-shadow: 0 0 7px rgba(114, 180, 255, .14);
+}
+
+.ops-workspace-summary-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ops-workspace-summary-copy strong {
+  color: #f6f8fa;
+  font-size: clamp(1.05rem, 1.35vw, 1.35rem);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.ops-workspace-summary-copy small {
+  color: #9fb0be;
+  font-size: .72rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#view-dashboard .ops-config-item {
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 0 22px;
+}
+
+#view-dashboard .ops-config-icon {
+  color: #c8d4de;
+}
+
+#view-dashboard .ops-config-item > div > span {
+  color: #e2e8ed;
+  font-size: .69rem;
+}
+
+#view-dashboard .ops-config-item > div > strong {
+  font-size: 1.35rem;
+}
+
+#view-dashboard .ops-config-item > div > small {
+  color: #9aacba;
+  font-size: .61rem;
+}
+
+.ops-config-status {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 11px;
+  border: 1px solid rgba(160, 178, 190, .16);
+  border-radius: 999px;
+  background: rgba(104, 124, 140, .08);
+  color: #c6d0d8 !important;
+  font-size: .62rem !important;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ops-config-status-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.ops-config-status.is-healthy {
+  color: #64e884 !important;
+  border-color: rgba(80, 211, 111, .25);
+  background: rgba(45, 142, 72, .12);
+}
+
+.ops-config-status.is-neutral {
+  color: #c6d0d8 !important;
+  border-color: rgba(153, 171, 184, .16);
+  background: rgba(104, 124, 140, .08);
+}
+
+.ops-config-status.is-shared {
+  color: #72b4ff !important;
+  border-color: rgba(75, 145, 224, .24);
+  background: rgba(40, 91, 151, .12);
+}
+
+.ops-config-status.is-review {
+  color: #f4c542 !important;
+  border-color: rgba(244, 197, 66, .24);
+  background: rgba(151, 109, 22, .12);
+}
+
+@media (max-width: 1320px) {
+  #view-dashboard .ops-configuration {
+    grid-template-columns: minmax(270px, 1.2fr) repeat(4, minmax(150px, 1fr));
+  }
+
+  #view-dashboard .ops-workspace-summary {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 13px;
+    padding-right: 16px;
+  }
+
+  .ops-workspace-summary-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  #view-dashboard .ops-config-item {
+    padding: 0 15px;
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  #view-dashboard .ops-config-status {
+    grid-column: 2;
+    justify-self: start;
+    min-height: 23px;
+    padding: 0 8px;
+    margin-top: 3px;
+  }
+}
+
+@media (max-width: 1180px) {
+  #view-dashboard .ops-configuration {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #view-dashboard .ops-workspace-summary {
+    grid-column: 1 / -1;
+    padding: 2px 0 14px;
+    border-bottom: 1px solid rgba(244, 197, 66, .12);
+  }
+}
+
 @media (max-width: 900px) {
   #view-dashboard > .ops-dashboard-toolbar {
     align-items: flex-start;
@@ -173,5 +350,49 @@
 
   #view-dashboard .ops-dashboard-top-actions {
     margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  #view-dashboard .ops-configuration {
+    grid-template-columns: 1fr;
+  }
+
+  #view-dashboard .ops-workspace-summary {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 12px;
+    padding: 0 0 14px;
+  }
+
+  .ops-workspace-summary-icon {
+    width: 44px;
+    height: 44px;
+    grid-template-columns: repeat(2, 9px);
+    grid-auto-rows: 9px;
+    gap: 4px;
+  }
+
+  .ops-workspace-summary-icon i {
+    width: 9px;
+    height: 9px;
+  }
+
+  .ops-workspace-summary-copy strong {
+    font-size: 1rem;
+  }
+
+  .ops-workspace-summary-copy small {
+    white-space: normal;
+  }
+
+  #view-dashboard .ops-config-item {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    padding: 12px 0;
+  }
+
+  #view-dashboard .ops-config-status {
+    grid-column: auto;
+    justify-self: end;
+    margin-top: 0;
   }
 }
