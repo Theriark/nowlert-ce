@@ -118,6 +118,16 @@ def test_filtering_dialog_patch_is_applied_before_browser_paint():
     assert 'attributeFilter: ["hidden"]' in sync
 
 
+def test_filtering_core_table_rerenders_are_redecorated_before_paint():
+    sync = _read("src/webui/filtering_ownership_sync.js")
+
+    assert "const previousRequest = request;" in sync
+    assert "request = async function filteringOwnershipRequest" in sync
+    assert 'if (path === "/filters") latest = response;' in sync
+    assert "if (latest) decorate(latest);" in sync
+    assert "if (!decorating && state.currentView === FILTER_VIEW) schedule();" not in sync
+
+
 def test_authenticated_username_is_preserved_in_sidebar_identity():
     sync = _read("src/webui/filtering_ownership_sync.js")
 
