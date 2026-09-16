@@ -290,3 +290,270 @@
     normalizeDestinationEditor();
   });
 })();
+
+(() => {
+  if (typeof document === "undefined") return;
+
+  const PROGRESSIVE_DESTINATION_LAYOUTS = {
+    webhook: {
+      primary: { title: "Request", keys: ["channel_name", "method"] },
+      advanced: {
+        title: "Advanced request options",
+        keys: ["timeout_seconds", "headers", "body_template", "sign_hmac", "allow_private_network"],
+        defaults: {
+          timeout_seconds: "15",
+          headers: "{}",
+          body_template: "",
+          sign_hmac: false,
+          allow_private_network: false,
+        },
+      },
+    },
+    mqtt: {
+      primary: { title: "Broker & topic", keys: ["host", "port", "topic", "tls"] },
+      advanced: {
+        title: "Advanced delivery options",
+        keys: ["channel_name", "qos", "keepalive_seconds", "client_id", "retain", "allow_private_network"],
+        defaults: {
+          channel_name: "",
+          qos: "1",
+          keepalive_seconds: "60",
+          client_id: "",
+          retain: false,
+          allow_private_network: false,
+        },
+      },
+    },
+    ntfy: {
+      primary: { title: "Server & topic", keys: ["server", "topic", "priority"] },
+      advanced: {
+        title: "Message options",
+        keys: ["channel_name", "tags", "title", "timeout_seconds", "include_action", "allow_private_network"],
+        defaults: {
+          channel_name: "",
+          tags: "",
+          title: "${title}",
+          timeout_seconds: "15",
+          include_action: true,
+          allow_private_network: false,
+        },
+      },
+    },
+  };
+
+  function labelFor(settings, key) {
+    return settings.querySelector(`[data-field="${key}"]`)?.closest("label") || null;
+  }
+
+  function differsFromDefault(input, expected) {
+    if (!input) return false;
+    if (input.type === "checkbox") return input.checked !== Boolean(expected);
+    return String(input.value ?? "").trim() !== String(expected ?? "").trim();
+  }
+
+  function sectionNeedsAttention(settings, section) {
+    return section.keys.some((key) => (
+      differsFromDefault(settings.querySelector(`[data-field="${key}"]`), section.defaults?.[key])
+    ));
+  }
+
+  function sectionHeading(title, status = "") {
+    const heading = document.createElement("div");
+    heading.className = "destination-section-heading";
+    const copy = document.createElement("div");
+    copy.className = "destination-section-copy";
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+    copy.append(strong);
+    heading.append(copy);
+    if (status) {
+      const badge = document.createElement("span");
+      badge.className = "destination-credential-status optional";
+      badge.textContent = status;
+      heading.append(badge);
+    }
+    return heading;
+  }
+
+  function unwrapExistingGroups(settings) {
+    for (const group of [...settings.querySelectorAll(".destination-provider-settings-group")]) {
+      for (const label of [...group.querySelectorAll("label")]) settings.append(label);
+      group.remove();
+    }
+  }
+
+  function primaryGroup(settings, section) {
+    const card = document.createElement("fieldset");
+    card.className = "destination-credentials-card destination-provider-settings-group wide";
+    const fields = document.createElement("div");
+    fields.className = "form-grid";
+    for (const key of section.keys) {
+      const label = labelFor(settings, key);
+      if (label) fields.append(label);
+    }
+    if (!fields.children.length) return null;
+    card.append(sectionHeading(section.title), fields);
+    return card;
+  }
+
+  function advancedGroup(settings, type, section) {
+    const card = document.createElement("fieldset");
+    card.className = "destination-credentials-card destination-provider-settings-group wide";
+    const details = document.createElement("details");
+    details.dataset.destinationProgressive = `${type}-advanced`;
+    details.open = sectionNeedsAttention(settings, section);
+    const summary = document.createElement("summary");
+    summary.append(sectionHeading(section.title, "Optional"));
+    const fields = document.createElement("div");
+    fields.className = "form-grid";
+    for (const key of section.keys) {
+      const label = labelFor(settings, key);
+      if (label) fields.append(label);
+    }
+    if (!fields.children.length) return null;
+    details.append(summary, fields);
+    card.append(details);
+    return card;
+  }
+
+  function normalizeProgressiveSettings() {
+    const settings = document.getElementById("destination-settings");
+    const type = document.getElementById("destination-type")?.value || "";
+    const layout = PROGRESSIVE_DESTINATION_LAYOUTS[type];
+    if (!settings || !layout) return;
+    if (
+      settings.dataset.destinationProgressiveType === type
+      && settings.querySelector(`[data-destination-progressive="${type}-advanced"]`)
+    ) return;
+
+    unwrapExistingGroups(settings);
+    const primary = primaryGroup(settings, layout.primary);
+    const advanced = advancedGroup(settings, type, layout.advanced);
+    if (primary) settings.append(primary);
+    if (advanced) settings.append(advanced);
+    settings.dataset.destinationProgressiveType = type;
+  }
+
+  function currentDestination() {
+    const id = document.getElementById("destination-id")?.value || "";
+    return (state.destinations || []).find((item) => item.id === id) || null;
+  }
+
+  function resetCredentialPresentation(credentials, secrets) {
+    const heading = document.getElementById("destination-credentials-heading");
+    const status = document.getElementById("destination-credential-status");
+    const auth = credentials.querySelector(".destination-progressive-authentication");
+    if (auth) {
+      credentials.append(secrets);
+      auth.remove();
+    }
+    if (heading) {
+      heading.hidden = false;
+      const title = heading.querySelector(".destination-section-copy strong");
+      if (title) title.textContent = "Credentials";
+      if (status && status.parentElement !== heading) heading.append(status);
+    }
+    for (const label of secrets.querySelectorAll("label")) label.hidden = false;
+    const routing = document.getElementById("destination-routing-summary");
+    if (routing && credentials.previousElementSibling !== routing) routing.after(credentials);
+    credentials.dataset.destinationProgressiveCredentials = "";
+  }
+
+  function syncWebhookSecrets() {
+    const settings = document.getElementById("destination-settings");
+    const secrets = document.getElementById("destination-secrets");
+    if (!settings || !secrets) return;
+    const signHmac = settings.querySelector('[data-field="sign_hmac"]');
+    const advanced = settings.querySelector('[data-destination-progressive="webhook-advanced"]');
+    const hmac = secrets.querySelector('[data-field="hmac_secret"]')?.closest("label");
+    const secretHeaders = secrets.querySelector('[data-field="headers"]')?.closest("label");
+    if (hmac && signHmac) hmac.hidden = !signHmac.checked;
+    if (secretHeaders) secretHeaders.hidden = !advanced?.open;
+  }
+
+  function normalizeWebhookCredentials(credentials, secrets) {
+    const routing = document.getElementById("destination-routing-summary");
+    const heading = document.getElementById("destination-credentials-heading");
+    const settings = document.getElementById("destination-settings");
+    if (!routing || !heading || !settings) return;
+    const title = heading.querySelector(".destination-section-copy strong");
+    if (title) title.textContent = "Endpoint";
+    routing.before(credentials);
+    const signHmac = settings.querySelector('[data-field="sign_hmac"]');
+    const advanced = settings.querySelector('[data-destination-progressive="webhook-advanced"]');
+    if (signHmac && signHmac.dataset.progressiveHmacBound !== "true") {
+      signHmac.dataset.progressiveHmacBound = "true";
+      signHmac.addEventListener("change", syncWebhookSecrets);
+    }
+    if (advanced && advanced.dataset.progressiveToggleBound !== "true") {
+      advanced.dataset.progressiveToggleBound = "true";
+      advanced.addEventListener("toggle", syncWebhookSecrets);
+    }
+    syncWebhookSecrets();
+  }
+
+  function normalizeAuthentication(type, credentials, secrets) {
+    const heading = document.getElementById("destination-credentials-heading");
+    const status = document.getElementById("destination-credential-status");
+    const details = document.createElement("details");
+    details.className = "destination-progressive-authentication";
+    details.open = Boolean(currentDestination()?.secret_configured);
+    const summary = document.createElement("summary");
+    summary.append(sectionHeading("Authentication"));
+    if (status) summary.querySelector(".destination-section-heading")?.append(status);
+    const help = document.createElement("small");
+    help.className = "field-help";
+    help.textContent = type === "mqtt"
+      ? "Optional broker username and password. Leave blank when anonymous access is allowed."
+      : "Use an access token or username and password. Leave blank for public ntfy servers.";
+    const body = document.createElement("div");
+    body.className = "form-grid";
+    body.append(help, secrets);
+    details.append(summary, body);
+    credentials.append(details);
+    if (heading) heading.hidden = true;
+  }
+
+  function normalizeProgressiveCredentials() {
+    const type = document.getElementById("destination-type")?.value || "";
+    const secrets = document.getElementById("destination-secrets");
+    const credentials = secrets?.closest("fieldset");
+    if (!secrets || !credentials) return;
+    if (credentials.dataset.destinationProgressiveCredentials === type) {
+      if (type === "webhook") syncWebhookSecrets();
+      return;
+    }
+
+    resetCredentialPresentation(credentials, secrets);
+    if (type === "webhook") normalizeWebhookCredentials(credentials, secrets);
+    if (type === "mqtt" || type === "ntfy") normalizeAuthentication(type, credentials, secrets);
+    credentials.dataset.destinationProgressiveCredentials = type;
+  }
+
+  function normalizeProgressiveDestinationEditor() {
+    normalizeProgressiveSettings();
+    normalizeProgressiveCredentials();
+  }
+
+  const previousOpenDestination = typeof openDestination === "function" ? openDestination : null;
+  if (previousOpenDestination) {
+    openDestination = function openDestinationWithProgressiveDisclosure(id = "") {
+      const result = previousOpenDestination(id);
+      window.requestAnimationFrame(normalizeProgressiveDestinationEditor);
+      return result;
+    };
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const settings = document.getElementById("destination-settings");
+    if (settings) {
+      new MutationObserver(() => {
+        window.requestAnimationFrame(normalizeProgressiveDestinationEditor);
+      }).observe(settings, { childList: true });
+    }
+    document.getElementById("destination-type")?.addEventListener("change", () => {
+      window.requestAnimationFrame(normalizeProgressiveDestinationEditor);
+    });
+    normalizeProgressiveDestinationEditor();
+  });
+})();
