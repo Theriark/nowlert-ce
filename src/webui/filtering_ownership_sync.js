@@ -56,6 +56,32 @@
     return button;
   }
 
+  function ensureSharingColumn() {
+    const headerRow = document.querySelector(".filtering-table thead tr");
+    if (!headerRow) return;
+    let heading = headerRow.querySelector('[data-filter-sync-column="sharing"]');
+    if (!heading) {
+      heading = node("th", "", "Sharing");
+      heading.dataset.filterSyncColumn = "sharing";
+      headerRow.insertBefore(heading, headerRow.lastElementChild);
+    }
+    if (heading.textContent !== "Sharing") heading.textContent = "Sharing";
+  }
+
+  function sharingCellFor(row) {
+    let cell = row.querySelector('td[data-filter-sync-column="sharing"]');
+    if (cell) return cell;
+    cell = node("td", "filtering-sharing-cell");
+    cell.dataset.filterSyncColumn = "sharing";
+    row.insertBefore(cell, row.lastElementChild);
+    return cell;
+  }
+
+  function removeLegacyVisibility(row) {
+    row.querySelectorAll(".acceptance-visibility-badge, .filtering-access-badge")
+      .forEach(item => item.remove());
+  }
+
   function decorateManagedIntegrations(row, policy) {
     const cards = [...row.querySelectorAll(".filtering-overview-integration")];
     cards.forEach((card, index) => {
@@ -86,7 +112,7 @@
   }
 
   function ensureOwnerActions(row, policy) {
-    const actions = row.children[3];
+    const actions = row.lastElementChild;
     if (!actions || !policy.can_manage_filters) return;
     let container = actions.querySelector(".filtering-table-actions");
     if (!container) {
@@ -110,6 +136,7 @@
   }
 
   function decorateRow(row, policy) {
+    const sharingCell = sharingCellFor(row);
     const summary = row.querySelector(".filtering-overview-header strong");
     if (summary) {
       const configured = Number(policy.configured_count || policy.integrations.length || 0);
@@ -120,17 +147,19 @@
     }
     decorateManagedIntegrations(row, policy);
     ensureOwnerActions(row, policy);
+    removeLegacyVisibility(row);
 
     const statusCell = row.children[2];
-    if (!statusCell) return;
-    const stack = node("div", "filtering-status-stack");
-    stack.append(
+    if (!statusCell || !sharingCell) return;
+    statusCell.replaceChildren(
       statusControl(
         policy.filtering_enabled ? "Active" : "Disabled",
         policy.filtering_enabled ? "success" : "warning",
         policy.can_manage_filters ? "filtering" : "",
         policy,
       ),
+    );
+    sharingCell.replaceChildren(
       statusControl(
         policy.shared ? "Shared" : "Private",
         policy.shared ? "success" : "warning",
@@ -138,10 +167,6 @@
         policy,
       ),
     );
-    if (policy.managed_by_admin) {
-      stack.append(statusBadge("Admin managed", ""));
-    }
-    statusCell.replaceChildren(stack);
   }
 
   function configureAddButton(payload) {
@@ -164,6 +189,7 @@
     decorating = true;
     try {
       latest = payload;
+      ensureSharingColumn();
       document.querySelectorAll("#filter-table > .acceptance-private-filter").forEach(item => item.remove());
       const rows = [...document.querySelectorAll("#filter-table > tr:not(.acceptance-private-filter)")];
       const policies = policyRows(payload);
@@ -185,6 +211,14 @@
     } catch (_error) {
       // Core Filtering remains usable if this presentation/access sync fails.
     }
+  }
+
+  async function refreshDestinationsState() {
+    if (!state.user) return;
+    const payload = await request("/destinations");
+    state.destinations = payload.destinations || [];
+    state.destinationErrors = payload.errors || [];
+    renderDestinations();
   }
 
   function schedule(delay = 220) {
@@ -310,7 +344,7 @@
       const index = state.destinations.findIndex(item => item.id === destinationId);
       if (index >= 0) state.destinations[index] = { ...state.destinations[index], ...response.destination };
     }
-    await refresh();
+    await Promise.all([refresh(), refreshDestinationsState()]);
     toast(!current ? "Destination is now shared." : "Destination is now private.", "success");
   }
 
@@ -353,11 +387,17 @@
   navigate = function filteringOwnershipNavigate(view, historyMode = "push") {
     const result = previousNavigate(view, historyMode);
     if (state.currentView === FILTER_VIEW) schedule();
+    if (state.currentView === "destinations") {
+      refreshDestinationsState().catch(() => {
+        // Keep the last successful Destination view if a refresh fails.
+      });
+    }
     return result;
   };
 
   document.addEventListener("DOMContentLoaded", () => {
     normalizeRoutingHeadings();
+    ensureSharingColumn();
     const graph = document.getElementById("rf-graph");
     if (graph) {
       new MutationObserver(normalizeRoutingHeadings).observe(graph, { childList: true });
