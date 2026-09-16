@@ -36,20 +36,27 @@ def test_long_destination_forms_keep_actions_outside_scrollable_body():
     assert "grid-row: 1 / span 2" in STYLE
 
 
-def test_long_provider_layout_groups_generic_webhook_only():
-    assert "const LONG_PROVIDER_LAYOUTS =" in SCRIPT
-    assert 'webhook: [' in SCRIPT
-    assert 'title: "Request"' in SCRIPT
-    assert 'keys: ["channel_name", "method"]' in SCRIPT
-    assert 'title: "Payload & security"' in SCRIPT
-    assert 'keys: ["timeout_seconds", "headers", "body_template", "sign_hmac", "allow_private_network"]' in SCRIPT
-    assert 'mqtt: [' not in SCRIPT
-    assert 'ntfy: [' not in SCRIPT
+def test_generic_webhook_removes_raw_http_controls_from_normal_editor():
+    assert 'const WEBHOOK_ADVANCED_FIELDS = new Set([' in SCRIPT
+    for key in (
+        '"method"',
+        '"timeout_seconds"',
+        '"headers"',
+        '"body_template"',
+        '"sign_hmac"',
+        '"allow_private_network"',
+    ):
+        assert key in SCRIPT
+    assert 'WEBHOOK_ADVANCED_FIELDS.has(input.dataset.field)' in SCRIPT
+    assert 'LONG_PROVIDER_LAYOUTS' not in SCRIPT
+    assert 'normalizeLongDestinationProviderLayout' not in SCRIPT
 
 
-def test_long_provider_layout_reuses_existing_card_and_form_grid_styles():
-    assert "function normalizeLongDestinationProviderLayout()" in SCRIPT
-    assert 'group.className = "destination-credentials-card destination-provider-settings-group wide"' in SCRIPT
-    assert 'groupFields.className = "form-grid"' in SCRIPT
-    assert 'normalizeLongDestinationProviderLayout();' in SCRIPT
-    assert 'new MutationObserver(() => {' in SCRIPT
+def test_generic_webhook_uses_destination_label_message_style_and_credentials():
+    assert 'channelTitle.textContent = "Destination label"' in SCRIPT
+    assert 'title.textContent = "Message style"' in SCRIPT
+    assert 'modern.textContent = "Modern Card"' in SCRIPT
+    assert 'classic.textContent = "Classic Embed"' in SCRIPT
+    assert 'urlTitle.textContent = "Webhook URL"' in SCRIPT
+    assert 'title.textContent = "Credentials"' in SCRIPT
+    assert 'routing.after(credentials)' in SCRIPT
