@@ -13,9 +13,6 @@
     "settings",
     "inputs",
   ]);
-  let filteringAccess = null;
-  let filteringRefreshTimer = 0;
-  let filteringRoleRestore = null;
   let permissionDialogUserId = "";
 
   function primaryNav(view) {
@@ -168,7 +165,6 @@
     if (!isAdmin() && ADMIN_ONLY_VIEWS.has(view)) view = "dashboard";
     const result = previousNavigate(view, historyMode);
     syncAdministrationState(view);
-    if (view === "filtering") queueFilteringDecoration();
     return result;
   };
 
@@ -354,122 +350,22 @@
     }
   }
 
-  function restoreFilteringRole() {
-    if (!filteringRoleRestore) return;
-    state.user.role = filteringRoleRestore;
-    filteringRoleRestore = null;
-    syncAccessShell();
-  }
-
-  function elevateFilteringUntilDialogCloses() {
-    if (!state.user || state.user.role === "admin") return;
-    if (!filteringRoleRestore) filteringRoleRestore = state.user.role;
-    state.user.role = "admin";
-    const dialog = document.getElementById("filtering-dialog");
-    if (dialog && dialog.dataset.accessRoleRestoreBound !== "true") {
-      dialog.dataset.accessRoleRestoreBound = "true";
-      dialog.addEventListener("close", restoreFilteringRole);
-    }
-    window.setTimeout(() => {
-      const current = document.getElementById("filtering-dialog");
-      if (filteringRoleRestore && (!current || !current.open)) restoreFilteringRole();
-    }, 2500);
-  }
-
-  async function decorateFiltering() {
-    if (!state.user || state.user.role === "admin" || filteringRoleRestore) return;
-    try {
-      filteringAccess = await request("/filters");
-    } catch (_error) {
-      return;
-    }
-    const policies = (Array.isArray(filteringAccess.filters) ? filteringAccess.filters : [])
-      .filter((policy) => Array.isArray(policy.integrations) && policy.integrations.length > 0);
-    const rows = [...document.querySelectorAll("#filter-table tr")];
-    policies.forEach((policy, index) => {
-      const row = rows[index];
-      if (!row) return;
-      const destinationCell = row.children[0];
-      const actions = row.children[3];
-      if (destinationCell && !destinationCell.querySelector(".filtering-access-badge")) {
-        const accessBadge = badge(policy.shared ? "👥 Shared" : "🔒 Private", policy.shared ? "success" : "warning");
-        accessBadge.classList.add("filtering-access-badge");
-        destinationCell.append(accessBadge);
-      }
-      if (!actions) return;
-      actions.replaceChildren();
-      const button = makeButton(
-        policy.can_manage_filters ? "✎ Configure" : "View",
-        `button small ${policy.can_manage_filters ? "primary" : "secondary"}`,
-      );
-      button.dataset.filterAction = "manage-destination";
-      button.dataset.filterId = policy.destination_id;
-      button.dataset.accessCanManage = policy.can_manage_filters ? "true" : "false";
-      actions.append(button);
-      if (policy.can_manage_filters) {
-        const remove = makeButton("Delete", "button small danger");
-        remove.dataset.filterAction = "delete-destination-filter";
-        remove.dataset.filterId = policy.destination_id;
-        remove.dataset.accessCanManage = "true";
-        actions.append(remove);
-      } else {
-        actions.append(badge("Read only", "warning"));
-      }
-    });
-    const add = document.getElementById("add-filter-button");
-    if (add) {
-      add.hidden = !(Array.isArray(filteringAccess.destinations) && filteringAccess.destinations.length);
-      add.dataset.accessCanManage = add.hidden ? "false" : "true";
-    }
-  }
-
-  function queueFilteringDecoration() {
-    window.clearTimeout(filteringRefreshTimer);
-    filteringRefreshTimer = window.setTimeout(decorateFiltering, 80);
-  }
-
   document.addEventListener("click", (event) => {
     const accessAction = event.target.closest('[data-action="destination-access"]');
-    if (accessAction) {
-      event.preventDefault();
-      openDestinationAccess(accessAction.dataset.id);
-      return;
-    }
-
-    if (!state.user || state.user.role === "admin") return;
-    const filterAction = event.target.closest("[data-filter-action]");
-    if (!filterAction) return;
-    const action = filterAction.dataset.filterAction;
-    if (action === "new-filter" && filterAction.dataset.accessCanManage === "true") {
-      elevateFilteringUntilDialogCloses();
-      return;
-    }
-    if (
-      ["manage-destination", "delete-destination-filter"].includes(action)
-      && filterAction.dataset.accessCanManage === "true"
-    ) {
-      elevateFilteringUntilDialogCloses();
-    }
+    if (!accessAction) return;
+    event.preventDefault();
+    openDestinationAccess(accessAction.dataset.id);
   }, true);
 
   const baseRenderAll = renderAll;
   renderAll = function renderAllWithAccessShell() {
     const result = baseRenderAll();
     syncAccessShell();
-    queueFilteringDecoration();
     return result;
   };
 
   document.addEventListener("DOMContentLoaded", () => {
     syncAccessShell();
     installPermissionDialog();
-    const filterTable = document.getElementById("filter-table");
-    if (filterTable) {
-      new MutationObserver(queueFilteringDecoration).observe(filterTable, {
-        childList: true,
-        subtree: true,
-      });
-    }
-    queueFilteringDecoration();
   });
 })();

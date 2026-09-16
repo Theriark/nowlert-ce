@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SHELL = ROOT / "src" / "webui" / "source_ui_retirement.js"
+FILTERING = ROOT / "src" / "webui" / "filtering.js"
 API = ROOT / "src" / "api" / "filtering.py"
 ACCESS = ROOT / "src" / "storage" / "destination_access.py"
 BRIDGE = ROOT / "src" / "storage" / "routing_bridge.py"
@@ -29,19 +30,24 @@ def test_administration_and_profile_navigation_are_reorganized():
 
 
 def test_delegated_destination_access_has_separate_edit_and_filter_permissions():
-    script = SHELL.read_text(encoding="utf-8")
+    shell = SHELL.read_text(encoding="utf-8")
+    filtering = FILTERING.read_text(encoding="utf-8")
     api = API.read_text(encoding="utf-8")
     access = ACCESS.read_text(encoding="utf-8")
 
     for token in ("can_edit_destination", "can_manage_filters"):
-        assert token in script
+        assert token in shell
         assert token in api
         assert token in access
-    assert "destination-permissions" in script
+    assert "destination-permissions" in shell
     assert "destination-permissions" in api
-    assert 'badge("Read only", "warning")' in script
-    assert 'policy.shared ? "👥 Shared" : "🔒 Private"' in script
-    assert "Private names, configuration, credentials, routing, filters and delivery contents are hidden from administrators." in script
+    assert 'badge("Read only", "warning")' in shell
+    assert "Private names, configuration, credentials, routing, filters and delivery contents are hidden from administrators." in shell
+    assert "decorateFiltering" not in shell
+    assert "elevateFilteringUntilDialogCloses" not in shell
+    assert 'state.user.role = "admin"' not in shell
+    assert "policyCanManage" in filtering
+    assert "currentDestinationCanManage" in filtering
 
 
 def test_system_routes_and_private_destination_runtime_are_explicit():

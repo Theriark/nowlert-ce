@@ -20,8 +20,31 @@
     exclude_statuses: "Exclude status",
   };
 
-  function canEditFilters() {
-    return Boolean(state.user && state.user.role === "admin");
+  function policyCanManage(policy) {
+    return Boolean(policy && policy.can_manage_filters === true);
+  }
+
+  function currentDestinationCanManage() {
+    return Boolean(
+      filteringState.destinationView
+      && filteringState.destinationView.destination
+      && filteringState.destinationView.destination.can_manage_filters === true
+    );
+  }
+
+  function canCreateFilter() {
+    const destinations = filteringState.overview && Array.isArray(filteringState.overview.destinations)
+      ? filteringState.overview.destinations : [];
+    return destinations.some((item) => (
+      item.can_manage_filters === true
+      && Number(item.available_integration_count || 0) > 0
+    ));
+  }
+
+  function overviewPolicy(destinationId) {
+    const policies = filteringState.overview && Array.isArray(filteringState.overview.filters)
+      ? filteringState.overview.filters : [];
+    return policies.find((policy) => policy.destination_id === destinationId) || null;
   }
 
   function installNavigation() {
@@ -250,15 +273,20 @@
     if (!policies.length) {
       emptyState.replaceChildren(
         element("strong", { text: "No active filters" }),
-        element("span", { text: canEditFilters() ? "Use New filter to configure one destination." : "No destination filters are currently enabled." }),
+        element("span", { text: canCreateFilter() ? "Use New filter to configure one destination." : "No destination filters are currently enabled." }),
       );
     }
     for (const policy of policies) {
       const actions = element("div", { className: "table-actions filtering-table-actions" });
-      if (canEditFilters()) {
+      if (policyCanManage(policy)) {
         actions.append(
           actionButtonForFilter("✎ Configure", "manage-destination", policy.destination_id, "primary"),
           actionButtonForFilter("Delete", "delete-destination-filter", policy.destination_id, "danger"),
+        );
+      } else if (policy.managed_by_admin) {
+        actions.append(
+          actionButtonForFilter("View", "view-destination-filter", policy.destination_id),
+          badge("Read only", "warning"),
         );
       }
       body.append(element("tr", {}, [
@@ -269,7 +297,7 @@
       ]));
     }
     const addButton = byId("add-filter-button");
-    if (addButton) addButton.hidden = !canEditFilters();
+    if (addButton) addButton.hidden = !canCreateFilter();
   }
 
   function actionButtonForFilter(label, action, id = "", style = "secondary") {
@@ -297,7 +325,10 @@
     select.replaceChildren();
     const destinations = filteringState.overview && Array.isArray(filteringState.overview.destinations)
       ? filteringState.overview.destinations : [];
-    const available = destinations.filter((item) => Number(item.available_integration_count || 0) > 0);
+    const available = destinations.filter((item) => (
+      item.can_manage_filters === true
+      && Number(item.available_integration_count || 0) > 0
+    ));
     if (!available.length) {
       select.append(element("option", { text: "No destination has an enabled integration", value: "" }));
       select.disabled = true;
@@ -317,8 +348,8 @@
   }
 
   async function openNewFilter() {
-    if (!canEditFilters()) return;
     if (!filteringState.overview) await loadOverview();
+    if (!canCreateFilter()) return;
     filteringState.destinationView = null;
     filteringState.integration = null;
     byId("filtering-dialog-title").textContent = "New filter";
@@ -337,6 +368,26 @@
     if (!byId("filtering-dialog").open) byId("filtering-dialog").showModal();
   }
 
+  async function openReadOnlyDestinationFilter(destinationId) {
+    if (!filteringState.overview) await loadOverview();
+    const policy = overviewPolicy(destinationId);
+    if (!policy || policyCanManage(policy) || !policy.managed_by_admin) return;
+    filteringState.destinationView = {
+      destination: {
+        id: policy.destination_id,
+        name: policy.destination_name,
+        output_type: policy.output_type,
+        shared: Boolean(policy.shared),
+        can_manage_filters: false,
+        managed_by_admin: true,
+      },
+      integrations: Array.isArray(policy.integrations) ? policy.integrations : [],
+    };
+    filteringState.integration = null;
+    renderIntegrationStep();
+    if (!byId("filtering-dialog").open) byId("filtering-dialog").showModal();
+  }
+
   async function continueDestination() {
     const destinationId = byId("filter-destination-select").value;
     if (!destinationId) return;
@@ -347,9 +398,10 @@
   function renderIntegrationStep() {
     const view = filteringState.destinationView;
     if (!view) return;
+    const canManage = currentDestinationCanManage();
     resetDialogSteps();
     byId("filter-integration-step").hidden = false;
-    byId("filtering-dialog-title").textContent = "Configure filter";
+    byId("filtering-dialog-title").textContent = canManage ? "Configure filter" : "View filter";
     const context = byId("filtering-context");
     context.replaceChildren();
     const destinationIcon = outputIcon(view.destination.output_type);
@@ -359,6 +411,12 @@
       destinationIcon,
       element("strong", { text: view.destination.name }),
     );
+    const note = document.querySelector(".filtering-available-note");
+    if (note) {
+      note.textContent = canManage
+        ? "Only integrations currently enabled for this destination are shown."
+        : "Read-only view. Filter rules remain private to the destination owner.";
+    }
     const list = byId("filter-integration-list");
     list.replaceChildren();
     const integrations = Array.isArray(view.integrations) ? view.integrations : [];
@@ -376,7 +434,7 @@
       const icon = sourceIcon(integration.source);
       icon.classList.add("filtering-source-icon");
       list.append(element("article", { className: "filtering-integration-row" }, [
-        makeSwitch(enabled, integration.source, !canEditFilters(), "list"),
+        makeSwitch(enabled, integration.source, !canManage, "list"),
         element("div", { className: "filtering-integration-identity" }, [
           icon,
           element("div", {}, [
@@ -386,7 +444,7 @@
         ]),
         element("div", { className: "filtering-integration-actions" }, [
           badge(status, enabled ? "success" : configured ? "warning" : ""),
-          canEditFilters() ? actionButtonForFilter("Configure", "configure-integration", integration.source) : null,
+          canManage ? actionButtonForFilter("Configure", "configure-integration", integration.source) : null,
         ]),
       ]));
     }
@@ -413,7 +471,7 @@
 
   function openIntegrationEditor(source) {
     const view = filteringState.destinationView;
-    if (!view) return;
+    if (!view || !currentDestinationCanManage()) return;
     const integration = view.integrations.find((item) => item.source === source);
     if (!integration) return;
     filteringState.integration = integration;
@@ -429,7 +487,7 @@
 
   function renderEditor() {
     const integration = filteringState.integration;
-    if (!integration) return;
+    if (!integration || !currentDestinationCanManage()) return;
     resetDialogSteps();
     byId("filter-editor-step").hidden = false;
     byId("filtering-dialog-title").textContent = `Configure filter — ${integration.name || friendlyName(integration.source)}`;
@@ -449,7 +507,7 @@
       ]),
       element("div", { className: "filtering-editor-toggle" }, [
         element("span", { text: "Enable filtering" }),
-        makeSwitch(enabled, integration.source, !canEditFilters(), "editor"),
+        makeSwitch(enabled, integration.source, false, "editor"),
       ]),
     );
     const legacy = Array.isArray(integration.legacy_clauses) ? integration.legacy_clauses : [];
@@ -576,7 +634,7 @@
   async function saveIntegration() {
     const integration = filteringState.integration;
     const destination = filteringState.destinationView && filteringState.destinationView.destination;
-    if (!integration || !destination) return;
+    if (!integration || !destination || !currentDestinationCanManage()) return;
     const rules = editorRules();
     const toggle = document.querySelector('[data-filter-toggle-context="editor"]');
     const enabled = Boolean(toggle && toggle.checked && Object.keys(rules).length);
@@ -594,7 +652,7 @@
 
   async function toggleIntegration(source, enabled) {
     const view = filteringState.destinationView;
-    if (!view) return;
+    if (!view || !currentDestinationCanManage()) return;
     const integration = view.integrations.find((item) => item.source === source);
     if (!integration) return;
     if (!integration.configured && enabled) {
@@ -615,7 +673,7 @@
   async function removeIntegrationFilter() {
     const integration = filteringState.integration;
     const view = filteringState.destinationView;
-    if (!integration || !view) return;
+    if (!integration || !view || !currentDestinationCanManage()) return;
     const accepted = await confirmAction(
       "Remove integration filter?",
       `The saved ${integration.name || friendlyName(integration.source)} filter rules will be deleted.`,
@@ -631,6 +689,8 @@
   }
 
   async function deleteDestinationFilter(destinationId) {
+    const policy = overviewPolicy(destinationId);
+    if (!policyCanManage(policy)) return;
     const accepted = await confirmAction(
       "Delete destination filter?",
       "Every saved integration filter for this destination will be cleared. Routing is not changed.",
@@ -659,6 +719,7 @@
       return;
     }
     if (action === "continue-destination") return continueDestination();
+    if (action === "view-destination-filter") return openReadOnlyDestinationFilter(id);
     if (action === "manage-destination") return openDestinationFilter(id);
     if (action === "configure-integration") return openIntegrationEditor(id);
     if (action === "back-integrations") return renderIntegrationStep();
