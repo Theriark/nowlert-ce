@@ -1,0 +1,110 @@
+/* Acceptance polish for Operations Dashboard and Routing Flow status. */
+.ops-kpi-card.ops-kpi-config {
+  grid-template-columns: 42px minmax(0, 1fr);
+}
+
+.ops-kpi-success .ops-kpi-copy > strong {
+  font-size: clamp(1.5rem, 1.75vw, 1.9rem);
+  white-space: nowrap;
+}
+
+.ops-kpi-success .ops-kpi-delta,
+.ops-kpi-failure .ops-kpi-delta {
+  margin-left: 10px;
+}
+
+.ops-live {
+  transition: color 140ms ease;
+}
+
+.ops-live.is-live { color: #58ef73; }
+.ops-live.is-degraded { color: #f4c542; }
+.ops-live.is-stale,
+.ops-live.is-offline { color: #ff7770; }
+.ops-live.is-connecting { color: #aeb9c4; }
+
+.ops-live.is-live .ops-live-dot {
+  background: #55e76c;
+  box-shadow: 0 0 12px rgba(85, 231, 108, .65);
+}
+
+.ops-live.is-degraded .ops-live-dot {
+  background: #f4c542;
+  box-shadow: 0 0 12px rgba(244, 197, 66, .48);
+}
+
+.ops-live.is-stale .ops-live-dot,
+.ops-live.is-offline .ops-live-dot {
+  background: #ff6f69;
+  box-shadow: 0 0 12px rgba(255, 111, 105, .48);
+}
+
+.ops-live.is-connecting .ops-live-dot {
+  background: #8393a0;
+  box-shadow: none;
+}
+
+.rf-toolbar > .rf-live-status {
+  margin-left: auto;
+}
+
+.rf-toolbar > .rf-live-status + .rf-range {
+  margin-left: 0;
+}
+
+.rf-live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 116px;
+  color: #aeb9c4;
+}
+
+.rf-live-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rf-live-status strong {
+  font-size: .78rem;
+  line-height: 1;
+}
+
+.rf-live-status small {
+  color: #91a0aa;
+  font-size: .62rem;
+  white-space: nowrap;
+}
+
+.rf-live-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #8393a0;
+}
+
+.rf-live-status.is-live { color: #58ef73; }
+.rf-live-status.is-live .rf-live-dot {
+  background: #55e76c;
+  box-shadow: 0 0 10px rgba(85, 231, 108, .6);
+}
+
+.rf-live-status.is-stale { color: #f4c542; }
+.rf-live-status.is-stale .rf-live-dot {
+  background: #f4c542;
+  box-shadow: 0 0 10px rgba(244, 197, 66, .45);
+}
+
+.rf-live-status.is-offline { color: #ff7770; }
+.rf-live-status.is-offline .rf-live-dot {
+  background: #ff6f69;
+  box-shadow: 0 0 10px rgba(255, 111, 105, .45);
+}
+
+@media (max-width: 900px) {
+  .rf-toolbar > .rf-live-status {
+    margin-left: 0;
+  }
+}
