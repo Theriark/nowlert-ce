@@ -36,21 +36,15 @@ def test_long_destination_forms_keep_actions_outside_scrollable_body():
     assert "grid-row: 1 / span 2" in STYLE
 
 
-def test_long_provider_layout_groups_the_three_complex_destination_types():
+def test_long_provider_layout_groups_generic_webhook_only():
     assert "const LONG_PROVIDER_LAYOUTS =" in SCRIPT
     assert 'webhook: [' in SCRIPT
     assert 'title: "Request"' in SCRIPT
     assert 'keys: ["channel_name", "method"]' in SCRIPT
     assert 'title: "Payload & security"' in SCRIPT
     assert 'keys: ["timeout_seconds", "headers", "body_template", "sign_hmac", "allow_private_network"]' in SCRIPT
-    assert 'mqtt: [' in SCRIPT
-    assert 'title: "Broker & topic"' in SCRIPT
-    assert 'keys: ["host", "port", "topic"]' in SCRIPT
-    assert 'title: "Delivery options"' in SCRIPT
-    assert 'ntfy: [' in SCRIPT
-    assert 'title: "Server & topic"' in SCRIPT
-    assert 'keys: ["server", "topic", "priority"]' in SCRIPT
-    assert 'title: "Message options"' in SCRIPT
+    assert 'mqtt: [' not in SCRIPT
+    assert 'ntfy: [' not in SCRIPT
 
 
 def test_long_provider_layout_reuses_existing_card_and_form_grid_styles():
