@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
-import re
 import socket
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from urllib.parse import urlsplit
 
 import requests
@@ -20,7 +17,6 @@ from outputs.platform_common import (
     decode_secret,
     event_identifier,
     http_delivery_result,
-    render_template,
     request_failure,
     safe_event_envelope,
     secret_url,
@@ -310,6 +306,13 @@ class SlackPlatformAdapter(_HTTPAdapter):
 class WebhookPlatformAdapter(_HTTPAdapter):
     output_type = "webhook"
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.discord = DiscordPlatformAdapter(
+            http_client=self.http_client,
+            resolver=self.resolver,
+        )
+
     @staticmethod
     def _presentation(payload: dict, style: str) -> dict:
         if style == "classic":
@@ -336,28 +339,41 @@ class WebhookPlatformAdapter(_HTTPAdapter):
             ],
         }
 
+    @staticmethod
+    def _is_discord_webhook(url: str) -> bool:
+        host = str(urlsplit(url).hostname or "").casefold()
+        return (
+            host in {"discord.com", "discordapp.com"}
+            or host.endswith(".discord.com")
+            or host.endswith(".discordapp.com")
+        )
+
+    @staticmethod
+    def _discord_destination(destination: Destination, style: str) -> Destination:
+        return replace(
+            destination,
+            output_type="discord",
+            settings={"components_v2": style == "modern"},
+        )
+
     def preview(self, destination, notification):
         settings = normalize_output_settings(
             "webhook",
             destination.settings,
             require_complete=True,
         )
-        template = settings.get("body_template")
-        if template is not None:
-            payload = render_template(template, notification)
-        else:
-            payload = safe_event_envelope(notification)
-            payload["presentation"] = self._presentation(
-                payload,
-                settings["message_style"],
-            )
+        payload = safe_event_envelope(notification)
+        payload["presentation"] = self._presentation(
+            payload,
+            settings["message_style"],
+        )
         return OutputPreview(
             "webhook",
             "application/json",
             payload,
             {
-                "method": settings.get("method", "POST"),
-                "signed": settings.get("sign_hmac", False),
+                "method": "POST",
+                "signed": False,
                 "message_style": settings["message_style"],
             },
         )
@@ -378,78 +394,26 @@ class WebhookPlatformAdapter(_HTTPAdapter):
         except ValueError:
             return DeliveryResult(False, error_code="invalid_destination")
 
-        legacy_transport = any(
-            key in settings
-            for key in (
-                "allow_private_network",
-                "body_template",
-                "headers",
-                "method",
-                "sign_hmac",
-                "timeout_seconds",
+        if self._is_discord_webhook(url):
+            discord_destination = self._discord_destination(
+                destination,
+                settings["message_style"],
             )
-        )
-        if not legacy_transport:
-            return self._post(
-                url,
-                payload=preview.payload,
-                timeout=15,
-                headers={
-                    "Content-Type": "application/json",
-                    "X-Nowlert-Idempotency-Key": event_identifier(notification),
-                },
+            return self.discord.deliver(
+                discord_destination,
+                secret_value,
+                notification,
             )
 
-        try:
-            headers = {"Content-Type": "application/json", **settings["headers"]}
-            secret_headers = credentials.get("headers", {})
-            if secret_headers:
-                if not isinstance(secret_headers, dict):
-                    raise ValueError("secret headers must be an object")
-                for key, value in secret_headers.items():
-                    name = str(key or "").strip()
-                    text = str(value or "").strip()
-                    if (
-                        not re.fullmatch(r"[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}", name)
-                        or name.casefold() in {"host", "content-length", "transfer-encoding"}
-                        or not text
-                        or "\r" in text
-                        or "\n" in text
-                        or len(text) > 2048
-                    ):
-                        raise ValueError("secret header is invalid")
-                    headers[name] = text
-            body = json.dumps(
-                preview.payload,
-                sort_keys=True,
-                separators=(",", ":"),
-                ensure_ascii=False,
-            ).encode("utf-8")
-            headers["X-Nowlert-Idempotency-Key"] = event_identifier(notification)
-            if settings["sign_hmac"]:
-                signing_secret = credentials.get("hmac_secret")
-                if not signing_secret:
-                    raise ValueError("HMAC secret is required")
-                digest = hmac.new(
-                    str(signing_secret).encode("utf-8"),
-                    body,
-                    hashlib.sha256,
-                ).hexdigest()
-                headers["X-Nowlert-Signature"] = f"sha256={digest}"
-            response = self.http_client.request(
-                settings["method"],
-                url,
-                data=body,
-                headers=headers,
-                timeout=settings["timeout_seconds"],
-            )
-        except requests.RequestException as error:
-            return request_failure(error)
-        except ValueError:
-            return DeliveryResult(False, error_code="invalid_destination")
-        except Exception:
-            return DeliveryResult(False, error_code="transport_error")
-        return http_delivery_result(response)
+        return self._post(
+            url,
+            payload=preview.payload,
+            timeout=15,
+            headers={
+                "Content-Type": "application/json",
+                "X-Nowlert-Idempotency-Key": event_identifier(notification),
+            },
+        )
 
 
 class PlatformOutputRegistry:

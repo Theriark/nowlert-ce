@@ -4,6 +4,8 @@
   let filterRefreshTimer = 0;
   let integrationOrder = [];
   let reorderingIntegrations = false;
+  let privateDestinationMetadata = [];
+  let privateDestinationMetadataSignature = "";
 
   function sourceFromRow(row) {
     return row.querySelector('input[data-filter-toggle]')?.dataset.filterToggle || "";
@@ -42,11 +44,29 @@
     document.querySelectorAll(".destination-read-only").forEach((node) => node.remove());
   }
 
+  function privateDestinationSignature(items) {
+    return JSON.stringify((items || []).map((item) => [
+      item.id || "",
+      item.name || "",
+      item.output_type || "",
+      item.owner_username || "",
+    ]));
+  }
+
   function appendPrivateDestinationMetadata(items) {
     const list = document.getElementById("destination-list");
     if (!list) return;
-    list.querySelectorAll(".acceptance-private-destination").forEach((node) => node.remove());
-    for (const item of items || []) {
+    const resources = Array.isArray(items) ? items : [];
+    const signature = privateDestinationSignature(resources);
+    const existing = [...list.querySelectorAll(".acceptance-private-destination")];
+    if (
+      list.dataset.privateDestinationSignature === signature
+      && existing.length === resources.length
+    ) {
+      return;
+    }
+    existing.forEach((node) => node.remove());
+    for (const item of resources) {
       const icon = outputIcon(item.output_type);
       const card = element("article", { className: "resource-card acceptance-private-destination" }, [
         element("div", { className: "resource-card-heading" }, [
@@ -70,14 +90,27 @@
       ]);
       list.append(card);
     }
+    list.dataset.privateDestinationSignature = signature;
   }
 
   async function refreshDestinationMetadata() {
     cleanupDestinationCards();
-    if (!isAdmin()) return;
+    if (!isAdmin()) {
+      privateDestinationMetadata = [];
+      privateDestinationMetadataSignature = privateDestinationSignature([]);
+      appendPrivateDestinationMetadata([]);
+      return;
+    }
     try {
       const payload = await request("/destinations");
-      appendPrivateDestinationMetadata(payload.private_resources || []);
+      const resources = Array.isArray(payload.private_resources)
+        ? payload.private_resources
+        : [];
+      const signature = privateDestinationSignature(resources);
+      if (signature === privateDestinationMetadataSignature) return;
+      privateDestinationMetadata = resources;
+      privateDestinationMetadataSignature = signature;
+      appendPrivateDestinationMetadata(privateDestinationMetadata);
     } catch (_error) {
       // The normal Destination view remains usable if metadata refresh fails.
     }
@@ -181,6 +214,12 @@
     dialog?.remove();
   }
 
+  function suppressProgrammaticMainFocusOutline() {
+    const main = document.getElementById("main-content");
+    if (!main) return;
+    main.style.outline = "none";
+  }
+
   const previousRenderFlow = typeof renderFlow === "function" ? renderFlow : null;
   if (previousRenderFlow) {
     renderFlow = function renderFlowAcceptance() {
@@ -193,6 +232,8 @@
   renderDestinations = function renderDestinationsAcceptance() {
     const result = previousRenderDestinations();
     cleanupDestinationCards();
+    if (isAdmin()) appendPrivateDestinationMetadata(privateDestinationMetadata);
+    else appendPrivateDestinationMetadata([]);
     refreshDestinationMetadata();
     return result;
   };
@@ -223,6 +264,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     cleanupDestinationCards();
     removeRetiredPermissionControls();
+    suppressProgrammaticMainFocusOutline();
     refreshDestinationMetadata();
     scheduleFilteringAcceptance();
 

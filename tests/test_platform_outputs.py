@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 import socket
 
@@ -168,10 +166,10 @@ def test_slack_preview_is_bounded_sanitized_and_has_safe_action():
     assert "https://monitoring.example.com/alerts/42" in encoded
 
 
-def test_webhook_preview_uses_stable_secret_safe_envelope_and_templates():
+def test_webhook_preview_uses_stable_secret_safe_envelope_and_ignores_legacy_templates():
     adapter = WebhookPlatformAdapter(resolver=public_resolver)
     default = adapter.preview(destination("webhook"), notification())
-    templated = adapter.preview(
+    legacy = adapter.preview(
         destination(
             "webhook",
             {
@@ -187,11 +185,10 @@ def test_webhook_preview_uses_stable_secret_safe_envelope_and_templates():
 
     assert default.payload["schema"] == "nowlert.event.v1"
     assert default.payload["metadata"]["api_key"] == "<redacted>"
-    assert templated.payload == {
-        "summary": "grafana:Database latency",
-        "host": "vm-09",
-        "id": "grafana-42",
-    }
+    assert legacy.payload["schema"] == "nowlert.event.v1"
+    assert legacy.payload["metadata"]["api_key"] == "<redacted>"
+    assert legacy.payload["presentation"]["style"] == "modern_card"
+    assert "summary" not in legacy.payload
 
 
 def test_http_delivery_maps_retryable_and_terminal_status_without_response_body():
@@ -216,7 +213,7 @@ def test_http_delivery_maps_retryable_and_terminal_status_without_response_body(
     assert "must never" not in repr(retryable) + repr(terminal)
 
 
-def test_webhook_delivery_adds_hmac_and_idempotency_without_leaking_secret():
+def test_webhook_delivery_ignores_legacy_transport_secrets_and_keeps_idempotency():
     client = HTTPClient((202,))
     adapter = WebhookPlatformAdapter(http_client=client, resolver=public_resolver)
     target = destination(
@@ -238,16 +235,14 @@ def test_webhook_delivery_adds_hmac_and_idempotency_without_leaking_secret():
     method, _url, kwargs = client.calls[0]
 
     assert result.success is True
-    assert method == "PUT"
+    assert method == "POST"
+    assert kwargs["headers"]["Content-Type"] == "application/json"
     assert kwargs["headers"]["X-Nowlert-Idempotency-Key"] == "grafana-42"
-    expected = hmac.new(
-        b"private-signing-key",
-        kwargs["data"],
-        hashlib.sha256,
-    ).hexdigest()
-    assert kwargs["headers"]["X-Nowlert-Signature"] == f"sha256={expected}"
-    assert b"private-signing-key" not in kwargs["data"]
-    assert b"private-access-token" not in kwargs["data"]
+    assert "X-Site" not in kwargs["headers"]
+    assert "X-Nowlert-Signature" not in kwargs["headers"]
+    encoded = json.dumps(kwargs, sort_keys=True)
+    assert "private-signing-key" not in encoded
+    assert "private-access-token" not in encoded
 
 
 def test_outbound_http_rejects_private_resolution_by_default():
