@@ -64,11 +64,12 @@ def test_destination_editor_fix_restores_amber_accent_and_dark_provider_options(
     assert "#0e97d6" not in stylesheet
 
 
-def test_destination_editor_fix_removes_provider_chevron_and_modal_fieldset_collisions():
+def test_destination_editor_fix_restores_provider_selector_and_avoids_modal_fieldset_collisions():
     stylesheet = FIX_STYLE.read_text(encoding="utf-8")
 
     assert ".destination-provider-type::after" in stylesheet
-    assert "content: none" in stylesheet
+    assert 'content: "⌄"' in stylesheet
+    assert "pointer-events: none" in stylesheet
     assert "fieldset.destination-connection-card" in stylesheet
     assert "fieldset.destination-credentials-card" in stylesheet
     assert "fieldset.route-assignment-drawer" in stylesheet

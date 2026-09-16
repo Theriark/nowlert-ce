@@ -9,14 +9,27 @@
   border-color: rgba(244, 197, 66, 0.28);
 }
 
-/* The provider name remains clickable for type changes without a detached chevron. */
+/* Keep the provider selector visually explicit so every supported output type is discoverable. */
 .destination-provider-type::after {
-  content: none;
-  display: none;
+  color: var(--destination-muted);
+  content: "⌄";
+  font-size: 0.72rem;
+  pointer-events: none;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .destination-provider-type select {
-  padding-right: 0;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--destination-border);
+  border-radius: 6px;
+  padding: 5px 24px 5px 8px;
+}
+
+.destination-provider-type select:hover {
+  border-color: rgba(244, 197, 66, 0.58);
 }
 
 .destination-provider-type select option {
