@@ -3,11 +3,59 @@
 (() => {
   if (typeof document === "undefined") return;
 
+  function normalizeDestinationProviderIcons() {
+    if (typeof OUTPUT_ICONS !== "object" || !OUTPUT_ICONS) return;
+    OUTPUT_ICONS.teams = "/ui/icons/routing-teams.svg";
+    OUTPUT_ICONS.slack = "/ui/icons/routing-slack.svg";
+
+    const type = document.getElementById("destination-type")?.value || "discord";
+    const icon = document.getElementById("destination-provider-icon");
+    if (icon && typeof outputIcon === "function") {
+      icon.replaceChildren(outputIcon(type));
+    }
+  }
+
   function normalizeDiscordMessageStyle() {
     const settings = document.getElementById("destination-settings");
     if (!settings) return;
     const controls = [...settings.querySelectorAll(".destination-message-style")];
     for (const duplicate of controls.slice(1)) duplicate.remove();
+  }
+
+  function normalizeSlackMessageOptions() {
+    const settings = document.getElementById("destination-settings");
+    const type = document.getElementById("destination-type")?.value || "";
+    if (!settings || type !== "slack") return;
+
+    const input = settings.querySelector('[data-field="include_metadata"]');
+    const label = input?.closest("label");
+    if (!label) return;
+
+    label.classList.add("destination-message-options", "wide");
+
+    if (!label.querySelector(".destination-message-options-title")) {
+      const heading = document.createElement("strong");
+      heading.className = "destination-message-options-title";
+      heading.textContent = "Message options";
+      label.prepend(heading);
+    }
+
+    if (!label.querySelector(".destination-message-options-help")) {
+      const helper = document.createElement("small");
+      helper.className = "destination-message-options-help";
+      helper.textContent = "Controls Slack message detail; it does not filter events.";
+      label.append(helper);
+    }
+  }
+
+  function normalizeDestinationFooter() {
+    const form = document.getElementById("destination-form");
+    const main = document.getElementById("destination-editor-main");
+    const actions = form?.querySelector(".destination-editor-actions");
+    if (!form || !main || !actions) return;
+
+    actions.classList.add("destination-editor-footer-fixed");
+    if (actions.parentElement !== form) form.append(actions);
   }
 
   function normalizeDestinationTitle() {
@@ -128,9 +176,12 @@
   }
 
   function normalizeDestinationEditor() {
+    normalizeDestinationProviderIcons();
     normalizeDiscordMessageStyle();
+    normalizeSlackMessageOptions();
     normalizeDestinationTitle();
     normalizeSharedControl();
+    normalizeDestinationFooter();
     normalizeRoutingSummary();
     normalizeRouteDrawer();
   }
