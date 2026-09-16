@@ -265,7 +265,7 @@ def test_private_destination_cannot_be_used_by_another_users_route(platform):
         owner.actor,
         owner.id,
         "Private destination",
-        "ntfy",
+        "teams",
     )
     with pytest.raises(PermissionError, match="owned by the user or shared"):
         platform["routes"].create(
@@ -283,7 +283,7 @@ def test_route_filters_match_source_host_event_severity_and_status(platform):
         owner.actor,
         owner.id,
         "Filtered",
-        "ntfy",
+        "teams",
     )
     route = platform["routes"].create(
         owner.actor,
@@ -324,9 +324,9 @@ def test_matching_routes_are_owner_scoped_and_destination_independent(platform):
     another = platform["another"]
     destinations = platform["destinations"]
     routes = platform["routes"]
-    first_destination = destinations.create(owner.actor, owner.id, "First", "ntfy")
-    second_destination = destinations.create(owner.actor, owner.id, "Second", "ntfy")
-    another_destination = destinations.create(another.actor, another.id, "Other", "ntfy")
+    first_destination = destinations.create(owner.actor, owner.id, "First", "teams")
+    second_destination = destinations.create(owner.actor, owner.id, "Second", "teams")
+    another_destination = destinations.create(another.actor, another.id, "Other", "teams")
     second = routes.create(
         owner.actor, owner.id, "Second", "grafana", second_destination.id, priority=20
     )
