@@ -417,3 +417,96 @@ def test_real_webhook_adapter_integrates_with_owned_routes_retries_and_history(p
     raw = platform["database"].path.read_bytes()
     assert b"events.example.com" not in raw
     assert b"must never be persisted" not in raw
+
+
+class StyleCaptureAdapter(PlatformOutputAdapter):
+    def __init__(self, output_type):
+        self.output_type = output_type
+        self.preview_settings = []
+        self.delivery_settings = []
+
+    def preview(self, destination, notification):
+        self.preview_settings.append(dict(destination.settings))
+        return OutputPreview(
+            self.output_type,
+            "application/json",
+            {"title": notification.title},
+            {},
+        )
+
+    def deliver(self, destination, secret_value, notification):
+        self.delivery_settings.append(dict(destination.settings))
+        return DeliveryResult(True, response_status=204)
+
+
+@pytest.mark.parametrize(
+    ("output_type", "stored_settings", "expected_override"),
+    [
+        ("discord", {"components_v2": True}, {"components_v2": False}),
+        ("webhook", {"message_style": "modern"}, {"message_style": "classic"}),
+    ],
+)
+def test_preview_message_style_override_is_temporary(
+    platform,
+    output_type,
+    stored_settings,
+    expected_override,
+):
+    admin = platform["admin"]
+    target = platform["destinations"].create(
+        admin.actor,
+        admin.id,
+        f"{output_type} preview target",
+        output_type,
+        settings=stored_settings,
+    )
+    adapter = StyleCaptureAdapter(output_type)
+    service = PlatformOutputService(
+        platform["destinations"],
+        platform["secrets"],
+        PlatformOutputRegistry([adapter]),
+        audit=platform["audit"],
+    )
+
+    service.preview(
+        admin.actor,
+        target.id,
+        notification(),
+        message_style="classic",
+    )
+    result = service.test_delivery(
+        admin.actor,
+        target.id,
+        notification(),
+        message_style="classic",
+    )
+
+    assert result.success is True
+    assert adapter.preview_settings[-1] == expected_override
+    assert adapter.delivery_settings[-1] == expected_override
+    assert platform["destinations"].get(admin.actor, target.id).settings == stored_settings
+
+
+def test_preview_message_style_override_rejects_unknown_style(platform):
+    admin = platform["admin"]
+    target = platform["destinations"].create(
+        admin.actor,
+        admin.id,
+        "Discord preview target",
+        "discord",
+        settings={"components_v2": True},
+    )
+    service = PlatformOutputService(
+        platform["destinations"],
+        platform["secrets"],
+        PlatformOutputRegistry([StyleCaptureAdapter("discord")]),
+        audit=platform["audit"],
+    )
+
+    with pytest.raises(ValueError, match="destination cannot preview"):
+        service.preview(
+            admin.actor,
+            target.id,
+            notification(),
+            message_style="unsafe",
+        )

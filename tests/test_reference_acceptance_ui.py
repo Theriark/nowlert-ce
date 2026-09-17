@@ -4,6 +4,8 @@ ROOT = Path(__file__).resolve().parents[1]
 JS = ROOT / "src/webui/reference_acceptance.js"
 CSS = ROOT / "src/webui/reference_acceptance.css"
 SERVICE = ROOT / "src/webui/service.py"
+PLATFORM_API = ROOT / "src/api/platform.py"
+OUTPUT_SERVICE = ROOT / "src/outputs/service.py"
 COMPOSE = ROOT / "compose.managed-backups.yaml"
 
 
@@ -68,7 +70,7 @@ def test_managed_backup_override_targets_production_service_name():
     assert "- FOWNER" in text
     assert "- SYS_ADMIN" in text
 
-def test_preview_dialog_matches_editor_shell_and_routes_are_read_only():
+def test_preview_dialog_matches_editor_shell_and_routes_are_temporary_scenario_choices():
     script = JS.read_text(encoding="utf-8")
     styles = CSS.read_text(encoding="utf-8")
 
@@ -79,11 +81,15 @@ def test_preview_dialog_matches_editor_shell_and_routes_are_read_only():
     drawer_end = script.index("function ensurePreviewReferenceLayout()", drawer_start)
     drawer_block = script[drawer_start:drawer_end]
 
-    assert 'const assigned = (state.routes || []).filter((route) => previewRouteSelection.has(route.id));' in route_block
+    assert "let previewAssignedRouteIds = new Set();" in script
+    assert "const assigned = assignedPreviewRoutes();" in route_block
     assert "const visible = assigned.filter" in route_block
-    assert 'check.type = "checkbox"' not in route_block
-    assert '"Select all"' not in drawer_block
-    assert '"Clear"' not in drawer_block
+    assert 'check.type = "checkbox"' in route_block
+    assert "previewRouteSelection.add(route.id)" in route_block
+    assert "previewRouteSelection.delete(route.id)" in route_block
+    assert '"Select all"' in drawer_block
+    assert '"Clear"' in drawer_block
+    assert "new Set(previewAssignedRouteIds)" in drawer_block
     assert 'route-assignment-drawer reference-preview-route-drawer' in drawer_block
     assert 'route-assignment-option reference-preview-route-option' in route_block
     assert 'max-width: min(1020px, calc(100vw - 32px)) !important;' in styles
@@ -101,3 +107,23 @@ def test_preview_open_resyncs_and_does_not_duplicate_message_counter():
     assert 'attributeFilter: ["open"]' in script
     assert 'ref("div", "reference-preview-message-count"' not in script
 
+
+
+def test_preview_scenario_uses_integration_severities_and_temporary_style_override():
+    script = JS.read_text(encoding="utf-8")
+    api = PLATFORM_API.read_text(encoding="utf-8")
+    output_service = OUTPUT_SERVICE.read_text(encoding="utf-8")
+
+    assert "function previewSeverityValues(route)" in script
+    assert 'routeFilterValuesForSource(route.source, "severities")' in script
+    assert "function refreshPreviewSeverityOptions()" in script
+    assert "function previewRouteSupportsSeverity(route, severity)" in script
+    assert "function runReferencePreview(event)" in script
+    assert 'form.removeEventListener("submit", runPreview)' in script
+    assert 'body.message_style = messageStyle' in script
+    assert "No selected route supports this severity." in script
+    assert 'data = self._object(payload, {"event", "message_style"})' in api
+    assert "message_style=message_style" in api
+    assert "def _with_message_style(" in output_service
+    assert 'settings["components_v2"] = style == "modern"' in output_service
+    assert 'settings["message_style"] = style' in output_service

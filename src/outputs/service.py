@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from models import Notification
 from outputs.platform import OutputPreview, PlatformOutputRegistry
 from storage.audit_events import AuditEventStore
 from storage.delivery import DeliveryResult
-from storage.destinations import DestinationStore
+from storage.destinations import Destination, DestinationStore
 from storage.ownership import Actor
 from storage.secrets import SecretStore
 
@@ -25,14 +27,36 @@ class PlatformOutputService:
         self.registry = registry
         self.audit = audit
 
+    @staticmethod
+    def _with_message_style(
+        destination: Destination,
+        message_style: str | None,
+    ) -> Destination:
+        if message_style is None:
+            return destination
+        style = str(message_style or "").strip().casefold()
+        if style not in {"modern", "classic"}:
+            raise ValueError("message style must be modern or classic")
+        settings = dict(destination.settings or {})
+        if destination.output_type == "discord":
+            settings["components_v2"] = style == "modern"
+        elif destination.output_type == "webhook":
+            settings["message_style"] = style
+        else:
+            return destination
+        return replace(destination, settings=settings)
+
     def preview(
         self,
         actor: Actor,
         destination_id: str,
         notification: Notification,
+        *,
+        message_style: str | None = None,
     ) -> OutputPreview:
         try:
             destination = self.destinations.get(actor, destination_id)
+            destination = self._with_message_style(destination, message_style)
             adapter = self.registry.get(destination.output_type)
             preview = adapter.preview(destination, notification)
         except PermissionError:
@@ -55,6 +79,8 @@ class PlatformOutputService:
         actor: Actor,
         destination_id: str,
         notification: Notification,
+        *,
+        message_style: str | None = None,
     ) -> DeliveryResult:
         try:
             target = self.destinations.for_delivery(actor, destination_id)
@@ -63,8 +89,12 @@ class PlatformOutputService:
             self._audit_result(actor, destination_id, result)
             return result
         try:
-            adapter = self.registry.get(target.destination.output_type)
-        except KeyError:
+            destination = self._with_message_style(
+                target.destination,
+                message_style,
+            )
+            adapter = self.registry.get(destination.output_type)
+        except (KeyError, ValueError):
             result = DeliveryResult(False, error_code="adapter_unavailable")
             self._audit_result(actor, destination_id, result)
             return result
@@ -79,7 +109,7 @@ class PlatformOutputService:
                 self._audit_result(actor, destination_id, result)
                 return result
         try:
-            result = adapter.deliver(target.destination, secret_value, notification)
+            result = adapter.deliver(destination, secret_value, notification)
         except Exception:
             result = DeliveryResult(False, error_code="delivery_exception")
         if not isinstance(result, DeliveryResult):

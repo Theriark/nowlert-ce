@@ -7,6 +7,8 @@
   let userQuery = "";
   let userPage = 1;
   let previewDestinationId = "";
+  let previewScenarioDestinationId = "";
+  let previewAssignedRouteIds = new Set();
   let previewRouteSelection = new Set();
   let syncQueued = false;
 
@@ -48,12 +50,264 @@
     return typeof friendlyName === "function" ? friendlyName(route.source) : String(route.source || "Route");
   }
 
+  function assignedPreviewRoutes() {
+    return (state.routes || []).filter((route) => previewAssignedRouteIds.has(route.id));
+  }
+
+  function selectedPreviewRoutes() {
+    return (state.routes || []).filter((route) => previewRouteSelection.has(route.id));
+  }
+
+  function previewSeverityValues(route) {
+    if (!route) return [];
+    if (typeof routeFilterValuesForSource === "function") {
+      return routeFilterValuesForSource(route.source, "severities")
+        .map((value) => String(value || "").trim())
+        .filter(Boolean);
+    }
+    const integration = (state.integrations || []).find(
+      (item) => item.id === route.source || item.source === route.source,
+    );
+    const values = integration?.route_filters?.severities;
+    return Array.isArray(values)
+      ? values.map((value) => String(value || "").trim()).filter(Boolean)
+      : [];
+  }
+
+  function previewAvailableSeverities() {
+    const values = [];
+    const seen = new Set();
+    for (const route of selectedPreviewRoutes()) {
+      for (const severity of previewSeverityValues(route)) {
+        const key = severity.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        values.push(severity);
+      }
+    }
+    return values;
+  }
+
+  function refreshPreviewSeverityOptions() {
+    const select = byId("preview-severity");
+    if (!select) return;
+    const current = String(select.value || "").toLowerCase();
+    const values = previewAvailableSeverities();
+    select.replaceChildren();
+    if (!values.length) {
+      select.append(new Option("No severities available", ""));
+      select.disabled = true;
+      return;
+    }
+    select.disabled = false;
+    for (const severity of values) {
+      select.append(new Option(
+        typeof friendlyName === "function" ? friendlyName(severity) : severity,
+        severity,
+      ));
+    }
+    const preserved = values.find((value) => value.toLowerCase() === current);
+    select.value = preserved || values[0];
+  }
+
+  function previewRouteSupportsSeverity(route, severity) {
+    const wanted = String(severity || "").trim().toLowerCase();
+    if (!wanted) return false;
+    return previewSeverityValues(route).some(
+      (value) => value.toLowerCase() === wanted,
+    );
+  }
+
+  function beginPreviewScenario(destinationId) {
+    previewScenarioDestinationId = String(destinationId || "");
+    previewAssignedRouteIds = assignedRouteIds(previewScenarioDestinationId);
+    previewRouteSelection = new Set(previewAssignedRouteIds);
+    renderPreviewRouteSummary();
+    renderPreviewRouteOptions();
+    refreshPreviewSeverityOptions();
+  }
+
+  function previewScenarioEvent(route, severity) {
+    const event = typeof sampleEvent === "function"
+      ? sampleEvent()
+      : {
+          schema: "nowlert.event.v1",
+          title: "Synthetic Nowlert preview",
+          message: "",
+          status: "active",
+          metadata: {},
+        };
+    return {
+      ...event,
+      source: route.source === "*" ? "nowlert" : route.source,
+      severity,
+      metadata: {
+        ...(event.metadata || {}),
+        route_id: route.id,
+        route_name: route.name || routeLabel(route),
+      },
+    };
+  }
+
+  function previewMessageStyle(destination) {
+    if (!destination || !["discord", "webhook"].includes(destination.output_type)) {
+      return null;
+    }
+    const value = byId("reference-preview-message-style")?.value;
+    return value === "classic" ? "classic" : "modern";
+  }
+
+  function syncPreviewMessageStyle(destination) {
+    const select = byId("reference-preview-message-style");
+    if (!select || !destination) return;
+    const supported = ["discord", "webhook"].includes(destination.output_type);
+    select.replaceChildren();
+    if (!supported) {
+      select.append(new Option("Native", "native"));
+      select.disabled = true;
+      return;
+    }
+    select.append(
+      new Option("Modern Card", "modern"),
+      new Option("Classic Embed", "classic"),
+    );
+    select.disabled = false;
+    const settings = destination.settings || {};
+    select.value = (
+      settings.message_style === "classic"
+      || settings.components_v2 === false
+    ) ? "classic" : "modern";
+  }
+
+  function previewScenarioLabel(route) {
+    const descriptor = typeof routeSourceDescriptor === "function"
+      ? routeSourceDescriptor(route.source, route.input_type)
+      : { integration: routeLabel(route), input: route.input_type || "Input" };
+    return {
+      id: route.id,
+      name: route.name || routeLabel(route),
+      integration: descriptor.integration,
+      input: descriptor.input,
+    };
+  }
+
+  async function runReferencePreview(event) {
+    event.preventDefault();
+    const action = event.submitter?.value;
+    if (action === "cancel") {
+      byId("preview-dialog")?.close();
+      return;
+    }
+    if (!["preview", "test"].includes(action)) return;
+
+    clearError("preview-error");
+    const destination = destinationForPreview();
+    const resultNode = byId("preview-result");
+    if (!destination || !resultNode) return;
+
+    const selected = selectedPreviewRoutes();
+    const severity = String(byId("preview-severity")?.value || "").trim();
+    const applicable = selected.filter(
+      (route) => previewRouteSupportsSeverity(route, severity),
+    );
+    const skipped = selected.filter(
+      (route) => !previewRouteSupportsSeverity(route, severity),
+    );
+    const messageStyle = previewMessageStyle(destination);
+
+    const renderResult = (outputs) => {
+      resultNode.hidden = false;
+      resultNode.textContent = JSON.stringify(
+        {
+          destination: destination.name,
+          severity: severity || null,
+          message_style: messageStyle || "native",
+          selected_routes: selected.map(previewScenarioLabel),
+          skipped_routes: skipped.map(previewScenarioLabel),
+          outputs,
+        },
+        null,
+        2,
+      );
+    };
+
+    if (!selected.length || !severity || !applicable.length) {
+      renderResult([]);
+      if (typeof toast === "function") {
+        toast(
+          !selected.length
+            ? "Select at least one assigned route for this preview."
+            : "No selected route supports this severity.",
+          "error",
+        );
+      }
+      return;
+    }
+
+    const destinationId = destination.id;
+    const responses = await Promise.all(
+      applicable.map(async (route) => {
+        const body = {
+          event: previewScenarioEvent(route, severity),
+        };
+        if (messageStyle) body.message_style = messageStyle;
+        try {
+          const response = await request(
+            `/destinations/${destinationId}/${action}`,
+            { method: "POST", body },
+          );
+          return {
+            route: previewScenarioLabel(route),
+            output: action === "preview" ? response.preview : response.result,
+            destination: response.destination || null,
+          };
+        } catch (error) {
+          return {
+            route: previewScenarioLabel(route),
+            error: error?.message || "Preview request failed.",
+            destination: null,
+          };
+        }
+      }),
+    );
+
+    renderResult(
+      responses.map(({ route, output, error }) => ({
+        route,
+        ...(error ? { error } : { output }),
+      })),
+    );
+
+    if (action === "test") {
+      const latestDestination = [...responses]
+        .reverse()
+        .find((item) => item.destination)?.destination;
+      if (latestDestination) {
+        const index = (state.destinations || []).findIndex(
+          (item) => item.id === latestDestination.id,
+        );
+        if (index >= 0) state.destinations[index] = latestDestination;
+        if (typeof renderDestinations === "function") renderDestinations();
+        if (typeof renderFlow === "function") renderFlow();
+      }
+      const successes = responses.filter(
+        (item) => item.output?.success === true,
+      ).length;
+      if (typeof toast === "function") {
+        toast(
+          `Test delivery: ${successes} of ${responses.length} route template${responses.length === 1 ? "" : "s"} succeeded.`,
+          successes === responses.length ? "success" : "error",
+        );
+      }
+    }
+  }
+
   function renderPreviewRouteSummary() {
     const count = byId("reference-preview-route-summary");
     const chips = byId("reference-preview-route-chips");
     if (!count || !chips) return;
-    const selected = (state.routes || []).filter((route) => previewRouteSelection.has(route.id));
-    count.textContent = selected.length === 1 ? "1 route assigned" : `${selected.length} routes assigned`;
+    const selected = selectedPreviewRoutes();
+    count.textContent = `${selected.length} of ${previewAssignedRouteIds.size} routes selected`;
     chips.replaceChildren();
     for (const route of selected.slice(0, 3)) {
       const chip = ref("span", "reference-preview-route-chip");
@@ -70,9 +324,9 @@
     const counter = byId("reference-preview-routes-count");
     if (!list || !counter) return;
     const query = String(byId("reference-preview-route-search")?.value || "").trim().toLowerCase();
-    const assigned = (state.routes || []).filter((route) => previewRouteSelection.has(route.id));
+    const assigned = assignedPreviewRoutes();
     const visible = assigned.filter((route) => !query || `${route.name || ""} ${routeLabel(route)} ${route.input_type || ""}`.toLowerCase().includes(query));
-    counter.textContent = assigned.length === 1 ? "1 assigned route" : `${assigned.length} assigned routes`;
+    counter.textContent = `${previewRouteSelection.size} of ${assigned.length} selected`;
     list.replaceChildren();
     if (!visible.length) {
       list.append(ref("div", "route-assignment-empty reference-preview-route-empty", assigned.length ? "No assigned routes match." : "No routes are assigned to this destination."));
@@ -82,8 +336,13 @@
       const descriptor = typeof routeSourceDescriptor === "function"
         ? routeSourceDescriptor(route.source, route.input_type)
         : { integration: routeLabel(route), input: route.input_type || "Input" };
-      const row = ref("div", "route-assignment-option reference-preview-route-option");
+      const row = ref("label", "route-assignment-option reference-preview-route-option");
       const leading = ref("span", "route-assignment-option-leading reference-preview-route-leading");
+      const check = document.createElement("input");
+      check.type = "checkbox";
+      check.checked = previewRouteSelection.has(route.id);
+      check.setAttribute("aria-label", `Include ${route.name || routeLabel(route)} in preview`);
+      leading.append(check);
       if (typeof sourceIcon === "function") leading.append(sourceIcon(route.source));
       const copy = ref("span", "route-assignment-option-copy");
       copy.append(
@@ -95,12 +354,19 @@
         `route-assignment-option-state ${route.enabled === false ? "disabled" : "enabled"}`,
         route.enabled === false ? "Disabled" : "Enabled",
       );
+      check.addEventListener("change", () => {
+        if (check.checked) previewRouteSelection.add(route.id);
+        else previewRouteSelection.delete(route.id);
+        renderPreviewRouteSummary();
+        refreshPreviewSeverityOptions();
+        renderPreviewRouteOptions();
+      });
       row.append(leading, copy, status);
       list.append(row);
     }
   }
 
-function closePreviewRoutes() {
+  function closePreviewRoutes() {
     byId("reference-preview-route-drawer")?.setAttribute("hidden", "");
     byId("preview-form")?.classList.remove("reference-preview-routes-open");
     byId("preview-dialog")?.classList.remove("reference-preview-routes-open");
@@ -109,7 +375,9 @@ function closePreviewRoutes() {
   function openPreviewRoutes() {
     const destination = destinationForPreview();
     if (!destination) return;
-    previewRouteSelection = assignedRouteIds(destination.id);
+    if (previewScenarioDestinationId !== String(destination.id)) {
+      beginPreviewScenario(destination.id);
+    }
     renderPreviewRouteSummary();
     renderPreviewRouteOptions();
     const drawer = byId("reference-preview-route-drawer");
@@ -150,9 +418,28 @@ function closePreviewRoutes() {
     search.addEventListener("input", renderPreviewRouteOptions);
     toolbar.append(search);
 
+    const actions = ref("div", "route-assignment-actions reference-preview-route-actions");
+    const selectAll = ref("button", "text-button", "Select all");
+    selectAll.type = "button";
+    selectAll.addEventListener("click", () => {
+      previewRouteSelection = new Set(previewAssignedRouteIds);
+      renderPreviewRouteSummary();
+      refreshPreviewSeverityOptions();
+      renderPreviewRouteOptions();
+    });
+    const clear = ref("button", "text-button", "Clear");
+    clear.type = "button";
+    clear.addEventListener("click", () => {
+      previewRouteSelection.clear();
+      renderPreviewRouteSummary();
+      refreshPreviewSeverityOptions();
+      renderPreviewRouteOptions();
+    });
+    actions.append(selectAll, clear);
+
     const options = ref("div", "route-assignment-options reference-preview-route-options");
     options.id = "reference-preview-route-options";
-    popover.append(toolbar, options);
+    popover.append(toolbar, actions, options);
     picker.append(popover);
 
     const footer = ref("div", "route-assignment-footer");
@@ -172,6 +459,11 @@ function ensurePreviewReferenceLayout() {
     dialog.classList.add("reference-preview-dialog");
     form.classList.add("reference-preview-form");
     ensurePreviewDrawer(form);
+    if (form.dataset.referencePreviewSubmit !== "1") {
+      if (typeof runPreview === "function") form.removeEventListener("submit", runPreview);
+      form.addEventListener("submit", runReferencePreview);
+      form.dataset.referencePreviewSubmit = "1";
+    }
     if (form.dataset.referencePreview === "1") return;
     form.dataset.referencePreview = "1";
 
@@ -198,7 +490,7 @@ function ensurePreviewReferenceLayout() {
     };
     const name = document.createElement("input"); name.readOnly = true;
     const channel = document.createElement("input"); channel.readOnly = true;
-    const style = document.createElement("select"); style.disabled = true;
+    const style = document.createElement("select");
     style.append(new Option("Modern Card", "modern"), new Option("Classic Embed", "classic"));
     if (severityField) severityField.className = "reference-preview-field";
     fields.append(
@@ -262,15 +554,18 @@ function ensurePreviewReferenceLayout() {
     const destination = destinationForPreview();
     if (!destination) return;
     previewDestinationId = destination.id;
+    if (previewScenarioDestinationId !== String(destination.id)) {
+      beginPreviewScenario(destination.id);
+    }
     const provider = previewProvider(destination);
     if (byId("preview-title")) byId("preview-title").textContent = `Preview ${destination.name} - ${provider}`;
     if (byId("reference-preview-name")) byId("reference-preview-name").value = destination.name || "";
     const settings = destination.settings || {};
     if (byId("reference-preview-channel")) byId("reference-preview-channel").value = settings.channel_name || settings.channel || settings.topic || "Not labelled";
-    if (byId("reference-preview-message-style")) byId("reference-preview-message-style").value = settings.message_style === "classic" || settings.components_v2 === false ? "classic" : "modern";
-    previewRouteSelection = assignedRouteIds(destination.id);
+    syncPreviewMessageStyle(destination);
     renderPreviewRouteSummary();
     renderPreviewRouteOptions();
+    refreshPreviewSeverityOptions();
   }
 
   function metric(label, id, detail, icon) {
@@ -512,7 +807,7 @@ function ensurePreviewReferenceLayout() {
 
   if (typeof openPreview === "function") {
     const base = openPreview;
-    openPreview = function openPreviewWithReferenceLayout(id) { const result = base(id); previewDestinationId = id || ""; syncPreviewReference(); requestAnimationFrame(syncPreviewReference); closePreviewRoutes(); return result; };
+    openPreview = function openPreviewWithReferenceLayout(id) { const result = base(id); previewDestinationId = id || ""; beginPreviewScenario(previewDestinationId); syncPreviewReference(); requestAnimationFrame(syncPreviewReference); closePreviewRoutes(); return result; };
   }
   if (typeof renderUsers === "function") { const base = renderUsers; renderUsers = function renderUsersWithReferenceLayout() { const result = base(); syncUsersReference(); return result; }; }
   if (typeof renderUpdates === "function") { const base = renderUpdates; renderUpdates = function renderUpdatesWithReferenceLayout() { const result = base(); syncSettingsUpdateState(); return result; }; }
