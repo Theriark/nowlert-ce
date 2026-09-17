@@ -454,3 +454,114 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* 2026-09-18 delivery history polish. */
+#view-deliveries .delivery-history-list-scroll::-webkit-scrollbar-button,
+#view-deliveries .delivery-history-detail::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+#view-deliveries .delivery-history-tags-card {
+  border-color: rgba(238, 184, 36, 0.5);
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+#view-deliveries .delivery-history-tags-heading {
+  align-items: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  display: flex;
+  gap: 12px;
+  min-height: 52px;
+  padding: 12px 16px;
+}
+
+#view-deliveries .delivery-history-tags-heading > .delivery-history-tag-icon {
+  color: #f2c644;
+  height: 28px;
+  width: 28px;
+}
+
+#view-deliveries .delivery-history-tags {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px;
+}
+
+#view-deliveries .delivery-history-tag-pill {
+  align-items: center;
+  background: rgba(15, 23, 31, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  color: #d8dee5;
+  display: inline-flex;
+  gap: 9px;
+  min-height: 38px;
+  padding: 6px 12px;
+}
+
+#view-deliveries .delivery-history-tag-icon {
+  align-items: center;
+  color: #9ba8b5;
+  display: inline-flex;
+  flex: 0 0 20px;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+
+#view-deliveries .delivery-history-tag-icon svg {
+  fill: none;
+  height: 100%;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 100%;
+}
+
+#view-deliveries .delivery-history-tag-copy {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+#view-deliveries .delivery-history-tag-copy > span { color: #9aa6b2; }
+#view-deliveries .delivery-history-tag-copy strong { color: #e8edf2; font-size: 0.77rem; }
+
+#view-deliveries .delivery-history-tag-pill.is-warning {
+  background: rgba(238, 184, 36, 0.08);
+  border-color: rgba(238, 184, 36, 0.42);
+}
+
+#view-deliveries .delivery-history-tag-pill.is-warning .delivery-history-tag-icon,
+#view-deliveries .delivery-history-tag-pill.is-warning .delivery-history-tag-copy strong {
+  color: #f2c644;
+}
+
+#view-deliveries .delivery-history-tag-pill.is-success {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(84, 201, 84, 0.42);
+}
+
+#view-deliveries .delivery-history-tag-pill.is-success .delivery-history-tag-icon,
+#view-deliveries .delivery-history-tag-pill.is-success .delivery-history-tag-copy strong {
+  color: #61e3b0;
+}
+
+#view-deliveries .delivery-history-tag-pill.is-danger {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 92, 92, 0.42);
+}
+
+#view-deliveries .delivery-history-tag-pill.is-danger .delivery-history-tag-icon,
+#view-deliveries .delivery-history-tag-pill.is-danger .delivery-history-tag-copy strong {
+  color: #ff7878;
+}
