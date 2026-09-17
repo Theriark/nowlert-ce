@@ -270,6 +270,33 @@
     }
   }
 
+  function syncDestinationTestBadge(card) {
+    const meta = card.querySelector(".resource-meta");
+    if (!meta) return;
+    for (const child of [...meta.children]) {
+      const text = String(child.textContent || "").trim().toLowerCase();
+      if (text === "last test passed" || text === "last test failed") {
+        child.classList.add("destination-test-state");
+      }
+    }
+  }
+
+  function syncDestinationActionOrder(card) {
+    if (card.classList.contains("acceptance-private-destination")) return;
+    const actions = card.querySelector(".resource-actions");
+    if (!actions || actions.dataset.consistencyOrder === "edit-test-preview-delete") return;
+    for (const action of [
+      "edit-destination",
+      "test-destination-card",
+      "preview-destination",
+      "delete-destination",
+    ]) {
+      const button = actions.querySelector(`[data-action="${action}"]`);
+      if (button) actions.append(button);
+    }
+    actions.dataset.consistencyOrder = "edit-test-preview-delete";
+  }
+
   function loadPrivateDestinationMetadata() {
     if (
       privateMetadataLoaded
@@ -313,6 +340,8 @@
       syncDestinationProviderIcon(card);
       syncDestinationSubtitle(card);
       syncDestinationTransientFailure(card);
+      syncDestinationTestBadge(card);
+      syncDestinationActionOrder(card);
     }
     loadPrivateDestinationMetadata();
   }

@@ -41,6 +41,13 @@ def test_management_consistency_runtime_matches_selected_ui_contract():
     assert 'TRANSIENT_DESTINATION_TEST_ERRORS' in script
     assert '"destination_unavailable"' in script
     assert 'syncDestinationTransientFailure(card)' in script
+    assert 'syncDestinationTestBadge(card)' in script
+    assert 'syncDestinationActionOrder(card)' in script
+    assert '"edit-destination",' in script
+    assert '"test-destination-card",' in script
+    assert '"preview-destination",' in script
+    assert '"delete-destination",' in script
+    assert 'actions.dataset.consistencyOrder = "edit-test-preview-delete"' in script
     assert 'Select which routes send alerts to this destination.' in script
     assert 'installAssignedRoutesHelpRemoval()' in script
     assert 'dashboard.textContent = `Updated ${detail.slice("Data updated ".length)}`' in script
@@ -74,6 +81,10 @@ def test_management_consistency_styles_cover_workbench_layout_regressions():
     assert "min-height: 196px;" in styles
     assert ".destination-reference-card .resource-icon" in styles
     assert "flex: 0 0 52px;" not in styles
+    assert ".destination-reference-card .resource-meta .destination-test-state" in styles
+    assert "min-height: 54px;" in styles
+    assert "flex: 0 0 auto;" in styles
+    assert "grid-auto-rows: 2rem;" in styles
     assert ".destination-channel-input" in styles
     assert ".destination-channel-prefix" in styles
     assert "#view-deliveries .delivery-history-status-row" in styles
@@ -86,9 +97,10 @@ def test_management_consistency_styles_cover_workbench_layout_regressions():
     assert "grid-template-columns: minmax(0, 1fr) auto;" in styles
     assert "minmax(126px, 0.82fr)" in styles
     assert "overflow: visible;" in styles
-    assert "#view-deliveries .delivery-history-list-footer .qa-pagination-row," in styles
-    assert "#view-audit .audit-log-list-footer .qa-pagination-row" in styles
-    assert "grid-template-columns: max-content minmax(0, 1fr) max-content;" in styles
+    assert '#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"]' in styles
+    assert '#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"]' in styles
+    assert "grid-template-columns: minmax(110px, 0.72fr) minmax(310px, 1.6fr) 96px 96px;" in styles
+    assert "display: contents;" in styles
     assert "reference-pagination-range" in styles
     assert "reference-pagination-pages" in styles
     assert "reference-pagination-jump" in styles
