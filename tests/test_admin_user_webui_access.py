@@ -1,4 +1,4 @@
-"""WebUI regression contract for the Administration and delegated-access redesign."""
+"""WebUI regression contract for management navigation and delegated access."""
 
 from pathlib import Path
 
@@ -11,22 +11,28 @@ ACCESS = ROOT / "src" / "storage" / "destination_access.py"
 BRIDGE = ROOT / "src" / "storage" / "routing_bridge.py"
 
 
-def test_administration_and_profile_navigation_are_reorganized():
+def test_management_navigation_is_regrouped():
     script = SHELL.read_text(encoding="utf-8")
 
-    assert 'label.textContent = "Administration";' in script
-    assert 'const ADMIN_CHILD_VIEWS = new Set(["users", "updates", "data"]);' in script
-    assert 'apiAccess.textContent' not in script
-    assert 'makeButton("API access", "profile-menu-item")' in script
+    assert 'account: {' in script
+    assert 'tabs: [["account", "Security"], ["tokens", "API access"]]' in script
+    assert 'settings: {' in script
+    assert 'tabs: [["settings", "Settings"], ["updates", "Updates"]]' in script
+    assert 'backups: {' in script
+    assert 'tabs: [["backups", "Backups"], ["data", "Data tools"]]' in script
+    assert 'document.getElementById("administration-nav")?.remove();' in script
+    assert 'document.getElementById("profile-api-access")?.remove();' in script
     assert 'makeButton("Settings", "profile-menu-item")' in script
     assert 'document.querySelector("#profile-menu-button .profile-chevron")?.remove();' in script
-    assert 'const tokensNav = primaryNav("tokens");' in script
-    assert 'if (tokensNav) tokensNav.remove();' in script
+    assert 'primaryNav("tokens")?.remove();' in script
+    assert 'backupsNav.after(usersNav);' in script
+    assert 'button.dataset.sectionTab = target;' in script
     assert 'if (view === "inputs") view = "dashboard";' in script
     assert 'addDestination.hidden = false;' in script
     assert 'if (addRoute) addRoute.hidden = true;' in script
     assert 'if (auditNav) auditNav.hidden = !admin;' in script
     assert 'if (backupsNav) backupsNav.hidden = !admin;' in script
+    assert 'if (usersNav) usersNav.hidden = !admin;' in script
 
 
 def test_delegated_destination_access_has_separate_edit_and_filter_permissions():
