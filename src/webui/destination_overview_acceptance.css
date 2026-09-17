@@ -329,11 +329,16 @@
   word-break: break-word;
 }
 
-#view-deliveries .delivery-history-status-row,
-#view-deliveries .delivery-history-tags {
+#view-deliveries .delivery-history-status-row {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
+}
+
+#view-deliveries .delivery-history-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
 }
 
 #view-deliveries .delivery-history-detail-grid {
