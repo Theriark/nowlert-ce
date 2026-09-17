@@ -1,0 +1,216 @@
+/* One page title, one subtitle and one contextual action area. */
+.topbar.page-command-bar {
+  align-items: center !important;
+  display: grid !important;
+  gap: 1rem 1.25rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 96px;
+  padding-block: 0.9rem;
+}
+
+.topbar.page-command-bar > #mobile-menu {
+  grid-column: 1;
+}
+
+.page-command-copy {
+  align-self: center;
+  display: grid;
+  gap: 0.28rem;
+  grid-column: 2;
+  min-width: 0;
+}
+
+.page-command-copy > #page-title {
+  align-items: center;
+  display: flex;
+  font-size: clamp(1.55rem, 2.2vw, 2rem);
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  margin: 0;
+  min-width: 0;
+}
+
+.page-command-copy > #page-title::before {
+  background: linear-gradient(180deg, #f4c542, #d9a629);
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(244, 197, 66, 0.24);
+  content: "";
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 1.75rem;
+  margin-right: 0.78rem;
+  width: 4px;
+}
+
+#page-subtitle {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0 0 0 1.03rem;
+  max-width: 72rem;
+}
+
+.page-command-actions {
+  align-items: center;
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  grid-column: 3;
+  justify-content: flex-end;
+  margin-left: auto;
+  position: static !important;
+  right: auto !important;
+}
+
+.page-command-actions > [hidden],
+.page-command-actions #platform-menu[hidden] {
+  display: none !important;
+}
+
+.page-command-actions .ops-dashboard-top-actions {
+  align-items: center;
+  display: flex !important;
+  gap: 0.85rem;
+}
+
+.page-command-actions .rf-live-status,
+.page-command-actions .ops-live {
+  flex: 0 0 auto;
+}
+
+.page-command-actions .rf-range,
+.page-command-actions .ops-dashboard-range-control {
+  flex: 0 0 auto;
+  min-width: 9.4rem;
+}
+
+/* Delivery and Audit keep search with their data, not inside the page title. */
+#view-deliveries > .section-toolbar.page-data-toolbar,
+#view-audit > .section-toolbar.page-data-toolbar {
+  align-items: center !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  justify-content: flex-end;
+  margin: 0 0 0.9rem !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+
+.page-data-toolbar > div[hidden] {
+  display: none !important;
+}
+
+.page-data-toolbar .search-field {
+  margin-left: auto;
+  max-width: 28rem;
+  min-width: min(100%, 21rem);
+  width: min(100%, 28rem);
+}
+
+.page-data-toolbar [data-qa-bottom] {
+  display: none !important;
+}
+
+/* Administration is a parent page. Tabs select a smaller content section. */
+#view-users > .administration-tabs,
+#view-settings > .administration-tabs,
+#view-updates > .administration-tabs,
+#view-data > .administration-tabs {
+  margin: 0 0 0.8rem !important;
+}
+
+.workspace .view > .section-toolbar.administration-section-header {
+  align-items: center !important;
+  background: linear-gradient(145deg, rgba(24, 28, 33, 0.76), rgba(18, 22, 26, 0.7)) !important;
+  border: 1px solid rgba(244, 197, 66, 0.1) !important;
+  border-radius: 12px !important;
+  margin: 0 0 1rem !important;
+  min-height: 0 !important;
+  padding: 0.72rem 0.9rem !important;
+}
+
+.administration-section-header h2 {
+  font-size: 1.12rem !important;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.administration-section-header p {
+  font-size: 0.8rem;
+  margin-top: 0.2rem !important;
+}
+
+.administration-section-header .button {
+  flex: 0 0 auto;
+}
+
+/* The old duplicate hero toolbars remain as action homes but are never visible. */
+#view-dashboard > .ops-dashboard-toolbar[hidden],
+#view-routing-flow > .rf-toolbar[hidden],
+#view-destinations > .section-toolbar[hidden],
+#view-filtering > .section-toolbar[hidden],
+#view-backups > .section-toolbar[hidden],
+#view-tokens > .section-toolbar[hidden],
+#view-account > .section-toolbar[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .topbar.page-command-bar {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .page-command-copy {
+    grid-column: 2;
+  }
+
+  .page-command-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+    margin-left: 1.03rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar.page-command-bar {
+    align-items: start !important;
+    gap: 0.7rem;
+    min-height: 0;
+  }
+
+  .page-command-copy > #page-title {
+    font-size: 1.45rem;
+  }
+
+  #page-subtitle {
+    margin-left: 0;
+  }
+
+  .page-command-copy > #page-title::before {
+    margin-right: 0.6rem;
+  }
+
+  .page-command-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .page-command-actions .ops-dashboard-top-actions {
+    align-items: stretch;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .page-command-actions .rf-range,
+  .page-command-actions .ops-dashboard-range-control {
+    min-width: 0;
+  }
+
+  .page-data-toolbar .search-field {
+    max-width: none;
+    width: 100%;
+  }
+}
