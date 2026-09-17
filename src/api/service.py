@@ -87,7 +87,26 @@ class APIService:
                 is not True
             ):
                 return APIResponse(404)
-            return self.platform.handle(method, path, payload, headers, client)
+            request_headers = headers or {}
+            user_agent = ""
+            if hasattr(request_headers, "items"):
+                for name, value in request_headers.items():
+                    if str(name).casefold() == "user-agent":
+                        user_agent = str(value or "")
+                        break
+            with self.platform.audit.request_scope(
+                method=method,
+                path=path,
+                client=client,
+                user_agent=user_agent,
+            ):
+                return self.platform.handle(
+                    method,
+                    path,
+                    payload,
+                    request_headers,
+                    client,
+                )
         status, response = self._handle_v1(method, path, payload, headers, client)
         return APIResponse(status, response)
 

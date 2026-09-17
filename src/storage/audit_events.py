@@ -6,6 +6,8 @@ import json
 import re
 import time
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Callable
 
@@ -41,6 +43,35 @@ class AuditEventStore:
     ):
         self.database = database
         self.clock = clock
+        self._request_context = ContextVar(
+            f"nowlert_audit_request_context_{id(self)}",
+            default=None,
+        )
+
+    @contextmanager
+    def request_scope(
+        self,
+        *,
+        method: str,
+        path: str,
+        client: str,
+        user_agent: str = "",
+    ):
+        """Attach bounded, non-secret HTTP context to audit writes in one request."""
+
+        safe_path = str(path or "").split("?", 1)[0]
+        context = {
+            "request_method": sanitize_text(method)[:16].upper(),
+            "request_path": sanitize_text(safe_path)[:256],
+            "request_client": sanitize_text(client)[:128],
+        }
+        if user_agent:
+            context["request_user_agent"] = sanitize_text(user_agent)[:256]
+        token = self._request_context.set(context)
+        try:
+            yield
+        finally:
+            self._request_context.reset(token)
 
     def write(
         self,
@@ -66,7 +97,11 @@ class AuditEventStore:
             "audit outcome",
             maximum=32,
         )
-        safe_details = self._safe_details(details or {})
+        supplied_details = {} if details is None else details
+        if not isinstance(supplied_details, dict):
+            raise ValueError("audit details must be an object")
+        request_context = self._request_context.get() or {}
+        safe_details = self._safe_details({**supplied_details, **request_context})
         now = int(self.clock())
         with self.database.transaction() as connection:
             cursor = connection.execute(
