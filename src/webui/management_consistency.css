@@ -1,0 +1,118 @@
+/* Cross-page consistency layer; loaded after the accepted page-specific styles. */
+#view-destinations #destination-list.resource-grid {
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+}
+
+#view-destinations #destination-list > .resource-card {
+  min-height: 196px;
+  padding: 20px;
+}
+
+#view-destinations .destination-status-control,
+#view-destinations .destination-sharing-control {
+  align-items: center;
+  appearance: none;
+  border: 1px solid currentColor;
+  border-radius: 0.7rem;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 750;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+#view-destinations .destination-status-control.is-active {
+  background: rgba(77, 211, 126, 0.12);
+  border-color: rgba(77, 211, 126, 0.28);
+  color: #8fe47b;
+}
+
+#view-destinations .destination-status-control.is-disabled,
+#view-destinations .destination-sharing-control.is-private {
+  background: rgba(241, 196, 95, 0.08);
+  border-color: rgba(241, 196, 95, 0.42);
+  color: #f1c45f;
+}
+
+#view-destinations .destination-sharing-control.is-shared {
+  background: rgba(45, 104, 220, 0.1);
+  border-color: #4c7fe7;
+  color: #a8c7ff;
+}
+
+#view-destinations .destination-status-control:hover,
+#view-destinations .destination-sharing-control:hover {
+  filter: brightness(1.12);
+}
+
+.destination-status-dot {
+  background: currentColor;
+  border-radius: 999px;
+  box-shadow: 0 0 8px color-mix(in srgb, currentColor 75%, transparent);
+  flex: 0 0 auto;
+  height: 0.65rem;
+  width: 0.65rem;
+}
+
+.destination-share-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 1rem;
+  justify-content: center;
+  width: 1rem;
+}
+
+.destination-share-icon svg {
+  fill: none;
+  height: 100%;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 100%;
+}
+
+#view-users > .section-toolbar[aria-hidden="true"] {
+  display: none !important;
+}
+
+#view-deliveries .delivery-detail-status .delivery-detail-badges {
+  align-items: stretch;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+#view-deliveries .delivery-detail-status .delivery-detail-badges > .badge {
+  flex: 1 1 0;
+  justify-content: center;
+  min-width: 0;
+  text-align: center;
+}
+
+#view-deliveries [data-delivery-workbench-action="close-detail"] {
+  display: none !important;
+}
+
+#filtering-deterministic-processing > .panel-heading .eyebrow,
+#filtering-deterministic-processing > .panel-heading p:not(.eyebrow) {
+  display: none !important;
+}
+
+#filtering-deterministic-processing > .panel-heading h3 {
+  margin: 0;
+}
+
+@media (max-width: 980px) {
+  #view-destinations #destination-list.resource-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  }
+}
