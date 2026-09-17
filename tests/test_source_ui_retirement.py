@@ -13,7 +13,6 @@ def test_source_management_is_retired_from_navigation():
     assert '"/ui/source_ui_retirement.js"' in service
     assert '<script src="/ui/source_ui_retirement.js" defer></script>' in service
     assert 'delete VIEW_TITLES.sources;' in script
-    assert 'document.querySelector(\'#primary-nav [data-view="sources"]\')' in script
-    assert 'sourcesNav.remove();' in script
+    assert 'primaryNav("sources")?.remove();' in script
     assert 'if (view === "sources") view = "destinations";' in script
     assert 'if (state.currentView === "sources") navigate("destinations", "replace");' in script
