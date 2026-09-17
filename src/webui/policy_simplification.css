@@ -22,20 +22,22 @@
 }
 
 .simplified-settings-groups {
+  align-items: start;
   display: grid;
   gap: 1.35rem;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 1.25rem;
 }
 
 .settings-subsection {
-  border-top: 1px solid var(--line, #343a40);
-  padding-top: 1.2rem;
+  border-top: 0;
+  min-width: 0;
+  padding-top: 0;
 }
 
-.settings-subsection:first-child {
-  border-top: 0;
-  padding-top: 0;
+.settings-subsection + .settings-subsection {
+  border-left: 1px solid var(--line, #343a40);
+  padding-left: 1.35rem;
 }
 
 .settings-subsection-heading {
@@ -79,6 +81,19 @@
 .settings-card-summary {
   color: var(--muted, #aeb5bd);
   line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .simplified-settings-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings-subsection + .settings-subsection {
+    border-left: 0;
+    border-top: 1px solid var(--line, #343a40);
+    padding-left: 0;
+    padding-top: 1.2rem;
+  }
 }
 
 @media (max-width: 760px) {

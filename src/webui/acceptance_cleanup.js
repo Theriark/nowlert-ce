@@ -1,6 +1,13 @@
 "use strict";
 
 (() => {
+  const WEBHOOK_ICON = `data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="#f6c344" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.5 6h9M6.3 8.2l4.4 7.5M17.7 8.2l-4.4 7.5"/></g></svg>',
+  )}`;
+  if (typeof OUTPUT_ICONS === "object" && OUTPUT_ICONS) {
+    OUTPUT_ICONS.webhook = WEBHOOK_ICON;
+  }
+
   let filterRefreshTimer = 0;
   let integrationOrder = [];
   let reorderingIntegrations = false;
@@ -69,9 +76,9 @@
     for (const item of resources) {
       const icon = outputIcon(item.output_type);
       const card = element("article", { className: "resource-card acceptance-private-destination" }, [
-        element("div", { className: "resource-card-heading" }, [
-          element("div", { className: "resource-title" }, [
-            icon,
+        element("div", { className: "resource-heading" }, [
+          element("div", { className: "resource-identity" }, [
+            element("span", { className: "resource-icon" }, [icon]),
             element("div", {}, [
               element("strong", { text: item.name || "Private destination" }),
               element("small", { text: friendlyName(item.output_type) }),
@@ -238,6 +245,23 @@
     }
   }
 
+  function moveAuditHealthChecksIntoToolbar() {
+    const auditView = document.getElementById("view-audit");
+    if (!auditView) return;
+    const toolbar = auditView.querySelector(".section-toolbar");
+    const runChecks = auditView.querySelector('[data-action="run-health-checks"]');
+    const healthPanel = auditView.querySelector(".health-panel");
+
+    if (runChecks && toolbar && runChecks.parentElement !== toolbar) {
+      runChecks.className = "button secondary";
+      toolbar.append(runChecks);
+    }
+    if (healthPanel) {
+      healthPanel.hidden = true;
+      healthPanel.setAttribute("aria-hidden", "true");
+    }
+  }
+
   function suppressProgrammaticMainFocusOutline() {
     const main = document.getElementById("main-content");
     if (!main) return;
@@ -275,6 +299,7 @@
     if (state.currentView === "destinations") refreshDestinationMetadata();
     if (state.currentView === "filtering") scheduleFilteringAcceptance();
     if (state.currentView === "users") removeRetiredPermissionControls();
+    if (state.currentView === "audit") moveAuditHealthChecksIntoToolbar();
     return result;
   };
 
@@ -289,6 +314,7 @@
     cleanupDestinationCards();
     removeRetiredPermissionControls();
     movePlatformActionsIntoContext();
+    moveAuditHealthChecksIntoToolbar();
     suppressProgrammaticMainFocusOutline();
     refreshDestinationMetadata();
     scheduleFilteringAcceptance();
