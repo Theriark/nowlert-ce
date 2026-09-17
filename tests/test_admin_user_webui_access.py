@@ -21,6 +21,7 @@ def test_management_navigation_places_tools_inside_their_parent_pages():
     assert 'document.getElementById("profile-settings")?.remove();' in script
     assert 'document.querySelector("#profile-menu-button .profile-chevron")?.remove();' in script
     assert 'primaryNav("tokens")?.remove();' in script
+    assert 'primaryNav("updates")?.remove();' in script
 
     assert "function embedAccountApiTokens()" in script
     assert 'container.id = "account-api-tokens";' in script
@@ -35,9 +36,8 @@ def test_management_navigation_places_tools_inside_their_parent_pages():
     assert 'if (view === "data") view = "backups";' in script
 
     assert 'settingsNav.hidden = !admin;' in script
-    assert 'updatesNav.hidden = !admin;' in script
     assert 'usersNav.after(settingsNav);' in script
-    assert 'settingsNav.after(updatesNav);' in script
+    assert 'settingsNav.after(updatesNav);' not in script
     assert "syncUsersAction" not in script
     assert 'document.querySelector(".topbar-actions")' not in script
 
@@ -47,6 +47,25 @@ def test_management_navigation_places_tools_inside_their_parent_pages():
     assert 'if (auditNav) auditNav.hidden = !admin;' in script
     assert 'if (backupsNav) backupsNav.hidden = !admin;' in script
     assert 'if (usersNav) usersNav.hidden = !admin;' in script
+
+
+def test_settings_embeds_updates_and_filtering_owns_deterministic_processing():
+    script = SHELL.read_text(encoding="utf-8")
+
+    assert "function embedSettingsUpdates()" in script
+    assert 'container.id = "settings-updates";' in script
+    assert 'prepareEmbeddedToolbar(toolbar, "Updates");' in script
+    assert 'action.className = "button secondary";' in script
+    assert 'action.textContent = "Check for updates";' in script
+    assert 'updatesSection.setAttribute("aria-hidden", "true");' in script
+
+    assert "function embedFilteringDeterministicProcessing()" in script
+    assert 'panel.id = "filtering-deterministic-processing";' in script
+    assert 'filteringTable.after(panel);' in script
+
+    assert 'setPageCopy("Settings", "Configure regional preferences and updates.");' in script
+    assert 'if (view === "updates") view = "settings";' in script
+    assert 'if (state.currentView === "updates") navigate("settings", "replace");' in script
 
 
 def test_delegated_destination_access_has_separate_edit_and_filter_permissions():
