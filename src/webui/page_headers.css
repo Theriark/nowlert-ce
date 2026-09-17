@@ -84,8 +84,7 @@
   min-width: 9.4rem;
 }
 
-/* Delivery and Audit keep search with their data, not inside the page title. */
-#view-deliveries > .section-toolbar.page-data-toolbar,
+/* Audit keeps its search and bottom shortcut with the audit data. */
 #view-audit > .section-toolbar.page-data-toolbar {
   align-items: center !important;
   background: transparent !important;
@@ -93,6 +92,7 @@
   border-radius: 0 !important;
   box-shadow: none !important;
   display: flex !important;
+  gap: 0.65rem;
   justify-content: flex-end;
   margin: 0 0 0.9rem !important;
   min-height: 0 !important;
@@ -111,7 +111,67 @@
 }
 
 .page-data-toolbar [data-qa-bottom] {
+  display: inline-flex !important;
+  flex: 0 0 auto;
+}
+
+/* Delivery controls live in the Delivery attempts panel rather than above it. */
+#view-deliveries .professional-panel-header[data-panel-header="deliveries"] {
+  align-items: center;
+  display: grid !important;
+  gap: 0.3rem 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(21rem, 28rem);
+}
+
+#view-deliveries .professional-panel-header[data-panel-header="deliveries"] > strong {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+#view-deliveries .professional-panel-header[data-panel-header="deliveries"] > span {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.delivery-panel-controls {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.delivery-panel-controls .search-field {
+  flex: 1 1 22rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.delivery-panel-controls [data-qa-bottom] {
+  flex: 0 0 auto;
+}
+
+/* Keep the check results without restoring the retired System checks hero box. */
+#view-audit > .health-panel.audit-health-results {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  margin: 0 0 0.9rem !important;
+  padding: 0 !important;
+}
+
+#view-audit > .health-panel.audit-health-results > .panel-heading[hidden] {
   display: none !important;
+}
+
+#view-audit > .health-panel.audit-health-results .health-check-list {
+  margin: 0;
+}
+
+.backup-targets-card > .panel-heading > [data-action="new-backup-target"] {
+  flex: 0 0 auto;
 }
 
 /* Administration is a parent page. Tabs select a smaller content section. */
@@ -152,6 +212,7 @@
 #view-routing-flow > .rf-toolbar[hidden],
 #view-destinations > .section-toolbar[hidden],
 #view-filtering > .section-toolbar[hidden],
+#view-deliveries > .section-toolbar[hidden],
 #view-backups > .section-toolbar[hidden],
 #view-tokens > .section-toolbar[hidden],
 #view-account > .section-toolbar[hidden] {
@@ -171,6 +232,22 @@
     grid-column: 2;
     justify-content: flex-start;
     margin-left: 1.03rem;
+  }
+
+  #view-deliveries .professional-panel-header[data-panel-header="deliveries"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #view-deliveries .professional-panel-header[data-panel-header="deliveries"] > strong,
+  #view-deliveries .professional-panel-header[data-panel-header="deliveries"] > span,
+  .delivery-panel-controls {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .delivery-panel-controls {
+    justify-content: stretch;
+    width: 100%;
   }
 }
 
@@ -209,8 +286,14 @@
     min-width: 0;
   }
 
-  .page-data-toolbar .search-field {
+  .page-data-toolbar .search-field,
+  .delivery-panel-controls .search-field {
     max-width: none;
     width: 100%;
+  }
+
+  .delivery-panel-controls {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

@@ -48,3 +48,46 @@ def test_acceptance_dashboard_does_not_reparent_controls_owned_by_unified_header
 
     assert 'const unifiedHeaderOwnsControls = document.querySelector(".topbar.page-command-bar");' in script
     assert 'if (!unifiedHeaderOwnsControls && controls.parentElement !== toolbar) toolbar.append(controls);' in script
+
+
+def test_delivery_search_and_bottom_shortcut_live_in_delivery_panel():
+    script = (ROOT / "src" / "webui" / "page_headers.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "page_headers.css").read_text(encoding="utf-8")
+
+    assert 'const DATA_TOOLBAR_VIEWS = new Set(["audit"]);' in script
+    assert 'function syncDeliveryPanelControls(section)' in script
+    assert '[data-panel-header="deliveries"]' in script
+    assert '[data-qa-bottom="delivery-pagination"]' in script
+    assert 'node.matches?.("[data-qa-bottom]")' in script
+    assert '.delivery-panel-controls' in styles
+
+
+def test_audit_bottom_shortcut_is_visible_and_not_deleted():
+    script = (ROOT / "src" / "webui" / "page_headers.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "page_headers.css").read_text(encoding="utf-8")
+
+    assert 'removeBottomShortcut' not in script
+    assert '.page-data-toolbar [data-qa-bottom]' in styles
+    assert 'display: inline-flex !important;' in styles
+
+
+def test_audit_health_results_are_visible_without_restoring_old_heading_box():
+    script = (ROOT / "src" / "webui" / "page_headers.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "page_headers.css").read_text(encoding="utf-8")
+
+    assert 'function syncAuditHealthResults(section)' in script
+    assert 'healthPanel.hidden = false;' in script
+    assert 'healthPanel.removeAttribute("aria-hidden")' in script
+    assert 'heading.hidden = true' in script
+    assert '.health-panel.audit-health-results' in styles
+
+
+def test_backup_add_action_is_owned_by_backup_storage_panel():
+    script = (ROOT / "src" / "webui" / "page_headers.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "page_headers.css").read_text(encoding="utf-8")
+
+    assert 'function syncBackupAction(section)' in script
+    assert '.backup-targets-card > .panel-heading' in script
+    assert 'panelHeading.append(action)' in script
+    assert 'else if (view === "backups")' not in script
+    assert '.backup-targets-card > .panel-heading > [data-action="new-backup-target"]' in styles
