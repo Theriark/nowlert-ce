@@ -150,3 +150,83 @@
 .filtering-source-policy-field small {
   color: var(--muted, #aeb5bd);
 }
+
+/* Filtering keeps its destination table unchanged; only the embedded integration behavior block is restyled. */
+#filtering-deterministic-processing .simplified-settings-groups {
+  align-items: stretch;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1.25rem;
+}
+
+#filtering-deterministic-processing .settings-subsection,
+#filtering-deterministic-processing .settings-subsection-grid {
+  display: contents;
+}
+
+#filtering-deterministic-processing .settings-subsection-heading {
+  display: none;
+}
+
+#filtering-deterministic-processing .settings-subsection + .settings-subsection {
+  border: 0;
+  padding: 0;
+}
+
+#filtering-deterministic-processing .settings-resource-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 190px;
+  min-width: 0;
+  position: relative;
+}
+
+#filtering-deterministic-processing .settings-resource-card::before {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  content: "";
+  height: 2rem;
+  left: 1rem;
+  position: absolute;
+  top: 1rem;
+  width: 2rem;
+}
+
+#filtering-deterministic-processing .settings-subsection:first-child .settings-resource-card:nth-child(1)::before {
+  background-image: url("/ui/source-icons/unifi-protect.png");
+}
+
+#filtering-deterministic-processing .settings-subsection:first-child .settings-resource-card:nth-child(2)::before {
+  background-image: url("/ui/source-icons/home-assistant.png");
+}
+
+#filtering-deterministic-processing .settings-subsection:nth-child(2) .settings-resource-card:nth-child(1)::before {
+  background-image: url("/ui/source-icons/redfish.jpg");
+}
+
+#filtering-deterministic-processing .settings-resource-card > .resource-card-heading {
+  padding-left: 3rem;
+}
+
+#filtering-deterministic-processing .settings-resource-card > .resource-actions {
+  margin-top: auto;
+  width: 100%;
+}
+
+#filtering-deterministic-processing .settings-resource-card > .resource-actions .button {
+  justify-content: center;
+  width: 100%;
+}
+
+@media (max-width: 1000px) {
+  #filtering-deterministic-processing .simplified-settings-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  #filtering-deterministic-processing .simplified-settings-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
