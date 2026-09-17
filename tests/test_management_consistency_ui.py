@@ -30,6 +30,9 @@ def test_management_consistency_runtime_matches_selected_ui_contract():
     assert 'span("destination-sharing-label", shared ? "Shared" : "Private")' in script
     assert 'acceptance-private-destination' in script
     assert 'privateBadge.className = "badge destination-sharing-control is-private"' in script
+    assert '"Owner: User"' in script
+    assert '"View only"' in script
+    assert 'destination-reference-card' in script
     assert 'dashboard.textContent = `Updated ${detail.slice("Data updated ".length)}`' in script
     assert 'flow.textContent = `Updated ${detail.slice("Snapshot ".length)}`' in script
     assert '"#view-deliveries .delivery-history-detail-close"' in script
@@ -37,14 +40,27 @@ def test_management_consistency_runtime_matches_selected_ui_contract():
     assert '"#view-audit .audit-log-detail-close"' in script
     assert '"#view-users .private-resource-count"' in script
     assert 'second.textContent = "Configuration"' in script
-    assert 'title.textContent = "Integration behavior"' in script
+    assert 'element("h3", { text: "Integration behavior" })' in script
+    assert 'Configure how each integration handles and maps incoming data.' in script
+    assert 'integration-behavior-count' in script
+    assert 'CHANNEL_DESTINATION_TYPES' in script
+    assert 'destination-channel-prefix' in script
+    assert 'result.channel_name = channel ? `#${channel}` : "";' in script
+    assert 'pagerButton("«", "First page"' in script
+    assert 'pagerButton("‹", "Previous page"' in script
+    assert 'pagerButton("›", "Next page"' in script
+    assert 'pagerButton("»", "Last page"' in script
+    assert 'span("reference-pagination-label", "Go to page")' in script
+    assert 'text: "Go"' in script
 
 
 def test_management_consistency_styles_cover_workbench_layout_regressions():
     styles = CSS.read_text(encoding="utf-8")
 
-    assert "grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));" in styles
-    assert "min-height: 196px;" in styles
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in styles
+    assert "min-height: 228px;" in styles
+    assert ".destination-channel-input" in styles
+    assert ".destination-channel-prefix" in styles
     assert "#view-deliveries .delivery-history-status-row" in styles
     assert ".delivery-detail-status .delivery-detail-badges" not in styles
     assert "grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));" in styles
@@ -53,11 +69,17 @@ def test_management_consistency_styles_cover_workbench_layout_regressions():
     assert "#view-deliveries .delivery-history-detail-close," in styles
     assert "#view-audit .audit-log-detail-close" in styles
     assert "grid-template-columns: minmax(0, 1fr) auto;" in styles
-    assert "minmax(118px, 0.75fr)" in styles
+    assert "minmax(126px, 0.82fr)" in styles
     assert "overflow: visible;" in styles
     assert "#view-deliveries .delivery-history-list-footer .qa-pagination-row," in styles
     assert "#view-audit .audit-log-list-footer .qa-pagination-row" in styles
-    assert "grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);" in styles
-    assert "grid-column: 2;" in styles
-    assert "grid-column: 3;" in styles
-    assert "#filtering-deterministic-processing > .panel-heading .eyebrow" in styles
+    assert "reference-pagination-range" in styles
+    assert "reference-pagination-pages" in styles
+    assert "reference-pagination-jump" in styles
+    assert "reference-pagination-page.is-current" in styles
+    assert "background: #eeb824;" in styles
+    assert "#view-filtering .filtering-overview-details > summary" in styles
+    assert "summary::-webkit-details-marker" in styles
+    assert "#filtering-deterministic-processing > .panel-heading" in styles
+    assert ".integration-behavior-heading-main" in styles
+    assert ".integration-behavior-count" in styles
