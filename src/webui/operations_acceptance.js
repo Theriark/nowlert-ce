@@ -308,7 +308,8 @@
     if (live && range && (controls.firstElementChild !== live || live.nextElementSibling !== range)) {
       controls.append(live, range);
     }
-    if (controls.parentElement !== toolbar) toolbar.append(controls);
+    const unifiedHeaderOwnsControls = document.querySelector(".topbar.page-command-bar");
+    if (!unifiedHeaderOwnsControls && controls.parentElement !== toolbar) toolbar.append(controls);
     controls.hidden = state.currentView !== "dashboard";
     byId("page-title")?.removeAttribute("data-dashboard-subtitle");
     return toolbar;
