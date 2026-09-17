@@ -3,27 +3,6 @@
 (() => {
   delete VIEW_TITLES.sources;
 
-  const SECTION_GROUPS = {
-    account: {
-      title: "Account security",
-      subtitle: "Manage your profile picture, password, API access, and active account security settings.",
-      tabs: [["account", "Security"], ["tokens", "API access"]],
-    },
-    settings: {
-      title: "Settings",
-      subtitle: "Configure regional preferences, integration-specific behavior, and updates.",
-      tabs: [["settings", "Settings"], ["updates", "Updates"]],
-    },
-    backups: {
-      title: "Backups",
-      subtitle: "Configure backup destinations, schedules, snapshots, restore operations, and portable configuration.",
-      tabs: [["backups", "Backups"], ["data", "Data tools"]],
-    },
-  };
-  const SECTION_GROUP_BY_VIEW = new Map();
-  for (const [groupKey, group] of Object.entries(SECTION_GROUPS)) {
-    for (const [view] of group.tabs) SECTION_GROUP_BY_VIEW.set(view, groupKey);
-  }
   const ADMIN_ONLY_VIEWS = new Set([
     "users",
     "updates",
@@ -35,7 +14,6 @@
   ]);
   let permissionDialogUserId = "";
   let finalOwnershipSyncQueued = false;
-  let usersActionHome = null;
 
   function primaryNav(view) {
     return document.querySelector(`#primary-nav [data-view="${view}"]`);
@@ -57,169 +35,221 @@
   }
 
   function installManagementNavigation() {
+    const admin = Boolean(isAdmin());
     primaryNav("sources")?.remove();
     primaryNav("tokens")?.remove();
     document.getElementById("administration-nav")?.remove();
+    document.getElementById("profile-api-access")?.remove();
+    document.getElementById("profile-settings")?.remove();
 
-    for (const id of ["settings-nav", "updates-nav", "inputs-nav", "data-nav"]) {
-      const item = document.getElementById(id);
-      if (item) item.hidden = true;
-    }
-
+    const auditNav = primaryNav("audit");
     const backupsNav = document.getElementById("backups-nav") || primaryNav("backups");
     const usersNav = document.getElementById("users-nav") || primaryNav("users");
+    const settingsNav = document.getElementById("settings-nav") || primaryNav("settings");
+    const updatesNav = document.getElementById("updates-nav") || primaryNav("updates");
+    const inputsNav = document.getElementById("inputs-nav") || primaryNav("inputs");
+    const dataNav = document.getElementById("data-nav") || primaryNav("data");
+
+    if (auditNav) auditNav.hidden = !admin;
+    if (backupsNav) backupsNav.hidden = !admin;
+    if (usersNav) usersNav.hidden = !admin;
+    if (settingsNav) settingsNav.hidden = !admin;
+    if (updatesNav) updatesNav.hidden = !admin;
+    if (inputsNav) inputsNav.hidden = true;
+    if (dataNav) dataNav.hidden = true;
+
+    if (auditNav && backupsNav && auditNav.nextElementSibling !== backupsNav) {
+      auditNav.after(backupsNav);
+    }
     if (backupsNav && usersNav && backupsNav.nextElementSibling !== usersNav) {
       backupsNav.after(usersNav);
+    }
+    if (usersNav && settingsNav && usersNav.nextElementSibling !== settingsNav) {
+      usersNav.after(settingsNav);
+    }
+    if (settingsNav && updatesNav && settingsNav.nextElementSibling !== updatesNav) {
+      settingsNav.after(updatesNav);
     }
   }
 
   function installProfileItems() {
     document.querySelector("#profile-menu-button .profile-chevron")?.remove();
     document.getElementById("profile-api-access")?.remove();
-    const popover = document.getElementById("profile-menu-popover");
-    if (!popover) return;
+    document.getElementById("profile-settings")?.remove();
+  }
 
-    if (!document.getElementById("profile-settings")) {
-      const settings = makeButton("Settings", "profile-menu-item");
-      settings.id = "profile-settings";
-      settings.dataset.view = "settings";
-      const security = popover.querySelector('[data-view="account"]');
-      if (security) security.before(settings);
-      else popover.prepend(settings);
+  function removeNestedManagementTabs() {
+    document.querySelectorAll(".administration-tabs").forEach((tabs) => tabs.remove());
+  }
+
+  function prepareEmbeddedToolbar(toolbar, title) {
+    if (!toolbar) return;
+    toolbar.hidden = false;
+    toolbar.removeAttribute("aria-hidden");
+    toolbar.classList.remove("administration-section-header", "page-data-toolbar");
+    const copy = toolbar.querySelector(":scope > div");
+    if (copy) copy.hidden = false;
+    const heading = toolbar.querySelector("h2");
+    if (heading && title) heading.textContent = title;
+  }
+
+  function embedAccountApiTokens() {
+    const accountSection = document.getElementById("view-account");
+    const tokenSection = document.getElementById("view-tokens");
+    const accountGrid = accountSection?.querySelector(":scope > .account-grid");
+    if (!accountSection || !tokenSection || !accountGrid) return;
+
+    let container = accountSection.querySelector(":scope > #account-api-tokens");
+    if (!container) {
+      container = document.createElement("section");
+      container.id = "account-api-tokens";
+      container.className = "embedded-management-block";
+      container.style.display = "grid";
+      container.style.gap = "16px";
+      container.style.marginTop = "16px";
+      accountGrid.after(container);
     }
-  }
 
-  function installSectionTabs() {
-    document.querySelectorAll(".administration-tabs:not([data-section-group])")
-      .forEach((tabs) => tabs.remove());
-
-    for (const [groupKey, group] of Object.entries(SECTION_GROUPS)) {
-      for (const [view] of group.tabs) {
-        const section = document.getElementById(`view-${view}`);
-        if (!section) continue;
-        let tabs = section.querySelector(`:scope > .administration-tabs[data-section-group="${groupKey}"]`);
-        if (!tabs) {
-          tabs = document.createElement("div");
-          tabs.className = "row-actions administration-tabs";
-          tabs.dataset.sectionGroup = groupKey;
-          tabs.setAttribute("aria-label", `${group.title} sections`);
-          for (const [target, label] of group.tabs) {
-            const button = makeButton(label, "button secondary small");
-            button.dataset.view = target;
-            button.dataset.sectionTab = target;
-            tabs.append(button);
-          }
-          section.prepend(tabs);
-        }
-      }
+    const toolbar = tokenSection.querySelector(":scope > .section-toolbar")
+      || container.querySelector(":scope > .section-toolbar");
+    const panel = tokenSection.querySelector(":scope > .table-panel")
+      || container.querySelector(":scope > .table-panel");
+    if (toolbar) {
+      prepareEmbeddedToolbar(toolbar, "API tokens");
+      const action = tokenSection.querySelector('[data-action="new-token"]')
+        || container.querySelector('[data-action="new-token"]')
+        || document.querySelector('[data-action="new-token"]');
+      if (action && action.parentElement !== toolbar) toolbar.append(action);
+      if (toolbar.parentElement !== container) container.append(toolbar);
     }
+    if (panel && panel.parentElement !== container) container.append(panel);
+
+    tokenSection.hidden = true;
+    tokenSection.setAttribute("aria-hidden", "true");
   }
 
-  function rememberUsersAction() {
-    const action = document.querySelector('#view-users [data-action="new-user"]');
-    if (!action || usersActionHome?.node === action) return action;
-    usersActionHome = {
-      node: action,
-      parent: action.parentElement,
-      next: action.nextSibling,
-    };
-    return action;
-  }
+  function embedBackupDataTools() {
+    const backupsSection = document.getElementById("view-backups");
+    const dataSection = document.getElementById("view-data");
+    const backupsGrid = backupsSection?.querySelector(":scope > .data-tools-grid");
+    const scheduleCard = backupsGrid?.querySelector(".backup-schedule-card");
+    if (!backupsSection || !dataSection || !backupsGrid || !scheduleCard) return;
 
-  function restoreUsersAction() {
-    const home = usersActionHome;
-    if (!home?.node || !home.parent) return;
-    const reference = home.next && home.next.parentElement === home.parent ? home.next : null;
-    home.parent.insertBefore(home.node, reference);
-  }
-
-  function syncUsersAction(view) {
-    const action = rememberUsersAction();
-    if (!action) return;
-    if (view === "users") {
-      const actions = document.querySelector(".topbar-actions");
-      if (actions && action.parentElement !== actions) actions.append(action);
-    } else if (usersActionHome?.node?.parentElement !== usersActionHome?.parent) {
-      restoreUsersAction();
+    let container = backupsGrid.querySelector(":scope > #backup-data-tools");
+    if (!container) {
+      container = document.createElement("section");
+      container.id = "backup-data-tools";
+      container.className = "embedded-management-block";
+      container.style.gridColumn = "1 / -1";
+      container.style.display = "grid";
+      container.style.gap = "16px";
+      scheduleCard.after(container);
     }
+
+    const toolbar = dataSection.querySelector(":scope > .section-toolbar")
+      || container.querySelector(":scope > .section-toolbar");
+    const dataGrid = dataSection.querySelector(":scope > .data-tools-grid")
+      || container.querySelector(":scope > .data-tools-grid");
+    if (toolbar) {
+      prepareEmbeddedToolbar(toolbar, "Data tools");
+      if (toolbar.parentElement !== container) container.append(toolbar);
+    }
+    if (dataGrid && dataGrid.parentElement !== container) container.append(dataGrid);
+
+    dataSection.hidden = true;
+    dataSection.setAttribute("aria-hidden", "true");
   }
 
   function syncPageOwnership(view = state.currentView) {
     const admin = Boolean(isAdmin());
-    const groupKey = SECTION_GROUP_BY_VIEW.get(view) || "";
-    const group = groupKey ? SECTION_GROUPS[groupKey] : null;
     const auditNav = primaryNav("audit");
     const backupsNav = document.getElementById("backups-nav") || primaryNav("backups");
     const usersNav = document.getElementById("users-nav") || primaryNav("users");
+    const settingsNav = document.getElementById("settings-nav") || primaryNav("settings");
+    const updatesNav = document.getElementById("updates-nav") || primaryNav("updates");
 
     document.getElementById("administration-nav")?.remove();
     document.getElementById("profile-api-access")?.remove();
+    document.getElementById("profile-settings")?.remove();
+    removeNestedManagementTabs();
+    embedAccountApiTokens();
+    embedBackupDataTools();
+
     if (auditNav) auditNav.hidden = !admin;
     if (backupsNav) backupsNav.hidden = !admin;
     if (usersNav) usersNav.hidden = !admin;
+    if (settingsNav) settingsNav.hidden = !admin;
+    if (updatesNav) updatesNav.hidden = !admin;
 
-    for (const id of ["settings-nav", "updates-nav", "inputs-nav", "data-nav"]) {
-      const item = document.getElementById(id);
-      if (item) item.hidden = true;
-    }
-
-    if (backupsNav && usersNav && backupsNav.nextElementSibling !== usersNav) {
-      backupsNav.after(usersNav);
-    }
-
-    const settings = document.getElementById("profile-settings");
-    if (settings) settings.hidden = !admin;
+    setNavActive(backupsNav, view === "backups");
+    setNavActive(usersNav, view === "users");
+    setNavActive(settingsNav, view === "settings");
+    setNavActive(updatesNav, view === "updates");
 
     const addDestination = document.getElementById("add-destination-button");
     if (addDestination && state.user) addDestination.hidden = false;
     const addRoute = document.getElementById("add-route-button");
     if (addRoute) addRoute.hidden = true;
 
-    setNavActive(backupsNav, groupKey === "backups");
-    setNavActive(usersNav, view === "users");
-
-    for (const button of document.querySelectorAll("[data-section-tab]")) {
-      const active = button.dataset.sectionTab === view;
-      button.classList.toggle("primary", active);
-      button.classList.toggle("secondary", !active);
-      if (active) button.setAttribute("aria-current", "page");
-      else button.removeAttribute("aria-current");
-    }
-
     const title = document.getElementById("page-title");
     const subtitle = document.getElementById("page-subtitle");
     const section = document.getElementById(`view-${view}`);
     const toolbar = section?.querySelector(":scope > .section-toolbar");
+    const toolbarCopy = toolbar?.querySelector(":scope > div");
 
-    if (group) {
-      if (title) title.textContent = group.title;
+    const setPageCopy = (heading, copy) => {
+      if (title) title.textContent = heading;
       if (subtitle) {
-        subtitle.textContent = group.subtitle;
-        subtitle.hidden = false;
+        subtitle.textContent = copy;
+        subtitle.hidden = !copy;
       }
-      if (toolbar) {
-        const childView = view !== groupKey;
-        toolbar.hidden = !childView;
-        if (childView) toolbar.removeAttribute("aria-hidden");
-        else toolbar.setAttribute("aria-hidden", "true");
-        toolbar.classList.remove("page-data-toolbar", "administration-section-header");
-        const copy = toolbar.querySelector(":scope > div");
-        if (copy) copy.hidden = false;
-      }
-    } else if (view === "users") {
-      if (title) title.textContent = "Users";
-      if (subtitle) {
-        subtitle.textContent = "Manage local accounts, roles, access state, and password resets.";
-        subtitle.hidden = false;
-      }
+    };
+
+    if (view === "account") {
+      setPageCopy(
+        "Account security",
+        "Manage your profile picture, password, API tokens, and active account security settings.",
+      );
       if (toolbar) {
         toolbar.hidden = true;
         toolbar.setAttribute("aria-hidden", "true");
-        toolbar.classList.remove("administration-section-header");
+        toolbar.classList.remove("administration-section-header", "page-data-toolbar");
+      }
+    } else if (view === "backups") {
+      setPageCopy(
+        "Backups",
+        "Configure backup destinations, schedules, snapshots, restore operations, and portable configuration.",
+      );
+      if (toolbar) {
+        toolbar.hidden = true;
+        toolbar.setAttribute("aria-hidden", "true");
+        toolbar.classList.remove("administration-section-header", "page-data-toolbar");
+      }
+    } else if (view === "users") {
+      setPageCopy("Users", "Manage local accounts, roles, access state, and password resets.");
+      if (toolbar) {
+        toolbar.hidden = false;
+        toolbar.removeAttribute("aria-hidden");
+        toolbar.classList.remove("administration-section-header", "page-data-toolbar");
+        if (toolbarCopy) toolbarCopy.hidden = true;
+      }
+    } else if (view === "settings") {
+      setPageCopy("Settings", "Configure regional preferences and integration-specific behavior.");
+      if (toolbar) {
+        toolbar.hidden = true;
+        toolbar.setAttribute("aria-hidden", "true");
+        toolbar.classList.remove("administration-section-header", "page-data-toolbar");
+        if (toolbarCopy) toolbarCopy.hidden = false;
+      }
+    } else if (view === "updates") {
+      setPageCopy("Updates", "Review the running version and any advertised Nowlert update.");
+      if (toolbar) {
+        toolbar.hidden = true;
+        toolbar.setAttribute("aria-hidden", "true");
+        toolbar.classList.remove("administration-section-header", "page-data-toolbar");
+        if (toolbarCopy) toolbarCopy.hidden = false;
       }
     }
-
-    syncUsersAction(view);
   }
 
   function scheduleFinalOwnershipSync() {
@@ -230,7 +260,9 @@
         finalOwnershipSyncQueued = false;
         installManagementNavigation();
         installProfileItems();
-        installSectionTabs();
+        removeNestedManagementTabs();
+        embedAccountApiTokens();
+        embedBackupDataTools();
         syncPageOwnership(state.currentView);
       });
     });
@@ -239,7 +271,9 @@
   function syncAccessShell() {
     installManagementNavigation();
     installProfileItems();
-    installSectionTabs();
+    removeNestedManagementTabs();
+    embedAccountApiTokens();
+    embedBackupDataTools();
     syncPageOwnership();
     scheduleFinalOwnershipSync();
   }
@@ -256,6 +290,8 @@
     if (view === "sources") view = "destinations";
     if (view === "routes") view = "destinations";
     if (view === "inputs") view = "dashboard";
+    if (view === "tokens") view = "account";
+    if (view === "data") view = "backups";
     if (!isAdmin() && ADMIN_ONLY_VIEWS.has(view)) view = "dashboard";
     const result = previousNavigate(view, historyMode);
     syncPageOwnership(view);
@@ -266,6 +302,8 @@
   if (state.currentView === "sources") navigate("destinations", "replace");
   if (state.currentView === "routes") navigate("destinations", "replace");
   if (state.currentView === "inputs") navigate("dashboard", "replace");
+  if (state.currentView === "tokens") navigate("account", "replace");
+  if (state.currentView === "data") navigate("backups", "replace");
 
   const baseRenderDestinations = renderDestinations;
   renderDestinations = function renderDestinationsWithPermissions() {

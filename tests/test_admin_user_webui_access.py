@@ -11,22 +11,36 @@ ACCESS = ROOT / "src" / "storage" / "destination_access.py"
 BRIDGE = ROOT / "src" / "storage" / "routing_bridge.py"
 
 
-def test_management_navigation_is_regrouped():
+def test_management_navigation_places_tools_inside_their_parent_pages():
     script = SHELL.read_text(encoding="utf-8")
 
-    assert 'account: {' in script
-    assert 'tabs: [["account", "Security"], ["tokens", "API access"]]' in script
-    assert 'settings: {' in script
-    assert 'tabs: [["settings", "Settings"], ["updates", "Updates"]]' in script
-    assert 'backups: {' in script
-    assert 'tabs: [["backups", "Backups"], ["data", "Data tools"]]' in script
+    assert "SECTION_GROUPS" not in script
+    assert "installSectionTabs" not in script
     assert 'document.getElementById("administration-nav")?.remove();' in script
     assert 'document.getElementById("profile-api-access")?.remove();' in script
-    assert 'makeButton("Settings", "profile-menu-item")' in script
+    assert 'document.getElementById("profile-settings")?.remove();' in script
     assert 'document.querySelector("#profile-menu-button .profile-chevron")?.remove();' in script
     assert 'primaryNav("tokens")?.remove();' in script
-    assert 'backupsNav.after(usersNav);' in script
-    assert 'button.dataset.sectionTab = target;' in script
+
+    assert "function embedAccountApiTokens()" in script
+    assert 'container.id = "account-api-tokens";' in script
+    assert 'accountGrid.after(container);' in script
+    assert 'prepareEmbeddedToolbar(toolbar, "API tokens");' in script
+    assert 'if (view === "tokens") view = "account";' in script
+
+    assert "function embedBackupDataTools()" in script
+    assert 'container.id = "backup-data-tools";' in script
+    assert 'scheduleCard.after(container);' in script
+    assert 'prepareEmbeddedToolbar(toolbar, "Data tools");' in script
+    assert 'if (view === "data") view = "backups";' in script
+
+    assert 'settingsNav.hidden = !admin;' in script
+    assert 'updatesNav.hidden = !admin;' in script
+    assert 'usersNav.after(settingsNav);' in script
+    assert 'settingsNav.after(updatesNav);' in script
+    assert "syncUsersAction" not in script
+    assert 'document.querySelector(".topbar-actions")' not in script
+
     assert 'if (view === "inputs") view = "dashboard";' in script
     assert 'addDestination.hidden = false;' in script
     assert 'if (addRoute) addRoute.hidden = true;' in script
