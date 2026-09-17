@@ -31,5 +31,29 @@ def test_selected_delivery_history_workbench_contract():
         "grid-template-columns: minmax(0, 1.12fr) minmax(380px, 0.88fr);"
         in style
     )
+    assert (
+        "#view-deliveries .delivery-history-workbench {\n"
+        "  display: grid;\n"
+        "  grid-template-columns: minmax(0, 1.12fr) minmax(380px, 0.88fr);\n"
+        "  gap: 12px;\n"
+        "  align-items: stretch;\n"
+        "}" in style
+    )
     assert ".delivery-history-list-scroll" in style
     assert "overflow-y: auto;" in style
+
+
+def test_dashboard_refresh_hides_legacy_markup_until_operations_dashboard_is_ready():
+    style = (
+        ROOT / "src" / "webui" / "destination_overview_acceptance.css"
+    ).read_text(encoding="utf-8")
+    dashboard = (
+        ROOT / "src" / "webui" / "operations_dashboard.js"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        '#view-dashboard:not([data-operations-dashboard="1"]) {\n'
+        "  visibility: hidden;\n"
+        "}" in style
+    )
+    assert 'section.dataset.operationsDashboard = "1";' in dashboard

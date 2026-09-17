@@ -22,6 +22,11 @@
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
 
+/* Keep the legacy dashboard markup out of the first paint on hard refresh. */
+#view-dashboard:not([data-operations-dashboard="1"]) {
+  visibility: hidden;
+}
+
 /* Selected Delivery History workbench: compact event list + operational detail pane. */
 
 #view-deliveries.delivery-history-revamp {
@@ -69,7 +74,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.12fr) minmax(380px, 0.88fr);
   gap: 12px;
-  align-items: start;
+  align-items: stretch;
 }
 
 #view-deliveries .delivery-history-list-panel,
