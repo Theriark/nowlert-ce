@@ -1456,10 +1456,16 @@ class PlatformAPI:
                 return self._method_not_allowed("POST")
             if action == "test" and self.yaml_resource_authority:
                 self._require_admin(actor)
-            data = self._object(payload, {"event"})
+            data = self._object(payload, {"event", "message_style"})
             notification = self._notification(data.get("event"))
+            message_style = data.get("message_style")
             if action == "preview":
-                preview = self.outputs.preview(actor, destination_id, notification)
+                preview = self.outputs.preview(
+                    actor,
+                    destination_id,
+                    notification,
+                    message_style=message_style,
+                )
                 return APIResponse(
                     200,
                     {
@@ -1475,6 +1481,7 @@ class PlatformAPI:
                 actor,
                 destination_id,
                 notification,
+                message_style=message_style,
             )
             response = {
                 "result": self._delivery_result(result),
