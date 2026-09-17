@@ -4,6 +4,21 @@
 (() => {
   const CHANNEL_DESTINATION_TYPES = new Set(["discord", "slack", "teams"]);
   const REFERENCE_PAGERS = new Set(["delivery-pagination", "audit-pagination"]);
+  const DESTINATION_ICON_PATHS = {
+    discord: "/ui/icons/discord.svg",
+    slack: "/ui/icons/routing-slack.svg",
+    teams: "/ui/icons/routing-teams.svg",
+  };
+  const DESTINATION_SUBTITLE_NAMES = {
+    discord: "Discord",
+    slack: "Slack",
+    teams: "Teams",
+    webhook: "Webhook",
+  };
+  const TRANSIENT_DESTINATION_TEST_ERRORS = new Set(["destination_unavailable"]);
+  const privateDestinationMetadata = new Map();
+  let privateMetadataLoaded = false;
+  let privateMetadataLoading = false;
   let scheduled = false;
   let userActionHome = null;
 
@@ -44,13 +59,37 @@
     const wrapper = span(className);
     wrapper.setAttribute("aria-hidden", "true");
     wrapper.innerHTML = `
-      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-        <ellipse cx="12" cy="5.5" rx="6.5" ry="2.8"></ellipse>
-        <path d="M5.5 5.5v5c0 1.55 2.9 2.8 6.5 2.8s6.5-1.25 6.5-2.8v-5"></path>
-        <path d="M5.5 10.5v5c0 1.55 2.9 2.8 6.5 2.8s6.5-1.25 6.5-2.8v-5"></path>
+      <svg class="database-stack" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <path d="M12 3C7.58 3 4 4.34 4 6s3.58 3 8 3 8-1.34 8-3-3.58-3-8-3Zm-8 6v3c0 1.66 3.58 3 8 3s8-1.34 8-3V9c-1.7 1.3-4.65 2-8 2S5.7 10.3 4 9Zm0 6v3c0 1.66 3.58 3 8 3s8-1.34 8-3v-3c-1.7 1.3-4.65 2-8 2s-6.3-.7-8-2Z"></path>
       </svg>
     `;
     return wrapper;
+  }
+
+  function webhookIcon() {
+    const wrapper = span("output-icon-fallback webhook destination-webhook-icon");
+    wrapper.setAttribute("aria-hidden", "true");
+    wrapper.innerHTML = `
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <circle cx="6" cy="5" r="2"></circle>
+        <circle cx="18" cy="12" r="2"></circle>
+        <circle cx="6" cy="19" r="2"></circle>
+        <path d="M8 5h2a4 4 0 0 1 4 4v1M8 19h2a4 4 0 0 0 4-4v-1"></path>
+      </svg>
+    `;
+    return wrapper;
+  }
+
+  function destinationProviderIcon(type) {
+    const path = DESTINATION_ICON_PATHS[type];
+    if (path) {
+      return element("img", {
+        className: "output-icon-image destination-provider-image",
+        attributes: { src: path, alt: "" },
+      });
+    }
+    if (type === "webhook") return webhookIcon();
+    return null;
   }
 
   function syncDestinationStatusButton(button) {
@@ -149,29 +188,115 @@
     }
   }
 
-  function destinationItemForCard(card) {
+  function destinationCardId(card) {
     const action = card.querySelector("[data-id]");
-    const id = String(action?.dataset.id || card.dataset.privateDestinationId || "");
-    if (!id || typeof state === "undefined" || !Array.isArray(state.destinations)) return null;
-    return state.destinations.find((item) => String(item.id || "") === id) || null;
+    return String(action?.dataset.id || card.dataset.privateDestinationId || "");
+  }
+
+  function destinationItemForCard(card) {
+    const id = destinationCardId(card);
+    if (!id) return null;
+    if (typeof state !== "undefined" && Array.isArray(state.destinations)) {
+      const owned = state.destinations.find((item) => String(item.id || "") === id);
+      if (owned) return owned;
+    }
+    return privateDestinationMetadata.get(id) || null;
+  }
+
+  function destinationTypeForCard(card) {
+    const item = destinationItemForCard(card);
+    return String(item?.output_type || card.dataset.privateDestinationOutputType || "");
+  }
+
+  function syncDestinationProviderIcon(card) {
+    const holder = card.querySelector(".resource-icon");
+    const type = destinationTypeForCard(card);
+    if (!holder || !type || holder.dataset.referenceProviderIcon === type) return;
+    const icon = destinationProviderIcon(type);
+    if (!icon) return;
+    holder.replaceChildren(icon);
+    holder.dataset.referenceProviderIcon = type;
+  }
+
+  function destinationChannel(item) {
+    const settings = item?.settings || {};
+    return String(
+      settings.channel_name
+      || settings.channel
+      || item?.channel_name
+      || item?.channel
+      || "",
+    ).trim();
   }
 
   function syncDestinationSubtitle(card) {
     const item = destinationItemForCard(card);
-    if (!item) return;
+    const type = destinationTypeForCard(card);
+    if (!type) return;
     const heading = card.querySelector(".resource-heading");
     const subtitle = heading?.querySelector("small");
     if (!subtitle) return;
 
-    const provider = typeof OUTPUT_NAMES === "object" && OUTPUT_NAMES[item.output_type]
-      ? OUTPUT_NAMES[item.output_type]
-      : String(item.output_type || "Destination");
-    const rawChannel = String(item.settings?.channel_name || "").replace(/^#+/, "");
-    const channel = rawChannel ? `#${rawChannel}` : "";
-    const desired = channel && CHANNEL_DESTINATION_TYPES.has(item.output_type)
-      ? `${provider} - ${channel}`
-      : provider;
+    const provider = DESTINATION_SUBTITLE_NAMES[type]
+      || (typeof OUTPUT_NAMES === "object" && OUTPUT_NAMES[type])
+      || String(type || "Destination");
+    const rawChannel = destinationChannel(item).replace(/^#+/, "");
+    let channel = rawChannel;
+    if (rawChannel && CHANNEL_DESTINATION_TYPES.has(type)) channel = `#${rawChannel}`;
+    const desired = channel ? `${provider} - ${channel}` : provider;
     if (subtitle.textContent !== desired) subtitle.textContent = desired;
+  }
+
+  function syncDestinationTransientFailure(card) {
+    const item = destinationItemForCard(card);
+    if (!item) return;
+    const stateResult = typeof state !== "undefined"
+      ? state.destinationTestResults?.[item.id]
+      : null;
+    const errorCode = String(
+      stateResult?.error_code
+      || item.last_test_error_code
+      || "",
+    );
+    if (!TRANSIENT_DESTINATION_TEST_ERRORS.has(errorCode)) return;
+
+    card.querySelector(".destination-test-detail")?.remove();
+    const meta = card.querySelector(".resource-meta");
+    if (!meta) return;
+    for (const child of [...meta.children]) {
+      if (String(child.textContent || "").trim().toLowerCase() === "last test failed") {
+        child.remove();
+      }
+    }
+  }
+
+  function loadPrivateDestinationMetadata() {
+    if (
+      privateMetadataLoaded
+      || privateMetadataLoading
+      || typeof request !== "function"
+      || typeof state === "undefined"
+      || state.currentView !== "destinations"
+      || !document.querySelector("#destination-list .acceptance-private-destination")
+    ) return;
+
+    privateMetadataLoading = true;
+    Promise.resolve(request("/destinations"))
+      .then((payload) => {
+        const resources = Array.isArray(payload?.private_resources) ? payload.private_resources : [];
+        privateDestinationMetadata.clear();
+        for (const item of resources) {
+          if (item?.id) privateDestinationMetadata.set(String(item.id), item);
+        }
+        privateMetadataLoaded = true;
+        scheduleSync();
+      })
+      .catch(() => {
+        privateMetadataLoaded = true;
+      })
+      .finally(() => {
+        privateMetadataLoading = false;
+      });
   }
 
   function syncDestinations() {
@@ -185,8 +310,11 @@
       syncDestinationStatusButton(card.querySelector('[data-action="toggle-destination"]'));
       syncDestinationSharingButton(card.querySelector('[data-action="toggle-destination-shared"]'));
       syncMetadataPrivateSharing(card);
+      syncDestinationProviderIcon(card);
       syncDestinationSubtitle(card);
+      syncDestinationTransientFailure(card);
     }
+    loadPrivateDestinationMetadata();
   }
 
   function channelValue(value) {
@@ -413,11 +541,9 @@
         pagerButton("»", "Last page", page >= totalPages, () => navigatePage(totalPages)),
       );
 
-      const jump = document.createElement("div");
+      const jump = document.createElement("label");
       jump.className = "reference-pagination-jump";
       jump.append(span("reference-pagination-label", "Go to page"));
-      const jumpControls = document.createElement("div");
-      jumpControls.className = "reference-pagination-jump-controls";
       const input = element("input", {
         className: "reference-pagination-input",
         type: "number",
@@ -430,11 +556,6 @@
           "aria-label": `Go to page, 1 to ${totalPages}`,
         },
       });
-      const go = element("button", {
-        className: "button primary reference-pagination-go",
-        text: "Go",
-        type: "button",
-      });
       const jumpToInput = () => {
         const requested = Number(input.value);
         if (!Number.isInteger(requested) || requested < 1 || requested > totalPages) {
@@ -445,14 +566,13 @@
         input.removeAttribute("aria-invalid");
         navigatePage(requested);
       };
-      go.addEventListener("click", jumpToInput);
+      input.addEventListener("change", jumpToInput);
       input.addEventListener("keydown", (event) => {
         if (event.key !== "Enter") return;
         event.preventDefault();
         jumpToInput();
       });
-      jumpControls.append(input, go);
-      jump.append(jumpControls);
+      jump.append(input);
 
       container.replaceChildren(range, pages, jump);
       container.dataset.referencePager = "1";
@@ -490,6 +610,28 @@
   function syncAuditLog() {
     document.querySelectorAll("#view-audit .audit-log-detail-close")
       .forEach((node) => node.remove());
+  }
+
+  function syncAssignedRoutesHelp() {
+    const expected = "Select which routes send alerts to this destination.";
+    document.querySelectorAll(".route-assignment-drawer-heading small").forEach((node) => {
+      if (String(node.textContent || "").trim() === expected) node.remove();
+    });
+  }
+
+  function installAssignedRoutesHelpRemoval() {
+    if (
+      typeof routeAssignmentEnsureDestinationPicker !== "function"
+      || routeAssignmentEnsureDestinationPicker.referenceHelpRemoval
+    ) return;
+    const previousEnsureDestinationPicker = routeAssignmentEnsureDestinationPicker;
+    const replacement = function routeAssignmentEnsureDestinationPickerWithoutHelp(...args) {
+      const result = previousEnsureDestinationPicker(...args);
+      syncAssignedRoutesHelp();
+      return result;
+    };
+    replacement.referenceHelpRemoval = true;
+    routeAssignmentEnsureDestinationPicker = replacement;
   }
 
   function syncFilteringTableHeading() {
@@ -547,6 +689,7 @@
     syncLiveCopy();
     syncDeliveryHistory();
     syncAuditLog();
+    syncAssignedRoutesHelp();
     syncFilteringTableHeading();
     syncIntegrationBehaviorHeading();
     syncDestinationChannelField();
@@ -562,10 +705,16 @@
   installChannelCollection();
   installDestinationFieldHook();
   installReferencePagination();
+  installAssignedRoutesHelpRemoval();
 
   const previousNavigate = navigate;
   navigate = function navigateWithManagementConsistency(view, historyMode = "push") {
+    const previousView = state.currentView;
     const result = previousNavigate(view, historyMode);
+    if (view === "destinations" && previousView !== "destinations") {
+      privateMetadataLoaded = false;
+      privateDestinationMetadata.clear();
+    }
     scheduleSync();
     return result;
   };

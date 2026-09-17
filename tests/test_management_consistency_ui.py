@@ -33,6 +33,16 @@ def test_management_consistency_runtime_matches_selected_ui_contract():
     assert '"Owner: User"' in script
     assert '"View only"' in script
     assert 'destination-reference-card' in script
+    assert '"/ui/icons/discord.svg"' in script
+    assert '"/ui/icons/routing-slack.svg"' in script
+    assert '"/ui/icons/routing-teams.svg"' in script
+    assert 'destination-webhook-icon' in script
+    assert '`${provider} - ${channel}`' in script
+    assert 'TRANSIENT_DESTINATION_TEST_ERRORS' in script
+    assert '"destination_unavailable"' in script
+    assert 'syncDestinationTransientFailure(card)' in script
+    assert 'Select which routes send alerts to this destination.' in script
+    assert 'installAssignedRoutesHelpRemoval()' in script
     assert 'dashboard.textContent = `Updated ${detail.slice("Data updated ".length)}`' in script
     assert 'flow.textContent = `Updated ${detail.slice("Snapshot ".length)}`' in script
     assert '"#view-deliveries .delivery-history-detail-close"' in script
@@ -43,6 +53,7 @@ def test_management_consistency_runtime_matches_selected_ui_contract():
     assert 'element("h3", { text: "Integration behavior" })' in script
     assert 'Configure how each integration handles and maps incoming data.' in script
     assert 'integration-behavior-count' in script
+    assert 'database-stack' in script
     assert 'CHANNEL_DESTINATION_TYPES' in script
     assert 'destination-channel-prefix' in script
     assert 'result.channel_name = channel ? `#${channel}` : "";' in script
@@ -51,14 +62,18 @@ def test_management_consistency_runtime_matches_selected_ui_contract():
     assert 'pagerButton("›", "Next page"' in script
     assert 'pagerButton("»", "Last page"' in script
     assert 'span("reference-pagination-label", "Go to page")' in script
-    assert 'text: "Go"' in script
+    assert 'input.addEventListener("change", jumpToInput)' in script
+    assert 'text: "Go"' not in script
+    assert 'reference-pagination-go' not in script
 
 
 def test_management_consistency_styles_cover_workbench_layout_regressions():
     styles = CSS.read_text(encoding="utf-8")
 
     assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in styles
-    assert "min-height: 228px;" in styles
+    assert "min-height: 196px;" in styles
+    assert ".destination-reference-card .resource-icon" in styles
+    assert "flex: 0 0 52px;" not in styles
     assert ".destination-channel-input" in styles
     assert ".destination-channel-prefix" in styles
     assert "#view-deliveries .delivery-history-status-row" in styles
@@ -73,13 +88,21 @@ def test_management_consistency_styles_cover_workbench_layout_regressions():
     assert "overflow: visible;" in styles
     assert "#view-deliveries .delivery-history-list-footer .qa-pagination-row," in styles
     assert "#view-audit .audit-log-list-footer .qa-pagination-row" in styles
+    assert "grid-template-columns: max-content minmax(0, 1fr) max-content;" in styles
     assert "reference-pagination-range" in styles
     assert "reference-pagination-pages" in styles
     assert "reference-pagination-jump" in styles
     assert "reference-pagination-page.is-current" in styles
     assert "background: #eeb824;" in styles
+    assert ".reference-pagination-go" not in styles
     assert "#view-filtering .filtering-overview-details > summary" in styles
     assert "summary::-webkit-details-marker" in styles
+    assert "#filtering-deterministic-processing {" in styles
+    assert "padding: 0;" in styles
     assert "#filtering-deterministic-processing > .panel-heading" in styles
     assert ".integration-behavior-heading-main" in styles
     assert ".integration-behavior-count" in styles
+    assert "fill: currentColor;" in styles
+    assert "margin-top: 0 !important;" in styles
+    assert "min-height: 142px;" in styles
+    assert "@media (max-width: 980px)" in styles
