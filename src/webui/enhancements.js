@@ -178,6 +178,8 @@
     };
   }
 
+  window.nowlertSourceTestSample = sourceTestSample;
+
   function cachedUpdateStatus() {
     const raw = storageRead(window.localStorage, UPDATE_CACHE_KEY);
     if (!raw) return null;

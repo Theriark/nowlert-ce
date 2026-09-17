@@ -13,8 +13,28 @@ class Parser:
     SCHEMA = "nowlert.event.v1"
     _SOURCE = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
     _SEVERITIES = {
-        "information", "info", "success", "warning", "warn",
-        "error", "critical", "fatal", "emergency",
+        "alert",
+        "average",
+        "caution",
+        "cleared",
+        "critical",
+        "debug",
+        "disaster",
+        "emergency",
+        "error",
+        "failure",
+        "fatal",
+        "high",
+        "info",
+        "information",
+        "informational",
+        "normal",
+        "not classified",
+        "notice",
+        "ok",
+        "success",
+        "warn",
+        "warning",
     }
     _STATES = {"", "active", "firing", "pending", "resolved", "clear", "cleared", "ok", "success"}
 

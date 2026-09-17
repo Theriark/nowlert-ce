@@ -465,3 +465,54 @@ def test_mask_secrets_does_not_mutate_input():
     masked = mask_secrets(value)
     assert masked["nested"]["password"] == "<configured>"
     assert value["nested"]["password"] == "secret"
+
+
+@pytest.mark.parametrize(
+    "severity",
+    [
+        "debug",
+        "notice",
+        "normal",
+        "informational",
+        "alert",
+        "caution",
+        "cleared",
+        "average",
+        "high",
+        "disaster",
+        "failure",
+        "not classified",
+    ],
+)
+def test_generic_event_api_accepts_builtin_preview_severities(severity):
+    secret = "synthetic-preview-severity-secret"
+    config = Configuration(
+        token_config(
+            hash_token(secret),
+            sources=("*",),
+            role="admin",
+        )
+    )
+    router = Router()
+    service = APIService(Dispatcher(), router, config)
+    headers = {"Authorization": f"Bearer {secret}"}
+    event = {
+        "schema": "nowlert.event.v1",
+        "source": "preview_source",
+        "title": "Synthetic preview severity",
+        "message": "Preview severity validation.",
+        "severity": severity,
+        "status": "active",
+    }
+
+    status, response = service.handle(
+        "POST",
+        "/api/events",
+        event,
+        headers,
+        "127.0.0.1",
+    )
+
+    assert status == 202
+    assert response == {"accepted": True, "delivered": True}
+    assert router.items[-1].metadata["severity"] == severity
