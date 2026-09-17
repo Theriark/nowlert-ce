@@ -170,3 +170,522 @@
     schedulePrivateDestinationRefresh();
   });
 })();
+
+/* Selected Delivery History workbench acceptance. */
+(() => {
+  let selectedDeliveryId = "";
+  let filtersBound = false;
+  const filters = {
+    source: "",
+    severity: "",
+    outcome: "",
+    range: "7d",
+    sort: "newest",
+  };
+
+  const originalRenderDeliveries = renderDeliveries;
+  const originalLoadDeliveryPage =
+    typeof qaLoadDeliveryPage === "function" ? qaLoadDeliveryPage : null;
+
+  function deliveryId(item) {
+    return String(item?.id || item?.delivery_id || "");
+  }
+
+  function deliveryTimestamp(item) {
+    const value = item?.completed_at || item?.created_at || 0;
+    const number = Number(value);
+    if (!Number.isFinite(number) || number <= 0) return 0;
+    return number < 10_000_000_000 ? number * 1000 : number;
+  }
+
+  function deliveryTitle(item) {
+    const event = item?.event_name || item?.title || "Untitled event";
+    if (item?.device_name) return `${item.device_name} | ${event}`;
+    return event;
+  }
+
+  function deliveryDescription(item) {
+    return String(
+      item?.event_description
+      || item?.safe_error
+      || item?.error_code
+      || item?.title
+      || "No message was recorded for this delivery attempt.",
+    );
+  }
+
+  function deliveryTone(value) {
+    const normalized = String(value || "").toLowerCase();
+    if (["failure", "failed", "error", "critical", "severe", "high"].includes(normalized)) {
+      return "danger";
+    }
+    if (["warning", "warn", "pending", "retrying"].includes(normalized)) {
+      return "warning";
+    }
+    if (["success", "delivered", "ok", "healthy"].includes(normalized)) {
+      return "success";
+    }
+    return "information";
+  }
+
+  function selectControl(id, label, options) {
+    const wrapper = element("label", { className: "delivery-history-select" });
+    wrapper.append(element("span", { className: "sr-only", text: label }));
+    const select = element("select", { attributes: { id, "aria-label": label } });
+    for (const [value, text] of options) {
+      select.append(element("option", { value, text }));
+    }
+    wrapper.append(select);
+    return wrapper;
+  }
+
+  function setSelectOptions(select, values, emptyLabel) {
+    if (!select) return;
+    const current = select.value;
+    const normalized = [...new Set(values.filter(Boolean).map((value) => String(value)))];
+    normalized.sort((left, right) => left.localeCompare(right));
+    if (current && !normalized.includes(current)) normalized.unshift(current);
+    select.replaceChildren(element("option", { value: "", text: emptyLabel }));
+    for (const value of normalized) {
+      select.append(element("option", { value, text: friendlyName(value) }));
+    }
+    select.value = current;
+  }
+
+  function ensureLayout() {
+    const view = byId("view-deliveries");
+    if (!view || byId("delivery-history-workbench")) return;
+
+    const search = byId("delivery-search");
+    const searchField = search?.closest(".search-field") || null;
+    const legacyPanel = view.querySelector(":scope > .professional-timeline-panel");
+    const list = byId("delivery-list");
+    if (!search || !searchField || !legacyPanel || !list) return;
+
+    view.classList.add("delivery-history-revamp");
+    search.placeholder = "Search source, title, message...";
+
+    const controls = element("div", {
+      className: "delivery-history-filters",
+      attributes: { id: "delivery-history-filters", "aria-label": "Delivery history filters" },
+    });
+    controls.append(searchField);
+    controls.append(
+      selectControl("delivery-history-source-filter", "Filter by source", [["", "All sources"]]),
+      selectControl("delivery-history-severity-filter", "Filter by severity", [["", "All severities"]]),
+      selectControl("delivery-history-outcome-filter", "Filter by outcome", [["", "All outcomes"]]),
+      selectControl("delivery-history-range-filter", "Filter by date range", [
+        ["all", "All dates"],
+        ["1d", "Last 24 hours"],
+        ["7d", "Last 7 days"],
+        ["30d", "Last 30 days"],
+      ]),
+    );
+
+    const refresh = element("button", {
+      className: "button secondary delivery-history-icon-button",
+      text: "↻",
+      type: "button",
+      attributes: { id: "delivery-history-refresh", "aria-label": "Refresh delivery history", title: "Refresh" },
+    });
+    const clear = element("button", {
+      className: "button secondary delivery-history-clear",
+      text: "Clear filters",
+      type: "button",
+      attributes: { id: "delivery-history-clear-filters" },
+    });
+    controls.append(refresh, clear);
+
+    const workbench = element("div", {
+      className: "delivery-history-workbench",
+      attributes: { id: "delivery-history-workbench" },
+    });
+
+    const listPanel = element("section", {
+      className: "delivery-history-list-panel",
+      attributes: { "aria-label": "Delivery events" },
+    });
+    const listHeader = element("div", { className: "delivery-history-list-heading" });
+    const listTitle = element("div", {}, [
+      element("strong", { text: "Delivery events" }),
+      element("span", { id: "delivery-history-total", text: "0 events" }),
+    ]);
+    const sort = selectControl("delivery-history-sort", "Sort deliveries", [
+      ["newest", "Newest first"],
+      ["oldest", "Oldest first"],
+    ]);
+    listHeader.append(listTitle, sort);
+
+    const columns = element("div", { className: "delivery-history-columns", attributes: { "aria-hidden": "true" } }, [
+      element("span", { text: "Source" }),
+      element("span", { text: "Title" }),
+      element("span", { text: "Severity" }),
+      element("span", { text: "Outcome" }),
+      element("span", { text: "Time" }),
+      element("span", { text: "" }),
+    ]);
+    const listScroll = element("div", { className: "delivery-history-list-scroll" });
+    list.className = "delivery-history-list";
+    listScroll.append(list);
+    const listFooter = element("div", {
+      className: "delivery-history-list-footer",
+      attributes: { id: "delivery-history-list-footer" },
+    });
+    listPanel.append(listHeader, columns, listScroll, listFooter);
+
+    const detail = element("aside", {
+      className: "delivery-history-detail",
+      attributes: { id: "delivery-history-detail", "aria-label": "Selected delivery details" },
+    });
+    workbench.append(listPanel, detail);
+
+    legacyPanel.remove();
+    view.append(controls, workbench);
+
+    byId("delivery-history-range-filter").value = filters.range;
+    byId("delivery-history-sort").value = filters.sort;
+    bindControls();
+    syncPagination();
+  }
+
+  function bindControls() {
+    if (filtersBound) return;
+    filtersBound = true;
+
+    const search = byId("delivery-search");
+    if (search) search.addEventListener("input", renderWorkbench);
+
+    for (const [id, key] of [
+      ["delivery-history-source-filter", "source"],
+      ["delivery-history-severity-filter", "severity"],
+      ["delivery-history-outcome-filter", "outcome"],
+      ["delivery-history-range-filter", "range"],
+      ["delivery-history-sort", "sort"],
+    ]) {
+      byId(id)?.addEventListener("change", (event) => {
+        filters[key] = event.target.value;
+        selectedDeliveryId = "";
+        renderWorkbench();
+      });
+    }
+
+    byId("delivery-history-clear-filters")?.addEventListener("click", () => {
+      filters.source = "";
+      filters.severity = "";
+      filters.outcome = "";
+      filters.range = "7d";
+      filters.sort = "newest";
+      if (search) search.value = "";
+      byId("delivery-history-source-filter").value = "";
+      byId("delivery-history-severity-filter").value = "";
+      byId("delivery-history-outcome-filter").value = "";
+      byId("delivery-history-range-filter").value = "7d";
+      byId("delivery-history-sort").value = "newest";
+      selectedDeliveryId = "";
+      renderWorkbench();
+    });
+
+    byId("delivery-history-refresh")?.addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        if (typeof qaLoadDeliveryPage === "function") {
+          const page = typeof qaDeliveryPage === "number" ? qaDeliveryPage : 1;
+          await qaLoadDeliveryPage(page);
+        } else {
+          await loadWorkspace();
+        }
+      } catch (error) {
+        toast(error.message || "Delivery history could not be refreshed.", "error");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
+  function filteredDeliveries() {
+    const query = String(byId("delivery-search")?.value || "").trim().toLowerCase();
+    const now = Date.now();
+    const rangeMs = {
+      "1d": 24 * 60 * 60 * 1000,
+      "7d": 7 * 24 * 60 * 60 * 1000,
+      "30d": 30 * 24 * 60 * 60 * 1000,
+    }[filters.range] || 0;
+
+    const items = (state.deliveries || []).filter((item) => {
+      if (filters.source && String(item.source || "") !== filters.source) return false;
+      if (filters.severity && String(item.severity || "") !== filters.severity) return false;
+      if (filters.outcome && String(item.outcome || "") !== filters.outcome) return false;
+      if (rangeMs) {
+        const timestamp = deliveryTimestamp(item);
+        if (timestamp && timestamp < now - rangeMs) return false;
+      }
+      if (!query) return true;
+      return JSON.stringify([
+        item.source,
+        item.device_name,
+        item.event_name,
+        item.title,
+        item.event_description,
+        item.severity,
+        item.event_status,
+        item.outcome,
+        item.safe_error,
+        item.error_code,
+      ]).toLowerCase().includes(query);
+    });
+
+    items.sort((left, right) => {
+      const delta = deliveryTimestamp(right) - deliveryTimestamp(left);
+      return filters.sort === "oldest" ? -delta : delta;
+    });
+    return items;
+  }
+
+  function refreshFilterOptions() {
+    const items = state.deliveries || [];
+    setSelectOptions(
+      byId("delivery-history-source-filter"),
+      items.map((item) => item.source),
+      "All sources",
+    );
+    setSelectOptions(
+      byId("delivery-history-severity-filter"),
+      items.map((item) => item.severity),
+      "All severities",
+    );
+    setSelectOptions(
+      byId("delivery-history-outcome-filter"),
+      items.map((item) => item.outcome),
+      "All outcomes",
+    );
+  }
+
+  function sourceCell(item) {
+    const wrapper = element("span", { className: "delivery-history-source" });
+    wrapper.append(sourceIcon(item.source));
+    wrapper.append(element("strong", { text: friendlyName(item.source) }));
+    return wrapper;
+  }
+
+  function renderRows(items) {
+    const list = byId("delivery-list");
+    if (!list) return;
+    list.replaceChildren();
+
+    if (!items.length) {
+      list.append(element("div", { className: "delivery-history-empty" }, [
+        element("strong", { text: "No matching delivery events" }),
+        element("span", { text: "Change the search or filters to show delivery attempts." }),
+      ]));
+      return;
+    }
+
+    for (const item of items) {
+      const id = deliveryId(item);
+      const row = element("button", {
+        className: `delivery-history-row${id === selectedDeliveryId ? " selected" : ""}`,
+        type: "button",
+        attributes: { "data-delivery-history-id": id, "aria-pressed": id === selectedDeliveryId ? "true" : "false" },
+      });
+      row.append(
+        sourceCell(item),
+        element("span", { className: "delivery-history-title-cell" }, [
+          element("strong", { text: deliveryTitle(item) }),
+          element("small", { text: deliveryDescription(item) }),
+        ]),
+        badge(capitalize(item.severity || "unknown"), deliveryTone(item.severity)),
+        badge(capitalize(item.outcome || "unknown"), deliveryTone(item.outcome)),
+        element("span", { className: "delivery-history-time", text: formatTime(item.completed_at || item.created_at) }),
+        element("span", { className: "delivery-history-chevron", text: "›", attributes: { "aria-hidden": "true" } }),
+      );
+      row.addEventListener("click", () => {
+        selectedDeliveryId = id;
+        renderWorkbench();
+      });
+      list.append(row);
+    }
+  }
+
+  function detailItem(label, value) {
+    return element("div", { className: "delivery-history-detail-item" }, [
+      element("span", { text: label }),
+      element("strong", { text: value || "—" }),
+    ]);
+  }
+
+  function shortId(value) {
+    const text = String(value || "");
+    return text ? text.slice(0, 12) : "—";
+  }
+
+  async function copyMessage(text) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const helper = document.createElement("textarea");
+        helper.value = text;
+        helper.style.position = "fixed";
+        helper.style.opacity = "0";
+        document.body.append(helper);
+        helper.select();
+        document.execCommand("copy");
+        helper.remove();
+      }
+      toast("Delivery message copied.", "success");
+    } catch (_error) {
+      toast("Delivery message could not be copied.", "error");
+    }
+  }
+
+  function renderDetail(item) {
+    const panel = byId("delivery-history-detail");
+    if (!panel) return;
+    panel.replaceChildren();
+
+    if (!item) {
+      panel.append(element("div", { className: "delivery-history-detail-empty" }, [
+        element("strong", { text: "Select a delivery event" }),
+        element("span", { text: "Choose an event on the left to inspect its message and transport outcome." }),
+      ]));
+      return;
+    }
+
+    const destination = (state.destinations || []).find((candidate) => candidate.id === item.destination_id);
+    const message = deliveryDescription(item);
+    const heading = element("div", { className: "delivery-history-detail-heading" });
+    const identity = element("div", { className: "delivery-history-detail-identity" });
+    identity.append(sourceIcon(item.source));
+    identity.append(element("div", {}, [
+      element("strong", { text: deliveryTitle(item) }),
+      element("small", { text: `${friendlyName(item.source)} • ${capitalize(item.outcome || "unknown")} • ${formatTime(item.completed_at || item.created_at)}` }),
+    ]));
+    const close = element("button", {
+      className: "icon-button delivery-history-detail-close",
+      text: "×",
+      type: "button",
+      attributes: { "aria-label": "Clear selected delivery" },
+    });
+    close.addEventListener("click", () => {
+      selectedDeliveryId = "";
+      renderWorkbench();
+    });
+    heading.append(identity, badge(capitalize(item.severity || "unknown"), deliveryTone(item.severity)), close);
+
+    const messageCard = element("section", { className: "delivery-history-detail-card" });
+    const messageHeader = element("div", { className: "delivery-history-card-heading" }, [
+      element("strong", { text: "Message" }),
+    ]);
+    const copy = element("button", {
+      className: "button secondary small",
+      text: "Copy",
+      type: "button",
+      attributes: { id: "delivery-history-copy" },
+    });
+    copy.addEventListener("click", () => copyMessage(message));
+    messageHeader.append(copy);
+    messageCard.append(messageHeader, element("pre", { className: "delivery-history-message", text: message }));
+
+    const statusCard = element("section", { className: "delivery-history-detail-card" }, [
+      element("strong", { text: "Status & outcome" }),
+      element("div", { className: "delivery-history-status-row" }, [
+        badge(capitalize(item.outcome || "unknown"), deliveryTone(item.outcome)),
+        badge(capitalize(item.event_status || item.severity || "unknown"), deliveryTone(item.event_status || item.severity)),
+        badge(`Attempt ${item.attempt_number || 1}`),
+        item.retryable ? badge("Retryable", "warning") : null,
+      ]),
+    ]);
+
+    const transport = element("section", { className: "delivery-history-detail-card delivery-history-transport" }, [
+      element("strong", { text: "Transport information" }),
+      detailItem("Input", String(item.input_type || sourceInputType(item.source) || "—").toUpperCase()),
+      detailItem("Destination", destination?.name || shortId(item.destination_id)),
+      detailItem("Destination type", destination ? friendlyName(destination.output_type) : "Configured destination"),
+      detailItem("Response", item.response_status ? `HTTP ${item.response_status}` : "—"),
+      detailItem("Error", item.safe_error || item.error_code || "None"),
+    ]);
+
+    const timeline = element("section", { className: "delivery-history-detail-card delivery-history-detail-timeline" }, [
+      element("strong", { text: "Timeline" }),
+      element("div", { className: "delivery-history-timeline-step success" }, [
+        element("span", { className: "delivery-history-timeline-dot" }),
+        element("div", {}, [element("strong", { text: "Delivery attempt created" }), element("small", { text: formatTime(item.created_at) })]),
+      ]),
+      element("div", { className: `delivery-history-timeline-step ${deliveryTone(item.outcome)}` }, [
+        element("span", { className: "delivery-history-timeline-dot" }),
+        element("div", {}, [element("strong", { text: capitalize(item.outcome || "Completed") }), element("small", { text: formatTime(item.completed_at || item.created_at) })]),
+      ]),
+    ]);
+
+    const lower = element("div", { className: "delivery-history-detail-grid" }, [transport, timeline]);
+
+    const tags = [
+      `source:${item.source || "unknown"}`,
+      item.severity ? `severity:${item.severity}` : "",
+      item.event_status ? `status:${item.event_status}` : "",
+      item.input_type ? `input:${item.input_type}` : "",
+      item.response_status ? `http:${item.response_status}` : "",
+      item.route_id ? `route:${shortId(item.route_id)}` : "",
+    ].filter(Boolean);
+    const tagCard = element("section", { className: "delivery-history-detail-card" }, [
+      element("strong", { text: "Tags" }),
+      element("div", { className: "delivery-history-tags" }, tags.map((tag) => badge(tag))),
+    ]);
+
+    panel.append(heading, messageCard, statusCard, lower, tagCard);
+  }
+
+  function syncPagination() {
+    const view = byId("view-deliveries");
+    const target = byId("delivery-history-list-footer");
+    if (!view || !target) return;
+    const row = view.querySelector('.qa-pagination-row[data-qa-pager="delivery-pagination"]');
+    if (row && row.parentElement !== target) target.append(row);
+  }
+
+  function renderWorkbench() {
+    ensureLayout();
+    if (!byId("delivery-history-workbench")) return;
+
+    refreshFilterOptions();
+    filters.source = byId("delivery-history-source-filter")?.value || filters.source;
+    filters.severity = byId("delivery-history-severity-filter")?.value || filters.severity;
+    filters.outcome = byId("delivery-history-outcome-filter")?.value || filters.outcome;
+    filters.range = byId("delivery-history-range-filter")?.value || filters.range;
+    filters.sort = byId("delivery-history-sort")?.value || filters.sort;
+
+    const items = filteredDeliveries();
+    if (!items.some((item) => deliveryId(item) === selectedDeliveryId)) {
+      selectedDeliveryId = items.length ? deliveryId(items[0]) : "";
+    }
+
+    const total = typeof qaDeliveryPagination !== "undefined"
+      ? Number(qaDeliveryPagination.total || state.deliveries.length)
+      : state.deliveries.length;
+    const totalLabel = byId("delivery-history-total");
+    if (totalLabel) totalLabel.textContent = `${total} event${total === 1 ? "" : "s"}`;
+
+    renderRows(items);
+    renderDetail(items.find((item) => deliveryId(item) === selectedDeliveryId));
+    syncPagination();
+  }
+
+  renderDeliveries = function renderDeliveriesWithDeliveryHistoryWorkbench() {
+    originalRenderDeliveries();
+    renderWorkbench();
+  };
+
+  if (originalLoadDeliveryPage) {
+    qaLoadDeliveryPage = async function qaLoadDeliveryPageWithDeliveryHistoryWorkbench(page) {
+      const result = await originalLoadDeliveryPage(page);
+      renderWorkbench();
+      return result;
+    };
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    ensureLayout();
+    renderWorkbench();
+  });
+})();
