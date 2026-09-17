@@ -65,8 +65,13 @@ def test_programmatic_main_focus_does_not_draw_workspace_outline():
 def test_api_service_uses_owner_private_filtering_with_destination_master_state():
     service = (ROOT / "src" / "api" / "service.py").read_text(encoding="utf-8")
     access = (ROOT / "src" / "api" / "access_acceptance.py").read_text(encoding="utf-8")
+    private_actions = (
+        ROOT / "src" / "api" / "private_destination_actions.py"
+    ).read_text(encoding="utf-8")
 
-    assert "from api.access_acceptance import PlatformAPI" in service
+    assert "from api.private_destination_actions import PlatformAPI" in service
+    assert "from api.access_acceptance import PlatformAPI as AcceptancePlatformAPI" in private_actions
+    assert "class PlatformAPI(AcceptancePlatformAPI)" in private_actions
     assert 'return str(owner["role"]) == "admin"' in access
     assert 'return actor.user_id == str(destination["owner_user_id"])' in access
     assert "class AcceptanceDestinationStore" in access
