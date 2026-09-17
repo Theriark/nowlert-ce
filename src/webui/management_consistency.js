@@ -70,6 +70,28 @@
     );
   }
 
+  function syncMetadataPrivateSharing(card) {
+    if (!card?.classList.contains("acceptance-private-destination")) return;
+    const meta = card.querySelector(".resource-meta");
+    if (!meta) return;
+    const privateBadge = [...meta.children].find((item) => (
+      item.classList.contains("badge")
+      && String(item.textContent || "").trim().toLowerCase() === "private"
+    ));
+    if (!privateBadge) return;
+    if (
+      privateBadge.classList.contains("destination-sharing-control")
+      && privateBadge.querySelector(".destination-share-icon")
+    ) return;
+
+    privateBadge.className = "badge destination-sharing-control is-private";
+    privateBadge.setAttribute("aria-label", "Private destination");
+    privateBadge.replaceChildren(
+      shareIcon(),
+      span("destination-sharing-label", "Private"),
+    );
+  }
+
   function syncDestinations() {
     const add = document.getElementById("add-destination-button");
     if (add && add.textContent !== "+ New destination") {
@@ -79,6 +101,7 @@
     for (const card of document.querySelectorAll("#view-destinations #destination-list > .resource-card")) {
       syncDestinationStatusButton(card.querySelector('[data-action="toggle-destination"]'));
       syncDestinationSharingButton(card.querySelector('[data-action="toggle-destination-shared"]'));
+      syncMetadataPrivateSharing(card);
     }
   }
 
@@ -100,11 +123,15 @@
 
   function syncUsers() {
     const section = document.getElementById("view-users");
-    const toolbar = section?.querySelector(":scope > .section-toolbar");
+    if (!section) return;
+    section.querySelectorAll("#view-users .private-resource-count")
+      .forEach((node) => node.remove());
+
+    const toolbar = section.querySelector(":scope > .section-toolbar");
     const topbarActions = document.querySelector(".topbar-actions");
     const button = section?.querySelector('[data-action="new-user"]')
       || topbarActions?.querySelector('[data-action="new-user"]');
-    if (!section || !toolbar || !button) return;
+    if (!toolbar || !button) return;
 
     rememberUserActionHome(button);
     if (button.textContent !== "+ New user") button.textContent = "+ New user";
@@ -143,9 +170,22 @@
   }
 
   function syncDeliveryHistory() {
-    document.querySelector(
-      '#view-deliveries [data-delivery-workbench-action="close-detail"]',
-    )?.remove();
+    document.querySelectorAll("#view-deliveries .delivery-history-detail-close")
+      .forEach((node) => node.remove());
+  }
+
+  function syncAuditLog() {
+    document.querySelectorAll("#view-audit .audit-log-detail-close")
+      .forEach((node) => node.remove());
+  }
+
+  function syncFilteringTableHeading() {
+    const second = document.querySelector(
+      "#view-filtering .filtering-table thead th:nth-child(2)",
+    );
+    if (second && second.textContent !== "Configuration") {
+      second.textContent = "Configuration";
+    }
   }
 
   function syncIntegrationBehaviorHeading() {
@@ -169,6 +209,8 @@
     syncUsers();
     syncLiveCopy();
     syncDeliveryHistory();
+    syncAuditLog();
+    syncFilteringTableHeading();
     syncIntegrationBehaviorHeading();
   }
 

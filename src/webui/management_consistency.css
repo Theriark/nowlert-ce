@@ -83,23 +83,75 @@
   display: none !important;
 }
 
-#view-deliveries .delivery-detail-status .delivery-detail-badges {
+#view-destinations .acceptance-private-destination .destination-sharing-control {
+  cursor: default;
+}
+
+#view-deliveries .delivery-history-status-row {
   align-items: stretch;
-  display: flex;
-  flex-wrap: nowrap;
+  display: grid;
   gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
   width: 100%;
 }
 
-#view-deliveries .delivery-detail-status .delivery-detail-badges > .badge {
-  flex: 1 1 0;
+#view-deliveries .delivery-history-status-row > .badge {
   justify-content: center;
   min-width: 0;
   text-align: center;
+  width: 100%;
 }
 
-#view-deliveries [data-delivery-workbench-action="close-detail"] {
+#view-deliveries .delivery-history-detail-close,
+#view-audit .audit-log-detail-close {
   display: none !important;
+}
+
+#view-deliveries .delivery-history-detail-heading,
+#view-audit .audit-log-detail-heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+@media (min-width: 821px) {
+  #view-deliveries .delivery-history-columns,
+  #view-deliveries .delivery-history-row {
+    grid-template-columns: minmax(112px, 0.72fr) minmax(210px, 1.55fr) minmax(118px, 0.75fr) minmax(92px, 0.62fr) minmax(118px, 0.82fr) 20px;
+  }
+}
+
+#view-deliveries .delivery-history-row > .badge {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+#view-deliveries .delivery-history-list-footer .qa-pagination-row,
+#view-audit .audit-log-list-footer .qa-pagination-row {
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  width: 100%;
+}
+
+#view-deliveries .delivery-history-list-footer .qa-pagination-left,
+#view-audit .audit-log-list-footer .qa-pagination-left {
+  display: none;
+}
+
+#view-deliveries .delivery-history-list-footer .qa-pagination,
+#view-audit .audit-log-list-footer .qa-pagination {
+  grid-column: 2;
+  justify-self: center;
+  margin: 0;
+  padding: 0;
+}
+
+#view-deliveries .delivery-history-list-footer .qa-pagination-footer,
+#view-audit .audit-log-list-footer .qa-pagination-footer {
+  grid-column: 3;
+  justify-self: end;
+  margin: 0;
+  width: auto;
 }
 
 #filtering-deterministic-processing > .panel-heading .eyebrow,
