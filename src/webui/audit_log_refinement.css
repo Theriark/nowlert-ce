@@ -1,4 +1,4 @@
-/* Final Audit Log fidelity: action button, five-column rows, and list-based inspector. */
+/* Audit Log fidelity: action button, five-column rows, real metrics, health dashboard, and semantic inspector. */
 .page-command-actions .audit-run-checks {
   display: grid !important;
   grid-template-columns: 30px minmax(0, 1fr);
@@ -60,19 +60,283 @@
   display: none !important;
 }
 
-#view-audit .audit-refine-stack {
+/* Real seven-day audit metrics with a genuine previous-seven-day comparison. */
+#view-audit .audit-log-summary-card {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+}
+
+#view-audit .audit-refine-trend {
   display: grid;
+  gap: 2px;
+  justify-items: end;
+  min-width: 92px;
+  padding-left: 10px;
+}
+
+#view-audit .audit-refine-trend strong {
+  color: #a9b3bd;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+#view-audit .audit-refine-trend small {
+  color: #7f8a96;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+#view-audit .audit-refine-trend.is-success strong { color: #79e28d; }
+#view-audit .audit-refine-trend.is-warning strong { color: #f0c43f; }
+#view-audit .audit-refine-trend.is-failed strong { color: #ff7474; }
+
+/* The health summary is always present. It renders the latest safe real check snapshot. */
+#view-audit .audit-log-health-strip.audit-health-dashboard-host {
+  display: block !important;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+#view-audit .audit-log-health-strip.audit-health-dashboard-host[hidden] {
+  display: block !important;
+}
+
+#view-audit .audit-health-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 2.15fr) minmax(320px, 0.85fr);
   gap: 12px;
 }
 
-#view-audit .audit-refine-section {
+#view-audit .audit-health-checks-panel,
+#view-audit .audit-health-latest-panel {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+}
+
+#view-audit .audit-health-panel-heading {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  margin-bottom: 13px;
+}
+
+#view-audit .audit-health-heading-icon {
   display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 9px;
+  background: rgba(238, 184, 36, 0.12);
+  color: #f0c43f;
+  font-size: 1.18rem;
+  font-weight: 900;
+}
+
+#view-audit .audit-health-heading-copy,
+#view-audit .audit-health-latest-status-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+#view-audit .audit-health-heading-copy strong,
+#view-audit .audit-health-latest-title {
+  color: #e7ebef;
+  font-size: 0.96rem;
+}
+
+#view-audit .audit-health-heading-copy small,
+#view-audit .audit-health-latest-status-copy small {
+  color: #8f9aa6;
+  font-size: 0.69rem;
+  line-height: 1.35;
+}
+
+#view-audit .audit-health-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 9px;
 }
 
-#view-audit .audit-refine-section-title {
-  padding: 0 2px;
-  font-size: 0.83rem;
+#view-audit .audit-health-card {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  min-height: 92px;
+  padding: 11px;
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 10px;
+  background: rgba(12, 18, 24, 0.68);
+}
+
+#view-audit .audit-health-card-icon,
+#view-audit .audit-health-latest-status-icon {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-weight: 900;
+}
+
+#view-audit .audit-health-card-icon {
+  width: 31px;
+  height: 31px;
+  font-size: 0.88rem;
+}
+
+#view-audit .audit-health-card.is-healthy .audit-health-card-icon,
+#view-audit .audit-health-latest-status.is-healthy .audit-health-latest-status-icon,
+#view-audit .audit-health-stat.is-healthy .audit-health-stat-icon {
+  background: rgba(34, 197, 94, 0.15);
+  color: #79e28d;
+}
+
+#view-audit .audit-health-card.is-warning .audit-health-card-icon,
+#view-audit .audit-health-latest-status.is-warning .audit-health-latest-status-icon,
+#view-audit .audit-health-stat.is-warning .audit-health-stat-icon {
+  background: rgba(238, 184, 36, 0.15);
+  color: #f0c43f;
+}
+
+#view-audit .audit-health-card.is-error .audit-health-card-icon,
+#view-audit .audit-health-latest-status.is-error .audit-health-latest-status-icon,
+#view-audit .audit-health-stat.is-error .audit-health-stat-icon {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ff7474;
+}
+
+#view-audit .audit-health-card-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+#view-audit .audit-health-card-copy strong {
+  overflow: hidden;
+  color: #e4e9ee;
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#view-audit .audit-health-card-copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #8f9aa6;
+  font-size: 0.64rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+#view-audit .audit-health-card-status {
+  margin-top: 3px;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+#view-audit .audit-health-card.is-healthy .audit-health-card-status { color: #79e28d; }
+#view-audit .audit-health-card.is-warning .audit-health-card-status { color: #f0c43f; }
+#view-audit .audit-health-card.is-error .audit-health-card-status { color: #ff7474; }
+
+#view-audit .audit-health-loading {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 5px;
+  place-content: center;
+  min-height: 92px;
+  padding: 18px;
+  border: 1px dashed rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  color: #8f9aa6;
+  text-align: center;
+}
+
+#view-audit .audit-health-loading strong { color: #dce3e9; }
+
+#view-audit .audit-health-latest-panel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+#view-audit .audit-health-latest-status {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 11px;
+  align-items: center;
+}
+
+#view-audit .audit-health-latest-status-icon {
+  width: 46px;
+  height: 46px;
+  font-size: 1.05rem;
+}
+
+#view-audit .audit-health-latest-status-copy strong {
+  font-size: 0.88rem;
+}
+
+#view-audit .audit-health-latest-status.is-healthy .audit-health-latest-status-copy strong { color: #79e28d; }
+#view-audit .audit-health-latest-status.is-warning .audit-health-latest-status-copy strong { color: #f0c43f; }
+#view-audit .audit-health-latest-status.is-error .audit-health-latest-status-copy strong { color: #ff7474; }
+
+#view-audit .audit-health-latest-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  padding-top: 12px;
+}
+
+#view-audit .audit-health-stat {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  gap: 1px 5px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 8px;
+  border-right: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+#view-audit .audit-health-stat:last-child { border-right: 0; }
+
+#view-audit .audit-health-stat-icon {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #b7c1cb;
+  font-size: 0.72rem;
+}
+
+#view-audit .audit-health-stat strong {
+  color: #e7ebef;
+  font-size: 0.86rem;
+}
+
+#view-audit .audit-health-stat small {
+  color: #88939f;
+  font-size: 0.58rem;
+  white-space: nowrap;
+}
+
+/* Inspector tabs share one list foundation but intentionally show different data domains. */
+#view-audit .audit-refine-stack {
+  display: grid;
+  gap: 12px;
 }
 
 #view-audit .audit-refine-list {
@@ -171,6 +435,20 @@
   #view-audit .audit-log-row {
     grid-template-columns: minmax(118px, 0.72fr) minmax(200px, 1.2fr) minmax(118px, 0.7fr) minmax(150px, 0.9fr) minmax(86px, 0.55fr) !important;
   }
+
+  #view-audit .audit-health-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
+  #view-audit .audit-health-dashboard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #view-audit .audit-refine-trend {
+    min-width: 80px;
+  }
 }
 
 @media (max-width: 820px) {
@@ -186,6 +464,14 @@
     display: inline-flex !important;
   }
 
+  #view-audit .audit-log-summary-card {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  #view-audit .audit-health-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   #view-audit .audit-refine-row {
     grid-template-columns: minmax(96px, 0.42fr) minmax(0, 1fr) 30px;
   }
@@ -196,6 +482,23 @@
     min-width: 0;
     width: 100%;
   }
+
+  #view-audit .audit-log-summary-card {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  #view-audit .audit-refine-trend {
+    grid-column: 2;
+    justify-items: start;
+    padding-left: 0;
+  }
+
+  #view-audit .audit-health-latest-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 0;
+  }
+
+  #view-audit .audit-health-stat:nth-child(2) { border-right: 0; }
 
   #view-audit .audit-refine-row {
     grid-template-columns: minmax(0, 1fr) 30px;
@@ -213,4 +516,8 @@
   #view-audit .audit-refine-copy {
     grid-column: 2;
   }
+}
+
+#view-audit .audit-health-legacy-list {
+  display: none !important;
 }
