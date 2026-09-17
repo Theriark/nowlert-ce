@@ -621,16 +621,21 @@
     const lower = element("div", { className: "delivery-history-detail-grid" }, [transport, timeline]);
 
     const tags = [
-      `source:${item.source || "unknown"}`,
-      item.severity ? `severity:${item.severity}` : "",
-      item.event_status ? `status:${item.event_status}` : "",
-      item.input_type ? `input:${item.input_type}` : "",
-      item.response_status ? `http:${item.response_status}` : "",
-      item.route_id ? `route:${shortId(item.route_id)}` : "",
+      `Source: ${friendlyName(item.source || "unknown")}`,
+      item.severity ? `Severity: ${friendlyName(item.severity)}` : "",
+      item.event_status ? `Status: ${friendlyName(item.event_status)}` : "",
+      item.input_type ? `Input: ${inputLabel(item.input_type)}` : "",
+      item.response_status ? `HTTP: ${item.response_status}` : "",
+      item.route_id ? `Route: ${shortId(item.route_id)}` : "",
     ].filter(Boolean);
+    const tagBadges = tags.map((text) => {
+      const tag = badge(text);
+      tag.style.textTransform = "none";
+      return tag;
+    });
     const tagCard = element("section", { className: "delivery-history-detail-card" }, [
       element("strong", { text: "Tags" }),
-      element("div", { className: "delivery-history-tags" }, tags.map((tag) => badge(tag))),
+      element("div", { className: "delivery-history-tags" }, tagBadges),
     ]);
 
     panel.append(heading, messageCard, statusCard, lower, tagCard);
