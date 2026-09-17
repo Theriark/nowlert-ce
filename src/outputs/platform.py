@@ -112,6 +112,7 @@ class DiscordPlatformAdapter(_HTTPAdapter):
 
     def deliver(self, destination, secret_value, notification):
         try:
+            settings = normalize_output_settings("discord", destination.settings)
             preview = self.preview(destination, notification)
             url = self._url(
                 secret_url(secret_value),
@@ -209,7 +210,7 @@ class DiscordPlatformAdapter(_HTTPAdapter):
         if not result.success:
             return result
 
-        if not self.output._attachment_verified(
+        if settings["components_v2"] and not self.output._attachment_verified(
             response,
             filename,
         ):
