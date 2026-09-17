@@ -308,7 +308,7 @@
     const listHeader = element("div", { className: "delivery-history-list-heading" });
     const listTitle = element("div", {}, [
       element("strong", { text: "Delivery events" }),
-      element("span", { id: "delivery-history-total", text: "0 events" }),
+      element("span", { attributes: { id: "delivery-history-total" }, text: "0 events" }),
     ]);
     const sort = selectControl("delivery-history-sort", "Sort deliveries", [
       ["newest", "Newest first"],
