@@ -214,6 +214,30 @@
     dialog?.remove();
   }
 
+  function movePlatformActionsIntoContext() {
+    const platformMenu = document.getElementById("platform-menu");
+    const updateButton = document.getElementById("platform-check-updates");
+    const restartButton = document.getElementById("platform-restart");
+    const updateToolbar = document.querySelector("#view-updates .section-toolbar");
+    const accountToolbar = document.querySelector("#view-account .section-toolbar");
+
+    if (platformMenu) {
+      platformMenu.hidden = true;
+      platformMenu.style.display = "none";
+      platformMenu.setAttribute("aria-hidden", "true");
+    }
+    if (updateButton && updateToolbar && updateButton.parentElement !== updateToolbar) {
+      updateButton.removeAttribute("role");
+      updateButton.className = "button secondary";
+      updateToolbar.append(updateButton);
+    }
+    if (restartButton && accountToolbar && restartButton.parentElement !== accountToolbar) {
+      restartButton.removeAttribute("role");
+      restartButton.className = "button danger";
+      accountToolbar.append(restartButton);
+    }
+  }
+
   function suppressProgrammaticMainFocusOutline() {
     const main = document.getElementById("main-content");
     if (!main) return;
@@ -264,6 +288,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     cleanupDestinationCards();
     removeRetiredPermissionControls();
+    movePlatformActionsIntoContext();
     suppressProgrammaticMainFocusOutline();
     refreshDestinationMetadata();
     scheduleFilteringAcceptance();
