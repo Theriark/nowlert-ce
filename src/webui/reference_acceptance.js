@@ -2,10 +2,11 @@
 
 /* Reference-screen acceptance layer. API behavior remains owned by the existing WebUI. */
 (() => {
-  const USER_PAGE_SIZE = 12;
+  const USER_PAGE_SIZE = 6;
   let userFilter = "all";
   let userQuery = "";
   let userPage = 1;
+  let recentActivityExpanded = false;
   let previewDestinationId = "";
   let previewScenarioDestinationId = "";
   let previewAssignedRouteIds = new Set();
@@ -662,7 +663,14 @@ function ensurePreviewReferenceLayout() {
     );
     const recent = ref("aside", "reference-users-recent");
     const recentHead = ref("div", "reference-users-recent-heading");
-    recentHead.append(ref("strong", "", "⚡ Recent activity"), ref("span", "", "View all ›"));
+    const recentToggle = ref("button", "reference-users-recent-toggle", "View all ›");
+    recentToggle.type = "button";
+    recentToggle.setAttribute("aria-expanded", "false");
+    recentToggle.addEventListener("click", () => {
+      recentActivityExpanded = !recentActivityExpanded;
+      syncRecentActivity();
+    });
+    recentHead.append(ref("strong", "", "⚡ Recent activity"), recentToggle);
     const recentList = ref("div", "reference-users-recent-list"); recentList.id = "reference-users-recent-list";
     recent.append(recentHead, recentList); overview.append(metrics, recent); panel.before(overview);
 
@@ -677,7 +685,7 @@ function ensurePreviewReferenceLayout() {
     }
     controls.append(search, tabs); panel.prepend(controls);
     const footer = ref("div", "reference-users-footer");
-    footer.innerHTML = '<span id="reference-users-range">Showing 0 users.</span><div class="reference-users-pager"><button type="button" data-reference-user-page="previous" aria-label="Previous page">‹</button><span id="reference-users-pages"></span><button type="button" data-reference-user-page="next" aria-label="Next page">›</button><span class="reference-users-page-size">12 per page⌄</span></div>';
+    footer.innerHTML = `<span id="reference-users-range">Showing 0 users.</span><div class="reference-users-pager"><button type="button" data-reference-user-page="previous" aria-label="Previous page">‹</button><span id="reference-users-pages"></span><button type="button" data-reference-user-page="next" aria-label="Next page">›</button><span class="reference-users-page-size">${USER_PAGE_SIZE} per page⌄</span></div>`;
     footer.querySelector('[data-reference-user-page="previous"]')?.addEventListener("click", () => { userPage = Math.max(1, userPage - 1); syncUsersReference(); });
     footer.querySelector('[data-reference-user-page="next"]')?.addEventListener("click", () => { userPage += 1; syncUsersReference(); });
     panel.append(footer);
@@ -719,7 +727,14 @@ function ensurePreviewReferenceLayout() {
 
   function syncRecentActivity() {
     const list = byId("reference-users-recent-list"); if (!list) return;
-    const events = (state.audit || []).filter((item) => /user|session|login|account/.test(`${item.action || ""} ${item.resource_type || ""} ${item.resource || ""}`.toLowerCase())).slice(0, 2);
+    const allEvents = (state.audit || []).filter((item) => /user|session|login|account/.test(`${item.action || ""} ${item.resource_type || ""} ${item.resource || ""}`.toLowerCase()));
+    const events = recentActivityExpanded ? allEvents : allEvents.slice(0, 2);
+    const toggle = document.querySelector(".reference-users-recent-toggle");
+    if (toggle) {
+      toggle.textContent = recentActivityExpanded ? "Show less ↑" : "View all ›";
+      toggle.setAttribute("aria-expanded", recentActivityExpanded ? "true" : "false");
+    }
+    list.classList.toggle("is-expanded", recentActivityExpanded);
     list.replaceChildren();
     if (!events.length) { list.append(ref("small", "reference-users-recent-empty", "No recent account activity.")); return; }
     for (const item of events) {
@@ -853,7 +868,11 @@ function ensurePreviewReferenceLayout() {
     if (byId("reference-account-mfa-value")) byId("reference-account-mfa-value").textContent = user.mfa_enabled ? "Enabled" : "Not enabled";
     if (byId("reference-active-sessions")) byId("reference-active-sessions").textContent = Number(user.active_sessions || 1);
     const restart = byId("restart-header-button");
-    if (restart) { const show = state.currentView === "account" && typeof isAdmin === "function" && isAdmin(); restart.hidden = !show; restart.textContent = "⏻ Restart Nowlert"; restart.classList.toggle("reference-account-restart", show); }
+    if (restart) {
+      restart.textContent = "⏻ Restart Nowlert";
+      restart.hidden = true;
+      restart.classList.remove("reference-account-restart");
+    }
   }
 
   function syncAll() {

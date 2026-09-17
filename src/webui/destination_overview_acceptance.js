@@ -539,6 +539,36 @@
     }
   }
 
+  function deliveryTagIcon(kind) {
+    const wrapper = element("span", {
+      className: `delivery-history-tag-icon is-${kind}`,
+      attributes: { "aria-hidden": "true" },
+    });
+    const icons = {
+      tag: '<svg viewBox="0 0 24 24"><path d="M3.5 5.5v7.2L11.8 21l8.2-8.2-8.3-8.3H5.5a2 2 0 0 0-2 2Z"></path><circle cx="8" cy="9" r="1.4"></circle></svg>',
+      source: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg>',
+      severity: '<svg viewBox="0 0 24 24"><path d="M12 3 21 20H3L12 3Z"></path><path d="M12 9v5M12 17h.01"></path></svg>',
+      status: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg>',
+      input: '<svg viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"></circle><circle cx="18" cy="12" r="2"></circle><circle cx="6" cy="19" r="2"></circle><path d="m8 6 7.8 5M8 18l7.8-5"></path></svg>',
+      response: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="m8.5 12 2.2 2.2 4.8-5"></path></svg>',
+      route: '<svg viewBox="0 0 24 24"><circle cx="7" cy="5" r="2"></circle><circle cx="17" cy="7" r="2"></circle><circle cx="17" cy="18" r="2"></circle><path d="M7 7v7a4 4 0 0 0 4 4h4M9 6h4a4 4 0 0 1 4 4v6"></path></svg>',
+    };
+    wrapper.innerHTML = icons[kind] || icons.tag;
+    return wrapper;
+  }
+
+  function deliveryTag(label, value, kind, tone = "") {
+    const tag = element("span", {
+      className: `delivery-history-tag-pill${tone ? ` is-${tone}` : ""}`,
+    });
+    const copy = element("span", { className: "delivery-history-tag-copy" }, [
+      element("span", { text: `${label}:` }),
+      element("strong", { text: String(value || "—") }),
+    ]);
+    tag.append(deliveryTagIcon(kind), copy);
+    return tag;
+  }
+
   function renderDetail(item) {
     const panel = byId("delivery-history-detail");
     if (!panel) return;
@@ -620,21 +650,34 @@
 
     const lower = element("div", { className: "delivery-history-detail-grid" }, [transport, timeline]);
 
-    const tags = [
-      `Source: ${friendlyName(item.source || "unknown")}`,
-      item.severity ? `Severity: ${friendlyName(item.severity)}` : "",
-      item.event_status ? `Status: ${friendlyName(item.event_status)}` : "",
-      item.input_type ? `Input: ${inputLabel(item.input_type)}` : "",
-      item.response_status ? `HTTP: ${item.response_status}` : "",
-      item.route_id ? `Route: ${shortId(item.route_id)}` : "",
+    const inputType = item.input_type || sourceInputType(item.source) || "";
+    const responseStatus = Number(item.response_status || 0);
+    const responseTone = responseStatus >= 200 && responseStatus < 300
+      ? "success"
+      : responseStatus >= 400
+        ? "danger"
+        : "";
+    const tagBadges = [
+      deliveryTag("Source", friendlyName(item.source || "unknown"), "source"),
+      item.severity
+        ? deliveryTag("Severity", friendlyName(item.severity), "severity", deliveryTone(item.severity))
+        : null,
+      item.event_status
+        ? deliveryTag("Status", friendlyName(item.event_status), "status", deliveryTone(item.event_status))
+        : null,
+      inputType ? deliveryTag("Input", inputLabel(inputType), "input") : null,
+      item.response_status
+        ? deliveryTag("HTTP", item.response_status, "response", responseTone)
+        : null,
+      item.route_id ? deliveryTag("Route", shortId(item.route_id), "route") : null,
     ].filter(Boolean);
-    const tagBadges = tags.map((text) => {
-      const tag = badge(text);
-      tag.style.textTransform = "none";
-      return tag;
-    });
-    const tagCard = element("section", { className: "delivery-history-detail-card" }, [
-      element("strong", { text: "Tags" }),
+    const tagCard = element("section", {
+      className: "delivery-history-detail-card delivery-history-tags-card",
+    }, [
+      element("div", { className: "delivery-history-tags-heading" }, [
+        deliveryTagIcon("tag"),
+        element("strong", { text: "Tags" }),
+      ]),
       element("div", { className: "delivery-history-tags" }, tagBadges),
     ]);
 

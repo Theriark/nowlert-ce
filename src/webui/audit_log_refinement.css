@@ -559,3 +559,54 @@
     grid-template-columns: minmax(300px, 1.78fr) minmax(150px, 0.72fr) minmax(150px, 0.72fr) minmax(170px, 0.85fr) auto;
   }
 }
+
+
+/* 2026-09-18 audit log footer and list alignment. */
+#view-audit .audit-log-list-scroll {
+  overflow-x: hidden;
+}
+
+#view-audit .audit-log-list-scroll::-webkit-scrollbar-button,
+#view-audit .audit-log-detail::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+#view-audit .audit-log-columns,
+#view-audit .audit-log-row {
+  gap: 10px !important;
+  grid-template-columns:
+    minmax(104px, 0.78fr)
+    minmax(170px, 1.28fr)
+    minmax(104px, 0.78fr)
+    minmax(136px, 1fr)
+    minmax(78px, 0.58fr) !important;
+}
+
+#view-audit .audit-log-list-footer {
+  padding-inline: 0;
+}
+
+@media (max-width: 1380px) and (min-width: 821px) {
+  #view-audit .audit-log-columns,
+  #view-audit .audit-log-row {
+    grid-template-columns:
+      minmax(90px, 0.72fr)
+      minmax(150px, 1.2fr)
+      minmax(90px, 0.7fr)
+      minmax(120px, 0.9fr)
+      minmax(72px, 0.55fr) !important;
+  }
+}
+
+
+@media (max-width: 820px) {
+  #view-audit .audit-log-row {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  #view-audit .audit-log-columns {
+    display: none;
+  }
+}

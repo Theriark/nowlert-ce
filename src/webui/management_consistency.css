@@ -567,3 +567,13 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* 2026-09-18 destination card polish. */
+#view-destinations .resource-actions [data-action="preview-private-destination"]::before {
+  content: "◉";
+}
+
+#view-destinations .resource-actions [data-action="test-private-destination-card"]::before {
+  content: "➤";
+}

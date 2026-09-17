@@ -71,10 +71,10 @@
     wrapper.setAttribute("aria-hidden", "true");
     wrapper.innerHTML = `
       <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-        <circle cx="6" cy="5" r="2"></circle>
-        <circle cx="18" cy="12" r="2"></circle>
-        <circle cx="6" cy="19" r="2"></circle>
-        <path d="M8 5h2a4 4 0 0 1 4 4v1M8 19h2a4 4 0 0 0 4-4v-1"></path>
+        <circle cx="6" cy="6" r="2"></circle>
+        <circle cx="18" cy="6" r="2"></circle>
+        <circle cx="12" cy="18" r="2"></circle>
+        <path d="M8 6h8M7.5 7.7l3.4 7.1M16.5 7.7l-3.4 7.1"></path>
       </svg>
     `;
     return wrapper;
@@ -173,9 +173,6 @@
     const owner = [...meta.children].find((item) => (
       String(item.textContent || "").trim().toLowerCase().startsWith("owner:")
     ));
-    if (owner && owner.textContent.trim() !== "Owner: User") {
-      owner.textContent = "Owner: User";
-    }
     if (owner) owner.classList.add("destination-owner-badge");
 
     const viewOnly = [...meta.children].find((item) => {
@@ -201,6 +198,42 @@
       if (owned) return owned;
     }
     return privateDestinationMetadata.get(id) || null;
+  }
+
+  function destinationOwnerName(item) {
+    const ownerId = String(item?.owner_user_id || "");
+    const knownOwner = Array.isArray(state?.users)
+      ? state.users.find((user) => String(user?.id || "") === ownerId)
+      : null;
+    const ownUsername = ownerId && ownerId === String(state?.user?.id || "")
+      ? state.user?.username
+      : "";
+    return String(item?.owner_username || knownOwner?.username || ownUsername || "User").trim() || "User";
+  }
+
+  function syncDestinationOwnerBadge(card) {
+    const meta = card?.querySelector(".resource-meta");
+    if (!meta) return;
+    const existing = [...meta.children].find((item) => (
+      String(item.textContent || "").trim().toLowerCase().startsWith("owner:")
+    ));
+    const item = destinationItemForCard(card);
+    if (!item && !existing) return;
+
+    const label = item
+      ? `Owner: ${destinationOwnerName(item)}`
+      : String(existing.textContent || "Owner: User").trim();
+    const owner = existing || readOnlyStatus(label, "destination-owner-badge");
+    owner.className = "badge destination-owner-badge";
+    owner.replaceChildren(span("destination-readonly-label", label));
+
+    const sharing = meta.querySelector('[data-action="toggle-destination-shared"]')
+      || meta.querySelector(".destination-sharing-control");
+    if (sharing && sharing.nextElementSibling !== owner) {
+      sharing.after(owner);
+    } else if (!sharing && !owner.parentElement) {
+      meta.append(owner);
+    }
   }
 
   function destinationTypeForCard(card) {
@@ -337,6 +370,7 @@
       syncDestinationStatusButton(card.querySelector('[data-action="toggle-destination"]'));
       syncDestinationSharingButton(card.querySelector('[data-action="toggle-destination-shared"]'));
       syncMetadataPrivateSharing(card);
+      syncDestinationOwnerBadge(card);
       syncDestinationProviderIcon(card);
       syncDestinationSubtitle(card);
       syncDestinationTransientFailure(card);

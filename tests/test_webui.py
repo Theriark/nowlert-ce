@@ -676,3 +676,42 @@ def test_nce31_nce33_nce34_nce35_development_followups():
         in styles
     )
     assert ".qa-pagination-row > .qa-pagination-footer" in styles
+
+
+
+def test_20260918_webui_polish_regressions():
+    management = (ROOT / "src" / "webui" / "management_consistency.js").read_text(encoding="utf-8")
+    management_css = (ROOT / "src" / "webui" / "management_consistency.css").read_text(encoding="utf-8")
+    delivery = (ROOT / "src" / "webui" / "destination_overview_acceptance.js").read_text(encoding="utf-8")
+    delivery_css = (ROOT / "src" / "webui" / "destination_overview_acceptance.css").read_text(encoding="utf-8")
+    audit_css = (ROOT / "src" / "webui" / "audit_log_refinement.css").read_text(encoding="utf-8")
+    reference = (ROOT / "src" / "webui" / "reference_acceptance.js").read_text(encoding="utf-8")
+    reference_css = (ROOT / "src" / "webui" / "reference_acceptance.css").read_text(encoding="utf-8")
+    app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
+    markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
+
+    assert "function syncDestinationOwnerBadge(card)" in management
+    assert "destinationOwnerName(item)" in management
+    assert '<circle cx="6" cy="6" r="2"></circle>' in management
+    assert '[data-action="preview-private-destination"]::before' in management_css
+    assert '[data-action="test-private-destination-card"]::before' in management_css
+
+    assert "function deliveryTagIcon(kind)" in delivery
+    assert "delivery-history-tags-heading" in delivery
+    assert "delivery-history-tag-pill" in delivery_css
+    assert ".delivery-history-list-scroll::-webkit-scrollbar-button" in delivery_css
+
+    assert "#view-audit .audit-log-list-scroll {" in audit_css
+    assert "overflow-x: hidden;" in audit_css
+    assert ".audit-log-list-scroll::-webkit-scrollbar-button" in audit_css
+
+    assert "const USER_PAGE_SIZE = 6;" in reference
+    assert "recentActivityExpanded" in reference
+    assert "reference-users-recent-toggle" in reference
+    assert "${USER_PAGE_SIZE} per page⌄" in reference
+    assert ".reference-settings-grid > *" in reference_css
+    assert "#restart-header-button" in reference_css
+    assert "display: none !important;" in reference_css
+
+    assert 'account: "Security",' in app
+    assert "<h2>Security</h2>" in markup
