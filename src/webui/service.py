@@ -206,6 +206,16 @@ class WebUIService:
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/audit_log_refinement.js": (
+                "src/webui/audit_log_refinement.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/audit_log_refinement.css": (
+                "src/webui/audit_log_refinement.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/icon.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
@@ -304,6 +314,7 @@ class WebUIService:
                 '  <link rel="stylesheet" href="/ui/operations_acceptance.css">\n'
                 '  <link rel="stylesheet" href="/ui/page_headers.css">\n'
                 '  <link rel="stylesheet" href="/ui/destination_overview_acceptance.css">\n'
+                '  <link rel="stylesheet" href="/ui/audit_log_refinement.css">\n'
                 '  <script src="/ui/filtering.js" defer></script>\n'
                 '  <script src="/ui/source_ui_retirement.js" defer></script>\n'
                 '  <script src="/ui/destination_routes.js" defer></script>\n'
@@ -316,6 +327,7 @@ class WebUIService:
                 '  <script src="/ui/operations_acceptance.js" defer></script>\n'
                 '  <script src="/ui/page_headers.js" defer></script>\n'
                 '  <script src="/ui/destination_overview_acceptance.js" defer></script>\n'
+                '  <script src="/ui/audit_log_refinement.js" defer></script>\n'
             )
             body = text.replace("</head>", extension + "</head>", 1).encode("utf-8")
         return WebUIResponse(200, body, content_type, cache_control)
