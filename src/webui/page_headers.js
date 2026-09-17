@@ -3,7 +3,7 @@
 /* Unified page command headers for the accepted CE management surfaces. */
 (() => {
   const ADMIN_VIEWS = new Set(["users", "settings", "updates", "data"]);
-  const DATA_TOOLBAR_VIEWS = new Set(["deliveries", "audit"]);
+  const DATA_TOOLBAR_VIEWS = new Set(["audit"]);
   const PAGE_COPY = {
     dashboard: "Monitor your alert delivery pipeline and system health.",
     "routing-flow": "Visualize active routes, filters, and destinations.",
@@ -119,10 +119,6 @@
     return PAGE_COPY[view] || toolbarCopy(toolbar);
   }
 
-  function removeBottomShortcut(toolbar) {
-    toolbar?.querySelectorAll("[data-qa-bottom]").forEach((node) => node.remove());
-  }
-
   function setDataToolbar(toolbar, enabled) {
     if (!toolbar) return;
     toolbar.classList.toggle("page-data-toolbar", enabled);
@@ -131,11 +127,47 @@
       toolbar.removeAttribute("aria-hidden");
       const copy = toolbar.querySelector(":scope > div");
       if (copy) copy.hidden = true;
-      removeBottomShortcut(toolbar);
       return;
     }
     const copy = toolbar.querySelector(":scope > div");
     if (copy) copy.hidden = false;
+  }
+
+  function syncDeliveryPanelControls(section) {
+    if (!section) return;
+    const panelHeader = section.querySelector('[data-panel-header="deliveries"]');
+    if (!panelHeader) return;
+
+    let controls = panelHeader.querySelector(":scope > .delivery-panel-controls");
+    if (!controls) {
+      controls = document.createElement("div");
+      controls.className = "delivery-panel-controls";
+      panelHeader.append(controls);
+    }
+
+    const search = section.querySelector("#delivery-search")?.closest(".search-field");
+    const bottom = section.querySelector('[data-qa-bottom="delivery-pagination"]');
+    if (search && search.parentElement !== controls) controls.append(search);
+    if (bottom && bottom.parentElement !== controls) controls.append(bottom);
+  }
+
+  function syncAuditHealthResults(section) {
+    const healthPanel = section?.querySelector(".health-panel");
+    if (!healthPanel) return;
+    healthPanel.hidden = false;
+    healthPanel.removeAttribute("aria-hidden");
+    healthPanel.classList.add("audit-health-results");
+    const heading = healthPanel.querySelector(":scope > .panel-heading");
+    if (heading) heading.hidden = true;
+  }
+
+  function syncBackupAction(section) {
+    if (!section) return;
+    const action = section.querySelector('[data-action="new-backup-target"]');
+    const panelHeading = section.querySelector(".backup-targets-card > .panel-heading");
+    if (!action || !panelHeading || action.parentElement === panelHeading) return;
+    action.className = "button primary";
+    panelHeading.append(action);
   }
 
   function syncAdministration(section, toolbar) {
@@ -166,8 +198,6 @@
       nodes.push(document.getElementById("add-filter-button"));
     } else if (view === "audit") {
       nodes.push(section?.querySelector('[data-action="run-health-checks"]'));
-    } else if (view === "backups") {
-      nodes.push(section?.querySelector('[data-action="new-backup-target"]'));
     } else if (view === "tokens") {
       nodes.push(section?.querySelector('[data-action="new-token"]'));
     } else if (view === "account") {
@@ -194,6 +224,10 @@
     document.querySelectorAll(".administration-section-header").forEach((node) => {
       if (node !== toolbar) node.classList.remove("administration-section-header");
     });
+
+    if (view === "deliveries") syncDeliveryPanelControls(section);
+    if (view === "audit") syncAuditHealthResults(section);
+    if (view === "backups") syncBackupAction(section);
 
     if (ADMIN_VIEWS.has(view)) {
       syncAdministration(section, toolbar);
@@ -239,7 +273,10 @@
         [...mutation.addedNodes, ...mutation.removedNodes].some((node) => {
           if (node.nodeType !== Node.ELEMENT_NODE) return false;
           if (watchedIds.has(node.id)) return true;
-          return [...node.querySelectorAll("[id]")].some((child) => watchedIds.has(child.id));
+          if (node.matches?.("[data-qa-bottom]")) return true;
+          return [...node.querySelectorAll("[id], [data-qa-bottom]")].some((child) => (
+            watchedIds.has(child.id) || child.matches("[data-qa-bottom]")
+          ));
         })
       ));
       if (relevant) syncPageHeader();
