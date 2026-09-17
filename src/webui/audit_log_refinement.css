@@ -521,3 +521,41 @@
 #view-audit .audit-health-legacy-list {
   display: none !important;
 }
+
+/* Audit Log alignment polish: compact command and a wider, bottom-aligned inspector. */
+.page-command-actions .audit-run-checks {
+  display: inline-flex !important;
+  grid-template-columns: none;
+  gap: 8px;
+  min-width: auto;
+  min-height: 44px;
+  padding: 8px 14px !important;
+  text-align: center;
+}
+
+.audit-run-checks-copy {
+  display: block;
+}
+
+.audit-run-checks-copy small {
+  display: none !important;
+}
+
+@media (min-width: 1181px) {
+  #view-audit .audit-log-workbench {
+    grid-template-columns: minmax(0, 1.05fr) minmax(460px, 0.95fr);
+    align-items: stretch;
+  }
+
+  #view-audit .audit-log-detail {
+    align-self: stretch;
+    height: 100%;
+    max-height: none;
+  }
+}
+
+@media (min-width: 1381px) {
+  #view-audit .audit-log-filters {
+    grid-template-columns: minmax(300px, 1.78fr) minmax(150px, 0.72fr) minmax(150px, 0.72fr) minmax(170px, 0.85fr) auto;
+  }
+}

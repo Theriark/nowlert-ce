@@ -62,3 +62,16 @@ def test_audit_tabs_do_not_dump_request_and_response_metadata_into_details():
     assert "detailRows(generalEntries(item))" in script
     assert "detailRows(requestEntries(item))" in script
     assert "detailRows(responseEntries(item))" in script
+
+
+def test_audit_log_alignment_polish_matches_accepted_desktop_layout():
+    styles = (ROOT / "src" / "webui" / "audit_log_refinement.css").read_text(
+        encoding="utf-8"
+    )
+
+    assert ".audit-run-checks-copy small" in styles
+    assert "display: none !important;" in styles
+    assert "grid-template-columns: minmax(0, 1.05fr) minmax(460px, 0.95fr);" in styles
+    assert "align-items: stretch;" in styles
+    assert "grid-template-columns: minmax(300px, 1.78fr)" in styles
+    assert "height: 100%;" in styles
