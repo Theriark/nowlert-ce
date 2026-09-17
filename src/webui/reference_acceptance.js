@@ -70,32 +70,37 @@
     const counter = byId("reference-preview-routes-count");
     if (!list || !counter) return;
     const query = String(byId("reference-preview-route-search")?.value || "").trim().toLowerCase();
-    const routes = state.routes || [];
-    const visible = routes.filter((route) => !query || `${route.name || ""} ${routeLabel(route)} ${route.input_type || ""}`.toLowerCase().includes(query));
-    counter.textContent = `${previewRouteSelection.size} of ${routes.length} selected`;
+    const assigned = (state.routes || []).filter((route) => previewRouteSelection.has(route.id));
+    const visible = assigned.filter((route) => !query || `${route.name || ""} ${routeLabel(route)} ${route.input_type || ""}`.toLowerCase().includes(query));
+    counter.textContent = assigned.length === 1 ? "1 assigned route" : `${assigned.length} assigned routes`;
     list.replaceChildren();
-    if (!visible.length) list.append(ref("div", "reference-preview-route-empty", routes.length ? "No matching routes." : "No routes are available yet."));
+    if (!visible.length) {
+      list.append(ref("div", "route-assignment-empty reference-preview-route-empty", assigned.length ? "No assigned routes match." : "No routes are assigned to this destination."));
+      return;
+    }
     for (const route of visible) {
-      const row = ref("label", "reference-preview-route-option");
-      const check = document.createElement("input");
-      check.type = "checkbox";
-      check.checked = previewRouteSelection.has(route.id);
-      check.setAttribute("aria-label", `Assign ${route.name || routeLabel(route)}`);
-      const leading = ref("span", "reference-preview-route-leading");
-      leading.append(check);
+      const descriptor = typeof routeSourceDescriptor === "function"
+        ? routeSourceDescriptor(route.source, route.input_type)
+        : { integration: routeLabel(route), input: route.input_type || "Input" };
+      const row = ref("div", "route-assignment-option reference-preview-route-option");
+      const leading = ref("span", "route-assignment-option-leading reference-preview-route-leading");
       if (typeof sourceIcon === "function") leading.append(sourceIcon(route.source));
-      row.append(leading, ref("strong", "", route.name || routeLabel(route)));
-      check.addEventListener("change", () => {
-        if (check.checked) previewRouteSelection.add(route.id);
-        else previewRouteSelection.delete(route.id);
-        renderPreviewRouteOptions();
-        renderPreviewRouteSummary();
-      });
+      const copy = ref("span", "route-assignment-option-copy");
+      copy.append(
+        ref("strong", "", route.name || routeLabel(route)),
+        ref("small", "", `${descriptor.integration} · ${descriptor.input}`),
+      );
+      const status = ref(
+        "small",
+        `route-assignment-option-state ${route.enabled === false ? "disabled" : "enabled"}`,
+        route.enabled === false ? "Disabled" : "Enabled",
+      );
+      row.append(leading, copy, status);
       list.append(row);
     }
   }
 
-  function closePreviewRoutes() {
+function closePreviewRoutes() {
     byId("reference-preview-route-drawer")?.setAttribute("hidden", "");
     byId("preview-form")?.classList.remove("reference-preview-routes-open");
     byId("preview-dialog")?.classList.remove("reference-preview-routes-open");
@@ -117,50 +122,50 @@
 
   function ensurePreviewDrawer(form) {
     if (byId("reference-preview-route-drawer")) return;
-    const drawer = ref("aside", "reference-preview-route-drawer");
+    const drawer = ref("aside", "route-assignment-drawer reference-preview-route-drawer");
     drawer.id = "reference-preview-route-drawer";
     drawer.hidden = true;
-    const heading = ref("div", "reference-preview-route-drawer-heading");
-    heading.append(ref("h3", "", "Assigned routes"));
-    const close = ref("button", "icon-button", "×");
+
+    const heading = ref("div", "route-assignment-drawer-heading reference-preview-route-drawer-heading");
+    const headingCopy = ref("div");
+    headingCopy.append(ref("strong", "", "Assigned routes"));
+    const close = ref("button", "icon-button route-assignment-close", "×");
     close.type = "button";
     close.setAttribute("aria-label", "Close assigned routes");
     close.addEventListener("click", closePreviewRoutes);
-    heading.append(close);
-    const counter = ref("strong", "reference-preview-routes-count", "0 of 0 selected");
+    heading.append(headingCopy, close);
+
+    const counter = ref("strong", "route-assignment-count reference-preview-routes-count", "0 assigned routes");
     counter.id = "reference-preview-routes-count";
+
+    const picker = ref("div", "route-assignment-picker");
+    const popover = ref("div", "route-assignment-popover");
+    const toolbar = ref("div", "route-assignment-toolbar");
     const search = document.createElement("input");
     search.id = "reference-preview-route-search";
+    search.className = "reference-preview-route-search";
     search.type = "search";
-    search.placeholder = "Search routes...";
-    search.setAttribute("aria-label", "Search routes");
+    search.placeholder = "Search assigned routes...";
+    search.setAttribute("aria-label", "Search assigned routes");
     search.addEventListener("input", renderPreviewRouteOptions);
-    const actions = ref("div", "reference-preview-route-actions");
-    const all = ref("button", "text-button", "Select all");
-    all.type = "button";
-    all.addEventListener("click", () => {
-      previewRouteSelection = new Set((state.routes || []).map((route) => route.id));
-      renderPreviewRouteOptions();
-      renderPreviewRouteSummary();
-    });
-    const clear = ref("button", "text-button", "Clear");
-    clear.type = "button";
-    clear.addEventListener("click", () => {
-      previewRouteSelection.clear();
-      renderPreviewRouteOptions();
-      renderPreviewRouteSummary();
-    });
-    actions.append(all, clear);
-    const options = ref("div", "reference-preview-route-options");
+    toolbar.append(search);
+
+    const options = ref("div", "route-assignment-options reference-preview-route-options");
     options.id = "reference-preview-route-options";
+    popover.append(toolbar, options);
+    picker.append(popover);
+
+    const footer = ref("div", "route-assignment-footer");
     const done = ref("button", "button primary full reference-preview-route-done", "Done");
     done.type = "button";
     done.addEventListener("click", closePreviewRoutes);
-    drawer.append(heading, counter, search, actions, options, done);
+    footer.append(done);
+
+    drawer.append(heading, counter, picker, footer);
     form.append(drawer);
   }
 
-  function ensurePreviewReferenceLayout() {
+function ensurePreviewReferenceLayout() {
     const dialog = byId("preview-dialog");
     const form = byId("preview-form");
     if (!dialog || !form) return;
@@ -216,11 +221,6 @@
     routing.append(routingCopy, manage);
 
     if (messageField) messageField.className = "reference-preview-message";
-    const messageCount = ref("div", "reference-preview-message-count", "0/4000");
-    messageCount.id = "reference-preview-message-count";
-    const updateCount = () => { messageCount.textContent = `${String(byId("preview-message")?.value || "").length}/4000`; };
-    byId("preview-message")?.addEventListener("input", updateCount);
-    updateCount();
 
     const output = ref("section", "reference-preview-output");
     const outputHeading = ref("div", "reference-preview-output-heading");
@@ -252,7 +252,7 @@
       const preview = byId("preview-button");
       if (test && preview) oldActions.replaceChildren(test, preview);
     }
-    for (const node of [fields, routing, messageField, messageCount, output, error, native, oldActions, oldHelp]) {
+    for (const node of [fields, routing, messageField, output, error, native, oldActions, oldHelp]) {
       if (node) form.insertBefore(node, drawer);
     }
   }
@@ -512,7 +512,7 @@
 
   if (typeof openPreview === "function") {
     const base = openPreview;
-    openPreview = function openPreviewWithReferenceLayout(id) { const result = base(id); previewDestinationId = id || ""; syncPreviewReference(); closePreviewRoutes(); return result; };
+    openPreview = function openPreviewWithReferenceLayout(id) { const result = base(id); previewDestinationId = id || ""; syncPreviewReference(); requestAnimationFrame(syncPreviewReference); closePreviewRoutes(); return result; };
   }
   if (typeof renderUsers === "function") { const base = renderUsers; renderUsers = function renderUsersWithReferenceLayout() { const result = base(); syncUsersReference(); return result; }; }
   if (typeof renderUpdates === "function") { const base = renderUpdates; renderUpdates = function renderUpdatesWithReferenceLayout() { const result = base(); syncSettingsUpdateState(); return result; }; }
@@ -520,7 +520,14 @@
   if (typeof navigate === "function") { const base = navigate; navigate = function navigateWithReferenceAcceptance(view, mode = "push") { const result = base(view, mode); scheduleSync(); return result; }; }
   if (typeof showApp === "function") { const base = showApp; showApp = function showAppWithReferenceAcceptance(session) { const result = base(session); scheduleSync(); return result; }; }
 
-  byId("preview-dialog")?.addEventListener("close", closePreviewRoutes);
+  const previewDialog = byId("preview-dialog");
+  previewDialog?.addEventListener("close", closePreviewRoutes);
+  if (previewDialog && typeof MutationObserver === "function") {
+    const previewObserver = new MutationObserver(() => {
+      if (previewDialog.open) requestAnimationFrame(syncPreviewReference);
+    });
+    previewObserver.observe(previewDialog, { attributes: true, attributeFilter: ["open"] });
+  }
   document.addEventListener("DOMContentLoaded", scheduleSync, { once: true });
   scheduleSync();
 })();

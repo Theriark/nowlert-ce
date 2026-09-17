@@ -26,7 +26,7 @@ def test_reference_acceptance_runtime_contract():
     assert "function ensurePreviewReferenceLayout()" in script
     assert "function openPreviewRoutes()" in script
     assert '"Assigned routes"' in script
-    assert 'placeholder = "Search routes..."' in script
+    assert 'placeholder = "Search assigned routes..."' in script
     assert "function ensureUsersReferenceLayout()" in script
     assert "Recent activity" in script
     assert '"Never logged in"' in script
@@ -67,3 +67,37 @@ def test_managed_backup_override_targets_production_service_name():
     assert "- DAC_OVERRIDE" in text
     assert "- FOWNER" in text
     assert "- SYS_ADMIN" in text
+
+def test_preview_dialog_matches_editor_shell_and_routes_are_read_only():
+    script = JS.read_text(encoding="utf-8")
+    styles = CSS.read_text(encoding="utf-8")
+
+    route_start = script.index("function renderPreviewRouteOptions()")
+    route_end = script.index("function closePreviewRoutes()", route_start)
+    route_block = script[route_start:route_end]
+    drawer_start = script.index("function ensurePreviewDrawer(form)")
+    drawer_end = script.index("function ensurePreviewReferenceLayout()", drawer_start)
+    drawer_block = script[drawer_start:drawer_end]
+
+    assert 'const assigned = (state.routes || []).filter((route) => previewRouteSelection.has(route.id));' in route_block
+    assert "const visible = assigned.filter" in route_block
+    assert 'check.type = "checkbox"' not in route_block
+    assert '"Select all"' not in drawer_block
+    assert '"Clear"' not in drawer_block
+    assert 'route-assignment-drawer reference-preview-route-drawer' in drawer_block
+    assert 'route-assignment-option reference-preview-route-option' in route_block
+    assert 'max-width: min(1020px, calc(100vw - 32px)) !important;' in styles
+    assert 'min-width: min(610px, calc(100vw - 32px));' in styles
+    assert 'width: 360px;' in styles
+    assert 'max-width: min(1500px,96vw)' not in styles
+    assert 'width: min(510px,42vw)' not in styles
+
+
+def test_preview_open_resyncs_and_does_not_duplicate_message_counter():
+    script = JS.read_text(encoding="utf-8")
+
+    assert 'requestAnimationFrame(syncPreviewReference)' in script
+    assert "MutationObserver" in script
+    assert 'attributeFilter: ["open"]' in script
+    assert 'ref("div", "reference-preview-message-count"' not in script
+
