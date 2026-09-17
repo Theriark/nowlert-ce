@@ -840,16 +840,23 @@ function routeFlowState(route) {
 
 function destinationTestResult(destination) {
   if (!destination) return null;
-  if (destination.last_test_at) {
-    return {
-      success: destination.last_test_outcome === "success",
-      response_status: destination.last_test_response_status || null,
-      error_code: destination.last_test_error_code || "",
-      safe_error: destination.last_test_safe_error || "",
-      tested_at: destination.last_test_at,
-    };
-  }
-  return state.destinationTestResults[destination.id] || null;
+  const transient = state.destinationTestResults[destination.id] || null;
+  const persisted = destination.last_test_at
+    ? {
+        success: destination.last_test_outcome === "success",
+        response_status: destination.last_test_response_status || null,
+        error_code: destination.last_test_error_code || "",
+        safe_error: destination.last_test_safe_error || "",
+        tested_at: Number(destination.last_test_at) < 10_000_000_000
+          ? Number(destination.last_test_at) * 1000
+          : Number(destination.last_test_at),
+      }
+    : null;
+  if (!persisted) return transient;
+  if (!transient) return persisted;
+  return Number(transient.tested_at || 0) >= Number(persisted.tested_at || 0)
+    ? transient
+    : persisted;
 }
 
 function destinationTestDetail(result) {
@@ -911,6 +918,19 @@ function destinationTestToast(delivery, outputType) {
     message: `Test delivery sent successfully (${detail}).`,
     style: "success",
   };
+}
+
+function updateDestinationState(updated) {
+  if (!updated || !updated.id) return false;
+  const index = state.destinations.findIndex((item) => item.id === updated.id);
+  if (index < 0) return false;
+  state.destinations[index] = {
+    ...state.destinations[index],
+    ...updated,
+  };
+  renderDestinations();
+  renderFlow();
+  return true;
 }
 
 function destinationFlowLabels(destination) {
@@ -3083,15 +3103,11 @@ async function runPreview(event) {
         tested_at: Date.now(),
       };
       if (response.destination) {
-        const index = state.destinations.findIndex(
-          (item) => item.id === response.destination.id,
-        );
-        if (index >= 0) {
-          state.destinations[index] = response.destination;
-        }
+        updateDestinationState(response.destination);
+      } else {
+        renderDestinations();
+        renderFlow();
       }
-      renderDestinations();
-      renderFlow();
       const notification = destinationTestToast(delivery, outputType);
       toast(notification.message, notification.style);
     }
@@ -3209,12 +3225,24 @@ async function resourceAction(action, id) {
       toast("State backup deleted.");
     } else if (action === "toggle-destination") {
       const item = state.destinations.find((candidate) => candidate.id === id);
-      await request(`/destinations/${id}`, { method: "PATCH", body: { enabled: !item.enabled } });
-      toast(`Destination ${item.enabled ? "disabled" : "enabled"}.`);
+      const response = await request(`/destinations/${id}`, {
+        method: "PATCH",
+        body: { enabled: !item.enabled },
+      });
+      const updated = response.destination || { ...item, enabled: !item.enabled };
+      updateDestinationState(updated);
+      toast(`Destination ${updated.enabled ? "enabled" : "disabled"}.`);
+      return;
     } else if (action === "toggle-destination-shared") {
       const item = state.destinations.find((candidate) => candidate.id === id);
-      await request(`/destinations/${id}`, { method: "PATCH", body: { shared: !item.shared } });
-      toast(`Destination changed to ${item.shared ? "private" : "shared"}.`);
+      const response = await request(`/destinations/${id}`, {
+        method: "PATCH",
+        body: { shared: !item.shared },
+      });
+      const updated = response.destination || { ...item, shared: !item.shared };
+      updateDestinationState(updated);
+      toast(`Destination changed to ${updated.shared ? "shared" : "private"}.`);
+      return;
     } else if (action === "test-destination-card") {
       const destination = state.destinations.find((candidate) => candidate.id === id);
       if (!destination) return;

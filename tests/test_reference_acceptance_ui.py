@@ -6,6 +6,7 @@ CSS = ROOT / "src/webui/reference_acceptance.css"
 SERVICE = ROOT / "src/webui/service.py"
 PLATFORM_API = ROOT / "src/api/platform.py"
 OUTPUT_SERVICE = ROOT / "src/outputs/service.py"
+ENHANCEMENTS = ROOT / "src/webui/enhancements.js"
 COMPOSE = ROOT / "compose.managed-backups.yaml"
 
 
@@ -127,3 +128,24 @@ def test_preview_scenario_uses_integration_severities_and_temporary_style_overri
     assert "def _with_message_style(" in output_service
     assert 'settings["components_v2"] = style == "modern"' in output_service
     assert 'settings["message_style"] = style' in output_service
+
+
+def test_preview_compacts_editable_fields_and_renders_only_applicable_outputs():
+    script = JS.read_text(encoding="utf-8")
+    styles = CSS.read_text(encoding="utf-8")
+    enhancements = ENHANCEMENTS.read_text(encoding="utf-8")
+
+    assert '"reference-preview-name"' not in script
+    assert '"reference-preview-channel"' not in script
+    assert 'textContent = `Preview ${destination.name}`' in script
+    assert "window.nowlertSourceTestSample = sourceTestSample;" in enhancements
+    assert 'previewScenarioEvent(route, severity, destination)' in script
+    assert 'String(byId("preview-message")?.value || "").trim()' in script
+    assert '"selected_routes"' not in script
+    assert '"skipped_routes"' not in script
+    assert 'action === "preview"' in script
+    assert '{ preview: output }' in script
+    assert '{ result: output }' in script
+    assert "reference-preview-route-more-toggle" in script
+    assert "reference-preview-route-more-menu" in script
+    assert ".reference-preview-route-more-menu" in styles

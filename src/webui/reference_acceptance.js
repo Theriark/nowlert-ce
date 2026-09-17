@@ -10,6 +10,7 @@
   let previewScenarioDestinationId = "";
   let previewAssignedRouteIds = new Set();
   let previewRouteSelection = new Set();
+  let previewRouteMoreOpen = false;
   let syncQueued = false;
 
   const ref = (tag, className = "", text = "") => {
@@ -122,13 +123,16 @@
     previewScenarioDestinationId = String(destinationId || "");
     previewAssignedRouteIds = assignedRouteIds(previewScenarioDestinationId);
     previewRouteSelection = new Set(previewAssignedRouteIds);
+    previewRouteMoreOpen = false;
     renderPreviewRouteSummary();
     renderPreviewRouteOptions();
     refreshPreviewSeverityOptions();
   }
 
-  function previewScenarioEvent(route, severity) {
-    const event = typeof sampleEvent === "function"
+  function previewScenarioEvent(route, severity, destination) {
+    const source = route.source === "*" ? "nowlert" : route.source;
+    const sampleFactory = window.nowlertSourceTestSample;
+    const fallback = typeof sampleEvent === "function"
       ? sampleEvent()
       : {
           schema: "nowlert.event.v1",
@@ -137,12 +141,20 @@
           status: "active",
           metadata: {},
         };
+    const event = typeof sampleFactory === "function"
+      ? sampleFactory(source, destination)
+      : { ...fallback, source };
+    const message = String(byId("preview-message")?.value || "").trim();
     return {
       ...event,
-      source: route.source === "*" ? "nowlert" : route.source,
+      schema: "nowlert.event.v1",
+      source,
+      message: message || event.message,
       severity,
+      status: "active",
       metadata: {
         ...(event.metadata || {}),
+        severity,
         route_id: route.id,
         route_name: route.name || routeLabel(route),
       },
@@ -217,18 +229,18 @@
 
     const renderResult = (outputs) => {
       resultNode.hidden = false;
-      resultNode.textContent = JSON.stringify(
-        {
-          destination: destination.name,
-          severity: severity || null,
-          message_style: messageStyle || "native",
-          selected_routes: selected.map(previewScenarioLabel),
-          skipped_routes: skipped.map(previewScenarioLabel),
-          outputs,
-        },
-        null,
-        2,
-      );
+      if (!outputs.length) {
+        resultNode.textContent = "";
+        return;
+      }
+      const payload = outputs.length === 1
+        ? outputs[0]
+        : {
+            severity,
+            message_style: messageStyle || "native",
+            outputs,
+          };
+      resultNode.textContent = JSON.stringify(payload, null, 2);
     };
 
     if (!selected.length || !severity || !applicable.length) {
@@ -248,7 +260,7 @@
     const responses = await Promise.all(
       applicable.map(async (route) => {
         const body = {
-          event: previewScenarioEvent(route, severity),
+          event: previewScenarioEvent(route, severity, destination),
         };
         if (messageStyle) body.message_style = messageStyle;
         try {
@@ -274,7 +286,11 @@
     renderResult(
       responses.map(({ route, output, error }) => ({
         route,
-        ...(error ? { error } : { output }),
+        ...(error
+          ? { error }
+          : action === "preview"
+            ? { preview: output }
+            : { result: output }),
       })),
     );
 
@@ -290,6 +306,20 @@
         if (typeof renderDestinations === "function") renderDestinations();
         if (typeof renderFlow === "function") renderFlow();
       }
+      const lastDelivery = [...responses]
+        .reverse()
+        .find((item) => item.output)?.output;
+      if (lastDelivery) {
+        state.destinationTestResults[destinationId] = {
+          success: lastDelivery.success === true,
+          response_status: lastDelivery.response_status || null,
+          error_code: lastDelivery.error_code || "",
+          safe_error: lastDelivery.safe_error || "",
+          tested_at: Date.now(),
+        };
+        if (typeof renderDestinations === "function") renderDestinations();
+        if (typeof renderFlow === "function") renderFlow();
+      }
       const successes = responses.filter(
         (item) => item.output?.success === true,
       ).length;
@@ -302,6 +332,26 @@
     }
   }
 
+  function previewRouteSummaryChip(route) {
+    const chip = ref("span", "reference-preview-route-chip");
+    if (typeof sourceIcon === "function") chip.append(sourceIcon(route.source));
+    chip.append(ref("strong", "", routeLabel(route)));
+    chip.append(ref(
+      "span",
+      route.enabled === false ? "is-disabled" : "is-enabled",
+      route.enabled === false ? "Disabled" : "Enabled",
+    ));
+    return chip;
+  }
+
+  function closePreviewRouteMore() {
+    previewRouteMoreOpen = false;
+    const menu = byId("reference-preview-route-more-menu");
+    const toggle = byId("reference-preview-route-more-toggle");
+    if (menu) menu.hidden = true;
+    if (toggle) toggle.setAttribute("aria-expanded", "false");
+  }
+
   function renderPreviewRouteSummary() {
     const count = byId("reference-preview-route-summary");
     const chips = byId("reference-preview-route-chips");
@@ -310,13 +360,35 @@
     count.textContent = `${selected.length} of ${previewAssignedRouteIds.size} routes selected`;
     chips.replaceChildren();
     for (const route of selected.slice(0, 3)) {
-      const chip = ref("span", "reference-preview-route-chip");
-      if (typeof sourceIcon === "function") chip.append(sourceIcon(route.source));
-      chip.append(ref("strong", "", routeLabel(route)));
-      chip.append(ref("span", route.enabled === false ? "is-disabled" : "is-enabled", route.enabled === false ? "Disabled" : "Enabled"));
-      chips.append(chip);
+      chips.append(previewRouteSummaryChip(route));
     }
-    if (selected.length > 3) chips.append(ref("span", "reference-preview-route-more", `+${selected.length - 3} more`));
+    if (selected.length <= 3) {
+      previewRouteMoreOpen = false;
+      return;
+    }
+
+    const wrapper = ref("span", "reference-preview-route-more-wrap");
+    const toggle = ref("button", "reference-preview-route-more", `+${selected.length - 3} more`);
+    toggle.type = "button";
+    toggle.id = "reference-preview-route-more-toggle";
+    toggle.setAttribute("aria-expanded", previewRouteMoreOpen ? "true" : "false");
+    toggle.setAttribute("aria-controls", "reference-preview-route-more-menu");
+
+    const menu = ref("div", "reference-preview-route-more-menu");
+    menu.id = "reference-preview-route-more-menu";
+    menu.hidden = !previewRouteMoreOpen;
+    for (const route of selected.slice(3)) {
+      menu.append(previewRouteSummaryChip(route));
+    }
+
+    toggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      previewRouteMoreOpen = !previewRouteMoreOpen;
+      menu.hidden = !previewRouteMoreOpen;
+      toggle.setAttribute("aria-expanded", previewRouteMoreOpen ? "true" : "false");
+    });
+    wrapper.append(toggle, menu);
+    chips.append(wrapper);
   }
 
   function renderPreviewRouteOptions() {
@@ -488,15 +560,11 @@ function ensurePreviewReferenceLayout() {
       element.id = id;
       return field;
     };
-    const name = document.createElement("input"); name.readOnly = true;
-    const channel = document.createElement("input"); channel.readOnly = true;
     const style = document.createElement("select");
     style.append(new Option("Modern Card", "modern"), new Option("Classic Embed", "classic"));
     if (severityField) severityField.className = "reference-preview-field";
     fields.append(
-      simpleField("Name", "reference-preview-name", name),
       severityField || ref("div"),
-      simpleField("Channel", "reference-preview-channel", channel),
       simpleField("Message style", "reference-preview-message-style", style),
     );
 
@@ -557,11 +625,7 @@ function ensurePreviewReferenceLayout() {
     if (previewScenarioDestinationId !== String(destination.id)) {
       beginPreviewScenario(destination.id);
     }
-    const provider = previewProvider(destination);
-    if (byId("preview-title")) byId("preview-title").textContent = `Preview ${destination.name} - ${provider}`;
-    if (byId("reference-preview-name")) byId("reference-preview-name").value = destination.name || "";
-    const settings = destination.settings || {};
-    if (byId("reference-preview-channel")) byId("reference-preview-channel").value = settings.channel_name || settings.channel || settings.topic || "Not labelled";
+    if (byId("preview-title")) byId("preview-title").textContent = `Preview ${destination.name}`;
     syncPreviewMessageStyle(destination);
     renderPreviewRouteSummary();
     renderPreviewRouteOptions();
@@ -823,6 +887,14 @@ function ensurePreviewReferenceLayout() {
     });
     previewObserver.observe(previewDialog, { attributes: true, attributeFilter: ["open"] });
   }
+  document.addEventListener("click", (event) => {
+    if (!previewRouteMoreOpen) return;
+    const wrapper = event.target.closest?.(".reference-preview-route-more-wrap");
+    if (!wrapper) closePreviewRouteMore();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && previewRouteMoreOpen) closePreviewRouteMore();
+  });
   document.addEventListener("DOMContentLoaded", scheduleSync, { once: true });
   scheduleSync();
 })();

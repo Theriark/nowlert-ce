@@ -466,3 +466,21 @@ def test_webui_uses_persisted_destination_health_for_routing_flow():
     assert "renderFlow();" in app
     assert "last_test_safe_error" in app
     assert "destination-test-detail" in app
+
+
+def test_webui_prefers_newer_transient_destination_test_result_and_avoids_toggle_reload():
+    app = (ROOT / "src/webui/app.js").read_text(encoding="utf-8")
+
+    result_start = app.index("function destinationTestResult(destination)")
+    result_end = app.index("function destinationTestDetail", result_start)
+    result_block = app[result_start:result_end]
+    action_start = app.index('} else if (action === "toggle-destination")')
+    action_end = app.index('} else if (action === "test-destination-card")', action_start)
+    toggle_block = app[action_start:action_end]
+
+    assert "const transient = state.destinationTestResults[destination.id] || null;" in result_block
+    assert "Number(transient.tested_at || 0) >= Number(persisted.tested_at || 0)" in result_block
+    assert "function updateDestinationState(updated)" in app
+    assert "updateDestinationState(updated);" in toggle_block
+    assert "await loadWorkspace()" not in toggle_block
+    assert "return;" in toggle_block
