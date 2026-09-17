@@ -38,6 +38,7 @@
     const admin = Boolean(isAdmin());
     primaryNav("sources")?.remove();
     primaryNav("tokens")?.remove();
+    primaryNav("updates")?.remove();
     document.getElementById("administration-nav")?.remove();
     document.getElementById("profile-api-access")?.remove();
     document.getElementById("profile-settings")?.remove();
@@ -46,7 +47,6 @@
     const backupsNav = document.getElementById("backups-nav") || primaryNav("backups");
     const usersNav = document.getElementById("users-nav") || primaryNav("users");
     const settingsNav = document.getElementById("settings-nav") || primaryNav("settings");
-    const updatesNav = document.getElementById("updates-nav") || primaryNav("updates");
     const inputsNav = document.getElementById("inputs-nav") || primaryNav("inputs");
     const dataNav = document.getElementById("data-nav") || primaryNav("data");
 
@@ -54,7 +54,6 @@
     if (backupsNav) backupsNav.hidden = !admin;
     if (usersNav) usersNav.hidden = !admin;
     if (settingsNav) settingsNav.hidden = !admin;
-    if (updatesNav) updatesNav.hidden = !admin;
     if (inputsNav) inputsNav.hidden = true;
     if (dataNav) dataNav.hidden = true;
 
@@ -66,9 +65,6 @@
     }
     if (usersNav && settingsNav && usersNav.nextElementSibling !== settingsNav) {
       usersNav.after(settingsNav);
-    }
-    if (settingsNav && updatesNav && settingsNav.nextElementSibling !== updatesNav) {
-      settingsNav.after(updatesNav);
     }
   }
 
@@ -160,13 +156,62 @@
     dataSection.setAttribute("aria-hidden", "true");
   }
 
+  function embedSettingsUpdates() {
+    const settingsSection = document.getElementById("view-settings");
+    const updatesSection = document.getElementById("view-updates");
+    if (!settingsSection || !updatesSection) return;
+
+    let container = settingsSection.querySelector(":scope > #settings-updates");
+    if (!container) {
+      container = document.createElement("section");
+      container.id = "settings-updates";
+      container.className = "embedded-management-block";
+      container.style.display = "grid";
+      container.style.gap = "16px";
+      container.style.marginTop = "16px";
+      settingsSection.append(container);
+    }
+
+    const toolbar = updatesSection.querySelector(":scope > .section-toolbar")
+      || container.querySelector(":scope > .section-toolbar");
+    const panel = updatesSection.querySelector(":scope > .update-panel")
+      || container.querySelector(":scope > .update-panel");
+    if (toolbar) {
+      prepareEmbeddedToolbar(toolbar, "Updates");
+      const action = document.getElementById("platform-check-updates");
+      if (action) {
+        action.className = "button secondary";
+        action.removeAttribute("role");
+        action.textContent = "Check for updates";
+        if (action.parentElement !== toolbar) toolbar.append(action);
+      }
+      if (toolbar.parentElement !== container) container.append(toolbar);
+    }
+    if (panel && panel.parentElement !== container) container.append(panel);
+
+    updatesSection.hidden = true;
+    updatesSection.setAttribute("aria-hidden", "true");
+  }
+
+  function embedFilteringDeterministicProcessing() {
+    const filteringSection = document.getElementById("view-filtering");
+    const filteringTable = filteringSection?.querySelector(":scope > .filtering-table-panel");
+    const settingsList = document.getElementById("integration-settings-list");
+    const panel = settingsList?.closest("article.panel");
+    if (!filteringSection || !filteringTable || !panel) return;
+
+    panel.id = "filtering-deterministic-processing";
+    panel.classList.add("embedded-management-block");
+    panel.style.marginTop = "16px";
+    if (panel.previousElementSibling !== filteringTable) filteringTable.after(panel);
+  }
+
   function syncPageOwnership(view = state.currentView) {
     const admin = Boolean(isAdmin());
     const auditNav = primaryNav("audit");
     const backupsNav = document.getElementById("backups-nav") || primaryNav("backups");
     const usersNav = document.getElementById("users-nav") || primaryNav("users");
     const settingsNav = document.getElementById("settings-nav") || primaryNav("settings");
-    const updatesNav = document.getElementById("updates-nav") || primaryNav("updates");
 
     document.getElementById("administration-nav")?.remove();
     document.getElementById("profile-api-access")?.remove();
@@ -174,17 +219,17 @@
     removeNestedManagementTabs();
     embedAccountApiTokens();
     embedBackupDataTools();
+    embedSettingsUpdates();
+    embedFilteringDeterministicProcessing();
 
     if (auditNav) auditNav.hidden = !admin;
     if (backupsNav) backupsNav.hidden = !admin;
     if (usersNav) usersNav.hidden = !admin;
     if (settingsNav) settingsNav.hidden = !admin;
-    if (updatesNav) updatesNav.hidden = !admin;
 
     setNavActive(backupsNav, view === "backups");
     setNavActive(usersNav, view === "users");
     setNavActive(settingsNav, view === "settings");
-    setNavActive(updatesNav, view === "updates");
 
     const addDestination = document.getElementById("add-destination-button");
     if (addDestination && state.user) addDestination.hidden = false;
@@ -234,15 +279,7 @@
         if (toolbarCopy) toolbarCopy.hidden = true;
       }
     } else if (view === "settings") {
-      setPageCopy("Settings", "Configure regional preferences and integration-specific behavior.");
-      if (toolbar) {
-        toolbar.hidden = true;
-        toolbar.setAttribute("aria-hidden", "true");
-        toolbar.classList.remove("administration-section-header", "page-data-toolbar");
-        if (toolbarCopy) toolbarCopy.hidden = false;
-      }
-    } else if (view === "updates") {
-      setPageCopy("Updates", "Review the running version and any advertised Nowlert update.");
+      setPageCopy("Settings", "Configure regional preferences and updates.");
       if (toolbar) {
         toolbar.hidden = true;
         toolbar.setAttribute("aria-hidden", "true");
@@ -263,6 +300,8 @@
         removeNestedManagementTabs();
         embedAccountApiTokens();
         embedBackupDataTools();
+        embedSettingsUpdates();
+        embedFilteringDeterministicProcessing();
         syncPageOwnership(state.currentView);
       });
     });
@@ -274,6 +313,8 @@
     removeNestedManagementTabs();
     embedAccountApiTokens();
     embedBackupDataTools();
+    embedSettingsUpdates();
+    embedFilteringDeterministicProcessing();
     syncPageOwnership();
     scheduleFinalOwnershipSync();
   }
@@ -292,6 +333,7 @@
     if (view === "inputs") view = "dashboard";
     if (view === "tokens") view = "account";
     if (view === "data") view = "backups";
+    if (view === "updates") view = "settings";
     if (!isAdmin() && ADMIN_ONLY_VIEWS.has(view)) view = "dashboard";
     const result = previousNavigate(view, historyMode);
     syncPageOwnership(view);
@@ -304,6 +346,7 @@
   if (state.currentView === "inputs") navigate("dashboard", "replace");
   if (state.currentView === "tokens") navigate("account", "replace");
   if (state.currentView === "data") navigate("backups", "replace");
+  if (state.currentView === "updates") navigate("settings", "replace");
 
   const baseRenderDestinations = renderDestinations;
   renderDestinations = function renderDestinationsWithPermissions() {
