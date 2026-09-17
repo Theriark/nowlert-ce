@@ -41,3 +41,10 @@ def test_unified_header_styles_cover_page_admin_and_data_toolbar_levels():
     assert '.page-data-toolbar' in styles
     assert '.administration-section-header' in styles
     assert '.administration-tabs' in styles
+
+
+def test_acceptance_dashboard_does_not_reparent_controls_owned_by_unified_header():
+    script = (ROOT / "src" / "webui" / "operations_acceptance.js").read_text(encoding="utf-8")
+
+    assert 'const unifiedHeaderOwnsControls = document.querySelector(".topbar.page-command-bar");' in script
+    assert 'if (!unifiedHeaderOwnsControls && controls.parentElement !== toolbar) toolbar.append(controls);' in script
