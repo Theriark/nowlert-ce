@@ -347,7 +347,7 @@
     )) {
       scheduleRefine();
     }
-  });
+  }, true);
 
   document.addEventListener("keydown", (event) => {
     if (
@@ -356,15 +356,15 @@
     ) {
       scheduleRefine();
     }
-  });
+  }, true);
 
   document.addEventListener("change", (event) => {
     if (event.target.closest("#view-audit .audit-log-filters")) scheduleRefine();
-  });
+  }, true);
 
   document.addEventListener("input", (event) => {
     if (event.target.id === "audit-search") scheduleRefine();
-  });
+  }, true);
 
   document.addEventListener("DOMContentLoaded", scheduleRefine);
 })();
