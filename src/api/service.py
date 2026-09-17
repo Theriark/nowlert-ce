@@ -6,7 +6,7 @@ import time
 
 from pathlib import Path
 
-from api.access_acceptance import PlatformAPI
+from api.private_destination_actions import PlatformAPI
 from api.audit import AuditLog
 from api.config_service import ConfigService
 from api.response import APIResponse
