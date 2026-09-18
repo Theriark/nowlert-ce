@@ -609,7 +609,7 @@ def test_nce30_nce31_admin_delete_controls():
         in script
     )
     assert (
-        'actionButton("Delete", "delete-backup", item.id, "danger")'
+        'backupIconAction("delete-backup", item.id, "Delete", "trash", "danger")'
         in script
     )
 

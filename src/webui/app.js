@@ -256,6 +256,61 @@ function actionButton(label, action, id, style = "secondary") {
   });
 }
 
+function backupSvgIcon(name, className = "backup-action-icon") {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.setAttribute("class", className);
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("stroke-width", "1.9");
+
+  const definitions = {
+    play: ["M8 5l11 7-11 7z"],
+    edit: ["M4 20l4.5-1 10-10-3.5-3.5-10 10z", "M14 6l3.5 3.5"],
+    trash: ["M5 7h14", "M9 7V4h6v3", "M8 10v7", "M12 10v7", "M16 10v7", "M6 7l1 14h10l1-14"],
+    check: ["M5 12l4 4L19 6"],
+    restore: ["M9 7H5V3", "M5 7a8 8 0 1 1-1 7"],
+  };
+
+  for (const pathData of definitions[name] || []) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", pathData);
+    svg.append(path);
+  }
+  return svg;
+}
+
+function backupIconAction(action, id, label, icon, style = "secondary", iconOnly = false) {
+  return element("button", {
+    className: `button small ${style} backup-table-action${iconOnly ? " icon-only" : ""}`,
+    type: "button",
+    title: label,
+    attributes: { "aria-label": label },
+    dataset: { action, id },
+  }, [
+    backupSvgIcon(icon),
+    iconOnly ? null : element("span", { text: label }),
+  ]);
+}
+
+function backupTargetLastTest(item) {
+  if (!item.last_test_at) {
+    return element("span", { className: "backup-test-result muted", text: "Never" });
+  }
+  const children = [];
+  if (item.last_test_outcome === "success") {
+    children.push(backupSvgIcon("check", "backup-test-check"));
+  } else if (item.last_test_outcome === "failed") {
+    children.push(element("span", { className: "backup-test-failed", text: "!" }));
+  }
+  children.push(element("span", { text: formatTime(item.last_test_at) }));
+  return element("span", { className: "backup-test-result" }, children);
+}
+
 function badge(label, style = "") {
   return element("span", { className: `badge ${style}`.trim(), text: label });
 }
@@ -2094,6 +2149,18 @@ function backupScheduleSummary() {
   return { count: "1", detail: `Monthly · day ${Number(settings.day || 1)}, ${time}` };
 }
 
+function backupNextRunLabel(settings) {
+  const schedule = String(settings?.schedule || "disabled");
+  const time = formatClockValue(settings?.time || "02:00");
+  if (schedule === "disabled") return "Next run: Disabled";
+  if (schedule === "daily") return `Next run: Daily at ${time}`;
+  if (schedule === "weekly") {
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    return `Next run: ${days[Number(settings?.weekday || 0)]} at ${time}`;
+  }
+  return `Next run: Day ${Number(settings?.day || 1)} at ${time}`;
+}
+
 function backupSystemHealth() {
   const enabled = state.backupTargets.filter((item) => item.enabled);
   if (!enabled.length) {
@@ -2157,16 +2224,25 @@ function renderBackupRecoveryTable() {
       element("td", {}, badge(type, type === "SCHEDULED" ? "info" : "")),
       element("td", {}, [element("strong", { text: item.config_included ? "Full snapshot" : "Legacy state-only" }), element("small", { text: backupSnapshotDetail(item) })]),
       element("td", { text: formatBytes(item.size_bytes) }),
-      element("td", {}, element("div", { className: "row-actions" }, [
-        actionButton("Restore", "restore-backup", item.id),
-        actionButton("Delete", "delete-backup", item.id, "danger"),
+      element("td", {}, element("div", { className: "row-actions backup-row-actions" }, [
+        backupIconAction("restore-backup", item.id, "Restore", "restore"),
+        backupIconAction("delete-backup", item.id, "Delete", "trash", "danger"),
       ])),
     ]));
   }
   const button = byId("backup-view-all");
   if (button) {
     button.hidden = state.backups.length <= 4;
-    button.textContent = state.showAllBackups ? "Show latest 4" : `View all snapshots (${state.backups.length})`;
+    const label = button.querySelector("span:last-child");
+    if (label) label.textContent = state.showAllBackups ? "Show latest 4" : "View all snapshots";
+  }
+  const status = byId("backup-view-all-status");
+  if (status) {
+    const visible = rows.length;
+    status.replaceChildren(
+      document.createTextNode(`${visible} of ${state.backups.length} snapshots shown `),
+      element("span", { text: "›", attributes: { "aria-hidden": "true" } }),
+    );
   }
 }
 
@@ -2191,16 +2267,25 @@ function renderStoredBackupTable() {
     const type = String(item.backup_type || "manual").toUpperCase();
     body.append(element("tr", {}, [
       element("td", {}, [element("span", { className: "backup-row-dot", text: "●" }), formatTime(item.created_at)]),
-      element("td", {}, [badge(String(item.target_type || "").toUpperCase(), "info"), element("span", { text: ` ${item.target_name}` })]),
+      element("td", {}, [badge(String(item.target_type || "").toUpperCase(), "info"), element("span", { className: "backup-target-name", text: ` ${item.target_name}` })]),
       element("td", {}, badge(type, type === "SCHEDULED" ? "info" : "")),
       element("td", { text: formatBytes(item.size_bytes) }),
-      element("td", {}, actionButton("Restore", "restore-external-backup", restoreId)),
+      element("td", {}, backupIconAction("restore-external-backup", restoreId, "Restore", "restore")),
     ]));
   }
   const button = byId("backup-stored-view-all");
   if (button) {
     button.hidden = state.externalBackups.length <= 4;
-    button.textContent = state.showAllStoredBackups ? "Show latest 4" : `View all stored copies (${state.externalBackups.length})`;
+    const label = button.querySelector("span:last-child");
+    if (label) label.textContent = state.showAllStoredBackups ? "Show latest 4" : "View all stored copies";
+  }
+  const status = byId("backup-stored-view-all-status");
+  if (status) {
+    const visible = rows.length;
+    status.replaceChildren(
+      document.createTextNode(`${visible} of ${state.externalBackups.length} copies shown `),
+      element("span", { text: "›", attributes: { "aria-hidden": "true" } }),
+    );
   }
 
   const errors = byId("external-backup-list");
@@ -2293,18 +2378,18 @@ function renderBackupTargets() {
     const location = item.type === "local"
       ? item.local_path
       : item.type === "nfs" ? item.remote_path : `${item.share_name}${item.remote_path ? `/${item.remote_path}` : ""}`;
-    const actions = element("div", { className: "row-actions" }, [
-      actionButton("▶ Test", "test-backup-target", item.id),
-      actionButton("Edit", "edit-backup-target", item.id),
-      actionButton("Delete", "delete-backup-target", item.id, "danger"),
+    const actions = element("div", { className: "row-actions backup-row-actions" }, [
+      backupIconAction("test-backup-target", item.id, "Test", "play"),
+      backupIconAction("edit-backup-target", item.id, "Edit", "edit", "secondary", true),
+      backupIconAction("delete-backup-target", item.id, "Delete", "trash", "danger", true),
     ]);
     body.append(element("tr", {}, [
       element("td", {}, badge(item.type.toUpperCase(), "info")),
       element("td", {}, [element("strong", { text: item.name }), item.last_error ? element("small", { text: item.last_error }) : null]),
       element("td", { text: item.host || "—" }),
-      element("td", {}, element("code", { text: location })),
+      element("td", {}, element("code", { text: location, title: location })),
       element("td", {}, badge(status, style)),
-      element("td", { text: item.last_test_at ? formatTime(item.last_test_at) : "Never" }),
+      element("td", {}, backupTargetLastTest(item)),
       element("td", {}, actions),
     ]));
   }
@@ -2379,13 +2464,7 @@ function renderBackupSettings() {
   }
   target.value = settings.target_id || "";
   byId("backup-managed-mounts").checked = settings.managed_mounts === true;
-  byId("backup-time-display").textContent = `Scheduled time: ${formatClockValue(settings.time || "02:00")}`;
-  const lastText = state.backupLastRun
-    ? `Last run: ${formatTime(state.backupLastRun.completed_at || state.backupLastRun.started_at)} ✓`
-    : "No run yet";
-  byId("backup-last-run").textContent = lastText;
-  const badgeNode = byId("backup-last-run-badge");
-  if (badgeNode) badgeNode.textContent = lastText;
+  byId("backup-time-display").textContent = backupNextRunLabel(settings);
   renderBackupOverview();
 }
 
