@@ -121,7 +121,7 @@
         <button class="nav-item" type="button" data-view="deliveries">
           <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7c2.2-2.7 4.4 2.7 6.6 0s4.4 2.7 6.6 0 4.4 2.7 4.8 2.2"></path><path d="M3 12c2.2-2.7 4.4 2.7 6.6 0s4.4 2.7 6.6 0 4.4 2.7 4.8 2.2"></path><path d="M3 17c2.2-2.7 4.4 2.7 6.6 0s4.4 2.7 6.6 0 4.4 2.7 4.8 2.2"></path></svg></span><span class="nav-label">Delivery history</span>
         </button>
-        <button class="nav-item" type="button" data-view="audit">
+        <button id="audit-nav" class="nav-item" type="button" data-view="audit" hidden>
           <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg></span><span class="nav-label">Audit log</span>
         </button>
         <button id="backups-nav" class="nav-item" type="button" data-view="backups" hidden>
@@ -130,7 +130,7 @@
         <button id="users-nav" class="nav-item" type="button" data-view="users" hidden>
           <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"></circle><path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6"></path></svg></span><span class="nav-label">Users</span>
         </button>
-        <button id="settings-nav" class="nav-item" type="button" data-view="settings" hidden>
+        <button id="settings-nav" class="nav-item" type="button" data-view="settings">
           <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg></span><span class="nav-label">Settings</span>
         </button>
       </nav>
@@ -420,18 +420,30 @@
               </form>
             </article>
 
-            <article id="backup-data-tools-panel" class="panel backup-dashboard-panel">
-              <div class="panel-heading"><div class="backup-section-title"><span class="backup-section-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.7 6.3a4 4 0 0 0-5.5 5.5L4 17v3h3l5.2-5.2a4 4 0 0 0 5.5-5.5l-2.5 2.5-2-2z"></path></svg></span><h3>Data tools</h3></div></div>
-              <div class="backup-data-tools-grid">
-                <div class="backup-tool-box">
-                  <div class="backup-tool-heading"><span class="backup-tool-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 15V3"></path><path d="M8 7l4-4 4 4"></path><path d="M4 19h16"></path></svg></span><strong>Export user configuration</strong></div>
-                  <p>Download destinations, reusable routes, route assignments, destination filtering policies, and safe settings.</p>
-                  <button class="button primary backup-icon-button" type="button" data-action="export-platform"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M4 19h16"></path></svg></span><span>Download safe JSON</span></button>
+            <article id="backup-data-tools-panel" class="panel backup-dashboard-panel data-tools-reference-panel">
+              <div class="panel-heading data-tools-reference-heading">
+                <div class="backup-section-title">
+                  <span class="backup-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.7 6.3a4 4 0 0 0-5.5 5.5L4 17v3h3l5.2-5.2a4 4 0 0 0 5.5-5.5l-2.5 2.5-2-2z"></path></svg></span>
+                  <h3>Data tools</h3>
                 </div>
-                <div class="backup-tool-box">
-                  <div class="backup-tool-heading"><span class="backup-tool-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M4 19h16"></path></svg></span><strong>Import user configuration</strong></div>
+              </div>
+              <div class="backup-data-tools-grid">
+                <div class="backup-tool-box data-tools-reference-card">
+                  <div class="backup-tool-heading">
+                    <span class="backup-tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 15V3"></path><path d="M8 7l4-4 4 4"></path><path d="M4 19h16"></path></svg></span>
+                    <strong>Export user configuration</strong>
+                  </div>
+                  <p>Download destinations, reusable routes, route assignments, destination filtering policies, and safe settings.</p>
+                  <button class="button primary backup-icon-button data-tools-reference-download" type="button" data-action="export-platform"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M4 19h16"></path></svg></span><span>Download safe JSON</span></button>
+                </div>
+                <div class="backup-tool-box data-tools-reference-card">
+                  <div class="backup-tool-heading">
+                    <span class="backup-tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M4 19h16"></path></svg></span>
+                    <strong>Import user configuration</strong>
+                  </div>
                   <p>Choose a Nowlert user-configuration export. It is validated automatically before anything can be applied; credentials remain unset and stay disabled.</p>
-                  <label class="file-field compact"><span class="sr-only">JSON document</span><input id="backup-portable-file" type="file" accept="application/json,.json"></label>
+                  <label class="file-field compact data-tools-reference-file"><span class="sr-only">JSON document</span><input id="backup-portable-file" type="file" accept="application/json,.json"></label>
+                  <button class="button secondary backup-icon-button data-tools-reference-preview" type="button" data-action="preview-backup-portable-import"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5"></path></svg></span><span>Preview JSON import</span></button>
                 </div>
               </div>
             </article>

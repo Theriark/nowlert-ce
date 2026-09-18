@@ -510,7 +510,7 @@ function requestedAppView() {
   const requested = window.location.hash.slice(1);
   if (
     VIEW_TITLES[requested]
-    && (!["users", "settings", "inputs", "backups", "data"].includes(requested) || isAdmin())
+    && (!["users", "inputs", "backups", "data", "audit"].includes(requested) || isAdmin())
   ) {
     return requested;
   }
@@ -522,8 +522,9 @@ function showApp(session) {
   state.sessionExpiresAt = session.expires_at;
   state.csrf = session.csrf_token || readCsrfCookie(session.cookie_mode);
   byId("login-view").hidden = true;
+  if (byId("audit-nav")) byId("audit-nav").hidden = !isAdmin();
   if (byId("users-nav")) byId("users-nav").hidden = !isAdmin();
-  if (byId("settings-nav")) byId("settings-nav").hidden = !isAdmin();
+  if (byId("settings-nav")) byId("settings-nav").hidden = false;
   if (byId("inputs-nav")) byId("inputs-nav").hidden = !isAdmin();
   if (byId("backups-nav")) byId("backups-nav").hidden = !isAdmin();
   if (byId("data-nav")) byId("data-nav").hidden = !isAdmin();
@@ -818,7 +819,7 @@ function applyLanguage() {
 }
 
 function navigate(view, historyMode = "push") {
-  if (!VIEW_TITLES[view] || (["users", "settings", "inputs", "backups", "data"].includes(view) && !isAdmin())) view = "dashboard";
+  if (!VIEW_TITLES[view] || (["users", "inputs", "backups", "data", "audit"].includes(view) && !isAdmin())) view = "dashboard";
   state.currentView = view;
   for (const section of document.querySelectorAll(".view")) {
     section.hidden = section.dataset.page !== view;
@@ -3790,6 +3791,9 @@ async function resourceAction(action, id) {
     } else if (action === "export-platform") {
       await exportPlatform();
       return;
+    } else if (action === "preview-backup-portable-import") {
+      await previewImport("portable", "backup-portable-file");
+      return;
     } else if (action === "preview-migration") {
       await previewImport("v1_yaml");
       return;
@@ -4094,13 +4098,6 @@ function bindEvents() {
     closeIntegrationSettings();
   });
   byId("backup-settings-form").addEventListener("submit", saveBackupSettings);
-  for (const portableFileId of ["portable-file", "backup-portable-file"]) {
-    const portableInput = byId(portableFileId);
-    portableInput?.addEventListener("change", () => {
-      if (!portableInput.files || !portableInput.files.length) return;
-      void previewImport("portable", portableFileId);
-    });
-  }
   byId("housekeeping-form")?.addEventListener("submit", saveHousekeepingSettings);
   byId("backup-target-form").addEventListener("submit", saveBackupTarget);
   byId("backup-target-type").addEventListener("change", updateBackupTargetFields);

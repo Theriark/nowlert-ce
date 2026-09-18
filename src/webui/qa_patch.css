@@ -4029,3 +4029,193 @@ textarea:focus {
     font-size: 10px;
   }
 }
+
+
+/* 2026-09-18 round-17 user navigation and Data tools reference. */
+#login-view .login-reference-owl {
+  height: 132px;
+  width: 132px;
+}
+
+#login-view .login-reference-owl img {
+  height: 128px;
+  width: 128px;
+}
+
+#backup-data-tools-panel.data-tools-reference-panel {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 123, 184, 0.08), transparent 42rem),
+    linear-gradient(180deg, rgba(4, 26, 40, 0.96), rgba(3, 20, 32, 0.98));
+  border-color: rgba(0, 119, 174, 0.52);
+  border-radius: 16px;
+  padding: 0;
+}
+
+#backup-data-tools-panel .data-tools-reference-heading {
+  border-bottom: 1px solid rgba(35, 108, 143, 0.46);
+  margin: 0 18px;
+  min-height: 76px;
+  padding: 16px 4px 14px;
+}
+
+#backup-data-tools-panel .data-tools-reference-heading h3 {
+  color: #f5f7f9;
+  font-size: clamp(24px, 2vw, 32px);
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+#backup-data-tools-panel .data-tools-reference-heading .backup-section-icon {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: #ffc52b;
+  height: 44px;
+  width: 44px;
+}
+
+#backup-data-tools-panel .data-tools-reference-heading .backup-section-icon svg {
+  height: 36px;
+  width: 36px;
+}
+
+#backup-data-tools-panel > .backup-data-tools-grid {
+  align-items: stretch;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 18px;
+}
+
+#backup-data-tools-panel .data-tools-reference-card {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(0, 117, 173, 0.08), transparent 20rem),
+    linear-gradient(180deg, rgba(3, 31, 48, 0.94), rgba(2, 23, 37, 0.98));
+  border: 1px solid rgba(0, 127, 187, 0.62);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.018);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 276px;
+  padding: 26px 28px;
+}
+
+#backup-data-tools-panel .data-tools-reference-card .backup-tool-heading {
+  align-items: center;
+  display: flex;
+  gap: 20px;
+}
+
+#backup-data-tools-panel .data-tools-reference-card .backup-tool-heading strong {
+  color: #f5f7f9;
+  font-size: clamp(18px, 1.45vw, 24px);
+  font-weight: 770;
+  line-height: 1.18;
+}
+
+#backup-data-tools-panel .data-tools-reference-card .backup-tool-icon {
+  align-items: center;
+  background: linear-gradient(180deg, rgba(78, 72, 27, 0.68), rgba(44, 43, 27, 0.58));
+  border: 1px solid rgba(217, 171, 22, 0.30);
+  border-radius: 14px;
+  box-shadow: inset 0 0 24px rgba(255, 196, 34, 0.08);
+  color: #ffc52b;
+  display: inline-flex;
+  flex: 0 0 68px;
+  height: 68px;
+  justify-content: center;
+  width: 68px;
+}
+
+#backup-data-tools-panel .data-tools-reference-card .backup-tool-icon svg {
+  height: 40px;
+  width: 40px;
+}
+
+#backup-data-tools-panel .data-tools-reference-card > p {
+  color: #9aafc1;
+  font-size: 16px;
+  line-height: 1.55;
+  margin: 18px 0 24px;
+  min-height: 74px;
+}
+
+#backup-data-tools-panel .data-tools-reference-download {
+  align-self: flex-start;
+  font-size: 17px;
+  min-height: 54px;
+  padding-inline: 24px;
+}
+
+#backup-data-tools-panel .data-tools-reference-file {
+  align-items: stretch;
+  border: 1px solid rgba(20, 117, 163, 0.66);
+  border-radius: 12px;
+  display: flex;
+  margin: 0;
+  min-height: 64px;
+  overflow: hidden;
+}
+
+#backup-data-tools-panel .data-tools-reference-file input[type="file"] {
+  background: rgba(2, 22, 35, 0.78);
+  border: 0;
+  color: #9bb0c2;
+  flex: 1 1 auto;
+  font-size: 16px;
+  height: 64px;
+  min-height: 64px;
+  padding: 6px;
+}
+
+#backup-data-tools-panel .data-tools-reference-file input[type="file"]::file-selector-button {
+  background: linear-gradient(180deg, rgba(34, 61, 79, 0.96), rgba(24, 47, 65, 0.98));
+  border: 1px solid rgba(112, 154, 180, 0.38);
+  border-radius: 9px;
+  color: #f5f7f9;
+  font-size: 16px;
+  font-weight: 720;
+  height: 52px;
+  margin-right: 18px;
+  min-height: 52px;
+  padding: 0 24px;
+}
+
+#backup-data-tools-panel .data-tools-reference-preview {
+  background: rgba(2, 23, 36, 0.62);
+  border: 1px solid rgba(141, 175, 197, 0.74);
+  color: #f5f7f9;
+  font-size: 16px;
+  justify-content: center;
+  margin-top: 14px;
+  min-height: 56px;
+  width: 100%;
+}
+
+#backup-data-tools-panel .data-tools-reference-preview:hover {
+  background: rgba(19, 49, 67, 0.76);
+  border-color: rgba(178, 203, 219, 0.88);
+}
+
+@media (max-width: 900px) {
+  #backup-data-tools-panel > .backup-data-tools-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px), (max-height: 760px) {
+  #login-view .login-reference-owl {
+    height: 100px;
+    width: 100px;
+  }
+
+  #login-view .login-reference-owl img {
+    height: 96px;
+    width: 96px;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-card {
+    padding: 22px;
+  }
+}

@@ -35,7 +35,7 @@ def test_management_navigation_places_tools_inside_their_parent_pages():
     assert 'prepareEmbeddedToolbar(toolbar, "Data tools");' in script
     assert 'if (view === "data") view = "backups";' in script
 
-    assert 'settingsNav.hidden = !admin;' in script
+    assert 'settingsNav.hidden = false;' in script
     assert 'usersNav.after(settingsNav);' in script
     assert 'settingsNav.after(updatesNav);' not in script
     assert "syncUsersAction" not in script

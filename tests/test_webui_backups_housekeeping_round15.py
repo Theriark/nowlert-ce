@@ -56,15 +56,15 @@ def test_round15_backup_primary_actions_match_requested_copy():
     assert 'toast("Select a remote backup destination first.", "error");' in create_remote
 
 
-def test_round15_portable_import_runs_automatic_server_validation_gate():
+def test_round15_portable_import_uses_explicit_server_validation_preview():
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
     app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
 
-    assert "Preview JSON import" not in markup
-    assert 'data-action="preview-portable"' not in markup
-    assert 'data-action="preview-backup-portable"' not in markup
-    assert 'for (const portableFileId of ["portable-file", "backup-portable-file"])' in app
-    assert 'void previewImport("portable", portableFileId);' in app
+    assert "Preview JSON import" in markup
+    assert 'data-action="preview-backup-portable-import"' in markup
+    assert 'await previewImport("portable", "backup-portable-file");' in app
+    assert 'for (const portableFileId of ["portable-file", "backup-portable-file"])' not in app
+    assert 'void previewImport("portable", portableFileId);' not in app
 
     preview = _function(app, "async function previewImport(")
     assert '"/portability/preview"' in preview
