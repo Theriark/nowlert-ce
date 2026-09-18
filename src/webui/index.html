@@ -442,13 +442,37 @@
     </form>
   </dialog>
 
-  <dialog id="restart-dialog" class="modal small-modal">
+  <dialog id="restart-dialog" class="modal small-modal restart-reference-dialog">
     <form id="restart-form" method="dialog">
-      <div class="modal-heading"><div><p class="eyebrow">Service control</p><h2>Restart Nowlert</h2></div><button class="icon-button" value="cancel" formnovalidate aria-label="Close">×</button></div>
-      <p>Nowlert will be briefly unavailable while the service restarts.</p>
-      <label><span>Reason for restart</span><textarea id="restart-reason" rows="3" minlength="3" maxlength="500" required placeholder="Apply updated input configuration"></textarea></label>
+      <div class="restart-reference-heading">
+        <div class="restart-reference-title">
+          <span class="restart-reference-service-icon" aria-hidden="true">⚙</span>
+          <div><p class="eyebrow">SERVICE CONTROL</p><h2>Restart Nowlert</h2></div>
+        </div>
+        <button class="icon-button restart-reference-close" value="cancel" formnovalidate aria-label="Close">×</button>
+      </div>
+      <div class="restart-reference-copy">
+        <strong>Confirm restart to apply changes and reload the service.</strong>
+        <p>During the restart, notifications and API requests may be temporarily delayed.</p>
+      </div>
+      <label class="restart-reference-reason"><span>Reason for restart</span><textarea id="restart-reason" rows="3" minlength="3" maxlength="500" required placeholder="Apply updated input configuration"></textarea></label>
+      <div id="restart-reason-count" class="restart-reference-count" aria-live="polite">0/500</div>
       <p id="restart-error" class="form-error" role="alert" hidden></p>
-      <div class="modal-actions"><button class="button secondary" value="cancel" formnovalidate>Cancel</button><button class="button danger" value="default">Restart</button></div>
+      <div class="restart-reference-context" aria-label="Restart context">
+        <div class="restart-reference-context-item">
+          <span class="restart-reference-context-icon" aria-hidden="true">♙</span>
+          <div><small>Triggered by:</small><strong id="restart-triggered-by">Admin</strong></div>
+        </div>
+        <span class="restart-reference-context-divider" aria-hidden="true"></span>
+        <div class="restart-reference-context-item">
+          <span class="restart-reference-context-icon" aria-hidden="true">◉</span>
+          <div><small>Environment:</small><strong id="restart-environment">This instance</strong></div>
+        </div>
+      </div>
+      <div class="modal-actions restart-reference-actions">
+        <button class="button secondary" value="cancel" formnovalidate>Cancel</button>
+        <button class="button danger" value="default"><span aria-hidden="true">⟳</span> Restart</button>
+      </div>
     </form>
   </dialog>
 

@@ -708,10 +708,63 @@ def test_20260918_webui_polish_regressions():
     assert "const USER_PAGE_SIZE = 6;" in reference
     assert "recentActivityExpanded" in reference
     assert "reference-users-recent-toggle" in reference
-    assert "${USER_PAGE_SIZE} per page⌄" in reference
+    assert "reference-users-page-size" not in reference
+    assert 'textContent = `Showing ${start}–${end} of ${matching.length} users`' in reference
     assert ".reference-settings-grid > *" in reference_css
-    assert "#restart-header-button" in reference_css
-    assert "display: none !important;" in reference_css
+    assert 'restart.hidden = !show;' in reference
+    assert "#restart-header-button.reference-account-restart" in reference_css
 
     assert 'account: "Security",' in app
     assert "<h2>Security</h2>" in markup
+
+
+def test_20260918_round_two_screenshot_regressions():
+    routing = (ROOT / "src" / "webui" / "routing_flow.js").read_text(encoding="utf-8")
+    app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
+    headers = (ROOT / "src" / "webui" / "page_headers.js").read_text(encoding="utf-8")
+    reference = (ROOT / "src" / "webui" / "reference_acceptance.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "reference_acceptance.css").read_text(encoding="utf-8")
+    markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
+
+    # Routing Flow always anchors the first visible node below the headings.
+    assert "const topEdges = [" in routing
+    assert "const topShift = topEdges.length" in routing
+    assert "centers.set(id, center - topShift);" in routing
+
+    # Restart keeps the existing action but uses the supplied confirmation UI.
+    assert 'class="modal small-modal restart-reference-dialog"' in markup
+    assert "Confirm restart to apply changes and reload the service." in markup
+    assert 'id="restart-reason-count"' in markup
+    assert 'id="restart-triggered-by"' in markup
+    assert 'id="restart-environment"' in markup
+    assert "function restartEnvironmentLabel()" in app
+    assert "function updateRestartDialogContext()" in app
+
+    # Security owns the accepted topbar restart button, not the menu-created one.
+    assert 'if (view === "account") return "Security";' in headers
+    assert 'nodes.push(document.getElementById("restart-header-button"));' in headers
+    account_actions = headers[
+        headers.index('} else if (view === "account")'):
+        headers.index("return nodes.filter(Boolean);")
+    ]
+    assert 'platform-restart' not in account_actions
+    assert 'restart.hidden = !show;' in reference
+
+    # Delivery/Audit separators share the same full-height four-track grid.
+    assert "grid-template-columns: 20% 46% 18% 16% !important;" in styles
+    assert "#view-deliveries .delivery-history-list-footer," in styles
+    assert "#view-audit .audit-log-list-footer" in styles
+    assert "height: 78px !important;" in styles
+
+    # Users no longer renders a page-size chip or trailing punctuation.
+    assert "reference-users-page-size" not in reference
+    assert 'Showing 0 users</span>' in reference
+    assert 'Showing ${start}–${end} of ${matching.length} users`' in reference
+
+    # Settings and Security are explicitly compact instead of stretching.
+    assert ".reference-settings-grid {" in styles
+    assert "align-items: start !important;" in styles
+    assert ".reference-profile-card {" in styles
+    assert "display: grid !important;" in styles
+    assert ".reference-profile-copy {" in styles
+    assert "#restart-dialog.restart-reference-dialog" in styles

@@ -685,7 +685,7 @@ function ensurePreviewReferenceLayout() {
     }
     controls.append(search, tabs); panel.prepend(controls);
     const footer = ref("div", "reference-users-footer");
-    footer.innerHTML = `<span id="reference-users-range">Showing 0 users.</span><div class="reference-users-pager"><button type="button" data-reference-user-page="previous" aria-label="Previous page">‹</button><span id="reference-users-pages"></span><button type="button" data-reference-user-page="next" aria-label="Next page">›</button><span class="reference-users-page-size">${USER_PAGE_SIZE} per page⌄</span></div>`;
+    footer.innerHTML = '<span id="reference-users-range">Showing 0 users</span><div class="reference-users-pager"><button type="button" data-reference-user-page="previous" aria-label="Previous page">‹</button><span id="reference-users-pages"></span><button type="button" data-reference-user-page="next" aria-label="Next page">›</button></div>';
     footer.querySelector('[data-reference-user-page="previous"]')?.addEventListener("click", () => { userPage = Math.max(1, userPage - 1); syncUsersReference(); });
     footer.querySelector('[data-reference-user-page="next"]')?.addEventListener("click", () => { userPage += 1; syncUsersReference(); });
     panel.append(footer);
@@ -768,7 +768,7 @@ function ensurePreviewReferenceLayout() {
     const visible = new Set(matching.slice((userPage - 1) * USER_PAGE_SIZE, userPage * USER_PAGE_SIZE).map((item) => item.id));
     rows.forEach((row) => { row.hidden = !visible.has(row.dataset.userId); });
     const start = matching.length ? (userPage - 1) * USER_PAGE_SIZE + 1 : 0; const end = matching.length ? Math.min(userPage * USER_PAGE_SIZE, matching.length) : 0;
-    if (byId("reference-users-range")) byId("reference-users-range").textContent = `Showing ${start}–${end} of ${matching.length} users.`;
+    if (byId("reference-users-range")) byId("reference-users-range").textContent = `Showing ${start}–${end} of ${matching.length} users`;
     const pageBox = byId("reference-users-pages");
     if (pageBox) {
       pageBox.replaceChildren();
@@ -843,6 +843,7 @@ function ensurePreviewReferenceLayout() {
     if (!section || !grid || !identity || !password) return; section.classList.add("reference-account-page"); grid.classList.add("reference-account-grid");
     if (identity.dataset.referenceAccount !== "1") {
       identity.dataset.referenceAccount = "1"; identity.classList.add("reference-profile-card"); const body = ref("div", "reference-profile-body"); [...identity.children].forEach((child) => body.append(child));
+      body.querySelector(":scope > div")?.classList.add("reference-profile-copy");
       const heading = ref("div", "reference-account-card-heading"); heading.innerHTML = '<span></span><div><h2>Profile & access</h2><p>Manage your profile information and account access.</p></div>';
       const meta = ref("div", "reference-account-meta");
       for (const [label, id, value] of [["Account role", "reference-account-role-value", "Administrator"], ["Member since", "reference-account-member-value", "Unavailable"], ["MFA status", "reference-account-mfa-value", "Not enabled"]]) {
@@ -869,9 +870,12 @@ function ensurePreviewReferenceLayout() {
     if (byId("reference-active-sessions")) byId("reference-active-sessions").textContent = Number(user.active_sessions || 1);
     const restart = byId("restart-header-button");
     if (restart) {
+      const show = state.currentView === "account" && typeof isAdmin === "function" && isAdmin();
       restart.textContent = "⏻ Restart Nowlert";
-      restart.hidden = true;
-      restart.classList.remove("reference-account-restart");
+      restart.hidden = !show;
+      restart.classList.toggle("reference-account-restart", show);
+      if (show) restart.removeAttribute("aria-hidden");
+      else restart.setAttribute("aria-hidden", "true");
     }
   }
 
