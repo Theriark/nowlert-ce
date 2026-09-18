@@ -98,3 +98,19 @@ def test_development_ci_targets_vm09_and_flattened_hostname():
     assert "LZHV0rpjSvusK9k9MGGpp" not in workflow
     assert "https://ce-dev.nowlert.theriark.com/api/health" not in workflow
     assert "https://ce-dev.nowlert.theriark.dev/api/health" not in workflow
+
+
+
+def test_development_live_webui_acceptance_uses_cloudflare_service_token():
+    workflow = WORKFLOWS["development"].read_text(encoding="utf-8")
+    marker = "- name: Verify deployed WebUI acceptance bundle"
+    assert marker in workflow
+    live_check = workflow[workflow.index(marker):]
+
+    assert 'CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}' in live_check
+    assert 'CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}' in live_check
+    assert 'User-Agent: Theriark-GitHub-Actions/1.0' in live_check
+    assert 'https://ce-dev-nowlert.theriark.dev' in live_check
+    assert 'nowlert-ui-build' in live_check
+    assert 'qa_patch.css?v=${UI_BUILD}' in live_check
+    assert 'app.js?v=${UI_BUILD}' in live_check
