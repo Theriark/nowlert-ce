@@ -4219,3 +4219,191 @@ textarea:focus {
     padding: 22px;
   }
 }
+
+
+/* 2026-09-18 round-18 acceptance corrections. */
+
+/* Hidden navigation must remain hidden even though the desktop nav layout uses
+   display:grid!important. */
+#primary-nav .nav-item[hidden] {
+  display: none !important;
+}
+
+/* The exported owl asset contains transparent canvas around the visible mark.
+   Scale the artwork itself, not only its layout box, so the owl is visibly
+   larger on the sign-in reference. */
+#login-view .login-reference-owl {
+  height: 154px !important;
+  width: 154px !important;
+}
+
+#login-view .login-reference-owl img {
+  height: 150px !important;
+  transform: scale(1.65);
+  transform-origin: center;
+  width: 150px !important;
+}
+
+#login-view .login-reference-wordmark {
+  margin-top: 22px !important;
+}
+
+/* Match the approved Data tools reference as a full-width management surface. */
+.backup-dashboard-grid-top {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+#backup-schedule-panel,
+#backup-data-tools-panel {
+  grid-column: 1 / -1 !important;
+}
+
+#backup-data-tools-panel.data-tools-reference-panel {
+  min-height: 470px;
+}
+
+#backup-data-tools-panel .data-tools-reference-heading {
+  min-height: 92px !important;
+  padding: 20px 12px 18px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-heading h3 {
+  font-size: 32px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-heading .backup-section-icon {
+  height: 50px !important;
+  width: 50px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-heading .backup-section-icon svg {
+  height: 42px !important;
+  width: 42px !important;
+}
+
+#backup-data-tools-panel > .backup-data-tools-grid {
+  gap: 28px !important;
+  padding: 24px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-card {
+  min-height: 320px !important;
+  padding: 28px 30px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-card .backup-tool-heading {
+  gap: 22px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-card .backup-tool-heading strong {
+  font-size: 25px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-card .backup-tool-icon {
+  flex-basis: 76px !important;
+  height: 76px !important;
+  width: 76px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-card .backup-tool-icon svg {
+  height: 44px !important;
+  width: 44px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-card > p {
+  font-size: 18px !important;
+  line-height: 1.55 !important;
+  margin: 22px 0 26px !important;
+  min-height: 86px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-download {
+  font-size: 19px !important;
+  min-height: 64px !important;
+  padding-inline: 28px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-file {
+  flex: 0 0 auto !important;
+  height: 92px !important;
+  min-height: 92px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-file input[type="file"] {
+  font-size: 18px !important;
+  height: 92px !important;
+  min-height: 92px !important;
+  padding: 8px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-file input[type="file"]::file-selector-button {
+  font-size: 18px !important;
+  height: 74px !important;
+  min-height: 74px !important;
+  padding-inline: 30px !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-preview {
+  font-size: 18px !important;
+  margin-top: 16px !important;
+  min-height: 68px !important;
+}
+
+/* Desktop acceptance: the control panel never participates in page scrolling.
+   Only the workspace scrolls, while the top command bar stays pinned. */
+@media (min-width: 761px) {
+  #app-shell.app-shell {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  #app-shell .workspace {
+    height: 100dvh !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+  }
+
+  #app-shell .sidebar {
+    align-self: start !important;
+    contain: none !important;
+    height: calc(100dvh - 28px) !important;
+    max-height: calc(100dvh - 28px) !important;
+    position: sticky !important;
+    top: 0 !important;
+  }
+
+  #app-shell .topbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 80 !important;
+  }
+}
+
+@media (max-width: 900px) {
+  #backup-data-tools-panel .data-tools-reference-heading h3 {
+    font-size: 26px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-card {
+    min-height: 0 !important;
+  }
+}
+
+@media (max-width: 680px), (max-height: 760px) {
+  #login-view .login-reference-owl {
+    height: 112px !important;
+    width: 112px !important;
+  }
+
+  #login-view .login-reference-owl img {
+    height: 108px !important;
+    transform: scale(1.45);
+    width: 108px !important;
+  }
+
+  #login-view .login-reference-wordmark {
+    margin-top: 16px !important;
+  }
+}

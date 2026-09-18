@@ -68,8 +68,9 @@ def test_round15_portable_import_uses_explicit_server_validation_preview():
 
     preview = _function(app, "async function previewImport(")
     assert '"/portability/preview"' in preview
-    assert "portable && !response.preview.valid" in preview
-    assert "This file is not a valid Nowlert user configuration export." in preview
+    assert "portable && !response.preview.valid" not in preview
+    assert 'byId("import-apply").disabled = !response.preview.valid;' in preview
+    assert 'byId("import-dialog").showModal();' in preview
     assert '"Import user configuration"' in preview
 
 

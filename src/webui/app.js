@@ -3076,14 +3076,6 @@ async function previewImport(kind, portableFileId = "portable-file") {
       ? "/configuration/migration/preview"
       : portable ? "/portability/preview" : "/migrations/v1/preview";
     const response = await request(endpoint, { method: "POST", body });
-    if (portable && !response.preview.valid) {
-      const selectedInput = byId(portableFileId);
-      if (selectedInput) selectedInput.value = "";
-      const reason = Array.isArray(response.preview.errors) && response.preview.errors.length
-        ? response.preview.errors[0]
-        : "The document failed Nowlert portability validation.";
-      throw new Error(`This file is not a valid Nowlert user configuration export. ${reason}`);
-    }
     state.pendingImport = { kind, body, preview: response.preview, portableFileId };
     byId("import-title").textContent = local
       ? "Mounted configuration takeover"
@@ -3092,7 +3084,7 @@ async function previewImport(kind, portableFileId = "portable-file") {
       ? portable
         ? `Validated Nowlert export: ${response.preview.summary.destinations} destinations and ${response.preview.summary.routes} routes are ready to import.`
         : `${response.preview.summary.destinations} destinations and ${response.preview.summary.routes} routes are ready.${local ? " Applying this creates state and configuration backups, imports credentials server-side, and activates WebUI routing." : ""}`
-      : "The document cannot be applied until every reported error is corrected.";
+      : `Preview completed. ${Array.isArray(response.preview.errors) ? response.preview.errors.length : 0} issue(s) must be resolved before this document can be applied.`;
     byId("import-result").textContent = JSON.stringify(response.preview, null, 2);
     byId("import-apply").disabled = !response.preview.valid;
     byId("import-dialog").showModal();
