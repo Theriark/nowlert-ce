@@ -461,10 +461,11 @@ function showApp(session) {
   byId("account-session").textContent = `Session expires ${formatTime(session.expires_at)}`;
 }
 
-async function restoreSession() {
+async function restoreSession(prefetchedSession = null) {
   let session;
   try {
-    session = await request("/session");
+    if (prefetchedSession) session = await prefetchedSession;
+    else session = await request("/session");
   } catch (error) {
     expireSession();
     if (!(error instanceof APIError) || ![401, 404].includes(error.status)) {
@@ -542,6 +543,11 @@ async function bootstrapAdministrator(event) {
 }
 
 async function initialize() {
+  // Bootstrap status and session validation are independent. Start the session
+  // request immediately so an F5 costs one network round-trip instead of two.
+  const sessionRequest = request("/session");
+  void sessionRequest.catch(() => {});
+
   try {
     const status = await request("/bootstrap");
     if (status.required) {
@@ -554,10 +560,17 @@ async function initialize() {
       byId("login-error").hidden = false;
     }
   }
-  await restoreSession();
+  await restoreSession(sessionRequest);
 }
 
 async function loadWorkspace() {
+  const initialDeliveryRequest = typeof window.nowlertInitialDeliveryRequest === "function"
+    ? window.nowlertInitialDeliveryRequest()
+    : request("/deliveries");
+  const initialAuditRequest = typeof window.nowlertInitialAuditRequest === "function"
+    ? window.nowlertInitialAuditRequest()
+    : request("/audit-events");
+
   const tasks = {
     integrations: ["Integrations", request("/integrations"), (value) => {
       state.integrations = value.integrations || [];
@@ -579,8 +592,8 @@ async function loadWorkspace() {
       state.routeErrors = value.errors || [];
     }],
     tokens: ["Event API tokens", request("/tokens"), (value) => { state.tokens = value.tokens; }],
-    deliveries: ["Delivery history", request("/deliveries"), (value) => { state.deliveries = value.deliveries; }],
-    audit: ["Audit log", request("/audit-events"), (value) => { state.audit = value.audit_events; }],
+    deliveries: ["Delivery history", initialDeliveryRequest, (value) => { state.deliveries = value.deliveries || []; }],
+    audit: ["Audit log", initialAuditRequest, (value) => { state.audit = value.audit_events || []; }],
     preferences: ["Regional settings", request("/preferences"), (value) => { state.preferences = value.preferences; }],
     metrics: ["Overview metrics", request(`/metrics/${state.historyRange}`), (value) => { state.metrics = value.metrics; }],
     version: ["Version status", request("/version"), (value) => { state.versionStatus = value.version; }],

@@ -1852,3 +1852,45 @@ button.reference-preview-route-more:focus-visible {
     padding: 8px 10px !important;
   }
 }
+
+
+/* 2026-09-18 round-six refresh and Settings alignment corrections. */
+
+/* Regional settings uses Updates as the heading reference: same icon box,
+   title/copy scale, and top-row rhythm. The obsolete timezone sentence is not
+   part of the accepted layout. */
+.reference-regional-card > .panel-heading {
+  align-items: center !important;
+  border-bottom: 1px solid rgba(217, 169, 51, 0.2) !important;
+  gap: 9px !important;
+  grid-template-columns: 38px minmax(0, 1fr) !important;
+  min-height: 0 !important;
+  padding-bottom: 8px !important;
+}
+
+.reference-regional-card .reference-settings-card-icon {
+  font-size: 1.02rem !important;
+  height: 36px !important;
+  width: 36px !important;
+}
+
+.reference-regional-card h2 {
+  font-size: 1.08rem !important;
+}
+
+.reference-regional-card .panel-heading p {
+  font-size: 0.7rem !important;
+  line-height: 1.3 !important;
+  margin-top: 2px !important;
+}
+
+.reference-regional-info {
+  display: none !important;
+}
+
+/* The Delivery History page-size control is created before its pager exists.
+   Keep that construction-only node invisible until qaArrangePaginationFooter
+   moves it into the real footer row. */
+#view-deliveries > .qa-delivery-footer[hidden] {
+  display: none !important;
+}
