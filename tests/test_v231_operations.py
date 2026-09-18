@@ -144,9 +144,11 @@ def test_v231_webui_removes_old_header_and_exposes_corrective_controls():
     assert ".timeline-item.information" in styles
 
 
-def test_remote_target_save_enables_managed_mounting_before_creation():
+def test_remote_target_save_uses_always_enabled_managed_mounting():
     script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
-    enable = script.index('if (type !== "local" && !state.managedMounts)')
-    settings = script.index('request("/backup-settings"', enable)
-    target = script.index("await request(id ? `/backup-targets/${id}`", settings)
-    assert enable < settings < target
+    markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
+
+    assert 'if (type !== "local" && !state.managedMounts)' not in script
+    assert "managed_mounts: true" in script
+    assert 'id="backup-managed-mounts"' not in markup
+    assert "await request(id ? `/backup-targets/${id}`" in script

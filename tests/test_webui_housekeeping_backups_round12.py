@@ -8,9 +8,9 @@ def test_housekeeping_ui_is_scheduled_only_and_uses_recommended_selects():
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
     app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
 
-    assert '<select id="housekeeping-enabled">' in markup
-    assert '<option value="true">Enabled</option>' in markup
-    assert '<option value="false">Disabled</option>' in markup
+    assert 'id="housekeeping-toggle"' in markup
+    assert 'data-action="toggle-housekeeping"' in markup
+    assert '<select id="housekeeping-enabled">' not in markup
     assert '<select id="housekeeping-time"' in markup
     assert 'type="time"' not in markup[markup.index('id="housekeeping-form"'):markup.index("</form>", markup.index('id="housekeeping-form"'))]
     assert '<select id="housekeeping-delivery-days">' in markup
@@ -22,6 +22,8 @@ def test_housekeeping_ui_is_scheduled_only_and_uses_recommended_selects():
     assert 'action === "run-housekeeping"' not in app
     assert 'request("/housekeeping/run"' not in app
     assert "function renderHousekeepingTimeOptions()" in app
+    assert "async function toggleHousekeeping()" in app
+    assert 'action === "toggle-housekeeping"' in app
     assert 'state.preferences.time_format === "12"' in app
 
 

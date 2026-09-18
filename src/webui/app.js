@@ -2450,6 +2450,7 @@ function renderHealthChecks() {
   }
 }
 
+
 function renderBackupSettings() {
   if (!isAdmin() || !state.backupSettings) return;
   const settings = state.backupSettings;
@@ -2463,41 +2464,111 @@ function renderBackupSettings() {
     target.append(element("option", { value: item.id, text: `${item.name} (${item.type.toUpperCase()})` }));
   }
   target.value = settings.target_id || "";
-  byId("backup-managed-mounts").checked = settings.managed_mounts === true;
   byId("backup-time-display").textContent = backupNextRunLabel(settings);
   renderBackupOverview();
+}
+function housekeepingRunDuration(run) {
+  const started = Number(run?.started_at || 0);
+  const completed = Number(run?.completed_at || 0);
+  if (!started || !completed || completed < started) return "—";
+  const seconds = Math.max(0, completed - started);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}m ${String(remainder).padStart(2, "0")}s`;
+}
+
+function renderHousekeepingRecentRuns(status) {
+  const container = byId("housekeeping-recent-runs");
+  if (!container) return;
+  const recentRuns = Array.isArray(status.recent_runs) ? status.recent_runs : [];
+  container.replaceChildren();
+
+  if (!recentRuns.length) {
+    container.append(element("div", { className: "housekeeping-runs-empty" }, [
+      element("strong", { text: "No automatic housekeeping runs yet" }),
+      element("small", { text: "Completed daily runs will appear here." }),
+    ]));
+    return;
+  }
+
+  for (const run of recentRuns) {
+    const success = String(run.outcome || "").toLowerCase() === "success";
+    const outcome = success ? "Completed successfully" : capitalize(run.outcome || "completed");
+    const removed =
+      `Removed ${Number(run.deliveries_deleted || 0).toLocaleString()} delivery records, ` +
+      `${Number(run.audit_deleted || 0).toLocaleString()} audit records, and ` +
+      `${Number(run.backup_runs_deleted || 0).toLocaleString()} backup run records.`;
+    container.append(element("div", {
+      className: `housekeeping-run-item ${success ? "is-success" : "is-warning"}`,
+    }, [
+      element("span", {
+        className: "housekeeping-run-icon",
+        text: success ? "✓" : "!",
+        attributes: { "aria-hidden": "true" },
+      }),
+      element("span", { className: "housekeeping-run-copy" }, [
+        element("strong", { text: formatTime(run.completed_at || run.started_at) }),
+        element("span", { className: "housekeeping-run-outcome", text: outcome }),
+        element("small", { text: removed }),
+      ]),
+      element("span", { className: "housekeeping-run-duration", text: housekeepingRunDuration(run) }),
+    ]));
+  }
 }
 
 function renderHousekeepingSettings() {
   if (!isAdmin() || !state.housekeepingSettings) return;
   const settings = state.housekeepingSettings;
-  byId("housekeeping-enabled").value = settings.enabled === true ? "true" : "false";
+  const enabled = settings.enabled === true;
+  const status = state.housekeepingStatus || {};
+
   renderHousekeepingTimeOptions();
   byId("housekeeping-delivery-days").value = String(settings.delivery_history_days ?? 90);
   byId("housekeeping-audit-days").value = String(settings.audit_history_days ?? 365);
   byId("housekeeping-backup-run-days").value = String(settings.backup_run_history_days ?? 180);
 
-  const status = state.housekeepingStatus || {};
-  const delivery = status.delivery_history || {};
-  const audit = status.audit_history || {};
-  const runs = status.backup_runs || {};
-  const statusNode = byId("housekeeping-history-status");
-  if (statusNode) {
-    statusNode.textContent =
-      `Stored: ${delivery.rows ?? 0} delivery attempts · ${audit.rows ?? 0} audit events · ${runs.rows ?? 0} backup run records.`;
+  const timeSelect = byId("housekeeping-time");
+  timeSelect.disabled = !enabled;
+  const timeHelp = byId("housekeeping-time-help");
+  if (timeHelp) {
+    timeHelp.textContent = enabled
+      ? "Displayed using your Regional Settings clock format."
+      : "Disabled while housekeeping is turned off.";
   }
-  const lastNode = byId("housekeeping-last-run");
-  if (lastNode) {
-    const last = status.last_run;
-    const scheduleCopy = settings.enabled
-      ? `Runs daily at ${formatClockValue(settings.time || "03:15")}.`
-      : "Automatic housekeeping is disabled.";
-    lastNode.textContent = last
-      ? `${scheduleCopy} Last run: ${formatTime(last.completed_at || last.started_at)} · ${last.outcome || "completed"} · ${last.deliveries_deleted || 0} deliveries / ${last.audit_deleted || 0} audit events removed.`
-      : `${scheduleCopy} No housekeeping run recorded.`;
-  }
-}
 
+  const toggle = byId("housekeeping-toggle");
+  toggle.classList.toggle("is-enabled", enabled);
+  toggle.classList.toggle("is-disabled", !enabled);
+  toggle.setAttribute("aria-pressed", String(enabled));
+  toggle.setAttribute("aria-label", enabled ? "Disable housekeeping" : "Enable housekeeping");
+  toggle.title = enabled ? "Click to disable housekeeping" : "Click to enable housekeeping";
+
+  byId("housekeeping-status-icon").textContent = enabled ? "✓" : "Ⅱ";
+  byId("housekeeping-status-title").textContent =
+    enabled ? "Housekeeping is enabled" : "Housekeeping is disabled";
+  byId("housekeeping-status-description").textContent = enabled
+    ? "Automatic clean-up will run daily and remove records older than your configured retention periods."
+    : "Automatic clean-up is turned off. Existing records will be kept until housekeeping is enabled again.";
+
+  const nextRun = enabled && status.next_run_at
+    ? formatTime(status.next_run_at)
+    : "Not scheduled";
+  byId("housekeeping-next-run").textContent = nextRun;
+
+  const scheduleNote = byId("housekeeping-schedule-note");
+  scheduleNote.classList.toggle("is-enabled", enabled);
+  scheduleNote.classList.toggle("is-disabled", !enabled);
+  byId("housekeeping-schedule-note-icon").textContent = enabled ? "◔" : "Ⅱ";
+  byId("housekeeping-schedule-note-title").textContent = enabled
+    ? "Housekeeping runs once per day when enabled."
+    : "Housekeeping is currently disabled.";
+  byId("housekeeping-schedule-note-copy").textContent = enabled
+    ? `Next run: ${nextRun}.`
+    : "Enable housekeeping to resume daily clean-up.";
+
+  renderHousekeepingRecentRuns(status);
+}
 function renderUpdates() {
   const version = state.versionStatus || {};
   byId("running-version").textContent = version.running || "—";
@@ -2554,6 +2625,7 @@ async function changeHistoryRange() {
   }
 }
 
+
 async function saveBackupSettings(event) {
   event.preventDefault();
   try {
@@ -2565,7 +2637,7 @@ async function saveBackupSettings(event) {
         weekday: Number(byId("backup-weekday").value),
         day: Number(byId("backup-day").value),
         target_id: byId("backup-target").value,
-        managed_mounts: byId("backup-managed-mounts").checked,
+        managed_mounts: true,
         external_enabled: false,
         external_type: "nfs",
         external_path: "",
@@ -2578,14 +2650,13 @@ async function saveBackupSettings(event) {
     toast(error.message || "Backup settings could not be saved.", "error");
   }
 }
-
 async function saveHousekeepingSettings(event) {
   event.preventDefault();
   try {
     const response = await request("/housekeeping", {
       method: "PUT",
       body: {
-        enabled: byId("housekeeping-enabled").value === "true",
+        enabled: state.housekeepingSettings.enabled === true,
         time: byId("housekeeping-time").value,
         delivery_history_days: Number(byId("housekeeping-delivery-days").value),
         audit_history_days: Number(byId("housekeeping-audit-days").value),
@@ -2601,6 +2672,29 @@ async function saveHousekeepingSettings(event) {
   }
 }
 
+async function toggleHousekeeping() {
+  if (!isAdmin() || !state.housekeepingSettings) return;
+  const toggle = byId("housekeeping-toggle");
+  const enabled = state.housekeepingSettings.enabled !== true;
+  toggle.disabled = true;
+  try {
+    const response = await request("/housekeeping", {
+      method: "PUT",
+      body: {
+        ...state.housekeepingSettings,
+        enabled,
+      },
+    });
+    state.housekeepingSettings = response.settings;
+    state.housekeepingStatus = response.status;
+    renderHousekeepingSettings();
+    toast(enabled ? "Housekeeping enabled." : "Housekeeping disabled.");
+  } catch (error) {
+    toast(error.message || "Housekeeping state could not be changed.", "error");
+  } finally {
+    toggle.disabled = false;
+  }
+}
 function updateBackupTargetFields() {
   const type = byId("backup-target-type").value;
   for (const item of document.querySelectorAll(".backup-remote-field")) item.hidden = type === "local";
@@ -2645,24 +2739,6 @@ async function saveBackupTarget(event) {
   const id = byId("backup-target-id").value;
   const type = byId("backup-target-type").value;
   try {
-    if (type !== "local" && !state.managedMounts) {
-      const current = state.backupSettings || {
-        schedule: "disabled",
-        time: "02:00",
-        weekday: 0,
-        day: 1,
-        target_id: "",
-        external_enabled: false,
-        external_type: "nfs",
-        external_path: "",
-      };
-      const settings = await request("/backup-settings", {
-        method: "PUT",
-        body: { ...current, managed_mounts: true },
-      });
-      state.backupSettings = settings.settings;
-      state.managedMounts = true;
-    }
     await request(id ? `/backup-targets/${id}` : "/backup-targets", {
       method: id ? "PATCH" : "POST",
       body: {
@@ -2692,16 +2768,18 @@ async function saveBackupTarget(event) {
   }
 }
 
+
 async function runBackupNow() {
   const response = await request("/backups/run", {
     method: "POST",
     body: { target_id: byId("backup-target").value },
   });
-  await loadWorkspace();
-  await loadExternalBackups({ silent: true });
-  toast(response.run.outcome === "success" ? "Backup completed." : "Backup failed.", response.run.outcome === "success" ? "success" : "error");
+  await refreshBackupPanels();
+  toast(
+    response.run.outcome === "success" ? "Backup completed." : "Backup failed.",
+    response.run.outcome === "success" ? "success" : "error",
+  );
 }
-
 function restartEnvironmentLabel() {
   const host = String(window.location.hostname || "").toLowerCase();
   if (host.startsWith("ce-dev-") || host.includes("development")) return "CE Development";
@@ -2985,18 +3063,25 @@ async function applyImport() {
   }
 }
 
+
+async function refreshBackupPanels() {
+  await loadWorkspace();
+  await loadExternalBackups({ silent: true });
+  renderBackupRecoveryTable();
+  renderStoredBackupTable();
+}
+
 async function createBackup() {
   const accepted = await confirmAction(
-    "Create a complete recovery snapshot?",
-    "The snapshot stays on this server and includes the full SQLite state and retained history, Nowlert-managed secret files, and mounted bootstrap config.yaml when available.",
-    "Create snapshot",
+    "Create local snapshot?",
+    "Create a complete local recovery snapshot now? It includes the full SQLite state and retained history, Nowlert-managed secret files, and mounted bootstrap config.yaml when available.",
+    "Create local snapshot",
   );
   if (!accepted) return;
   await request("/backups", { method: "POST", body: {} });
-  await loadWorkspace();
+  await refreshBackupPanels();
   toast("Recovery snapshot created.");
 }
-
 async function restoreBackup(id) {
   const accepted = await confirmAction(
     "Restore this recovery snapshot?",
@@ -3660,6 +3745,9 @@ async function resourceAction(action, id) {
     } else if (action === "apply-import") {
       await applyImport();
       return;
+    } else if (action === "toggle-housekeeping") {
+      await toggleHousekeeping();
+      return;
     } else if (action === "create-backup") {
       await createBackup();
       return;
@@ -3667,7 +3755,7 @@ async function resourceAction(action, id) {
       await runBackupNow();
       return;
     } else if (action === "refresh-external-backups") {
-      await loadExternalBackups();
+      await refreshBackupPanels();
       return;
     } else if (action === "view-all-backups") {
       state.showAllBackups = !state.showAllBackups;

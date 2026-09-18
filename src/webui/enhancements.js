@@ -428,27 +428,6 @@
     updateCheckMetadata();
   };
 
-  const originalRenderBackupSettings = renderBackupSettings;
-  renderBackupSettings = function enhancedRenderBackupSettings() {
-    originalRenderBackupSettings();
-    if (!isAdmin() || !state.backupSettings) return;
-    const input = byId("backup-time");
-    input.type = "text";
-    input.autocomplete = "off";
-    const format = state.preferences.time_format === "12" ? "12" : "24";
-    input.inputMode = format === "12" ? "text" : "numeric";
-    input.value = displayClockTime(state.backupSettings.time, format);
-    input.placeholder = format === "12" ? "02:20 PM" : "14:20";
-    input.setAttribute("aria-describedby", "backup-time-format-help");
-    let help = byId("backup-time-format-help");
-    if (!help) {
-      help = document.createElement("small");
-      help.id = "backup-time-format-help";
-      input.closest("label").append(help);
-    }
-    help.textContent = format === "12" ? "Use HH:MM AM/PM." : "Use 24-hour HH:MM.";
-  };
-
   sourceIsActive = function exactRouteSourceIsActive(source) {
     return state.routes.some((route) => route.enabled && route.source === source);
   };
@@ -457,28 +436,6 @@
     const route = routeForDestination(destination.id);
     return sourceTestSample(route ? route.source : "nowlert", destination);
   };
-
-  const backupTime = byId("backup-time");
-  if (backupTime) backupTime.type = "text";
-  const backupForm = byId("backup-settings-form");
-  if (backupForm) {
-    backupForm.addEventListener("submit", (event) => {
-      const format = state.preferences.time_format === "12" ? "12" : "24";
-      const input = byId("backup-time");
-      const displayValue = input.value;
-      try {
-        input.value = parseCanonicalTime(displayValue, format);
-        window.setTimeout(() => {
-          if (document.body.contains(input)) input.value = displayClockTime(input.value, format);
-        }, 0);
-      } catch (error) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        toast(error.message || "Backup time is invalid.", "error");
-        input.focus();
-      }
-    }, true);
-  }
 
   window.addEventListener("pageshow", () => {
     window.setTimeout(() => ensureRequestedView(), 0);
