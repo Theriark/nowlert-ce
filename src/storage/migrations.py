@@ -522,7 +522,7 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             ON housekeeping_runs(completed_at DESC)
             """,
         ),
-    ),,
+    ),
     (
         14,
         "account mfa and routing flow telemetry",
