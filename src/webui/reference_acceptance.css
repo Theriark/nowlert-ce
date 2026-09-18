@@ -1176,3 +1176,290 @@ button.reference-preview-route-more:focus-visible {
     display: none;
   }
 }
+
+
+/* 2026-09-18 round-three screenshot corrections. */
+
+/* Delivery/Audit pagination: draw the separators on the row itself. This keeps
+   every vertical line on exactly the same x position and full footer height,
+   independent of the nested pager/Entries content. */
+#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"],
+#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.18), rgba(148, 163, 184, 0.18)),
+    linear-gradient(rgba(148, 163, 184, 0.18), rgba(148, 163, 184, 0.18)),
+    linear-gradient(rgba(148, 163, 184, 0.18), rgba(148, 163, 184, 0.18)) !important;
+  background-position: 20% 0, 66% 0, 84% 0 !important;
+  background-repeat: no-repeat !important;
+  background-size: 1px 100%, 1px 100%, 1px 100% !important;
+}
+#view-deliveries .reference-pagination-range,
+#view-audit .reference-pagination-range,
+#view-deliveries .reference-pagination-pages,
+#view-audit .reference-pagination-pages,
+#view-deliveries .reference-pagination-jump,
+#view-audit .reference-pagination-jump {
+  border-left: 0 !important;
+  border-right: 0 !important;
+}
+#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"] > .qa-pagination-footer,
+#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] > .qa-pagination-footer {
+  border-left: 0 !important;
+  border-right: 0 !important;
+}
+
+/* Users: View all opens a separate dialog. The overview card never grows. */
+.reference-users-activity-dialog {
+  background:
+    radial-gradient(circle at 70% -10%, rgba(244, 197, 66, 0.055), transparent 18rem),
+    linear-gradient(145deg, #111a24, #0d151d) !important;
+  border: 1px solid rgba(238, 184, 36, 0.38) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55) !important;
+  max-height: min(620px, calc(100vh - 48px)) !important;
+  max-width: 720px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  width: calc(100% - 32px) !important;
+}
+.reference-users-activity-dialog::backdrop {
+  backdrop-filter: blur(5px);
+  background: rgba(2, 6, 10, 0.76);
+}
+.reference-users-activity-heading {
+  align-items: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 18px;
+}
+.reference-users-activity-heading h2 {
+  font-size: 1.12rem;
+  margin: 0;
+}
+.reference-users-activity-heading p {
+  color: #9ca6af;
+  font-size: 0.72rem;
+  margin: 3px 0 0;
+}
+.reference-users-activity-list {
+  display: grid;
+  gap: 0;
+  max-height: min(520px, calc(100vh - 150px));
+  overflow-y: auto;
+}
+.reference-users-activity-list .reference-users-recent-row {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.11);
+  grid-template-columns: 10px minmax(120px, 0.7fr) minmax(180px, 1.3fr) auto;
+  min-height: 48px;
+  padding: 10px 18px;
+}
+.reference-users-activity-list .reference-users-recent-row:last-child {
+  border-bottom: 0;
+}
+.reference-users-activity-list .reference-users-recent-empty {
+  color: #9ca6af;
+  padding: 24px 18px;
+}
+.reference-users-recent-list.is-expanded {
+  max-height: none !important;
+  overflow: visible !important;
+  padding-right: 0 !important;
+}
+
+/* Settings: leave Regional settings untouched; only compress Updates until its
+   card bottom aligns with the regional card. */
+.reference-updates-card {
+  gap: 8px !important;
+  padding: 12px !important;
+}
+.reference-updates-card > .section-toolbar {
+  gap: 10px !important;
+  min-height: 0 !important;
+  padding-bottom: 8px !important;
+}
+.reference-updates-card .reference-update-heading-copy {
+  gap: 9px !important;
+  grid-template-columns: 38px minmax(0, 1fr) !important;
+}
+.reference-updates-card .reference-settings-card-icon {
+  font-size: 1.02rem !important;
+  height: 36px !important;
+  width: 36px !important;
+}
+.reference-updates-card .reference-update-heading-copy h2 {
+  font-size: 1.08rem !important;
+}
+.reference-updates-card .reference-update-heading-copy p {
+  font-size: 0.7rem !important;
+  line-height: 1.3 !important;
+  margin-top: 2px !important;
+}
+.reference-updates-card .reference-check-updates {
+  min-height: 36px !important;
+  padding: 0 12px !important;
+}
+.reference-updates-card > .update-panel {
+  gap: 8px !important;
+}
+.reference-updates-card .reference-update-status-card {
+  gap: 9px !important;
+  grid-template-columns: 34px minmax(0, 1fr) !important;
+  min-height: 58px !important;
+  padding: 9px 11px !important;
+}
+.reference-updates-card .reference-update-status-icon {
+  font-size: 1rem !important;
+  height: 32px !important;
+  width: 32px !important;
+}
+.reference-updates-card .reference-update-status-card strong {
+  font-size: 0.96rem !important;
+}
+.reference-updates-card .reference-update-status-card p {
+  font-size: 0.68rem !important;
+  margin-top: 2px !important;
+}
+.reference-updates-card .reference-update-version-grid {
+  gap: 8px !important;
+}
+.reference-updates-card .reference-update-version-card {
+  gap: 8px !important;
+  grid-template-columns: 34px minmax(0, 1fr) !important;
+  min-height: 70px !important;
+  padding: 9px 10px !important;
+}
+.reference-updates-card .reference-version-icon {
+  font-size: 0.95rem !important;
+  height: 30px !important;
+  width: 30px !important;
+}
+.reference-updates-card .reference-update-version-card > div {
+  gap: 2px !important;
+}
+.reference-updates-card .reference-update-version-card > div > strong:first-child,
+.reference-updates-card .reference-update-version-card small {
+  font-size: 0.66rem !important;
+}
+.reference-updates-card .reference-update-version-card #running-version,
+.reference-updates-card .reference-update-version-card #available-version {
+  font-size: 1.18rem !important;
+}
+.reference-updates-card .reference-update-checked {
+  gap: 8px !important;
+  grid-template-columns: 32px minmax(0, 1fr) !important;
+  min-height: 48px !important;
+  padding: 8px 10px !important;
+}
+.reference-updates-card .reference-update-checked-icon {
+  font-size: 0.9rem !important;
+  height: 28px !important;
+  width: 28px !important;
+}
+.reference-updates-card .reference-update-checked > div {
+  gap: 1px !important;
+}
+.reference-updates-card .reference-update-checked span,
+.reference-updates-card .reference-update-checked small {
+  font-size: 0.66rem !important;
+}
+
+/* Uploaded avatars: remove the inherited amber gradient/glow from <img> avatar
+   elements. The same neutral ring is used in Security and the sidebar. */
+.avatar.avatar-image {
+  background: #0d141b !important;
+  border: 1px solid rgba(148, 163, 184, 0.32) !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  object-fit: cover !important;
+  padding: 0 !important;
+}
+#account-avatar.avatar-image {
+  border-color: rgba(148, 163, 184, 0.38) !important;
+}
+#profile-avatar.avatar-image {
+  border-color: rgba(148, 163, 184, 0.28) !important;
+}
+
+/* Security: compact Password & sessions so it finishes on the same visual row
+   as Profile & access. The two explanatory sentences were removed in JS. */
+.reference-password-card {
+  gap: 10px !important;
+  grid-template-columns: minmax(0, 1fr) 188px !important;
+  padding: 14px !important;
+}
+.reference-password-main {
+  gap: 6px !important;
+}
+.reference-password-heading h2 {
+  font-size: 0.98rem !important;
+}
+.reference-password-heading p {
+  font-size: 0.68rem !important;
+  line-height: 1.3 !important;
+  margin-top: 2px !important;
+}
+.reference-password-main #password-form {
+  gap: 5px !important;
+}
+.reference-password-main #password-form > label {
+  gap: 3px !important;
+}
+.reference-password-main #password-form > label > span {
+  font-size: 0.68rem !important;
+}
+.reference-password-main #password-form input {
+  min-height: 31px !important;
+  padding-block: 5px !important;
+}
+.reference-password-main #password-form button {
+  min-height: 34px !important;
+}
+.reference-security-posture {
+  align-content: start !important;
+  gap: 7px !important;
+  padding-left: 11px !important;
+}
+.reference-posture-block {
+  gap: 7px !important;
+  grid-template-columns: 30px minmax(0, 1fr) !important;
+}
+.reference-posture-icon {
+  font-size: 0.9rem !important;
+  height: 30px !important;
+  width: 30px !important;
+}
+.reference-posture-block > div {
+  gap: 1px !important;
+}
+.reference-posture-block small {
+  font-size: 0.64rem !important;
+}
+.reference-posture-block strong {
+  font-size: 1rem !important;
+  line-height: 1.1 !important;
+}
+.reference-security-posture ul {
+  gap: 4px !important;
+  font-size: 0.68rem !important;
+  line-height: 1.3 !important;
+}
+.reference-security-posture li::before {
+  margin-right: 6px !important;
+}
+
+@media (max-width: 820px) {
+  #view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"],
+  #view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] {
+    background-image: none !important;
+  }
+  .reference-users-activity-list .reference-users-recent-row {
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+  }
+  .reference-users-activity-list .reference-users-recent-row > span:nth-child(3) {
+    grid-column: 2 / -1;
+  }
+  .reference-password-card {
+    grid-template-columns: 1fr !important;
+  }
+}

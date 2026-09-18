@@ -706,7 +706,7 @@ def test_20260918_webui_polish_regressions():
     assert ".audit-log-list-scroll::-webkit-scrollbar-button" in audit_css
 
     assert "const USER_PAGE_SIZE = 6;" in reference
-    assert "recentActivityExpanded" in reference
+    assert "function openUserActivityDialog()" in reference
     assert "reference-users-recent-toggle" in reference
     assert "reference-users-page-size" not in reference
     assert 'textContent = `Showing ${start}–${end} of ${matching.length} users`' in reference
@@ -768,3 +768,50 @@ def test_20260918_round_two_screenshot_regressions():
     assert "display: grid !important;" in styles
     assert ".reference-profile-copy {" in styles
     assert "#restart-dialog.restart-reference-dialog" in styles
+
+
+
+def test_20260918_round_three_screenshot_regressions():
+    reference = (ROOT / "src" / "webui" / "reference_acceptance.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "reference_acceptance.css").read_text(encoding="utf-8")
+
+    # Delivery History and Audit Log separators are painted by one shared row,
+    # so the three vertical rules cannot drift with nested child heights.
+    assert "background-position: 20% 0, 66% 0, 84% 0 !important;" in styles
+    assert "background-size: 1px 100%, 1px 100%, 1px 100% !important;" in styles
+    assert "#view-deliveries .reference-pagination-range," in styles
+    assert "#view-audit .reference-pagination-range," in styles
+
+    # Users View all is a separate dialog, not an expanded Recent activity card.
+    assert "function ensureUserActivityDialog()" in reference
+    assert "function openUserActivityDialog()" in reference
+    assert 'dialog.id = "reference-users-activity-dialog";' in reference
+    assert 'recentToggle.setAttribute("aria-haspopup", "dialog");' in reference
+    assert "recentActivityExpanded" not in reference
+    assert ".reference-users-activity-dialog" in styles
+
+    # Only Updates is compressed in this pass; Regional settings selectors are
+    # not part of the round-three compact overrides.
+    round_three = styles[styles.index("/* 2026-09-18 round-three screenshot corrections. */"):]
+    assert ".reference-updates-card {" in round_three
+    assert ".reference-updates-card .reference-update-status-card" in round_three
+    assert ".reference-regional-card {" not in round_three
+
+    # Security is forced after i18n/runtime layers, including later mutations.
+    assert "function forceSecurityTitle()" in reference
+    assert 'title.textContent = "Security";' in reference
+    assert 'localTitle.textContent = "Security";' in reference
+    assert "const titleObserver = new MutationObserver" in reference
+
+    # Uploaded avatar images do not inherit the amber avatar gradient/glow.
+    assert ".avatar.avatar-image {" in styles
+    assert "box-shadow: none !important;" in round_three
+    assert "#account-avatar.avatar-image" in styles
+    assert "#profile-avatar.avatar-image" in styles
+
+    # Password & sessions drops the two verbose posture descriptions and is
+    # compacted to align visually with Profile & access.
+    assert "You are currently signed in on this device." not in reference
+    assert "No suspicious activity detected." not in reference
+    assert "grid-template-columns: minmax(0, 1fr) 188px !important;" in round_three
+    assert "min-height: 31px !important;" in round_three
