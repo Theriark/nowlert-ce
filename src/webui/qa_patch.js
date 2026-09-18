@@ -103,6 +103,147 @@ let qaDeliveryPageSize = qaReadDeliveryPageSize();
 let qaDeliveryPagination = { page: 1, page_size: qaDeliveryPageSize, total: 0, total_pages: 1 };
 let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 
+const QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v1";
+const QA_WORKSPACE_CACHE_TTL_MS = 5 * 60 * 1000;
+const QA_WORKSPACE_CACHE_FIELDS = [
+  "integrations",
+  "routeSourceOptions",
+  "integrationSettings",
+  "integrationSettingsErrors",
+  "destinations",
+  "privateDestinations",
+  "destinationErrors",
+  "destinationTestResults",
+  "routes",
+  "routeErrors",
+  "tokens",
+  "deliveries",
+  "audit",
+  "preferences",
+  "metrics",
+  "versionStatus",
+  "users",
+  "backups",
+  "backupTargets",
+  "managedMounts",
+  "configuration",
+  "backupSettings",
+  "backupLastRun",
+  "sourceCategories",
+  "removedSources",
+  "historyRange",
+];
+
+function qaWorkspaceCacheKey(userId) {
+  return `${QA_WORKSPACE_CACHE_KEY}:${String(userId || "")}`;
+}
+
+function qaWorkspaceCacheSnapshot() {
+  const snapshot = {};
+  for (const field of QA_WORKSPACE_CACHE_FIELDS) {
+    snapshot[field] = state[field];
+  }
+  return snapshot;
+}
+
+function qaSaveWorkspaceCache() {
+  if (!state.user || !state.user.id) return;
+  try {
+    window.sessionStorage.setItem(
+      qaWorkspaceCacheKey(state.user.id),
+      JSON.stringify({
+        schema: 1,
+        user_id: String(state.user.id),
+        saved_at: Date.now(),
+        state: qaWorkspaceCacheSnapshot(),
+        delivery: {
+          page: qaDeliveryPage,
+          page_size: qaDeliveryPageSize,
+          pagination: qaDeliveryPagination,
+        },
+        audit: {
+          page: qaAuditPage,
+          page_size: qaAuditPageSize,
+          pagination: qaAuditPagination,
+        },
+      }),
+    );
+  } catch (_error) {
+    // Storage can be unavailable or full. Network refresh remains authoritative.
+  }
+}
+
+function qaHydrateWorkspaceCache(session) {
+  const userId = session && session.user && session.user.id;
+  if (!userId) return false;
+
+  let cached;
+  try {
+    cached = JSON.parse(
+      window.sessionStorage.getItem(qaWorkspaceCacheKey(userId)) || "null",
+    );
+  } catch (_error) {
+    return false;
+  }
+
+  if (
+    !cached
+    || cached.schema !== 1
+    || String(cached.user_id || "") !== String(userId)
+    || !Number.isFinite(Number(cached.saved_at))
+    || Date.now() - Number(cached.saved_at) > QA_WORKSPACE_CACHE_TTL_MS
+    || !cached.state
+    || typeof cached.state !== "object"
+  ) {
+    return false;
+  }
+
+  for (const field of QA_WORKSPACE_CACHE_FIELDS) {
+    if (Object.hasOwn(cached.state, field)) state[field] = cached.state[field];
+  }
+
+  if (cached.delivery && typeof cached.delivery === "object") {
+    const size = Number(cached.delivery.page_size || qaDeliveryPageSize);
+    if (QA_DELIVERY_PAGE_SIZES.includes(size)) qaDeliveryPageSize = size;
+    qaDeliveryPage = Math.max(1, Number(cached.delivery.page || 1));
+    if (cached.delivery.pagination) qaDeliveryPagination = cached.delivery.pagination;
+  }
+
+  if (cached.audit && typeof cached.audit === "object") {
+    const size = Number(cached.audit.page_size || qaAuditPageSize);
+    if (QA_AUDIT_PAGE_SIZES.includes(size)) qaAuditPageSize = size;
+    qaAuditPage = Math.max(1, Number(cached.audit.page || 1));
+    if (cached.audit.pagination) qaAuditPagination = cached.audit.pagination;
+    if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
+  }
+
+  state.workspaceErrors = [];
+  renderAll();
+  return true;
+}
+
+function qaClearWorkspaceCache() {
+  if (!state.user || !state.user.id) return;
+  try {
+    window.sessionStorage.removeItem(qaWorkspaceCacheKey(state.user.id));
+  } catch (_error) {
+    // Storage unavailable.
+  }
+}
+
+const qaOriginalShowApp = showApp;
+showApp = function showAppWithWorkspaceCache(session) {
+  const result = qaOriginalShowApp(session);
+  qaHydrateWorkspaceCache(session);
+  return result;
+};
+
+const qaOriginalExpireSession = expireSession;
+expireSession = function expireSessionWithWorkspaceCacheClear() {
+  qaClearWorkspaceCache();
+  return qaOriginalExpireSession();
+};
+
 function qaPager(containerId, pagination, onPage) {
   let container = byId(containerId);
   if (!container) {
@@ -308,16 +449,44 @@ renderDestinationFields = function renderDestinationFieldsWithCredentialState(se
   urlInput.parentElement.append(help);
 };
 
+function qaApplyDeliveryPage(response) {
+  state.deliveries = response.deliveries || [];
+  qaDeliveryPagination = response.pagination || qaDeliveryPagination;
+  qaDeliveryPage = qaDeliveryPagination.page || 1;
+  return response;
+}
+
+async function qaFetchDeliveryPage(page) {
+  const response = await request(
+    `/deliveries/page/${Math.max(1, Number(page || 1))}/size/${qaDeliveryPageSize}`,
+  );
+  return qaApplyDeliveryPage(response);
+}
+
+function qaApplyAuditPage(response) {
+  state.audit = response.audit_events || [];
+  if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
+  qaAuditPagination = response.pagination || qaAuditPagination;
+  qaAuditPage = qaAuditPagination.page || 1;
+  return response;
+}
+
+async function qaFetchAuditPage(page) {
+  const response = await request(
+    `/audit-events/page/${Math.max(1, Number(page || 1))}/size/${qaAuditPageSize}`,
+  );
+  return qaApplyAuditPage(response);
+}
+
+window.nowlertInitialDeliveryRequest = () => qaFetchDeliveryPage(qaDeliveryPage);
+window.nowlertInitialAuditRequest = () => qaFetchAuditPage(qaAuditPage);
+
 async function qaLoadDeliveryPage(page) {
   try {
-    const response = await request(
-      `/deliveries/page/${Math.max(1, Number(page || 1))}/size/${qaDeliveryPageSize}`,
-    );
-    state.deliveries = response.deliveries || [];
-    qaDeliveryPagination = response.pagination || qaDeliveryPagination;
-    qaDeliveryPage = qaDeliveryPagination.page || 1;
+    await qaFetchDeliveryPage(page);
     qaOriginalRenderDeliveries();
     qaMountPager("view-deliveries", "delivery-pagination", qaDeliveryPagination, qaLoadDeliveryPage);
+    qaSaveWorkspaceCache();
   } catch (error) {
     toast(error.message || "Delivery history page could not be loaded.", "error");
   }
@@ -325,15 +494,10 @@ async function qaLoadDeliveryPage(page) {
 
 async function qaLoadAuditPage(page) {
   try {
-    const response = await request(
-      `/audit-events/page/${Math.max(1, Number(page || 1))}/size/${qaAuditPageSize}`,
-    );
-    state.audit = response.audit_events || [];
-    if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
-    qaAuditPagination = response.pagination || qaAuditPagination;
-    qaAuditPage = qaAuditPagination.page || 1;
+    await qaFetchAuditPage(page);
     qaOriginalRenderAudit();
     qaMountPager("view-audit", "audit-pagination", qaAuditPagination, qaLoadAuditPage);
+    qaSaveWorkspaceCache();
   } catch (error) {
     toast(error.message || "Audit page could not be loaded.", "error");
   }
@@ -353,8 +517,9 @@ renderAudit = function renderAuditWithPagination() {
 
 const qaOriginalLoadWorkspace = loadWorkspace;
 loadWorkspace = async function loadWorkspaceWithPagination() {
-  await qaOriginalLoadWorkspace();
-  await Promise.all([qaLoadDeliveryPage(qaDeliveryPage), qaLoadAuditPage(qaAuditPage)]);
+  const result = await qaOriginalLoadWorkspace();
+  qaSaveWorkspaceCache();
+  return result;
 };
 
 function qaCreateTopShortcut() {
@@ -414,6 +579,7 @@ function qaArrangePaginationFooter(viewId, containerId) {
   if (footer.parentElement !== row) {
     row.append(footer);
   }
+  footer.hidden = false;
 }
 
 function qaBindAuditPageSize() {
@@ -447,6 +613,7 @@ function qaBindDeliveryPageSize() {
 
   const footer = element("div", {
     className: "audit-footer qa-delivery-footer qa-pagination-footer",
+    hidden: true,
   });
   const label = element("label");
   const caption = element("span", { text: "Entries" });
@@ -532,6 +699,8 @@ document.addEventListener("DOMContentLoaded", () => {
   qaBindFooterTopShortcuts();
   qaBindBottomShortcuts();
 });
+
+window.addEventListener("pagehide", qaSaveWorkspaceCache);
 
 function qaRefreshRouteChoiceAccessibility(select) {
   if (!select) return;

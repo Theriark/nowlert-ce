@@ -309,11 +309,12 @@ def test_webui_keeps_workspace_visible_and_identifies_partial_api_failures():
         "Destinations",
         "Routes",
         "Event API tokens",
-        "Delivery history",
         "Configuration inventory",
         "Backup settings",
     ):
         assert f'["{component}", request(' in script
+    assert 'deliveries: ["Delivery history", initialDeliveryRequest' in script
+    assert 'audit: ["Audit log", initialAuditRequest' in script
     session_request = script.index('session = await request("/session")')
     session_show = script.index("showApp(session);", session_request)
     workspace_load = script.index("await loadWorkspace();", session_show)
