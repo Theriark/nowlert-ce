@@ -910,9 +910,10 @@ function ensurePreviewReferenceLayout() {
     section.classList.add("reference-account-page");
     grid.classList.add("reference-account-grid");
 
-    if (identity.dataset.referenceAccount !== "2") {
-      identity.dataset.referenceAccount = "2";
+    if (identity.dataset.referenceAccount !== "3") {
+      identity.dataset.referenceAccount = "3";
       identity.classList.add("reference-profile-card");
+
       const original = [...identity.children];
       const body = ref("div", "reference-profile-body");
       original.forEach((child) => body.append(child));
@@ -923,9 +924,6 @@ function ensurePreviewReferenceLayout() {
 
       const status = ref("aside", "reference-access-status");
       status.innerHTML = '<span class="reference-access-status-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"></path><circle cx="12" cy="10" r="2"></circle><path d="M8.5 16c.8-2 2-3 3.5-3s2.7 1 3.5 3"></path></svg></span><div class="reference-access-status-copy"><small>Access status</small><strong id="reference-access-status-value">Active</strong><p>Your account is in good standing.</p><span id="reference-system-status" class="reference-system-status"><i></i><b>All systems operational</b></span></div>';
-
-      const top = ref("div", "reference-profile-top");
-      top.append(body, status);
 
       const meta = ref("div", "reference-account-meta");
       for (const [label, id, value, kind] of [
@@ -942,16 +940,14 @@ function ensurePreviewReferenceLayout() {
           const action = ref("button", "reference-mfa-action", "Enable MFA");
           action.id = "reference-account-mfa-action";
           action.type = "button";
-          action.addEventListener("click", () => {
-            if (typeof openMfaDialog === "function") void openMfaDialog();
-          });
+          action.dataset.action = "account-mfa";
           copy.append(action);
         }
         item.append(icon, copy);
         meta.append(item);
       }
 
-      identity.replaceChildren(heading, top, meta);
+      identity.replaceChildren(heading, body, status, meta);
     }
 
     if (password.dataset.referenceAccount !== "1") {

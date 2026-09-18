@@ -203,6 +203,26 @@ def delivery_snapshot(database, actor, since):
             },
         )
 
+    def normalize_received(metrics):
+        outcomes = (
+            int(metrics.get("delivered", 0) or 0)
+            + int(metrics.get("pending", 0) or 0)
+            + int(metrics.get("failed", 0) or 0)
+        )
+        metrics["received"] = max(
+            int(metrics.get("received", 0) or 0),
+            int(metrics.get("filtered", 0) or 0),
+            outcomes,
+        )
+
+    for metrics in by_link.values():
+        normalize_received(metrics)
+    for metrics in by_route.values():
+        normalize_received(metrics)
+    for metrics in by_destination.values():
+        normalize_received(metrics)
+    normalize_received(total)
+
     history_fields = (
         "id",
         "delivery_id",
