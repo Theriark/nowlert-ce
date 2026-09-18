@@ -6,7 +6,6 @@
   let userFilter = "all";
   let userQuery = "";
   let userPage = 1;
-  let recentActivityExpanded = false;
   let previewDestinationId = "";
   let previewScenarioDestinationId = "";
   let previewAssignedRouteIds = new Set();
@@ -665,11 +664,9 @@ function ensurePreviewReferenceLayout() {
     const recentHead = ref("div", "reference-users-recent-heading");
     const recentToggle = ref("button", "reference-users-recent-toggle", "View all ›");
     recentToggle.type = "button";
-    recentToggle.setAttribute("aria-expanded", "false");
-    recentToggle.addEventListener("click", () => {
-      recentActivityExpanded = !recentActivityExpanded;
-      syncRecentActivity();
-    });
+    recentToggle.setAttribute("aria-haspopup", "dialog");
+    recentToggle.setAttribute("aria-controls", "reference-users-activity-dialog");
+    recentToggle.addEventListener("click", openUserActivityDialog);
     recentHead.append(ref("strong", "", "⚡ Recent activity"), recentToggle);
     const recentList = ref("div", "reference-users-recent-list"); recentList.id = "reference-users-recent-list";
     recent.append(recentHead, recentList); overview.append(metrics, recent); panel.before(overview);
@@ -725,23 +722,73 @@ function ensurePreviewReferenceLayout() {
     return rows;
   }
 
-  function syncRecentActivity() {
-    const list = byId("reference-users-recent-list"); if (!list) return;
-    const allEvents = (state.audit || []).filter((item) => /user|session|login|account/.test(`${item.action || ""} ${item.resource_type || ""} ${item.resource || ""}`.toLowerCase()));
-    const events = recentActivityExpanded ? allEvents : allEvents.slice(0, 2);
-    const toggle = document.querySelector(".reference-users-recent-toggle");
-    if (toggle) {
-      toggle.textContent = recentActivityExpanded ? "Show less ↑" : "View all ›";
-      toggle.setAttribute("aria-expanded", recentActivityExpanded ? "true" : "false");
-    }
-    list.classList.toggle("is-expanded", recentActivityExpanded);
+  function userActivityEvents() {
+    return (state.audit || []).filter((item) => /user|session|login|account/.test(`${item.action || ""} ${item.resource_type || ""} ${item.resource || ""}`.toLowerCase()));
+  }
+
+  function appendUserActivityRows(list, events, emptyText) {
     list.replaceChildren();
-    if (!events.length) { list.append(ref("small", "reference-users-recent-empty", "No recent account activity.")); return; }
+    if (!events.length) {
+      list.append(ref("small", "reference-users-recent-empty", emptyText));
+      return;
+    }
     for (const item of events) {
-      const row = ref("div", "reference-users-recent-row"); row.append(ref("span", "reference-users-recent-dot"));
+      const row = ref("div", "reference-users-recent-row");
+      row.append(ref("span", "reference-users-recent-dot"));
       row.append(ref("strong", "", item.username || item.actor_username || item.user || item.actor || "Account"));
       row.append(ref("span", "", String(item.action || "Activity").replaceAll(".", " · ")));
-      row.append(ref("time", "", typeof formatTime === "function" ? formatTime(item.created_at || item.timestamp || item.time) : "")); list.append(row);
+      row.append(ref("time", "", typeof formatTime === "function" ? formatTime(item.created_at || item.timestamp || item.time) : ""));
+      list.append(row);
+    }
+  }
+
+  function ensureUserActivityDialog() {
+    let dialog = byId("reference-users-activity-dialog");
+    if (dialog) return dialog;
+
+    dialog = ref("dialog", "modal reference-users-activity-dialog");
+    dialog.id = "reference-users-activity-dialog";
+    dialog.setAttribute("aria-labelledby", "reference-users-activity-title");
+
+    const heading = ref("div", "reference-users-activity-heading");
+    const copy = ref("div");
+    copy.append(
+      ref("h2", "", "Recent activity"),
+      ref("p", "", "Account, user, and session activity."),
+    );
+    copy.firstElementChild.id = "reference-users-activity-title";
+    const close = ref("button", "icon-button", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "Close recent activity");
+    close.addEventListener("click", () => dialog.close());
+    heading.append(copy, close);
+
+    const list = ref("div", "reference-users-activity-list");
+    list.id = "reference-users-activity-list";
+    dialog.append(heading, list);
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      dialog.close();
+    });
+    document.body.append(dialog);
+    return dialog;
+  }
+
+  function openUserActivityDialog() {
+    const dialog = ensureUserActivityDialog();
+    const list = byId("reference-users-activity-list");
+    if (list) appendUserActivityRows(list, userActivityEvents(), "No account activity is available.");
+    if (!dialog.open) dialog.showModal();
+  }
+
+  function syncRecentActivity() {
+    const list = byId("reference-users-recent-list");
+    if (!list) return;
+    const allEvents = userActivityEvents();
+    appendUserActivityRows(list, allEvents.slice(0, 2), "No recent account activity.");
+    const fullList = byId("reference-users-activity-list");
+    if (fullList && byId("reference-users-activity-dialog")?.open) {
+      appendUserActivityRows(fullList, allEvents, "No account activity is available.");
     }
   }
 
@@ -855,15 +902,31 @@ function ensurePreviewReferenceLayout() {
       password.dataset.referenceAccount = "1"; password.classList.add("reference-password-card"); const oldHeading = password.querySelector(":scope > .panel-heading"); const form = byId("password-form");
       if (oldHeading) { oldHeading.classList.add("reference-password-heading"); oldHeading.innerHTML = '<div><h2>Password & sessions</h2><p>Change your password and view your active session information.</p></div>'; }
       const main = ref("div", "reference-password-main"); if (oldHeading) main.append(oldHeading); if (form) main.append(form);
-      const posture = ref("aside", "reference-security-posture"); posture.innerHTML = '<div class="reference-posture-block"><span class="reference-posture-icon">▣</span><div><small>Active sessions</small><strong id="reference-active-sessions">1</strong><p>You are currently signed in on this device.</p></div></div><div class="reference-posture-divider"></div><div class="reference-posture-block"><span class="reference-posture-icon">◇</span><div><small>Security posture</small><strong class="reference-good">Good</strong><p>No suspicious activity detected.</p></div></div><div class="reference-posture-divider"></div><ul><li>Password is set</li><li>Account is active</li><li>No security alerts</li></ul>';
+      const posture = ref("aside", "reference-security-posture"); posture.innerHTML = '<div class="reference-posture-block"><span class="reference-posture-icon">▣</span><div><small>Active sessions</small><strong id="reference-active-sessions">1</strong></div></div><div class="reference-posture-divider"></div><div class="reference-posture-block"><span class="reference-posture-icon">◇</span><div><small>Security posture</small><strong class="reference-good">Good</strong></div></div><div class="reference-posture-divider"></div><ul><li>Password is set</li><li>Account is active</li><li>No security alerts</li></ul>';
       password.replaceChildren(main, posture);
     }
     const tokens = byId("account-api-tokens");
     if (tokens) { tokens.classList.add("reference-api-tokens"); const toolbar = tokens.querySelector(":scope > .section-toolbar"); const title = toolbar?.querySelector("h2"); if (title) title.textContent = "API tokens"; const add = toolbar?.querySelector('[data-action="new-token"]'); if (add) add.textContent = "Issue token"; }
   }
 
+  function forceSecurityTitle() {
+    if (state.currentView !== "account") return;
+    const title = byId("page-title");
+    if (title && (title.textContent !== "Security" || title.dataset.i18nSource)) {
+      delete title.dataset.i18nSource;
+      title.textContent = "Security";
+    }
+    const localTitle = byId("view-account")?.querySelector(":scope > .section-toolbar h2");
+    if (localTitle && (localTitle.textContent !== "Security" || localTitle.dataset.i18nSource)) {
+      delete localTitle.dataset.i18nSource;
+      localTitle.textContent = "Security";
+    }
+  }
+
   function syncAccountReference() {
-    ensureAccountReferenceLayout(); const user = state.user || {};
+    ensureAccountReferenceLayout();
+    forceSecurityTitle();
+    const user = state.user || {};
     if (byId("reference-account-role-value")) byId("reference-account-role-value").textContent = user.role === "admin" ? "Administrator" : "User";
     if (byId("reference-account-member-value")) byId("reference-account-member-value").textContent = memberSince(user);
     if (byId("reference-account-mfa-value")) byId("reference-account-mfa-value").textContent = user.mfa_enabled ? "Enabled" : "Not enabled";
@@ -901,6 +964,14 @@ function ensurePreviewReferenceLayout() {
   if (typeof renderTokens === "function") { const base = renderTokens; renderTokens = function renderTokensWithReferenceLayout() { const result = base(); ensureAccountReferenceLayout(); return result; }; }
   if (typeof navigate === "function") { const base = navigate; navigate = function navigateWithReferenceAcceptance(view, mode = "push") { const result = base(view, mode); scheduleSync(); return result; }; }
   if (typeof showApp === "function") { const base = showApp; showApp = function showAppWithReferenceAcceptance(session) { const result = base(session); scheduleSync(); return result; }; }
+
+  const pageTitle = byId("page-title");
+  if (pageTitle && typeof MutationObserver === "function") {
+    const titleObserver = new MutationObserver(() => {
+      if (state.currentView === "account") requestAnimationFrame(forceSecurityTitle);
+    });
+    titleObserver.observe(pageTitle, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-i18n-source"] });
+  }
 
   const previewDialog = byId("preview-dialog");
   previewDialog?.addEventListener("close", closePreviewRoutes);
