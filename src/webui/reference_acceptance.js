@@ -910,8 +910,8 @@ function ensurePreviewReferenceLayout() {
     section.classList.add("reference-account-page");
     grid.classList.add("reference-account-grid");
 
-    if (identity.dataset.referenceAccount !== "3") {
-      identity.dataset.referenceAccount = "3";
+    if (identity.dataset.referenceAccount !== "4") {
+      identity.dataset.referenceAccount = "4";
       identity.classList.add("reference-profile-card");
 
       const original = [...identity.children];
@@ -931,16 +931,17 @@ function ensurePreviewReferenceLayout() {
         ["Member since", "reference-account-member-value", "Unavailable", "member"],
         ["MFA status", "reference-account-mfa-value", "Disabled", "mfa"],
       ]) {
-        const item = ref("div", `reference-account-meta-item reference-account-meta-${kind}`);
+        const item = ref(kind === "mfa" ? "button" : "div", `reference-account-meta-item reference-account-meta-${kind}`);
         const icon = ref("span", "reference-account-meta-icon", kind === "mfa" ? "Ⅱ" : "◇");
         const copy = ref("div", "reference-account-meta-copy");
         copy.append(ref("small", "", label), ref("strong", "", value));
         copy.querySelector("strong").id = id;
         if (kind === "mfa") {
-          const action = ref("button", "reference-mfa-action", "Enable MFA");
+          item.type = "button";
+          item.dataset.action = "account-mfa";
+          item.setAttribute("aria-label", "Enable multi-factor authentication");
+          const action = ref("span", "reference-mfa-action", "Enable MFA");
           action.id = "reference-account-mfa-action";
-          action.type = "button";
-          action.dataset.action = "account-mfa";
           copy.append(action);
         }
         item.append(icon, copy);
@@ -1140,6 +1141,10 @@ function ensurePreviewReferenceLayout() {
     if (mfaItem) {
       mfaItem.classList.toggle("is-enabled", enabled);
       mfaItem.classList.toggle("is-disabled", !enabled);
+      mfaItem.setAttribute(
+        "aria-label",
+        enabled ? "Disable multi-factor authentication" : "Enable multi-factor authentication",
+      );
     }
     if (mfaIcon) mfaIcon.textContent = enabled ? "✓" : "Ⅱ";
     const posture = byId("reference-mfa-posture");

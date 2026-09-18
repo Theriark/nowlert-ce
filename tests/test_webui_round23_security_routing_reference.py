@@ -61,15 +61,15 @@ def test_routing_filter_keeps_outer_size_and_animation_but_uses_reference_interi
     script = read("src/webui/routing_flow.js")
     style = read("src/webui/routing_flow.css")
 
-    assert "function filterCardDescriptor(link)" in script
+    assert "function filterCardDescriptor(filter)" in script
     assert "Applied to active route" not in script
     assert "policy.policy_rules" in script
-    assert "filter_policies" in script
-    assert "filter_sources" in script
+    assert "current.filters" in script
+    assert "filter.route_ids" in script
     assert "rf-filter-rule-label" in script
     assert "filterTagTone(value)" in script
     assert 'const sourceSummary = el("span", "rf-filter-card-sources")' in script
-    assert "for (const source of sourceKeys) sourceSummary.append(sourceIcon(source));" in script
+    assert "for (const source of visible) sourceSummary.append(sourceIcon(source));" in script
     assert 'const destinationSummary = el("span", "rf-filter-card-destination")' in script
     assert "rf-filter-card-period" not in script
 

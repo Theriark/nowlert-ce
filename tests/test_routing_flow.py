@@ -361,7 +361,7 @@ def test_filter_decisions_feed_received_filtered_and_reduction_metrics(api):
     assert filtered_history[0]["source"] == "grafana"
 
 
-def test_snapshot_exposes_all_enabled_filters_for_destination_cards(api):
+def test_snapshot_exposes_one_filter_card_per_filtering_record(api):
     headers = login(api)
     grafana = create_route(api, headers, "Grafana filtered", source="grafana")
     zabbix = create_route(api, headers, "Zabbix filtered", source="zabbix")
@@ -379,7 +379,7 @@ def test_snapshot_exposes_all_enabled_filters_for_destination_cards(api):
         {
             "policy": [
                 {
-                    "action": "allow",
+                    "action": "block",
                     "conditions": {
                         "severity": ["warning", "critical"],
                         "status": ["firing"],
@@ -395,7 +395,7 @@ def test_snapshot_exposes_all_enabled_filters_for_destination_cards(api):
         {
             "policy": [
                 {
-                    "action": "allow",
+                    "action": "block",
                     "conditions": {
                         "severity": ["warning", "high", "disaster"],
                         "status": ["failure"],
@@ -405,25 +405,53 @@ def test_snapshot_exposes_all_enabled_filters_for_destination_cards(api):
         },
     )
 
-    data = snapshot(api, headers, "10m").payload
+    first = snapshot(api, headers, "10m").payload
+    assert len(first["filters"]) == 1
+    filter_card = first["filters"][0]
+    assert filter_card["id"] == f'{destination["id"]}:filter'
+    assert filter_card["destination_id"] == destination["id"]
+    assert set(filter_card["sources"]) == {"grafana", "zabbix"}
+    assert set(filter_card["route_ids"]) == {grafana["id"], zabbix["id"]}
+    assert {policy["source"] for policy in filter_card["policies"]} == {
+        "grafana",
+        "zabbix",
+    }
+
+    # Editing one integration in the existing Filtering record updates the
+    # same Routing Flow card instead of appending another card.
+    platform.filters.set_rules(
+        api["admin"].actor,
+        destination["id"],
+        "grafana",
+        {
+            "policy": [
+                {
+                    "action": "block",
+                    "conditions": {"severity": ["critical"]},
+                }
+            ]
+        },
+    )
+    second = snapshot(api, headers, "10m").payload
+    assert len(second["filters"]) == 1
+    updated = second["filters"][0]
+    assert updated["id"] == f'{destination["id"]}:filter'
+    grafana_policy = next(
+        policy for policy in updated["policies"] if policy["source"] == "grafana"
+    )
+    assert grafana_policy["policy_rules"] == [
+        {"action": "block", "conditions": {"severity": ["critical"]}}
+    ]
+
     links = [
-        item for item in data["links"]
+        item for item in second["links"]
         if item["destination_id"] == destination["id"]
     ]
     assert len(links) == 2
-    for link in links:
-        assert set(link["filter_sources"]) == {"grafana", "zabbix"}
-        assert {policy["source"] for policy in link["filter_policies"]} == {
-            "grafana",
-            "zabbix",
-        }
-        fields = {
-            field
-            for policy in link["filter_policies"]
-            for rule in policy["policy_rules"]
-            for field in rule["conditions"]
-        }
-        assert {"severity", "status"} <= fields
+    assert all(
+        item["filter_ids"] == [f'{destination["id"]}:filter']
+        for item in links
+    )
 
 
 def test_routing_flow_supports_dashboard_history_windows(api):

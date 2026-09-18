@@ -206,11 +206,18 @@
     return ids.has("usr0030") && ids.has("usr0032") && ips.length > 0;
   }
 
+  function regularDellBlockRules(integration) {
+    const policyRules = Array.isArray(integration?.policy_rules) ? integration.policy_rules : [];
+    return policyRules.filter(
+      (rule) => rule.action === "block" && !isDellSessionSuppression(rule),
+    );
+  }
+
   function supportedDellPolicy(integration) {
     const policyRules = Array.isArray(integration?.policy_rules) ? integration.policy_rules : [];
-    const allowRules = policyRules.filter((rule) => rule.action === "allow");
-    return allowRules.length <= 1 && policyRules.every(
-      (rule) => rule.action === "allow" || isDellSessionSuppression(rule),
+    const regularBlocks = regularDellBlockRules(integration);
+    return regularBlocks.length <= 1 && policyRules.every(
+      (rule) => rule.action === "block",
     );
   }
 
@@ -254,10 +261,10 @@
     }).join(", ");
   }
 
-  function hydrateDellAllowRule(integration) {
-    const allowRules = (integration.policy_rules || []).filter((rule) => rule.action === "allow");
-    if (allowRules.length !== 1) return;
-    const conditions = allowRules[0].conditions || {};
+  function hydrateDellBlockRule(integration) {
+    const blockRules = regularDellBlockRules(integration);
+    if (blockRules.length !== 1) return;
+    const conditions = blockRules[0].conditions || {};
     for (const field of integration.fields || []) {
       const values = Array.isArray(conditions[field.key]) ? conditions[field.key] : [];
       if (field.kind === "enum") {
@@ -266,7 +273,7 @@
           `[data-filter-enum="${CSS.escape(field.key)}"]`,
         );
         for (const input of inputs) {
-          input.checked = selected.size ? selected.has(normalized(input.value)) : true;
+          input.checked = selected.has(normalized(input.value));
         }
       } else if (field.kind === "text") {
         const input = document.querySelector(
@@ -290,7 +297,7 @@
   function renderDellPolicyPanel(integration) {
     removeDellPolicyPanel();
     if (!integration || integration.source !== "dell_idrac") return;
-    hydrateDellAllowRule(integration);
+    hydrateDellBlockRule(integration);
 
     const warning = byId("filter-legacy-warning");
     if (warning && supportedDellPolicy(integration)) {
@@ -352,19 +359,17 @@
     const nativeRules = body && typeof body.rules === "object" && body.rules !== null
       ? body.rules
       : null;
-    if (
-      method !== "PUT"
-      || !destinationDellFilter
-      || nativeRules === null
-      || Object.prototype.hasOwnProperty.call(nativeRules, "policy")
-    ) {
+    if (method !== "PUT" || !destinationDellFilter || nativeRules === null) {
       return oldRequest(path, options);
     }
 
-    const policy = [];
-    if (Object.keys(nativeRules).length) {
-      policy.push({ action: "allow", conditions: nativeRules });
-    }
+    const incomingPolicy = Array.isArray(nativeRules.policy)
+      ? nativeRules.policy
+      : (Object.keys(nativeRules).length
+          ? [{ action: "block", conditions: nativeRules }]
+          : []);
+    const policy = incomingPolicy.filter((rule) => !isDellSessionSuppression(rule));
+
     const trustedIps = trustedIpsFromEditor();
     if (trustedIps.length) {
       policy.push({

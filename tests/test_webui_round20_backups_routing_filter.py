@@ -50,12 +50,12 @@ def test_routing_flow_uses_the_approved_live_filter_card_without_fake_metrics():
     assert "function filterRuleTags(link)" in script
     assert "policy.legacy_clauses?.length" in script
     assert 'key.startsWith("__")' in script
-    assert '["Events in", filterMetricText(link.metrics?.received), "yellow"]' in script
-    assert '["Filtered out", filterMetricText(link.metrics?.filtered), "cyan"]' in script
-    assert '["Reduction", filterReductionText(link.metrics), "green"]' in script
+    assert '["Events in", filterMetricText(filter.metrics?.received), "yellow"]' in script
+    assert '["Filtered out", filterMetricText(filter.metrics?.filtered), "cyan"]' in script
+    assert '["Reduction", filterReductionText(filter.metrics), "green"]' in script
     assert 'return Number.isFinite(value) ? String(value) : "—";' in script
     assert 'return "—";' in script
-    assert 'renderFilterCard(filter, link, r, destination, lines);' in script
+    assert "renderFilterCard(node, filter, routes, destination);" in script
     assert "rangeLabel()" in script
     assert "destination.name" in script
 

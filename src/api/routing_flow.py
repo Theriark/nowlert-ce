@@ -66,7 +66,7 @@ def snapshot(api, actor, range_key):
     visible_destinations = api.destinations.list_visible(actor)
     route_ids = {route.id for route in visible_routes}
     destination_ids = {destination.id for destination in visible_destinations}
-    routes, destinations, links = [], [], []
+    routes, destinations, links, filters = [], [], [], []
 
     for route in visible_routes:
         source = canonical_source(route.source)
@@ -131,6 +131,9 @@ def snapshot(api, actor, range_key):
 
         filter_sources = []
         filter_policies = []
+        filter_route_ids = []
+        filter_metrics = {**empty_metrics(), "last_activity_at": 0}
+
         for key, policy in policies.items():
             schema = filter_schema(key) or {"fields": [], "name": key}
             labels = {
@@ -148,28 +151,43 @@ def snapshot(api, actor, range_key):
             )
             if not source_enabled:
                 continue
-            filter_sources.append(key)
-            if not filter_visible:
-                filter_policies.append(
-                    {
-                        "source": key,
-                        "name": schema.get("name", key),
-                        "restricted": False,
-                        "managed": True,
-                        "configured": True,
-                        "enabled": True,
-                        "policy_rules": [],
-                        "rules": {"__managed": ["Managed by administrator"]},
-                        "legacy_clauses": [],
-                        "labels": {**labels, "__managed": "Filter"},
-                    }
+
+            source_route_ids = []
+            for candidate in assigned:
+                candidate_source = canonical_source(candidate.source)
+                candidate_sources = (
+                    sources_for_input(candidate.input_type)
+                    if candidate_source == "*"
+                    else [candidate_source]
                 )
+                if candidate.enabled and key in candidate_sources:
+                    source_route_ids.append(candidate.id)
+            if not source_route_ids:
                 continue
-            display_clauses, display_labels = _policy_display(
-                policy_rules, labels
-            )
-            filter_policies.append(
-                {
+
+            filter_sources.append(key)
+            for route_id in source_route_ids:
+                if route_id not in filter_route_ids:
+                    filter_route_ids.append(route_id)
+
+            if not filter_visible:
+                public_policy = {
+                    "source": key,
+                    "name": schema.get("name", key),
+                    "restricted": False,
+                    "managed": True,
+                    "configured": True,
+                    "enabled": True,
+                    "policy_rules": [],
+                    "rules": {"__managed": ["Managed by administrator"]},
+                    "legacy_clauses": [],
+                    "labels": {**labels, "__managed": "Filter"},
+                }
+            else:
+                display_clauses, display_labels = _policy_display(
+                    policy_rules, labels
+                )
+                public_policy = {
                     "source": key,
                     "name": schema.get("name", key),
                     "restricted": False,
@@ -187,6 +205,35 @@ def snapshot(api, actor, range_key):
                         else api.filters._legacy_public(key, policy)
                     ),
                     "labels": {**labels, **display_labels},
+                }
+            filter_policies.append(public_policy)
+
+            source_metrics = stats.get("by_filter", {}).get(
+                (destination.id, key), empty_metrics()
+            )
+            for metric_key in ("received", "filtered", "delivered", "pending", "failed"):
+                filter_metrics[metric_key] += int(
+                    source_metrics.get(metric_key, 0) or 0
+                )
+            filter_metrics["last_activity_at"] = max(
+                int(filter_metrics.get("last_activity_at", 0) or 0),
+                int(source_metrics.get("last_activity_at", 0) or 0),
+            )
+
+        destination_filter_id = (
+            f"{destination.id}:filter"
+            if filter_policies and filter_route_ids
+            else None
+        )
+        if destination_filter_id is not None:
+            filters.append(
+                {
+                    "id": destination_filter_id,
+                    "destination_id": destination.id,
+                    "sources": filter_sources,
+                    "route_ids": filter_route_ids,
+                    "policies": filter_policies,
+                    "metrics": filter_metrics,
                 }
             )
 
@@ -285,8 +332,16 @@ def snapshot(api, actor, range_key):
                     "enabled": route.enabled and destination.enabled,
                     "fallback": source == "*",
                     "policies": source_policies,
-                    "filter_sources": filter_sources,
-                    "filter_policies": filter_policies,
+                    "filter_ids": (
+                        [destination_filter_id]
+                        if destination_filter_id is not None
+                        and any(key in filter_sources for key in sources)
+                        else []
+                    ),
+                    "direct": any(
+                        key not in filter_sources
+                        for key in sources
+                    ),
                     "metrics": stats["by_link"].get(
                         (route.id, destination.id), empty_metrics()
                     ),
@@ -317,6 +372,7 @@ def snapshot(api, actor, range_key):
         "metrics": stats["metrics"],
         "routes": routes,
         "destinations": destinations,
+        "filters": filters,
         "links": links,
         "history": history,
         "errors": [

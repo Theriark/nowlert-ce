@@ -540,7 +540,12 @@ class DestinationFilterStore:
         return result
 
     @staticmethod
-    def _normalize_rules(source: str, rules: dict) -> dict[str, tuple[str, ...]]:
+    def _normalize_rules(
+        source: str,
+        rules: dict,
+        *,
+        collapse_full_enum: bool = True,
+    ) -> dict[str, tuple[str, ...]]:
         if not isinstance(rules, dict):
             raise ValueError("filter rules must be an object")
         schema = filter_schema(source)
@@ -561,7 +566,7 @@ class DestinationFilterStore:
                 invalid = set(patterns) - options
                 if invalid:
                     raise ValueError(f"unsupported {descriptor['label']} value")
-                if set(patterns) == options:
+                if collapse_full_enum and set(patterns) == options:
                     continue
             result[key] = patterns
         encoded = json.dumps(

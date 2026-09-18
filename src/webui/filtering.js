@@ -538,14 +538,13 @@
     const rules = integration.rules || {};
     for (const field of integration.fields.filter((item) => item.kind === "enum")) {
       const current = normalizedSet(rules[field.key]);
-      const restricted = current.size > 0;
       const group = element("fieldset", { className: "filtering-enum-group" });
       group.append(element("legend", { text: field.label }));
       const choices = element("div", { className: "filtering-choice-grid" });
       for (const value of field.values || []) {
         const input = element("input", { type: "checkbox", value });
         input.dataset.filterEnum = field.key;
-        input.checked = restricted ? current.has(String(value).toLowerCase()) : true;
+        input.checked = current.has(String(value).toLowerCase());
         choices.append(element("label", { className: "filtering-choice" }, [input, element("span", { text: value })]));
       }
       group.append(choices);
@@ -626,7 +625,7 @@
     for (const field of integration.fields.filter((item) => item.kind === "enum")) {
       const inputs = [...document.querySelectorAll(`[data-filter-enum="${CSS.escape(field.key)}"]`)];
       const selected = inputs.filter((input) => input.checked).map((input) => input.value);
-      if (selected.length > 0 && selected.length < inputs.length) rules[field.key] = selected;
+      if (selected.length > 0) rules[field.key] = selected;
     }
     for (const field of integration.fields.filter((item) => item.kind === "text")) {
       const input = document.querySelector(`[data-filter-text="${CSS.escape(field.key)}"]`);
@@ -644,12 +643,15 @@
     const integration = filteringState.integration;
     const destination = filteringState.destinationView && filteringState.destinationView.destination;
     if (!integration || !destination || !currentDestinationCanManage()) return;
-    const rules = editorRules();
+    const conditions = editorRules();
+    const policy = Object.keys(conditions).length
+      ? { policy: [{ action: "block", conditions }] }
+      : { policy: [] };
     const toggle = document.querySelector('[data-filter-toggle-context="editor"]');
-    const enabled = Boolean(toggle && toggle.checked && Object.keys(rules).length);
+    const enabled = Boolean(toggle && toggle.checked && Object.keys(conditions).length);
     const response = await request(
       `/filters/destinations/${destination.id}/sources/${encodeURIComponent(integration.source)}`,
-      { method: "PUT", body: { rules, enabled } },
+      { method: "PUT", body: { rules: policy, enabled } },
     );
     const index = filteringState.destinationView.integrations.findIndex((item) => item.source === integration.source);
     if (index >= 0) filteringState.destinationView.integrations[index] = response.integration;

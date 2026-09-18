@@ -36,12 +36,14 @@ def test_route_dialog_is_icon_led_and_contains_only_route_information():
 
 
 def test_filter_dialog_has_identity_icons_status_and_policy_rows():
-    filter_branch = SCRIPT.split('} else {\n      const link = current.links.find', 1)[1].split('    }\n    drawEdges();', 1)[0]
+    filter_branch = SCRIPT.split(
+        "const filter = current.filters.find(item => item.id === identity);", 1
+    )[1].split("    drawEdges();", 1)[0]
     assert 'setDialogTitle("Active filter", icon("filter"))' in filter_branch
-    assert 'detailIdentityRow("Integration", sourceIcon(r.source), r.integration_name)' in filter_branch
+    assert 'detailRow("Sources", sourceNames.join(", ") || "Managed")' in filter_branch
     assert 'detailIdentityRow("Destination", destinationLogo(d), d.name)' in filter_branch
     assert 'detailRow("Status", "Active")' in filter_branch
-    assert "policyDetailRows(link).forEach" in filter_branch
+    assert "policyDetailRows({ policies: filter.policies || [], fallback: true }).forEach" in filter_branch
     assert 'detailRow("Connection"' not in filter_branch
 
 
