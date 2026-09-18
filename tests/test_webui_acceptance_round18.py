@@ -45,20 +45,26 @@ def test_round18_invalid_portable_document_still_opens_preview_dialog():
     assert "Preview completed." in preview
 
 
-def test_round18_data_tools_is_full_width_and_matches_reference_scale():
+def test_round18_data_tools_stays_beside_scheduled_backups_on_desktop():
+    styles = (ROOT / "src" / "webui" / "qa_patch.css").read_text(encoding="utf-8")
     final = _round18_styles()
 
-    assert ".backup-dashboard-grid-top {" in final
-    assert "grid-template-columns: minmax(0, 1fr) !important;" in final
-    assert "#backup-schedule-panel," in final
+    assert ".backup-dashboard-grid-top," in final
+    assert ".backup-dashboard-grid-bottom {" in final
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr)) !important;" in final
+    assert "#backup-schedule-panel {" in final
+    assert "grid-column: 1 !important;" in final
     assert "#backup-data-tools-panel {" in final
-    assert "grid-column: 1 / -1 !important;" in final
-    assert "min-height: 470px;" in final
-    assert "font-size: 32px !important;" in final
-    assert "font-size: 25px !important;" in final
-    assert "font-size: 18px !important;" in final
-    assert "height: 92px !important;" in final
-    assert "min-height: 68px !important;" in final
+    assert "grid-column: 2 !important;" in final
+
+    desktop_breakpoint = styles[
+        styles.index("@media (max-width: 1100px)"):
+        styles.index("@media (max-width: 760px)")
+    ]
+    assert ".backup-dashboard-grid {" in desktop_breakpoint
+    assert "@media (max-width: 900px)" in desktop_breakpoint
+    assert "min-height: 470px;" not in final
+    assert "grid-column: 1 / -1 !important;" not in final
 
 
 def test_round18_hidden_admin_navigation_wins_over_grid_important_rule():
