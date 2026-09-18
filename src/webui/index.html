@@ -237,7 +237,7 @@
         </section>
 
         <section id="view-tokens" class="view" data-page="tokens" hidden>
-          <div class="section-toolbar"><div><h2>Event API tokens</h2><p>Allow external applications to submit events to <code>/api/v2/events</code>. SMTP, HTTP integration webhooks, Redfish subscriptions, and WebUI login do not require these tokens.</p></div><button class="button primary" type="button" data-action="new-token">Issue token</button></div>
+          <div class="section-toolbar"><div><h2>Event API tokens</h2><p>Allow external applications to submit events to <code>/api/v2/events</code>. SMTP, HTTP integration webhooks, Redfish subscriptions, and WebUI login do not require these tokens.</p></div><button class="button primary" type="button" data-action="new-token">＋ New token</button></div>
           <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>Name</th><th>Allowed integrations</th><th>Rate limit</th><th>Last used</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="token-table"></tbody></table></div><div id="token-empty" class="empty-state" hidden></div></div>
         </section>
 
@@ -501,10 +501,16 @@
       <button id="mfa-close" class="icon-button" type="button" aria-label="Close">×</button>
     </div>
     <section id="mfa-setup-panel" class="mfa-panel" hidden>
-      <p>Add Nowlert to your authenticator application using this setup key, then enter the current six-digit code.</p>
-      <div class="mfa-secret-box">
-        <small>Setup key</small>
-        <div><code id="mfa-secret-value"></code><button id="mfa-copy-secret" class="button secondary small" type="button">Copy</button></div>
+      <p>Scan this QR code with your authenticator application or use the setup key, then enter the current six-digit code.</p>
+      <div class="mfa-setup-grid">
+        <div class="mfa-qr-box">
+          <img id="mfa-qr-code" alt="Authenticator setup QR code" hidden>
+          <small>Scan with your authenticator app</small>
+        </div>
+        <div class="mfa-secret-box">
+          <small>Setup key</small>
+          <div><code id="mfa-secret-value"></code><button id="mfa-copy-secret" class="button secondary small" type="button">Copy</button></div>
+        </div>
       </div>
       <form id="mfa-enable-form" class="stack compact">
         <label><span>Authenticator code</span><input id="mfa-enable-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"></label>
@@ -670,12 +676,42 @@
     <div class="modal-actions"><button id="confirm-cancel" class="button secondary" type="button">Cancel</button><button id="confirm-accept" class="button danger" type="button">Confirm</button></div>
   </dialog>
 
-  <dialog id="import-dialog" class="modal preview-modal">
-    <div class="modal-heading"><div><p class="eyebrow">Preview required</p><h2 id="import-title">Import preview</h2></div><button class="icon-button" type="button" data-close-dialog="import-dialog" aria-label="Close">×</button></div>
-    <p id="import-summary">Review every warning and error before applying the unchanged document.</p>
-    <pre id="import-result" class="code-result" tabindex="0"></pre>
+  <dialog id="import-dialog" class="modal preview-modal reference-import-preview-dialog">
+    <div class="modal-heading reference-import-preview-heading">
+      <div><p class="eyebrow">PREVIEW REQUIRED</p><h2 id="import-title">Import user configuration</h2></div>
+      <button class="icon-button" type="button" data-close-dialog="import-dialog" aria-label="Close">×</button>
+    </div>
+    <p id="import-summary" class="reference-import-summary">Review every warning and error before applying the unchanged document.</p>
+
+    <div class="reference-import-metrics" aria-label="Import preview summary">
+      <article class="reference-import-metric"><span class="reference-import-metric-icon">◉</span><div><small>Fingerprint</small><strong id="import-metric-fingerprint">—</strong><em id="import-metric-fingerprint-state">Missing</em></div></article>
+      <article class="reference-import-metric"><span class="reference-import-metric-icon">▱</span><div><small>Valid</small><strong id="import-metric-valid">—</strong><em id="import-metric-valid-state">Unknown</em></div></article>
+      <article class="reference-import-metric is-error"><span class="reference-import-metric-icon">!</span><div><small>Errors</small><strong id="import-metric-errors">0</strong></div></article>
+      <article class="reference-import-metric is-warning"><span class="reference-import-metric-icon">△</span><div><small>Warnings</small><strong id="import-metric-warnings">0</strong></div></article>
+      <article class="reference-import-metric"><span class="reference-import-metric-icon">▤</span><div><small>Destinations<br>to import</small><strong id="import-metric-destinations">0</strong></div></article>
+      <article class="reference-import-metric"><span class="reference-import-metric-icon">⌘</span><div><small>Routes<br>to import</small><strong id="import-metric-routes">0</strong></div></article>
+    </div>
+
+    <div class="reference-import-workbench">
+      <section class="reference-import-code-panel">
+        <header>
+          <span class="reference-import-panel-title"><b aria-hidden="true">&lt;/&gt;</b> CONFIGURATION PREVIEW</span>
+          <span class="reference-import-code-actions"><small>JSON</small><button id="import-copy-preview" class="icon-button" type="button" aria-label="Copy configuration preview">▣</button></span>
+        </header>
+        <pre id="import-result" class="code-result" tabindex="0"></pre>
+      </section>
+      <section class="reference-import-issues-panel">
+        <header>
+          <span class="reference-import-panel-title is-error"><b aria-hidden="true">!</b> ISSUES (<span id="import-issue-count">0</span>)</span>
+          <select id="import-issue-filter" aria-label="Filter import issues"><option value="all">All issues</option><option value="error">Errors</option><option value="warning">Warnings</option></select>
+        </header>
+        <div id="import-issue-list" class="reference-import-issue-list"></div>
+        <p id="import-issues-more" class="reference-import-issues-more" hidden></p>
+      </section>
+    </div>
+
     <p id="import-error" class="form-error" role="alert" hidden></p>
-    <div class="modal-actions"><button class="button secondary" type="button" data-close-dialog="import-dialog">Cancel</button><button id="import-apply" class="button danger" type="button" data-action="apply-import">Apply import</button></div>
+    <div class="modal-actions reference-import-actions"><button class="button secondary" type="button" data-close-dialog="import-dialog">Cancel</button><button id="import-apply" class="button danger" type="button" data-action="apply-import">Apply import</button></div>
   </dialog>
 
   <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>

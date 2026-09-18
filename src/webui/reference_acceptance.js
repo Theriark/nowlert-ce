@@ -920,7 +920,7 @@ function ensurePreviewReferenceLayout() {
       body.querySelector(":scope > div")?.classList.add("reference-profile-copy");
 
       const heading = ref("div", "reference-account-card-heading");
-      heading.innerHTML = '<span></span><div><h2>Profile & access</h2><p>Manage your profile information and account access.</p></div>';
+      heading.innerHTML = '<span></span><div><h2>Profile</h2><p>Manage your profile information and account access.</p></div>';
 
       const status = ref("aside", "reference-access-status");
       status.innerHTML = '<span class="reference-access-status-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"></path><circle cx="12" cy="10" r="2"></circle><path d="M8.5 16c.8-2 2-3 3.5-3s2.7 1 3.5 3"></path></svg></span><div class="reference-access-status-copy"><small>Access status</small><strong id="reference-access-status-value">Active</strong><p>Your account is in good standing.</p><span id="reference-system-status" class="reference-system-status"><i></i><b>All systems operational</b></span></div>';
@@ -974,7 +974,7 @@ function ensurePreviewReferenceLayout() {
       const title = toolbar?.querySelector("h2");
       if (title) title.textContent = "API tokens";
       const add = toolbar?.querySelector('[data-action="new-token"]');
-      if (add) add.textContent = "Issue token";
+      if (add) add.textContent = "＋ New token";
       ensureApiTokenReferenceLayout();
     }
   }

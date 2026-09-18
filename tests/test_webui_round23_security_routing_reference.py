@@ -24,7 +24,7 @@ def test_profile_card_matches_approved_left_status_right_and_three_bottom_cards(
     script = read("src/webui/reference_acceptance.js")
     style = read("src/webui/reference_acceptance.css")
 
-    assert '<h2>Profile & access</h2>' in script
+    assert '<h2>Profile</h2>' in script
     marker = "/* 2026-09-18 round-23 Profile reference alignment. */"
     assert marker in style
     final = style[style.index(marker):]
@@ -62,11 +62,14 @@ def test_routing_filter_keeps_outer_size_and_animation_but_uses_reference_interi
     style = read("src/webui/routing_flow.css")
 
     assert "function filterCardDescriptor(link)" in script
-    assert 'el("small", "rf-filter-card-subtitle", descriptor.subtitle)' in script
+    assert "Applied to active route" not in script
+    assert "policy.policy_rules" in script
+    assert "filter_policies" in script
+    assert "filter_sources" in script
     assert "rf-filter-rule-label" in script
     assert "filterTagTone(value)" in script
     assert 'const sourceSummary = el("span", "rf-filter-card-sources")' in script
-    assert "sourceIcon(route.source)" in script
+    assert "for (const source of sourceKeys) sourceSummary.append(sourceIcon(source));" in script
     assert 'const destinationSummary = el("span", "rf-filter-card-destination")' in script
     assert "rf-filter-card-period" not in script
 

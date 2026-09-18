@@ -15,7 +15,7 @@ def test_round21_profile_entry_opens_security_and_matches_access_reference():
 
     assert 'data-view="account"><span aria-hidden="true">◇</span> Profile</button>' in markup
     assert '<h2>Security</h2><p>Manage your profile information and account access.</p>' in markup
-    assert "<h2>Profile & access</h2>" in script
+    assert "<h2>Profile</h2>" in script
     assert "reference-profile-body" in script
     assert "reference-access-status" in script
     assert "All systems operational" in script
@@ -34,6 +34,8 @@ def test_round21_mfa_has_setup_management_and_login_challenge_ui():
     assert 'id="mfa-dialog"' in markup
     assert 'id="mfa-enable-form"' in markup
     assert 'id="mfa-disable-form"' in markup
+    assert 'id="mfa-qr-code"' in markup
+    assert 'response.qr_code' in app
     assert 'error.code === "mfa_required"' in app
     assert 'request("/account/mfa/setup"' in app
     assert 'request("/account/mfa", {' in app

@@ -41,7 +41,12 @@ from storage.users import UserStore
 from storage.health import HealthCheckService
 from storage.housekeeping import HousekeepingService
 from storage.integrations import IntegrationCategoryStore
-from storage.mfa import generate_totp_secret, provisioning_uri, verify_totp
+from storage.mfa import (
+    generate_totp_secret,
+    provisioning_qr_data_uri,
+    provisioning_uri,
+    verify_totp,
+)
 from storage.backup_scheduler import BackupScheduler
 from storage.backup_targets import BackupTargetStore
 from version import VERSION
@@ -582,12 +587,14 @@ class PlatformAPI:
             user.id,
             "success",
         )
+        uri = provisioning_uri(user.username, secret)
         return APIResponse(
             200,
             {
                 "user": self._user(user),
                 "secret": secret,
-                "provisioning_uri": provisioning_uri(user.username, secret),
+                "provisioning_uri": uri,
+                "qr_code": provisioning_qr_data_uri(uri),
             },
             (("Cache-Control", "no-store"),),
         )

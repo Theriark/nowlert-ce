@@ -160,6 +160,17 @@ def delivery_snapshot(database, actor, since):
             f"{visible_deliveries} ORDER BY a.created_at DESC, a.id DESC LIMIT 30",
             parameters,
         ).fetchall()
+        recent_filtered = connection.execute(
+            f"""
+            SELECT e.id, e.route_id, e.destination_id, e.source, e.created_at
+            FROM routing_flow_events AS e
+            WHERE {event_where}
+              AND e.filtered = 1
+            ORDER BY e.created_at DESC, e.id DESC
+            LIMIT 30
+            """,
+            parameters,
+        ).fetchall()
 
     total = {**empty_metrics(), "last_activity_at": 0}
     by_route, by_destination, by_link = {}, {}, {}
@@ -236,6 +247,35 @@ def delivery_snapshot(database, actor, since):
         "created_at",
         "completed_at",
     )
+    delivery_history = [
+        {key: row[key] for key in history_fields}
+        for row in recent
+    ]
+    filtered_history = [
+        {
+            "id": f"filtered:{row['id']}",
+            "delivery_id": f"filtered:{row['id']}",
+            "route_id": row["route_id"],
+            "destination_id": row["destination_id"],
+            "source": row["source"],
+            "input_type": "",
+            "title": "Filtered event",
+            "outcome": "filtered",
+            "attempt_number": 0,
+            "created_at": row["created_at"],
+            "completed_at": row["created_at"],
+        }
+        for row in recent_filtered
+    ]
+    history = sorted(
+        [*delivery_history, *filtered_history],
+        key=lambda item: (
+            int(item.get("completed_at") or item.get("created_at") or 0),
+            str(item.get("id") or ""),
+        ),
+        reverse=True,
+    )[:30]
+
     return {
         "metrics": {
             key: total[key]
@@ -244,8 +284,5 @@ def delivery_snapshot(database, actor, since):
         "by_route": by_route,
         "by_destination": by_destination,
         "by_link": by_link,
-        "history": [
-            {key: row[key] for key in history_fields}
-            for row in recent
-        ],
+        "history": history,
     }

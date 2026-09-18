@@ -558,3 +558,10 @@
 #view-deliveries .delivery-history-tag-pill.is-danger .delivery-history-tag-copy strong {
   color: #ff7878;
 }
+
+
+/* 2026-09-18 round-24 compact one-row delivery detail alignment. */
+#view-deliveries .delivery-history-detail {
+  align-content: start;
+  grid-auto-rows: max-content;
+}

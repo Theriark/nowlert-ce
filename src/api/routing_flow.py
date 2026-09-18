@@ -128,6 +128,68 @@ def snapshot(api, actor, range_key):
         filtering_enabled = (
             bool(master_state(destination.id)) if callable(master_state) else True
         )
+
+        filter_sources = []
+        filter_policies = []
+        for key, policy in policies.items():
+            schema = filter_schema(key) or {"fields": [], "name": key}
+            labels = {
+                field["key"]: field["label"]
+                for field in schema["fields"]
+            }
+            policy_rules = _public_policy_rules(api.filters, policy)
+            configured = bool(
+                policy and (policy_rules or policy.get("clauses"))
+            )
+            source_enabled = bool(
+                configured
+                and api.filters.filter_enabled(destination.id, key)
+                and filtering_enabled
+            )
+            if not source_enabled:
+                continue
+            filter_sources.append(key)
+            if not filter_visible:
+                filter_policies.append(
+                    {
+                        "source": key,
+                        "name": schema.get("name", key),
+                        "restricted": False,
+                        "managed": True,
+                        "configured": True,
+                        "enabled": True,
+                        "policy_rules": [],
+                        "rules": {"__managed": ["Managed by administrator"]},
+                        "legacy_clauses": [],
+                        "labels": {**labels, "__managed": "Filter"},
+                    }
+                )
+                continue
+            display_clauses, display_labels = _policy_display(
+                policy_rules, labels
+            )
+            filter_policies.append(
+                {
+                    "source": key,
+                    "name": schema.get("name", key),
+                    "restricted": False,
+                    "configured": True,
+                    "enabled": True,
+                    "policy_rules": policy_rules,
+                    "rules": (
+                        {}
+                        if display_clauses
+                        else api.filters._public_rules(key, policy)
+                    ),
+                    "legacy_clauses": (
+                        display_clauses
+                        if display_clauses
+                        else api.filters._legacy_public(key, policy)
+                    ),
+                    "labels": {**labels, **display_labels},
+                }
+            )
+
         for route in assigned:
             source = canonical_source(route.source)
             sources = (
@@ -223,6 +285,8 @@ def snapshot(api, actor, range_key):
                     "enabled": route.enabled and destination.enabled,
                     "fallback": source == "*",
                     "policies": source_policies,
+                    "filter_sources": filter_sources,
+                    "filter_policies": filter_policies,
                     "metrics": stats["by_link"].get(
                         (route.id, destination.id), empty_metrics()
                     ),

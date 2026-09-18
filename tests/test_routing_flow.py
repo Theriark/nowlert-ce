@@ -351,6 +351,79 @@ def test_filter_decisions_feed_received_filtered_and_reduction_metrics(api):
     assert link["metrics"]["delivered"] == 1
     assert data["metrics"]["received"] == 2
     assert data["metrics"]["filtered"] == 1
+    filtered_history = [
+        item for item in data["history"]
+        if item["outcome"] == "filtered"
+    ]
+    assert len(filtered_history) == 1
+    assert filtered_history[0]["route_id"] == route["id"]
+    assert filtered_history[0]["destination_id"] == destination["id"]
+    assert filtered_history[0]["source"] == "grafana"
+
+
+def test_snapshot_exposes_all_enabled_filters_for_destination_cards(api):
+    headers = login(api)
+    grafana = create_route(api, headers, "Grafana filtered", source="grafana")
+    zabbix = create_route(api, headers, "Zabbix filtered", source="zabbix")
+    destination = create_destination(
+        api,
+        headers,
+        "Shared filtered destination",
+        [grafana["id"], zabbix["id"]],
+    )
+    platform = api["service"].platform
+    platform.filters.set_rules(
+        api["admin"].actor,
+        destination["id"],
+        "grafana",
+        {
+            "policy": [
+                {
+                    "action": "allow",
+                    "conditions": {
+                        "severity": ["warning", "critical"],
+                        "status": ["firing"],
+                    },
+                }
+            ]
+        },
+    )
+    platform.filters.set_rules(
+        api["admin"].actor,
+        destination["id"],
+        "zabbix",
+        {
+            "policy": [
+                {
+                    "action": "allow",
+                    "conditions": {
+                        "severity": ["warning", "high", "disaster"],
+                        "status": ["failure"],
+                    },
+                }
+            ]
+        },
+    )
+
+    data = snapshot(api, headers, "10m").payload
+    links = [
+        item for item in data["links"]
+        if item["destination_id"] == destination["id"]
+    ]
+    assert len(links) == 2
+    for link in links:
+        assert set(link["filter_sources"]) == {"grafana", "zabbix"}
+        assert {policy["source"] for policy in link["filter_policies"]} == {
+            "grafana",
+            "zabbix",
+        }
+        fields = {
+            field
+            for policy in link["filter_policies"]
+            for rule in policy["policy_rules"]
+            for field in rule["conditions"]
+        }
+        assert {"severity", "status"} <= fields
 
 
 def test_routing_flow_supports_dashboard_history_windows(api):
