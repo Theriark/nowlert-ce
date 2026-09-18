@@ -122,6 +122,10 @@
 
       <section id="filter-integration-step" hidden>
         <div id="filtering-context" class="filtering-context"></div>
+        <label class="filtering-filter-name">
+          <span>Filter name</span>
+          <input id="filter-name-input" maxlength="120" placeholder="e.g. Operations warnings" autocomplete="off">
+        </label>
         <p class="filtering-available-note">Only integrations currently enabled for this destination are shown.</p>
         <div id="filter-integration-list" class="filtering-integration-list"></div>
         <div class="modal-actions">
@@ -390,6 +394,7 @@
         can_manage_filters: false,
         managed_by_admin: true,
       },
+      filter_name: String(policy.filter_name || ""),
       integrations: Array.isArray(policy.integrations) ? policy.integrations : [],
     };
     filteringState.integration = null;
@@ -402,6 +407,21 @@
     if (!destinationId) return;
     filteringState.destinationView = await request(`/filters/destinations/${destinationId}`);
     renderIntegrationStep();
+  }
+
+  async function saveFilterName() {
+    const view = filteringState.destinationView;
+    const input = byId("filter-name-input");
+    if (!view || !input || !currentDestinationCanManage()) return;
+    const next = String(input.value || "").trim();
+    const current = String(view.filter_name || "").trim();
+    if (next === current) return;
+    const response = await request(
+      `/filters/destinations/${view.destination.id}`,
+      { method: "PUT", body: { name: next } },
+    );
+    view.filter_name = String(response.filter_name || "");
+    input.value = view.filter_name;
   }
 
   function renderIntegrationStep() {
@@ -420,6 +440,11 @@
       destinationIcon,
       element("strong", { text: view.destination.name }),
     );
+    const nameInput = byId("filter-name-input");
+    if (nameInput) {
+      nameInput.value = String(view.filter_name || "");
+      nameInput.disabled = !canManage;
+    }
     const note = document.querySelector(".filtering-available-note");
     if (note) {
       note.textContent = canManage
@@ -437,13 +462,23 @@
       return;
     }
     for (const integration of integrations) {
-      const enabled = Boolean(integration.filter_enabled);
+      const fallback = integration.fallback === true;
+      const enabled = fallback ? true : Boolean(integration.filter_enabled);
       const configured = Boolean(integration.configured);
-      const status = enabled ? "Configured" : configured ? "Filter off" : "No filter / All notifications";
+      const status = fallback
+        ? "Fallback / All notifications"
+        : enabled ? "Configured" : configured ? "Filter off" : "No filter / All notifications";
       const icon = sourceIcon(integration.source);
       icon.classList.add("filtering-source-icon");
+      const control = makeSwitch(enabled, integration.source, fallback || !canManage, "list");
+      if (fallback) {
+        control.querySelector("input")?.setAttribute(
+          "aria-label",
+          "Fallback route enabled by destination routing",
+        );
+      }
       list.append(element("article", { className: "filtering-integration-row" }, [
-        makeSwitch(enabled, integration.source, !canManage, "list"),
+        control,
         element("div", { className: "filtering-integration-identity" }, [
           icon,
           element("div", {}, [
@@ -452,8 +487,10 @@
           ]),
         ]),
         element("div", { className: "filtering-integration-actions" }, [
-          badge(status, enabled ? "success" : configured ? "warning" : ""),
-          canManage ? actionButtonForFilter("Configure", "configure-integration", integration.source) : null,
+          badge(status, fallback || enabled ? "success" : configured ? "warning" : ""),
+          canManage
+            ? (fallback ? null : actionButtonForFilter("Configure", "configure-integration", integration.source))
+            : null,
         ]),
       ]));
     }
@@ -478,9 +515,10 @@
     }).join(", ");
   }
 
-  function openIntegrationEditor(source) {
+  async function openIntegrationEditor(source) {
     const view = filteringState.destinationView;
     if (!view || !currentDestinationCanManage()) return;
+    await saveFilterName();
     const integration = view.integrations.find((item) => item.source === source);
     if (!integration) return;
     filteringState.integration = integration;
@@ -643,6 +681,7 @@
     const integration = filteringState.integration;
     const destination = filteringState.destinationView && filteringState.destinationView.destination;
     if (!integration || !destination || !currentDestinationCanManage()) return;
+    await saveFilterName();
     const conditions = editorRules();
     const policy = Object.keys(conditions).length
       ? { policy: [{ action: "block", conditions }] }
@@ -724,7 +763,13 @@
     const action = button.dataset.filterAction;
     const id = button.dataset.filterId || "";
     if (action === "new-filter") return openNewFilter();
-    if (action === "close" || action === "finish") {
+    if (action === "close") {
+      closeDialog();
+      await loadOverview();
+      return;
+    }
+    if (action === "finish") {
+      await saveFilterName();
       closeDialog();
       await loadOverview();
       return;

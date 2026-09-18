@@ -491,6 +491,8 @@ saveDestination = async function saveDestinationWithRoutes(event) {
   clearError("destination-error");
   const id = byId("destination-id").value;
   const submit = byId("destination-submit");
+  const done = byId("destination-routes-done");
+  const saveAndStayOpen = event.submitter?.value === "routes-done" && Boolean(id);
   const name = byId("destination-name").value.trim();
   const duplicate = state.destinations.find((item) => item.id !== id && item.name.trim().toLowerCase() === name.toLowerCase());
   if (duplicate) {
@@ -498,6 +500,7 @@ saveDestination = async function saveDestinationWithRoutes(event) {
     return;
   }
   submit.disabled = true;
+  if (done) done.disabled = true;
   try {
     const settings = collectFields(byId("destination-settings"));
     const secret = collectFields(byId("destination-secrets"));
@@ -514,13 +517,18 @@ saveDestination = async function saveDestinationWithRoutes(event) {
       method: id ? "PATCH" : "POST",
       body: payload,
     });
-    byId("destination-dialog").close();
+    if (saveAndStayOpen) {
+      byId("destination-routes-close")?.click();
+    } else {
+      byId("destination-dialog").close();
+    }
     await loadWorkspace();
     toast(id ? "Destination updated." : "Destination added.");
   } catch (error) {
     showError("destination-error", error);
   } finally {
     submit.disabled = false;
+    if (done) done.disabled = false;
   }
 };
 

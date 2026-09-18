@@ -632,10 +632,10 @@ if (typeof routeAssignmentInstallStyles === "function") {
       const done = element("button", {
         className: "button primary full",
         text: "Done",
-        type: "button",
-        attributes: { id: "destination-routes-done" },
+        type: "submit",
+        value: "routes-done",
+        attributes: { id: "destination-routes-done", value: "routes-done" },
       });
-      done.addEventListener("click", routeAssignmentCloseDrawer);
 
       actions.append(selectAll, clear);
       toolbar.append(search);
