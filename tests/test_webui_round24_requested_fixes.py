@@ -32,7 +32,7 @@ def test_round24_filter_card_uses_real_filter_fields_counts_and_source_icons():
     assert "Applied to active route" not in script
     assert "All notifications" not in script[script.index("function filterCardDescriptor(filter)"):script.index("function activeFlowGraph()")]
     assert "for (const source of visible) sourceSummary.append(sourceIcon(source));" in script
-    assert "filter.route_ids" in script[script.index("function renderFilterCard"):script.index("function activeFlowGraph()")]
+    assert "for (const route of routes)" in script[script.index("function renderFilterCard"):script.index("function activeFlowGraph()")]
 
 
 def test_round24_delivery_detail_does_not_stretch_one_row_tags_downward():
