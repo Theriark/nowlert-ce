@@ -213,17 +213,17 @@ def test_webui_markup_is_semantic_external_and_complete():
     for retired in ("notice-console", "notice-composer", "notice-form", "notice-panel", "notice-list"):
         assert retired not in inspector.ids
     assert inspector.scripts == [
-        "/ui/app.js",
-        "/ui/enhancements.js",
-        "/ui/qa_patch.js",
-        "/ui/i18n.js",
-        "/ui/dashboard.js",
+        "/ui/app.js?v=20260918-r19",
+        "/ui/enhancements.js?v=20260918-r19",
+        "/ui/qa_patch.js?v=20260918-r19",
+        "/ui/i18n.js?v=20260918-r19",
+        "/ui/dashboard.js?v=20260918-r19",
     ]
     assert inspector.stylesheets == [
-        "/ui/styles.css",
-        "/ui/enhancements.css",
-        "/ui/qa_patch.css",
-        "/ui/professional.css",
+        "/ui/styles.css?v=20260918-r19",
+        "/ui/enhancements.css?v=20260918-r19",
+        "/ui/qa_patch.css?v=20260918-r19",
+        "/ui/professional.css?v=20260918-r19",
     ]
     assert inspector.inline_handlers == []
     assert "<style" not in markup
@@ -903,3 +903,39 @@ def test_20260918_round_five_history_audit_settings_regressions():
     assert "requestAnimationFrame(alignSettingsReferenceCards);" in reference
     assert ".reference-updates-card #update-check-metadata" in round_five
     assert "display: none !important;" in round_five
+
+
+
+def test_round19_served_html_cache_busts_every_acceptance_asset():
+    service = WebUIService(enabled_config(), root=ROOT)
+    response = service.response("/")
+    assert response is not None and response.status == 200
+    markup = response.body.decode("utf-8")
+
+    assert 'name="nowlert-ui-build" content="20260918-r19"' in markup
+
+    for asset in (
+        "styles.css",
+        "enhancements.css",
+        "qa_patch.css",
+        "professional.css",
+        "filtering.css",
+        "destination_routes.css",
+        "source_ui_retirement.js",
+        "operations_acceptance.js",
+        "page_headers.css",
+        "reference_acceptance.js",
+    ):
+        assert f"/ui/{asset}?v=20260918-r19" in markup
+
+    app = service.response("/ui/app.js")
+    patch = service.response("/ui/qa_patch.css")
+    retirement = service.response("/ui/source_ui_retirement.js")
+    assert app is not None and b"Preview completed." in app.body
+    assert patch is not None and b"round-18 acceptance corrections" in patch.body
+    assert patch is not None and b"#primary-nav .nav-item[hidden]" in patch.body
+    assert patch is not None and b"transform: scale(1.65)" in patch.body
+    assert patch is not None and b"#app-shell .workspace" in patch.body
+    assert retirement is not None and b"auditNav.hidden = !admin;" in retirement.body
+    assert retirement is not None and b"backupsNav.hidden = !admin;" in retirement.body
+    assert retirement is not None and b"usersNav.hidden = !admin;" in retirement.body

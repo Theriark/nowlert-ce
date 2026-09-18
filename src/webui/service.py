@@ -96,142 +96,142 @@ class WebUIService:
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/destination_routes.css": (
+            "/ui/destination_routes.css?v=20260918-r19": (
                 "src/webui/destination_routes.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/destination_routes.js": (
+            "/ui/destination_routes.js?v=20260918-r19": (
                 "src/webui/destination_routes.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/destination_editor_fix.css": (
+            "/ui/destination_editor_fix.css?v=20260918-r19": (
                 "src/webui/destination_editor_fix.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/destination_editor_fix.js": (
+            "/ui/destination_editor_fix.js?v=20260918-r19": (
                 "src/webui/destination_editor_fix.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/filtering.js": (
+            "/ui/filtering.js?v=20260918-r19": (
                 "src/webui/filtering.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/filtering.css": (
+            "/ui/filtering.css?v=20260918-r19": (
                 "src/webui/filtering.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/source_ui_retirement.js": (
+            "/ui/source_ui_retirement.js?v=20260918-r19": (
                 "src/webui/source_ui_retirement.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/policy_simplification.js": (
+            "/ui/policy_simplification.js?v=20260918-r19": (
                 "src/webui/policy_simplification.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/policy_simplification.css": (
+            "/ui/policy_simplification.css?v=20260918-r19": (
                 "src/webui/policy_simplification.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/acceptance_cleanup.js": (
+            "/ui/acceptance_cleanup.js?v=20260918-r19": (
                 "src/webui/acceptance_cleanup.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/routing_flow.js": (
+            "/ui/routing_flow.js?v=20260918-r19": (
                 "src/webui/routing_flow.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/routing_flow.css": (
+            "/ui/routing_flow.css?v=20260918-r19": (
                 "src/webui/routing_flow.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/filtering_ownership_sync.js": (
+            "/ui/filtering_ownership_sync.js?v=20260918-r19": (
                 "src/webui/filtering_ownership_sync.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/filtering_ownership_sync.css": (
+            "/ui/filtering_ownership_sync.css?v=20260918-r19": (
                 "src/webui/filtering_ownership_sync.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/operations_dashboard.js": (
+            "/ui/operations_dashboard.js?v=20260918-r19": (
                 "src/webui/operations_dashboard.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/operations_dashboard.css": (
+            "/ui/operations_dashboard.css?v=20260918-r19": (
                 "src/webui/operations_dashboard.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/operations_acceptance.js": (
+            "/ui/operations_acceptance.js?v=20260918-r19": (
                 "src/webui/operations_acceptance.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/operations_acceptance.css": (
+            "/ui/operations_acceptance.css?v=20260918-r19": (
                 "src/webui/operations_acceptance.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/page_headers.js": (
+            "/ui/page_headers.js?v=20260918-r19": (
                 "src/webui/page_headers.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/page_headers.css": (
+            "/ui/page_headers.css?v=20260918-r19": (
                 "src/webui/page_headers.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/destination_overview_acceptance.js": (
+            "/ui/destination_overview_acceptance.js?v=20260918-r19": (
                 "src/webui/destination_overview_acceptance.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/destination_overview_acceptance.css": (
+            "/ui/destination_overview_acceptance.css?v=20260918-r19": (
                 "src/webui/destination_overview_acceptance.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/audit_log_refinement.js": (
+            "/ui/audit_log_refinement.js?v=20260918-r19": (
                 "src/webui/audit_log_refinement.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/audit_log_refinement.css": (
+            "/ui/audit_log_refinement.css?v=20260918-r19": (
                 "src/webui/audit_log_refinement.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/management_consistency.js": (
+            "/ui/management_consistency.js?v=20260918-r19": (
                 "src/webui/management_consistency.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/management_consistency.css": (
+            "/ui/management_consistency.css?v=20260918-r19": (
                 "src/webui/management_consistency.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/reference_acceptance.js": (
+            "/ui/reference_acceptance.js?v=20260918-r19": (
                 "src/webui/reference_acceptance.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
-            "/ui/reference_acceptance.css": (
+            "/ui/reference_acceptance.css?v=20260918-r19": (
                 "src/webui/reference_acceptance.css",
                 "text/css; charset=utf-8",
                 "no-cache",
@@ -324,34 +324,34 @@ class WebUIService:
         if route in {"/", "/ui", "/ui/"}:
             text = body.decode("utf-8")
             extension = (
-                '  <link rel="stylesheet" href="/ui/filtering.css">\n'
-                '  <link rel="stylesheet" href="/ui/destination_routes.css">\n'
-                '  <link rel="stylesheet" href="/ui/destination_editor_fix.css">\n'
-                '  <link rel="stylesheet" href="/ui/policy_simplification.css">\n'
-                '  <link rel="stylesheet" href="/ui/routing_flow.css">\n'
-                '  <link rel="stylesheet" href="/ui/filtering_ownership_sync.css">\n'
-                '  <link rel="stylesheet" href="/ui/operations_dashboard.css">\n'
-                '  <link rel="stylesheet" href="/ui/operations_acceptance.css">\n'
-                '  <link rel="stylesheet" href="/ui/page_headers.css">\n'
-                '  <link rel="stylesheet" href="/ui/destination_overview_acceptance.css">\n'
-                '  <link rel="stylesheet" href="/ui/audit_log_refinement.css">\n'
-                '  <link rel="stylesheet" href="/ui/management_consistency.css">\n'
-                '  <link rel="stylesheet" href="/ui/reference_acceptance.css">\n'
-                '  <script src="/ui/filtering.js" defer></script>\n'
-                '  <script src="/ui/source_ui_retirement.js" defer></script>\n'
-                '  <script src="/ui/destination_routes.js" defer></script>\n'
-                '  <script src="/ui/destination_editor_fix.js" defer></script>\n'
-                '  <script src="/ui/policy_simplification.js" defer></script>\n'
-                '  <script src="/ui/acceptance_cleanup.js" defer></script>\n'
-                '  <script src="/ui/routing_flow.js" defer></script>\n'
-                '  <script src="/ui/filtering_ownership_sync.js" defer></script>\n'
-                '  <script src="/ui/operations_dashboard.js" defer></script>\n'
-                '  <script src="/ui/operations_acceptance.js" defer></script>\n'
-                '  <script src="/ui/page_headers.js" defer></script>\n'
-                '  <script src="/ui/destination_overview_acceptance.js" defer></script>\n'
-                '  <script src="/ui/audit_log_refinement.js" defer></script>\n'
-                '  <script src="/ui/management_consistency.js" defer></script>\n'
-                '  <script src="/ui/reference_acceptance.js" defer></script>\n'
+                '  <link rel="stylesheet" href="/ui/filtering.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/destination_routes.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/destination_editor_fix.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/policy_simplification.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/routing_flow.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/filtering_ownership_sync.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/operations_dashboard.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/operations_acceptance.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/page_headers.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/destination_overview_acceptance.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/audit_log_refinement.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/management_consistency.css?v=20260918-r19">\n'
+                '  <link rel="stylesheet" href="/ui/reference_acceptance.css?v=20260918-r19">\n'
+                '  <script src="/ui/filtering.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/source_ui_retirement.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/destination_routes.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/destination_editor_fix.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/policy_simplification.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/acceptance_cleanup.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/routing_flow.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/filtering_ownership_sync.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/operations_dashboard.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/operations_acceptance.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/page_headers.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/destination_overview_acceptance.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/audit_log_refinement.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/management_consistency.js?v=20260918-r19" defer></script>\n'
+                '  <script src="/ui/reference_acceptance.js?v=20260918-r19" defer></script>\n'
             )
             body = text.replace("</head>", extension + "</head>", 1).encode("utf-8")
         return WebUIResponse(200, body, content_type, cache_control)
