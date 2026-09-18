@@ -216,6 +216,15 @@ def snapshot(api, actor, range_key):
                 }
             )
 
+        # Preserve the per-link policy details contract for Route/edge
+        # inspectors, but keep the filter-card model sourced exclusively from
+        # the canonical Filtering overview above.
+        destination_row = api.destination_access.destination_row(destination.id)
+        filter_visible = api.destination_access.can_manage_filters(
+            actor, destination_row
+        )
+        link_policies = api.filters._policies_for_destination(destination.id)
+
         for route in assigned:
             source = canonical_source(route.source)
             sources = (
@@ -230,15 +239,13 @@ def snapshot(api, actor, range_key):
                     field["key"]: field["label"]
                     for field in schema["fields"]
                 }
-                policy = policies.get(key)
+                policy = link_policies.get(key)
                 policy_rules = _public_policy_rules(api.filters, policy)
                 configured = bool(
                     policy and (policy_rules or policy.get("clauses"))
                 )
                 source_enabled = bool(
-                    configured
-                    and api.filters.filter_enabled(destination.id, key)
-                    and filtering_enabled
+                    configured and key in active_filter_sources
                 )
                 if not filter_visible:
                     # Keep the privacy marker for API consumers, and expose a
