@@ -440,11 +440,11 @@ function showApp(session) {
   state.csrf = session.csrf_token || readCsrfCookie(session.cookie_mode);
   byId("login-view").hidden = true;
   byId("app-shell").hidden = false;
-  byId("users-nav").hidden = !isAdmin();
-  byId("settings-nav").hidden = !isAdmin();
-  byId("inputs-nav").hidden = !isAdmin();
-  byId("backups-nav").hidden = !isAdmin();
-  byId("data-nav").hidden = !isAdmin();
+  if (byId("users-nav")) byId("users-nav").hidden = !isAdmin();
+  if (byId("settings-nav")) byId("settings-nav").hidden = !isAdmin();
+  if (byId("inputs-nav")) byId("inputs-nav").hidden = !isAdmin();
+  if (byId("backups-nav")) byId("backups-nav").hidden = !isAdmin();
+  if (byId("data-nav")) byId("data-nav").hidden = !isAdmin();
   byId("add-destination-button").hidden = !isAdmin();
   byId("add-route-button").hidden = !isAdmin();
   byId("restart-header-button").hidden = !isAdmin();
@@ -3460,6 +3460,19 @@ async function handleClick(event) {
   else if (action) await resourceAction(action, id);
 }
 
+function setSidebarCollapsed(collapsed) {
+  const shell = byId("app-shell");
+  const button = byId("sidebar-collapse-button");
+  if (!shell || !button) return;
+  shell.classList.toggle("sidebar-collapsed", Boolean(collapsed));
+  button.setAttribute("aria-expanded", String(!collapsed));
+  button.setAttribute(
+    "aria-label",
+    collapsed ? "Expand navigation" : "Collapse navigation",
+  );
+  button.title = collapsed ? "Expand navigation" : "Collapse navigation";
+}
+
 function bindEvents() {
   byId("bootstrap-form").addEventListener("submit", bootstrapAdministrator);
   byId("login-form").addEventListener("submit", login);
@@ -3528,6 +3541,9 @@ function bindEvents() {
     const open = shell.classList.toggle("nav-open");
     byId("mobile-menu").setAttribute("aria-expanded", String(open));
   });
+  byId("sidebar-collapse-button")?.addEventListener("click", () => {
+    setSidebarCollapsed(!byId("app-shell").classList.contains("sidebar-collapsed"));
+  });
   document.addEventListener("click", handleClick);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !byId("profile-menu-popover").hidden) {
@@ -3546,4 +3562,20 @@ function bindEvents() {
 }
 
 bindEvents();
-initialize();
+
+let applicationStarted = false;
+function startApplication() {
+  if (applicationStarted) return;
+  applicationStarted = true;
+  void initialize();
+}
+
+// app.js is the first deferred script, while the production WebUI injects the
+// Routing Flow, Filtering, ownership, header, and acceptance layers after it.
+// Starting immediately here lets a fast same-origin /session response reveal
+// the base interface before those layers exist. DOMContentLoaded runs only
+// after every deferred script has executed, so the first authenticated paint
+// uses the final navigation and page structure.
+document.addEventListener("DOMContentLoaded", startApplication, { once: true });
+window.addEventListener("load", startApplication, { once: true });
+if (document.readyState === "complete") startApplication();

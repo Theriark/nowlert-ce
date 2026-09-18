@@ -252,7 +252,7 @@
 
     if (view === "account") {
       setPageCopy(
-        "Account security",
+        "Security",
         "Manage your profile picture, password, API tokens, and active account security settings.",
       );
       if (toolbar) {
@@ -292,18 +292,16 @@
   function scheduleFinalOwnershipSync() {
     if (finalOwnershipSyncQueued) return;
     finalOwnershipSyncQueued = true;
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        finalOwnershipSyncQueued = false;
-        installManagementNavigation();
-        installProfileItems();
-        removeNestedManagementTabs();
-        embedAccountApiTokens();
-        embedBackupDataTools();
-        embedSettingsUpdates();
-        embedFilteringDeterministicProcessing();
-        syncPageOwnership(state.currentView);
-      });
+    window.queueMicrotask(() => {
+      finalOwnershipSyncQueued = false;
+      installManagementNavigation();
+      installProfileItems();
+      removeNestedManagementTabs();
+      embedAccountApiTokens();
+      embedBackupDataTools();
+      embedSettingsUpdates();
+      embedFilteringDeterministicProcessing();
+      syncPageOwnership(state.currentView);
     });
   }
 

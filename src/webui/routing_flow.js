@@ -55,10 +55,13 @@
   }
 
   VIEW_TITLES[PAGE] = "Routing Flow";
-  const nav = button("", () => {}, "nav-item");
-  nav.dataset.view = PAGE;
-  nav.append(icon("flow"), el("span", "", "Routing Flow"));
-  document.querySelector('#primary-nav [data-view="dashboard"]').after(nav);
+  let nav = document.querySelector('#primary-nav [data-view="routing-flow"]');
+  if (!nav) {
+    nav = button("", () => {}, "nav-item");
+    nav.dataset.view = PAGE;
+    nav.append(icon("flow"), el("span", "", "Routing Flow"));
+    document.querySelector('#primary-nav [data-view="dashboard"]').after(nav);
+  }
   const section = el("section", "view rf-page");
   section.id = "view-routing-flow";
   section.dataset.page = PAGE;

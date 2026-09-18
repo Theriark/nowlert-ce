@@ -800,7 +800,7 @@
   function scheduleSync() {
     if (scheduled) return;
     scheduled = true;
-    window.requestAnimationFrame(syncConsistency);
+    window.queueMicrotask(syncConsistency);
   }
 
   installChannelCollection();

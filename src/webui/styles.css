@@ -2128,3 +2128,210 @@ dialog::backdrop {
   margin: -0.2rem 0 0.1rem;
   overflow-wrap: anywhere;
 }
+
+
+/* 2026-09-18 collapsible Nowlert navigation. */
+@media (min-width: 761px) {
+  .app-shell {
+    grid-template-columns: 224px minmax(0, 1fr);
+    transition: grid-template-columns 180ms ease;
+  }
+
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: 110px minmax(0, 1fr);
+  }
+
+  .sidebar {
+    background:
+      radial-gradient(circle at 50% 10%, rgba(244, 197, 66, 0.07), transparent 14rem),
+      linear-gradient(180deg, #0b0f13 0%, #090d11 100%);
+    border: 1px solid rgba(244, 197, 66, 0.30);
+    border-radius: 12px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+    height: calc(100vh - 16px);
+    margin: 8px 0 8px 8px;
+    overflow: visible;
+    padding: 16px 12px 14px;
+    transition: padding 180ms ease, width 180ms ease;
+  }
+
+  .sidebar-brand {
+    align-items: center;
+    border-bottom: 1px solid rgba(244, 197, 66, 0.22);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 2px 12px;
+    padding: 2px 4px 13px !important;
+  }
+
+  .sidebar-wordmark {
+    color: #f6c839;
+    font-size: 20px;
+    letter-spacing: 0.09em;
+    line-height: 1;
+  }
+
+  .sidebar-owl-button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    justify-content: center;
+    padding: 2px;
+  }
+
+  .sidebar-owl-button:focus-visible {
+    outline: 2px solid #f6c839;
+    outline-offset: 3px;
+  }
+
+  .sidebar-owl-button .brand-mark {
+    height: 54px;
+    width: 54px;
+  }
+
+  .sidebar-owl-button .brand-mark img {
+    height: 100%;
+    object-fit: contain;
+    width: 100%;
+  }
+
+  .sidebar-edition {
+    color: #ece7dc;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .sidebar-edition-collapsed {
+    display: none;
+  }
+
+  .nav-list {
+    gap: 4px;
+  }
+
+  .nav-item {
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: #c8cbd0;
+    gap: 14px;
+    min-height: 42px;
+    padding: 9px 11px;
+  }
+
+  .nav-item:hover {
+    background: rgba(255, 255, 255, 0.035);
+    color: #f4f2ed;
+  }
+
+  .nav-item.active {
+    background: linear-gradient(180deg, #ffd33f 0%, #f4bb1c 100%);
+    border-color: rgba(255, 220, 91, 0.96);
+    box-shadow: 0 0 18px rgba(244, 190, 28, 0.22);
+    color: #0a0d10;
+  }
+
+  .nav-icon {
+    color: currentColor;
+    flex: 0 0 22px;
+    height: 22px;
+    width: 22px;
+  }
+
+  .nav-icon svg {
+    fill: none;
+    height: 22px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+    width: 22px;
+  }
+
+  .nav-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sidebar-footer {
+    border-top: 1px solid rgba(244, 197, 66, 0.22);
+    margin-top: auto;
+    padding-top: 12px;
+  }
+
+  .profile-chip {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(148, 163, 184, 0.13);
+    border-radius: 10px;
+    min-height: 52px;
+    padding: 8px 10px;
+  }
+
+  .profile-chip .avatar {
+    border: 1px solid rgba(110, 157, 245, 0.55);
+    box-shadow: 0 0 0 2px rgba(11, 14, 17, 0.75), 0 0 14px rgba(65, 113, 230, 0.18);
+  }
+
+  .app-shell.sidebar-collapsed .sidebar {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-wordmark {
+    font-size: 15px;
+    letter-spacing: 0.08em;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-owl-button .brand-mark {
+    height: 46px;
+    width: 46px;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-edition-expanded {
+    display: none;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-edition-collapsed {
+    display: block;
+  }
+
+  .app-shell.sidebar-collapsed .nav-list {
+    justify-items: center;
+  }
+
+  .app-shell.sidebar-collapsed .nav-item {
+    gap: 0;
+    height: 48px;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0;
+    width: 48px;
+  }
+
+  .app-shell.sidebar-collapsed .nav-label,
+  .app-shell.sidebar-collapsed .profile-copy {
+    display: none;
+  }
+
+  .app-shell.sidebar-collapsed .profile-chip {
+    background: transparent;
+    border-color: transparent;
+    justify-content: center;
+    min-height: 48px;
+    padding: 5px;
+  }
+
+  .app-shell.sidebar-collapsed .profile-menu-popover {
+    bottom: 0;
+    left: calc(100% + 10px);
+    min-width: 190px;
+    width: 190px;
+  }
+}

@@ -1099,8 +1099,9 @@ function ensurePreviewReferenceLayout() {
   }
 
   function scheduleSync() {
-    if (syncQueued) return; syncQueued = true;
-    requestAnimationFrame(() => { syncAll(); setTimeout(syncAll, 60); });
+    if (syncQueued) return;
+    syncQueued = true;
+    window.queueMicrotask(syncAll);
   }
 
   if (typeof openPreview === "function") {
