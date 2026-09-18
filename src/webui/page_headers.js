@@ -195,8 +195,6 @@
       nodes.push(section?.querySelector('[data-action="run-health-checks"]'));
     } else if (view === "tokens") {
       nodes.push(section?.querySelector('[data-action="new-token"]'));
-    } else if (view === "backups") {
-      nodes.push(section?.querySelector(".backup-heading-status"));
     } else if (view === "account") {
       nodes.push(document.getElementById("restart-header-button"));
     }
@@ -240,6 +238,11 @@
       }
 
       for (const node of normalActionNodes(view, section)) desired.add(node);
+    }
+
+    if (view === "backups") {
+      const status = section?.querySelector(".backup-heading-status");
+      if (status) desired.add(status);
     }
 
     reconcileMoved(desired, chrome.actions);
