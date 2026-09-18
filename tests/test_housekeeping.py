@@ -1,7 +1,10 @@
+import pytest
+
 from api.security import hash_password
 from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.housekeeping import HousekeepingService
+from storage.housekeeping_scheduler import HousekeepingScheduler
 from storage.users import UserStore
 
 
@@ -138,3 +141,66 @@ def test_housekeeping_zero_days_keeps_history_forever(tmp_path):
         assert connection.execute(
             "SELECT COUNT(*) FROM audit_events WHERE action = 'keep.audit'"
         ).fetchone()[0] == 1
+
+
+class _ReloadableConfiguration:
+    def reload(self):
+        return None
+
+
+def test_housekeeping_retention_accepts_only_recommended_hardcoded_choices(tmp_path):
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    users = UserStore(database, password_hasher=fast_hash)
+    admin = users.bootstrap_admin("administrator", PASSWORD)
+    service = HousekeepingService(database)
+
+    with pytest.raises(ValueError, match="recommended retention"):
+        service.update_settings(
+            admin.actor,
+            {
+                "enabled": True,
+                "time": "03:15",
+                "delivery_history_days": 17,
+                "audit_history_days": 365,
+                "backup_run_history_days": 180,
+            },
+        )
+
+
+def test_housekeeping_daily_period_survives_scheduler_restart(tmp_path):
+    now = 2_000_000_000
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    users = UserStore(database, password_hasher=fast_hash)
+    admin = users.bootstrap_admin("administrator", PASSWORD)
+    service = HousekeepingService(database, clock=lambda: now)
+    service.update_settings(
+        admin.actor,
+        {
+            "enabled": True,
+            "time": "00:00",
+            "delivery_history_days": 90,
+            "audit_history_days": 365,
+            "backup_run_history_days": 180,
+        },
+    )
+
+    first = HousekeepingScheduler(
+        database,
+        _ReloadableConfiguration(),
+        clock=lambda: now,
+    )
+    second = HousekeepingScheduler(
+        database,
+        _ReloadableConfiguration(),
+        clock=lambda: now + 60,
+    )
+
+    assert first.run_due(now=now)["outcome"] == "success"
+    assert second.run_due(now=now + 60) is None
+    with database.connect() as connection:
+        rows = connection.execute(
+            "SELECT period_key FROM housekeeping_runs WHERE period_key LIKE 'daily:%'"
+        ).fetchall()
+    assert len(rows) == 1

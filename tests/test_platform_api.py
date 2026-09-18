@@ -415,7 +415,7 @@ def test_admin_mounted_configuration_bridge_endpoints_are_confirmed(platform_api
     assert fallback.payload["routing"]["authority"] == "yaml"
 
 
-def test_housekeeping_is_admin_managed_and_can_run_immediately(platform_api):
+def test_housekeeping_is_admin_managed_without_manual_execution_endpoint(platform_api):
     admin_headers = login(platform_api)
     user_headers = login(
         platform_api,
@@ -445,12 +445,12 @@ def test_housekeeping_is_admin_managed_and_can_run_immediately(platform_api):
             "enabled": True,
             "time": "04:30",
             "delivery_history_days": 30,
-            "audit_history_days": 180,
-            "backup_run_history_days": 60,
+            "audit_history_days": 365,
+            "backup_run_history_days": 180,
         },
         admin_headers,
     )
-    run = call(
+    manual = call(
         platform_api,
         "POST",
         "/api/v2/housekeeping/run",
@@ -463,10 +463,8 @@ def test_housekeeping_is_admin_managed_and_can_run_immediately(platform_api):
     assert current.payload["settings"]["delivery_history_days"] == 90
     assert updated.status == 200
     assert updated.payload["settings"]["time"] == "04:30"
-    assert updated.payload["settings"]["audit_history_days"] == 180
-    assert run.status == 200
-    assert run.payload["run"]["outcome"] == "success"
-    assert run.payload["status"]["last_run"]["outcome"] == "success"
+    assert updated.payload["settings"]["audit_history_days"] == 365
+    assert manual.status == 404
 
 
 def test_admin_backup_restore_is_confirmed_and_revokes_http_session(platform_api):
