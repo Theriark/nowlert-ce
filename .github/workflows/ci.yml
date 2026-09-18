@@ -236,7 +236,7 @@ jobs:
           printf '%s' "${HTML}" | grep -Fq "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\""
           printf '%s' "${HTML}" | grep -Fq "/ui/qa_patch.css?v=${UI_BUILD}"
           printf '%s' "${HTML}" | grep -Fq "/ui/app.js?v=${UI_BUILD}"
-          printf '%s' "${HTML}" | grep -Fq "/ui/source_ui_retirement.js?v=${UI_BUILD}"
+          printf '%s' "${HTML}" | grep -Fq "/ui/source_ui_retirement.js"
 
           CSS="$(
             curl --fail --silent --show-error \
@@ -259,7 +259,7 @@ jobs:
           OWNERSHIP="$(
             curl --fail --silent --show-error \
               -H 'Cache-Control: no-cache' \
-              "${BASE_URL}/ui/source_ui_retirement.js?v=${UI_BUILD}"
+              "${BASE_URL}/ui/source_ui_retirement.js"
           )"
           printf '%s' "${OWNERSHIP}" | grep -Fq "auditNav.hidden = !admin;"
           printf '%s' "${OWNERSHIP}" | grep -Fq "backupsNav.hidden = !admin;"

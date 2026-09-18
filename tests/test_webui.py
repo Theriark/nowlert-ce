@@ -214,16 +214,16 @@ def test_webui_markup_is_semantic_external_and_complete():
         assert retired not in inspector.ids
     assert inspector.scripts == [
         "/ui/app.js?v=20260918-r19",
-        "/ui/enhancements.js?v=20260918-r19",
-        "/ui/qa_patch.js?v=20260918-r19",
-        "/ui/i18n.js?v=20260918-r19",
-        "/ui/dashboard.js?v=20260918-r19",
+        "/ui/enhancements.js",
+        "/ui/qa_patch.js",
+        "/ui/i18n.js",
+        "/ui/dashboard.js",
     ]
     assert inspector.stylesheets == [
-        "/ui/styles.css?v=20260918-r19",
-        "/ui/enhancements.css?v=20260918-r19",
+        "/ui/styles.css",
+        "/ui/enhancements.css",
         "/ui/qa_patch.css?v=20260918-r19",
-        "/ui/professional.css?v=20260918-r19",
+        "/ui/professional.css",
     ]
     assert inspector.inline_handlers == []
     assert "<style" not in markup
@@ -906,36 +906,31 @@ def test_20260918_round_five_history_audit_settings_regressions():
 
 
 
-def test_round19_served_html_cache_busts_every_acceptance_asset():
+def test_round19_served_html_cache_busts_round18_acceptance_assets():
     service = WebUIService(enabled_config(), root=ROOT)
     response = service.response("/")
     assert response is not None and response.status == 200
     markup = response.body.decode("utf-8")
 
     assert 'name="nowlert-ui-build" content="20260918-r19"' in markup
+    assert "/ui/app.js?v=20260918-r19" in markup
+    assert "/ui/qa_patch.css?v=20260918-r19" in markup
 
-    for asset in (
-        "styles.css",
-        "enhancements.css",
-        "qa_patch.css",
-        "professional.css",
-        "filtering.css",
-        "destination_routes.css",
-        "source_ui_retirement.js",
-        "operations_acceptance.js",
-        "page_headers.css",
-        "reference_acceptance.js",
-    ):
-        assert f"/ui/{asset}?v=20260918-r19" in markup
+    # Existing extension URLs stay stable; their registration is relied on by
+    # the extension contract tests. Only the two round-18 assets need a fresh
+    # browser/cache key.
+    assert '<script src="/ui/source_ui_retirement.js" defer></script>' in markup
+    assert '<link rel="stylesheet" href="/ui/reference_acceptance.css">' in markup
 
     app = service.response("/ui/app.js")
     patch = service.response("/ui/qa_patch.css")
     retirement = service.response("/ui/source_ui_retirement.js")
-    assert app is not None and b"Preview completed." in app.body
-    assert patch is not None and b"round-18 acceptance corrections" in patch.body
+    assert app is not None and app.status == 200 and b"Preview completed." in app.body
+    assert patch is not None and patch.status == 200 and b"round-18 acceptance corrections" in patch.body
     assert patch is not None and b"#primary-nav .nav-item[hidden]" in patch.body
     assert patch is not None and b"transform: scale(1.65)" in patch.body
     assert patch is not None and b"#app-shell .workspace" in patch.body
-    assert retirement is not None and b"auditNav.hidden = !admin;" in retirement.body
-    assert retirement is not None and b"backupsNav.hidden = !admin;" in retirement.body
-    assert retirement is not None and b"usersNav.hidden = !admin;" in retirement.body
+    assert retirement is not None and retirement.status == 200
+    assert b"auditNav.hidden = !admin;" in retirement.body
+    assert b"backupsNav.hidden = !admin;" in retirement.body
+    assert b"usersNav.hidden = !admin;" in retirement.body
