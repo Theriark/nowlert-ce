@@ -57,9 +57,9 @@ def test_round_six_workspace_cache_hydrates_after_session_and_refreshes_in_backg
     assert 'const QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v1";' in patch
     assert "const QA_WORKSPACE_CACHE_TTL_MS = 5 * 60 * 1000;" in patch
     assert "function qaSaveWorkspaceCache()" in patch
-    assert "function qaHydrateWorkspaceCache(session)" in patch
+    assert "function qaHydrateWorkspaceCache(session, { render = true } = {})" in patch
     assert "window.sessionStorage.setItem(" in patch
     assert "window.sessionStorage.getItem(" in patch
-    assert "qaHydrateWorkspaceCache(session);" in patch
+    assert "qaHydrateWorkspaceCache(session, { render: false });" in patch
     assert 'window.addEventListener("pagehide", qaSaveWorkspaceCache);' in patch
     assert "qaClearWorkspaceCache();" in patch

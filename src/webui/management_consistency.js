@@ -830,6 +830,7 @@
       privateMetadataLoaded = false;
       privateDestinationMetadata.clear();
     }
+    syncConsistency();
     scheduleSync();
     return result;
   };
@@ -837,6 +838,7 @@
   const previousShowApp = showApp;
   showApp = function showAppWithManagementConsistency(session) {
     const result = previousShowApp(session);
+    syncConsistency();
     scheduleSync();
     return result;
   };

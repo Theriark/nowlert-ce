@@ -2017,10 +2017,15 @@ button.reference-preview-route-more:focus-visible {
   font-size: 0.72rem !important;
   margin-top: 3px !important;
 }
+.reference-api-tokens th:last-child,
+.reference-api-tokens td:last-child {
+  text-align: right !important;
+}
 .reference-api-tokens .row-actions {
   align-items: center !important;
   display: flex !important;
   gap: 8px !important;
+  justify-content: flex-end !important;
 }
 .reference-token-footer {
   align-items: center;

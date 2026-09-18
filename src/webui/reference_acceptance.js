@@ -1110,8 +1110,8 @@ function ensurePreviewReferenceLayout() {
   if (typeof renderUsers === "function") { const base = renderUsers; renderUsers = function renderUsersWithReferenceLayout() { const result = base(); syncUsersReference(); return result; }; }
   if (typeof renderUpdates === "function") { const base = renderUpdates; renderUpdates = function renderUpdatesWithReferenceLayout() { const result = base(); syncSettingsUpdateState(); return result; }; }
   if (typeof renderTokens === "function") { const base = renderTokens; renderTokens = function renderTokensWithReferenceLayout() { const result = base(); ensureAccountReferenceLayout(); syncApiTokensReference(); return result; }; }
-  if (typeof navigate === "function") { const base = navigate; navigate = function navigateWithReferenceAcceptance(view, mode = "push") { const result = base(view, mode); scheduleSync(); return result; }; }
-  if (typeof showApp === "function") { const base = showApp; showApp = function showAppWithReferenceAcceptance(session) { const result = base(session); scheduleSync(); return result; }; }
+  if (typeof navigate === "function") { const base = navigate; navigate = function navigateWithReferenceAcceptance(view, mode = "push") { const result = base(view, mode); syncAll(); scheduleSync(); return result; }; }
+  if (typeof showApp === "function") { const base = showApp; showApp = function showAppWithReferenceAcceptance(session) { const result = base(session); syncAll(); scheduleSync(); return result; }; }
 
   const pageTitle = byId("page-title");
   if (pageTitle && typeof MutationObserver === "function") {
