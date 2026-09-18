@@ -153,6 +153,93 @@
       return detailRow(label, summary);
     });
   }
+  function rangeLabel(value = range) {
+    return {
+      "15m": "Last 15 minutes",
+      "1h": "Last hour",
+      "1d": "Last 24 hours",
+    }[value] || value;
+  }
+  function filterMetricText(value) {
+    return Number.isFinite(value) ? String(value) : "—";
+  }
+  function filterReductionText(metrics = {}) {
+    const received = metrics.received;
+    const filtered = metrics.filtered;
+    if (!Number.isFinite(received) || !Number.isFinite(filtered) || received <= 0) return "—";
+    return `${Math.round((filtered / received) * 100)}%`;
+  }
+  function filterRuleTags(link) {
+    const tags = [];
+    for (const policy of activePolicies(link)) {
+      const clauses = policy.legacy_clauses?.length ? policy.legacy_clauses : [policy.rules || {}];
+      for (const clause of clauses) {
+        for (const [key, rawValues] of Object.entries(clause || {})) {
+          const values = Array.isArray(rawValues) ? rawValues : [rawValues];
+          for (const rawValue of values) {
+            const text = String(rawValue ?? "").trim();
+            if (!text) continue;
+            if (key.startsWith("__")) {
+              tags.push(text);
+              continue;
+            }
+            const label = policy.labels?.[key] || key.replaceAll("_", " ");
+            for (const rawPart of text.split(" AND ")) {
+              const part = rawPart.trim();
+              if (!part) continue;
+              tags.push(part.includes(": ") ? part.replace(": ", " = ") : `${label} = ${part}`);
+            }
+          }
+        }
+      }
+    }
+    return [...new Set(tags)];
+  }
+  function renderFilterCard(node, link, route, destination, lines) {
+    node.classList.add("rf-filter-card");
+
+    const header = el("div", "rf-filter-card-header");
+    const visual = el("span", "rf-filter-card-icon");
+    visual.append(icon("filter"));
+    const title = link.fallback
+      ? (lines[0] || "Active filter")
+      : `${route.integration_name}: ${lines[0] || "Filter"}`;
+    header.append(visual, el("strong", "rf-filter-card-title", title));
+
+    const tags = el("div", "rf-filter-card-tags");
+    const ruleTags = filterRuleTags(link);
+    const visibleTags = [
+      { text: route.integration_name, tone: "yellow" },
+      ...ruleTags.slice(0, 2).map(text => ({ text, tone: "blue" })),
+    ];
+    if (ruleTags.length > 2) visibleTags.push({ text: `+${ruleTags.length - 2}`, tone: "muted" });
+    visibleTags.push({ text: destination.name, tone: "green" });
+    for (const item of visibleTags) {
+      tags.append(el("span", `rf-filter-rule-tag rf-filter-rule-tag-${item.tone}`, item.text));
+    }
+
+    const stats = el("div", "rf-filter-card-stats");
+    [
+      ["Events in", filterMetricText(link.metrics?.received), "yellow"],
+      ["Filtered out", filterMetricText(link.metrics?.filtered), "cyan"],
+      ["Reduction", filterReductionText(link.metrics), "green"],
+    ].forEach(([label, value, tone]) => {
+      const metric = el("span", `rf-filter-card-stat rf-filter-card-stat-${tone}`);
+      metric.append(el("small", "", label), el("strong", "", value));
+      stats.append(metric);
+    });
+
+    const footer = el("div", "rf-filter-card-footer");
+    const destinationSummary = el("span", "rf-filter-card-destination");
+    const destinationVisual = destinationLogo(destination);
+    destinationSummary.append(destinationVisual, el("span", "", destination.name));
+    const period = el("span", "rf-filter-card-period");
+    period.append(el("span", "", rangeLabel()), icon("clock"));
+    footer.append(destinationSummary, period);
+
+    node.append(header, tags, stats, footer);
+  }
+
   function activeFlowGraph() {
     if (!data) return { routes: [], destinations: [], links: [] };
     const enabledRoutes = data.routes.filter(route => route.enabled);
@@ -388,10 +475,7 @@
         const key = linkKey(r.id, link.destination_id), destination = current.destinations.find(d => d.id === link.destination_id);
         if (!destination) continue;
         const filter = createNode("filter", key, `${r.integration_name} filter for ${destination.name}`);
-        const badge = el("span", "rf-funnel"); badge.append(icon("filter"));
-        const copy = el("div", "rf-node-copy");
-        copy.append(el("strong", "", lines[0]), el("small", "", lines.length > 1 ? `+${lines.length - 1} policies · inspect details` : destination.name));
-        filter.append(badge, copy);
+        renderFilterCard(filter, link, r, destination, lines);
       }
     }
     for (const d of ordered.destinationOrder) {
