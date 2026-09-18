@@ -4325,3 +4325,115 @@ textarea:focus {
     margin-top: 16px !important;
   }
 }
+
+
+/* 2026-09-18 round-19 compact backup top row. */
+@media (min-width: 901px) {
+  .backup-dashboard-grid-top {
+    align-items: start !important;
+  }
+
+  #backup-schedule-panel,
+  #backup-data-tools-panel {
+    align-self: start !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  #backup-data-tools-panel {
+    display: block !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-heading {
+    margin: 0 14px !important;
+    min-height: 0 !important;
+    padding: 10px 4px 8px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-heading h3 {
+    font-size: 16px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-heading .backup-section-icon {
+    height: 30px !important;
+    width: 30px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-heading .backup-section-icon svg {
+    height: 24px !important;
+    width: 24px !important;
+  }
+
+  #backup-data-tools-panel > .backup-data-tools-grid {
+    align-items: start !important;
+    flex: 0 0 auto !important;
+    gap: 12px !important;
+    padding: 14px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-card {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 16px 18px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-card .backup-tool-heading {
+    gap: 12px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-card .backup-tool-heading strong {
+    font-size: 16px !important;
+    line-height: 1.2 !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-card .backup-tool-icon {
+    flex-basis: 48px !important;
+    height: 48px !important;
+    width: 48px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-card .backup-tool-icon svg {
+    height: 28px !important;
+    width: 28px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-card > p {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    margin: 12px 0 14px !important;
+    min-height: 0 !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-download {
+    font-size: 14px !important;
+    min-height: 42px !important;
+    padding-inline: 18px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-file {
+    flex: 0 0 auto !important;
+    height: 50px !important;
+    min-height: 50px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-file input[type="file"] {
+    font-size: 14px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    padding: 5px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-file input[type="file"]::file-selector-button {
+    font-size: 14px !important;
+    height: 38px !important;
+    margin-right: 12px !important;
+    min-height: 38px !important;
+    padding-inline: 16px !important;
+  }
+
+  #backup-data-tools-panel .data-tools-reference-preview {
+    font-size: 14px !important;
+    margin-top: 10px !important;
+    min-height: 42px !important;
+  }
+}
