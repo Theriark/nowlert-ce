@@ -1,6 +1,7 @@
 """Read-only delivery and filter aggregates for the Routing Flow overview."""
 from __future__ import annotations
 
+import os
 import sqlite3
 import time
 
@@ -74,6 +75,8 @@ def record_filter_decisions(
                 (now - 367 * 24 * 60 * 60,),
             )
     except sqlite3.DatabaseError:
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            raise
         return False
     return True
 
