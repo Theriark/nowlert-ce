@@ -322,68 +322,81 @@
 
           <div id="backup-overview-strip" class="backup-overview-strip">
             <div class="backup-summary-item">
-              <span class="backup-summary-icon" aria-hidden="true">◉</span>
+              <span class="backup-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg></span>
               <div><strong id="backup-summary-destinations">0</strong><span>Backup destinations</span><small id="backup-summary-destinations-note">No destinations configured</small></div>
             </div>
             <div class="backup-summary-item">
-              <span class="backup-summary-icon" aria-hidden="true">▤</span>
+              <span class="backup-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5"></path><path d="M10 12h5M10 16h5"></path></svg></span>
               <div><strong id="backup-summary-snapshots">0</strong><span>Snapshots available</span><small id="backup-summary-snapshots-note">Across all destinations</small></div>
             </div>
             <div class="backup-summary-item">
-              <span class="backup-summary-icon" aria-hidden="true">□</span>
+              <span class="backup-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M7 3v4M17 3v4M3 10h18"></path></svg></span>
               <div><strong id="backup-summary-schedule">0</strong><span>Scheduled backup</span><small id="backup-summary-schedule-note">Disabled</small></div>
             </div>
             <div class="backup-summary-item">
-              <span class="backup-summary-icon success" aria-hidden="true">◆</span>
+              <span class="backup-summary-icon success" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l7 3v5c0 4.7-2.9 8.2-7 10-4.1-1.8-7-5.3-7-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg></span>
               <div><strong id="backup-summary-health">Checking</strong><span>Backup system status</span><small id="backup-summary-health-note">Checking destinations</small></div>
             </div>
           </div>
 
           <article id="backup-destinations-panel" class="panel backup-dashboard-panel backup-destinations-panel">
             <div class="panel-heading backup-panel-heading">
-              <div><p class="eyebrow">Backup destinations</p><h3>Backup destinations</h3><p>Configure where backups are stored. Remote targets are tested for connectivity and write access.</p></div>
-              <button class="button primary" type="button" data-action="new-backup-target">＋ Add backup destination</button>
+              <div class="backup-section-title"><span class="backup-section-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg></span><h3>Backup destinations</h3></div>
+              <button class="button primary backup-icon-button" type="button" data-action="new-backup-target"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg></span><span>Add backup destination</span></button>
             </div>
-            <div class="table-scroll"><table><thead><tr><th>Type</th><th>Name</th><th>Host</th><th>Backup path</th><th>Status</th><th>Last test</th><th>Actions</th></tr></thead><tbody id="backup-target-table"></tbody></table></div>
+            <div class="table-scroll"><table class="backup-destination-table"><thead><tr><th>Type</th><th>Name</th><th>Host</th><th>Backup path</th><th>Status</th><th>Last test</th><th>Actions</th></tr></thead><tbody id="backup-target-table"></tbody></table></div>
           </article>
 
-          <div class="backup-dashboard-grid">
+          <div class="backup-dashboard-grid backup-dashboard-grid-top">
             <article id="backup-schedule-panel" class="panel backup-dashboard-panel">
-              <div class="panel-heading"><div><p class="eyebrow">Scheduled backups</p><h3>Scheduled backups</h3><p>Managed remote mounts require the opt-in deployment override.</p></div><span id="backup-last-run-badge" class="backup-run-badge">No run yet</span></div>
+              <div class="panel-heading"><div class="backup-section-title"><span class="backup-section-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span><h3>Scheduled backups</h3></div></div>
               <form id="backup-settings-form" class="backup-schedule-form">
-                <label><span>Schedule</span><select id="backup-schedule"><option value="disabled">Disabled</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
-                <label><span>Weekly day</span><select id="backup-weekday"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option></select></label>
-                <label><span>Run time</span><select id="backup-time" required></select></label>
-                <label><span>Monthly day</span><input id="backup-day" type="number" min="1" max="28" value="1"></label>
-                <label class="backup-schedule-destination"><span>Backup destination</span><select id="backup-target"><option value="">Local state only</option></select></label>
-                <label class="switch-field backup-managed-mounts"><input id="backup-managed-mounts" type="checkbox"><span>Allow Nowlert to mount remote destinations</span></label>
-                <div class="backup-schedule-actions"><button class="button primary" type="submit">▣ Save backup settings</button><small id="backup-time-display">Scheduled time: 02:00</small><small id="backup-last-run" hidden>No scheduled run recorded.</small></div>
+                <label class="backup-field"><span>Schedule</span><span class="backup-field-control"><span class="backup-field-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M7 3v4M17 3v4M3 10h18"></path></svg></span><select id="backup-schedule"><option value="disabled">Disabled</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></span></label>
+                <label class="backup-field"><span>Weekly day</span><span class="backup-field-control"><span class="backup-field-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M7 3v4M17 3v4M3 10h18"></path></svg></span><select id="backup-weekday"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option></select></span></label>
+                <label class="backup-field"><span>Run time</span><span class="backup-field-control"><span class="backup-field-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span><select id="backup-time" required></select></span></label>
+                <label class="backup-field"><span>Monthly day</span><span class="backup-field-control"><span class="backup-field-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M7 3v4M17 3v4M3 10h18"></path></svg></span><input id="backup-day" type="number" min="1" max="28" value="1"></span></label>
+                <label class="backup-field backup-schedule-destination"><span>Backup destination</span><span class="backup-field-control"><span class="backup-field-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 4h14l2 7v8H3v-8z"></path><path d="M3 12h18"></path><circle cx="17" cy="15.5" r="1"></circle></svg></span><select id="backup-target"><option value="">Local state only</option></select></span></label>
+                <label class="switch-field backup-managed-mounts"><input id="backup-managed-mounts" type="checkbox"><span>Allow Nowlert to mount remote destinations</span><span class="backup-help-icon" title="Nowlert may mount the selected remote backup destination when the deployment override permits it."><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7h.01"></path></svg></span></label>
+                <div class="backup-schedule-actions"><button class="button primary backup-icon-button" type="submit"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3h12l2 2v16H5z"></path><path d="M8 3v6h8V3M8 15h8v6H8z"></path></svg></span><span>Save backup settings</span></button><small id="backup-time-display">Next run: Disabled</small></div>
               </form>
             </article>
 
             <article id="backup-data-tools-panel" class="panel backup-dashboard-panel">
-              <div class="panel-heading"><div><p class="eyebrow">Data tools</p><h3>Data tools</h3><p>Move user-created Nowlert configuration without moving credentials, accounts, history, or recovery data.</p></div></div>
+              <div class="panel-heading"><div class="backup-section-title"><span class="backup-section-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.7 6.3a4 4 0 0 0-5.5 5.5L4 17v3h3l5.2-5.2a4 4 0 0 0 5.5-5.5l-2.5 2.5-2-2z"></path></svg></span><h3>Data tools</h3></div></div>
               <div class="backup-data-tools-grid">
-                <div class="backup-tool-box"><strong>Export user configuration</strong><p>Download destinations, reusable routes, route assignments, destination filtering policies, and safe settings.</p><button class="button primary" type="button" data-action="export-platform">⇩ Download safe JSON</button></div>
-                <div class="backup-tool-box"><strong>Import user configuration</strong><p>Preview a safe export before merging it. Credentials intentionally remain unset and stay disabled.</p><label class="file-field compact"><span class="sr-only">JSON document</span><input id="backup-portable-file" type="file" accept="application/json,.json"></label><button class="button secondary" type="button" data-action="preview-backup-portable">⌕ Preview JSON import</button></div>
+                <div class="backup-tool-box">
+                  <div class="backup-tool-heading"><span class="backup-tool-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 15V3"></path><path d="M8 7l4-4 4 4"></path><path d="M4 19h16"></path></svg></span><strong>Export user configuration</strong></div>
+                  <p>Download destinations, reusable routes, route assignments, destination filtering policies, and safe settings.</p>
+                  <button class="button primary backup-icon-button" type="button" data-action="export-platform"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M4 19h16"></path></svg></span><span>Download safe JSON</span></button>
+                </div>
+                <div class="backup-tool-box">
+                  <div class="backup-tool-heading"><span class="backup-tool-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M4 19h16"></path></svg></span><strong>Import user configuration</strong></div>
+                  <p>Preview a safe export before merging it. Credentials intentionally remain unset and stay disabled.</p>
+                  <label class="file-field compact"><span class="sr-only">JSON document</span><input id="backup-portable-file" type="file" accept="application/json,.json"></label>
+                  <button class="button secondary backup-icon-button" type="button" data-action="preview-backup-portable"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"></circle><path d="M16 16l5 5"></path></svg></span><span>Preview JSON import</span></button>
+                </div>
               </div>
             </article>
           </div>
 
-          <div class="backup-dashboard-grid">
+          <div class="backup-dashboard-grid backup-dashboard-grid-bottom">
             <article id="backup-recovery-panel" class="panel backup-dashboard-panel">
               <div class="panel-heading backup-panel-heading">
-                <div><p class="eyebrow">Recovery snapshots</p><h3>Recovery snapshots</h3><p>Snapshots include the complete SQLite state — users, configuration records, filtering, audit and delivery history.</p></div>
-                <div class="button-row"><button class="button primary" type="button" data-action="create-backup">▣ Create local snapshot</button><button class="button secondary" type="button" data-action="run-backup-now">▶ Run scheduled now</button><button class="button secondary" type="button" data-action="refresh-external-backups">↻ Refresh</button></div>
+                <div class="backup-section-title"><span class="backup-section-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5z"></path><path d="M3 12l9 5 9-5M3 16l9 5 9-5"></path></svg></span><h3>Recovery snapshots</h3></div>
+                <div class="button-row backup-heading-actions">
+                  <button class="button primary backup-icon-button" type="button" data-action="create-backup"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 7h3l2-2h4l2 2h3v12H5z"></path><circle cx="12" cy="13" r="3"></circle></svg></span><span>Create local snapshot</span></button>
+                  <button class="button secondary backup-icon-button" type="button" data-action="run-backup-now"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5l11 7-11 7z"></path></svg></span><span>Run scheduled now</span></button>
+                  <button class="button secondary backup-icon-button" type="button" data-action="refresh-external-backups"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 7v5h-5"></path><path d="M4 17v-5h5"></path><path d="M7 8a7 7 0 0 1 11-1l2 2M4 15l2 2a7 7 0 0 0 11-1"></path></svg></span><span>Refresh</span></button>
+                </div>
               </div>
-              <div class="table-scroll"><table><thead><tr><th>Date &amp; time</th><th>Type</th><th>Details</th><th>Size</th><th>Actions</th></tr></thead><tbody id="backup-recovery-table"></tbody></table></div>
-              <button id="backup-view-all" class="button secondary backup-view-all" type="button" data-action="view-all-backups">View all snapshots</button>
+              <div class="table-scroll"><table class="backup-recovery-table"><thead><tr><th>Date &amp; time</th><th>Type</th><th>Details</th><th>Size</th><th>Actions</th></tr></thead><tbody id="backup-recovery-table"></tbody></table></div>
+              <div class="backup-table-footer"><button id="backup-view-all" class="button secondary backup-view-all backup-icon-button" type="button" data-action="view-all-backups"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="5" width="16" height="4" rx="1"></rect><path d="M6 9v10h12V9M10 13h4"></path></svg></span><span>View all snapshots</span></button><span id="backup-view-all-status" class="backup-table-count">0 snapshots shown <span aria-hidden="true">›</span></span></div>
             </article>
 
             <article id="backup-stored-panel" class="panel backup-dashboard-panel">
-              <div class="panel-heading"><div><p class="eyebrow">Stored copies</p><h3>Stored copies</h3><p>Verified snapshots discovered on configured backup destinations. Restore copies to local staging and validates it before replacing live state.</p></div></div>
-              <div class="table-scroll"><table><thead><tr><th>Date &amp; time</th><th>Destination</th><th>Type</th><th>Size</th><th>Actions</th></tr></thead><tbody id="backup-stored-table"></tbody></table></div>
-              <button id="backup-stored-view-all" class="button secondary backup-view-all" type="button" data-action="view-all-stored-backups">View all stored copies</button>
+              <div class="panel-heading"><div class="backup-section-title"><span class="backup-section-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg></span><h3>Stored copies</h3></div></div>
+              <div class="table-scroll"><table class="backup-stored-table"><thead><tr><th>Date &amp; time</th><th>Destination</th><th>Type</th><th>Size</th><th>Actions</th></tr></thead><tbody id="backup-stored-table"></tbody></table></div>
+              <div class="backup-table-footer"><button id="backup-stored-view-all" class="button secondary backup-view-all backup-icon-button" type="button" data-action="view-all-stored-backups"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg></span><span>View all stored copies</span></button><span id="backup-stored-view-all-status" class="backup-table-count">0 copies shown <span aria-hidden="true">›</span></span></div>
               <div id="external-backup-list" class="backup-list backup-errors-only" hidden></div>
               <div id="backup-list" class="backup-list" hidden></div>
             </article>
