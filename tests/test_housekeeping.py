@@ -18,7 +18,7 @@ def fast_hash(password: str) -> str:
 def test_housekeeping_defaults_and_bounded_history_retention(tmp_path):
     now = 2_000_000_000
     database = Database(tmp_path / "state" / "nowlert.db")
-    assert database.migrate() == 13
+    assert database.migrate() == 14
     users = UserStore(database, password_hasher=fast_hash)
     admin = users.bootstrap_admin("administrator", PASSWORD)
     service = HousekeepingService(

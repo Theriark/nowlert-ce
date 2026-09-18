@@ -41,6 +41,7 @@ from storage.users import UserStore
 from storage.health import HealthCheckService
 from storage.housekeeping import HousekeepingService
 from storage.integrations import IntegrationCategoryStore
+from storage.mfa import generate_totp_secret, provisioning_uri, verify_totp
 from storage.backup_scheduler import BackupScheduler
 from storage.backup_targets import BackupTargetStore
 from version import VERSION
@@ -207,6 +208,10 @@ class PlatformAPI:
                 return self._own_password(method, payload, principal)
             if path == "/api/v2/account/avatar":
                 return self._own_avatar(method, payload, principal)
+            if path == "/api/v2/account/mfa/setup":
+                return self._own_mfa_setup(method, principal)
+            if path == "/api/v2/account/mfa":
+                return self._own_mfa(method, payload, principal)
             if path == "/api/v2/integrations":
                 return self._integrations_endpoint(method, payload, actor)
             if path == "/api/v2/integration-settings":
@@ -347,7 +352,7 @@ class PlatformAPI:
         )
         if not self.login_limiter.allow(limiter_principal, str(client)):
             return APIResponse(429, {"error": "rate limit exceeded"})
-        if not isinstance(payload, dict) or set(payload) - {"username", "password"}:
+        if not isinstance(payload, dict) or set(payload) - {"username", "password", "otp"}:
             return APIResponse(400, {"error": "request is invalid"})
         user = self.users.authenticate(
             str(payload.get("username") or ""),
@@ -356,6 +361,39 @@ class PlatformAPI:
         if user is None:
             self.audit.write(None, "session.login", "session", None, "denied")
             return APIResponse(401, {"error": "invalid credentials"})
+        if user.mfa_enabled:
+            otp = str(payload.get("otp") or "").strip()
+            if not otp:
+                self.audit.write(
+                    user.actor,
+                    "session.mfa",
+                    "session",
+                    None,
+                    "required",
+                )
+                return APIResponse(
+                    401,
+                    {
+                        "error": "multi-factor authentication required",
+                        "code": "mfa_required",
+                    },
+                )
+            secret = self._mfa_secret(user)
+            if secret is None or not verify_totp(secret, otp):
+                self.audit.write(
+                    user.actor,
+                    "session.mfa",
+                    "session",
+                    None,
+                    "denied",
+                )
+                return APIResponse(
+                    401,
+                    {
+                        "error": "authenticator code is invalid",
+                        "code": "mfa_invalid",
+                    },
+                )
         credentials = self.sessions.create(user.id)
         self.audit.write(
             user.actor,
@@ -498,6 +536,137 @@ class PlatformAPI:
             user = self.users.set_avatar(principal.user_id, None)
             self.audit.write(user.actor, "user.avatar", "user", user.id, "success")
             return APIResponse(200, {"user": self._user(user)})
+        return self._method_not_allowed("PUT, DELETE")
+
+    def _mfa_secret(self, user) -> str | None:
+        if not user.mfa_secret_id:
+            return None
+        try:
+            return self.secrets.resolve(user.actor, user.mfa_secret_id).decode("ascii")
+        except (KeyError, PermissionError, RuntimeError, UnicodeDecodeError, ValueError):
+            return None
+
+    def _own_mfa_setup(self, method, principal) -> APIResponse:
+        if method != "POST":
+            return self._method_not_allowed("POST")
+        user = self.users.get(principal.user_id)
+        if user.mfa_enabled:
+            return APIResponse(
+                409,
+                {
+                    "error": "multi-factor authentication is already enabled",
+                    "code": "mfa_already_enabled",
+                },
+            )
+        previous_secret = user.mfa_secret_id
+        if previous_secret:
+            self.users.set_mfa_state(user.id, None, False)
+            try:
+                self.secrets.delete(user.actor, previous_secret)
+            except KeyError:
+                pass
+
+        secret = generate_totp_secret()
+        metadata = self.secrets.create(
+            user.actor,
+            user.id,
+            f"Account MFA {uuid.uuid4().hex[:10]}",
+            "totp",
+            secret,
+        )
+        user = self.users.set_mfa_state(user.id, metadata.id, False)
+        self.audit.write(
+            user.actor,
+            "user.mfa.setup",
+            "user",
+            user.id,
+            "success",
+        )
+        return APIResponse(
+            200,
+            {
+                "user": self._user(user),
+                "secret": secret,
+                "provisioning_uri": provisioning_uri(user.username, secret),
+            },
+            (("Cache-Control", "no-store"),),
+        )
+
+    def _own_mfa(self, method, payload, principal) -> APIResponse:
+        user = self.users.get(principal.user_id)
+        if method == "PUT":
+            data = self._object(payload, {"code"})
+            secret = self._mfa_secret(user)
+            if secret is None:
+                return APIResponse(
+                    409,
+                    {
+                        "error": "MFA setup must be started first",
+                        "code": "mfa_setup_required",
+                    },
+                )
+            if not verify_totp(secret, str(data.get("code") or "")):
+                return APIResponse(
+                    403,
+                    {
+                        "error": "authenticator code is invalid",
+                        "code": "mfa_invalid",
+                    },
+                )
+            user = self.users.set_mfa_state(user.id, user.mfa_secret_id, True)
+            self.audit.write(
+                user.actor,
+                "user.mfa.enable",
+                "user",
+                user.id,
+                "success",
+            )
+            return APIResponse(200, {"user": self._user(user)})
+
+        if method == "DELETE":
+            data = self._object(payload, {"password", "code"})
+            authenticated = self.users.authenticate(
+                principal.username,
+                str(data.get("password") or ""),
+            )
+            if authenticated is None or authenticated.id != principal.user_id:
+                return APIResponse(
+                    403,
+                    {"error": "current password is invalid", "code": "password_invalid"},
+                )
+            secret = self._mfa_secret(user)
+            if not user.mfa_enabled or secret is None:
+                return APIResponse(
+                    409,
+                    {
+                        "error": "multi-factor authentication is not enabled",
+                        "code": "mfa_not_enabled",
+                    },
+                )
+            if not verify_totp(secret, str(data.get("code") or "")):
+                return APIResponse(
+                    403,
+                    {
+                        "error": "authenticator code is invalid",
+                        "code": "mfa_invalid",
+                    },
+                )
+            secret_id = user.mfa_secret_id
+            user = self.users.set_mfa_state(user.id, None, False)
+            if secret_id:
+                try:
+                    self.secrets.delete(user.actor, secret_id)
+                except KeyError:
+                    pass
+            self.audit.write(
+                user.actor,
+                "user.mfa.disable",
+                "user",
+                user.id,
+                "success",
+            )
+            return APIResponse(200, {"user": self._user(user)})
+
         return self._method_not_allowed("PUT, DELETE")
 
     def _tokens_endpoint(self, method, payload, actor) -> APIResponse:
@@ -1947,6 +2116,7 @@ class PlatformAPI:
             "created_at": item.created_at,
             "updated_at": item.updated_at,
             "avatar_data": item.avatar_data,
+            "mfa_enabled": item.mfa_enabled,
         }
 
     @staticmethod

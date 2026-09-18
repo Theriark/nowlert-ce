@@ -37,7 +37,7 @@ def test_reference_acceptance_runtime_contract():
     assert "Regional settings" in script
     assert "Nowlert is up to date" in script
     assert "function ensureAccountReferenceLayout()" in script
-    assert "Profile & access" in script
+    assert "Profile" in script
     assert "Password & sessions" in script
     assert "Security posture" in script
     assert 'title.textContent = "API tokens"' in script

@@ -901,25 +901,76 @@ function ensurePreviewReferenceLayout() {
   }
 
   function ensureAccountReferenceLayout() {
-    const section = byId("view-account"); const grid = section?.querySelector(":scope > .account-grid"); const identity = grid?.querySelector(".identity-card"); const password = grid ? [...grid.children].find((item) => item !== identity) : null;
-    if (!section || !grid || !identity || !password) return; section.classList.add("reference-account-page"); grid.classList.add("reference-account-grid");
-    if (identity.dataset.referenceAccount !== "1") {
-      identity.dataset.referenceAccount = "1"; identity.classList.add("reference-profile-card"); const body = ref("div", "reference-profile-body"); [...identity.children].forEach((child) => body.append(child));
+    const section = byId("view-account");
+    const grid = section?.querySelector(":scope > .account-grid");
+    const identity = grid?.querySelector(".identity-card");
+    const password = grid ? [...grid.children].find((item) => item !== identity) : null;
+    if (!section || !grid || !identity || !password) return;
+
+    section.classList.add("reference-account-page");
+    grid.classList.add("reference-account-grid");
+
+    if (identity.dataset.referenceAccount !== "2") {
+      identity.dataset.referenceAccount = "2";
+      identity.classList.add("reference-profile-card");
+      const original = [...identity.children];
+      const body = ref("div", "reference-profile-body");
+      original.forEach((child) => body.append(child));
       body.querySelector(":scope > div")?.classList.add("reference-profile-copy");
-      const heading = ref("div", "reference-account-card-heading"); heading.innerHTML = '<span></span><div><h2>Profile & access</h2><p>Manage your profile information and account access.</p></div>';
+
+      const heading = ref("div", "reference-account-card-heading");
+      heading.innerHTML = '<span></span><div><h2>Profile</h2><p>Manage your profile information and account access.</p></div>';
+
+      const status = ref("aside", "reference-access-status");
+      status.innerHTML = '<span class="reference-access-status-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"></path><circle cx="12" cy="10" r="2"></circle><path d="M8.5 16c.8-2 2-3 3.5-3s2.7 1 3.5 3"></path></svg></span><div class="reference-access-status-copy"><small>Access status</small><strong id="reference-access-status-value">Active</strong><p>Your account is in good standing.</p><span id="reference-system-status" class="reference-system-status"><i></i><b>All systems operational</b></span></div>';
+
+      const top = ref("div", "reference-profile-top");
+      top.append(body, status);
+
       const meta = ref("div", "reference-account-meta");
-      for (const [label, id, value] of [["Account role", "reference-account-role-value", "Administrator"], ["Member since", "reference-account-member-value", "Unavailable"], ["MFA status", "reference-account-mfa-value", "Not enabled"]]) {
-        const item = ref("div", "reference-account-meta-item"); item.innerHTML = `<span class="reference-account-meta-icon">◇</span><div><small>${label}</small><strong id="${id}">${value}</strong></div>`; meta.append(item);
+      for (const [label, id, value, kind] of [
+        ["Account role", "reference-account-role-value", "Administrator", "role"],
+        ["Member since", "reference-account-member-value", "Unavailable", "member"],
+        ["MFA status", "reference-account-mfa-value", "Disabled", "mfa"],
+      ]) {
+        const item = ref("div", `reference-account-meta-item reference-account-meta-${kind}`);
+        const icon = ref("span", "reference-account-meta-icon", kind === "mfa" ? "Ⅱ" : "◇");
+        const copy = ref("div", "reference-account-meta-copy");
+        copy.append(ref("small", "", label), ref("strong", "", value));
+        copy.querySelector("strong").id = id;
+        if (kind === "mfa") {
+          const action = ref("button", "reference-mfa-action", "Enable MFA");
+          action.id = "reference-account-mfa-action";
+          action.type = "button";
+          action.addEventListener("click", () => {
+            if (typeof openMfaDialog === "function") void openMfaDialog();
+          });
+          copy.append(action);
+        }
+        item.append(icon, copy);
+        meta.append(item);
       }
-      identity.append(heading, body, meta);
+
+      identity.replaceChildren(heading, top, meta);
     }
+
     if (password.dataset.referenceAccount !== "1") {
-      password.dataset.referenceAccount = "1"; password.classList.add("reference-password-card"); const oldHeading = password.querySelector(":scope > .panel-heading"); const form = byId("password-form");
-      if (oldHeading) { oldHeading.classList.add("reference-password-heading"); oldHeading.innerHTML = '<div><h2>Password & sessions</h2><p>Change your password and view your active session information.</p></div>'; }
-      const main = ref("div", "reference-password-main"); if (oldHeading) main.append(oldHeading); if (form) main.append(form);
-      const posture = ref("aside", "reference-security-posture"); posture.innerHTML = '<div class="reference-posture-block"><span class="reference-posture-icon">▣</span><div><small>Active sessions</small><strong id="reference-active-sessions">1</strong></div></div><div class="reference-posture-divider"></div><div class="reference-posture-block"><span class="reference-posture-icon">◇</span><div><small>Security posture</small><strong class="reference-good">Good</strong></div></div><div class="reference-posture-divider"></div><ul><li>Password is set</li><li>Account is active</li><li>No security alerts</li></ul>';
+      password.dataset.referenceAccount = "1";
+      password.classList.add("reference-password-card");
+      const oldHeading = password.querySelector(":scope > .panel-heading");
+      const form = byId("password-form");
+      if (oldHeading) {
+        oldHeading.classList.add("reference-password-heading");
+        oldHeading.innerHTML = '<div><h2>Password & sessions</h2><p>Change your password and view your active session information.</p></div>';
+      }
+      const main = ref("div", "reference-password-main");
+      if (oldHeading) main.append(oldHeading);
+      if (form) main.append(form);
+      const posture = ref("aside", "reference-security-posture");
+      posture.innerHTML = '<div class="reference-posture-block"><span class="reference-posture-icon">▣</span><div><small>Active sessions</small><strong id="reference-active-sessions">1</strong></div></div><div class="reference-posture-divider"></div><div class="reference-posture-block"><span class="reference-posture-icon">◇</span><div><small>Security posture</small><strong class="reference-good">Good</strong></div></div><div class="reference-posture-divider"></div><ul><li>Password is set</li><li>Account is active</li><li id="reference-mfa-posture">MFA can be enabled</li></ul>';
       password.replaceChildren(main, posture);
     }
+
     const tokens = byId("account-api-tokens");
     if (tokens) {
       tokens.classList.add("reference-api-tokens");
@@ -1056,29 +1107,60 @@ function ensurePreviewReferenceLayout() {
     }
   }
 
-  function forceSecurityTitle() {
+  function forceProfileTitle() {
     if (state.currentView !== "account") return;
     const title = byId("page-title");
-    if (title && (title.textContent !== "Security" || title.dataset.i18nSource)) {
+    if (title && (title.textContent !== "Profile" || title.dataset.i18nSource)) {
       delete title.dataset.i18nSource;
-      title.textContent = "Security";
+      title.textContent = "Profile";
     }
-    const localTitle = byId("view-account")?.querySelector(":scope > .section-toolbar h2");
-    if (localTitle && (localTitle.textContent !== "Security" || localTitle.dataset.i18nSource)) {
+    const toolbar = byId("view-account")?.querySelector(":scope > .section-toolbar");
+    const localTitle = toolbar?.querySelector("h2");
+    const localCopy = toolbar?.querySelector("p");
+    if (localTitle) {
       delete localTitle.dataset.i18nSource;
-      localTitle.textContent = "Security";
+      localTitle.textContent = "Profile";
     }
+    if (localCopy) localCopy.textContent = "Manage your profile information and account access.";
   }
 
   function syncAccountReference() {
     ensureAccountReferenceLayout();
-    forceSecurityTitle();
+    forceProfileTitle();
     const user = state.user || {};
-    if (byId("reference-account-role-value")) byId("reference-account-role-value").textContent = user.role === "admin" ? "Administrator" : "User";
-    if (byId("reference-account-member-value")) byId("reference-account-member-value").textContent = memberSince(user);
-    if (byId("reference-account-mfa-value")) byId("reference-account-mfa-value").textContent = user.mfa_enabled ? "Enabled" : "Not enabled";
-    if (byId("reference-active-sessions")) byId("reference-active-sessions").textContent = Number(user.active_sessions || 1);
-    syncApiTokensReference();
+    if (byId("reference-account-role-value")) {
+      byId("reference-account-role-value").textContent = user.role === "admin" ? "Administrator" : "User";
+    }
+    if (byId("reference-account-member-value")) {
+      byId("reference-account-member-value").textContent = memberSince(user);
+    }
+    const enabled = Boolean(user.mfa_enabled);
+    const mfaValue = byId("reference-account-mfa-value");
+    const mfaAction = byId("reference-account-mfa-action");
+    const mfaItem = document.querySelector(".reference-account-meta-mfa");
+    const mfaIcon = mfaItem?.querySelector(".reference-account-meta-icon");
+    if (mfaValue) mfaValue.textContent = enabled ? "Enabled" : "Disabled";
+    if (mfaAction) mfaAction.textContent = enabled ? "Disable MFA" : "Enable MFA";
+    if (mfaItem) {
+      mfaItem.classList.toggle("is-enabled", enabled);
+      mfaItem.classList.toggle("is-disabled", !enabled);
+    }
+    if (mfaIcon) mfaIcon.textContent = enabled ? "✓" : "Ⅱ";
+    const posture = byId("reference-mfa-posture");
+    if (posture) posture.textContent = enabled ? "MFA is enabled" : "MFA can be enabled";
+    const accessValue = byId("reference-access-status-value");
+    if (accessValue) accessValue.textContent = user.enabled === false ? "Disabled" : "Active";
+    const systemStatus = byId("reference-system-status");
+    if (systemStatus) {
+      const checks = Array.isArray(state.healthChecks) ? state.healthChecks : [];
+      const healthy = !state.workspaceErrors?.length && checks.every((check) => check.status === "healthy");
+      systemStatus.classList.toggle("is-warning", !healthy);
+      const label = systemStatus.querySelector("b");
+      if (label) label.textContent = healthy ? "All systems operational" : "Attention required";
+    }
+    if (byId("reference-active-sessions")) {
+      byId("reference-active-sessions").textContent = Number(user.active_sessions || 1);
+    }
     const restart = byId("restart-header-button");
     if (restart) {
       const show = state.currentView === "account" && typeof isAdmin === "function" && isAdmin();
@@ -1143,4 +1225,5 @@ function ensurePreviewReferenceLayout() {
   });
   document.addEventListener("DOMContentLoaded", scheduleSync, { once: true });
   scheduleSync();
+  document.addEventListener("nowlert:account-updated", syncAccountReference);
 })();

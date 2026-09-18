@@ -16,7 +16,7 @@ const VIEW_TITLES = {
   inputs: "Inputs",
   backups: "Backups",
   data: "Data tools",
-  account: "Security",
+  account: "Profile",
 };
 const OUTPUT_NAMES = {
   discord: "Discord",
@@ -478,6 +478,9 @@ function expireSession() {
   byId("login-view").hidden = false;
   byId("login-password").value = "";
   byId("login-password").type = "password";
+  const mfaField = byId("login-mfa-field");
+  if (mfaField) mfaField.hidden = true;
+  if (byId("login-otp")) byId("login-otp").value = "";
   const passwordToggle = byId("login-password-toggle");
   if (passwordToggle) {
     passwordToggle.setAttribute("aria-pressed", "false");
@@ -604,19 +607,128 @@ async function login(event) {
   const submit = event.submitter;
   if (submit) submit.disabled = true;
   try {
+    const mfaField = byId("login-mfa-field");
+    const body = {
+      username: byId("login-username").value.trim(),
+      password: byId("login-password").value,
+    };
+    if (mfaField && !mfaField.hidden) body.otp = byId("login-otp").value.trim();
     const session = await request("/session", {
       method: "POST",
-      body: {
-        username: byId("login-username").value.trim(),
-        password: byId("login-password").value,
-      },
+      body,
     });
+    if (mfaField) mfaField.hidden = true;
+    if (byId("login-otp")) byId("login-otp").value = "";
     showApp(session);
     await loadWorkspace();
   } catch (error) {
+    if (error instanceof APIError && error.code === "mfa_required") {
+      const mfaField = byId("login-mfa-field");
+      if (mfaField) mfaField.hidden = false;
+      clearError("login-error");
+      byId("login-otp")?.focus();
+      return;
+    }
     showError("login-error", error);
   } finally {
     if (submit) submit.disabled = false;
+  }
+}
+
+async function startMfaSetup() {
+  clearError("mfa-enable-error");
+  const response = await request("/account/mfa/setup", {
+    method: "POST",
+    body: {},
+  });
+  byId("mfa-secret-value").textContent = response.secret || "";
+  byId("mfa-enable-code").value = "";
+  return response;
+}
+
+async function openMfaDialog() {
+  const dialog = byId("mfa-dialog");
+  const setup = byId("mfa-setup-panel");
+  const disable = byId("mfa-disable-panel");
+  if (!dialog || !setup || !disable) return;
+  clearError("mfa-enable-error");
+  clearError("mfa-disable-error");
+  setup.hidden = Boolean(state.user?.mfa_enabled);
+  disable.hidden = !state.user?.mfa_enabled;
+  if (state.user?.mfa_enabled) {
+    byId("mfa-disable-password").value = "";
+    byId("mfa-disable-code").value = "";
+    if (!dialog.open) dialog.showModal();
+    byId("mfa-disable-password").focus();
+    return;
+  }
+  if (!dialog.open) dialog.showModal();
+  try {
+    await startMfaSetup();
+    byId("mfa-enable-code").focus();
+  } catch (error) {
+    showError("mfa-enable-error", error);
+  }
+}
+
+function closeMfaDialog() {
+  const dialog = byId("mfa-dialog");
+  if (dialog?.open) dialog.close();
+}
+
+async function confirmMfaSetup(event) {
+  event.preventDefault();
+  clearError("mfa-enable-error");
+  const submit = event.submitter;
+  if (submit) submit.disabled = true;
+  try {
+    const response = await request("/account/mfa", {
+      method: "PUT",
+      body: { code: byId("mfa-enable-code").value.trim() },
+    });
+    state.user = response.user;
+    closeMfaDialog();
+    document.dispatchEvent(new Event("nowlert:account-updated"));
+    toast("Multi-factor authentication enabled.");
+  } catch (error) {
+    showError("mfa-enable-error", error);
+  } finally {
+    if (submit) submit.disabled = false;
+  }
+}
+
+async function disableMfa(event) {
+  event.preventDefault();
+  clearError("mfa-disable-error");
+  const submit = event.submitter;
+  if (submit) submit.disabled = true;
+  try {
+    const response = await request("/account/mfa", {
+      method: "DELETE",
+      body: {
+        password: byId("mfa-disable-password").value,
+        code: byId("mfa-disable-code").value.trim(),
+      },
+    });
+    state.user = response.user;
+    closeMfaDialog();
+    document.dispatchEvent(new Event("nowlert:account-updated"));
+    toast("Multi-factor authentication disabled.");
+  } catch (error) {
+    showError("mfa-disable-error", error);
+  } finally {
+    if (submit) submit.disabled = false;
+  }
+}
+
+async function copyMfaSecret() {
+  const value = byId("mfa-secret-value")?.textContent || "";
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+    toast("MFA setup key copied.");
+  } catch (_error) {
+    toast("MFA setup key could not be copied.", "error");
   }
 }
 
@@ -4082,6 +4194,10 @@ function bindEvents() {
   byId("user-form").addEventListener("submit", saveUser);
   byId("preview-form").addEventListener("submit", runPreview);
   byId("password-form").addEventListener("submit", changePassword);
+  byId("mfa-enable-form")?.addEventListener("submit", confirmMfaSetup);
+  byId("mfa-disable-form")?.addEventListener("submit", disableMfa);
+  byId("mfa-close")?.addEventListener("click", closeMfaDialog);
+  byId("mfa-copy-secret")?.addEventListener("click", copyMfaSecret);
   byId("preferences-form").addEventListener("submit", savePreferences);
   byId("preference-language").addEventListener("change", applyLanguageDefaultTimezone);
   byId("integration-settings-form").addEventListener("submit", saveIntegrationSettings);
