@@ -38,28 +38,6 @@ def test_snapshot_reads_current_filters_without_writing_existing_configuration(a
     first = create_destination(api, headers, "Teams", [route["id"]])
     second = create_destination(api, headers, "Slack", [route["id"]])
     platform = api["service"].platform
-    assert platform.delivery.__class__.__name__ == "FilteredPlatformDeliveryService"
-    assert platform.delivery.filters is platform.filters
-    assert platform.delivery.relationships is platform.relationships
-    import storage.filtering as filtering_module
-    from storage.routing_flow import record_filter_decisions as real_record_filter_decisions
-
-    telemetry_calls = []
-
-    def record_spy(database, actor, notification, decisions):
-        snapshot = list(decisions)
-        telemetry_calls.append([
-            (item.route.id, item.destination_id, matched)
-            for item, matched in snapshot
-        ])
-        return real_record_filter_decisions(
-            database,
-            actor,
-            notification,
-            snapshot,
-        )
-
-    monkeypatch.setattr(filtering_module, "record_filter_decisions", record_spy)
     platform.filters.set_rules(
         api["admin"].actor,
         first["id"],
@@ -325,6 +303,29 @@ def test_filter_decisions_feed_received_filtered_and_reduction_metrics(api, monk
     route = create_route(api, headers, "Grafana filtered")
     destination = create_destination(api, headers, "Filtered webhook", [route["id"]])
     platform = api["service"].platform
+    assert platform.delivery.__class__.__name__ == "FilteredPlatformDeliveryService"
+    assert platform.delivery.filters is platform.filters
+    assert platform.delivery.relationships is platform.relationships
+
+    import storage.filtering as filtering_module
+    from storage.routing_flow import record_filter_decisions as real_record_filter_decisions
+
+    telemetry_calls = []
+
+    def record_spy(database, actor, notification, decisions):
+        decision_snapshot = list(decisions)
+        telemetry_calls.append([
+            (item.route.id, item.destination_id, matched)
+            for item, matched in decision_snapshot
+        ])
+        return real_record_filter_decisions(
+            database,
+            actor,
+            notification,
+            decision_snapshot,
+        )
+
+    monkeypatch.setattr(filtering_module, "record_filter_decisions", record_spy)
     platform.filters.set_rules(
         api["admin"].actor,
         destination["id"],
