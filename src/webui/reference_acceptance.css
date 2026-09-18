@@ -3358,3 +3358,29 @@ button.reference-preview-route-more:focus-visible {
     width: 48px !important;
   }
 }
+
+
+/* 2026-09-18 round-28 exact MFA status glyphs. */
+.reference-account-meta-mfa-icon {
+  font-size: 0 !important;
+}
+
+.reference-account-meta-mfa-icon svg {
+  display: block;
+  height: 30px !important;
+  overflow: visible;
+  width: 30px !important;
+}
+
+.reference-account-meta-mfa-icon svg[data-mfa-glyph="check"] {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.reference-account-meta-mfa-icon svg[data-mfa-glyph="pause"] {
+  fill: currentColor;
+  stroke: none;
+}

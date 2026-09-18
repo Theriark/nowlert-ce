@@ -289,12 +289,10 @@
     }
 
     const items = [...groups.values()];
-    const title = items.length
-      ? items.map(group => {
-          const label = group.label.replace(/\b\w/g, letter => letter.toUpperCase());
-          return `${label} (${group.values.length})`;
-        }).join(" · ")
-      : "Configured filter";
+    const title = items.map(group => {
+      const label = group.label.replace(/\b\w/g, letter => letter.toUpperCase());
+      return `${label} (${group.values.length})`;
+    }).join(" · ");
     return {
       title,
       groups: items,
@@ -317,79 +315,77 @@
     header.append(visual, headingCopy);
 
     const tags = el("div", "rf-filter-card-tags");
-    let tagsExpanded = false;
-    let tagFitFrame = null;
 
-    const fitCollapsedTags = () => {
-      tagFitFrame = null;
-      if (tagsExpanded || !tags.isConnected) return;
-      const width = tags.clientWidth;
-      if (!width) return;
+    function renderFilterRuleRow(group, groupIndex) {
+      const row = el("div", "rf-filter-rule-row");
+      let expanded = false;
+      let fitFrame = null;
 
-      const values = [...tags.querySelectorAll("[data-filter-value]")];
-      const labels = [...tags.querySelectorAll("[data-filter-label]")];
-      const toggle = tags.querySelector(".rf-filter-overflow-button");
-      if (!toggle) return;
+      const fitCollapsedRow = () => {
+        fitFrame = null;
+        if (expanded || !row.isConnected) return;
+        const width = row.clientWidth;
+        if (!width) return;
 
-      for (const label of labels) label.hidden = false;
-      for (const value of values) value.hidden = false;
-      toggle.hidden = true;
+        const label = row.querySelector("[data-filter-label]");
+        const values = [...row.querySelectorAll("[data-filter-value]")];
+        const toggle = row.querySelector(".rf-filter-overflow-button");
+        if (!label || !toggle) return;
 
-      const gap = Number.parseFloat(getComputedStyle(tags).columnGap || getComputedStyle(tags).gap || "0") || 0;
-      const ordered = [...tags.children].filter(child => child !== toggle);
-      const totalWidth = ordered.reduce(
-        (sum, child, index) => sum + child.getBoundingClientRect().width + (index ? gap : 0),
-        0,
-      );
-      if (totalWidth <= width) return;
-
-      toggle.hidden = false;
-      toggle.textContent = "+99";
-      const toggleWidth = toggle.getBoundingClientRect().width + gap;
-      let available = Math.max(0, width - toggleWidth);
-      let used = 0;
-      let hidden = 0;
-
-      for (const child of ordered) {
-        const childWidth = child.getBoundingClientRect().width;
-        const next = used + (used ? gap : 0) + childWidth;
-        if (next <= available) {
-          used = next;
-          continue;
-        }
-        child.hidden = true;
-        if (child.dataset.filterValue === "1") hidden += 1;
-      }
-
-      for (const label of labels) {
-        const group = label.dataset.filterGroup;
-        const hasVisibleValue = values.some(
-          value => value.dataset.filterGroup === group && !value.hidden,
-        );
-        if (!hasVisibleValue) label.hidden = true;
-      }
-
-      hidden = values.filter(value => value.hidden).length;
-      if (!hidden) {
+        label.hidden = false;
+        for (const value of values) value.hidden = false;
         toggle.hidden = true;
-        return;
-      }
-      toggle.textContent = `+${hidden}`;
-      toggle.setAttribute("aria-label", `Show ${hidden} more filter values`);
-    };
 
-    const scheduleTagFit = () => {
-      if (tagFitFrame !== null) cancelAnimationFrame(tagFitFrame);
-      tagFitFrame = requestAnimationFrame(fitCollapsedTags);
-    };
+        const computed = getComputedStyle(row);
+        const gap = Number.parseFloat(computed.columnGap || computed.gap || "0") || 0;
+        const labelWidth = label.getBoundingClientRect().width;
+        const valuesWidth = values.reduce(
+          (sum, value, index) => sum + value.getBoundingClientRect().width + (index ? gap : 0),
+          0,
+        );
+        if (labelWidth + (values.length ? gap : 0) + valuesWidth <= width) return;
 
-    const renderTags = () => {
-      tags.replaceChildren();
-      descriptor.groups.forEach((group, groupIndex) => {
+        toggle.hidden = false;
+        toggle.textContent = "+99";
+        const toggleWidth = toggle.getBoundingClientRect().width;
+        const available = Math.max(
+          0,
+          width - labelWidth - gap - toggleWidth - gap,
+        );
+        let used = 0;
+        for (const value of values) {
+          const valueWidth = value.getBoundingClientRect().width;
+          const next = used + (used ? gap : 0) + valueWidth;
+          if (next <= available) {
+            used = next;
+          } else {
+            value.hidden = true;
+          }
+        }
+
+        const hidden = values.filter(value => value.hidden).length;
+        if (!hidden) {
+          toggle.hidden = true;
+          return;
+        }
+        toggle.textContent = `+${hidden}`;
+        toggle.setAttribute("aria-label", `Show ${hidden} more ${group.label} values`);
+      };
+
+      const scheduleFit = () => {
+        if (fitFrame !== null) cancelAnimationFrame(fitFrame);
+        fitFrame = requestAnimationFrame(fitCollapsedRow);
+      };
+
+      const renderRow = () => {
+        row.replaceChildren();
+        row.classList.toggle("is-expanded", expanded);
+
         const label = el("span", "rf-filter-rule-label", `${group.label}:`);
         label.dataset.filterLabel = "1";
         label.dataset.filterGroup = String(groupIndex);
-        tags.append(label);
+        row.append(label);
+
         for (const value of group.values) {
           const item = el(
             "span",
@@ -398,37 +394,38 @@
           );
           item.dataset.filterValue = "1";
           item.dataset.filterGroup = String(groupIndex);
-          tags.append(item);
+          row.append(item);
         }
-      });
 
-      const toggle = el(
-        "button",
-        "rf-filter-rule-tag rf-filter-rule-tag-muted rf-filter-overflow-button",
-        tagsExpanded ? "−" : "+0",
-      );
-      toggle.type = "button";
-      toggle.hidden = !tagsExpanded;
-      toggle.setAttribute("aria-expanded", String(tagsExpanded));
-      toggle.setAttribute(
-        "aria-label",
-        tagsExpanded ? "Collapse filter values" : "Show more filter values",
-      );
-      toggle.addEventListener("click", event => {
-        event.stopPropagation();
-        tagsExpanded = !tagsExpanded;
-        tags.classList.toggle("is-expanded", tagsExpanded);
-        renderTags();
-      });
-      tags.append(toggle);
+        const toggle = el(
+          "button",
+          "rf-filter-rule-tag rf-filter-rule-tag-muted rf-filter-overflow-button",
+          expanded ? "−" : "+0",
+        );
+        toggle.type = "button";
+        toggle.hidden = !expanded;
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.setAttribute(
+          "aria-label",
+          expanded ? `Collapse ${group.label} values` : `Show more ${group.label} values`,
+        );
+        toggle.addEventListener("click", event => {
+          event.stopPropagation();
+          expanded = !expanded;
+          renderRow();
+        });
+        row.append(toggle);
 
-      if (tagsExpanded) {
-        toggle.hidden = false;
-      } else {
-        scheduleTagFit();
-      }
-    };
-    renderTags();
+        if (!expanded) scheduleFit();
+      };
+
+      renderRow();
+      return row;
+    }
+
+    for (const [groupIndex, group] of descriptor.groups.entries()) {
+      tags.append(renderFilterRuleRow(group, groupIndex));
+    }
 
     const stats = el("div", "rf-filter-card-stats");
     stats.setAttribute("aria-label", `Filter metrics for ${rangeLabel()}`);
@@ -551,7 +548,6 @@
 
     footer.append(sourceGroup, destinationGroup);
     node.append(header, tags, stats, footer);
-    scheduleTagFit();
     scheduleSourceFit();
   }
   function activeFlowGraph() {

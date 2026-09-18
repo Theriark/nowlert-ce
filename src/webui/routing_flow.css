@@ -618,3 +618,39 @@
 .rf-filter-card-sources .rf-filter-source-overflow {
   margin-left: auto;
 }
+
+
+/* 2026-09-18 round-28 one filter field per line without changing the card shell. */
+.rf-filter-card-tags {
+  align-items: stretch !important;
+  display: grid !important;
+  gap: 4px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.rf-filter-rule-row {
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.rf-filter-rule-row.is-expanded {
+  flex-wrap: wrap;
+  overflow: visible;
+  white-space: normal;
+}
+
+.rf-filter-rule-row [hidden] {
+  display: none !important;
+}
+
+.rf-filter-rule-row .rf-filter-overflow-button {
+  margin-left: auto !important;
+}

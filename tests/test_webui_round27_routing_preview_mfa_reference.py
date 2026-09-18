@@ -69,7 +69,8 @@ def test_round27_mfa_status_card_matches_enabled_disabled_reference_states():
 
     assert 'icon.classList.add("reference-account-meta-mfa-icon");' in script
     assert 'reference-mfa-action' not in script
-    assert 'mfaIcon.textContent = enabled ? "✓" : "Ⅱ";' in script
+    assert "function setReferenceMfaStatusIcon(icon, enabled)" in script
+    assert 'if (mfaIcon) setReferenceMfaStatusIcon(mfaIcon, enabled);' in script
     assert 'Manage multi-factor authentication. Current status:' in script
 
     round27 = style[
