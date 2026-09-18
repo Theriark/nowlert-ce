@@ -175,7 +175,7 @@ function qaSaveWorkspaceCache() {
   }
 }
 
-function qaHydrateWorkspaceCache(session) {
+function qaHydrateWorkspaceCache(session, { render = true } = {}) {
   const userId = session && session.user && session.user.id;
   if (!userId) return false;
 
@@ -220,7 +220,7 @@ function qaHydrateWorkspaceCache(session) {
   }
 
   state.workspaceErrors = [];
-  renderAll();
+  if (render) renderAll();
   return true;
 }
 
@@ -238,8 +238,9 @@ function qaClearWorkspaceCache() {
 
 const qaOriginalShowApp = showApp;
 showApp = function showAppWithWorkspaceCache(session) {
+  const hydrated = qaHydrateWorkspaceCache(session, { render: false });
   const result = qaOriginalShowApp(session);
-  qaHydrateWorkspaceCache(session);
+  if (hydrated) renderAll();
   return result;
 };
 
