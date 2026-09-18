@@ -49,20 +49,23 @@ def test_round25_filter_card_overflow_and_destination_alignment_are_interactive(
     script = read("src/webui/routing_flow.js")
     style = read("src/webui/routing_flow.css")
 
-    assert "rf-filter-overflow-button" in script
+    assert "rf-filter-overflow-button" not in script
     assert "rf-filter-source-overflow" in script
     assert "toggle.addEventListener(\"click\"" in script
-    assert 'toggle.setAttribute("aria-expanded", String(expanded));' in script
-    assert 'toggle.setAttribute("aria-expanded", String(sourcesExpanded));' in script
+    assert 'toggle.setAttribute("aria-expanded", String(sourceMenuOpen));' in script
+    assert "sourcesExpanded" not in script
     assert "FILTER_SOURCE_LIMIT" not in script
     assert "FILTER_VALUE_LIMIT" not in script
     assert "const configuredSources = [...new Set((filter.sources || []).filter(Boolean))];" in script
     assert "function renderFilterRuleRow(group, groupIndex)" in script
-    assert "const fitCollapsedRow = () => {" in script
-    assert "const width = row.clientWidth;" in script
+    assert "data-filter-value" not in script[
+        script.index("function renderFilterRuleRow(group, groupIndex)"):
+        script.index("const stats =", script.index("function renderFilterRuleRow(group, groupIndex)"))
+    ]
     assert "getBoundingClientRect().width" in script
     assert "const fitCollapsedSources = () => {" in script
     assert "const width = sourceSummary.clientWidth;" in script
+    assert "rf-filter-source-popover" in script
 
     marker = "/* 2026-09-18 round-25 individual filter cards and expandable summaries. */"
     assert marker in style
@@ -70,11 +73,11 @@ def test_round25_filter_card_overflow_and_destination_alignment_are_interactive(
     assert "grid-template-columns: minmax(0, 1fr) max-content !important;" in final
     assert "justify-self: end !important;" in final
     assert "text-align: right !important;" in final
-    assert "flex-wrap: nowrap !important;" in final
     assert ".rf-filter-source-overflow" in final
-    round26 = style[style.index("/* 2026-09-18 round-26 use the full filter-card width before +N overflow. */"):]
-    assert "width: 100% !important;" in round26
-    assert "margin-left: auto !important;" in round26
+    round30 = style[style.index("/* 2026-09-19 round-30 compact filter field summary. */"):]
+    assert "flex-wrap: nowrap !important;" in round30
+    assert ".rf-filter-source-popover" in round30
+    assert "position: absolute;" in round30
 
 
 def test_round25_mfa_matches_reference_and_uses_six_digit_entry():

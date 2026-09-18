@@ -654,3 +654,74 @@
 .rf-filter-rule-row .rf-filter-overflow-button {
   margin-left: auto !important;
 }
+
+
+/* 2026-09-19 round-30 compact filter field summary. */
+.rf-filter-card-tags {
+  align-items: center !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+.rf-filter-rule-row {
+  display: contents !important;
+  width: auto !important;
+}
+
+.rf-filter-card-sources {
+  overflow: visible !important;
+  position: relative;
+}
+
+.rf-filter-source-overflow-wrap {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-left: auto;
+  position: relative;
+}
+
+.rf-filter-source-overflow-wrap[hidden],
+.rf-filter-source-popover[hidden] {
+  display: none !important;
+}
+
+.rf-filter-source-popover {
+  background: #071923;
+  border: 1px solid #285064;
+  border-radius: 7px;
+  bottom: calc(100% + 7px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.46);
+  display: grid;
+  gap: 3px;
+  max-height: 190px;
+  min-width: 150px;
+  overflow-y: auto;
+  padding: 5px;
+  position: absolute;
+  right: 0;
+  z-index: 50;
+}
+
+.rf-filter-source-popover-item {
+  align-items: center;
+  color: #dcebf3;
+  display: flex;
+  font-size: 8px;
+  font-weight: 700;
+  gap: 6px;
+  min-height: 22px;
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+.rf-filter-source-popover-item img,
+.rf-filter-source-popover-item .source-product-icon {
+  flex: 0 0 14px !important;
+  height: 14px !important;
+  object-fit: contain;
+  width: 14px !important;
+}

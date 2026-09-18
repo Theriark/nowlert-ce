@@ -262,7 +262,7 @@
     renderActions(row, policy);
     removeLegacyVisibility(row);
 
-    const statusCell = row.children[2];
+    const statusCell = row.querySelector(".filtering-status-cell") || row.children[3];
     if (!statusCell || !sharingCell) return;
     statusCell.replaceChildren(
       statusControl(
