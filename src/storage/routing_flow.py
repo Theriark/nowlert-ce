@@ -156,6 +156,36 @@ def delivery_snapshot(database, actor, since):
             """,
             parameters,
         ).fetchall()
+        delivery_source_groups = connection.execute(
+            f"""
+            WITH visible AS ({visible_deliveries}), ranked AS (
+                SELECT *, ROW_NUMBER() OVER (
+                    PARTITION BY delivery_id, destination_id
+                    ORDER BY attempt_number DESC, completed_at DESC, id DESC
+                ) AS position FROM visible
+            )
+            SELECT destination_id, source,
+                SUM(outcome = 'delivered') AS delivered,
+                SUM(outcome = 'retry_scheduled') AS pending,
+                SUM(outcome = 'failed') AS failed,
+                MAX(completed_at) AS last_activity_at
+            FROM ranked WHERE position = 1
+            GROUP BY destination_id, source
+            """,
+            parameters,
+        ).fetchall()
+        filter_source_groups = connection.execute(
+            f"""
+            SELECT e.destination_id, e.source,
+                COUNT(*) AS received,
+                SUM(e.filtered = 1) AS filtered,
+                MAX(e.created_at) AS last_activity_at
+            FROM routing_flow_events AS e
+            WHERE {event_where}
+            GROUP BY e.destination_id, e.source
+            """,
+            parameters,
+        ).fetchall()
         recent = connection.execute(
             f"{visible_deliveries} ORDER BY a.created_at DESC, a.id DESC LIMIT 30",
             parameters,
@@ -173,7 +203,7 @@ def delivery_snapshot(database, actor, since):
         ).fetchall()
 
     total = {**empty_metrics(), "last_activity_at": 0}
-    by_route, by_destination, by_link = {}, {}, {}
+    by_route, by_destination, by_link, by_filter = {}, {}, {}, {}
 
     def add(route_id, destination_id, metrics):
         key = (route_id, destination_id)
@@ -214,6 +244,36 @@ def delivery_snapshot(database, actor, since):
             },
         )
 
+    def add_filter(destination_id, source, metrics):
+        key = (str(destination_id), str(source))
+        target = by_filter.setdefault(
+            key, {**empty_metrics(), "last_activity_at": 0}
+        )
+        _merge_metrics(target, metrics)
+
+    for row in delivery_source_groups:
+        add_filter(
+            row["destination_id"],
+            row["source"],
+            {
+                "delivered": row["delivered"],
+                "pending": row["pending"],
+                "failed": row["failed"],
+                "last_activity_at": row["last_activity_at"],
+            },
+        )
+
+    for row in filter_source_groups:
+        add_filter(
+            row["destination_id"],
+            row["source"],
+            {
+                "received": row["received"],
+                "filtered": row["filtered"],
+                "last_activity_at": row["last_activity_at"],
+            },
+        )
+
     def normalize_received(metrics):
         outcomes = (
             int(metrics.get("delivered", 0) or 0)
@@ -231,6 +291,8 @@ def delivery_snapshot(database, actor, since):
     for metrics in by_route.values():
         normalize_received(metrics)
     for metrics in by_destination.values():
+        normalize_received(metrics)
+    for metrics in by_filter.values():
         normalize_received(metrics)
     normalize_received(total)
 
@@ -284,5 +346,6 @@ def delivery_snapshot(database, actor, since):
         "by_route": by_route,
         "by_destination": by_destination,
         "by_link": by_link,
+        "by_filter": by_filter,
         "history": history,
     }

@@ -635,6 +635,71 @@ async function login(event) {
   }
 }
 
+function mfaDigitInputs() {
+  return [...document.querySelectorAll("[data-mfa-digit]")];
+}
+
+function syncMfaCodeDigits() {
+  const code = mfaDigitInputs().map((input) => input.value).join("");
+  const hidden = byId("mfa-enable-code");
+  if (hidden) hidden.value = code;
+  return code;
+}
+
+function resetMfaCodeDigits() {
+  for (const input of mfaDigitInputs()) input.value = "";
+  const hidden = byId("mfa-enable-code");
+  if (hidden) hidden.value = "";
+}
+
+function handleMfaDigitInput(event) {
+  const input = event.currentTarget;
+  const digits = mfaDigitInputs();
+  const index = digits.indexOf(input);
+  const value = String(input.value || "").replace(/\D/g, "");
+  if (value.length > 1 && index >= 0) {
+    value.slice(0, digits.length - index).split("").forEach((digit, offset) => {
+      digits[index + offset].value = digit;
+    });
+    syncMfaCodeDigits();
+    digits[Math.min(digits.length - 1, index + value.length - 1)]?.focus();
+    return;
+  }
+  input.value = value.slice(-1);
+  syncMfaCodeDigits();
+  if (input.value && index >= 0 && index < digits.length - 1) {
+    digits[index + 1].focus();
+    digits[index + 1].select();
+  }
+}
+
+function handleMfaDigitKeydown(event) {
+  const input = event.currentTarget;
+  const digits = mfaDigitInputs();
+  const index = digits.indexOf(input);
+  if (event.key === "Backspace" && !input.value && index > 0) {
+    digits[index - 1].focus();
+    digits[index - 1].select();
+  } else if (event.key === "ArrowLeft" && index > 0) {
+    event.preventDefault();
+    digits[index - 1].focus();
+  } else if (event.key === "ArrowRight" && index >= 0 && index < digits.length - 1) {
+    event.preventDefault();
+    digits[index + 1].focus();
+  }
+}
+
+function handleMfaDigitPaste(event) {
+  const value = String(event.clipboardData?.getData("text") || "").replace(/\D/g, "").slice(0, 6);
+  if (!value) return;
+  event.preventDefault();
+  const digits = mfaDigitInputs();
+  digits.forEach((input, index) => { input.value = value[index] || ""; });
+  syncMfaCodeDigits();
+  const target = digits[Math.min(value.length, digits.length) - 1];
+  target?.focus();
+}
+
 async function startMfaSetup() {
   clearError("mfa-enable-error");
   const response = await request("/account/mfa/setup", {
@@ -647,7 +712,7 @@ async function startMfaSetup() {
     qr.src = response.qr_code || "";
     qr.hidden = !response.qr_code;
   }
-  byId("mfa-enable-code").value = "";
+  resetMfaCodeDigits();
   return response;
 }
 
@@ -658,19 +723,29 @@ async function openMfaDialog() {
   if (!dialog || !setup || !disable) return;
   clearError("mfa-enable-error");
   clearError("mfa-disable-error");
-  setup.hidden = Boolean(state.user?.mfa_enabled);
-  disable.hidden = !state.user?.mfa_enabled;
-  if (state.user?.mfa_enabled) {
+
+  const enabled = Boolean(state.user?.mfa_enabled);
+  setup.hidden = enabled;
+  disable.hidden = !enabled;
+
+  if (enabled) {
+    const accepted = await confirmAction(
+      "Disable multi-factor authentication?",
+      "Continue to confirm with your current password and authenticator code.",
+      "Continue",
+    );
+    if (!accepted) return;
     byId("mfa-disable-password").value = "";
     byId("mfa-disable-code").value = "";
     if (!dialog.open) dialog.showModal();
     byId("mfa-disable-password").focus();
     return;
   }
+
   if (!dialog.open) dialog.showModal();
   try {
     await startMfaSetup();
-    byId("mfa-enable-code").focus();
+    mfaDigitInputs()[0]?.focus();
   } catch (error) {
     showError("mfa-enable-error", error);
   }
@@ -678,18 +753,32 @@ async function openMfaDialog() {
 
 function closeMfaDialog() {
   const dialog = byId("mfa-dialog");
+  resetMfaCodeDigits();
+  const secret = byId("mfa-secret-value");
+  if (secret) secret.textContent = "";
+  const qr = byId("mfa-qr-code");
+  if (qr) {
+    qr.removeAttribute("src");
+    qr.hidden = true;
+  }
   if (dialog?.open) dialog.close();
 }
 
 async function confirmMfaSetup(event) {
   event.preventDefault();
   clearError("mfa-enable-error");
+  const code = syncMfaCodeDigits();
+  if (!/^\d{6}$/.test(code)) {
+    showError("mfa-enable-error", new Error("Enter the complete six-digit authenticator code."));
+    mfaDigitInputs().find((input) => !input.value)?.focus();
+    return;
+  }
   const submit = event.submitter;
   if (submit) submit.disabled = true;
   try {
     const response = await request("/account/mfa", {
       method: "PUT",
-      body: { code: byId("mfa-enable-code").value.trim() },
+      body: { code },
     });
     state.user = response.user;
     closeMfaDialog();
@@ -4306,6 +4395,11 @@ function bindEvents() {
   byId("mfa-disable-form")?.addEventListener("submit", disableMfa);
   byId("mfa-close")?.addEventListener("click", closeMfaDialog);
   byId("mfa-copy-secret")?.addEventListener("click", copyMfaSecret);
+  for (const input of mfaDigitInputs()) {
+    input.addEventListener("input", handleMfaDigitInput);
+    input.addEventListener("keydown", handleMfaDigitKeydown);
+    input.addEventListener("paste", handleMfaDigitPaste);
+  }
   byId("import-copy-preview")?.addEventListener("click", copyImportPreview);
   byId("import-issue-filter")?.addEventListener("change", () => {
     renderImportIssues(state.pendingImport?.preview || {});

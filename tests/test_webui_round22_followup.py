@@ -51,7 +51,7 @@ def test_round22_mfa_action_uses_main_application_click_dispatcher():
     app = _read("src/webui/app.js")
     markup = _read("src/webui/index.html")
 
-    assert 'action.dataset.action = "account-mfa";' in script
+    assert 'item.dataset.action = "account-mfa";' in script
     assert 'else if (action === "account-mfa") void openMfaDialog();' in app
     assert 'id="mfa-dialog"' in markup
     assert 'id="mfa-enable-form"' in markup

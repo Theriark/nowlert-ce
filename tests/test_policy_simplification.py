@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from api.security import hash_password
+from integrations.filtering import filter_schema
 from models import Notification
 from storage.database import Database
 from storage.destinations import DestinationStore
@@ -105,7 +106,7 @@ def test_allow_and_block_policy_has_deterministic_precedence(tmp_path):
     )
 
 
-def test_legacy_single_rule_remains_an_allow_policy(tmp_path):
+def test_selected_single_rule_is_a_block_policy(tmp_path):
     database, _admin, owner, destination = platform(tmp_path)
     filters = SystemDestinationFilterStore(database)
     filters.set_rules(
@@ -118,17 +119,52 @@ def test_legacy_single_rule_remains_an_allow_policy(tmp_path):
     view = filters.destination_view(owner.actor, destination.id)
     dell = next(item for item in view["integrations"] if item["source"] == "dell_idrac")
     assert dell["policy_rules"] == [
-        {"action": "allow", "conditions": {"message_id": ["usr0030"]}}
+        {"action": "block", "conditions": {"message_id": ["usr0030"]}}
     ]
-    assert filters.matches(
+    assert not filters.matches(
         owner.actor,
         destination.id,
         Notification(source="dell_idrac", metadata={"message_id": "USR0030"}),
     )
-    assert not filters.matches(
+    assert filters.matches(
         owner.actor,
         destination.id,
         Notification(source="dell_idrac", metadata={"message_id": "SYS1000"}),
+    )
+
+
+
+def test_selecting_every_enum_value_blocks_every_supported_value(tmp_path):
+    database, _admin, owner, destination = platform(tmp_path)
+    filters = SystemDestinationFilterStore(database)
+    severities = next(
+        field["values"]
+        for field in filter_schema("dell_idrac")["fields"]
+        if field["key"] == "severity"
+    )
+
+    policy = filters.set_rules(
+        owner.actor,
+        destination.id,
+        "dell_idrac",
+        {"severity": severities},
+    )
+
+    assert policy is not None
+    view = filters.destination_view(owner.actor, destination.id)
+    dell = next(item for item in view["integrations"] if item["source"] == "dell_idrac")
+    assert dell["policy_rules"] == [
+        {"action": "block", "conditions": {"severity": severities}}
+    ]
+    assert not filters.matches(
+        owner.actor,
+        destination.id,
+        Notification(source="dell_idrac", metadata={"severity": "critical"}),
+    )
+    assert not filters.matches(
+        owner.actor,
+        destination.id,
+        Notification(source="dell_idrac", metadata={"severity": "information"}),
     )
 
 

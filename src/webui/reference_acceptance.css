@@ -2850,3 +2850,287 @@ button.reference-preview-route-more:focus-visible {
     max-height: 280px !important;
   }
 }
+
+
+/* 2026-09-18 round-25 full-card MFA control and approved authenticator setup. */
+.reference-account-meta-mfa {
+  appearance: none;
+  -webkit-appearance: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.reference-account-meta-mfa:hover,
+.reference-account-meta-mfa:focus-visible {
+  border-color: rgba(241, 187, 38, 0.78) !important;
+  box-shadow: 0 0 0 1px rgba(241, 187, 38, 0.15), inset 0 0 22px rgba(241, 187, 38, 0.05);
+  outline: none;
+}
+
+.reference-account-meta-mfa.is-enabled .reference-mfa-action {
+  color: #ffcf3d;
+}
+
+.reference-account-meta-mfa.is-disabled .reference-mfa-action {
+  color: #82bfff;
+}
+
+.reference-mfa-dialog {
+  background:
+    radial-gradient(circle at 12% 0, rgba(28, 78, 108, 0.24), transparent 26rem),
+    linear-gradient(145deg, #0b151e, #071019) !important;
+  border: 1px solid rgba(206, 161, 39, 0.52) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.52) !important;
+  max-height: min(94vh, 760px) !important;
+  max-width: min(790px, calc(100vw - 32px)) !important;
+  overflow: auto !important;
+  padding: 20px !important;
+  width: min(790px, calc(100vw - 32px)) !important;
+}
+
+.reference-mfa-dialog .mfa-reference-heading {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.reference-mfa-dialog .mfa-reference-heading h2 {
+  color: #f2f5f7;
+  font-size: 1.65rem;
+  line-height: 1.15;
+  margin: 0 0 8px;
+}
+
+.reference-mfa-dialog .mfa-reference-heading p {
+  color: #9fb0bf;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.reference-mfa-dialog .mfa-reference-heading .icon-button {
+  flex: 0 0 auto;
+  height: 42px;
+  width: 42px;
+}
+
+.reference-mfa-dialog .mfa-reference-methods {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1.08fr;
+}
+
+.reference-mfa-dialog .mfa-reference-choice {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(31, 88, 122, 0.18), transparent 18rem),
+    rgba(6, 20, 30, 0.88);
+  border: 1px solid rgba(29, 93, 132, 0.76);
+  border-radius: 11px;
+  min-height: 284px;
+  padding: 18px;
+}
+
+.reference-mfa-dialog .mfa-reference-choice-heading {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 54px minmax(0, 1fr);
+}
+
+.reference-mfa-dialog .mfa-reference-choice-icon,
+.reference-mfa-dialog .mfa-reference-code-icon {
+  align-items: center;
+  background: linear-gradient(145deg, #143249, #0a2030);
+  border: 1px solid rgba(47, 108, 148, 0.42);
+  border-radius: 50%;
+  color: #4caeff;
+  display: inline-flex;
+  font-size: 1.45rem;
+  height: 54px;
+  justify-content: center;
+  width: 54px;
+}
+
+.reference-mfa-dialog .mfa-reference-key-icon {
+  font-size: 1.8rem;
+  transform: rotate(-24deg);
+}
+
+.reference-mfa-dialog .mfa-reference-choice-heading strong,
+.reference-mfa-dialog .mfa-reference-code-heading strong {
+  color: #eef4f8;
+  display: block;
+  font-size: 1rem;
+  margin-top: 3px;
+}
+
+.reference-mfa-dialog .mfa-reference-choice-heading p,
+.reference-mfa-dialog .mfa-reference-code-heading p {
+  color: #9fb0bf;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  margin: 4px 0 0;
+}
+
+.reference-mfa-dialog .mfa-reference-qr-card {
+  align-content: start;
+  display: grid;
+  justify-items: center;
+}
+
+.reference-mfa-dialog .mfa-reference-qr-card .mfa-reference-choice-heading {
+  justify-self: stretch;
+  width: 100%;
+}
+
+.reference-mfa-dialog .mfa-reference-qr {
+  background: #fff;
+  border: 1px solid #d5d9de;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.24);
+  display: block;
+  height: 154px;
+  margin-top: 10px;
+  padding: 8px;
+  width: 154px;
+}
+
+.reference-mfa-dialog .mfa-reference-qr[hidden] {
+  display: none !important;
+}
+
+.reference-mfa-dialog .mfa-reference-qr-card > small {
+  color: #8fa4b5;
+  font-size: 0.72rem;
+  margin-top: 8px;
+}
+
+.reference-mfa-dialog .mfa-reference-key-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.reference-mfa-dialog .mfa-reference-secret-row {
+  align-items: center;
+  align-self: center;
+  background: rgba(10, 20, 27, 0.9);
+  border: 1px solid #34424d;
+  border-radius: 9px;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 24px;
+  padding: 10px 10px 10px 14px;
+}
+
+.reference-mfa-dialog .mfa-reference-secret-row code {
+  color: #ffca22;
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reference-mfa-dialog .mfa-reference-secret-row .button {
+  height: 38px;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.reference-mfa-dialog .mfa-reference-divider {
+  background: rgba(112, 133, 149, 0.22);
+  height: 1px;
+  margin: 22px 0 14px;
+  width: 100%;
+}
+
+.reference-mfa-dialog .mfa-reference-code-form {
+  display: grid;
+  gap: 12px;
+}
+
+.reference-mfa-dialog .mfa-reference-code-heading {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 58px minmax(0, 1fr);
+}
+
+.reference-mfa-dialog .mfa-reference-code-icon {
+  color: #5eb7ff;
+  height: 58px;
+  width: 58px;
+}
+
+.reference-mfa-dialog .mfa-reference-code-digits {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin: 2px 0 0 72px;
+}
+
+.reference-mfa-dialog .mfa-code-digit {
+  background: #0d171f;
+  border: 1px solid #41515d;
+  border-radius: 8px;
+  color: #f0f4f6;
+  font-size: 1.35rem;
+  font-weight: 750;
+  height: 54px;
+  padding: 0;
+  text-align: center;
+  width: 58px;
+}
+
+.reference-mfa-dialog .mfa-code-digit:focus {
+  border-color: #2d9ee9;
+  box-shadow: 0 0 0 2px rgba(45, 158, 233, 0.16);
+  outline: none;
+}
+
+.reference-mfa-dialog .mfa-reference-enable {
+  background: linear-gradient(180deg, #ffd13a, #f2ba21) !important;
+  border-color: #ffd13a !important;
+  color: #111820 !important;
+  font-size: 0.95rem;
+  font-weight: 850;
+  min-height: 48px;
+  width: 100%;
+}
+
+.reference-mfa-dialog .mfa-reference-disable {
+  display: grid;
+  gap: 18px;
+}
+
+.reference-mfa-dialog .mfa-reference-disable[hidden],
+.reference-mfa-dialog .mfa-reference-setup[hidden] {
+  display: none !important;
+}
+
+.reference-mfa-dialog .mfa-reference-disable .mfa-reference-code-heading {
+  margin-bottom: 4px;
+}
+
+@media (max-width: 720px) {
+  .reference-mfa-dialog .mfa-reference-methods {
+    grid-template-columns: 1fr;
+  }
+
+  .reference-mfa-dialog .mfa-reference-code-digits {
+    gap: 8px;
+    margin-left: 0;
+  }
+
+  .reference-mfa-dialog .mfa-code-digit {
+    flex: 1 1 0;
+    max-width: 54px;
+    min-width: 0;
+  }
+}

@@ -51,16 +51,32 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
         return tuple(source for source in catalogue_sources if source in found)
 
     def set_rules(self, actor, destination_id, source, rules):
-        """Accept legacy single-rule payloads or the v2 allow/block policy envelope."""
+        """Persist selected filter conditions as explicit BLOCK rules.
 
-        if not isinstance(rules, dict) or _POLICY_KEY not in rules:
-            return super().set_rules(actor, destination_id, source, rules)
+        The Filtering UI presents selected values as values to filter out.
+        Explicit v2 policy envelopes remain available for system migrations and
+        advanced policy cases that intentionally mix allow and block rules.
+        """
 
         self._destination(actor, destination_id, write=True)
         source = canonical_source(source)
         if source not in self.available_sources(actor, destination_id):
             raise ValueError("integration is not enabled for this destination")
-        policy_rules = self._normalize_policy_rules(source, rules.get(_POLICY_KEY))
+
+        if not isinstance(rules, dict) or _POLICY_KEY not in rules:
+            conditions = self._normalize_rules(
+                source,
+                rules or {},
+                collapse_full_enum=False,
+            )
+            policy_rules = (
+                [{"action": "block", "conditions": conditions}]
+                if conditions
+                else []
+            )
+        else:
+            policy_rules = self._normalize_policy_rules(source, rules.get(_POLICY_KEY))
+
         self._write_policy(actor, destination_id, source, policy_rules)
         policy = self._policy(destination_id, source)
         if not policy_rules:
@@ -77,14 +93,16 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
             policy_rules = list(policy.get("policy_rules") or []) if policy else []
             integration["configured"] = bool(policy_rules)
             integration["policy_rules"] = self._public_policy_rules(policy_rules)
-            if len(policy_rules) == 1 and policy_rules[0]["action"] == "allow":
+            if len(policy_rules) == 1:
                 integration["rules"] = {
                     key: list(values)
                     for key, values in policy_rules[0]["conditions"].items()
                 }
+                integration["rule_action"] = policy_rules[0]["action"]
                 integration["legacy_clauses"] = []
             else:
                 integration["rules"] = {}
+                integration["rule_action"] = None
                 integration["legacy_clauses"] = [
                     {
                         key: list(values)
@@ -127,6 +145,48 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
             matched,
         )
         return matched
+
+    def _merge_migrated_clauses(self, source: str, existing_value, clauses) -> str:
+        """Preserve legacy Route filters as ALLOW rules during takeover.
+
+        Existing destination-owned legacy filters keep the round-25 BLOCK
+        interpretation, while filters migrated from route.filters_json retain
+        their historical allow-list semantics.
+        """
+
+        combined = list(self._decode_policy_rules(existing_value))
+        signatures = {
+            json.dumps(
+                {
+                    "action": item["action"],
+                    "conditions": {
+                        key: list(values)
+                        for key, values in item["conditions"].items()
+                    },
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            for item in combined
+        }
+        for clause in clauses:
+            item = {"action": "allow", "conditions": clause}
+            signature = json.dumps(
+                {
+                    "action": item["action"],
+                    "conditions": {
+                        key: list(values)
+                        for key, values in clause.items()
+                    },
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            if signature in signatures:
+                continue
+            combined.append(item)
+            signatures.add(signature)
+        return self._encode_policy_rules(combined)
 
     def _policy(self, destination_id: str, source: str):
         with self.database.connect() as connection:
@@ -171,7 +231,7 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
         if isinstance(decoded, list):
             clauses = self._decode_clauses(value)
             return [
-                {"action": "allow", "conditions": clause}
+                {"action": "block", "conditions": clause}
                 for clause in clauses
                 if clause
             ]
@@ -219,7 +279,11 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
             action = str(raw.get("action") or "").strip().casefold()
             if action not in _ACTIONS:
                 raise ValueError("filter action must be allow or block")
-            conditions = self._normalize_rules(source, raw.get("conditions") or {})
+            conditions = self._normalize_rules(
+                source,
+                raw.get("conditions") or {},
+                collapse_full_enum=action != "block",
+            )
             if not conditions:
                 continue
             normalized.append({"action": action, "conditions": conditions})

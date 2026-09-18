@@ -496,30 +496,67 @@
   </div>
 
   <dialog id="mfa-dialog" class="modal reference-mfa-dialog" aria-labelledby="mfa-dialog-title">
-    <div class="modal-heading">
-      <div><p class="eyebrow">Account security</p><h2 id="mfa-dialog-title">Multi-factor authentication</h2></div>
+    <div class="mfa-reference-heading">
+      <div>
+        <h2 id="mfa-dialog-title">Multi-factor authentication</h2>
+        <p>Set up an authenticator app to add an extra layer of security to your account.</p>
+        <p>Scan the QR code or use the setup key below, then enter the 6-digit code from your app.</p>
+      </div>
       <button id="mfa-close" class="icon-button" type="button" aria-label="Close">×</button>
     </div>
-    <section id="mfa-setup-panel" class="mfa-panel" hidden>
-      <p>Scan this QR code with your authenticator application or use the setup key, then enter the current six-digit code.</p>
-      <div class="mfa-setup-grid">
-        <div class="mfa-qr-box">
-          <img id="mfa-qr-code" alt="Authenticator setup QR code" hidden>
+
+    <section id="mfa-setup-panel" class="mfa-panel mfa-reference-setup" hidden>
+      <div class="mfa-reference-methods">
+        <article class="mfa-reference-choice mfa-reference-qr-card">
+          <div class="mfa-reference-choice-heading">
+            <span class="mfa-reference-choice-icon" aria-hidden="true">▦</span>
+            <div><strong>Scan QR code</strong><p>Use your authenticator app to scan this QR code.</p></div>
+          </div>
+          <img id="mfa-qr-code" class="mfa-reference-qr" alt="Authenticator setup QR code" hidden>
           <small>Scan with your authenticator app</small>
-        </div>
-        <div class="mfa-secret-box">
-          <small>Setup key</small>
-          <div><code id="mfa-secret-value"></code><button id="mfa-copy-secret" class="button secondary small" type="button">Copy</button></div>
-        </div>
+        </article>
+
+        <article class="mfa-reference-choice mfa-reference-key-card">
+          <div class="mfa-reference-choice-heading">
+            <span class="mfa-reference-choice-icon mfa-reference-key-icon" aria-hidden="true">⌕</span>
+            <div><strong>Use setup key</strong><p>Can’t scan the code? Enter this setup key in your authenticator app instead.</p></div>
+          </div>
+          <div class="mfa-reference-secret-row">
+            <code id="mfa-secret-value"></code>
+            <button id="mfa-copy-secret" class="button secondary small" type="button"><span aria-hidden="true">▣</span> Copy</button>
+          </div>
+        </article>
       </div>
-      <form id="mfa-enable-form" class="stack compact">
-        <label><span>Authenticator code</span><input id="mfa-enable-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"></label>
+
+      <div class="mfa-reference-divider" aria-hidden="true"></div>
+
+      <form id="mfa-enable-form" class="mfa-reference-code-form">
+        <div class="mfa-reference-code-heading">
+          <span class="mfa-reference-code-icon" aria-hidden="true">◇</span>
+          <div>
+            <strong>Enter authenticator code</strong>
+            <p>Enter the 6-digit code from your authenticator app to complete setup.</p>
+          </div>
+        </div>
+        <input id="mfa-enable-code" type="hidden">
+        <div id="mfa-code-digits" class="mfa-reference-code-digits" aria-label="Six digit authenticator code">
+          <input class="mfa-code-digit" data-mfa-digit="0" inputmode="numeric" autocomplete="one-time-code" maxlength="1" pattern="[0-9]" aria-label="Authenticator code digit 1">
+          <input class="mfa-code-digit" data-mfa-digit="1" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Authenticator code digit 2">
+          <input class="mfa-code-digit" data-mfa-digit="2" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Authenticator code digit 3">
+          <input class="mfa-code-digit" data-mfa-digit="3" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Authenticator code digit 4">
+          <input class="mfa-code-digit" data-mfa-digit="4" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Authenticator code digit 5">
+          <input class="mfa-code-digit" data-mfa-digit="5" inputmode="numeric" maxlength="1" pattern="[0-9]" aria-label="Authenticator code digit 6">
+        </div>
         <p id="mfa-enable-error" class="form-error" role="alert" hidden></p>
-        <button class="button primary" type="submit">Enable MFA</button>
+        <button class="button primary mfa-reference-enable" type="submit">Enable MFA</button>
       </form>
     </section>
-    <section id="mfa-disable-panel" class="mfa-panel" hidden>
-      <p>Confirm your current password and authenticator code to disable MFA.</p>
+
+    <section id="mfa-disable-panel" class="mfa-panel mfa-reference-disable" hidden>
+      <div class="mfa-reference-code-heading">
+        <span class="mfa-reference-code-icon" aria-hidden="true">◇</span>
+        <div><strong>Disable multi-factor authentication</strong><p>Confirm your current password and authenticator code to disable MFA.</p></div>
+      </div>
       <form id="mfa-disable-form" class="stack compact">
         <label><span>Current password</span><input id="mfa-disable-password" type="password" autocomplete="current-password" required></label>
         <label><span>Authenticator code</span><input id="mfa-disable-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"></label>

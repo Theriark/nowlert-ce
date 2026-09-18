@@ -5,6 +5,8 @@
   const NS = "http://www.w3.org/2000/svg";
   const PAGE = "routing-flow";
   const POLL_MS = 5000;
+  const FILTER_VALUE_LIMIT = 5;
+  const FILTER_SOURCE_LIMIT = 6;
   const OUTPUT_LOGOS = { teams: "/ui/icons/routing-teams.svg", slack: "/ui/icons/routing-slack.svg" };
   const ICONS = {
     flow: "M4 4h5v5H4z M15 15h5v5h-5z M6.5 9v8.5H15 M17.5 15V6.5H9",
@@ -234,10 +236,10 @@
     return "blue";
   }
 
-  function filterCardDescriptor(link) {
-    const configured = Array.isArray(link.filter_policies) && link.filter_policies.length
-      ? link.filter_policies.filter(policy => !policy.restricted && policy.configured && policy.enabled)
-      : activePolicies(link);
+  function filterCardDescriptor(filter) {
+    const policies = Array.isArray(filter?.policies)
+      ? filter.policies.filter(policy => !policy.restricted && policy.configured && policy.enabled)
+      : [];
     const groups = new Map();
 
     const addValue = (label, value) => {
@@ -250,7 +252,7 @@
       if (!group.values.includes(cleanValue)) group.values.push(cleanValue);
     };
 
-    for (const policy of configured) {
+    for (const policy of policies) {
       const policyRules = Array.isArray(policy.policy_rules) ? policy.policy_rules : [];
       if (policyRules.length) {
         for (const rule of policyRules) {
@@ -284,24 +286,20 @@
     }
 
     const items = [...groups.values()];
-    const sourceCount = new Set(link.filter_sources || []).size;
     const title = items.length
       ? items.map(group => {
           const label = group.label.replace(/\b\w/g, letter => letter.toUpperCase());
           return `${label} (${group.values.length})`;
         }).join(" · ")
-      : `Managed (${Math.max(sourceCount, configured.length, 1)})`;
+      : "Managed";
     return {
       title,
-      groups: items.length
-        ? items
-        : [{ label: "Filters", values: [`${Math.max(sourceCount, configured.length, 1)} active`] }],
+      groups: items.length ? items : [{ label: "Filter", values: ["Managed"] }],
     };
   }
-
-  function renderFilterCard(node, link, route, destination, lines) {
+  function renderFilterCard(node, filter, routes, destination) {
     node.classList.add("rf-filter-card");
-    const descriptor = filterCardDescriptor(link);
+    const descriptor = filterCardDescriptor(filter);
 
     const header = el("div", "rf-filter-card-header");
     const visual = el("span", "rf-filter-card-icon");
@@ -316,37 +314,55 @@
     header.append(visual, headingCopy);
 
     const tags = el("div", "rf-filter-card-tags");
-    let shown = 0;
-    let hidden = 0;
-    for (const group of descriptor.groups) {
-      if (shown >= 5) {
-        hidden += group.values.length;
-        continue;
-      }
-      tags.append(el("span", "rf-filter-rule-label", `${group.label}:`));
-      for (const value of group.values) {
-        if (shown >= 5) {
-          hidden += 1;
-          continue;
+    let tagsExpanded = false;
+    const renderTags = () => {
+      tags.replaceChildren();
+      let shown = 0;
+      let hidden = 0;
+      for (const group of descriptor.groups) {
+        const visibleValues = tagsExpanded
+          ? group.values
+          : group.values.slice(0, Math.max(0, FILTER_VALUE_LIMIT - shown));
+        if (visibleValues.length) {
+          tags.append(el("span", "rf-filter-rule-label", `${group.label}:`));
+          for (const value of visibleValues) {
+            tags.append(
+              el(
+                "span",
+                `rf-filter-rule-tag rf-filter-rule-tag-${filterTagTone(value)}`,
+                value,
+              ),
+            );
+            shown += 1;
+          }
         }
-        tags.append(
-          el(
-            "span",
-            `rf-filter-rule-tag rf-filter-rule-tag-${filterTagTone(value)}`,
-            value,
-          ),
-        );
-        shown += 1;
+        if (!tagsExpanded) hidden += Math.max(0, group.values.length - visibleValues.length);
       }
-    }
-    if (hidden) tags.append(el("span", "rf-filter-rule-tag rf-filter-rule-tag-muted", `+${hidden}`));
+      if (hidden || tagsExpanded && descriptor.groups.some(group => group.values.length)) {
+        const toggle = el(
+          "button",
+          "rf-filter-rule-tag rf-filter-rule-tag-muted rf-filter-overflow-button",
+          tagsExpanded ? "−" : `+${hidden}`,
+        );
+        toggle.type = "button";
+        toggle.setAttribute("aria-expanded", String(tagsExpanded));
+        toggle.setAttribute("aria-label", tagsExpanded ? "Collapse filter values" : `Show ${hidden} more filter values`);
+        toggle.addEventListener("click", event => {
+          event.stopPropagation();
+          tagsExpanded = !tagsExpanded;
+          renderTags();
+        });
+        if (hidden || tagsExpanded) tags.append(toggle);
+      }
+    };
+    renderTags();
 
     const stats = el("div", "rf-filter-card-stats");
     stats.setAttribute("aria-label", `Filter metrics for ${rangeLabel()}`);
     [
-      ["Events in", filterMetricText(link.metrics?.received), "yellow"],
-      ["Filtered out", filterMetricText(link.metrics?.filtered), "cyan"],
-      ["Reduction", filterReductionText(link.metrics), "green"],
+      ["Events in", filterMetricText(filter.metrics?.received), "yellow"],
+      ["Filtered out", filterMetricText(filter.metrics?.filtered), "cyan"],
+      ["Reduction", filterReductionText(filter.metrics), "green"],
     ].forEach(([label, value, tone]) => {
       const metric = el("span", `rf-filter-card-stat rf-filter-card-stat-${tone}`);
       metric.append(el("small", "", label), el("strong", "", value));
@@ -354,14 +370,36 @@
     });
 
     const footer = el("div", "rf-filter-card-footer");
-
     const sourceGroup = el("span", "rf-filter-card-source-group");
     sourceGroup.append(el("b", "", "Sources"));
     const sourceSummary = el("span", "rf-filter-card-sources");
-    const sourceKeys = [...new Set((link.filter_sources || []).filter(Boolean))];
-    if (!sourceKeys.length && route.source && route.source !== "*") sourceKeys.push(route.source);
-    sourceSummary.setAttribute("aria-label", `${sourceKeys.length} filtered source${sourceKeys.length === 1 ? "" : "s"}`);
-    for (const source of sourceKeys) sourceSummary.append(sourceIcon(source));
+    const routeSources = [];
+    for (const route of routes) {
+      const source = route.source || filter.source;
+      if (!routeSources.includes(source)) routeSources.push(source);
+    }
+    let sourcesExpanded = false;
+    const renderSources = () => {
+      sourceSummary.replaceChildren();
+      const collapsedCount = Math.max(1, FILTER_SOURCE_LIMIT - 1);
+      const visible = sourcesExpanded ? routeSources : routeSources.slice(0, collapsedCount);
+      for (const source of visible) sourceSummary.append(sourceIcon(source));
+      const hidden = Math.max(0, routeSources.length - visible.length);
+      if (hidden || sourcesExpanded && routeSources.length > collapsedCount) {
+        const toggle = el("button", "rf-filter-source-overflow", sourcesExpanded ? "−" : `+${hidden}`);
+        toggle.type = "button";
+        toggle.setAttribute("aria-expanded", String(sourcesExpanded));
+        toggle.setAttribute("aria-label", sourcesExpanded ? "Collapse filter sources" : `Show ${hidden} more filter sources`);
+        toggle.addEventListener("click", event => {
+          event.stopPropagation();
+          sourcesExpanded = !sourcesExpanded;
+          renderSources();
+        });
+        sourceSummary.append(toggle);
+      }
+      sourceSummary.setAttribute("aria-label", `${routeSources.length} filter route source${routeSources.length === 1 ? "" : "s"}`);
+    };
+    renderSources();
     sourceGroup.append(sourceSummary);
 
     const destinationGroup = el("span", "rf-filter-card-destination-group");
@@ -373,19 +411,30 @@
     footer.append(sourceGroup, destinationGroup);
     node.append(header, tags, stats, footer);
   }
-
   function activeFlowGraph() {
-    if (!data) return { routes: [], destinations: [], links: [] };
+    if (!data) return { routes: [], destinations: [], filters: [], links: [] };
     const enabledRoutes = data.routes.filter(route => route.enabled);
     const enabledDestinations = data.destinations.filter(destination => destination.enabled);
     const routeIds = new Set(enabledRoutes.map(route => route.id));
     const destinationIds = new Set(enabledDestinations.map(destination => destination.id));
     const links = data.links.filter(link => link.enabled && routeIds.has(link.route_id) && destinationIds.has(link.destination_id));
     const connectedRouteIds = new Set(links.map(link => link.route_id));
+    const filters = (data.filters || [])
+      .filter(filter => destinationIds.has(filter.destination_id))
+      .map(filter => ({
+        ...filter,
+        route_ids: (filter.route_ids || []).filter(routeId => routeIds.has(routeId)),
+      }))
+      .filter(filter => filter.route_ids.length > 0);
+    const filterIds = new Set(filters.map(filter => filter.id));
     return {
       routes: enabledRoutes.filter(route => connectedRouteIds.has(route.id)),
       destinations: enabledDestinations,
-      links,
+      filters,
+      links: links.map(link => ({
+        ...link,
+        filter_ids: (link.filter_ids || []).filter(filterId => filterIds.has(filterId)),
+      })),
     };
   }
   function showDetails(kind, identity) {
@@ -419,22 +468,22 @@
       );
       appendMetricRows(dialogBody, d.metrics);
     } else {
-      const link = current.links.find(l => linkKey(l.route_id, l.destination_id) === identity);
-      if (!link) return;
-      const r = current.routes.find(r => r.id === link.route_id), d = current.destinations.find(d => d.id === link.destination_id);
-      if (!r || !d) return;
+      const filter = current.filters.find(item => item.id === identity);
+      if (!filter) return;
+      const d = current.destinations.find(item => item.id === filter.destination_id);
+      if (!d) return;
+      const sourceNames = (filter.sources || []).map(source => friendlyName(source));
       setDialogTitle("Active filter", icon("filter"));
       dialogBody.append(
-        detailIdentityRow("Integration", sourceIcon(r.source), r.integration_name),
+        detailRow("Sources", sourceNames.join(", ") || "Managed"),
         detailIdentityRow("Destination", destinationLogo(d), d.name),
         detailRow("Status", "Active"),
       );
-      policyDetailRows(link).forEach(row => dialogBody.append(row));
+      policyDetailRows({ policies: filter.policies || [], fallback: true }).forEach(row => dialogBody.append(row));
     }
     drawEdges();
     if (!dialog.open) dialog.showModal();
   }
-
   function createNode(kind, identity, label) {
     const node = button("", () => showDetails(kind, identity), `rf-node rf-${kind}`);
     node.dataset.kind = kind;
@@ -509,8 +558,8 @@
   function computeFlowLayout(current, ordered, headerBottom) {
     const routeHeights = new Map(ordered.routeOrder.map(route => [route.id, nodeFor("route", route.id)?.offsetHeight || 80]));
     const destinationHeights = new Map(ordered.destinationOrder.map(destination => [destination.id, nodeFor("destination", destination.id)?.offsetHeight || 150]));
-    let filterItems = current.links.filter(link => activePolicies(link).length).map(link => ({ id: linkKey(link.route_id, link.destination_id), link }));
-    const filterHeights = new Map(filterItems.map(item => [item.id, nodeFor("filter", item.id)?.offsetHeight || 66]));
+    let filterItems = current.filters.map(filter => ({ id: filter.id, filter }));
+    const filterHeights = new Map(filterItems.map(item => [item.id, nodeFor("filter", item.id)?.offsetHeight || 168]));
 
     const destinationSeed = new Map();
     let seedCursor = headerBottom;
@@ -529,51 +578,57 @@
     let filterCenters = new Map();
 
     for (let pass = 0; pass < 5; pass++) {
-      const filterDesired = new Map(filterItems.map(item => [item.id, average([routeCenters.get(item.link.route_id), destinationCenters.get(item.link.destination_id)].filter(Number.isFinite))]));
+      const filterDesired = new Map(filterItems.map(item => [
+        item.id,
+        average([
+          ...item.filter.route_ids.map(routeId => routeCenters.get(routeId)),
+          destinationCenters.get(item.filter.destination_id),
+        ].filter(Number.isFinite)),
+      ]));
       filterItems = [...filterItems].sort((a, b) => (filterDesired.get(a.id) ?? 0) - (filterDesired.get(b.id) ?? 0) || a.id.localeCompare(b.id));
       filterCenters = resolveCenters(filterItems, filterDesired, filterHeights, 12, headerBottom);
 
-      const nextRouteDesired = new Map(ordered.routeOrder.map(route => [route.id, average((ordered.linksByRoute.get(route.id) || []).map(link => {
-        const key = linkKey(link.route_id, link.destination_id);
-        return filterCenters.get(key) ?? destinationCenters.get(link.destination_id);
+      const nextRouteDesired = new Map(ordered.routeOrder.map(route => [route.id, average((ordered.linksByRoute.get(route.id) || []).flatMap(link => {
+        const targets = (link.filter_ids || []).map(filterId => filterCenters.get(filterId)).filter(Number.isFinite);
+        if (link.direct || !targets.length) targets.push(destinationCenters.get(link.destination_id));
+        return targets;
       }).filter(Number.isFinite))]));
       routeCenters = resolveCenters(ordered.routeOrder, nextRouteDesired, routeHeights, 12, headerBottom);
 
-      const nextDestinationDesired = new Map(ordered.destinationOrder.map(destination => [destination.id, average((ordered.linksByDestination.get(destination.id) || []).map(link => {
-        const key = linkKey(link.route_id, link.destination_id);
-        return filterCenters.get(key) ?? routeCenters.get(link.route_id);
+      const nextDestinationDesired = new Map(ordered.destinationOrder.map(destination => [destination.id, average((ordered.linksByDestination.get(destination.id) || []).flatMap(link => {
+        const targets = (link.filter_ids || []).map(filterId => filterCenters.get(filterId)).filter(Number.isFinite);
+        if (link.direct || !targets.length) targets.push(routeCenters.get(link.route_id));
+        return targets;
       }).filter(Number.isFinite))]));
       destinationCenters = resolveCenters(ordered.destinationOrder, nextDestinationDesired, destinationHeights, 24, headerBottom);
     }
 
-    const finalFilterDesired = new Map(filterItems.map(item => [item.id, average([routeCenters.get(item.link.route_id), destinationCenters.get(item.link.destination_id)].filter(Number.isFinite))]));
+    const finalFilterDesired = new Map(filterItems.map(item => [
+      item.id,
+      average([
+        ...item.filter.route_ids.map(routeId => routeCenters.get(routeId)),
+        destinationCenters.get(item.filter.destination_id),
+      ].filter(Number.isFinite)),
+    ]));
     filterItems = [...filterItems].sort((a, b) => (finalFilterDesired.get(a.id) ?? 0) - (finalFilterDesired.get(b.id) ?? 0) || a.id.localeCompare(b.id));
     filterCenters = resolveCenters(filterItems, finalFilterDesired, filterHeights, 12, headerBottom);
 
-    // Connections and filter changes can pull the barycentric centers downward.
-    // Normalize the finished layout so the first visible node always begins at
-    // the same offset beneath the column headings instead of leaving a growing
-    // blank band at the top of the graph.
     const topEdges = [
       ...ordered.routeOrder.map(route => routeCenters.get(route.id) - (routeHeights.get(route.id) || 80) / 2),
       ...ordered.destinationOrder.map(destination => destinationCenters.get(destination.id) - (destinationHeights.get(destination.id) || 150) / 2),
-      ...filterItems.map(item => filterCenters.get(item.id) - (filterHeights.get(item.id) || 66) / 2),
+      ...filterItems.map(item => filterCenters.get(item.id) - (filterHeights.get(item.id) || 168) / 2),
     ].filter(Number.isFinite);
-    const topShift = topEdges.length
-      ? Math.max(0, Math.min(...topEdges) - headerBottom)
-      : 0;
+    const topShift = topEdges.length ? Math.max(0, Math.min(...topEdges) - headerBottom) : 0;
     if (topShift > 0) {
       for (const centers of [routeCenters, destinationCenters, filterCenters]) {
-        for (const [id, center] of centers) {
-          centers.set(id, center - topShift);
-        }
+        for (const [id, center] of centers) centers.set(id, center - topShift);
       }
     }
 
     const bottoms = [headerBottom];
     for (const route of ordered.routeOrder) bottoms.push(routeCenters.get(route.id) + (routeHeights.get(route.id) || 80) / 2);
     for (const destination of ordered.destinationOrder) bottoms.push(destinationCenters.get(destination.id) + (destinationHeights.get(destination.id) || 150) / 2);
-    for (const item of filterItems) bottoms.push(filterCenters.get(item.id) + (filterHeights.get(item.id) || 66) / 2);
+    for (const item of filterItems) bottoms.push(filterCenters.get(item.id) + (filterHeights.get(item.id) || 168) / 2);
     return { ...ordered, routeCenters, destinationCenters, filterCenters, filterItems, height: Math.max(...bottoms) + 20 };
   }
   function positionNode(node, column, center, headerBottom) {
@@ -603,15 +658,16 @@
       const text = el("div", "rf-node-copy");
       text.append(el("strong", "", r.integration_name), el("small", "", r.name), el("span", "rf-green", `Enabled · ${r.input_type || "Any input"}`));
       node.append(text);
-      for (const link of ordered.linksByRoute.get(r.id) || []) {
-        const lines = activePolicyLines(link);
-        if (!lines.length) continue;
-        const key = linkKey(r.id, link.destination_id), destination = current.destinations.find(d => d.id === link.destination_id);
-        if (!destination) continue;
-        const filter = createNode("filter", key, `${r.integration_name} filter for ${destination.name}`);
-        renderFilterCard(filter, link, r, destination, lines);
-      }
     }
+
+    for (const filter of current.filters) {
+      const destination = current.destinations.find(item => item.id === filter.destination_id);
+      if (!destination) continue;
+      const routes = filter.route_ids.map(routeId => current.routes.find(route => route.id === routeId)).filter(Boolean);
+      const node = createNode("filter", filter.id, `Active filter for ${destination.name}`);
+      renderFilterCard(node, filter, routes, destination);
+    }
+
     for (const d of ordered.destinationOrder) {
       const node = createNode("destination", d.id, `${d.name}. View destination details`);
       const top = el("div", "rf-destination-top"), copy = el("div", "rf-node-copy");
@@ -668,14 +724,21 @@
     if (focusKey) Array.from(section.querySelectorAll("[data-focus-key]")).find(n => n.dataset.focusKey === focusKey)?.focus({ preventScroll: true });
     if (dialog.open && selected) {
       const current = graphModel || activeFlowGraph();
-      const found = selected.kind === "route" ? current.routes.some(r => r.id === selected.identity) : selected.kind === "destination" ? current.destinations.some(d => d.id === selected.identity) : current.links.some(l => linkKey(l.route_id,l.destination_id) === selected.identity && activePolicies(l).length);
+      const found = selected.kind === "route"
+        ? current.routes.some(r => r.id === selected.identity)
+        : selected.kind === "destination"
+          ? current.destinations.some(d => d.id === selected.identity)
+          : current.filters.some(filter => filter.id === selected.identity);
       if (found) showDetails(selected.kind, selected.identity); else dialog.close();
     }
   }
 
   function nodeFor(kind, id) { return Array.from($("rf-graph").querySelectorAll(`.rf-${kind}`)).find(n => n.dataset.identity === id); }
-  function relevant(link) {
-    return !selected || (selected.kind === "route" && selected.identity === link.route_id) || (selected.kind === "destination" && selected.identity === link.destination_id) || (selected.kind === "filter" && selected.identity === linkKey(link.route_id, link.destination_id));
+  function relevant(link, filterId = null) {
+    return !selected
+      || (selected.kind === "route" && selected.identity === link.route_id)
+      || (selected.kind === "destination" && selected.identity === link.destination_id)
+      || (selected.kind === "filter" && selected.identity === filterId);
   }
   function edgeCurve(a, b) {
     const x = a.offsetLeft + a.offsetWidth, y = a.offsetTop + a.offsetHeight / 2;
@@ -691,19 +754,56 @@
     const defs = svg("defs"), marker = svg("marker", { id:"rf-arrow", viewBox:"0 0 8 8", refX:7, refY:4, markerWidth:7, markerHeight:7, orient:"auto" });
     marker.append(svg("path", {d:"M0 0 L8 4 L0 8 Z", fill:"currentColor"})); defs.append(marker); edgeLayer.append(defs);
     const current = graphModel || activeFlowGraph();
+
     for (const link of current.links) {
-      const key = linkKey(link.route_id, link.destination_id), route = nodeFor("route", link.route_id), filter = nodeFor("filter", key), destination = nodeFor("destination", link.destination_id);
+      const key = linkKey(link.route_id, link.destination_id);
+      const route = nodeFor("route", link.route_id);
+      const destination = nodeFor("destination", link.destination_id);
       if (!route || !destination) continue;
-      const paths = [], pairs = filter ? [[route, filter], [filter, destination]] : [[route, destination]];
-      for (const [a, b] of pairs) {
-        const path = svg("path", {d:edgeCurve(a,b), class:`rf-edge${relevant(link)?"":" rf-dim"}`, "marker-end":"url(#rf-arrow)"});
-        edgeLayer.append(path); paths.push(path);
+      const bundle = { direct: [], filters: new Map() };
+      const filterRecords = (link.filter_ids || [])
+        .map(filterId => current.filters.find(filter => filter.id === filterId))
+        .filter(Boolean);
+
+      if (link.direct || !filterRecords.length) {
+        const path = svg("path", {
+          d: edgeCurve(route, destination),
+          class: `rf-edge${relevant(link) ? "" : " rf-dim"}`,
+          "marker-end": "url(#rf-arrow)",
+        });
+        edgeLayer.append(path);
+        bundle.direct.push(path);
       }
-      edgePaths.set(key, paths);
+
+      for (const filter of filterRecords) {
+        const filterNode = nodeFor("filter", filter.id);
+        if (!filterNode) continue;
+        const paths = [];
+        for (const [a, b] of [[route, filterNode], [filterNode, destination]]) {
+          const path = svg("path", {
+            d: edgeCurve(a, b),
+            class: `rf-edge${relevant(link, filter.id) ? "" : " rf-dim"}`,
+            "marker-end": "url(#rf-arrow)",
+          });
+          edgeLayer.append(path);
+          paths.push(path);
+        }
+        for (const source of filter.sources || []) {
+          bundle.filters.set(source, paths);
+        }
+      }
+      edgePaths.set(key, bundle);
     }
+
     const mini = $("rf-minimap"); mini.replaceChildren();
-    for (const paths of edgePaths.values()) for (const p of paths) {
-      const copy = p.cloneNode(); copy.removeAttribute("marker-end"); copy.setAttribute("transform",`scale(${130/graph.clientWidth} ${46/graph.clientHeight})`); mini.append(copy);
+    for (const bundle of edgePaths.values()) {
+      const all = [...new Set([...bundle.direct, ...[...bundle.filters.values()].flat()])];
+      for (const p of all) {
+        const copy = p.cloneNode();
+        copy.removeAttribute("marker-end");
+        copy.setAttribute("transform", `scale(${130/graph.clientWidth} ${46/graph.clientHeight})`);
+        mini.append(copy);
+      }
     }
     graph.querySelectorAll(".rf-node").forEach(n=>mini.append(svg("rect", {x:n.offsetLeft/graph.clientWidth*130,y:n.offsetTop/graph.clientHeight*46,width:n.offsetWidth/graph.clientWidth*130,height:Math.max(2,n.offsetHeight/graph.clientHeight*46),rx:1})));
   }
@@ -714,7 +814,11 @@
   function animateAttempts(items) {
     if (!active() || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     for (const item of items.slice(0,12)) {
-      const key = linkKey(item.route_id,item.destination_id), paths = edgePaths.get(key);
+      const key = linkKey(item.route_id,item.destination_id);
+      const bundle = edgePaths.get(key);
+      const source = String(item.source || "");
+      const filterPaths = bundle?.filters?.get(source);
+      const paths = filterPaths?.length ? filterPaths : bundle?.direct;
       if (!paths?.length) continue;
       const filtered = item.outcome === "filtered";
       const circle = svg("circle", {
@@ -722,7 +826,7 @@
         class: `rf-particle ${item.outcome === "failed" ? "rf-failed-particle" : filtered ? "rf-filtered-particle" : ""}`,
       });
       $("rf-particle-layer").append(circle);
-      pulses.push({dot: circle, key, filtered, started: null});
+      pulses.push({dot: circle, key, source, filtered, started: null});
     }
     function frame(now) {
       if (!active()) { stopPulses(); return; }
@@ -730,9 +834,12 @@
         if (p.started === null) p.started = now;
         const elapsed = (now - p.started) / 1600;
         if (elapsed >= 1) { p.dot.remove(); return false; }
-        const paths = edgePaths.get(p.key);
+        const bundle = edgePaths.get(p.key);
+        if (!bundle) { p.dot.remove(); return false; }
+        const filterPaths = bundle.filters?.get(p.source);
+        const paths = filterPaths?.length ? filterPaths : bundle.direct;
         if (!paths?.length) { p.dot.remove(); return false; }
-        const activePaths = p.filtered && paths.length > 1 ? paths.slice(0, 1) : paths;
+        const activePaths = p.filtered && filterPaths?.length ? filterPaths.slice(0, 1) : paths;
         const scaled = elapsed * activePaths.length;
         const index = Math.min(activePaths.length - 1, Math.floor(scaled));
         const progress = scaled - index;
@@ -746,7 +853,6 @@
     }
     if (pulses.length && pulseFrame===null) pulseFrame=requestAnimationFrame(frame);
   }
-
   function invalidate() {
     generation++; clearTimeout(timer); timer=null;
     if (controller) controller.abort(); controller=null;
@@ -761,6 +867,7 @@
       !cached
       || !Array.isArray(cached.routes)
       || !Array.isArray(cached.destinations)
+      || !Array.isArray(cached.filters)
       || !Array.isArray(cached.links)
       || !Array.isArray(cached.history)
       || !cached.metrics
@@ -802,7 +909,7 @@
       if(!response.ok) throw new Error(`Overview request failed (${response.status}).`);
       const next=await response.json();
       if(token!==generation || !active() || state.user?.id!==userId || requestRange!==range) return;
-      if(!Array.isArray(next.routes)||!Array.isArray(next.destinations)||!Array.isArray(next.links)||!Array.isArray(next.history)||!next.metrics) throw new Error("The overview response is invalid.");
+      if(!Array.isArray(next.routes)||!Array.isArray(next.destinations)||!Array.isArray(next.filters)||!Array.isArray(next.links)||!Array.isArray(next.history)||!next.metrics) throw new Error("The overview response is invalid.");
       const fresh=data?next.history.filter(h=>!seen.has(h.id)):[];
       seen=new Set(next.history.map(h=>h.id));
       const nextSignature=JSON.stringify({...next,generated_at:0,since:0});data=next;

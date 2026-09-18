@@ -16,7 +16,7 @@ def test_round24_routing_flow_animates_filtered_and_delivered_branches():
     assert 'f"filtered:{row[\'id\']}"' in storage
     assert "recent_filtered = connection.execute(" in storage
     assert 'const filtered = item.outcome === "filtered";' in script
-    assert "p.filtered && paths.length > 1 ? paths.slice(0, 1) : paths" in script
+    assert "p.filtered && filterPaths?.length ? filterPaths.slice(0, 1) : paths" in script
     assert "rf-filtered-particle" in script
 
 
@@ -24,14 +24,15 @@ def test_round24_filter_card_uses_real_filter_fields_counts_and_source_icons():
     script = read("src/webui/routing_flow.js")
     api = read("src/api/routing_flow.py")
 
-    assert '"filter_sources": filter_sources' in api
-    assert '"filter_policies": filter_policies' in api
+    assert '"filters": filters' in api
+    assert '"filter_ids": (' in api
+    assert '"route_ids": filter_route_ids' in api
     assert "policy.policy_rules" in script
     assert "group.values.length" in script
     assert "Applied to active route" not in script
-    assert "All notifications" not in script[script.index("function filterCardDescriptor(link)"):script.index("function activeFlowGraph()")]
-    assert "for (const source of sourceKeys) sourceSummary.append(sourceIcon(source));" in script
-    assert 'el("span", "", route.integration_name)' not in script[script.index("function renderFilterCard"):script.index("function activeFlowGraph()")]
+    assert "All notifications" not in script[script.index("function filterCardDescriptor(filter)"):script.index("function activeFlowGraph()")]
+    assert "for (const source of visible) sourceSummary.append(sourceIcon(source));" in script
+    assert "for (const route of routes)" in script[script.index("function renderFilterCard"):script.index("function activeFlowGraph()")]
 
 
 def test_round24_delivery_detail_does_not_stretch_one_row_tags_downward():
@@ -54,7 +55,8 @@ def test_round24_security_profile_avatar_mfa_and_new_token_match_request():
     assert "justify-self: end !important;" in style
     assert 'id="mfa-qr-code"' in markup
     assert 'qr.src = response.qr_code || "";' in app
-    assert "mfa-setup-grid" in style
+    assert "mfa-reference-methods" in style
+    assert "mfa-reference-code-digits" in style
     assert 'data-action="new-token">＋ New token</button>' in markup
     assert 'add.textContent = "＋ New token";' in script
 

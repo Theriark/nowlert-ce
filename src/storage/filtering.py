@@ -427,35 +427,10 @@ class DestinationFilterStore:
                     "WHERE destination_id = ? AND source = ?",
                     (destination_id, source),
                 ).fetchone()
-                existing = self._decode_clauses(
-                    existing_row["clauses_json"] if existing_row else "[]"
-                )
-                combined = list(existing)
-                signatures = {
-                    json.dumps(
-                        {key: list(values) for key, values in item.items()},
-                        sort_keys=True,
-                        separators=(",", ":"),
-                    )
-                    for item in combined
-                }
-                for clause in clauses:
-                    signature = json.dumps(
-                        {key: list(values) for key, values in clause.items()},
-                        sort_keys=True,
-                        separators=(",", ":"),
-                    )
-                    if signature in signatures:
-                        continue
-                    combined.append(clause)
-                    signatures.add(signature)
-                encoded = json.dumps(
-                    [
-                        {key: list(values) for key, values in item.items()}
-                        for item in combined
-                    ],
-                    sort_keys=True,
-                    separators=(",", ":"),
+                encoded = self._merge_migrated_clauses(
+                    source,
+                    existing_row["clauses_json"] if existing_row else "[]",
+                    clauses,
                 )
                 created_at = int(existing_row["created_at"]) if existing_row else now
                 connection.execute(
@@ -477,6 +452,38 @@ class DestinationFilterStore:
                     tuple(migrated_ids),
                 )
         return len(migrated_ids)
+
+    def _merge_migrated_clauses(self, source: str, existing_value, clauses) -> str:
+        """Merge Route-owned legacy allow clauses into destination storage."""
+
+        existing = self._decode_clauses(existing_value)
+        combined = list(existing)
+        signatures = {
+            json.dumps(
+                {key: list(values) for key, values in item.items()},
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            for item in combined
+        }
+        for clause in clauses:
+            signature = json.dumps(
+                {key: list(values) for key, values in clause.items()},
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            if signature in signatures:
+                continue
+            combined.append(clause)
+            signatures.add(signature)
+        return json.dumps(
+            [
+                {key: list(values) for key, values in item.items()}
+                for item in combined
+            ],
+            sort_keys=True,
+            separators=(",", ":"),
+        )
 
     def _policy(self, destination_id: str, source: str) -> dict | None:
         with self.database.connect() as connection:
@@ -540,7 +547,12 @@ class DestinationFilterStore:
         return result
 
     @staticmethod
-    def _normalize_rules(source: str, rules: dict) -> dict[str, tuple[str, ...]]:
+    def _normalize_rules(
+        source: str,
+        rules: dict,
+        *,
+        collapse_full_enum: bool = True,
+    ) -> dict[str, tuple[str, ...]]:
         if not isinstance(rules, dict):
             raise ValueError("filter rules must be an object")
         schema = filter_schema(source)
@@ -561,7 +573,7 @@ class DestinationFilterStore:
                 invalid = set(patterns) - options
                 if invalid:
                     raise ValueError(f"unsupported {descriptor['label']} value")
-                if set(patterns) == options:
+                if collapse_full_enum and set(patterns) == options:
                     continue
             result[key] = patterns
         encoded = json.dumps(
