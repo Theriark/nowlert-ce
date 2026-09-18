@@ -33,6 +33,9 @@ def test_round25_routing_flow_has_one_card_per_filtering_record():
     assert '"sources": filter_sources' in api
     assert '"route_ids": filter_route_ids' in api
     assert '"policies": filter_policies' in api
+    assert '"active_sources": active_filter_sources' in api
+    assert 'overview_loader = getattr(api, "_filters_overview", None)' in api
+    assert "filters_by_destination" in api
     assert '"filters": filters' in api
 
     assert "const filters = (data.filters || [])" in script
@@ -52,6 +55,11 @@ def test_round25_filter_card_overflow_and_destination_alignment_are_interactive(
     assert 'toggle.setAttribute("aria-expanded", String(tagsExpanded));' in script
     assert 'toggle.setAttribute("aria-expanded", String(sourcesExpanded));' in script
     assert "FILTER_SOURCE_LIMIT" in script
+    assert "FILTER_VALUE_LIMIT" not in script
+    assert "const configuredSources = [...new Set((filter.sources || []).filter(Boolean))];" in script
+    assert "const fitCollapsedTags = () => {" in script
+    assert "const width = tags.clientWidth;" in script
+    assert "getBoundingClientRect().width" in script
 
     marker = "/* 2026-09-18 round-25 individual filter cards and expandable summaries. */"
     assert marker in style
@@ -61,6 +69,9 @@ def test_round25_filter_card_overflow_and_destination_alignment_are_interactive(
     assert "text-align: right !important;" in final
     assert "flex-wrap: nowrap !important;" in final
     assert ".rf-filter-source-overflow" in final
+    round26 = style[style.index("/* 2026-09-18 round-26 use the full filter-card width before +N overflow. */"):]
+    assert "width: 100% !important;" in round26
+    assert "margin-left: auto !important;" in round26
 
 
 def test_round25_mfa_matches_reference_and_uses_six_digit_entry():

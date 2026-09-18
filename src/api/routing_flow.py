@@ -90,8 +90,18 @@ def snapshot(api, actor, range_key):
             }
         )
 
-    access = api.destination_access
-    master_state = getattr(api.filters, "destination_filtering_enabled", None)
+    filters_overview = []
+    overview_loader = getattr(api, "_filters_overview", None)
+    if callable(overview_loader):
+        response = overview_loader(actor)
+        payload = response.payload if isinstance(response.payload, dict) else {}
+        filters_overview = list(payload.get("filters") or [])
+    filters_by_destination = {
+        str(item.get("destination_id")): item
+        for item in filters_overview
+        if isinstance(item, dict) and item.get("destination_id")
+    }
+
     for destination in visible_destinations:
         assigned = [
             route
@@ -120,39 +130,30 @@ def snapshot(api, actor, range_key):
             }
         )
 
-        destination_row = access.destination_row(destination.id)
-        filter_visible = access.can_manage_filters(actor, destination_row)
-        # The runtime may inspect owner-private policy state to build the topology,
-        # but rule contents remain redacted for viewers who are not the owner.
-        policies = api.filters._policies_for_destination(destination.id)
-        filtering_enabled = (
-            bool(master_state(destination.id)) if callable(master_state) else True
-        )
-
+        filtering_record = filters_by_destination.get(str(destination.id))
         filter_sources = []
+        active_filter_sources = []
         filter_policies = []
         filter_route_ids = []
         filter_metrics = {**empty_metrics(), "last_activity_at": 0}
 
-        for key, policy in policies.items():
-            schema = filter_schema(key) or {"fields": [], "name": key}
-            labels = {
-                field["key"]: field["label"]
-                for field in schema["fields"]
-            }
-            policy_rules = _public_policy_rules(api.filters, policy)
-            configured = bool(
-                policy and (policy_rules or policy.get("clauses"))
-            )
-            source_enabled = bool(
-                configured
-                and api.filters.filter_enabled(destination.id, key)
-                and filtering_enabled
-            )
-            if not source_enabled:
-                continue
+        if filtering_record is not None:
+            filter_policies = [
+                dict(item)
+                for item in filtering_record.get("integrations") or []
+                if isinstance(item, dict) and item.get("configured")
+            ]
+            filter_sources = [
+                canonical_source(item.get("source"))
+                for item in filter_policies
+                if item.get("source")
+            ]
+            active_filter_sources = [
+                canonical_source(item.get("source"))
+                for item in filter_policies
+                if item.get("source") and item.get("filter_enabled", True)
+            ]
 
-            source_route_ids = []
             for candidate in assigned:
                 candidate_source = canonical_source(candidate.source)
                 candidate_sources = (
@@ -160,65 +161,30 @@ def snapshot(api, actor, range_key):
                     if candidate_source == "*"
                     else [candidate_source]
                 )
-                if candidate.enabled and key in candidate_sources:
-                    source_route_ids.append(candidate.id)
-            if not source_route_ids:
-                continue
+                if (
+                    candidate.enabled
+                    and any(source in filter_sources for source in candidate_sources)
+                ):
+                    filter_route_ids.append(candidate.id)
 
-            filter_sources.append(key)
-            for route_id in source_route_ids:
-                if route_id not in filter_route_ids:
-                    filter_route_ids.append(route_id)
-
-            if not filter_visible:
-                public_policy = {
-                    "source": key,
-                    "name": schema.get("name", key),
-                    "restricted": False,
-                    "managed": True,
-                    "configured": True,
-                    "enabled": True,
-                    "policy_rules": [],
-                    "rules": {"__managed": ["Managed by administrator"]},
-                    "legacy_clauses": [],
-                    "labels": {**labels, "__managed": "Filter"},
-                }
-            else:
-                display_clauses, display_labels = _policy_display(
-                    policy_rules, labels
+            for source in filter_sources:
+                source_metrics = stats.get("by_filter", {}).get(
+                    (destination.id, source), empty_metrics()
                 )
-                public_policy = {
-                    "source": key,
-                    "name": schema.get("name", key),
-                    "restricted": False,
-                    "configured": True,
-                    "enabled": True,
-                    "policy_rules": policy_rules,
-                    "rules": (
-                        {}
-                        if display_clauses
-                        else api.filters._public_rules(key, policy)
-                    ),
-                    "legacy_clauses": (
-                        display_clauses
-                        if display_clauses
-                        else api.filters._legacy_public(key, policy)
-                    ),
-                    "labels": {**labels, **display_labels},
-                }
-            filter_policies.append(public_policy)
-
-            source_metrics = stats.get("by_filter", {}).get(
-                (destination.id, key), empty_metrics()
-            )
-            for metric_key in ("received", "filtered", "delivered", "pending", "failed"):
-                filter_metrics[metric_key] += int(
-                    source_metrics.get(metric_key, 0) or 0
+                for metric_key in (
+                    "received",
+                    "filtered",
+                    "delivered",
+                    "pending",
+                    "failed",
+                ):
+                    filter_metrics[metric_key] += int(
+                        source_metrics.get(metric_key, 0) or 0
+                    )
+                filter_metrics["last_activity_at"] = max(
+                    int(filter_metrics.get("last_activity_at", 0) or 0),
+                    int(source_metrics.get("last_activity_at", 0) or 0),
                 )
-            filter_metrics["last_activity_at"] = max(
-                int(filter_metrics.get("last_activity_at", 0) or 0),
-                int(source_metrics.get("last_activity_at", 0) or 0),
-            )
 
         destination_filter_id = (
             f"{destination.id}:filter"
@@ -229,13 +195,35 @@ def snapshot(api, actor, range_key):
             filters.append(
                 {
                     "id": destination_filter_id,
+                    "name": str(
+                        filtering_record.get("destination_name")
+                        or destination.name
+                    ),
                     "destination_id": destination.id,
                     "sources": filter_sources,
+                    "active_sources": active_filter_sources,
                     "route_ids": filter_route_ids,
+                    "configured_count": int(
+                        filtering_record.get("configured_count")
+                        or len(filter_policies)
+                    ),
+                    "active_count": int(
+                        filtering_record.get("active_count")
+                        or len(active_filter_sources)
+                    ),
                     "policies": filter_policies,
                     "metrics": filter_metrics,
                 }
             )
+
+        # Preserve the per-link policy details contract for Route/edge
+        # inspectors, but keep the filter-card model sourced exclusively from
+        # the canonical Filtering overview above.
+        destination_row = api.destination_access.destination_row(destination.id)
+        filter_visible = api.destination_access.can_manage_filters(
+            actor, destination_row
+        )
+        link_policies = api.filters._policies_for_destination(destination.id)
 
         for route in assigned:
             source = canonical_source(route.source)
@@ -251,15 +239,13 @@ def snapshot(api, actor, range_key):
                     field["key"]: field["label"]
                     for field in schema["fields"]
                 }
-                policy = policies.get(key)
+                policy = link_policies.get(key)
                 policy_rules = _public_policy_rules(api.filters, policy)
                 configured = bool(
                     policy and (policy_rules or policy.get("clauses"))
                 )
                 source_enabled = bool(
-                    configured
-                    and api.filters.filter_enabled(destination.id, key)
-                    and filtering_enabled
+                    configured and key in active_filter_sources
                 )
                 if not filter_visible:
                     # Keep the privacy marker for API consumers, and expose a
@@ -335,11 +321,14 @@ def snapshot(api, actor, range_key):
                     "filter_ids": (
                         [destination_filter_id]
                         if destination_filter_id is not None
-                        and any(key in filter_sources for key in sources)
+                        and any(
+                            key in active_filter_sources
+                            for key in sources
+                        )
                         else []
                     ),
                     "direct": any(
-                        key not in filter_sources
+                        key not in active_filter_sources
                         for key in sources
                     ),
                     "metrics": stats["by_link"].get(

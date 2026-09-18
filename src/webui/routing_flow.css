@@ -556,3 +556,34 @@
   overflow: visible;
   white-space: normal;
 }
+
+
+/* 2026-09-18 round-26 use the full filter-card width before +N overflow. */
+.rf-filter-card-tags {
+  box-sizing: border-box;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.rf-filter-card-tags:not(.is-expanded) {
+  flex-wrap: nowrap !important;
+  overflow: hidden !important;
+}
+
+.rf-filter-card-tags.is-expanded {
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.rf-filter-card-tags [hidden] {
+  display: none !important;
+}
+
+.rf-filter-overflow-button {
+  margin-left: auto !important;
+}
+
+.rf-filter-card-sources {
+  max-width: 100% !important;
+}

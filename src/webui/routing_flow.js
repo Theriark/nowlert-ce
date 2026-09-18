@@ -5,7 +5,6 @@
   const NS = "http://www.w3.org/2000/svg";
   const PAGE = "routing-flow";
   const POLL_MS = 5000;
-  const FILTER_VALUE_LIMIT = 5;
   const FILTER_SOURCE_LIMIT = 6;
   const OUTPUT_LOGOS = { teams: "/ui/icons/routing-teams.svg", slack: "/ui/icons/routing-slack.svg" };
   const ICONS = {
@@ -315,44 +314,114 @@
 
     const tags = el("div", "rf-filter-card-tags");
     let tagsExpanded = false;
+    let tagFitFrame = null;
+
+    const fitCollapsedTags = () => {
+      tagFitFrame = null;
+      if (tagsExpanded || !tags.isConnected) return;
+      const width = tags.clientWidth;
+      if (!width) return;
+
+      const values = [...tags.querySelectorAll("[data-filter-value]")];
+      const labels = [...tags.querySelectorAll("[data-filter-label]")];
+      const toggle = tags.querySelector(".rf-filter-overflow-button");
+      if (!toggle) return;
+
+      for (const label of labels) label.hidden = false;
+      for (const value of values) value.hidden = false;
+      toggle.hidden = true;
+
+      const gap = Number.parseFloat(getComputedStyle(tags).columnGap || getComputedStyle(tags).gap || "0") || 0;
+      const ordered = [...tags.children].filter(child => child !== toggle);
+      const totalWidth = ordered.reduce(
+        (sum, child, index) => sum + child.getBoundingClientRect().width + (index ? gap : 0),
+        0,
+      );
+      if (totalWidth <= width) return;
+
+      toggle.hidden = false;
+      toggle.textContent = "+99";
+      const toggleWidth = toggle.getBoundingClientRect().width + gap;
+      let available = Math.max(0, width - toggleWidth);
+      let used = 0;
+      let hidden = 0;
+
+      for (const child of ordered) {
+        const childWidth = child.getBoundingClientRect().width;
+        const next = used + (used ? gap : 0) + childWidth;
+        if (next <= available) {
+          used = next;
+          continue;
+        }
+        child.hidden = true;
+        if (child.dataset.filterValue === "1") hidden += 1;
+      }
+
+      for (const label of labels) {
+        const group = label.dataset.filterGroup;
+        const hasVisibleValue = values.some(
+          value => value.dataset.filterGroup === group && !value.hidden,
+        );
+        if (!hasVisibleValue) label.hidden = true;
+      }
+
+      hidden = values.filter(value => value.hidden).length;
+      if (!hidden) {
+        toggle.hidden = true;
+        return;
+      }
+      toggle.textContent = `+${hidden}`;
+      toggle.setAttribute("aria-label", `Show ${hidden} more filter values`);
+    };
+
+    const scheduleTagFit = () => {
+      if (tagFitFrame !== null) cancelAnimationFrame(tagFitFrame);
+      tagFitFrame = requestAnimationFrame(fitCollapsedTags);
+    };
+
     const renderTags = () => {
       tags.replaceChildren();
-      let shown = 0;
-      let hidden = 0;
-      for (const group of descriptor.groups) {
-        const visibleValues = tagsExpanded
-          ? group.values
-          : group.values.slice(0, Math.max(0, FILTER_VALUE_LIMIT - shown));
-        if (visibleValues.length) {
-          tags.append(el("span", "rf-filter-rule-label", `${group.label}:`));
-          for (const value of visibleValues) {
-            tags.append(
-              el(
-                "span",
-                `rf-filter-rule-tag rf-filter-rule-tag-${filterTagTone(value)}`,
-                value,
-              ),
-            );
-            shown += 1;
-          }
+      descriptor.groups.forEach((group, groupIndex) => {
+        const label = el("span", "rf-filter-rule-label", `${group.label}:`);
+        label.dataset.filterLabel = "1";
+        label.dataset.filterGroup = String(groupIndex);
+        tags.append(label);
+        for (const value of group.values) {
+          const item = el(
+            "span",
+            `rf-filter-rule-tag rf-filter-rule-tag-${filterTagTone(value)}`,
+            value,
+          );
+          item.dataset.filterValue = "1";
+          item.dataset.filterGroup = String(groupIndex);
+          tags.append(item);
         }
-        if (!tagsExpanded) hidden += Math.max(0, group.values.length - visibleValues.length);
-      }
-      if (hidden || tagsExpanded && descriptor.groups.some(group => group.values.length)) {
-        const toggle = el(
-          "button",
-          "rf-filter-rule-tag rf-filter-rule-tag-muted rf-filter-overflow-button",
-          tagsExpanded ? "−" : `+${hidden}`,
-        );
-        toggle.type = "button";
-        toggle.setAttribute("aria-expanded", String(tagsExpanded));
-        toggle.setAttribute("aria-label", tagsExpanded ? "Collapse filter values" : `Show ${hidden} more filter values`);
-        toggle.addEventListener("click", event => {
-          event.stopPropagation();
-          tagsExpanded = !tagsExpanded;
-          renderTags();
-        });
-        if (hidden || tagsExpanded) tags.append(toggle);
+      });
+
+      const toggle = el(
+        "button",
+        "rf-filter-rule-tag rf-filter-rule-tag-muted rf-filter-overflow-button",
+        tagsExpanded ? "−" : "+0",
+      );
+      toggle.type = "button";
+      toggle.hidden = !tagsExpanded;
+      toggle.setAttribute("aria-expanded", String(tagsExpanded));
+      toggle.setAttribute(
+        "aria-label",
+        tagsExpanded ? "Collapse filter values" : "Show more filter values",
+      );
+      toggle.addEventListener("click", event => {
+        event.stopPropagation();
+        tagsExpanded = !tagsExpanded;
+        tags.classList.toggle("is-expanded", tagsExpanded);
+        renderTags();
+      });
+      tags.append(toggle);
+
+      if (tagsExpanded) {
+        toggle.hidden = false;
+      } else {
+        scheduleTagFit();
       }
     };
     renderTags();
@@ -373,23 +442,28 @@
     const sourceGroup = el("span", "rf-filter-card-source-group");
     sourceGroup.append(el("b", "", "Sources"));
     const sourceSummary = el("span", "rf-filter-card-sources");
-    const routeSources = [];
-    for (const route of routes) {
-      const source = route.source || filter.source;
-      if (!routeSources.includes(source)) routeSources.push(source);
-    }
+    const configuredSources = [...new Set((filter.sources || []).filter(Boolean))];
     let sourcesExpanded = false;
     const renderSources = () => {
       sourceSummary.replaceChildren();
       const collapsedCount = Math.max(1, FILTER_SOURCE_LIMIT - 1);
-      const visible = sourcesExpanded ? routeSources : routeSources.slice(0, collapsedCount);
+      const visible = sourcesExpanded
+        ? configuredSources
+        : configuredSources.slice(0, collapsedCount);
       for (const source of visible) sourceSummary.append(sourceIcon(source));
-      const hidden = Math.max(0, routeSources.length - visible.length);
-      if (hidden || sourcesExpanded && routeSources.length > collapsedCount) {
-        const toggle = el("button", "rf-filter-source-overflow", sourcesExpanded ? "−" : `+${hidden}`);
+      const hidden = Math.max(0, configuredSources.length - visible.length);
+      if (hidden || sourcesExpanded && configuredSources.length > collapsedCount) {
+        const toggle = el(
+          "button",
+          "rf-filter-source-overflow",
+          sourcesExpanded ? "−" : `+${hidden}`,
+        );
         toggle.type = "button";
         toggle.setAttribute("aria-expanded", String(sourcesExpanded));
-        toggle.setAttribute("aria-label", sourcesExpanded ? "Collapse filter sources" : `Show ${hidden} more filter sources`);
+        toggle.setAttribute(
+          "aria-label",
+          sourcesExpanded ? "Collapse filter sources" : `Show ${hidden} more filter sources`,
+        );
         toggle.addEventListener("click", event => {
           event.stopPropagation();
           sourcesExpanded = !sourcesExpanded;
@@ -397,7 +471,10 @@
         });
         sourceSummary.append(toggle);
       }
-      sourceSummary.setAttribute("aria-label", `${routeSources.length} filter route source${routeSources.length === 1 ? "" : "s"}`);
+      sourceSummary.setAttribute(
+        "aria-label",
+        `${configuredSources.length} configured filter source${configuredSources.length === 1 ? "" : "s"}`,
+      );
     };
     renderSources();
     sourceGroup.append(sourceSummary);
@@ -410,6 +487,7 @@
 
     footer.append(sourceGroup, destinationGroup);
     node.append(header, tags, stats, footer);
+    scheduleTagFit();
   }
   function activeFlowGraph() {
     if (!data) return { routes: [], destinations: [], filters: [], links: [] };
