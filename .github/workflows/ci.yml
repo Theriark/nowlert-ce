@@ -239,37 +239,37 @@ jobs:
               "${ACCESS_HEADERS[@]}" \
               "${BASE_URL}/?ui_acceptance=${SOURCE_SHA}"
           )"
-          printf '%s' "${HTML}" | grep -Fq "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\""
-          printf '%s' "${HTML}" | grep -Fq "/ui/qa_patch.css?v=${UI_BUILD}"
-          printf '%s' "${HTML}" | grep -Fq "/ui/app.js?v=${UI_BUILD}"
-          printf '%s' "${HTML}" | grep -Fq "/ui/source_ui_retirement.js"
+          grep -Fq "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\"" <<< "${HTML}"
+          grep -Fq "/ui/qa_patch.css?v=${UI_BUILD}" <<< "${HTML}"
+          grep -Fq "/ui/app.js?v=${UI_BUILD}" <<< "${HTML}"
+          grep -Fq "/ui/source_ui_retirement.js" <<< "${HTML}"
 
           CSS="$(
             curl --fail --silent --show-error \
               "${ACCESS_HEADERS[@]}" \
               "${BASE_URL}/ui/qa_patch.css?v=${UI_BUILD}"
           )"
-          printf '%s' "${CSS}" | grep -Fq "round-18 acceptance corrections"
-          printf '%s' "${CSS}" | grep -Fq "#primary-nav .nav-item[hidden]"
-          printf '%s' "${CSS}" | grep -Fq "transform: scale(1.65)"
-          printf '%s' "${CSS}" | grep -Fq "#app-shell .workspace"
-          printf '%s' "${CSS}" | grep -Fq "backup-dashboard-grid-top"
+          grep -Fq "round-18 acceptance corrections" <<< "${CSS}"
+          grep -Fq "#primary-nav .nav-item[hidden]" <<< "${CSS}"
+          grep -Fq "transform: scale(1.65)" <<< "${CSS}"
+          grep -Fq "#app-shell .workspace" <<< "${CSS}"
+          grep -Fq "backup-dashboard-grid-top" <<< "${CSS}"
 
           APP="$(
             curl --fail --silent --show-error \
               "${ACCESS_HEADERS[@]}" \
               "${BASE_URL}/ui/app.js?v=${UI_BUILD}"
           )"
-          printf '%s' "${APP}" | grep -Fq "Preview completed."
+          grep -Fq "Preview completed." <<< "${APP}"
 
           OWNERSHIP="$(
             curl --fail --silent --show-error \
               "${ACCESS_HEADERS[@]}" \
               "${BASE_URL}/ui/source_ui_retirement.js"
           )"
-          printf '%s' "${OWNERSHIP}" | grep -Fq "auditNav.hidden = !admin;"
-          printf '%s' "${OWNERSHIP}" | grep -Fq "backupsNav.hidden = !admin;"
-          printf '%s' "${OWNERSHIP}" | grep -Fq "usersNav.hidden = !admin;"
+          grep -Fq "auditNav.hidden = !admin;" <<< "${OWNERSHIP}"
+          grep -Fq "backupsNav.hidden = !admin;" <<< "${OWNERSHIP}"
+          grep -Fq "usersNav.hidden = !admin;" <<< "${OWNERSHIP}"
 
           echo "PASS: live CE Development is serving WebUI acceptance bundle ${UI_BUILD}"
 
