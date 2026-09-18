@@ -46,15 +46,15 @@ def _fast_hash(password: str) -> str:
     return hash_password(password, salt=b"\x31" * 16, iterations=1_000)
 
 
-def test_backup_actions_confirm_refresh_both_panels_and_retire_stale_time_input():
+def test_backup_actions_refresh_both_panels_without_local_confirmation_and_retire_stale_time_input():
     app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
     enhancements = (ROOT / "src" / "webui" / "enhancements.js").read_text(encoding="utf-8")
 
     create = _function(app, "async function createBackup()")
-    run = _function(app, "async function runBackupNow()")
+    run = _function(app, "async function createRemoteBackup()")
 
-    assert '"Create local snapshot?"' in create
-    assert '"Create local snapshot"' in create
+    assert "confirmAction(" not in create
+    assert 'request("/backups", { method: "POST", body: {} })' in create
     assert "await refreshBackupPanels();" in create
     assert "await refreshBackupPanels();" in run
     assert "async function refreshBackupPanels()" in app
@@ -77,10 +77,12 @@ def test_backup_controls_move_to_stored_copies_mounts_are_automatic_and_tables_a
     stored = _panel(markup, "backup-stored-panel")
 
     assert 'data-action="create-backup"' in recovery
-    assert 'data-action="run-backup-now"' not in recovery
+    assert 'data-action="create-remote-backup"' not in recovery
     assert 'data-action="refresh-external-backups"' not in recovery
-    assert 'data-action="run-backup-now"' in stored
-    assert 'data-action="refresh-external-backups"' in stored
+    assert '>Create local</span>' in recovery
+    assert 'data-action="create-remote-backup"' in stored
+    assert '>Create remote</span>' in stored
+    assert 'data-action="refresh-external-backups"' not in stored
 
     assert 'id="backup-managed-mounts"' not in markup
     save = _function(app, "async function saveBackupSettings(event)")

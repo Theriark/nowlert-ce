@@ -273,6 +273,8 @@ function backupSvgIcon(name, className = "backup-action-icon") {
     edit: ["M4 20l4.5-1 10-10-3.5-3.5-10 10z", "M14 6l3.5 3.5"],
     trash: ["M5 7h14", "M9 7V4h6v3", "M8 10v7", "M12 10v7", "M16 10v7", "M6 7l1 14h10l1-14"],
     check: ["M5 12l4 4L19 6"],
+    clock: ["M12 7v5l3 2", "M12 3a9 9 0 1 1-9 9"],
+    broom: ["M15 4l5 5", "M17.5 6.5L10 14", "M10 14l-5 1-2 6 6-2 1-5"],
     restore: ["M9 7H5V3", "M5 7a8 8 0 1 1-1 7"],
   };
 
@@ -538,6 +540,13 @@ function showApp(session) {
   // Routing Flow and Filtering wrappers synchronously hydrate their cached
   // snapshots during navigate(), so F5 never paints an empty Dashboard first.
   navigate(requestedAppView(), "replace");
+  if (
+    state.backupSettings
+    || state.backups.length
+    || state.externalBackups.length
+  ) {
+    renderAll();
+  }
   byId("app-shell").hidden = false;
 }
 
@@ -2316,6 +2325,29 @@ function renderExternalBackups() {
   renderStoredBackupTable();
 }
 
+function deduplicateExternalBackups(backups) {
+  const preferredTarget = String(state.backupSettings?.target_id || "");
+  const byBackupId = new Map();
+  for (const item of backups) {
+    const key = String(item.id || "");
+    if (!key) continue;
+    const current = byBackupId.get(key);
+    if (
+      !current
+      || (
+        preferredTarget
+        && item.target_id === preferredTarget
+        && current.target_id !== preferredTarget
+      )
+    ) {
+      byBackupId.set(key, item);
+    }
+  }
+  return [...byBackupId.values()].sort(
+    (left, right) => Number(right.created_at || 0) - Number(left.created_at || 0),
+  );
+}
+
 async function loadExternalBackups({ silent = false } = {}) {
   if (!isAdmin() || state.externalBackupsLoading) return;
   const targets = state.backupTargets.filter((item) => item.enabled);
@@ -2352,9 +2384,9 @@ async function loadExternalBackups({ silent = false } = {}) {
         });
       }
     });
-    backups.sort((left, right) => Number(right.created_at || 0) - Number(left.created_at || 0));
-    state.externalBackups = backups;
+    state.externalBackups = deduplicateExternalBackups(backups);
     state.externalBackupErrors = errors;
+    if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
     if (!silent && errors.length) {
       toast(
         `${errors.length} backup destination${errors.length === 1 ? "" : "s"} could not be inspected.`,
@@ -2544,7 +2576,9 @@ function renderHousekeepingSettings() {
   toggle.setAttribute("aria-label", enabled ? "Disable housekeeping" : "Enable housekeeping");
   toggle.title = enabled ? "Click to disable housekeeping" : "Click to enable housekeeping";
 
-  byId("housekeeping-status-icon").textContent = enabled ? "✓" : "Ⅱ";
+  byId("housekeeping-status-icon").replaceChildren(
+    backupSvgIcon("broom", "housekeeping-symbol"),
+  );
   byId("housekeeping-status-title").textContent =
     enabled ? "Housekeeping is enabled" : "Housekeeping is disabled";
   byId("housekeeping-status-description").textContent = enabled
@@ -2559,9 +2593,11 @@ function renderHousekeepingSettings() {
   const scheduleNote = byId("housekeeping-schedule-note");
   scheduleNote.classList.toggle("is-enabled", enabled);
   scheduleNote.classList.toggle("is-disabled", !enabled);
-  byId("housekeeping-schedule-note-icon").textContent = enabled ? "◔" : "Ⅱ";
+  byId("housekeeping-schedule-note-icon").replaceChildren(
+    backupSvgIcon("clock", "housekeeping-symbol"),
+  );
   byId("housekeeping-schedule-note-title").textContent = enabled
-    ? "Housekeeping runs once per day when enabled."
+    ? "Housekeeping runs once per day."
     : "Housekeeping is currently disabled.";
   byId("housekeeping-schedule-note-copy").textContent = enabled
     ? `Next run: ${nextRun}.`
@@ -2645,6 +2681,7 @@ async function saveBackupSettings(event) {
     });
     state.backupSettings = response.settings;
     renderBackupSettings();
+    if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
     toast("Backup settings saved.");
   } catch (error) {
     toast(error.message || "Backup settings could not be saved.", "error");
@@ -2769,14 +2806,19 @@ async function saveBackupTarget(event) {
 }
 
 
-async function runBackupNow() {
+async function createRemoteBackup() {
+  const targetId = byId("backup-target").value;
+  if (!targetId) {
+    toast("Select a remote backup destination first.", "error");
+    return;
+  }
   const response = await request("/backups/run", {
     method: "POST",
-    body: { target_id: byId("backup-target").value },
+    body: { target_id: targetId },
   });
   await refreshBackupPanels();
   toast(
-    response.run.outcome === "success" ? "Backup completed." : "Backup failed.",
+    response.run.outcome === "success" ? "Remote backup created." : "Remote backup failed.",
     response.run.outcome === "success" ? "success" : "error",
   );
 }
@@ -3013,12 +3055,22 @@ async function previewImport(kind, portableFileId = "portable-file") {
       ? "/configuration/migration/preview"
       : portable ? "/portability/preview" : "/migrations/v1/preview";
     const response = await request(endpoint, { method: "POST", body });
+    if (portable && !response.preview.valid) {
+      const selectedInput = byId(portableFileId);
+      if (selectedInput) selectedInput.value = "";
+      const reason = Array.isArray(response.preview.errors) && response.preview.errors.length
+        ? response.preview.errors[0]
+        : "The document failed Nowlert portability validation.";
+      throw new Error(`This file is not a valid Nowlert user configuration export. ${reason}`);
+    }
     state.pendingImport = { kind, body, preview: response.preview, portableFileId };
     byId("import-title").textContent = local
       ? "Mounted configuration takeover"
-      : portable ? "Platform JSON preview" : "v1.x YAML migration preview";
+      : portable ? "Import user configuration" : "v1.x YAML migration preview";
     byId("import-summary").textContent = response.preview.valid
-      ? `${response.preview.summary.destinations} destinations and ${response.preview.summary.routes} routes are ready.${local ? " Applying this creates state and configuration backups, imports credentials server-side, and activates WebUI routing." : ""}`
+      ? portable
+        ? `Validated Nowlert export: ${response.preview.summary.destinations} destinations and ${response.preview.summary.routes} routes are ready to import.`
+        : `${response.preview.summary.destinations} destinations and ${response.preview.summary.routes} routes are ready.${local ? " Applying this creates state and configuration backups, imports credentials server-side, and activates WebUI routing." : ""}`
       : "The document cannot be applied until every reported error is corrected.";
     byId("import-result").textContent = JSON.stringify(response.preview, null, 2);
     byId("import-apply").disabled = !response.preview.valid;
@@ -3072,12 +3124,6 @@ async function refreshBackupPanels() {
 }
 
 async function createBackup() {
-  const accepted = await confirmAction(
-    "Create local snapshot?",
-    "Create a complete local recovery snapshot now? It includes the full SQLite state and retained history, Nowlert-managed secret files, and mounted bootstrap config.yaml when available.",
-    "Create local snapshot",
-  );
-  if (!accepted) return;
   await request("/backups", { method: "POST", body: {} });
   await refreshBackupPanels();
   toast("Recovery snapshot created.");
@@ -3724,12 +3770,6 @@ async function resourceAction(action, id) {
     } else if (action === "export-platform") {
       await exportPlatform();
       return;
-    } else if (action === "preview-portable") {
-      await previewImport("portable");
-      return;
-    } else if (action === "preview-backup-portable") {
-      await previewImport("portable", "backup-portable-file");
-      return;
     } else if (action === "preview-migration") {
       await previewImport("v1_yaml");
       return;
@@ -3751,8 +3791,8 @@ async function resourceAction(action, id) {
     } else if (action === "create-backup") {
       await createBackup();
       return;
-    } else if (action === "run-backup-now") {
-      await runBackupNow();
+    } else if (action === "create-remote-backup") {
+      await createRemoteBackup();
       return;
     } else if (action === "refresh-external-backups") {
       await refreshBackupPanels();
@@ -4033,6 +4073,13 @@ function bindEvents() {
     closeIntegrationSettings();
   });
   byId("backup-settings-form").addEventListener("submit", saveBackupSettings);
+  for (const portableFileId of ["portable-file", "backup-portable-file"]) {
+    const portableInput = byId(portableFileId);
+    portableInput?.addEventListener("change", () => {
+      if (!portableInput.files || !portableInput.files.length) return;
+      void previewImport("portable", portableFileId);
+    });
+  }
   byId("housekeeping-form")?.addEventListener("submit", saveHousekeepingSettings);
   byId("backup-target-form").addEventListener("submit", saveBackupTarget);
   byId("backup-target-type").addEventListener("change", updateBackupTargetFields);
