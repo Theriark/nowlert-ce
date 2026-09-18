@@ -34,15 +34,15 @@ def test_round11_sidebar_is_larger_and_collapses_with_real_transitions():
     assert "height: 24px !important;" in sidebar
     assert "width: 24px !important;" in sidebar
     assert "font-size: 12px !important;" in sidebar
-    assert "grid-template-columns 240ms" in sidebar
-    assert "opacity 150ms" in sidebar
+    assert "grid-template-columns 240ms" not in sidebar
+    assert "will-change: width, opacity, transform;" in sidebar
 
     collapsed_label = sidebar[
         sidebar.index(".app-shell.sidebar-collapsed .nav-label"):
         sidebar.index(".app-shell.sidebar-collapsed .profile-chip")
     ]
     assert "display: block !important;" in collapsed_label
-    assert "max-width: 0 !important;" in collapsed_label
+    assert "max-width: 145px !important;" in collapsed_label
     assert "opacity: 0 !important;" in collapsed_label
     assert "display: none !important;" not in collapsed_label
 
@@ -54,18 +54,18 @@ def test_round11_housekeeping_data_tools_and_external_restore_are_present():
 
     assert 'id="housekeeping-form"' in markup
     assert 'id="housekeeping-delivery-days"' in markup
-    assert 'data-action="run-housekeeping"' in markup
+    assert 'data-action="run-housekeeping"' not in markup
     assert "destination filtering policies" in markup
     assert 'id="external-backup-list"' in markup
     assert 'data-action="refresh-external-backups"' in markup
 
     assert 'request("/housekeeping")' in app
-    assert 'request("/housekeeping/run"' in app
+    assert 'request("/housekeeping/run"' not in app
     assert "async function loadExternalBackups" in app
     assert "async function restoreExternalBackup" in app
     assert "/backup-targets/${targetId}/backups/${backupId}/restore" in app
 
     assert 'if path == "/api/v2/housekeeping":' in platform
-    assert 'if path == "/api/v2/housekeeping/run":' in platform
+    assert 'if path == "/api/v2/housekeeping/run":' not in platform
     assert 'r"/api/v2/backup-targets/([0-9a-f]{32})/backups/"' in platform
     assert "self.backups.restore_external(" in platform

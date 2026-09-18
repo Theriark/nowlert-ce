@@ -1861,12 +1861,11 @@ textarea:focus {
    the owl, labels, icons, edition copy, and profile motion on one transition. */
 @media (min-width: 761px) {
   .app-shell {
-    grid-template-columns: 208px minmax(0, 1fr) !important;
-    transition: grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
   }
 
   .app-shell.sidebar-collapsed {
-    grid-template-columns: 106px minmax(0, 1fr) !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
   }
 
   .sidebar {
@@ -1877,12 +1876,20 @@ textarea:focus {
     border-radius: 11px !important;
     box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24) !important;
     height: calc(100vh - 28px) !important;
+    box-sizing: border-box !important;
+    contain: layout paint;
     margin: 14px 0 14px 8px !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     padding: 18px 10px 12px !important;
     transition:
-      padding 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      box-shadow 240ms ease !important;
+      width 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      padding 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 180ms ease !important;
+    width: 200px !important;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar {
+    width: 98px !important;
   }
 
   .sidebar > .brand.sidebar-brand {
@@ -2036,7 +2043,7 @@ textarea:focus {
     display: grid !important;
     font-size: 14px !important;
     gap: 0 !important;
-    grid-template-columns: 22px minmax(0, 1fr) !important;
+    grid-template-columns: 24px minmax(0, 1fr) !important;
     min-height: 41px !important;
     overflow: hidden !important;
     padding: 8px 9px !important;
@@ -2044,8 +2051,7 @@ textarea:focus {
     transition:
       width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
       min-height 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      padding 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      padding 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
       background-color 160ms ease,
       box-shadow 180ms ease !important;
     width: 100% !important;
@@ -2086,11 +2092,10 @@ textarea:focus {
     overflow: hidden !important;
     transform: translateX(0) !important;
     transition:
-      max-width 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      margin-left 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      opacity 150ms ease 70ms,
-      transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+      opacity 140ms ease 80ms,
+      transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
     white-space: nowrap !important;
+    will-change: width, opacity, transform;
   }
 
   .sidebar-footer {
@@ -2104,14 +2109,13 @@ textarea:focus {
     border-radius: 8px !important;
     display: grid !important;
     gap: 0 !important;
-    grid-template-columns: 40px minmax(0, 1fr) !important;
+    grid-template-columns: 42px minmax(0, 1fr) !important;
     min-height: 54px !important;
     overflow: hidden !important;
     padding: 7px 8px !important;
     transition:
       width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      padding 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      padding 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
       background-color 160ms ease !important;
     width: 100% !important;
   }
@@ -2129,9 +2133,9 @@ textarea:focus {
     opacity: 1 !important;
     overflow: hidden !important;
     transition:
-      max-width 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      margin-left 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      opacity 150ms ease 70ms !important;
+      opacity 140ms ease 80ms,
+      transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    will-change: width, opacity, transform;
   }
 
   .app-shell.sidebar-collapsed .sidebar > .brand.sidebar-brand {
@@ -2171,7 +2175,7 @@ textarea:focus {
   }
 
   .app-shell.sidebar-collapsed .nav-item {
-    grid-template-columns: 24px 0fr !important;
+    grid-template-columns: 24px minmax(0, 1fr) !important;
     height: 50px !important;
     justify-content: center !important;
     margin-left: auto !important;
@@ -2189,16 +2193,17 @@ textarea:focus {
 
   .app-shell.sidebar-collapsed .nav-label {
     display: block !important;
-    margin-left: 0 !important;
-    max-width: 0 !important;
+    margin-left: 11px !important;
+    max-width: 145px !important;
     opacity: 0 !important;
+    pointer-events: none !important;
     transform: translateX(-8px) !important;
   }
 
   .app-shell.sidebar-collapsed .profile-chip {
     background: transparent !important;
     border-color: transparent !important;
-    grid-template-columns: 42px 0fr !important;
+    grid-template-columns: 42px minmax(0, 1fr) !important;
     justify-content: center !important;
     margin-left: auto !important;
     margin-right: auto !important;
@@ -2209,9 +2214,11 @@ textarea:focus {
 
   .app-shell.sidebar-collapsed .profile-copy {
     display: block !important;
-    margin-left: 0 !important;
-    max-width: 0 !important;
+    margin-left: 8px !important;
+    max-width: 120px !important;
     opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateX(-8px) !important;
   }
 
   .app-shell.sidebar-collapsed .profile-chip .avatar {
@@ -2249,6 +2256,349 @@ textarea:focus {
   }
 }
 
+
+
+/* 2026-09-18 Backups management dashboard reference. */
+#view-backups.backup-dashboard {
+  display: grid;
+  gap: 14px;
+}
+
+#view-backups.backup-dashboard[hidden] {
+  display: none !important;
+}
+
+.backup-page-heading {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 2px 2px 0;
+}
+
+.backup-page-heading:empty {
+  display: none;
+}
+
+.page-command-actions .backup-heading-status {
+  margin-left: auto;
+}
+
+.backup-page-heading > div:first-child h2 {
+  margin: 0;
+}
+
+.backup-page-heading > div:first-child p {
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.backup-heading-status {
+  align-items: center;
+  background: rgba(4, 20, 30, 0.72);
+  border: 1px solid rgba(48, 113, 150, 0.28);
+  border-radius: 12px;
+  display: flex;
+  gap: 22px;
+  min-width: 330px;
+  padding: 10px 16px;
+}
+
+.backup-heading-status > div {
+  display: grid;
+  gap: 2px;
+}
+
+.backup-heading-status small {
+  color: #9fb0bd;
+}
+
+.backup-heading-status strong {
+  font-size: 12px;
+}
+
+#backup-system-status {
+  color: #78e6a1;
+}
+
+#backup-system-status.warning {
+  color: #f2c94c;
+}
+
+.backup-heading-divider {
+  align-self: stretch;
+  background: rgba(78, 139, 168, 0.30);
+  width: 1px;
+}
+
+.backup-overview-strip {
+  background:
+    linear-gradient(100deg, rgba(6, 27, 39, 0.94), rgba(7, 23, 34, 0.90)),
+    var(--panel);
+  border: 1px solid rgba(49, 119, 153, 0.32);
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.backup-summary-item {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 48px minmax(0, 1fr);
+  min-height: 88px;
+  padding: 14px 18px;
+  position: relative;
+}
+
+.backup-summary-item:not(:last-child)::after {
+  background: rgba(68, 124, 153, 0.28);
+  bottom: 18px;
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 18px;
+  width: 1px;
+}
+
+.backup-summary-icon {
+  align-items: center;
+  background: rgba(16, 111, 151, 0.16);
+  border: 1px solid rgba(41, 143, 187, 0.25);
+  border-radius: 999px;
+  color: #f4c542;
+  display: flex;
+  font-size: 22px;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.backup-summary-icon.success {
+  background: rgba(15, 160, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #59e88d;
+}
+
+.backup-summary-item > div {
+  display: grid;
+  gap: 1px;
+}
+
+.backup-summary-item strong {
+  color: #f8fafc;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.backup-summary-item span:not(.backup-summary-icon) {
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.backup-summary-item small {
+  color: #91a4b1;
+  font-size: 10px;
+}
+
+.backup-dashboard-panel {
+  background:
+    linear-gradient(135deg, rgba(5, 28, 42, 0.94), rgba(7, 20, 30, 0.96)),
+    var(--panel) !important;
+  border-color: rgba(48, 113, 150, 0.32) !important;
+  border-radius: 12px !important;
+  padding: 14px !important;
+}
+
+.backup-panel-heading {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+}
+
+.backup-dashboard-panel .panel-heading {
+  margin-bottom: 10px;
+}
+
+.backup-dashboard-panel .panel-heading h3 {
+  font-size: 15px;
+  margin: 1px 0 2px;
+}
+
+.backup-dashboard-panel .panel-heading p {
+  color: #92a6b4;
+  font-size: 10px;
+}
+
+.backup-dashboard-panel table {
+  font-size: 11px;
+}
+
+.backup-dashboard-panel th {
+  color: #9fb0bd;
+  font-size: 9px;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.backup-dashboard-panel td,
+.backup-dashboard-panel th {
+  padding: 8px 10px;
+}
+
+.backup-dashboard-panel tbody tr {
+  border-top: 1px solid rgba(66, 113, 139, 0.18);
+}
+
+.backup-dashboard-panel code {
+  color: #c8d9e3;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.backup-dashboard-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.backup-run-badge {
+  background: rgba(12, 115, 70, 0.20);
+  border: 1px solid rgba(34, 197, 94, 0.34);
+  border-radius: 7px;
+  color: #5be58b;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 7px 10px;
+}
+
+.backup-schedule-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.backup-schedule-form label {
+  min-width: 0;
+}
+
+.backup-schedule-form label > span {
+  font-size: 9px;
+}
+
+.backup-schedule-destination {
+  grid-column: span 2;
+}
+
+.backup-managed-mounts {
+  align-self: end;
+  grid-column: span 2;
+}
+
+.backup-schedule-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  grid-column: 1 / -1;
+}
+
+.backup-schedule-actions small {
+  color: #91a4b1;
+}
+
+.backup-data-tools-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.backup-tool-box {
+  background: rgba(3, 18, 28, 0.66);
+  border: 1px solid rgba(56, 113, 143, 0.30);
+  border-radius: 9px;
+  display: grid;
+  gap: 8px;
+  min-height: 138px;
+  padding: 12px;
+}
+
+.backup-tool-box strong {
+  font-size: 12px;
+}
+
+.backup-tool-box p {
+  color: #98aab6;
+  font-size: 10px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.backup-tool-box .button {
+  justify-self: start;
+}
+
+.file-field.compact input {
+  min-height: 30px;
+  padding: 4px;
+}
+
+.backup-row-dot {
+  color: #4ade80;
+  font-size: 10px;
+  margin-right: 6px;
+}
+
+.backup-view-all {
+  margin-top: 9px;
+}
+
+.backup-errors-only {
+  margin-top: 8px;
+}
+
+@media (max-width: 1180px) {
+  .backup-overview-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .backup-summary-item:nth-child(2)::after {
+    display: none;
+  }
+
+  .backup-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .backup-page-heading,
+  .backup-panel-heading,
+  .backup-heading-status {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .backup-heading-status {
+    min-width: 0;
+  }
+
+  .backup-overview-strip,
+  .backup-data-tools-grid,
+  .backup-schedule-form {
+    grid-template-columns: 1fr;
+  }
+
+  .backup-summary-item::after {
+    display: none;
+  }
+
+  .backup-schedule-destination,
+  .backup-managed-mounts {
+    grid-column: auto;
+  }
+}
 
 /* NCE-35 final unified pagination row */
 .qa-pagination-row {

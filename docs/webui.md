@@ -170,7 +170,7 @@ display **User**.
 Settings includes:
 
 - language, IANA timezone, and 12/24-hour clock;
-- housekeeping retention for Delivery History, Audit Log, and backup-run records;
+- scheduled-only housekeeping with Enabled/Disabled state and recommended retention choices for Delivery History, Audit Log, and backup-run records;
 - Xen Orchestra job/run ID visibility;
 - Zabbix problem ID visibility;
 - Dell iDRAC trusted management clients;
@@ -188,6 +188,8 @@ TLS, authentication, and process-level enablement remain bootstrap settings and
 require a Nowlert restart when changed.
 
 ### Backups and Data tools
+
+The Backups administration dashboard provides summary health, configured destinations, scheduled backup settings, portable Data Tools, local Recovery snapshots, and Stored copies discovered on Local/NFS/SMB targets.
 
 The administration UI provides:
 

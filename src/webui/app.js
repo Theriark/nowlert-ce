@@ -192,6 +192,8 @@ const state = {
   externalBackups: [],
   externalBackupErrors: [],
   externalBackupsLoading: false,
+  showAllBackups: false,
+  showAllStoredBackups: false,
   housekeepingSettings: null,
   housekeepingStatus: null,
   sourceCategories: {},
@@ -2027,97 +2029,213 @@ function formatBytes(value) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
-function backupRecoveryDetail(item) {
+function formatClockValue(value) {
+  const [rawHour, rawMinute] = String(value || "00:00").split(":");
+  const hour = Number(rawHour);
+  const minute = String(rawMinute || "00").padStart(2, "0");
+  if (state.preferences.time_format === "12") {
+    return `${hour % 12 || 12}:${minute} ${hour < 12 ? "AM" : "PM"}`;
+  }
+  return `${String(hour).padStart(2, "0")}:${minute}`;
+}
+
+function renderClockOptions(select, selected) {
+  if (!select) return;
+  const current = String(selected || "00:00");
+  const values = [];
+  for (let hour = 0; hour < 24; hour += 1) {
+    for (const minute of [0, 15, 30, 45]) {
+      values.push(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+    }
+  }
+  if (!values.includes(current)) values.push(current);
+  values.sort();
+  select.replaceChildren(...values.map((value) =>
+    element("option", { value, text: formatClockValue(value) })
+  ));
+  select.value = current;
+}
+
+function renderHousekeepingTimeOptions() {
+  const value = state.housekeepingSettings?.time || "03:15";
+  renderClockOptions(byId("housekeeping-time"), value);
+}
+
+function renderBackupTimeOptions() {
+  const value = state.backupSettings?.time || "02:00";
+  renderClockOptions(byId("backup-time"), value);
+}
+
+function backupSnapshotDetail(item) {
+  const legacy = item.config_included ? "Full snapshot" : "Legacy state-only";
   const parts = [
-    `${item.secret_files} managed secret file${Number(item.secret_files) === 1 ? "" : "s"}`,
-    formatBytes(item.size_bytes),
+    legacy,
+    `${item.secret_files} file${Number(item.secret_files) === 1 ? "" : "s"}`,
     `DB schema ${item.schema_version}`,
   ];
-  if (item.config_included) parts.push("config.yaml included");
-  else parts.push("legacy state-only snapshot");
-  if (item.application_version) parts.push(`Nowlert ${item.application_version}`);
+  if (item.application_version) parts.push(`v${String(item.application_version).replace(/^v/i, "")}`);
   return parts.join(" · ");
 }
 
-function renderBackups() {
-  const container = byId("backup-list");
-  container.replaceChildren();
-  if (!isAdmin()) return;
-  if (!state.backups.length) {
-    empty(
-      container,
-      "No local recovery snapshots",
-      "Create a complete snapshot before migration or major changes.",
-    );
-    return;
+function backupScheduleSummary() {
+  const settings = state.backupSettings || {};
+  const schedule = String(settings.schedule || "disabled");
+  if (schedule === "disabled") {
+    return { count: "0", detail: "Disabled" };
   }
-  for (const item of state.backups) {
-    container.append(element("div", { className: "backup-item" }, [
-      element("div", {}, [
-        element("strong", { text: formatTime(item.created_at) }),
-        element("small", { text: backupRecoveryDetail(item) }),
-        element("code", { text: item.id }),
-      ]),
-      element("div", { className: "row-actions" }, [
+  const time = formatClockValue(settings.time || "02:00");
+  if (schedule === "daily") {
+    return { count: "1", detail: `Daily · ${time}` };
+  }
+  if (schedule === "weekly") {
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    return { count: "1", detail: `Weekly · ${days[Number(settings.weekday || 0)]}, ${time}` };
+  }
+  return { count: "1", detail: `Monthly · day ${Number(settings.day || 1)}, ${time}` };
+}
+
+function backupSystemHealth() {
+  const enabled = state.backupTargets.filter((item) => item.enabled);
+  if (!enabled.length) {
+    return { label: "Ready", note: "No external destinations enabled", healthy: true };
+  }
+  const writable = enabled.filter((item) => item.last_test_outcome === "success").length;
+  const healthy = writable === enabled.length && state.externalBackupErrors.length === 0;
+  return healthy
+    ? { label: "Healthy", note: "All destinations writable", healthy: true }
+    : { label: "Attention", note: `${writable} of ${enabled.length} destinations verified writable`, healthy: false };
+}
+
+function renderBackupOverview() {
+  if (!isAdmin()) return;
+  const counts = { local: 0, nfs: 0, smb: 0 };
+  for (const item of state.backupTargets) {
+    if (Object.hasOwn(counts, item.type)) counts[item.type] += 1;
+  }
+  const destinationTotal = state.backupTargets.length;
+  const destinationNote = destinationTotal
+    ? `${counts.local} local · ${counts.nfs} NFS · ${counts.smb} SMB`
+    : "No destinations configured";
+  const snapshotIds = new Set([
+    ...state.backups.map((item) => item.id),
+    ...state.externalBackups.map((item) => item.id),
+  ]);
+  const schedule = backupScheduleSummary();
+  const health = backupSystemHealth();
+  const allSnapshots = [...state.backups, ...state.externalBackups]
+    .sort((left, right) => Number(right.created_at || 0) - Number(left.created_at || 0));
+  const latest = allSnapshots[0];
+
+  byId("backup-summary-destinations").textContent = String(destinationTotal);
+  byId("backup-summary-destinations-note").textContent = destinationNote;
+  byId("backup-summary-snapshots").textContent = String(snapshotIds.size);
+  byId("backup-summary-snapshots-note").textContent = "Across all destinations";
+  byId("backup-summary-schedule").textContent = schedule.count;
+  byId("backup-summary-schedule-note").textContent = schedule.detail;
+  byId("backup-summary-health").textContent = health.label;
+  byId("backup-summary-health-note").textContent = health.note;
+  byId("backup-last-backup").textContent = latest ? formatTime(latest.created_at) : "No backup yet";
+  byId("backup-system-status").textContent = health.healthy ? "● All systems healthy" : "● Needs attention";
+  byId("backup-system-status").classList.toggle("warning", !health.healthy);
+}
+
+function renderBackupRecoveryTable() {
+  const body = byId("backup-recovery-table");
+  if (!body) return;
+  body.replaceChildren();
+  const rows = state.showAllBackups ? state.backups : state.backups.slice(0, 4);
+  if (!rows.length) {
+    body.append(element("tr", {}, element("td", {
+      text: "No local recovery snapshots yet.",
+      attributes: { colspan: "5" },
+    })));
+  }
+  for (const item of rows) {
+    const type = String(item.backup_type || "manual").toUpperCase();
+    body.append(element("tr", {}, [
+      element("td", {}, [element("span", { className: "backup-row-dot", text: "●" }), formatTime(item.created_at)]),
+      element("td", {}, badge(type, type === "SCHEDULED" ? "info" : "")),
+      element("td", {}, [element("strong", { text: item.config_included ? "Full snapshot" : "Legacy state-only" }), element("small", { text: backupSnapshotDetail(item) })]),
+      element("td", { text: formatBytes(item.size_bytes) }),
+      element("td", {}, element("div", { className: "row-actions" }, [
         actionButton("Restore", "restore-backup", item.id),
         actionButton("Delete", "delete-backup", item.id, "danger"),
-      ]),
+      ])),
     ]));
+  }
+  const button = byId("backup-view-all");
+  if (button) {
+    button.hidden = state.backups.length <= 4;
+    button.textContent = state.showAllBackups ? "Show latest 4" : `View all snapshots (${state.backups.length})`;
   }
 }
 
-function renderExternalBackups() {
-  const container = byId("external-backup-list");
-  if (!container) return;
-  container.replaceChildren();
-  if (!isAdmin()) return;
-
+function renderStoredBackupTable() {
+  const body = byId("backup-stored-table");
+  if (!body) return;
+  body.replaceChildren();
+  const rows = state.showAllStoredBackups ? state.externalBackups : state.externalBackups.slice(0, 4);
   if (state.externalBackupsLoading && !state.externalBackups.length) {
-    empty(container, "Checking backup destinations", "Looking for verified Nowlert recovery snapshots.");
-    return;
+    body.append(element("tr", {}, element("td", {
+      text: "Checking configured backup destinations…",
+      attributes: { colspan: "5" },
+    })));
+  } else if (!rows.length) {
+    body.append(element("tr", {}, element("td", {
+      text: "No stored copies discovered on configured destinations.",
+      attributes: { colspan: "5" },
+    })));
   }
-
-  if (!state.externalBackups.length && !state.externalBackupErrors.length) {
-    empty(
-      container,
-      "No stored snapshots discovered",
-      "Run a backup to a configured Local, NFS, or SMB destination, then refresh this list.",
-    );
-    return;
-  }
-
-  for (const item of state.externalBackups) {
+  for (const item of rows) {
     const restoreId = `${item.target_id}:${item.id}`;
-    container.append(element("div", { className: "backup-item external-backup-item" }, [
-      element("div", {}, [
-        element("strong", { text: formatTime(item.created_at) }),
-        element("small", {
-          text: `${item.target_name} (${String(item.target_type || "").toUpperCase()}) · ${backupRecoveryDetail(item)}`,
-        }),
-        element("code", { text: item.id }),
-      ]),
-      element("div", { className: "row-actions" }, [
-        actionButton("Restore", "restore-external-backup", restoreId),
-      ]),
+    const type = String(item.backup_type || "manual").toUpperCase();
+    body.append(element("tr", {}, [
+      element("td", {}, [element("span", { className: "backup-row-dot", text: "●" }), formatTime(item.created_at)]),
+      element("td", {}, [badge(String(item.target_type || "").toUpperCase(), "info"), element("span", { text: ` ${item.target_name}` })]),
+      element("td", {}, badge(type, type === "SCHEDULED" ? "info" : "")),
+      element("td", { text: formatBytes(item.size_bytes) }),
+      element("td", {}, actionButton("Restore", "restore-external-backup", restoreId)),
     ]));
+  }
+  const button = byId("backup-stored-view-all");
+  if (button) {
+    button.hidden = state.externalBackups.length <= 4;
+    button.textContent = state.showAllStoredBackups ? "Show latest 4" : `View all stored copies (${state.externalBackups.length})`;
   }
 
-  for (const failure of state.externalBackupErrors) {
-    container.append(element("div", { className: "backup-item external-backup-error" }, [
-      element("div", {}, [
-        element("strong", { text: failure.target_name }),
-        element("small", { text: failure.message }),
-      ]),
-      badge("Unavailable", "warning"),
-    ]));
+  const errors = byId("external-backup-list");
+  if (errors) {
+    errors.replaceChildren();
+    errors.hidden = state.externalBackupErrors.length === 0;
+    for (const failure of state.externalBackupErrors) {
+      errors.append(element("div", { className: "backup-item external-backup-error" }, [
+        element("div", {}, [
+          element("strong", { text: failure.target_name }),
+          element("small", { text: failure.message }),
+        ]),
+        badge("Unavailable", "warning"),
+      ]));
+    }
   }
+}
+
+function renderBackups() {
+  if (!isAdmin()) return;
+  renderBackupOverview();
+  renderBackupRecoveryTable();
+  renderStoredBackupTable();
+}
+
+function renderExternalBackups() {
+  renderBackupOverview();
+  renderStoredBackupTable();
 }
 
 async function loadExternalBackups({ silent = false } = {}) {
   if (!isAdmin() || state.externalBackupsLoading) return;
   const targets = state.backupTargets.filter((item) => item.enabled);
   state.externalBackupsLoading = true;
-  renderExternalBackups();
+  renderStoredBackupTable();
   try {
     const results = await Promise.allSettled(
       targets.map(async (target) => {
@@ -2176,22 +2294,24 @@ function renderBackupTargets() {
       ? item.local_path
       : item.type === "nfs" ? item.remote_path : `${item.share_name}${item.remote_path ? `/${item.remote_path}` : ""}`;
     const actions = element("div", { className: "row-actions" }, [
-      actionButton("Test", "test-backup-target", item.id),
+      actionButton("▶ Test", "test-backup-target", item.id),
       actionButton("Edit", "edit-backup-target", item.id),
       actionButton("Delete", "delete-backup-target", item.id, "danger"),
     ]);
     body.append(element("tr", {}, [
-      element("td", {}, badge(item.type.toUpperCase())),
+      element("td", {}, badge(item.type.toUpperCase(), "info")),
       element("td", {}, [element("strong", { text: item.name }), item.last_error ? element("small", { text: item.last_error }) : null]),
       element("td", { text: item.host || "—" }),
       element("td", {}, element("code", { text: location })),
       element("td", {}, badge(status, style)),
+      element("td", { text: item.last_test_at ? formatTime(item.last_test_at) : "Never" }),
       element("td", {}, actions),
     ]));
   }
   if (!state.backupTargets.length) {
-    body.append(element("tr", {}, element("td", { text: "No backup destinations configured", attributes: { colspan: "6" } })));
+    body.append(element("tr", {}, element("td", { text: "No backup destinations configured", attributes: { colspan: "7" } })));
   }
+  renderBackupOverview();
 }
 
 function renderConfiguration() {
@@ -2249,7 +2369,7 @@ function renderBackupSettings() {
   if (!isAdmin() || !state.backupSettings) return;
   const settings = state.backupSettings;
   byId("backup-schedule").value = settings.schedule;
-  byId("backup-time").value = settings.time;
+  renderBackupTimeOptions();
   byId("backup-weekday").value = String(settings.weekday);
   byId("backup-day").value = String(settings.day);
   const target = byId("backup-target");
@@ -2259,22 +2379,21 @@ function renderBackupSettings() {
   }
   target.value = settings.target_id || "";
   byId("backup-managed-mounts").checked = settings.managed_mounts === true;
-  const [hourText, minuteText] = String(settings.time || "02:00").split(":");
-  const hour = Number(hourText);
-  const scheduled = state.preferences.time_format === "12"
-    ? `${hour % 12 || 12}:${minuteText} ${hour < 12 ? "AM" : "PM"}`
-    : `${hourText}:${minuteText}`;
-  byId("backup-time-display").textContent = `Scheduled time: ${scheduled}`;
-  byId("backup-last-run").textContent = state.backupLastRun
-    ? `Last scheduled run: ${capitalize(state.backupLastRun.outcome || "pending")} · ${formatTime(state.backupLastRun.completed_at || state.backupLastRun.started_at)}`
-    : "No scheduled run recorded.";
+  byId("backup-time-display").textContent = `Scheduled time: ${formatClockValue(settings.time || "02:00")}`;
+  const lastText = state.backupLastRun
+    ? `Last run: ${formatTime(state.backupLastRun.completed_at || state.backupLastRun.started_at)} ✓`
+    : "No run yet";
+  byId("backup-last-run").textContent = lastText;
+  const badgeNode = byId("backup-last-run-badge");
+  if (badgeNode) badgeNode.textContent = lastText;
+  renderBackupOverview();
 }
 
 function renderHousekeepingSettings() {
   if (!isAdmin() || !state.housekeepingSettings) return;
   const settings = state.housekeepingSettings;
-  byId("housekeeping-enabled").checked = settings.enabled === true;
-  byId("housekeeping-time").value = settings.time || "03:15";
+  byId("housekeeping-enabled").value = settings.enabled === true ? "true" : "false";
+  renderHousekeepingTimeOptions();
   byId("housekeeping-delivery-days").value = String(settings.delivery_history_days ?? 90);
   byId("housekeeping-audit-days").value = String(settings.audit_history_days ?? 365);
   byId("housekeeping-backup-run-days").value = String(settings.backup_run_history_days ?? 180);
@@ -2291,9 +2410,12 @@ function renderHousekeepingSettings() {
   const lastNode = byId("housekeeping-last-run");
   if (lastNode) {
     const last = status.last_run;
+    const scheduleCopy = settings.enabled
+      ? `Runs daily at ${formatClockValue(settings.time || "03:15")}.`
+      : "Automatic housekeeping is disabled.";
     lastNode.textContent = last
-      ? `Last housekeeping: ${formatTime(last.completed_at || last.started_at)} · ${last.outcome || "completed"} · ${last.deliveries_deleted || 0} deliveries / ${last.audit_deleted || 0} audit events removed.`
-      : "No housekeeping run recorded.";
+      ? `${scheduleCopy} Last run: ${formatTime(last.completed_at || last.started_at)} · ${last.outcome || "completed"} · ${last.deliveries_deleted || 0} deliveries / ${last.audit_deleted || 0} audit events removed.`
+      : `${scheduleCopy} No housekeeping run recorded.`;
   }
 }
 
@@ -2333,6 +2455,8 @@ async function savePreferences(event) {
       },
     });
     state.preferences = response.preferences;
+    renderHousekeepingTimeOptions();
+    renderBackupTimeOptions();
     await loadWorkspace();
     toast("Regional settings saved.");
   } catch (error) {
@@ -2382,7 +2506,7 @@ async function saveHousekeepingSettings(event) {
     const response = await request("/housekeeping", {
       method: "PUT",
       body: {
-        enabled: byId("housekeeping-enabled").checked,
+        enabled: byId("housekeeping-enabled").value === "true",
         time: byId("housekeeping-time").value,
         delivery_history_days: Number(byId("housekeeping-delivery-days").value),
         audit_history_days: Number(byId("housekeeping-audit-days").value),
@@ -2396,20 +2520,6 @@ async function saveHousekeepingSettings(event) {
   } catch (error) {
     toast(error.message || "Housekeeping settings could not be saved.", "error");
   }
-}
-
-async function runHousekeepingNow() {
-  const response = await request("/housekeeping/run", {
-    method: "POST",
-    body: {},
-  });
-  state.housekeepingStatus = response.status;
-  renderHousekeepingSettings();
-  const run = response.run || {};
-  toast(
-    `Housekeeping completed: ${run.deliveries_deleted || 0} delivery rows and ${run.audit_deleted || 0} audit rows removed.`,
-    "success",
-  );
 }
 
 function updateBackupTargetFields() {
@@ -2722,14 +2832,14 @@ async function selectedFile(id) {
   return file.text();
 }
 
-async function previewImport(kind) {
+async function previewImport(kind, portableFileId = "portable-file") {
   clearError("import-error");
   const portable = kind === "portable";
   const local = kind === "local_yaml";
   try {
     let body = {};
     if (!local) {
-      const content = await selectedFile(portable ? "portable-file" : "migration-file");
+      const content = await selectedFile(portable ? portableFileId : "migration-file");
       if (portable) {
         let documentValue;
         try {
@@ -2746,7 +2856,7 @@ async function previewImport(kind) {
       ? "/configuration/migration/preview"
       : portable ? "/portability/preview" : "/migrations/v1/preview";
     const response = await request(endpoint, { method: "POST", body });
-    state.pendingImport = { kind, body, preview: response.preview };
+    state.pendingImport = { kind, body, preview: response.preview, portableFileId };
     byId("import-title").textContent = local
       ? "Mounted configuration takeover"
       : portable ? "Platform JSON preview" : "v1.x YAML migration preview";
@@ -2785,6 +2895,8 @@ async function applyImport() {
     state.pendingImport = null;
     byId("import-dialog").close();
     byId("portable-file").value = "";
+    const backupPortableFile = byId("backup-portable-file");
+    if (backupPortableFile) backupPortableFile.value = "";
     const migrationFile = byId("migration-file");
     if (migrationFile) migrationFile.value = "";
     await loadWorkspace();
@@ -3451,6 +3563,9 @@ async function resourceAction(action, id) {
     } else if (action === "preview-portable") {
       await previewImport("portable");
       return;
+    } else if (action === "preview-backup-portable") {
+      await previewImport("portable", "backup-portable-file");
+      return;
     } else if (action === "preview-migration") {
       await previewImport("v1_yaml");
       return;
@@ -3475,8 +3590,13 @@ async function resourceAction(action, id) {
     } else if (action === "refresh-external-backups") {
       await loadExternalBackups();
       return;
-    } else if (action === "run-housekeeping") {
-      await runHousekeepingNow();
+    } else if (action === "view-all-backups") {
+      state.showAllBackups = !state.showAllBackups;
+      renderBackupRecoveryTable();
+      return;
+    } else if (action === "view-all-stored-backups") {
+      state.showAllStoredBackups = !state.showAllStoredBackups;
+      renderStoredBackupTable();
       return;
     } else if (action === "test-backup-target") {
       const response = await request(`/backup-targets/${id}/test`, { method: "POST", body: {} });
@@ -3788,6 +3908,8 @@ function bindEvents() {
     state.pendingImport = null;
     byId("import-result").textContent = "";
     byId("portable-file").value = "";
+    const backupPortableFile = byId("backup-portable-file");
+    if (backupPortableFile) backupPortableFile.value = "";
     const migrationFile = byId("migration-file");
     if (migrationFile) migrationFile.value = "";
     clearError("import-error");

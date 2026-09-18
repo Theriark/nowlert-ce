@@ -47,6 +47,12 @@ DEFAULT_HOUSEKEEPING_SETTINGS = {
     "backup_run_history_days": 180,
 }
 
+HOUSEKEEPING_RETENTION_OPTIONS = {
+    "delivery_history_days": (7, 30, 60, 90, 180, 365, 0),
+    "audit_history_days": (90, 180, 365, 730, 1095, 0),
+    "backup_run_history_days": (30, 90, 180, 365, 730, 0),
+}
+
 DEFAULT_INTEGRATION_SETTINGS = {
     "xo": {"show_ids": False},
     "zabbix": {"show_ids": False},
@@ -348,8 +354,14 @@ class SettingsStore:
             if isinstance(raw, bool):
                 raise ValueError(f"{key} must be an integer")
             days = int(raw)
-            if not 0 <= days <= 3650:
-                raise ValueError(f"{key} must be between 0 and 3650")
+            if days not in HOUSEKEEPING_RETENTION_OPTIONS[key]:
+                allowed = ", ".join(
+                    "forever" if item == 0 else str(item)
+                    for item in HOUSEKEEPING_RETENTION_OPTIONS[key]
+                )
+                raise ValueError(
+                    f"{key} must use a recommended retention value: {allowed}"
+                )
             result[key] = days
         return result
 

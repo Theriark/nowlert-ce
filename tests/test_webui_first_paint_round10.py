@@ -32,8 +32,9 @@ def test_round10_sidebar_final_layer_matches_supplied_reference_contract():
     end = styles.index("/* NCE-35 final unified pagination row */", start)
     sidebar = styles[start:end]
 
-    assert "grid-template-columns: 208px minmax(0, 1fr) !important;" in sidebar
-    assert "grid-template-columns: 106px minmax(0, 1fr) !important;" in sidebar
+    assert "grid-template-columns: auto minmax(0, 1fr) !important;" in sidebar
+    assert "width: 200px !important;" in sidebar
+    assert "width: 98px !important;" in sidebar
     assert "> .sidebar-owl-button {" in sidebar
     assert "> .sidebar-edition-expanded {" in sidebar
     assert "> .sidebar-edition-collapsed {" in sidebar

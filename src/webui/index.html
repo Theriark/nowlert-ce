@@ -257,16 +257,15 @@
             <div id="integration-settings-list" class="resource-grid"></div>
           </article>
           <article class="panel settings-card housekeeping-card">
-            <div class="panel-heading"><div><p class="eyebrow">Housekeeping</p><h3>Operational history retention</h3><p>Keep delivery and audit evidence locally for investigation while automatically removing records older than your retention policy. Use 0 days to keep a category forever.</p></div></div>
+            <div class="panel-heading"><div><p class="eyebrow">Housekeeping</p><h3>Operational history retention</h3><p>Keep delivery and audit evidence locally for investigation while automatically removing records older than the selected retention policy. Housekeeping runs once per day when enabled.</p></div></div>
             <form id="housekeeping-form" class="form-grid">
-              <label class="switch-field wide"><input id="housekeeping-enabled" type="checkbox" checked><span>Run housekeeping automatically each day</span></label>
-              <label><span>Run time</span><input id="housekeeping-time" type="time" value="03:15" required></label>
-              <label><span>Delivery history</span><input id="housekeeping-delivery-days" type="number" min="0" max="3650" value="90" required><small>Days to retain; 0 keeps forever.</small></label>
-              <label><span>Audit history</span><input id="housekeeping-audit-days" type="number" min="0" max="3650" value="365" required><small>Days to retain; 0 keeps forever.</small></label>
-              <label><span>Backup run history</span><input id="housekeeping-backup-run-days" type="number" min="0" max="3650" value="180" required><small>Run records only; snapshot retention stays under Backups.</small></label>
+              <label><span>Housekeeping</span><select id="housekeeping-enabled"><option value="true">Enabled</option><option value="false">Disabled</option></select><small>Disabled keeps all configured history until housekeeping is enabled again.</small></label>
+              <label><span>Daily housekeeping time</span><select id="housekeeping-time" required></select><small>Displayed using your Regional Settings clock format.</small></label>
+              <label><span>Delivery history</span><select id="housekeeping-delivery-days"><option value="7">7 days</option><option value="30">30 days</option><option value="60">60 days</option><option value="90">90 days — Recommended</option><option value="180">180 days</option><option value="365">365 days</option><option value="0">Keep forever</option></select><small>Delivery attempts older than this are removed.</small></label>
+              <label><span>Audit history</span><select id="housekeeping-audit-days"><option value="90">90 days</option><option value="180">180 days</option><option value="365">365 days — Recommended</option><option value="730">730 days</option><option value="1095">1095 days</option><option value="0">Keep forever</option></select><small>Audit events older than this are removed.</small></label>
+              <label><span>Backup run history</span><select id="housekeeping-backup-run-days"><option value="30">30 days</option><option value="90">90 days</option><option value="180">180 days — Recommended</option><option value="365">365 days</option><option value="730">730 days</option><option value="0">Keep forever</option></select><small>Execution records only; recovery snapshot retention stays under Backups.</small></label>
               <div class="wide button-row">
                 <button class="button primary" type="submit">Save housekeeping</button>
-                <button class="button secondary" type="button" data-action="run-housekeeping">Run housekeeping now</button>
               </div>
               <div class="wide housekeeping-status">
                 <small id="housekeeping-history-status">History statistics are loading.</small>
@@ -312,31 +311,81 @@
           </div>
         </section>
 
-        <section id="view-backups" class="view" data-page="backups" hidden>
-          <div class="section-toolbar"><div><h2>Backups</h2><p>Create complete Nowlert recovery snapshots and restore them from local, NFS, or SMB storage.</p></div><button class="button primary" type="button" data-action="new-backup-target">Add backup destination</button></div>
-          <div class="data-tools-grid">
-            <article class="panel data-tool-card backup-targets-card">
-              <div class="panel-heading"><div><p class="eyebrow">Destinations</p><h3>Backup storage</h3><p>Local, NFS, and SMB targets are write-tested before use. Remote targets can be mounted by Nowlert when managed mounts are enabled.</p></div></div>
-              <div class="table-scroll"><table><thead><tr><th>Type</th><th>Name</th><th>Host</th><th>Backup path</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="backup-target-table"></tbody></table></div>
-            </article>
-            <article class="panel data-tool-card backup-card">
-              <div><p class="eyebrow">Complete recovery</p><h3>Recovery snapshots</h3><p>Snapshots include the complete SQLite state — users, configuration records, filtering, delivery history, audit history and backup settings — plus Nowlert-managed secret files and the mounted bootstrap config.yaml. Restores create a safety snapshot first and restart Nowlert after verification.</p></div>
-              <div class="button-row"><button class="button primary" type="button" data-action="create-backup">Create local snapshot</button><button class="button secondary" type="button" data-action="run-backup-now">Run scheduled backup now</button><button class="button secondary" type="button" data-action="refresh-external-backups">Refresh stored snapshots</button></div>
-              <div id="backup-list" class="backup-list"></div>
-              <div class="panel-heading backup-external-heading"><div><p class="eyebrow">Stored copies</p><h3>Local / NFS / SMB snapshots</h3><p>Verified snapshots discovered on configured backup destinations. Restore copies the selected snapshot to local staging and validates it before replacing live state.</p></div></div>
-              <div id="external-backup-list" class="backup-list"></div>
-            </article>
-            <article class="panel data-tool-card backup-schedule-card">
-              <div><p class="eyebrow">Scheduled backups</p><h3>Local, NFS, or SMB</h3><p>Select a tested destination. Managed remote mounts require the opt-in deployment override.</p></div>
-              <form id="backup-settings-form" class="form-grid">
+        <section id="view-backups" class="view backup-dashboard" data-page="backups" data-page-description="Configure backup destinations, schedules, snapshots, restore operations, and portable configuration." hidden>
+          <div class="backup-page-heading">
+            <div class="backup-heading-status">
+              <div><small>Last backup</small><strong id="backup-last-backup">No backup yet</strong></div>
+              <span class="backup-heading-divider" aria-hidden="true"></span>
+              <div><small>System status</small><strong id="backup-system-status">Checking</strong></div>
+            </div>
+          </div>
+
+          <div id="backup-overview-strip" class="backup-overview-strip">
+            <div class="backup-summary-item">
+              <span class="backup-summary-icon" aria-hidden="true">◉</span>
+              <div><strong id="backup-summary-destinations">0</strong><span>Backup destinations</span><small id="backup-summary-destinations-note">No destinations configured</small></div>
+            </div>
+            <div class="backup-summary-item">
+              <span class="backup-summary-icon" aria-hidden="true">▤</span>
+              <div><strong id="backup-summary-snapshots">0</strong><span>Snapshots available</span><small id="backup-summary-snapshots-note">Across all destinations</small></div>
+            </div>
+            <div class="backup-summary-item">
+              <span class="backup-summary-icon" aria-hidden="true">□</span>
+              <div><strong id="backup-summary-schedule">0</strong><span>Scheduled backup</span><small id="backup-summary-schedule-note">Disabled</small></div>
+            </div>
+            <div class="backup-summary-item">
+              <span class="backup-summary-icon success" aria-hidden="true">◆</span>
+              <div><strong id="backup-summary-health">Checking</strong><span>Backup system status</span><small id="backup-summary-health-note">Checking destinations</small></div>
+            </div>
+          </div>
+
+          <article id="backup-destinations-panel" class="panel backup-dashboard-panel backup-destinations-panel">
+            <div class="panel-heading backup-panel-heading">
+              <div><p class="eyebrow">Backup destinations</p><h3>Backup destinations</h3><p>Configure where backups are stored. Remote targets are tested for connectivity and write access.</p></div>
+              <button class="button primary" type="button" data-action="new-backup-target">＋ Add backup destination</button>
+            </div>
+            <div class="table-scroll"><table><thead><tr><th>Type</th><th>Name</th><th>Host</th><th>Backup path</th><th>Status</th><th>Last test</th><th>Actions</th></tr></thead><tbody id="backup-target-table"></tbody></table></div>
+          </article>
+
+          <div class="backup-dashboard-grid">
+            <article id="backup-schedule-panel" class="panel backup-dashboard-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Scheduled backups</p><h3>Scheduled backups</h3><p>Managed remote mounts require the opt-in deployment override.</p></div><span id="backup-last-run-badge" class="backup-run-badge">No run yet</span></div>
+              <form id="backup-settings-form" class="backup-schedule-form">
                 <label><span>Schedule</span><select id="backup-schedule"><option value="disabled">Disabled</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
-                <label><span>Run time</span><input id="backup-time" type="time" value="02:00" required></label>
                 <label><span>Weekly day</span><select id="backup-weekday"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option></select></label>
+                <label><span>Run time</span><select id="backup-time" required></select></label>
                 <label><span>Monthly day</span><input id="backup-day" type="number" min="1" max="28" value="1"></label>
-                <label class="wide"><span>Backup destination</span><select id="backup-target"><option value="">Local state only</option></select></label>
-                <label class="switch-field"><input id="backup-managed-mounts" type="checkbox"><span>Allow Nowlert to mount remote destinations</span></label>
-                <div class="wide"><button class="button primary" type="submit">Save backup settings</button><small id="backup-time-display">Scheduled time: 02:00</small><small id="backup-last-run">No scheduled run recorded.</small></div>
+                <label class="backup-schedule-destination"><span>Backup destination</span><select id="backup-target"><option value="">Local state only</option></select></label>
+                <label class="switch-field backup-managed-mounts"><input id="backup-managed-mounts" type="checkbox"><span>Allow Nowlert to mount remote destinations</span></label>
+                <div class="backup-schedule-actions"><button class="button primary" type="submit">▣ Save backup settings</button><small id="backup-time-display">Scheduled time: 02:00</small><small id="backup-last-run" hidden>No scheduled run recorded.</small></div>
               </form>
+            </article>
+
+            <article id="backup-data-tools-panel" class="panel backup-dashboard-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Data tools</p><h3>Data tools</h3><p>Move user-created Nowlert configuration without moving credentials, accounts, history, or recovery data.</p></div></div>
+              <div class="backup-data-tools-grid">
+                <div class="backup-tool-box"><strong>Export user configuration</strong><p>Download destinations, reusable routes, route assignments, destination filtering policies, and safe settings.</p><button class="button primary" type="button" data-action="export-platform">⇩ Download safe JSON</button></div>
+                <div class="backup-tool-box"><strong>Import user configuration</strong><p>Preview a safe export before merging it. Credentials intentionally remain unset and stay disabled.</p><label class="file-field compact"><span class="sr-only">JSON document</span><input id="backup-portable-file" type="file" accept="application/json,.json"></label><button class="button secondary" type="button" data-action="preview-backup-portable">⌕ Preview JSON import</button></div>
+              </div>
+            </article>
+          </div>
+
+          <div class="backup-dashboard-grid">
+            <article id="backup-recovery-panel" class="panel backup-dashboard-panel">
+              <div class="panel-heading backup-panel-heading">
+                <div><p class="eyebrow">Recovery snapshots</p><h3>Recovery snapshots</h3><p>Snapshots include the complete SQLite state — users, configuration records, filtering, audit and delivery history.</p></div>
+                <div class="button-row"><button class="button primary" type="button" data-action="create-backup">▣ Create local snapshot</button><button class="button secondary" type="button" data-action="run-backup-now">▶ Run scheduled now</button><button class="button secondary" type="button" data-action="refresh-external-backups">↻ Refresh</button></div>
+              </div>
+              <div class="table-scroll"><table><thead><tr><th>Date &amp; time</th><th>Type</th><th>Details</th><th>Size</th><th>Actions</th></tr></thead><tbody id="backup-recovery-table"></tbody></table></div>
+              <button id="backup-view-all" class="button secondary backup-view-all" type="button" data-action="view-all-backups">View all snapshots</button>
+            </article>
+
+            <article id="backup-stored-panel" class="panel backup-dashboard-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Stored copies</p><h3>Stored copies</h3><p>Verified snapshots discovered on configured backup destinations. Restore copies to local staging and validates it before replacing live state.</p></div></div>
+              <div class="table-scroll"><table><thead><tr><th>Date &amp; time</th><th>Destination</th><th>Type</th><th>Size</th><th>Actions</th></tr></thead><tbody id="backup-stored-table"></tbody></table></div>
+              <button id="backup-stored-view-all" class="button secondary backup-view-all" type="button" data-action="view-all-stored-backups">View all stored copies</button>
+              <div id="external-backup-list" class="backup-list backup-errors-only" hidden></div>
+              <div id="backup-list" class="backup-list" hidden></div>
             </article>
           </div>
         </section>

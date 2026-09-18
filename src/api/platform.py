@@ -267,8 +267,6 @@ class PlatformAPI:
                 return self._health_endpoint(method, actor)
             if path == "/api/v2/housekeeping":
                 return self._housekeeping_endpoint(method, payload, actor)
-            if path == "/api/v2/housekeeping/run":
-                return self._housekeeping_run_endpoint(method, actor)
             if path == "/api/v2/backup-settings":
                 return self._backup_settings_endpoint(method, payload, actor)
             if path == "/api/v2/backup-targets":
@@ -879,16 +877,6 @@ class PlatformAPI:
             )
         return self._method_not_allowed("GET, PUT")
 
-    def _housekeeping_run_endpoint(self, method, actor) -> APIResponse:
-        self._require_admin(actor)
-        if method != "POST":
-            return self._method_not_allowed("POST")
-        result = self.housekeeping.run(actor)
-        return APIResponse(
-            200,
-            {"run": result, "status": self.housekeeping.status()},
-        )
-
     def _backup_settings_endpoint(self, method, payload, actor) -> APIResponse:
         self._require_admin(actor)
         if self.configuration_sync is None:
@@ -1272,16 +1260,36 @@ class PlatformAPI:
             raise RuntimeError("mounted configuration bridge is unavailable")
         return self.configuration_bridge
 
+    def _backup_public(self, item) -> dict:
+        payload = item.public()
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT period_key FROM backup_schedule_runs
+                WHERE backup_id = ?
+                ORDER BY started_at DESC
+                LIMIT 1
+                """,
+                (item.id,),
+            ).fetchone()
+        period = str(row["period_key"]) if row is not None else ""
+        payload["backup_type"] = (
+            "scheduled"
+            if period.startswith(("daily:", "weekly:", "monthly:"))
+            else "manual"
+        )
+        return payload
+
     def _backups_endpoint(self, method, actor) -> APIResponse:
         self._require_admin(actor)
         if method == "GET":
             return APIResponse(
                 200,
-                {"backups": [item.public() for item in self.backups.list(actor)]},
+                {"backups": [self._backup_public(item) for item in self.backups.list(actor)]},
             )
         if method == "POST":
             backup = self.backups.create(actor)
-            return APIResponse(201, {"backup": backup.public()})
+            return APIResponse(201, {"backup": self._backup_public(backup)})
         return self._method_not_allowed("GET, POST")
 
     def _resource_endpoint(self, method, path, payload, actor):
@@ -1326,7 +1334,7 @@ class PlatformAPI:
                 200,
                 {
                     "target": target.public(),
-                    "backups": [item.public() for item in backups],
+                    "backups": [self._backup_public(item) for item in backups],
                 },
             )
 
