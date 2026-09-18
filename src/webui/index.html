@@ -83,57 +83,47 @@
   <div id="app-shell" class="app-shell" hidden>
     <aside class="sidebar" aria-label="Primary navigation">
       <div class="brand sidebar-brand">
-        <strong class="brand-wordmark"><span class="brand-now">NOW</span><span class="brand-lert">LERT</span></strong>
-        <span class="brand-mark"><img src="/ui/brand/nowlert-owl-v3.1.0.png" alt=""></span>
-        <small>Community Edition</small>
+        <strong class="brand-wordmark sidebar-wordmark"><span class="brand-now">NOW</span><span class="brand-lert">LERT</span></strong>
+        <button id="sidebar-collapse-button" class="sidebar-owl-button" type="button" aria-label="Collapse navigation" aria-expanded="true">
+          <span class="brand-mark"><img src="/ui/brand/nowlert-owl-v3.1.0.png" alt=""></span>
+        </button>
+        <small class="sidebar-edition sidebar-edition-expanded">COMMUNITY EDITION</small>
+        <small class="sidebar-edition sidebar-edition-collapsed" aria-hidden="true">CE</small>
       </div>
       <nav id="primary-nav" class="nav-list">
         <button class="nav-item active" type="button" data-view="dashboard" aria-current="page">
-          <span class="nav-icon" aria-hidden="true">⌂</span><span>Dashboard</span>
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path><path d="M9.5 20v-5h5v5"></path></svg></span><span class="nav-label">Dashboard</span>
         </button>
-        <button class="nav-item" type="button" data-view="sources">
-          <span class="nav-icon" aria-hidden="true">◉</span><span>Sources</span>
+        <button class="nav-item" type="button" data-view="routing-flow">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="1"></rect><rect x="15" y="15" width="6" height="6" rx="1"></rect><rect x="15" y="3" width="6" height="6" rx="1"></rect><path d="M9 6h6M18 9v6M9 7.5l6.5 7.5"></path></svg></span><span class="nav-label">Routing Flow</span>
         </button>
         <button class="nav-item" type="button" data-view="destinations">
-          <span class="nav-icon" aria-hidden="true">◎</span><span>Destinations</span>
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle></svg></span><span class="nav-label">Destinations</span>
         </button>
-        <button class="nav-item" type="button" data-view="routes">
-          <span class="nav-icon" aria-hidden="true">↗</span><span>Routes</span>
-        </button>
-        <button class="nav-item" type="button" data-view="tokens">
-          <span class="nav-icon" aria-hidden="true">◇</span><span>API access</span>
+        <button class="nav-item" type="button" data-view="filtering">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5Z"></path></svg></span><span class="nav-label">Filtering</span>
         </button>
         <button class="nav-item" type="button" data-view="deliveries">
-          <span class="nav-icon" aria-hidden="true">≋</span><span>Delivery history</span>
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7c2.2-2.7 4.4 2.7 6.6 0s4.4 2.7 6.6 0 4.4 2.7 4.8 2.2"></path><path d="M3 12c2.2-2.7 4.4 2.7 6.6 0s4.4 2.7 6.6 0 4.4 2.7 4.8 2.2"></path><path d="M3 17c2.2-2.7 4.4 2.7 6.6 0s4.4 2.7 6.6 0 4.4 2.7 4.8 2.2"></path></svg></span><span class="nav-label">Delivery history</span>
         </button>
         <button class="nav-item" type="button" data-view="audit">
-          <span class="nav-icon" aria-hidden="true">◷</span><span>Audit log</span>
-        </button>
-        <button id="users-nav" class="nav-item" type="button" data-view="users" hidden>
-          <span class="nav-icon" aria-hidden="true">♙</span><span>Users</span>
-        </button>
-        <button id="settings-nav" class="nav-item" type="button" data-view="settings" hidden>
-          <span class="nav-icon" aria-hidden="true">⚙</span><span>Settings</span>
-        </button>
-        <button id="updates-nav" class="nav-item" type="button" data-view="updates">
-          <span class="nav-icon" aria-hidden="true">⇧</span><span>Updates</span>
-        </button>
-        <button id="inputs-nav" class="nav-item" type="button" data-view="inputs" hidden>
-          <span class="nav-icon" aria-hidden="true">⇥</span><span>Inputs</span>
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg></span><span class="nav-label">Audit log</span>
         </button>
         <button id="backups-nav" class="nav-item" type="button" data-view="backups" hidden>
-          <span class="nav-icon" aria-hidden="true">▣</span><span>Backups</span>
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg></span><span class="nav-label">Backups</span>
         </button>
-        <button id="data-nav" class="nav-item" type="button" data-view="data" hidden>
-          <span class="nav-icon" aria-hidden="true">⇄</span><span>Data tools</span>
+        <button id="users-nav" class="nav-item" type="button" data-view="users" hidden>
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"></circle><path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6"></path></svg></span><span class="nav-label">Users</span>
+        </button>
+        <button id="settings-nav" class="nav-item" type="button" data-view="settings" hidden>
+          <span class="nav-icon" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg></span><span class="nav-label">Settings</span>
         </button>
       </nav>
       <div class="sidebar-footer">
         <div class="profile-menu">
           <button id="profile-menu-button" class="profile-chip" type="button" data-action="toggle-profile-menu" aria-haspopup="menu" aria-expanded="false">
             <span id="profile-avatar" class="avatar" aria-hidden="true">N</span>
-            <span><strong id="profile-name">Account</strong><small id="profile-role">User</small></span>
-            <span class="profile-chevron" aria-hidden="true">⌃</span>
+            <span class="profile-copy"><strong id="profile-name">Account</strong><small id="profile-role">User</small></span>
           </button>
           <div id="profile-menu-popover" class="profile-menu-popover" role="menu" hidden>
             <button type="button" role="menuitem" data-view="account"><span aria-hidden="true">◇</span> Security</button>

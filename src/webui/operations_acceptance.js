@@ -260,8 +260,24 @@
     return container;
   }
 
+  function cachedRoutingFlowTimestamp() {
+    const range = byId("rf-range")?.value || "15m";
+    const cached = state.routingFlowSnapshots && state.routingFlowSnapshots[range];
+    if (!cached) return 0;
+    const raw = Number(cached.generated_at || cached.generatedAt || 0);
+    if (!Number.isFinite(raw) || raw <= 0) return Date.now();
+    return raw < 10_000_000_000 ? raw * 1000 : raw;
+  }
+
   function routingFlowStatus(now = Date.now()) {
-    if (!flowLastAttempt) {
+    if (!flowLastAttempt && !flowLastSuccess) {
+      const cachedAt = cachedRoutingFlowTimestamp();
+      if (cachedAt) {
+        flowLastSuccess = cachedAt;
+        flowLatestOk = true;
+      }
+    }
+    if (!flowLastAttempt && !flowLastSuccess) {
       return { name: "Connecting", kind: "connecting", detail: "Waiting for snapshot" };
     }
     if (flowLatestOk === true && flowLastSuccess && now - flowLastSuccess <= FLOW_LIVE_MS) {
