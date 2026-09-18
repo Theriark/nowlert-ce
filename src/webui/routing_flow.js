@@ -326,6 +326,26 @@
     filterItems = [...filterItems].sort((a, b) => (finalFilterDesired.get(a.id) ?? 0) - (finalFilterDesired.get(b.id) ?? 0) || a.id.localeCompare(b.id));
     filterCenters = resolveCenters(filterItems, finalFilterDesired, filterHeights, 12, headerBottom);
 
+    // Connections and filter changes can pull the barycentric centers downward.
+    // Normalize the finished layout so the first visible node always begins at
+    // the same offset beneath the column headings instead of leaving a growing
+    // blank band at the top of the graph.
+    const topEdges = [
+      ...ordered.routeOrder.map(route => routeCenters.get(route.id) - (routeHeights.get(route.id) || 80) / 2),
+      ...ordered.destinationOrder.map(destination => destinationCenters.get(destination.id) - (destinationHeights.get(destination.id) || 150) / 2),
+      ...filterItems.map(item => filterCenters.get(item.id) - (filterHeights.get(item.id) || 66) / 2),
+    ].filter(Number.isFinite);
+    const topShift = topEdges.length
+      ? Math.max(0, Math.min(...topEdges) - headerBottom)
+      : 0;
+    if (topShift > 0) {
+      for (const centers of [routeCenters, destinationCenters, filterCenters]) {
+        for (const [id, center] of centers) {
+          centers.set(id, center - topShift);
+        }
+      }
+    }
+
     const bottoms = [headerBottom];
     for (const route of ordered.routeOrder) bottoms.push(routeCenters.get(route.id) + (routeHeights.get(route.id) || 80) / 2);
     for (const destination of ordered.destinationOrder) bottoms.push(destinationCenters.get(destination.id) + (destinationHeights.get(destination.id) || 150) / 2);

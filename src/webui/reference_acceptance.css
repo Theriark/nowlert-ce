@@ -598,3 +598,581 @@ button.reference-preview-route-more:focus-visible {
 #restart-header-button {
   display: none !important;
 }
+
+
+/* 2026-09-18 round-two screenshot corrections. */
+
+/* Delivery History and Audit Log footers: one full-width grid with continuous,
+   aligned separators and no inherited inset/gap from the legacy footer shells. */
+#view-deliveries .delivery-history-list-footer,
+#view-audit .audit-log-list-footer {
+  display: block !important;
+  gap: 0 !important;
+  min-height: 78px !important;
+  padding: 0 !important;
+}
+
+#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"],
+#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] {
+  box-sizing: border-box !important;
+  grid-template-columns: 20% 46% 18% 16% !important;
+  grid-template-rows: 78px !important;
+  height: 78px !important;
+  min-height: 78px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+#view-deliveries .reference-pagination-range,
+#view-audit .reference-pagination-range,
+#view-deliveries .reference-pagination-pages,
+#view-audit .reference-pagination-pages,
+#view-deliveries .reference-pagination-jump,
+#view-audit .reference-pagination-jump,
+#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"] > .qa-pagination-footer,
+#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] > .qa-pagination-footer {
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+  height: 78px !important;
+  min-height: 78px !important;
+  margin: 0 !important;
+}
+
+#view-deliveries .reference-pagination-range,
+#view-audit .reference-pagination-range,
+#view-deliveries .reference-pagination-pages,
+#view-audit .reference-pagination-pages,
+#view-deliveries .reference-pagination-jump,
+#view-audit .reference-pagination-jump {
+  border-left: 0 !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.18) !important;
+}
+
+#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"] > .qa-pagination-footer,
+#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] > .qa-pagination-footer {
+  border: 0 !important;
+  justify-self: stretch !important;
+  width: 100% !important;
+}
+
+#view-deliveries .reference-pagination-range,
+#view-audit .reference-pagination-range {
+  padding-inline: 18px !important;
+}
+
+#view-deliveries .reference-pagination-pages,
+#view-audit .reference-pagination-pages {
+  gap: 9px !important;
+  padding-inline: 12px !important;
+}
+
+#view-deliveries .reference-pagination-jump,
+#view-audit .reference-pagination-jump {
+  padding: 9px 12px !important;
+}
+
+#view-deliveries .qa-pagination-footer label,
+#view-audit .qa-pagination-footer label {
+  align-items: center !important;
+  justify-items: center !important;
+  width: 100% !important;
+}
+
+/* Destination owner metadata must use the same control scale as status/sharing. */
+#view-destinations .destination-owner-badge {
+  box-sizing: border-box !important;
+  font-size: 0.64rem !important;
+  height: 2rem !important;
+  line-height: 1 !important;
+  min-height: 2rem !important;
+  padding: 0.32rem 0.6rem !important;
+}
+#view-destinations .destination-owner-badge .destination-readonly-label {
+  font-size: inherit !important;
+  line-height: 1 !important;
+}
+
+/* Users footer: no punctuation tail, no per-page chip, and more breathing room. */
+.reference-users-footer {
+  min-height: 60px;
+}
+.reference-users-pager {
+  gap: 12px;
+}
+#reference-users-pages {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+.reference-users-page-size {
+  display: none !important;
+}
+
+/* Settings: stop stretching the two cards to the same tall height and keep
+   every update icon vertically aligned with its content. */
+.reference-settings-grid {
+  align-items: start !important;
+  gap: 14px !important;
+}
+.reference-settings-grid > * {
+  align-self: start !important;
+  min-height: 0 !important;
+}
+.reference-regional-card,
+.reference-updates-card {
+  padding: 16px !important;
+}
+.reference-regional-card > .panel-heading,
+.reference-update-heading-copy {
+  align-items: center !important;
+  gap: 12px !important;
+  grid-template-columns: 44px minmax(0, 1fr) !important;
+}
+.reference-settings-card-icon {
+  align-self: center !important;
+  display: grid !important;
+  font-size: 1.18rem !important;
+  height: 42px !important;
+  justify-self: center !important;
+  line-height: 1 !important;
+  place-items: center !important;
+  width: 42px !important;
+}
+.reference-regional-card h2,
+.reference-updates-card h2 {
+  font-size: 1.18rem !important;
+}
+.reference-regional-info {
+  margin: 10px 0 12px !important;
+  padding-bottom: 12px !important;
+}
+.reference-regional-card #preferences-form {
+  gap: 10px !important;
+}
+.reference-regional-card #preferences-form > label {
+  gap: 4px !important;
+}
+.reference-regional-card select {
+  min-height: 40px !important;
+}
+.reference-regional-card #preferences-form > .wide {
+  gap: 12px !important;
+}
+.reference-regional-card #preferences-form button,
+.reference-check-updates {
+  min-height: 40px !important;
+}
+.reference-updates-card {
+  gap: 10px !important;
+  grid-template-rows: auto auto !important;
+}
+.reference-updates-card > .section-toolbar {
+  align-items: center !important;
+  display: grid !important;
+  gap: 12px !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  min-height: 0 !important;
+  padding-bottom: 12px !important;
+}
+.reference-updates-card > .update-panel {
+  align-content: start !important;
+  gap: 10px !important;
+}
+.reference-update-status-card {
+  gap: 12px !important;
+  grid-template-columns: 42px minmax(0, 1fr) !important;
+  min-height: 74px !important;
+  padding: 12px 14px !important;
+}
+.reference-update-status-icon,
+.reference-version-icon,
+.reference-update-checked-icon {
+  align-self: center !important;
+  display: grid !important;
+  justify-self: center !important;
+  line-height: 1 !important;
+  place-items: center !important;
+}
+.reference-update-status-icon {
+  font-size: 1.15rem !important;
+  height: 38px !important;
+  width: 38px !important;
+}
+.reference-update-version-grid {
+  gap: 10px !important;
+}
+.reference-update-version-card {
+  gap: 10px !important;
+  grid-template-columns: 40px minmax(0, 1fr) !important;
+  min-height: 88px !important;
+  padding: 12px !important;
+}
+.reference-version-icon {
+  font-size: 1.05rem !important;
+  height: 36px !important;
+  width: 36px !important;
+}
+.reference-update-version-card #running-version,
+.reference-update-version-card #available-version {
+  font-size: 1.35rem !important;
+}
+.reference-update-checked {
+  gap: 10px !important;
+  grid-template-columns: 38px minmax(0, 1fr) !important;
+  min-height: 62px !important;
+  padding: 10px 12px !important;
+}
+.reference-update-checked-icon {
+  font-size: 1rem !important;
+  height: 34px !important;
+  width: 34px !important;
+}
+
+/* Security: the legacy header button is the retained, accepted Restart control.
+   The menu-created platform button goes back to its hidden menu home. */
+#restart-header-button.reference-account-restart {
+  align-items: center !important;
+  display: inline-flex !important;
+}
+.topbar[data-page-view="account"] #platform-restart {
+  display: none !important;
+}
+
+/* Security cards: explicitly override the original identity-card flex layout.
+   This keeps Profile & access compact and prevents account metadata from
+   spreading horizontally into the avatar/name area. */
+.reference-account-grid {
+  align-items: start !important;
+  gap: 12px !important;
+  grid-template-columns: minmax(360px, 0.88fr) minmax(520px, 1.12fr) !important;
+}
+.reference-profile-card,
+.reference-password-card {
+  align-self: start !important;
+  min-height: 0 !important;
+  padding: 16px !important;
+}
+.reference-profile-card {
+  align-items: stretch !important;
+  display: grid !important;
+  gap: 0 !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.reference-account-card-heading,
+.reference-password-heading {
+  gap: 8px !important;
+}
+.reference-account-card-heading h2,
+.reference-password-heading h2 {
+  font-size: 1rem !important;
+}
+.reference-account-card-heading p,
+.reference-password-heading p {
+  font-size: 0.72rem !important;
+  line-height: 1.4 !important;
+}
+.reference-account-card-heading > span {
+  min-height: 24px !important;
+  width: 4px !important;
+}
+.reference-profile-body {
+  align-items: center !important;
+  display: grid !important;
+  gap: 14px !important;
+  grid-template-columns: 76px minmax(0, 1fr) !important;
+  padding: 16px 4px 14px !important;
+}
+.reference-profile-body #account-avatar {
+  height: 72px !important;
+  width: 72px !important;
+}
+.reference-profile-copy {
+  align-content: center;
+  display: grid !important;
+  gap: 3px !important;
+  min-width: 0;
+}
+.reference-profile-copy #account-name {
+  font-size: 1rem !important;
+  margin: 0 !important;
+}
+.reference-profile-copy #account-role {
+  font-size: 0.78rem !important;
+  margin: 0 !important;
+}
+.reference-profile-copy #account-session {
+  display: block;
+  font-size: 0.7rem !important;
+  line-height: 1.35 !important;
+  margin-top: 2px;
+}
+.reference-profile-copy .avatar-form {
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+.reference-profile-copy .avatar-form .button {
+  min-height: 34px !important;
+}
+.reference-profile-copy .avatar-form .text-button {
+  min-height: 34px !important;
+}
+.reference-account-meta {
+  gap: 6px !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  padding-top: 12px !important;
+}
+.reference-account-meta-item {
+  align-items: center !important;
+  gap: 7px !important;
+  grid-template-columns: 30px minmax(0, 1fr) !important;
+  min-width: 0;
+}
+.reference-account-meta-icon {
+  height: 30px !important;
+  width: 30px !important;
+}
+.reference-account-meta-item small {
+  font-size: 0.64rem !important;
+}
+.reference-account-meta-item strong {
+  font-size: 0.78rem !important;
+  line-height: 1.25 !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+.reference-password-card {
+  gap: 14px !important;
+  grid-template-columns: minmax(0, 1fr) 220px !important;
+}
+.reference-password-main {
+  gap: 8px !important;
+}
+.reference-password-main #password-form {
+  gap: 7px !important;
+}
+.reference-password-main #password-form input {
+  min-height: 36px !important;
+}
+.reference-password-main #password-form button {
+  min-height: 40px !important;
+}
+.reference-security-posture {
+  gap: 8px !important;
+  padding-left: 14px !important;
+}
+.reference-posture-block {
+  gap: 8px !important;
+  grid-template-columns: 34px minmax(0, 1fr) !important;
+}
+.reference-posture-icon {
+  font-size: 1rem !important;
+  height: 34px !important;
+  width: 34px !important;
+}
+.reference-posture-block strong {
+  font-size: 1.15rem !important;
+}
+.reference-security-posture ul {
+  gap: 6px !important;
+  font-size: 0.76rem !important;
+}
+.reference-api-tokens {
+  margin-top: 12px !important;
+}
+
+/* Restart confirmation reference supplied for CE Development. */
+#restart-dialog.restart-reference-dialog {
+  background:
+    radial-gradient(circle at 50% -10%, rgba(244, 197, 66, 0.07), transparent 15rem),
+    linear-gradient(145deg, #111a24, #0d151d) !important;
+  border: 1px solid rgba(238, 184, 36, 0.7) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55) !important;
+  max-width: 535px !important;
+  padding: 26px 28px 22px !important;
+  width: calc(100% - 32px) !important;
+}
+#restart-dialog.restart-reference-dialog::backdrop {
+  backdrop-filter: blur(5px);
+  background: rgba(2, 6, 10, 0.76);
+}
+#restart-dialog .restart-reference-heading {
+  align-items: start;
+  border-bottom: 1px solid rgba(238, 184, 36, 0.22);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+}
+#restart-dialog .restart-reference-title {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 46px minmax(0, 1fr);
+}
+#restart-dialog .restart-reference-service-icon {
+  align-items: center;
+  background: rgba(238, 184, 36, 0.09);
+  border: 1px solid rgba(238, 184, 36, 0.34);
+  border-radius: 9px;
+  color: #f1c44f;
+  display: flex;
+  font-size: 1.35rem;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+#restart-dialog .restart-reference-title .eyebrow {
+  color: #e8bd40;
+  font-size: 0.64rem;
+  letter-spacing: 0.22em;
+  margin: 0 0 4px;
+}
+#restart-dialog .restart-reference-title h2 {
+  font-size: 1.42rem;
+  margin: 0;
+}
+#restart-dialog .restart-reference-close {
+  background: rgba(14, 22, 30, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  height: 38px;
+  width: 38px;
+}
+#restart-dialog .restart-reference-copy {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+#restart-dialog .restart-reference-copy strong {
+  font-size: 1rem;
+  font-weight: 550;
+}
+#restart-dialog .restart-reference-copy p {
+  color: #9ca9b6;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin: 0;
+}
+#restart-dialog .restart-reference-reason {
+  display: grid;
+  gap: 7px;
+}
+#restart-dialog .restart-reference-reason > span {
+  color: #c7d0d9;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+#restart-dialog #restart-reason {
+  background: #101822;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 7px;
+  min-height: 84px;
+  padding: 12px;
+  resize: vertical;
+}
+#restart-dialog .restart-reference-count {
+  color: #7f8a96;
+  font-size: 0.62rem;
+  margin-top: 5px;
+  text-align: right;
+}
+#restart-dialog .restart-reference-context {
+  align-items: center;
+  background: rgba(14, 22, 30, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  margin-top: 16px;
+  padding: 12px 14px;
+}
+#restart-dialog .restart-reference-context-item {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr);
+}
+#restart-dialog .restart-reference-context-icon {
+  align-items: center;
+  background: rgba(82, 113, 159, 0.12);
+  border: 1px solid rgba(116, 151, 186, 0.14);
+  border-radius: 50%;
+  color: #a6b6c9;
+  display: flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+#restart-dialog .restart-reference-context-item > div {
+  display: grid;
+  gap: 1px;
+}
+#restart-dialog .restart-reference-context-item small {
+  color: #7f8a96;
+  font-size: 0.62rem;
+}
+#restart-dialog .restart-reference-context-item strong {
+  font-size: 0.78rem;
+}
+#restart-dialog .restart-reference-context-divider {
+  background: rgba(148, 163, 184, 0.2);
+  height: 32px;
+  width: 1px;
+}
+#restart-dialog .restart-reference-actions {
+  border-top: 0 !important;
+  gap: 12px !important;
+  margin-top: 18px !important;
+  padding-top: 0 !important;
+}
+#restart-dialog .restart-reference-actions .button {
+  min-height: 40px;
+  min-width: 102px;
+}
+#restart-dialog .restart-reference-actions .button.danger {
+  background: linear-gradient(180deg, rgba(210, 62, 69, 0.82), rgba(151, 43, 48, 0.82));
+  border-color: rgba(246, 92, 98, 0.72);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.18);
+}
+
+@media (max-width: 1180px) {
+  .reference-account-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+@media (max-width: 820px) {
+  #view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"],
+  #view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: repeat(4, minmax(58px, auto)) !important;
+    height: auto !important;
+  }
+  #view-deliveries .reference-pagination-range,
+  #view-audit .reference-pagination-range,
+  #view-deliveries .reference-pagination-pages,
+  #view-audit .reference-pagination-pages,
+  #view-deliveries .reference-pagination-jump,
+  #view-audit .reference-pagination-jump,
+  #view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"] > .qa-pagination-footer,
+  #view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] > .qa-pagination-footer {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+    border-right: 0 !important;
+    height: auto !important;
+    min-height: 58px !important;
+  }
+  .reference-password-card {
+    grid-template-columns: 1fr !important;
+  }
+  .reference-account-meta {
+    grid-template-columns: 1fr !important;
+  }
+  #restart-dialog .restart-reference-context {
+    grid-template-columns: 1fr !important;
+  }
+  #restart-dialog .restart-reference-context-divider {
+    display: none;
+  }
+}

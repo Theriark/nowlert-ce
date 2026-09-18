@@ -2274,6 +2274,28 @@ async function runBackupNow() {
   toast(response.run.outcome === "success" ? "Backup completed." : "Backup failed.", response.run.outcome === "success" ? "success" : "error");
 }
 
+function restartEnvironmentLabel() {
+  const host = String(window.location.hostname || "").toLowerCase();
+  if (host.startsWith("ce-dev-") || host.includes("development")) return "CE Development";
+  if (host.startsWith("ce-stage-") || host.includes("staging") || host.includes("stage")) return "CE Stage";
+  if (host.startsWith("ce-prod-") || host.includes("production") || host === "nowlert.theriark.com") return "CE Production";
+  return "This instance";
+}
+
+function updateRestartDialogContext() {
+  const reason = byId("restart-reason");
+  const count = byId("restart-reason-count");
+  const actor = byId("restart-triggered-by");
+  const environment = byId("restart-environment");
+  if (count) count.textContent = `${String(reason?.value || "").length}/500`;
+  if (actor) {
+    actor.textContent = state.user?.role === "admin"
+      ? "Admin"
+      : (state.user?.username || "User");
+  }
+  if (environment) environment.textContent = restartEnvironmentLabel();
+}
+
 async function restartPlatform(event) {
   event.preventDefault();
   if (event.submitter && event.submitter.value === "cancel") {
@@ -3209,6 +3231,7 @@ async function resourceAction(action, id) {
     } else if (action === "restart-platform") {
       byId("restart-form").reset();
       clearError("restart-error");
+      updateRestartDialogContext();
       byId("restart-dialog").showModal();
       return;
     } else if (action === "restore-backup") {
@@ -3439,6 +3462,7 @@ function bindEvents() {
   byId("backup-target-form").addEventListener("submit", saveBackupTarget);
   byId("backup-target-type").addEventListener("change", updateBackupTargetFields);
   byId("restart-form").addEventListener("submit", restartPlatform);
+  byId("restart-reason").addEventListener("input", updateRestartDialogContext);
   byId("avatar-form").addEventListener("submit", saveAvatar);
   byId("avatar-file").addEventListener("change", () => loadAvatarEditor().catch((error) => {
     updateAvatarSaveState(false);

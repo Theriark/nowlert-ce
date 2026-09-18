@@ -62,12 +62,6 @@
       copy.append(subtitle);
     }
 
-    const legacyRestart = document.getElementById("restart-header-button");
-    if (legacyRestart) {
-      legacyRestart.hidden = true;
-      legacyRestart.setAttribute("aria-hidden", "true");
-    }
-
     return { topbar, title, subtitle, actions };
   }
 
@@ -111,6 +105,7 @@
   function expectedTitle(view) {
     if (ADMIN_VIEWS.has(view)) return "Administration";
     if (view === "tokens") return "API access";
+    if (view === "account") return "Security";
     return VIEW_TITLES?.[view] || document.getElementById("page-title")?.textContent || "Nowlert";
   }
 
@@ -201,7 +196,7 @@
     } else if (view === "tokens") {
       nodes.push(section?.querySelector('[data-action="new-token"]'));
     } else if (view === "account") {
-      nodes.push(document.getElementById("platform-restart"));
+      nodes.push(document.getElementById("restart-header-button"));
     }
     return nodes.filter(Boolean);
   }
@@ -216,6 +211,7 @@
     const toolbar = directToolbar(section);
     const desired = new Set();
 
+    if (view === "account") delete chrome.title.dataset.i18nSource;
     chrome.title.textContent = expectedTitle(view);
     chrome.subtitle.textContent = expectedSubtitle(view, toolbar);
     chrome.subtitle.hidden = !chrome.subtitle.textContent;
