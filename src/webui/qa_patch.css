@@ -2877,7 +2877,9 @@ textarea:focus {
   .backup-summary-item:nth-child(2)::after {
     display: none;
   }
+}
 
+@media (max-width: 900px) {
   .backup-dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -4248,105 +4250,21 @@ textarea:focus {
   margin-top: 22px !important;
 }
 
-/* Match the approved Data tools reference as a full-width management surface. */
-.backup-dashboard-grid-top {
-  grid-template-columns: minmax(0, 1fr) !important;
-}
+/* Keep the desktop backup workspace in its intended two-column layout:
+   Scheduled backups on the left and Data tools on the right. */
+@media (min-width: 901px) {
+  .backup-dashboard-grid-top,
+  .backup-dashboard-grid-bottom {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 
-#backup-schedule-panel,
-#backup-data-tools-panel {
-  grid-column: 1 / -1 !important;
-}
+  #backup-schedule-panel {
+    grid-column: 1 !important;
+  }
 
-#backup-data-tools-panel.data-tools-reference-panel {
-  min-height: 470px;
-}
-
-#backup-data-tools-panel .data-tools-reference-heading {
-  min-height: 92px !important;
-  padding: 20px 12px 18px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-heading h3 {
-  font-size: 32px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-heading .backup-section-icon {
-  height: 50px !important;
-  width: 50px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-heading .backup-section-icon svg {
-  height: 42px !important;
-  width: 42px !important;
-}
-
-#backup-data-tools-panel > .backup-data-tools-grid {
-  gap: 28px !important;
-  padding: 24px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-card {
-  min-height: 320px !important;
-  padding: 28px 30px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-card .backup-tool-heading {
-  gap: 22px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-card .backup-tool-heading strong {
-  font-size: 25px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-card .backup-tool-icon {
-  flex-basis: 76px !important;
-  height: 76px !important;
-  width: 76px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-card .backup-tool-icon svg {
-  height: 44px !important;
-  width: 44px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-card > p {
-  font-size: 18px !important;
-  line-height: 1.55 !important;
-  margin: 22px 0 26px !important;
-  min-height: 86px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-download {
-  font-size: 19px !important;
-  min-height: 64px !important;
-  padding-inline: 28px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-file {
-  flex: 0 0 auto !important;
-  height: 92px !important;
-  min-height: 92px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-file input[type="file"] {
-  font-size: 18px !important;
-  height: 92px !important;
-  min-height: 92px !important;
-  padding: 8px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-file input[type="file"]::file-selector-button {
-  font-size: 18px !important;
-  height: 74px !important;
-  min-height: 74px !important;
-  padding-inline: 30px !important;
-}
-
-#backup-data-tools-panel .data-tools-reference-preview {
-  font-size: 18px !important;
-  margin-top: 16px !important;
-  min-height: 68px !important;
+  #backup-data-tools-panel {
+    grid-column: 2 !important;
+  }
 }
 
 /* Desktop acceptance: the control panel never participates in page scrolling.
