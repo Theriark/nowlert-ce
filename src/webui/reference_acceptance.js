@@ -900,6 +900,14 @@ function ensurePreviewReferenceLayout() {
     return new Intl.DateTimeFormat(state.preferences?.language || "en-GB", { year: "numeric", month: "short", day: "2-digit", timeZone: state.preferences?.timezone || "Europe/Lisbon" }).format(date);
   }
 
+  function setReferenceMfaStatusIcon(icon, enabled) {
+    if (!icon) return;
+    icon.replaceChildren();
+    icon.innerHTML = enabled
+      ? '<svg data-mfa-glyph="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5 10 17l8.5-10"></path></svg>'
+      : '<svg data-mfa-glyph="pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="3.5" height="14" rx="1.2"></rect><rect x="14" y="5" width="3.5" height="14" rx="1.2"></rect></svg>';
+  }
+
   function ensureAccountReferenceLayout() {
     const section = byId("view-account");
     const grid = section?.querySelector(":scope > .account-grid");
@@ -932,7 +940,7 @@ function ensurePreviewReferenceLayout() {
         ["MFA status", "reference-account-mfa-value", "Disabled", "mfa"],
       ]) {
         const item = ref(kind === "mfa" ? "button" : "div", `reference-account-meta-item reference-account-meta-${kind}`);
-        const icon = ref("span", "reference-account-meta-icon", kind === "mfa" ? "Ⅱ" : "◇");
+        const icon = ref("span", "reference-account-meta-icon", kind === "mfa" ? "" : "◇");
         const copy = ref("div", "reference-account-meta-copy");
         copy.append(ref("small", "", label), ref("strong", "", value));
         copy.querySelector("strong").id = id;
@@ -941,6 +949,7 @@ function ensurePreviewReferenceLayout() {
           item.dataset.action = "account-mfa";
           item.setAttribute("aria-label", "Manage multi-factor authentication. Current status: Disabled");
           icon.classList.add("reference-account-meta-mfa-icon");
+          setReferenceMfaStatusIcon(icon, false);
         }
         item.append(icon, copy);
         meta.append(item);
@@ -1142,7 +1151,7 @@ function ensurePreviewReferenceLayout() {
         `Manage multi-factor authentication. Current status: ${enabled ? "Enabled" : "Disabled"}`,
       );
     }
-    if (mfaIcon) mfaIcon.textContent = enabled ? "✓" : "Ⅱ";
+    if (mfaIcon) setReferenceMfaStatusIcon(mfaIcon, enabled);
     const posture = byId("reference-mfa-posture");
     if (posture) posture.textContent = enabled ? "MFA is enabled" : "MFA can be enabled";
     const accessValue = byId("reference-access-status-value");

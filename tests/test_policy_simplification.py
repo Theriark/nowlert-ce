@@ -59,6 +59,38 @@ def platform(tmp_path):
     return database, admin, owner, destination
 
 
+
+def test_system_filtering_only_exposes_explicit_routes_assigned_to_destination(tmp_path):
+    database, admin, owner, destination = platform(tmp_path)
+    routes = RoutingOnlyRouteStore(database)
+    routes.create(
+        owner.actor,
+        owner.id,
+        "Grafana HTTP",
+        "grafana",
+        destination.id,
+        input_type="http",
+    )
+    routes.create(
+        admin.actor,
+        owner.id,
+        "SMTP fallback",
+        "*",
+        destination.id,
+        input_type="smtp",
+    )
+
+    filters = SystemDestinationFilterStore(database)
+
+    # Filtering must follow the exact routes selected on this destination.
+    # A wildcard/fallback route is routing plumbing and must not expand into
+    # every integration supported by that input type.
+    assert set(filters.available_sources(owner.actor, destination.id)) == {
+        "dell_idrac",
+        "grafana",
+    }
+
+
 def test_allow_and_block_policy_has_deterministic_precedence(tmp_path):
     database, _admin, owner, destination = platform(tmp_path)
     filters = SystemDestinationFilterStore(database)

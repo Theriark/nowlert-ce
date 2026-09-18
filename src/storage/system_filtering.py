@@ -6,7 +6,7 @@ import json
 
 from config import config
 from integrations.catalog import canonical_source
-from integrations.filtering import filter_schemas, sources_for_input
+from integrations.filtering import filter_schemas
 from storage.destination_access import AccessControlledDestinationFilterStore
 from storage.filtering import _clause_matches
 from storage.ownership import Actor
@@ -32,7 +32,7 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
         with self.database.connect() as connection:
             rows = connection.execute(
                 """
-                SELECT routes.source, routes.input_type
+                SELECT routes.source
                 FROM route_destinations
                 JOIN routes ON routes.id = route_destinations.route_id
                 WHERE route_destinations.destination_id = ?
@@ -41,13 +41,12 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
                 (str(destination_id),),
             ).fetchall()
         catalogue_sources = [item["source"] for item in filter_schemas()]
-        found = set()
-        for row in rows:
-            source = canonical_source(str(row["source"]))
-            if source == "*":
-                found.update(sources_for_input(str(row["input_type"] or "")))
-            elif source in catalogue_sources:
-                found.add(source)
+        found = {
+            source
+            for row in rows
+            if (source := canonical_source(str(row["source"]))) != "*"
+            and source in catalogue_sources
+        }
         return tuple(source for source in catalogue_sources if source in found)
 
     def set_rules(self, actor, destination_id, source, rules):

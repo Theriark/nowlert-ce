@@ -52,13 +52,14 @@ def test_round25_filter_card_overflow_and_destination_alignment_are_interactive(
     assert "rf-filter-overflow-button" in script
     assert "rf-filter-source-overflow" in script
     assert "toggle.addEventListener(\"click\"" in script
-    assert 'toggle.setAttribute("aria-expanded", String(tagsExpanded));' in script
+    assert 'toggle.setAttribute("aria-expanded", String(expanded));' in script
     assert 'toggle.setAttribute("aria-expanded", String(sourcesExpanded));' in script
     assert "FILTER_SOURCE_LIMIT" not in script
     assert "FILTER_VALUE_LIMIT" not in script
     assert "const configuredSources = [...new Set((filter.sources || []).filter(Boolean))];" in script
-    assert "const fitCollapsedTags = () => {" in script
-    assert "const width = tags.clientWidth;" in script
+    assert "function renderFilterRuleRow(group, groupIndex)" in script
+    assert "const fitCollapsedRow = () => {" in script
+    assert "const width = row.clientWidth;" in script
     assert "getBoundingClientRect().width" in script
     assert "const fitCollapsedSources = () => {" in script
     assert "const width = sourceSummary.clientWidth;" in script
