@@ -54,12 +54,14 @@ def test_round25_filter_card_overflow_and_destination_alignment_are_interactive(
     assert "toggle.addEventListener(\"click\"" in script
     assert 'toggle.setAttribute("aria-expanded", String(tagsExpanded));' in script
     assert 'toggle.setAttribute("aria-expanded", String(sourcesExpanded));' in script
-    assert "FILTER_SOURCE_LIMIT" in script
+    assert "FILTER_SOURCE_LIMIT" not in script
     assert "FILTER_VALUE_LIMIT" not in script
     assert "const configuredSources = [...new Set((filter.sources || []).filter(Boolean))];" in script
     assert "const fitCollapsedTags = () => {" in script
     assert "const width = tags.clientWidth;" in script
     assert "getBoundingClientRect().width" in script
+    assert "const fitCollapsedSources = () => {" in script
+    assert "const width = sourceSummary.clientWidth;" in script
 
     marker = "/* 2026-09-18 round-25 individual filter cards and expandable summaries. */"
     assert marker in style
@@ -90,8 +92,10 @@ def test_round25_mfa_matches_reference_and_uses_six_digit_entry():
     assert "function syncMfaCodeDigits()" in app
     assert "function handleMfaDigitPaste(event)" in app
     assert 'if (!/^\\d{6}$/.test(code))' in app
-    assert '"Disable multi-factor authentication?"' in app
-    assert "await confirmAction(" in app
+    mfa_open = app[app.index("async function openMfaDialog()"):app.index("function closeMfaDialog()")]
+    assert "await confirmAction(" not in mfa_open
+    assert 'dialog.classList.toggle("is-disable-mode", enabled);' in mfa_open
+    assert 'byId("mfa-dialog-summary")' in mfa_open
 
     assert ".mfa-reference-methods" in style
     assert ".mfa-reference-code-digits" in style
@@ -104,9 +108,9 @@ def test_round25_profile_mfa_card_is_the_click_target():
 
     assert 'ref(kind === "mfa" ? "button" : "div"' in script
     assert 'item.dataset.action = "account-mfa";' in script
-    assert 'const action = ref("span", "reference-mfa-action", "Enable MFA");' in script
-    assert 'enabled ? "Disable MFA" : "Enable MFA"' in script
-    assert 'enabled ? "Disable multi-factor authentication" : "Enable multi-factor authentication"' in script
+    assert 'reference-account-meta-mfa-icon' in script
+    assert 'reference-mfa-action' not in script
+    assert 'Manage multi-factor authentication. Current status:' in script
     assert ".reference-account-meta-mfa {" in style
     assert "cursor: pointer;" in style
 

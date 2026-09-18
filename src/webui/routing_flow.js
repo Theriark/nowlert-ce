@@ -5,7 +5,6 @@
   const NS = "http://www.w3.org/2000/svg";
   const PAGE = "routing-flow";
   const POLL_MS = 5000;
-  const FILTER_SOURCE_LIMIT = 6;
   const OUTPUT_LOGOS = { teams: "/ui/icons/routing-teams.svg", slack: "/ui/icons/routing-slack.svg" };
   const ICONS = {
     flow: "M4 4h5v5H4z M15 15h5v5h-5z M6.5 9v8.5H15 M17.5 15V6.5H9",
@@ -237,7 +236,12 @@
 
   function filterCardDescriptor(filter) {
     const policies = Array.isArray(filter?.policies)
-      ? filter.policies.filter(policy => !policy.restricted && policy.configured && policy.enabled)
+      ? filter.policies.filter(policy => {
+          const enabled = Object.prototype.hasOwnProperty.call(policy, "filter_enabled")
+            ? policy.filter_enabled
+            : policy.enabled;
+          return !policy.restricted && policy.configured && enabled !== false;
+        })
       : [];
     const groups = new Map();
 
@@ -290,10 +294,10 @@
           const label = group.label.replace(/\b\w/g, letter => letter.toUpperCase());
           return `${label} (${group.values.length})`;
         }).join(" · ")
-      : "Managed";
+      : "Configured filter";
     return {
       title,
-      groups: items.length ? items : [{ label: "Filter", values: ["Managed"] }],
+      groups: items,
     };
   }
   function renderFilterCard(node, filter, routes, destination) {
@@ -444,37 +448,97 @@
     const sourceSummary = el("span", "rf-filter-card-sources");
     const configuredSources = [...new Set((filter.sources || []).filter(Boolean))];
     let sourcesExpanded = false;
+    let sourceFitFrame = null;
+
+    const fitCollapsedSources = () => {
+      sourceFitFrame = null;
+      if (sourcesExpanded || !sourceSummary.isConnected) return;
+      const width = sourceSummary.clientWidth;
+      if (!width) return;
+
+      const sourceNodes = [...sourceSummary.querySelectorAll("[data-filter-source]")];
+      const toggle = sourceSummary.querySelector(".rf-filter-source-overflow");
+      if (!toggle) return;
+
+      for (const item of sourceNodes) item.hidden = false;
+      toggle.hidden = true;
+
+      const gap = Number.parseFloat(
+        getComputedStyle(sourceSummary).columnGap
+        || getComputedStyle(sourceSummary).gap
+        || "0",
+      ) || 0;
+      const totalWidth = sourceNodes.reduce(
+        (sum, item, index) => sum + item.getBoundingClientRect().width + (index ? gap : 0),
+        0,
+      );
+      if (totalWidth <= width) return;
+
+      toggle.hidden = false;
+      toggle.textContent = "+99";
+      const toggleWidth = toggle.getBoundingClientRect().width + gap;
+      const available = Math.max(0, width - toggleWidth);
+      let used = 0;
+
+      for (const item of sourceNodes) {
+        const itemWidth = item.getBoundingClientRect().width;
+        const next = used + (used ? gap : 0) + itemWidth;
+        if (next <= available) {
+          used = next;
+        } else {
+          item.hidden = true;
+        }
+      }
+
+      const hidden = sourceNodes.filter(item => item.hidden).length;
+      if (!hidden) {
+        toggle.hidden = true;
+        return;
+      }
+      toggle.textContent = `+${hidden}`;
+      toggle.setAttribute("aria-label", `Show ${hidden} more filter sources`);
+    };
+
+    const scheduleSourceFit = () => {
+      if (sourceFitFrame !== null) cancelAnimationFrame(sourceFitFrame);
+      sourceFitFrame = requestAnimationFrame(fitCollapsedSources);
+    };
+
     const renderSources = () => {
       sourceSummary.replaceChildren();
-      const collapsedCount = Math.max(1, FILTER_SOURCE_LIMIT - 1);
-      const visible = sourcesExpanded
-        ? configuredSources
-        : configuredSources.slice(0, collapsedCount);
-      for (const source of visible) sourceSummary.append(sourceIcon(source));
-      const hidden = Math.max(0, configuredSources.length - visible.length);
-      if (hidden || sourcesExpanded && configuredSources.length > collapsedCount) {
-        const toggle = el(
-          "button",
-          "rf-filter-source-overflow",
-          sourcesExpanded ? "−" : `+${hidden}`,
-        );
-        toggle.type = "button";
-        toggle.setAttribute("aria-expanded", String(sourcesExpanded));
-        toggle.setAttribute(
-          "aria-label",
-          sourcesExpanded ? "Collapse filter sources" : `Show ${hidden} more filter sources`,
-        );
-        toggle.addEventListener("click", event => {
-          event.stopPropagation();
-          sourcesExpanded = !sourcesExpanded;
-          renderSources();
-        });
-        sourceSummary.append(toggle);
+      sourceSummary.classList.toggle("is-expanded", sourcesExpanded);
+
+      for (const source of configuredSources) {
+        const sourceNode = sourceIcon(source);
+        sourceNode.dataset.filterSource = "1";
+        sourceSummary.append(sourceNode);
       }
+
+      const toggle = el(
+        "button",
+        "rf-filter-source-overflow",
+        sourcesExpanded ? "−" : "+0",
+      );
+      toggle.type = "button";
+      toggle.hidden = !sourcesExpanded;
+      toggle.setAttribute("aria-expanded", String(sourcesExpanded));
+      toggle.setAttribute(
+        "aria-label",
+        sourcesExpanded ? "Collapse filter sources" : "Show more filter sources",
+      );
+      toggle.addEventListener("click", event => {
+        event.stopPropagation();
+        sourcesExpanded = !sourcesExpanded;
+        renderSources();
+      });
+      sourceSummary.append(toggle);
+
       sourceSummary.setAttribute(
         "aria-label",
         `${configuredSources.length} configured filter source${configuredSources.length === 1 ? "" : "s"}`,
       );
+
+      if (!sourcesExpanded) scheduleSourceFit();
     };
     renderSources();
     sourceGroup.append(sourceSummary);
@@ -488,6 +552,7 @@
     footer.append(sourceGroup, destinationGroup);
     node.append(header, tags, stats, footer);
     scheduleTagFit();
+    scheduleSourceFit();
   }
   function activeFlowGraph() {
     if (!data) return { routes: [], destinations: [], filters: [], links: [] };
