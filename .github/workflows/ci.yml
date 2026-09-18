@@ -221,6 +221,52 @@ jobs:
             --title "CE Development ${SOURCE_SHA}" \
             --description "GitHub Actions run ${{ github.run_id }}"
 
+      - name: Verify deployed WebUI acceptance bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          UI_BUILD="20260918-r19"
+          BASE_URL="https://ce-dev-nowlert.theriark.dev"
+
+          HTML="$(
+            curl --fail --silent --show-error \
+              -H 'Cache-Control: no-cache' \
+              "${BASE_URL}/?ui_acceptance=${SOURCE_SHA}"
+          )"
+          printf '%s' "${HTML}" | grep -Fq "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\""
+          printf '%s' "${HTML}" | grep -Fq "/ui/qa_patch.css?v=${UI_BUILD}"
+          printf '%s' "${HTML}" | grep -Fq "/ui/app.js?v=${UI_BUILD}"
+          printf '%s' "${HTML}" | grep -Fq "/ui/source_ui_retirement.js"
+
+          CSS="$(
+            curl --fail --silent --show-error \
+              -H 'Cache-Control: no-cache' \
+              "${BASE_URL}/ui/qa_patch.css?v=${UI_BUILD}"
+          )"
+          printf '%s' "${CSS}" | grep -Fq "round-18 acceptance corrections"
+          printf '%s' "${CSS}" | grep -Fq "#primary-nav .nav-item[hidden]"
+          printf '%s' "${CSS}" | grep -Fq "transform: scale(1.65)"
+          printf '%s' "${CSS}" | grep -Fq "#app-shell .workspace"
+          printf '%s' "${CSS}" | grep -Fq "backup-dashboard-grid-top"
+
+          APP="$(
+            curl --fail --silent --show-error \
+              -H 'Cache-Control: no-cache' \
+              "${BASE_URL}/ui/app.js?v=${UI_BUILD}"
+          )"
+          printf '%s' "${APP}" | grep -Fq "Preview completed."
+
+          OWNERSHIP="$(
+            curl --fail --silent --show-error \
+              -H 'Cache-Control: no-cache' \
+              "${BASE_URL}/ui/source_ui_retirement.js"
+          )"
+          printf '%s' "${OWNERSHIP}" | grep -Fq "auditNav.hidden = !admin;"
+          printf '%s' "${OWNERSHIP}" | grep -Fq "backupsNav.hidden = !admin;"
+          printf '%s' "${OWNERSHIP}" | grep -Fq "usersNav.hidden = !admin;"
+
+          echo "PASS: live CE Development is serving WebUI acceptance bundle ${UI_BUILD}"
+
       - name: Record immutable Development result
         shell: bash
         run: |
