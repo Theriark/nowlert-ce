@@ -1751,3 +1751,104 @@ button.reference-preview-route-more:focus-visible {
     padding-top: 16px !important;
   }
 }
+
+
+/* 2026-09-18 round-five screenshot corrections. */
+
+/* Delivery History and Audit Log: the containing list card owns the outer
+   border. Remove the old pagination-row box so there is only one bottom edge,
+   then align the four footer cells against the same 76px track. */
+#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"],
+#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  grid-template-rows: 76px !important;
+  height: 76px !important;
+  min-height: 76px !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
+#view-deliveries .delivery-history-list-footer,
+#view-audit .audit-log-list-footer {
+  border-bottom: 0 !important;
+  box-sizing: border-box !important;
+  min-height: 76px !important;
+  padding: 0 !important;
+}
+
+#view-deliveries .reference-pagination-range,
+#view-audit .reference-pagination-range,
+#view-deliveries .reference-pagination-pages,
+#view-audit .reference-pagination-pages,
+#view-deliveries .reference-pagination-jump,
+#view-audit .reference-pagination-jump,
+#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"] > .qa-pagination-footer,
+#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] > .qa-pagination-footer {
+  height: 76px !important;
+  min-height: 76px !important;
+}
+
+#view-deliveries .reference-pagination-jump,
+#view-audit .reference-pagination-jump {
+  align-content: start !important;
+  grid-template-rows: 14px 36px !important;
+  padding: 7px 9px 19px !important;
+}
+
+#view-deliveries .qa-pagination-footer label,
+#view-audit .qa-pagination-footer label {
+  align-content: start !important;
+  grid-template-rows: 14px 36px !important;
+  padding: 7px 9px 19px !important;
+}
+
+#view-deliveries .reference-pagination-label,
+#view-audit .reference-pagination-label,
+#view-deliveries .qa-pagination-footer label > span,
+#view-audit .qa-pagination-footer label > span {
+  line-height: 14px !important;
+  margin: 0 !important;
+}
+
+#view-deliveries .reference-pagination-input,
+#view-audit .reference-pagination-input,
+#view-deliveries .qa-pagination-footer select,
+#view-audit .qa-pagination-footer select {
+  align-self: start !important;
+  margin: 0 !important;
+}
+
+/* Settings: Regional settings remains the sizing reference. The duplicate
+   legacy last-checked line is hidden; JS sizes only Updates to Regional. */
+.reference-updates-card {
+  box-sizing: border-box !important;
+}
+.reference-updates-card #update-check-metadata {
+  display: none !important;
+}
+
+@media (max-width: 1180px) {
+  .reference-updates-card {
+    height: auto !important;
+  }
+}
+
+@media (max-width: 820px) {
+  #view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"],
+  #view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] {
+    height: auto !important;
+    overflow: hidden !important;
+  }
+
+  #view-deliveries .reference-pagination-jump,
+  #view-audit .reference-pagination-jump,
+  #view-deliveries .qa-pagination-footer label,
+  #view-audit .qa-pagination-footer label {
+    align-content: center !important;
+    grid-template-rows: auto auto !important;
+    padding: 8px 10px !important;
+  }
+}

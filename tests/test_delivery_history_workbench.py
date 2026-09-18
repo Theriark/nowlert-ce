@@ -21,11 +21,12 @@ def test_selected_delivery_history_workbench_contract():
         "delivery-history-sort",
         "delivery-history-detail",
         "delivery-history-copy",
-        "delivery-history-refresh",
         "qaLoadDeliveryPage = async function",
         "renderDeliveries = function",
     ):
         assert token in script
+
+    assert "delivery-history-refresh" not in script
 
     assert (
         "grid-template-columns: minmax(0, 1.12fr) minmax(380px, 0.88fr);"
