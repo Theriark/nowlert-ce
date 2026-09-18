@@ -9,7 +9,6 @@
     "data",
     "audit",
     "backups",
-    "settings",
     "inputs",
   ]);
   let permissionDialogUserId = "";
@@ -53,7 +52,7 @@
     if (auditNav) auditNav.hidden = !admin;
     if (backupsNav) backupsNav.hidden = !admin;
     if (usersNav) usersNav.hidden = !admin;
-    if (settingsNav) settingsNav.hidden = !admin;
+    if (settingsNav) settingsNav.hidden = false;
     if (inputsNav) inputsNav.hidden = true;
     if (dataNav) dataNav.hidden = true;
 
@@ -225,7 +224,12 @@
     if (auditNav) auditNav.hidden = !admin;
     if (backupsNav) backupsNav.hidden = !admin;
     if (usersNav) usersNav.hidden = !admin;
-    if (settingsNav) settingsNav.hidden = !admin;
+    if (settingsNav) settingsNav.hidden = false;
+
+    const settingsUpdates = document.getElementById("settings-updates");
+    if (settingsUpdates) settingsUpdates.hidden = !admin;
+    const housekeeping = document.querySelector("#view-settings .housekeeping-workspace");
+    if (housekeeping) housekeeping.hidden = !admin;
 
     setNavActive(backupsNav, view === "backups");
     setNavActive(usersNav, view === "users");
