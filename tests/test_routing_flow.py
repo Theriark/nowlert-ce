@@ -38,6 +38,9 @@ def test_snapshot_reads_current_filters_without_writing_existing_configuration(a
     first = create_destination(api, headers, "Teams", [route["id"]])
     second = create_destination(api, headers, "Slack", [route["id"]])
     platform = api["service"].platform
+    assert platform.delivery.__class__.__name__ == "FilteredPlatformDeliveryService"
+    assert platform.delivery.filters is platform.filters
+    assert platform.delivery.relationships is platform.relationships
     platform.filters.set_rules(
         api["admin"].actor,
         first["id"],
