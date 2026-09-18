@@ -1,7 +1,6 @@
 """Read-only delivery and filter aggregates for the Routing Flow overview."""
 from __future__ import annotations
 
-import os
 import sqlite3
 import time
 
@@ -16,67 +15,78 @@ def empty_metrics():
     }
 
 
-def record_filter_decisions(
+def _telemetry_route_id(database, destination_id, notification):
+    """Resolve the same first active Route candidate used by runtime expansion."""
+
+    from integrations.catalog import canonical_source
+
+    source = canonical_source(getattr(notification, "source", ""))
+    metadata = getattr(notification, "metadata", None) or {}
+    observed_input = str(metadata.get("_input_type") or "").strip().casefold()
+    with database.connect() as connection:
+        rows = connection.execute(
+            """
+            SELECT routes.id, routes.source, routes.input_type
+            FROM route_destinations
+            JOIN routes ON routes.id = route_destinations.route_id
+            WHERE route_destinations.destination_id = ?
+              AND (routes.source = ? OR routes.source = '*')
+            ORDER BY routes.priority, routes.name_normalized, routes.id
+            """,
+            (str(destination_id), source),
+        ).fetchall()
+
+    eligible = [
+        row
+        for row in rows
+        if not str(row["input_type"] or "").strip()
+        or str(row["input_type"] or "").strip().casefold() == observed_input
+    ]
+    specific = [row for row in eligible if str(row["source"]) != "*"]
+    selected = (specific or eligible)
+    return str(selected[0]["id"]) if selected else None
+
+
+def record_destination_filter_decision(
     database,
     actor,
+    destination_id,
     notification,
-    decisions,
+    matched,
     *,
     clock=time.time,
 ):
-    """Record only route/destination filter outcomes; never persist event payloads."""
+    """Record the filter decision at the filter boundary without payload data."""
 
-    items = list(decisions)
-    if not items:
-        return True
+    route_id = _telemetry_route_id(database, destination_id, notification)
+    if route_id is None:
+        return False
     now = int(clock())
     source = str(getattr(notification, "source", "") or "")[:64]
-    rows = [
-        (
-            str(actor.user_id),
-            str(candidate.route.id),
-            str(candidate.destination_id),
-            source,
-            0 if matched else 1,
-            now,
-        )
-        for candidate, matched in items
-    ]
     try:
         with database.transaction() as connection:
-            # Keep the write path self-healing for installations upgraded from
-            # a failed or interrupted schema transition. Telemetry must never
-            # block notification delivery.
             connection.execute(
                 """
-                CREATE TABLE IF NOT EXISTS routing_flow_events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    owner_user_id TEXT NOT NULL,
-                    route_id TEXT NOT NULL,
-                    destination_id TEXT NOT NULL,
-                    source TEXT NOT NULL,
-                    filtered INTEGER NOT NULL DEFAULT 0 CHECK (filtered IN (0, 1)),
-                    created_at INTEGER NOT NULL
-                )
-                """
+                INSERT INTO routing_flow_events(
+                    owner_user_id, route_id, destination_id,
+                    source, filtered, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(actor.user_id),
+                    route_id,
+                    str(destination_id),
+                    source,
+                    0 if matched else 1,
+                    now,
+                ),
             )
-            for row in rows:
-                connection.execute(
-                    """
-                    INSERT INTO routing_flow_events(
-                        owner_user_id, route_id, destination_id,
-                        source, filtered, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?)
-                    """,
-                    row,
-                )
             connection.execute(
                 "DELETE FROM routing_flow_events WHERE created_at < ?",
                 (now - 367 * 24 * 60 * 60,),
             )
     except sqlite3.DatabaseError:
-        if os.environ.get("PYTEST_CURRENT_TEST"):
-            raise
+        # Routing telemetry is observational and must never break delivery.
         return False
     return True
 

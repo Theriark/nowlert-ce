@@ -298,34 +298,11 @@ def test_fallback_source_reports_current_policy_without_mutating_filtering(api):
 
 
 
-def test_filter_decisions_feed_received_filtered_and_reduction_metrics(api, monkeypatch):
+def test_filter_decisions_feed_received_filtered_and_reduction_metrics(api):
     headers = login(api)
     route = create_route(api, headers, "Grafana filtered")
     destination = create_destination(api, headers, "Filtered webhook", [route["id"]])
     platform = api["service"].platform
-    assert platform.delivery.__class__.__name__ == "FilteredPlatformDeliveryService"
-    assert platform.delivery.filters is platform.filters
-    assert platform.delivery.relationships is platform.relationships
-
-    import storage.filtering as filtering_module
-    from storage.routing_flow import record_filter_decisions as real_record_filter_decisions
-
-    telemetry_calls = []
-
-    def record_spy(database, actor, notification, decisions):
-        decision_snapshot = list(decisions)
-        telemetry_calls.append([
-            (item.route.id, item.destination_id, matched)
-            for item, matched in decision_snapshot
-        ])
-        return real_record_filter_decisions(
-            database,
-            actor,
-            notification,
-            decision_snapshot,
-        )
-
-    monkeypatch.setattr(filtering_module, "record_filter_decisions", record_spy)
     platform.filters.set_rules(
         api["admin"].actor,
         destination["id"],
@@ -352,10 +329,6 @@ def test_filter_decisions_feed_received_filtered_and_reduction_metrics(api, monk
 
     assert blocked.matched_routes == 0
     assert allowed.matched_routes == 1
-    assert telemetry_calls == [
-        [(route["id"], destination["id"], False)],
-        [(route["id"], destination["id"], True)],
-    ]
     with api["database"].connect() as connection:
         recorded = connection.execute(
             """

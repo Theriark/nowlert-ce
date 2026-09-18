@@ -18,6 +18,7 @@ from storage.destination_access import (
 from storage.destinations import DeliveryDestination
 from storage.filtering import FilteredPlatformDeliveryService, _clause_matches
 from storage.route_destinations import RouteDestinationCandidate
+from storage.routing_flow import record_destination_filter_decision
 from storage.system_filtering import SystemDestinationFilterStore
 
 
@@ -207,26 +208,37 @@ class AcceptanceFilterStore(SystemDestinationFilterStore):
             )
 
     def matches(self, actor, destination_id: str, notification) -> bool:
-        if not self.destination_filtering_enabled(destination_id):
-            return True
-        source = canonical_source(notification.source)
-        policy = self._policy(destination_id, source)
-        policy_rules = list(policy.get("policy_rules") or []) if policy else []
-        if not policy_rules or not self.filter_enabled(destination_id, source):
-            return True
-        block_rules = [item for item in policy_rules if item["action"] == "block"]
-        allow_rules = [item for item in policy_rules if item["action"] == "allow"]
-        if any(
-            _clause_matches(source, item["conditions"], notification)
-            for item in block_rules
-        ):
-            return False
-        if allow_rules:
-            return any(
-                _clause_matches(source, item["conditions"], notification)
-                for item in allow_rules
-            )
-        return True
+        matched = True
+        if self.destination_filtering_enabled(destination_id):
+            source = canonical_source(notification.source)
+            policy = self._policy(destination_id, source)
+            policy_rules = list(policy.get("policy_rules") or []) if policy else []
+            if policy_rules and self.filter_enabled(destination_id, source):
+                block_rules = [
+                    item for item in policy_rules if item["action"] == "block"
+                ]
+                allow_rules = [
+                    item for item in policy_rules if item["action"] == "allow"
+                ]
+                if any(
+                    _clause_matches(source, item["conditions"], notification)
+                    for item in block_rules
+                ):
+                    matched = False
+                elif allow_rules:
+                    matched = any(
+                        _clause_matches(source, item["conditions"], notification)
+                        for item in allow_rules
+                    )
+
+        record_destination_filter_decision(
+            self.database,
+            actor,
+            destination_id,
+            notification,
+            matched,
+        )
+        return matched
 
 
 class PlatformAPI(BasePlatformAPI):
