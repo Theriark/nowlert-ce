@@ -295,19 +295,13 @@
       ]),
     );
 
-    const refresh = element("button", {
-      className: "button secondary delivery-history-icon-button",
-      text: "↻",
-      type: "button",
-      attributes: { id: "delivery-history-refresh", "aria-label": "Refresh delivery history", title: "Refresh" },
-    });
     const clear = element("button", {
       className: "button secondary delivery-history-clear",
       text: "Clear filters",
       type: "button",
       attributes: { id: "delivery-history-clear-filters" },
     });
-    controls.append(refresh, clear);
+    controls.append(clear);
 
     const workbench = element("div", {
       className: "delivery-history-workbench",
@@ -398,22 +392,6 @@
       renderWorkbench();
     });
 
-    byId("delivery-history-refresh")?.addEventListener("click", async (event) => {
-      const button = event.currentTarget;
-      button.disabled = true;
-      try {
-        if (typeof qaLoadDeliveryPage === "function") {
-          const page = typeof qaDeliveryPage === "number" ? qaDeliveryPage : 1;
-          await qaLoadDeliveryPage(page);
-        } else {
-          await loadWorkspace();
-        }
-      } catch (error) {
-        toast(error.message || "Delivery history could not be refreshed.", "error");
-      } finally {
-        button.disabled = false;
-      }
-    });
   }
 
   function filteredDeliveries() {

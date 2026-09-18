@@ -535,19 +535,28 @@
   }
 
   function referencePageNumbers(page, totalPages) {
-    if (totalPages <= 2) {
+    if (totalPages <= 4) {
       return Array.from({ length: totalPages }, (_value, index) => index + 1);
     }
 
-    // Keep the footer compact. First/previous/next/last and direct page entry
-    // already provide full navigation, so only the current page and one nearby
-    // page need numeric buttons.
-    if (page <= 1) return [1, 2, "ellipsis"];
-    if (page >= totalPages) return ["ellipsis", totalPages - 1, totalPages];
+    // Keep the footer compact without losing the requested stepping pattern:
+    // page 1 -> 1 2 5 ..., page 2 -> 2 3 6 ..., and so on.
+    const values = [page];
+    const next = page + 1;
+    const skip = page + 4;
 
-    const values = ["ellipsis", page];
-    if (page < totalPages) values.push(page + 1);
-    if (page + 1 < totalPages) values.push("ellipsis");
+    if (next <= totalPages) values.push(next);
+
+    if (skip <= totalPages) {
+      if (!values.includes(skip)) values.push(skip);
+      if (skip < totalPages) values.push("ellipsis");
+      return values;
+    }
+
+    if (next < totalPages) {
+      if (totalPages - next > 1) values.push("ellipsis");
+      values.push(totalPages);
+    }
     return values;
   }
 

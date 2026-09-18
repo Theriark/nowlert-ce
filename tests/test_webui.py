@@ -841,10 +841,9 @@ def test_20260918_round_four_footer_destination_and_security_regressions():
     assert "const contentReady = (" in management
     assert "if (contentReady && positionReady) return;" in management
 
-    # The wide desktop footer intentionally renders only the current/nearby
-    # numeric pages. On page 1 this removes the old 3 and 4 buttons (and the
-    # unnecessary 5) while preserving direct/first/last navigation.
-    assert 'if (page <= 1) return [1, 2, "ellipsis"];' in management
+    # The wide desktop footer intentionally uses the compact reference pager.
+    # Round five refines the exact number stepping without changing its controls.
+    assert "function referencePageNumbers(page, totalPages)" in management
     round_four = styles[styles.index("/* 2026-09-18 round-four screenshot corrections. */"):]
     assert "background-image: none !important;" in round_four
     assert "minmax(250px, 1.62fr)" in round_four
@@ -861,3 +860,44 @@ def test_20260918_round_four_footer_destination_and_security_regressions():
     assert "grid-template-rows: auto minmax(0, 1fr) auto !important;" in round_four
     assert "grid-template-columns: minmax(0, 1fr) 236px !important;" in round_four
     assert "grid-template-rows: minmax(0, 1fr) 1px minmax(0, 1fr) 1px minmax(0, 1fr) !important;" in round_four
+
+
+
+def test_20260918_round_five_history_audit_settings_regressions():
+    delivery = (ROOT / "src" / "webui" / "destination_overview_acceptance.js").read_text(encoding="utf-8")
+    delivery_css = (ROOT / "src" / "webui" / "destination_overview_acceptance.css").read_text(encoding="utf-8")
+    management = (ROOT / "src" / "webui" / "management_consistency.js").read_text(encoding="utf-8")
+    reference = (ROOT / "src" / "webui" / "reference_acceptance.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "reference_acceptance.css").read_text(encoding="utf-8")
+
+    # Requested numeric stepping is current, next, current+4, then ellipsis.
+    assert "const values = [page];" in management
+    assert "const next = page + 1;" in management
+    assert "const skip = page + 4;" in management
+    assert 'if (skip < totalPages) values.push("ellipsis");' in management
+
+    # The dead Delivery History refresh control is fully removed.
+    assert "delivery-history-refresh" not in delivery
+    assert "delivery-history-icon-button" not in delivery_css
+
+    # The list card owns the outside border; the pager no longer draws a
+    # second rounded box/bottom line inside Delivery History or Audit Log.
+    round_five = styles[styles.index("/* 2026-09-18 round-five screenshot corrections. */"):]
+    assert "border: 0 !important;" in round_five
+    assert "border-radius: 0 !important;" in round_five
+    assert "box-shadow: none !important;" in round_five
+    assert "grid-template-rows: 76px !important;" in round_five
+    assert "grid-template-rows: 14px 36px !important;" in round_five
+    assert "padding: 7px 9px 19px !important;" in round_five
+
+    # Regional settings remains untouched as the reference height; only Updates
+    # is sized to its measured height, and the duplicate legacy metadata line is
+    # hidden so the update card can fit cleanly.
+    assert "function alignSettingsReferenceCards()" in reference
+    assert 'updates.style.height = "";' in reference
+    assert 'window.matchMedia("(min-width: 1181px)")' in reference
+    assert "regional.getBoundingClientRect().height" in reference
+    assert "updates.style.height = `${targetHeight}px`;" in reference
+    assert "requestAnimationFrame(alignSettingsReferenceCards);" in reference
+    assert ".reference-updates-card #update-check-metadata" in round_five
+    assert "display: none !important;" in round_five

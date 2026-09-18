@@ -871,12 +871,28 @@ function ensurePreviewReferenceLayout() {
     }
   }
 
+  function alignSettingsReferenceCards() {
+    const form = byId("preferences-form");
+    const regional = form?.closest("article.settings-card");
+    const updates = byId("settings-updates");
+    if (!regional || !updates) return;
+
+    // Regional settings is the accepted reference size. Never stretch it to
+    // match Updates; only make Updates finish on the same bottom edge.
+    updates.style.height = "";
+    if (window.matchMedia && !window.matchMedia("(min-width: 1181px)").matches) return;
+
+    const targetHeight = Math.ceil(regional.getBoundingClientRect().height);
+    if (targetHeight > 0) updates.style.height = `${targetHeight}px`;
+  }
+
   function syncSettingsUpdateState() {
     ensureSettingsReferenceLayout();
     const status = state.versionStatus || {}; const headline = byId("reference-update-headline"); const card = document.querySelector(".reference-update-status-card");
     if (headline) headline.textContent = status.check_error ? "Update status unavailable" : status.update_available ? "A Nowlert update is available" : "Nowlert is up to date";
     if (card) { card.classList.toggle("is-update-available", Boolean(status.update_available)); card.classList.toggle("is-error", Boolean(status.check_error)); }
     if (byId("reference-update-last-checked")) byId("reference-update-last-checked").textContent = status.checked_at ? `Last checked ${typeof formatTime === "function" ? formatTime(status.checked_at) : status.checked_at}` : "Last checked —";
+    requestAnimationFrame(alignSettingsReferenceCards);
   }
 
   function memberSince(user) {
@@ -988,6 +1004,9 @@ function ensurePreviewReferenceLayout() {
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && previewRouteMoreOpen) closePreviewRouteMore();
+  });
+  window.addEventListener("resize", () => {
+    if (state.currentView === "settings") requestAnimationFrame(alignSettingsReferenceCards);
   });
   document.addEventListener("DOMContentLoaded", scheduleSync, { once: true });
   scheduleSync();
