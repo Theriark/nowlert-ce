@@ -540,9 +540,9 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             """
             CREATE TABLE routing_flow_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                route_id TEXT REFERENCES routes(id) ON DELETE CASCADE,
-                destination_id TEXT REFERENCES destinations(id) ON DELETE CASCADE,
+                owner_user_id TEXT NOT NULL,
+                route_id TEXT NOT NULL,
+                destination_id TEXT NOT NULL,
                 source TEXT NOT NULL,
                 filtered INTEGER NOT NULL DEFAULT 0 CHECK (filtered IN (0, 1)),
                 created_at INTEGER NOT NULL
