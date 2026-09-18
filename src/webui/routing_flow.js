@@ -511,6 +511,33 @@
     if (controller) controller.abort(); controller=null;
     stopPulses();
   }
+  function cachedRoutingFlowSnapshot() {
+    const snapshots = state.routingFlowSnapshots && typeof state.routingFlowSnapshots === "object"
+      ? state.routingFlowSnapshots
+      : {};
+    const cached = snapshots[range];
+    if (
+      !cached
+      || !Array.isArray(cached.routes)
+      || !Array.isArray(cached.destinations)
+      || !Array.isArray(cached.links)
+      || !Array.isArray(cached.history)
+      || !cached.metrics
+    ) return null;
+    return cached;
+  }
+
+  function hydrateCachedRoutingFlow() {
+    if (data) return false;
+    const cached = cachedRoutingFlowSnapshot();
+    if (!cached) return false;
+    data = cached;
+    seen = new Set(cached.history.map(item => item.id));
+    signature = JSON.stringify({ ...cached, generated_at: 0, since: 0 });
+    render();
+    return true;
+  }
+
   function clearPrivateData() {
     stopPulses();
     data=null; signature=""; owner=null; seen=new Set(); graphModel=null;
@@ -523,6 +550,7 @@
   async function refresh() {
     if (!active() || busy) return;
     if(owner!==state.user.id){clearPrivateData();owner=state.user.id;}
+    hydrateCachedRoutingFlow();
     busy=true;
     const token=generation, userId=state.user.id, requestRange=range;
     const abort=new AbortController(); controller=abort;
@@ -537,6 +565,11 @@
       const fresh=data?next.history.filter(h=>!seen.has(h.id)):[];
       seen=new Set(next.history.map(h=>h.id));
       const nextSignature=JSON.stringify({...next,generated_at:0,since:0});data=next;
+      state.routingFlowSnapshots = {
+        ...(state.routingFlowSnapshots || {}),
+        [range]: next,
+      };
+      if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
       if(nextSignature!==signature){signature=nextSignature;render();}
       $("rf-error").hidden=!next.errors?.length;
       $("rf-error").textContent=(next.errors||[]).map(e=>`${e.component}: ${e.message}`).join(" · ");
@@ -564,7 +597,12 @@
     const result=previousNavigate(view,historyMode);sync();return result;
   };
   const previousExpire=expireSession;
-  expireSession=function routingFlowExpireSession(){invalidate();clearPrivateData();return previousExpire();};
+  expireSession=function routingFlowExpireSession(){
+    invalidate();
+    clearPrivateData();
+    state.routingFlowSnapshots = {};
+    return previousExpire();
+  };
   document.addEventListener("visibilitychange",sync);
   $("rf-range").addEventListener("change",()=>{range=$("rf-range").value;signature="";invalidate();clearPrivateData();refresh();});
   function setZoom(value){zoom=Math.min(1,Math.max(.7,Math.round(value*10)/10));$("rf-graph").style.transform=`scale(${zoom})`;$("rf-zoom-value").textContent=`${Math.round(zoom*100)}%`;$("rf-plus").disabled=zoom===1;$("rf-minus").disabled=zoom===.7;}

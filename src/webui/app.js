@@ -195,6 +195,8 @@ const state = {
   integrationSettings: {},
   integrationSettingsErrors: [],
   routeSourceOptions: [],
+  filteringOverview: null,
+  routingFlowSnapshots: {},
   versionStatus: null,
   managedMounts: false,
   configuration: null,

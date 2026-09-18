@@ -170,8 +170,17 @@
   }
 
   async function loadOverview() {
-    filteringState.overview = await request("/filters");
+    const cached = filteringState.overview || state.filteringOverview;
+    if (cached) {
+      filteringState.overview = cached;
+      renderOverview();
+    }
+
+    const next = await request("/filters");
+    filteringState.overview = next;
+    state.filteringOverview = next;
     renderOverview();
+    if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
     return filteringState.overview;
   }
 
@@ -767,6 +776,15 @@
       return result;
     };
   }
+
+  const previousExpireSession = expireSession;
+  expireSession = function filteringExpireSession() {
+    filteringState.overview = null;
+    filteringState.destinationView = null;
+    filteringState.integration = null;
+    state.filteringOverview = null;
+    return previousExpireSession();
+  };
 
   installNavigation();
   installView();

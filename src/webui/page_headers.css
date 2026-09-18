@@ -959,3 +959,24 @@
     gap: 3px;
   }
 }
+
+
+/* 2026-09-18 first-paint guard: data controls must never flash on another page
+   while the requested hash view is being restored. */
+.topbar.page-command-bar .page-command-actions > .ops-dashboard-top-actions,
+.topbar.page-command-bar .page-command-actions > #rf-live-status,
+.topbar.page-command-bar .page-command-actions > .rf-range {
+  display: none !important;
+}
+
+.topbar.page-command-bar[data-page-view="dashboard"] .page-command-actions > .ops-dashboard-top-actions {
+  display: flex !important;
+}
+
+.topbar.page-command-bar[data-page-view="routing-flow"] .page-command-actions > #rf-live-status {
+  display: inline-flex !important;
+}
+
+.topbar.page-command-bar[data-page-view="routing-flow"] .page-command-actions > .rf-range {
+  display: inline-flex !important;
+}

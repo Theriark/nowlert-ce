@@ -3,9 +3,12 @@
 /* Reference-screen acceptance layer. API behavior remains owned by the existing WebUI. */
 (() => {
   const USER_PAGE_SIZE = 6;
+  const TOKEN_PAGE_SIZE = 6;
   let userFilter = "all";
   let userQuery = "";
   let userPage = 1;
+  let tokenQuery = "";
+  let tokenPage = 1;
   let previewDestinationId = "";
   let previewScenarioDestinationId = "";
   let previewAssignedRouteIds = new Set();
@@ -877,13 +880,9 @@ function ensurePreviewReferenceLayout() {
     const updates = byId("settings-updates");
     if (!regional || !updates) return;
 
-    // Regional settings is the accepted reference size. Never stretch it to
-    // match Updates; only make Updates finish on the same bottom edge.
+    // CSS grid owns the shared row height. Do not force a measured inline
+    // height: it can clip the nested Updates cards while fonts/layout settle.
     updates.style.height = "";
-    if (window.matchMedia && !window.matchMedia("(min-width: 1181px)").matches) return;
-
-    const targetHeight = Math.ceil(regional.getBoundingClientRect().height);
-    if (targetHeight > 0) updates.style.height = `${targetHeight}px`;
   }
 
   function syncSettingsUpdateState() {
@@ -922,7 +921,139 @@ function ensurePreviewReferenceLayout() {
       password.replaceChildren(main, posture);
     }
     const tokens = byId("account-api-tokens");
-    if (tokens) { tokens.classList.add("reference-api-tokens"); const toolbar = tokens.querySelector(":scope > .section-toolbar"); const title = toolbar?.querySelector("h2"); if (title) title.textContent = "API tokens"; const add = toolbar?.querySelector('[data-action="new-token"]'); if (add) add.textContent = "Issue token"; }
+    if (tokens) {
+      tokens.classList.add("reference-api-tokens");
+      const toolbar = tokens.querySelector(":scope > .section-toolbar");
+      const title = toolbar?.querySelector("h2");
+      if (title) title.textContent = "API tokens";
+      const add = toolbar?.querySelector('[data-action="new-token"]');
+      if (add) add.textContent = "Issue token";
+      ensureApiTokenReferenceLayout();
+    }
+  }
+
+  function ensureApiTokenReferenceLayout() {
+    const tokens = byId("account-api-tokens");
+    const panel = tokens?.querySelector(":scope > .table-panel");
+    const table = panel?.querySelector("table");
+    if (!tokens || !panel || !table) return;
+
+    const actionHeading = table.querySelector("thead th:last-child");
+    if (actionHeading && actionHeading.textContent.trim() !== "Actions") {
+      actionHeading.textContent = "Actions";
+    }
+
+    let searchBar = panel.querySelector(":scope > .reference-token-search-bar");
+    if (!searchBar) {
+      searchBar = ref("div", "reference-token-search-bar");
+      const input = ref("input", "reference-token-search");
+      input.id = "reference-token-search";
+      input.type = "search";
+      input.placeholder = "Search tokens by name or ID...";
+      input.setAttribute("aria-label", "Search API tokens by name or ID");
+      input.addEventListener("input", () => {
+        tokenQuery = input.value.trim().toLowerCase();
+        tokenPage = 1;
+        syncApiTokensReference();
+      });
+      searchBar.append(input);
+      panel.prepend(searchBar);
+    }
+
+    let footer = panel.querySelector(":scope > .reference-token-footer");
+    if (!footer) {
+      footer = ref("div", "reference-token-footer");
+      const range = ref("span", "reference-token-range", "Showing 0 API tokens");
+      range.id = "reference-token-range";
+      const pager = ref("div", "reference-token-pager");
+      const previous = ref("button", "", "‹");
+      previous.type = "button";
+      previous.dataset.referenceTokenPage = "previous";
+      previous.setAttribute("aria-label", "Previous API token page");
+      previous.addEventListener("click", () => {
+        tokenPage = Math.max(1, tokenPage - 1);
+        syncApiTokensReference();
+      });
+      const pages = ref("span", "reference-token-pages");
+      pages.id = "reference-token-pages";
+      const next = ref("button", "", "›");
+      next.type = "button";
+      next.dataset.referenceTokenPage = "next";
+      next.setAttribute("aria-label", "Next API token page");
+      next.addEventListener("click", () => {
+        tokenPage += 1;
+        syncApiTokensReference();
+      });
+      pager.append(previous, pages, next);
+      footer.append(range, pager);
+      panel.append(footer);
+    }
+  }
+
+  function syncApiTokensReference() {
+    ensureApiTokenReferenceLayout();
+    const body = byId("token-table");
+    if (!body) return;
+
+    const tokens = state.tokens || [];
+    const rows = [...body.children];
+    const matching = [];
+    rows.forEach((row, index) => {
+      const item = tokens[index];
+      if (!item) {
+        row.hidden = true;
+        return;
+      }
+      row.dataset.tokenId = String(item.id || "");
+      const haystack = `${item.name || ""} ${item.id || ""}`.toLowerCase();
+      if (!tokenQuery || haystack.includes(tokenQuery)) matching.push({ row, item });
+    });
+
+    const pages = Math.max(1, Math.ceil(matching.length / TOKEN_PAGE_SIZE));
+    tokenPage = Math.min(Math.max(1, tokenPage), pages);
+    const startIndex = (tokenPage - 1) * TOKEN_PAGE_SIZE;
+    const visible = new Set(matching.slice(startIndex, startIndex + TOKEN_PAGE_SIZE).map((entry) => entry.row));
+    rows.forEach((row) => { row.hidden = !visible.has(row); });
+
+    const start = matching.length ? startIndex + 1 : 0;
+    const end = matching.length ? Math.min(startIndex + TOKEN_PAGE_SIZE, matching.length) : 0;
+    const range = byId("reference-token-range");
+    if (range) range.textContent = matching.length
+      ? `Showing ${start}–${end} of ${matching.length} API tokens`
+      : "Showing 0 API tokens";
+
+    const pageBox = byId("reference-token-pages");
+    if (pageBox) {
+      pageBox.replaceChildren();
+      for (let page = 1; page <= pages; page += 1) {
+        const button = ref("button", page === tokenPage ? "is-current" : "", String(page));
+        button.type = "button";
+        button.setAttribute("aria-label", `API token page ${page}`);
+        button.addEventListener("click", () => {
+          tokenPage = page;
+          syncApiTokensReference();
+        });
+        pageBox.append(button);
+      }
+    }
+
+    const previous = document.querySelector('[data-reference-token-page="previous"]');
+    const next = document.querySelector('[data-reference-token-page="next"]');
+    if (previous) previous.disabled = tokenPage <= 1;
+    if (next) next.disabled = tokenPage >= pages;
+
+    const empty = byId("token-empty");
+    if (empty && tokenQuery) {
+      empty.hidden = matching.length > 0;
+      if (!matching.length) {
+        empty.replaceChildren(
+          ref("strong", "", "No matching API tokens"),
+          ref("span", "", "Try a different token name or ID."),
+        );
+      }
+    } else if (empty) {
+      empty.hidden = tokens.length > 0;
+    }
   }
 
   function forceSecurityTitle() {
@@ -947,6 +1078,7 @@ function ensurePreviewReferenceLayout() {
     if (byId("reference-account-member-value")) byId("reference-account-member-value").textContent = memberSince(user);
     if (byId("reference-account-mfa-value")) byId("reference-account-mfa-value").textContent = user.mfa_enabled ? "Enabled" : "Not enabled";
     if (byId("reference-active-sessions")) byId("reference-active-sessions").textContent = Number(user.active_sessions || 1);
+    syncApiTokensReference();
     const restart = byId("restart-header-button");
     if (restart) {
       const show = state.currentView === "account" && typeof isAdmin === "function" && isAdmin();
@@ -977,7 +1109,7 @@ function ensurePreviewReferenceLayout() {
   }
   if (typeof renderUsers === "function") { const base = renderUsers; renderUsers = function renderUsersWithReferenceLayout() { const result = base(); syncUsersReference(); return result; }; }
   if (typeof renderUpdates === "function") { const base = renderUpdates; renderUpdates = function renderUpdatesWithReferenceLayout() { const result = base(); syncSettingsUpdateState(); return result; }; }
-  if (typeof renderTokens === "function") { const base = renderTokens; renderTokens = function renderTokensWithReferenceLayout() { const result = base(); ensureAccountReferenceLayout(); return result; }; }
+  if (typeof renderTokens === "function") { const base = renderTokens; renderTokens = function renderTokensWithReferenceLayout() { const result = base(); ensureAccountReferenceLayout(); syncApiTokensReference(); return result; }; }
   if (typeof navigate === "function") { const base = navigate; navigate = function navigateWithReferenceAcceptance(view, mode = "push") { const result = base(view, mode); scheduleSync(); return result; }; }
   if (typeof showApp === "function") { const base = showApp; showApp = function showAppWithReferenceAcceptance(session) { const result = base(session); scheduleSync(); return result; }; }
 

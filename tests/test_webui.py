@@ -401,7 +401,8 @@ def test_v310_menu_navigation_uses_browser_history_and_destinations_stay_a_card_
     assert 'window.addEventListener("popstate", navigateFromHistory)' in app
     assert 'navigate(view, "none")' in app
     assert 'originalNavigate(view, historyMode)' in enhancements
-    assert 'originalNavigate(view, "replace")' in enhancements
+    assert 'navigate(view, "replace")' in enhancements
+    assert 'originalNavigate(view, "replace")' not in enhancements
 
     assert 'data-panel-header="destinations"' not in markup
     assert 'professional-resource-panel' not in markup
@@ -891,14 +892,14 @@ def test_20260918_round_five_history_audit_settings_regressions():
     assert "grid-template-rows: 14px 36px !important;" in round_five
     assert "padding: 7px 9px 19px !important;" in round_five
 
-    # Regional settings remains untouched as the reference height; only Updates
-    # is sized to its measured height, and the duplicate legacy metadata line is
-    # hidden so the update card can fit cleanly.
+    # Regional settings remains the reference. Updates must not receive a
+    # measured inline height because that can clip its nested cards while the
+    # layout settles after refresh.
     assert "function alignSettingsReferenceCards()" in reference
     assert 'updates.style.height = "";' in reference
-    assert 'window.matchMedia("(min-width: 1181px)")' in reference
-    assert "regional.getBoundingClientRect().height" in reference
-    assert "updates.style.height = `${targetHeight}px`;" in reference
+    assert 'window.matchMedia("(min-width: 1181px)")' not in reference
+    assert "regional.getBoundingClientRect().height" not in reference
+    assert "targetHeight" not in reference
     assert "requestAnimationFrame(alignSettingsReferenceCards);" in reference
     assert ".reference-updates-card #update-check-metadata" in round_five
     assert "display: none !important;" in round_five

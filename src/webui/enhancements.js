@@ -378,8 +378,11 @@
   function ensureRequestedView() {
     const view = desiredView();
     if (!view || !VIEW_TITLES[view]) return;
-    if (state.currentView !== view && typeof originalNavigate === "function") {
-      originalNavigate(view, "replace");
+    // Use the current navigation chain, not the early captured base function.
+    // Later-installed views (Routing Flow, Filtering, unified headers) must
+    // receive the initial F5 navigation before the first paint.
+    if (state.currentView !== view && typeof navigate === "function") {
+      navigate(view, "replace");
     }
     persistDesiredView(view);
   }
@@ -397,7 +400,7 @@
   showApp = function enhancedShowApp(session) {
     const result = originalShowApp(session);
     syncHeaderMenu();
-    window.setTimeout(() => ensureRequestedView(), 0);
+    ensureRequestedView();
     return result;
   };
 
@@ -415,7 +418,7 @@
     if (!checkedAt || Date.now() - checkedAt >= UPDATE_INTERVAL_MS) {
       window.setTimeout(() => checkForUpdates(), 250);
     }
-    window.setTimeout(() => ensureRequestedView(), 0);
+    ensureRequestedView();
     return result;
   };
 
