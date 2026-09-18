@@ -16,13 +16,13 @@ def test_round21_profile_is_named_profile_and_matches_access_reference():
     assert 'data-view="account"><span aria-hidden="true">◇</span> Profile</button>' in markup
     assert '<h2>Profile</h2><p>Manage your profile information and account access.</p>' in markup
     assert "<h2>Profile</h2>" in script
-    assert "reference-profile-top" in script
+    assert "reference-profile-body" in script
     assert "reference-access-status" in script
     assert "All systems operational" in script
     assert "reference-account-meta-mfa" in script
     assert 'mfaValue.textContent = enabled ? "Enabled" : "Disabled"' in script
-    assert ".reference-profile-top {" in style
-    assert "grid-template-columns:minmax(0,1.34fr) minmax(320px,.96fr);" in style
+    assert ".reference-profile-card {" in style
+    assert ".reference-access-status {" in style
     assert "grid-template-columns:repeat(3,minmax(0,1fr)) !important;" in style
 
 

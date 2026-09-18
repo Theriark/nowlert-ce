@@ -4165,6 +4165,7 @@ async function handleClick(event) {
   else if (action === "new-token") openToken();
   else if (action === "new-user") openUser();
   else if (action === "reset-user") openUser(id);
+  else if (action === "account-mfa") void openMfaDialog();
   else if (action === "new-backup-target") openBackupTarget();
   else if (action === "edit-backup-target") openBackupTarget(id);
   else if (action) await resourceAction(action, id);

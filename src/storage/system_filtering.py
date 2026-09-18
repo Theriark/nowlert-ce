@@ -10,6 +10,7 @@ from integrations.filtering import filter_schemas, sources_for_input
 from storage.destination_access import AccessControlledDestinationFilterStore
 from storage.filtering import _clause_matches
 from storage.ownership import Actor
+from storage.routing_flow import record_destination_filter_decision
 from storage.settings import SettingsStore, runtime_overlay_status
 
 
@@ -98,24 +99,34 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
         source = canonical_source(notification.source)
         policy = self._policy(destination_id, source)
         policy_rules = list(policy.get("policy_rules") or []) if policy else []
-        if not policy_rules:
-            return True
-        if not self.filter_enabled(destination_id, source):
-            return True
 
-        block_rules = [item for item in policy_rules if item["action"] == "block"]
-        allow_rules = [item for item in policy_rules if item["action"] == "allow"]
-        if any(
-            _clause_matches(source, item["conditions"], notification)
-            for item in block_rules
-        ):
-            return False
-        if allow_rules:
-            return any(
+        matched = True
+        if policy_rules and self.filter_enabled(destination_id, source):
+            block_rules = [
+                item for item in policy_rules if item["action"] == "block"
+            ]
+            allow_rules = [
+                item for item in policy_rules if item["action"] == "allow"
+            ]
+            if any(
                 _clause_matches(source, item["conditions"], notification)
-                for item in allow_rules
-            )
-        return True
+                for item in block_rules
+            ):
+                matched = False
+            elif allow_rules:
+                matched = any(
+                    _clause_matches(source, item["conditions"], notification)
+                    for item in allow_rules
+                )
+
+        record_destination_filter_decision(
+            self.database,
+            actor,
+            destination_id,
+            notification,
+            matched,
+        )
+        return matched
 
     def _policy(self, destination_id: str, source: str):
         with self.database.connect() as connection:

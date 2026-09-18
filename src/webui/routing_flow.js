@@ -82,6 +82,31 @@
   `;
   byId("view-dashboard").after(section);
   const $ = id => section.querySelector(`#${id}`);
+
+  function syncRangeOptionsFromDashboard() {
+    const dashboardRange = document.getElementById("history-range");
+    const routingRange = $("rf-range");
+    if (!dashboardRange || !routingRange) return;
+
+    const selected = routingRange.value || range;
+    const fragment = document.createDocumentFragment();
+    for (const option of dashboardRange.options) {
+      const next = document.createElement("option");
+      next.value = option.value;
+      const prefix = option.textContent.trim().startsWith("Last ") ? "" : "Last ";
+      next.textContent = `${prefix}${option.textContent.trim()}`;
+      fragment.append(next);
+    }
+    routingRange.replaceChildren(fragment);
+
+    const hasSelected = [...routingRange.options].some(
+      (option) => option.value === selected,
+    );
+    routingRange.value = hasSelected ? selected : (dashboardRange.value || "1d");
+    range = routingRange.value;
+  }
+
+  syncRangeOptionsFromDashboard();
   $("rf-fit").prepend(icon("fit"));
   const dialog = el("dialog", "rf-dialog");
   dialog.setAttribute("aria-labelledby", "rf-details-title");

@@ -2162,3 +2162,200 @@ button.reference-preview-route-more:focus-visible {
   .reference-access-status-icon{height:70px;width:70px}
   .reference-account-meta{grid-template-columns:1fr !important}
 }
+
+
+/* 2026-09-18 round-22 compact Profile two-column layout. */
+@media (min-width: 1181px) {
+  .reference-account-grid {
+    align-items: stretch !important;
+    gap: 12px !important;
+    grid-template-columns: minmax(360px, 0.88fr) minmax(520px, 1.12fr) !important;
+  }
+
+  .reference-profile-card,
+  .reference-password-card {
+    align-self: stretch !important;
+    box-sizing: border-box !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    padding: 16px !important;
+  }
+
+  .reference-profile-card {
+    display: grid !important;
+    gap: 0 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto auto !important;
+  }
+
+  .reference-profile-body {
+    align-items: center !important;
+    display: grid !important;
+    gap: 14px !important;
+    grid-template-columns: 76px minmax(0, 1fr) !important;
+    min-height: 0 !important;
+    padding: 14px 4px 12px !important;
+  }
+
+  .reference-profile-body #account-avatar {
+    height: 72px !important;
+    width: 72px !important;
+  }
+
+  .reference-profile-copy {
+    align-content: center !important;
+    display: grid !important;
+    gap: 3px !important;
+  }
+
+  .reference-profile-copy #account-name {
+    font-size: 1rem !important;
+  }
+
+  .reference-profile-copy #account-role {
+    font-size: 0.78rem !important;
+  }
+
+  .reference-profile-copy #account-session {
+    font-size: 0.7rem !important;
+  }
+
+  .reference-profile-copy .avatar-form {
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+
+  .reference-profile-copy .avatar-form .button,
+  .reference-profile-copy .avatar-form .text-button {
+    min-height: 34px !important;
+  }
+
+  .reference-access-status {
+    align-items: center !important;
+    background:
+      radial-gradient(circle at 8% 50%, rgba(244, 196, 45, 0.09), transparent 8rem),
+      linear-gradient(145deg, rgba(8, 29, 42, 0.96), rgba(5, 22, 34, 0.98)) !important;
+    border: 1px solid rgba(211, 170, 46, 0.5) !important;
+    border-radius: 10px !important;
+    display: grid !important;
+    gap: 10px !important;
+    grid-template-columns: 42px minmax(0, 1fr) !important;
+    min-height: 0 !important;
+    padding: 9px 11px !important;
+  }
+
+  .reference-access-status-icon {
+    height: 40px !important;
+    width: 40px !important;
+  }
+
+  .reference-access-status-icon svg {
+    height: 23px !important;
+    width: 23px !important;
+  }
+
+  .reference-access-status-copy {
+    align-items: center !important;
+    column-gap: 8px !important;
+    display: grid !important;
+    grid-template-columns: auto auto !important;
+    row-gap: 2px !important;
+  }
+
+  .reference-access-status-copy > small {
+    font-size: 0.64rem !important;
+  }
+
+  .reference-access-status-copy > strong {
+    font-size: 0.86rem !important;
+  }
+
+  .reference-access-status-copy > p {
+    display: none !important;
+  }
+
+  .reference-system-status {
+    grid-column: 1 / -1 !important;
+    gap: 6px !important;
+    justify-self: start !important;
+    padding: 4px 9px !important;
+  }
+
+  .reference-system-status i {
+    height: 7px !important;
+    width: 7px !important;
+  }
+
+  .reference-system-status b {
+    font-size: 0.64rem !important;
+  }
+
+  .reference-account-meta {
+    gap: 6px !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    margin-top: 12px !important;
+    padding-top: 12px !important;
+  }
+
+  .reference-account-meta-item {
+    gap: 7px !important;
+    grid-template-columns: 30px minmax(0, 1fr) !important;
+    min-height: 58px !important;
+    padding: 7px 8px !important;
+  }
+
+  .reference-account-meta-icon {
+    height: 30px !important;
+    width: 30px !important;
+  }
+
+  .reference-account-meta-item small {
+    font-size: 0.62rem !important;
+  }
+
+  .reference-account-meta-item strong {
+    font-size: 0.76rem !important;
+  }
+
+  .reference-mfa-action {
+    font-size: 0.62rem !important;
+    padding: 1px 0 !important;
+  }
+
+  .reference-password-card {
+    gap: 14px !important;
+    grid-template-columns: minmax(0, 1fr) 220px !important;
+  }
+
+  .reference-password-main {
+    gap: 8px !important;
+  }
+
+  .reference-password-main #password-form {
+    gap: 7px !important;
+  }
+
+  .reference-password-main #password-form input {
+    min-height: 36px !important;
+  }
+
+  .reference-password-main #password-form button {
+    min-height: 40px !important;
+  }
+
+  .reference-security-posture {
+    gap: 8px !important;
+    padding-left: 14px !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .reference-account-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .reference-profile-card,
+  .reference-password-card {
+    height: auto !important;
+  }
+}
