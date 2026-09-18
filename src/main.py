@@ -15,9 +15,10 @@ import signal
 import sys
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from threading import Event
 
-from config import CONFIG_FILE, config
+from config import config
 from dispatcher import Dispatcher
 from inputs.http import HTTPInput
 from inputs.http_matrix_parity import install as install_http_matrix_parity
@@ -29,6 +30,9 @@ from storage.bootstrap import BootstrapStore
 from storage.backup_scheduler import BackupScheduler
 from storage.housekeeping_scheduler import HousekeepingScheduler
 from version import APP_NAME, VERSION
+
+
+CONFIG_FILE = Path(__file__).resolve().parent.parent / "config" / "config.yaml"
 
 
 def main() -> int:
