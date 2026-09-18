@@ -11,7 +11,7 @@
     filtering: "Control which notifications can reach each destination.",
     deliveries: "Review final delivery outcomes, retries, response status, and safe transport errors for routed events.",
     audit: "Review security-relevant actions, health checks, outcomes, and operational details.",
-    backups: "Configure backup destinations, schedules, snapshots, and restore operations.",
+    backups: "Configure backup destinations, schedules, snapshots, restore operations, and portable configuration.",
     tokens: "Allow external applications to submit events to /api/v2/events.",
     account: "Manage your profile picture, password, and active account security settings.",
   };
@@ -195,6 +195,8 @@
       nodes.push(section?.querySelector('[data-action="run-health-checks"]'));
     } else if (view === "tokens") {
       nodes.push(section?.querySelector('[data-action="new-token"]'));
+    } else if (view === "backups") {
+      nodes.push(section?.querySelector(".backup-heading-status"));
     } else if (view === "account") {
       nodes.push(document.getElementById("restart-header-button"));
     }

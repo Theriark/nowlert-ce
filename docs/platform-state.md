@@ -118,9 +118,13 @@ available for administrator inspection until their retention boundary is
 reached.
 
 Housekeeping defaults are 90 days for delivery history, 365 days for audit
-history and 180 days for completed backup-run records. A value of `0` retains
-that category forever. Cleanup runs in bounded batches and records its own
-result without storing secret material.
+history and 180 days for completed backup-run records. The WebUI exposes fixed
+recommended retention choices plus `Keep forever`. Housekeeping is scheduler
+only: when enabled it runs once per local calendar day at the configured time.
+The daily period key is persisted in SQLite, so restart/update does not repeat a
+completed run; if Nowlert was offline at the configured time it catches up once
+later that day. Cleanup runs in bounded batches and records its own result
+without storing secret material.
 
 ## Trusted recovery CLI
 

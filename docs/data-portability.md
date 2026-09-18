@@ -66,11 +66,18 @@ Default retention is:
 - Audit Log: **365 days**; and
 - completed backup-run records: **180 days**.
 
-A value of `0` keeps that category forever. Housekeeping runs daily at the
-configured time, deletes in bounded batches, removes expired/revoked browser
-sessions after a short grace period, records each run, and writes a secret-free
-audit event. Snapshot retention remains controlled separately by the backup
-retention setting.
+The WebUI offers recommended fixed retention choices for each category and a
+`Keep forever` option. Housekeeping is either **Enabled** or **Disabled**; there
+is no manual run control. When enabled it runs once per local calendar day at
+the configured time. The persisted `daily:YYYY-MM-DD` housekeeping run key
+prevents a container restart or image update from running cleanup twice on the
+same day. If Nowlert was offline at the configured time, it catches up once when
+it starts later that day.
+
+Cleanup deletes in bounded batches, removes expired/revoked browser sessions
+after a short grace period, records each run, and writes a secret-free audit
+event. Snapshot retention remains controlled separately by the backup retention
+setting.
 
 ## Complete recovery backups
 
@@ -122,7 +129,6 @@ If staging or validation fails, live state is left untouched.
 | POST | `/api/v2/portability/preview` | validate/fingerprint portable JSON |
 | POST | `/api/v2/portability/import` | apply unchanged confirmed portable JSON |
 | GET/PUT | `/api/v2/housekeeping` | inspect/update retention settings and status |
-| POST | `/api/v2/housekeeping/run` | run housekeeping immediately |
 | GET | `/api/v2/backups` | list local verified recovery snapshots |
 | POST | `/api/v2/backups` | create a local recovery snapshot |
 | DELETE | `/api/v2/backups/{id}` | permanently delete one local snapshot |

@@ -117,7 +117,9 @@ audit event.
 | GET | `/api/v2/health-checks` | session | safe operational checks |
 | POST | `/api/v2/reboot` | administrator + CSRF | audited restart request |
 | GET/PUT | `/api/v2/housekeeping` | administrator + CSRF for PUT | inspect/update history retention |
-| POST | `/api/v2/housekeeping/run` | administrator + CSRF | run retention cleanup now |
+
+Housekeeping execution is scheduler-only. The persisted daily run key makes the
+once-per-day boundary survive container restarts and image updates.
 
 ### Event API tokens
 

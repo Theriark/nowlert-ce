@@ -365,7 +365,7 @@ def test_v310_management_descriptions_content_headers_and_ranking_empty_states()
         "Configure regional preferences and integration-specific behavior.",
         "Review the running version and any advertised Nowlert update.",
         "Inspect and manage the SMTP, HTTP, and Redfish listeners used to receive events.",
-        "Create complete Nowlert recovery snapshots and restore them from local, NFS, or SMB storage.",
+        "Configure backup destinations, schedules, snapshots, restore operations, and portable configuration.",
         "Move user-created Nowlert configuration without moving credentials, accounts, history, or recovery data.",
         "Manage your profile picture, password, and active account security settings.",
     )
