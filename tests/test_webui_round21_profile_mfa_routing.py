@@ -72,8 +72,8 @@ def test_round21_routing_flow_uses_dashboard_ranges_and_live_filter_metrics():
         assert label in script
         assert f'"{value}"' in api
     assert 'range = "1d"' in script
-    assert "link.metrics?.received" in script
-    assert "link.metrics?.filtered" in script
+    assert "filter.metrics?.received" in script
+    assert "filter.metrics?.filtered" in script
     assert "routing_flow_events" in storage
     acceptance = _read("src/api/access_acceptance.py")
     assert "record_destination_filter_decision" in acceptance

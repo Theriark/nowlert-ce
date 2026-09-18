@@ -46,8 +46,8 @@ def test_round25_filter_card_overflow_and_destination_alignment_are_interactive(
     script = read("src/webui/routing_flow.js")
     style = read("src/webui/routing_flow.css")
 
-    assert '"rf-filter-overflow-button"' in script
-    assert '"rf-filter-source-overflow"' in script
+    assert "rf-filter-overflow-button" in script
+    assert "rf-filter-source-overflow" in script
     assert "toggle.addEventListener(\"click\"" in script
     assert 'toggle.setAttribute("aria-expanded", String(tagsExpanded));' in script
     assert 'toggle.setAttribute("aria-expanded", String(sourcesExpanded));' in script

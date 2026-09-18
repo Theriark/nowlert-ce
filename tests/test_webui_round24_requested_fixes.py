@@ -25,7 +25,7 @@ def test_round24_filter_card_uses_real_filter_fields_counts_and_source_icons():
     api = read("src/api/routing_flow.py")
 
     assert '"filters": filters' in api
-    assert '"filter_ids": [' in api
+    assert '"filter_ids": (' in api
     assert '"route_ids": filter_route_ids' in api
     assert "policy.policy_rules" in script
     assert "group.values.length" in script

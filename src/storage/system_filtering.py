@@ -146,6 +146,48 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
         )
         return matched
 
+    def _merge_migrated_clauses(self, source: str, existing_value, clauses) -> str:
+        """Preserve legacy Route filters as ALLOW rules during takeover.
+
+        Existing destination-owned legacy filters keep the round-25 BLOCK
+        interpretation, while filters migrated from route.filters_json retain
+        their historical allow-list semantics.
+        """
+
+        combined = list(self._decode_policy_rules(existing_value))
+        signatures = {
+            json.dumps(
+                {
+                    "action": item["action"],
+                    "conditions": {
+                        key: list(values)
+                        for key, values in item["conditions"].items()
+                    },
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            for item in combined
+        }
+        for clause in clauses:
+            item = {"action": "allow", "conditions": clause}
+            signature = json.dumps(
+                {
+                    "action": item["action"],
+                    "conditions": {
+                        key: list(values)
+                        for key, values in clause.items()
+                    },
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            if signature in signatures:
+                continue
+            combined.append(item)
+            signatures.add(signature)
+        return self._encode_policy_rules(combined)
+
     def _policy(self, destination_id: str, source: str):
         with self.database.connect() as connection:
             row = connection.execute(
