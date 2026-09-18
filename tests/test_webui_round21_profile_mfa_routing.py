@@ -8,14 +8,14 @@ def _read(relative):
     return (ROOT / relative).read_text(encoding="utf-8")
 
 
-def test_round21_profile_is_named_profile_and_matches_access_reference():
+def test_round21_profile_entry_opens_security_and_matches_access_reference():
     markup = _read("src/webui/index.html")
     script = _read("src/webui/reference_acceptance.js")
     style = _read("src/webui/reference_acceptance.css")
 
     assert 'data-view="account"><span aria-hidden="true">◇</span> Profile</button>' in markup
-    assert '<h2>Profile</h2><p>Manage your profile information and account access.</p>' in markup
-    assert "<h2>Profile</h2>" in script
+    assert '<h2>Security</h2><p>Manage your profile information and account access.</p>' in markup
+    assert "<h2>Profile & access</h2>" in script
     assert "reference-profile-body" in script
     assert "reference-access-status" in script
     assert "All systems operational" in script

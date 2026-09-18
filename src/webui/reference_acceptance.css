@@ -2359,3 +2359,129 @@ button.reference-preview-route-more:focus-visible {
     height: auto !important;
   }
 }
+
+
+/* 2026-09-18 round-23 Profile reference alignment. */
+@media (min-width: 1181px) {
+  .reference-profile-card {
+    column-gap: 14px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.08fr) minmax(250px, 0.92fr) !important;
+    grid-template-rows: auto minmax(142px, 1fr) auto !important;
+    row-gap: 0 !important;
+  }
+
+  .reference-profile-card .reference-account-card-heading {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    margin-bottom: 8px !important;
+  }
+
+  .reference-profile-body {
+    align-self: stretch !important;
+    gap: 14px !important;
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    grid-template-columns: 96px minmax(0, 1fr) !important;
+    padding: 18px 8px 16px 4px !important;
+  }
+
+  .reference-profile-body #account-avatar {
+    height: 92px !important;
+    width: 92px !important;
+  }
+
+  .reference-profile-copy #account-name {
+    font-size: 1.08rem !important;
+  }
+
+  .reference-profile-copy #account-role {
+    font-size: 0.82rem !important;
+  }
+
+  .reference-profile-copy #account-session {
+    font-size: 0.72rem !important;
+  }
+
+  .reference-profile-copy .avatar-form {
+    align-items: center !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 9px !important;
+    margin-top: 10px !important;
+  }
+
+  .reference-access-status {
+    align-self: stretch !important;
+    gap: 14px !important;
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    grid-template-columns: 64px minmax(0, 1fr) !important;
+    padding: 18px 16px !important;
+  }
+
+  .reference-access-status-icon {
+    height: 62px !important;
+    width: 62px !important;
+  }
+
+  .reference-access-status-icon svg {
+    height: 34px !important;
+    width: 34px !important;
+  }
+
+  .reference-access-status-copy {
+    align-content: center !important;
+    display: grid !important;
+    gap: 3px !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .reference-access-status-copy > small {
+    font-size: 0.72rem !important;
+  }
+
+  .reference-access-status-copy > strong {
+    font-size: 1.08rem !important;
+  }
+
+  .reference-access-status-copy > p {
+    display: block !important;
+    font-size: 0.72rem !important;
+    margin: 0 0 6px !important;
+  }
+
+  .reference-system-status {
+    grid-column: 1 !important;
+    padding: 6px 10px !important;
+  }
+
+  .reference-account-meta {
+    gap: 10px !important;
+    grid-column: 1 / -1 !important;
+    grid-row: 3 !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    margin-top: 10px !important;
+    padding-top: 14px !important;
+  }
+
+  .reference-account-meta-item {
+    gap: 10px !important;
+    grid-template-columns: 38px minmax(0, 1fr) !important;
+    min-height: 72px !important;
+    padding: 11px 12px !important;
+  }
+
+  .reference-account-meta-icon {
+    height: 38px !important;
+    width: 38px !important;
+  }
+
+  .reference-account-meta-item small {
+    font-size: 0.7rem !important;
+  }
+
+  .reference-account-meta-item strong {
+    font-size: 0.88rem !important;
+  }
+}

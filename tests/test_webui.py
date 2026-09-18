@@ -716,8 +716,8 @@ def test_20260918_webui_polish_regressions():
     assert 'restart.hidden = !show;' in reference
     assert "#restart-header-button.reference-account-restart" in reference_css
 
-    assert 'account: "Profile",' in app
-    assert "<h2>Profile</h2>" in markup
+    assert 'account: "Security",' in app
+    assert "<h2>Security</h2>" in markup
 
 
 def test_20260918_round_two_screenshot_regressions():
@@ -743,7 +743,7 @@ def test_20260918_round_two_screenshot_regressions():
     assert "function updateRestartDialogContext()" in app
 
     # Security owns the accepted topbar restart button, not the menu-created one.
-    assert 'if (view === "account") return "Profile";' in headers
+    assert 'if (view === "account") return "Security";' in headers
     assert 'nodes.push(document.getElementById("restart-header-button"));' in headers
     account_actions = headers[
         headers.index('} else if (view === "account")'):
@@ -801,8 +801,8 @@ def test_20260918_round_three_screenshot_regressions():
 
     # Security is forced after i18n/runtime layers, including later mutations.
     assert "function forceProfileTitle()" in reference
-    assert 'title.textContent = "Profile";' in reference
-    assert 'localTitle.textContent = "Profile";' in reference
+    assert 'title.textContent = "Security";' in reference
+    assert 'localTitle.textContent = "Security";' in reference
     assert "const titleObserver = new MutationObserver" in reference
 
     # Uploaded avatar images do not inherit the amber avatar gradient/glow.

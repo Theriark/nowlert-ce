@@ -323,3 +323,126 @@
     --rf-filter-border-angle: 300deg;
   }
 }
+
+
+/* 2026-09-18 round-23 reference filter interior; outer card geometry unchanged. */
+.rf-filter-card-heading-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.rf-filter-card-title {
+  display: block;
+  font-size: 11px !important;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.rf-filter-card-title-accent {
+  color: #ffd13a;
+}
+
+.rf-filter-card-subtitle {
+  color: #76a7c7;
+  display: block;
+  font-size: 7px;
+  font-weight: 650;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.rf-filter-card-tags {
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.rf-filter-rule-label {
+  background: #08283a;
+  border: 1px solid #14506d;
+  border-radius: 5px;
+  color: #85b9db;
+  flex: 0 0 auto;
+  font-size: 8px;
+  font-weight: 750;
+  padding: 3px 6px;
+}
+
+.rf-filter-rule-tag {
+  max-width: none;
+}
+
+.rf-filter-rule-tag-neutral {
+  border-color: #6a9ac0;
+  color: #c9e4fb;
+}
+
+.rf-filter-rule-tag-orange {
+  border-color: #e78b00;
+  color: #ff9f13;
+}
+
+.rf-filter-rule-tag-high {
+  border-color: #e8633f;
+  color: #ff7955;
+}
+
+.rf-filter-rule-tag-red {
+  border-color: #e03b5b;
+  color: #ff476c;
+}
+
+.rf-filter-card-footer {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.rf-filter-card-source-group,
+.rf-filter-card-destination-group {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.rf-filter-card-source-group > b,
+.rf-filter-card-destination-group > b {
+  color: #86a9c1;
+  font-size: 7px;
+  font-weight: 650;
+}
+
+.rf-filter-card-destination-group {
+  border-left: 1px solid #123847;
+  padding-left: 8px;
+}
+
+.rf-filter-card-sources,
+.rf-filter-card-destination {
+  align-items: center;
+  color: #dcebf3;
+  display: inline-flex;
+  font-size: 8px;
+  font-weight: 700;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rf-filter-card-sources > span:last-child,
+.rf-filter-card-destination > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rf-filter-card-sources img,
+.rf-filter-card-sources .source-product-icon,
+.rf-filter-card-destination img,
+.rf-filter-card-destination .output-icon-fallback {
+  flex: 0 0 14px !important;
+  height: 14px !important;
+  object-fit: contain;
+  width: 14px !important;
+}
