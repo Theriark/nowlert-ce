@@ -39,7 +39,7 @@ def test_round11_sidebar_is_larger_and_collapses_with_real_transitions():
 
     collapsed_label = sidebar[
         sidebar.index(".app-shell.sidebar-collapsed .nav-label"):
-        sidebar.index(".app-shell.sidebar-collapsed .profile-chip"),
+        sidebar.index(".app-shell.sidebar-collapsed .profile-chip")
     ]
     assert "display: block !important;" in collapsed_label
     assert "max-width: 0 !important;" in collapsed_label
