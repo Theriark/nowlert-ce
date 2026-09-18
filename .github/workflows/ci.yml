@@ -227,10 +227,16 @@ jobs:
           set -euo pipefail
           UI_BUILD="20260918-r19"
           BASE_URL="https://ce-dev-nowlert.theriark.dev"
+          ACCESS_HEADERS=(
+            -H "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}"
+            -H "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}"
+            -H "Cache-Control: no-cache"
+            -H "User-Agent: Theriark-GitHub-Actions/1.0"
+          )
 
           HTML="$(
             curl --fail --silent --show-error \
-              -H 'Cache-Control: no-cache' \
+              "${ACCESS_HEADERS[@]}" \
               "${BASE_URL}/?ui_acceptance=${SOURCE_SHA}"
           )"
           printf '%s' "${HTML}" | grep -Fq "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\""
@@ -240,7 +246,7 @@ jobs:
 
           CSS="$(
             curl --fail --silent --show-error \
-              -H 'Cache-Control: no-cache' \
+              "${ACCESS_HEADERS[@]}" \
               "${BASE_URL}/ui/qa_patch.css?v=${UI_BUILD}"
           )"
           printf '%s' "${CSS}" | grep -Fq "round-18 acceptance corrections"
@@ -251,14 +257,14 @@ jobs:
 
           APP="$(
             curl --fail --silent --show-error \
-              -H 'Cache-Control: no-cache' \
+              "${ACCESS_HEADERS[@]}" \
               "${BASE_URL}/ui/app.js?v=${UI_BUILD}"
           )"
           printf '%s' "${APP}" | grep -Fq "Preview completed."
 
           OWNERSHIP="$(
             curl --fail --silent --show-error \
-              -H 'Cache-Control: no-cache' \
+              "${ACCESS_HEADERS[@]}" \
               "${BASE_URL}/ui/source_ui_retirement.js"
           )"
           printf '%s' "${OWNERSHIP}" | grep -Fq "auditNav.hidden = !admin;"
