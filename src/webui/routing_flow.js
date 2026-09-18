@@ -69,7 +69,7 @@
   section.innerHTML = `
     <div class="section-toolbar rf-toolbar">
       <div><h2>Routing Flow</h2><p>Visualize active routes, filters, and destinations.</p></div>
-      <label class="rf-range"><span class="sr-only">History window</span><select id="rf-range"><option value="10m">Last 10 minutes</option><option value="1h">Last 1 hour</option><option value="1d" selected>Last 24 hours</option><option value="1m">Last 1 month</option><option value="1y">Last 1 year</option></select></label>
+      <label class="rf-range ops-dashboard-range-control"><span class="sr-only">History window</span><select id="rf-range"><option value="10m">Last 10 minutes</option><option value="1h">Last 1 hour</option><option value="1d" selected>Last 24 hours</option><option value="1m">Last 1 month</option><option value="1y">Last 1 year</option></select></label>
     </div>
     <div id="rf-error" class="rf-error" role="alert" hidden></div>
     <div id="rf-metrics" class="rf-metrics"></div>
@@ -223,30 +223,83 @@
     }
     return [...new Set(tags)];
   }
+
+  function filterTagTone(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized.includes("disaster") || normalized.includes("critical") || normalized.includes("emergency")) return "red";
+    if (normalized === "high" || normalized.includes("major")) return "high";
+    if (normalized.includes("average") || normalized.includes("medium")) return "orange";
+    if (normalized.includes("warning") || normalized === "warn") return "yellow";
+    if (normalized.includes("not classified") || normalized.includes("unclassified") || normalized === "unknown") return "neutral";
+    return "blue";
+  }
+
+  function filterCardDescriptor(link) {
+    const entries = [];
+    for (const policy of activePolicies(link)) {
+      const clauses = policy.legacy_clauses?.length ? policy.legacy_clauses : [policy.rules || {}];
+      for (const clause of clauses) {
+        for (const [key, rawValues] of Object.entries(clause || {})) {
+          if (key.startsWith("__")) continue;
+          const label = String(policy.labels?.[key] || key.replaceAll("_", " ")).trim();
+          const values = Array.isArray(rawValues) ? rawValues : [rawValues];
+          for (const rawValue of values) {
+            for (const rawPart of String(rawValue ?? "").split(" AND ")) {
+              const part = rawPart.trim();
+              if (!part) continue;
+              const value = part.includes(": ") ? part.split(": ").slice(1).join(": ").trim() : part;
+              entries.push({ label, value });
+            }
+          }
+        }
+      }
+    }
+
+    const labels = [...new Set(entries.map(item => item.label).filter(Boolean))];
+    const values = [...new Set(entries.map(item => item.value).filter(Boolean))];
+    const label = labels.length === 1 ? labels[0] : (labels.length ? "Rules" : "Filter");
+    const title = labels.length === 1
+      ? labels[0].replace(/\b\w/g, letter => letter.toUpperCase())
+      : (labels.length > 1 ? "Multiple rules" : "Active");
+    const subtitle = labels.length
+      ? `Applied to ${labels.map(item => item.toLowerCase()).join(" / ")}`
+      : "Applied to active route";
+    return { label, title, subtitle, values: values.length ? values : ["All notifications"] };
+  }
+
   function renderFilterCard(node, link, route, destination, lines) {
     node.classList.add("rf-filter-card");
+    const descriptor = filterCardDescriptor(link);
 
     const header = el("div", "rf-filter-card-header");
     const visual = el("span", "rf-filter-card-icon");
     visual.append(icon("filter"));
-    const title = link.fallback
-      ? (lines[0] || "Active filter")
-      : `${route.integration_name}: ${lines[0] || "Filter"}`;
-    header.append(visual, el("strong", "rf-filter-card-title", title));
+    const headingCopy = el("span", "rf-filter-card-heading-copy");
+    const title = el("strong", "rf-filter-card-title");
+    title.append(
+      document.createTextNode("Filter: "),
+      el("span", "rf-filter-card-title-accent", descriptor.title),
+    );
+    headingCopy.append(
+      title,
+      el("small", "rf-filter-card-subtitle", descriptor.subtitle),
+    );
+    header.append(visual, headingCopy);
 
     const tags = el("div", "rf-filter-card-tags");
-    const ruleTags = filterRuleTags(link);
-    const visibleTags = [
-      { text: route.integration_name, tone: "yellow" },
-      ...ruleTags.slice(0, 2).map(text => ({ text, tone: "blue" })),
-    ];
-    if (ruleTags.length > 2) visibleTags.push({ text: `+${ruleTags.length - 2}`, tone: "muted" });
-    visibleTags.push({ text: destination.name, tone: "green" });
-    for (const item of visibleTags) {
-      tags.append(el("span", `rf-filter-rule-tag rf-filter-rule-tag-${item.tone}`, item.text));
+    tags.append(el("span", "rf-filter-rule-label", `${descriptor.label}:`));
+    for (const value of descriptor.values) {
+      tags.append(
+        el(
+          "span",
+          `rf-filter-rule-tag rf-filter-rule-tag-${filterTagTone(value)}`,
+          value,
+        ),
+      );
     }
 
     const stats = el("div", "rf-filter-card-stats");
+    stats.setAttribute("aria-label", `Filter metrics for ${rangeLabel()}`);
     [
       ["Events in", filterMetricText(link.metrics?.received), "yellow"],
       ["Filtered out", filterMetricText(link.metrics?.filtered), "cyan"],
@@ -258,13 +311,20 @@
     });
 
     const footer = el("div", "rf-filter-card-footer");
-    const destinationSummary = el("span", "rf-filter-card-destination");
-    const destinationVisual = destinationLogo(destination);
-    destinationSummary.append(destinationVisual, el("span", "", destination.name));
-    const period = el("span", "rf-filter-card-period");
-    period.append(el("span", "", rangeLabel()), icon("clock"));
-    footer.append(destinationSummary, period);
 
+    const sourceGroup = el("span", "rf-filter-card-source-group");
+    sourceGroup.append(el("b", "", "Sources"));
+    const sourceSummary = el("span", "rf-filter-card-sources");
+    sourceSummary.append(sourceIcon(route.source), el("span", "", route.integration_name));
+    sourceGroup.append(sourceSummary);
+
+    const destinationGroup = el("span", "rf-filter-card-destination-group");
+    destinationGroup.append(el("b", "", "Destination"));
+    const destinationSummary = el("span", "rf-filter-card-destination");
+    destinationSummary.append(destinationLogo(destination), el("span", "", destination.name));
+    destinationGroup.append(destinationSummary);
+
+    footer.append(sourceGroup, destinationGroup);
     node.append(header, tags, stats, footer);
   }
 

@@ -920,7 +920,7 @@ function ensurePreviewReferenceLayout() {
       body.querySelector(":scope > div")?.classList.add("reference-profile-copy");
 
       const heading = ref("div", "reference-account-card-heading");
-      heading.innerHTML = '<span></span><div><h2>Profile</h2><p>Manage your profile information and account access.</p></div>';
+      heading.innerHTML = '<span></span><div><h2>Profile & access</h2><p>Manage your profile information and account access.</p></div>';
 
       const status = ref("aside", "reference-access-status");
       status.innerHTML = '<span class="reference-access-status-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"></path><circle cx="12" cy="10" r="2"></circle><path d="M8.5 16c.8-2 2-3 3.5-3s2.7 1 3.5 3"></path></svg></span><div class="reference-access-status-copy"><small>Access status</small><strong id="reference-access-status-value">Active</strong><p>Your account is in good standing.</p><span id="reference-system-status" class="reference-system-status"><i></i><b>All systems operational</b></span></div>';
@@ -1106,16 +1106,16 @@ function ensurePreviewReferenceLayout() {
   function forceProfileTitle() {
     if (state.currentView !== "account") return;
     const title = byId("page-title");
-    if (title && (title.textContent !== "Profile" || title.dataset.i18nSource)) {
+    if (title && (title.textContent !== "Security" || title.dataset.i18nSource)) {
       delete title.dataset.i18nSource;
-      title.textContent = "Profile";
+      title.textContent = "Security";
     }
     const toolbar = byId("view-account")?.querySelector(":scope > .section-toolbar");
     const localTitle = toolbar?.querySelector("h2");
     const localCopy = toolbar?.querySelector("p");
     if (localTitle) {
       delete localTitle.dataset.i18nSource;
-      localTitle.textContent = "Profile";
+      localTitle.textContent = "Security";
     }
     if (localCopy) localCopy.textContent = "Manage your profile information and account access.";
   }

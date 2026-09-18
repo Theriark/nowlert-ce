@@ -16,7 +16,7 @@ const VIEW_TITLES = {
   inputs: "Inputs",
   backups: "Backups",
   data: "Data tools",
-  account: "Profile",
+  account: "Security",
 };
 const OUTPUT_NAMES = {
   discord: "Discord",

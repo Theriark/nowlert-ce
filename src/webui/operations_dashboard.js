@@ -183,20 +183,11 @@
   function installRoutingFlowRanges() {
     const select = byId("rf-range");
     if (!select) return;
-    const selected = select.value || "15m";
-    const options = [
-      ["15m", "Last 15 minutes"],
-      ["1h", "Last hour"],
-      ["3h", "Last 3 hours"],
-      ["6h", "Last 6 hours"],
-      ["1d", "Last 24 hours"],
-    ];
-    select.replaceChildren(...options.map(([value, label]) => {
-      const option = node("option", "", label);
-      option.value = value;
-      return option;
-    }));
-    select.value = options.some(([value]) => value === selected) ? selected : "15m";
+    const selected = select.value || state.historyRange || "1h";
+    select.innerHTML = rangeOptions();
+    select.value = Object.hasOwn(RANGE_LABELS, selected)
+      ? selected
+      : (Object.hasOwn(RANGE_LABELS, state.historyRange) ? state.historyRange : "1h");
   }
 
   function syncDashboardChrome() {

@@ -105,7 +105,7 @@
   function expectedTitle(view) {
     if (ADMIN_VIEWS.has(view)) return "Administration";
     if (view === "tokens") return "API access";
-    if (view === "account") return "Profile";
+    if (view === "account") return "Security";
     return VIEW_TITLES?.[view] || document.getElementById("page-title")?.textContent || "Nowlert";
   }
 
