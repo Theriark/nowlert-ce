@@ -324,13 +324,18 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
     def _api_request(self, method: str, path: str) -> None:
         payload = None
-        if method in {"POST", "PUT", "PATCH"}:
+        length_header = self.headers.get("Content-Length")
+        delete_has_body = (
+            method == "DELETE"
+            and length_header not in {None, "", "0"}
+        )
+        if method in {"POST", "PUT", "PATCH"} or delete_has_body:
             content_type = self.headers.get("Content-Type", "")
             if not is_json_content_type(content_type):
                 self._respond_json(400, {"error": "application/json required"})
                 return
             try:
-                length = int(self.headers.get("Content-Length", ""))
+                length = int(length_header or "")
             except (TypeError, ValueError):
                 self._respond_json(400, {"error": "invalid content length"})
                 return

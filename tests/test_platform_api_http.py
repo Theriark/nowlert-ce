@@ -13,6 +13,7 @@ from api.security import hash_password
 from dispatcher import Dispatcher
 from inputs.http import HTTPServer
 from storage.database import Database
+from storage.mfa import totp_code
 from storage.users import UserStore
 
 
@@ -151,3 +152,84 @@ def test_platform_session_crud_patch_and_delete_over_native_http(monkeypatch, tm
     assert deleted[:2] == (204, None)
     assert logout[:2] == (204, None)
     assert len([value for name, value in logout[2] if name == "Set-Cookie"]) == 2
+
+
+
+def test_mfa_disable_accepts_json_body_over_native_http(monkeypatch, tmp_path):
+    database = Database(tmp_path / "state-mfa" / "nowlert.db")
+    database.migrate()
+
+    def users(database_value):
+        return UserStore(database_value, password_hasher=fast_hash)
+
+    monkeypatch.setattr(platform_module, "UserStore", users)
+    users(database).bootstrap_admin("administrator", PASSWORD)
+    configuration = Configuration({
+        "api": {"enabled": True},
+        "platform": {
+            "enabled": True,
+            "state_dir": str(tmp_path / "state-mfa"),
+            "secure_cookies": False,
+        },
+    })
+    monkeypatch.setattr(http_module, "config", configuration)
+    server = HTTPServer(
+        ("127.0.0.1", 0),
+        Dispatcher(),
+        Router(),
+        1_048_576,
+        "",
+        database,
+    )
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        login = request(
+            server.server_port,
+            "POST",
+            "/api/v2/session",
+            {"username": "administrator", "password": PASSWORD},
+        )
+        cookies = [value for name, value in login[2] if name == "Set-Cookie"]
+        session_cookie = next(
+            value.split(";", 1)[0]
+            for value in cookies
+            if "session=" in value
+        )
+        auth = {
+            "Cookie": session_cookie,
+            "X-CSRF-Token": login[1]["csrf_token"],
+        }
+
+        setup = request(
+            server.server_port,
+            "POST",
+            "/api/v2/account/mfa/setup",
+            {},
+            auth,
+        )
+        secret = setup[1]["secret"]
+        enabled = request(
+            server.server_port,
+            "PUT",
+            "/api/v2/account/mfa",
+            {"code": totp_code(secret)},
+            auth,
+        )
+        disabled = request(
+            server.server_port,
+            "DELETE",
+            "/api/v2/account/mfa",
+            {"password": PASSWORD, "code": totp_code(secret)},
+            auth,
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+    assert setup[0] == 200
+    assert enabled[0] == 200
+    assert enabled[1]["user"]["mfa_enabled"] is True
+    assert disabled[0] == 200
+    assert disabled[1]["user"]["mfa_enabled"] is False

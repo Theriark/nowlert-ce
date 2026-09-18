@@ -404,21 +404,53 @@ def test_snapshot_exposes_one_filter_card_per_filtering_record(api):
             ]
         },
     )
+    platform.filters.set_enabled(
+        api["admin"].actor,
+        destination["id"],
+        "zabbix",
+        False,
+    )
+
+    filtering_overview = platform._filters_overview(api["admin"].actor).payload
+    filtering_record = next(
+        item
+        for item in filtering_overview["filters"]
+        if item["destination_id"] == destination["id"]
+    )
 
     first = snapshot(api, headers, "10m").payload
     assert len(first["filters"]) == 1
     filter_card = first["filters"][0]
     assert filter_card["id"] == f'{destination["id"]}:filter'
-    assert filter_card["destination_id"] == destination["id"]
-    assert set(filter_card["sources"]) == {"grafana", "zabbix"}
+    assert filter_card["name"] == filtering_record["destination_name"]
+    assert filter_card["destination_id"] == filtering_record["destination_id"]
+    assert filter_card["configured_count"] == filtering_record["configured_count"]
+    assert filter_card["active_count"] == filtering_record["active_count"]
+    assert filter_card["sources"] == [
+        item["source"] for item in filtering_record["integrations"]
+    ]
+    assert filter_card["active_sources"] == [
+        item["source"]
+        for item in filtering_record["integrations"]
+        if item["filter_enabled"]
+    ]
     assert set(filter_card["route_ids"]) == {grafana["id"], zabbix["id"]}
-    assert {policy["source"] for policy in filter_card["policies"]} == {
-        "grafana",
-        "zabbix",
-    }
+    assert filter_card["policies"] == filtering_record["integrations"]
 
-    # Editing one integration in the existing Filtering record updates the
-    # same Routing Flow card instead of appending another card.
+    first_links = {
+        item["route_id"]: item
+        for item in first["links"]
+        if item["destination_id"] == destination["id"]
+    }
+    assert first_links[grafana["id"]]["filter_ids"] == [
+        f'{destination["id"]}:filter'
+    ]
+    assert first_links[grafana["id"]]["direct"] is False
+    assert first_links[zabbix["id"]]["filter_ids"] == []
+    assert first_links[zabbix["id"]]["direct"] is True
+
+    # Editing the existing Filtering record updates the stable Routing Flow
+    # card instead of appending another card or reconstructing stale sources.
     platform.filters.set_rules(
         api["admin"].actor,
         destination["id"],
@@ -436,22 +468,19 @@ def test_snapshot_exposes_one_filter_card_per_filtering_record(api):
     assert len(second["filters"]) == 1
     updated = second["filters"][0]
     assert updated["id"] == f'{destination["id"]}:filter'
+    refreshed_overview = platform._filters_overview(api["admin"].actor).payload
+    refreshed_record = next(
+        item
+        for item in refreshed_overview["filters"]
+        if item["destination_id"] == destination["id"]
+    )
+    assert updated["policies"] == refreshed_record["integrations"]
     grafana_policy = next(
         policy for policy in updated["policies"] if policy["source"] == "grafana"
     )
     assert grafana_policy["policy_rules"] == [
         {"action": "block", "conditions": {"severity": ["critical"]}}
     ]
-
-    links = [
-        item for item in second["links"]
-        if item["destination_id"] == destination["id"]
-    ]
-    assert len(links) == 2
-    assert all(
-        item["filter_ids"] == [f'{destination["id"]}:filter']
-        for item in links
-    )
 
 
 def test_routing_flow_supports_dashboard_history_windows(api):
