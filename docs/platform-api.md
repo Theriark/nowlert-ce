@@ -1,9 +1,9 @@
 # Authenticated platform API
 
-Nowlert v3.1.2 exposes the management plane and Event API through `/api/v2` on
+Current Nowlert exposes the management plane and Event API through `/api/v2` on
 the same HTTP service as the WebUI.
 
-The normal v3.1.2 authority model is:
+The normal authority model is:
 
 - `config.yaml` for process/bootstrap, listeners, transport security, state
   location, and WebUI publication;
@@ -116,6 +116,8 @@ audit event.
 | GET | `/api/v2/metrics/{range}` | session | Overview metrics |
 | GET | `/api/v2/health-checks` | session | safe operational checks |
 | POST | `/api/v2/reboot` | administrator + CSRF | audited restart request |
+| GET/PUT | `/api/v2/housekeeping` | administrator + CSRF for PUT | inspect/update history retention |
+| POST | `/api/v2/housekeeping/run` | administrator + CSRF | run retention cleanup now |
 
 ### Event API tokens
 
@@ -163,7 +165,7 @@ History is owner-filtered. Administrators may inspect all retained rows. Safe
 history does not persist destination credentials, token values, response bodies,
 or raw adapter exception text.
 
-### Backup targets and private state backups
+### Backup targets and recovery snapshots
 
 | Method | Path | Access | Purpose |
 |---|---|---|---|
@@ -171,14 +173,18 @@ or raw adapter exception text.
 | GET/POST | `/api/v2/backup-targets` | administrator + CSRF for POST | list/create Local/NFS/SMB target |
 | GET/PATCH/DELETE | `/api/v2/backup-targets/{id}` | administrator + CSRF for mutation | inspect/update/delete target |
 | POST | `/api/v2/backup-targets/{id}/test` | administrator + CSRF | test target connectivity/write |
-| POST | `/api/v2/backups/run` | administrator + CSRF | run scheduled-style external backup |
-| GET | `/api/v2/backups` | administrator | list verified private snapshots |
-| POST | `/api/v2/backups` | administrator + CSRF | create private state snapshot |
-| DELETE | `/api/v2/backups/{id}` | administrator + CSRF | permanently delete one private snapshot |
-| POST | `/api/v2/backups/{id}/restore` | administrator + CSRF | restore exact snapshot after confirmation |
+| GET | `/api/v2/backup-targets/{id}/backups` | administrator | list verified snapshots stored on target |
+| POST | `/api/v2/backup-targets/{id}/backups/{backup}/restore` | administrator + CSRF | stage/verify/restore external snapshot and restart |
+| POST | `/api/v2/backups/run` | administrator + CSRF | run scheduled-style target backup |
+| GET | `/api/v2/backups` | administrator | list verified local recovery snapshots |
+| POST | `/api/v2/backups` | administrator + CSRF | create complete local recovery snapshot |
+| DELETE | `/api/v2/backups/{id}` | administrator + CSRF | permanently delete one local snapshot |
+| POST | `/api/v2/backups/{id}/restore` | administrator + CSRF | restore exact snapshot and restart |
 
-Private snapshot deletion remains separate from restore. Deletion is audited and
-affects only the selected backup directory.
+Recovery snapshot deletion remains separate from restore. New snapshots contain the
+complete SQLite state, Nowlert-managed secret files and mounted `config.yaml` when
+available. External restores are copied to local staging and fully validated before
+live state is replaced.
 
 ### Portability and legacy migration
 
@@ -192,7 +198,7 @@ affects only the selected backup directory.
 | GET | `/api/v2/configuration/inventory` | administrator | secret-free mounted-config inventory |
 
 Compatibility/recovery endpoints for older configuration-authority transitions
-may remain present, but a normal v3.1.2 installation uses
+may remain present, but a normal current installation uses
 `platform_database_v1`. Do not switch a healthy current deployment back to
 legacy YAML resource authority.
 

@@ -39,6 +39,14 @@ DEFAULT_BACKUP_SETTINGS = {
     "external_path": "",
 }
 
+DEFAULT_HOUSEKEEPING_SETTINGS = {
+    "enabled": True,
+    "time": "03:15",
+    "delivery_history_days": 90,
+    "audit_history_days": 365,
+    "backup_run_history_days": 180,
+}
+
 DEFAULT_INTEGRATION_SETTINGS = {
     "xo": {"show_ids": False},
     "zabbix": {"show_ids": False},
@@ -216,6 +224,8 @@ class SettingsStore:
             return cls._regional(value)
         if namespace == "platform" and key == "backups":
             return cls._backups(value)
+        if namespace == "platform" and key == "housekeeping":
+            return cls._housekeeping(value)
         if namespace == "integration":
             return cls._integration(key, value)
         raise ValueError("settings resource is not supported")
@@ -317,6 +327,31 @@ class SettingsStore:
             "external_type": external_type,
             "external_path": external_path,
         }
+
+    @classmethod
+    def _housekeeping(cls, value: dict) -> dict:
+        allowed = set(DEFAULT_HOUSEKEEPING_SETTINGS)
+        unknown = set(value) - allowed
+        if unknown:
+            raise ValueError(f"unsupported housekeeping setting: {sorted(unknown)[0]}")
+        enabled = cls._bool(value.get("enabled", True), "enabled")
+        clock_time = str(value.get("time") or "03:15").strip()
+        if not re.fullmatch(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]", clock_time):
+            raise ValueError("housekeeping time must use HH:MM")
+        result = {"enabled": enabled, "time": clock_time}
+        for key, default in (
+            ("delivery_history_days", 90),
+            ("audit_history_days", 365),
+            ("backup_run_history_days", 180),
+        ):
+            raw = value.get(key, default)
+            if isinstance(raw, bool):
+                raise ValueError(f"{key} must be an integer")
+            days = int(raw)
+            if not 0 <= days <= 3650:
+                raise ValueError(f"{key} must be between 0 and 3650")
+            result[key] = days
+        return result
 
     @classmethod
     def _integration(cls, key: str, value: dict) -> dict:

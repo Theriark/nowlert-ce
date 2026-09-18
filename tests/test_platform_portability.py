@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import threading
 
 from pathlib import Path
@@ -96,7 +97,7 @@ def test_portable_export_never_contains_credentials_or_auth_material(platform_st
     document = state["portability"].export_document(state["admin"].actor)
     encoded = json.dumps(document, sort_keys=True)
 
-    assert document["schema"] == "nowlert.platform.v1"
+    assert document["schema"] == "nowlert.platform.v2"
     assert len(document["destinations"]) == 1
     assert len(document["routes"]) == 1
     assert document["destinations"][0]["secret_required"] is True
@@ -475,3 +476,141 @@ def test_database_maintenance_blocks_concurrent_connections(platform_state):
     worker.join(timeout=2)
 
     assert entered.is_set()
+
+def test_portable_v2_round_trips_destination_filters_without_route_filter_backup(
+    platform_state,
+):
+    state = platform_state
+    _secret, destination, _route = seed_destination(state)
+    policy = {
+        "version": 2,
+        "rules": [
+            {
+                "action": "allow",
+                "conditions": {"host": ["monitor-*"]},
+            }
+        ],
+    }
+    with state["database"].transaction() as connection:
+        connection.execute(
+            """
+            INSERT INTO destination_filters(
+                destination_id, source, clauses_json, created_at, updated_at
+            ) VALUES (?, 'grafana', ?, 1, 1)
+            """,
+            (destination.id, json.dumps(policy)),
+        )
+        connection.execute(
+            """
+            INSERT INTO settings_records(namespace, setting_key, value_json, updated_at)
+            VALUES ('destination_filter_enabled', ?, 'false', 1)
+            """,
+            (f"{destination.id}:grafana",),
+        )
+        connection.execute(
+            """
+            INSERT INTO settings_records(namespace, setting_key, value_json, updated_at)
+            VALUES ('destination_filter_master_enabled', ?, 'false', 1)
+            """,
+            (destination.id,),
+        )
+
+    document = state["portability"].export_document(state["admin"].actor)
+
+    assert document["schema"] == "nowlert.platform.v2"
+    assert "filters" not in document["routes"][0]
+    assert document["destinations"][0]["filtering_enabled"] is False
+    assert document["destinations"][0]["filters"] == [
+        {"source": "grafana", "policy": policy, "enabled": False}
+    ]
+
+    target_database = Database(state["tmp_path"] / "target" / "nowlert.db")
+    target_database.migrate()
+    target_users = UserStore(target_database, password_hasher=fast_hash)
+    target_admin = target_users.bootstrap_admin("administrator", PASSWORD)
+    target_users.create("owner-user", "owner secure password")
+    portability = PlatformPortabilityService(target_database)
+    plan = portability.preview_document(target_admin.actor, document)
+    assert plan.valid is True
+    result = portability.apply_document(target_admin.actor, document, plan.fingerprint)
+
+    assert result["filters_created"] == 1
+    with target_database.connect() as connection:
+        stored = connection.execute(
+            "SELECT source, clauses_json FROM destination_filters"
+        ).fetchone()
+        disabled = connection.execute(
+            """
+            SELECT value_json FROM settings_records
+            WHERE namespace = 'destination_filter_enabled'
+            """
+        ).fetchone()
+        master_disabled = connection.execute(
+            """
+            SELECT value_json FROM settings_records
+            WHERE namespace = 'destination_filter_master_enabled'
+            """
+        ).fetchone()
+    assert stored["source"] == "grafana"
+    assert json.loads(stored["clauses_json"]) == policy
+    assert disabled["value_json"] == "false"
+    assert master_disabled["value_json"] == "false"
+
+
+def test_complete_backup_includes_and_restores_bootstrap_configuration(platform_state):
+    state = platform_state
+    seed_destination(state)
+    config_path = state["tmp_path"] / "config" / "config.yaml"
+    config_path.parent.mkdir()
+    config_path.write_text("http:\n  enabled: true\n", encoding="utf-8")
+    os.chmod(config_path, 0o600)
+    backups = StateBackupStore(
+        state["database"],
+        config_path=config_path,
+        audit=state["audit"],
+        clock=lambda: 1_750_000_200,
+    )
+
+    backup = backups.create(state["admin"].actor)
+    config_path.write_text("http:\n  enabled: false\n", encoding="utf-8")
+    os.chmod(config_path, 0o600)
+
+    result = backups.restore(state["admin"].actor, backup.id, backup.id)
+
+    assert backup.config_included is True
+    assert "enabled: true" in config_path.read_text(encoding="utf-8")
+    assert result["config_restored"] is True
+    assert result["sessions_revoked"] is True
+
+
+def test_external_backup_can_restore_after_local_copy_is_removed(platform_state):
+    state = platform_state
+    _secret, destination, _route = seed_destination(state)
+    external_root = state["tmp_path"] / "external"
+    external_root.mkdir(mode=0o700)
+    backups = StateBackupStore(
+        state["database"],
+        audit=state["audit"],
+        clock=lambda: 1_750_000_300,
+    )
+    backup = backups.create(state["admin"].actor)
+    backups.mirror(state["admin"].actor, backup.id, external_root)
+    shutil.rmtree(backups.backup_directory / backup.id)
+    state["destinations"].set_enabled(state["admin"].actor, destination.id, False)
+
+    external = backups.list_external(state["admin"].actor, external_root)
+    result = backups.restore_external(
+        state["admin"].actor,
+        backup.id,
+        backup.id,
+        external_root,
+    )
+    restored = DestinationStore(state["database"]).get(
+        state["admin"].actor,
+        destination.id,
+    )
+
+    assert [item.id for item in external] == [backup.id]
+    assert restored.enabled is True
+    assert result["sessions_revoked"] is True
+

@@ -16,12 +16,20 @@ from storage.ownership import Actor
 
 
 class BackupScheduler:
-    def __init__(self, database, configuration, *, clock=time.time, interval=30):
+    def __init__(
+        self,
+        database,
+        configuration,
+        *,
+        config_path=None,
+        clock=time.time,
+        interval=30,
+    ):
         self.database = database
         self.configuration = configuration
         self.clock = clock
         self.interval = max(5, int(interval))
-        self.store = StateBackupStore(database)
+        self.store = StateBackupStore(database, config_path=config_path)
         self.targets = BackupTargetStore(database, configuration)
         self._stop = threading.Event()
         self._thread = None

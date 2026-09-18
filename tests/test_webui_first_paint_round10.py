@@ -32,18 +32,18 @@ def test_round10_sidebar_final_layer_matches_supplied_reference_contract():
     end = styles.index("/* NCE-35 final unified pagination row */", start)
     sidebar = styles[start:end]
 
-    assert "grid-template-columns: 198px minmax(0, 1fr) !important;" in sidebar
+    assert "grid-template-columns: 208px minmax(0, 1fr) !important;" in sidebar
     assert "grid-template-columns: 106px minmax(0, 1fr) !important;" in sidebar
     assert "> .sidebar-owl-button {" in sidebar
     assert "> .sidebar-edition-expanded {" in sidebar
     assert "> .sidebar-edition-collapsed {" in sidebar
     assert "transform: none !important;" in sidebar
-    assert "order: 0 !important;" in sidebar
-    assert "order: 1 !important;" in sidebar
-    assert "order: 2 !important;" in sidebar
+    assert "grid-row: 1 !important;" in sidebar
+    assert "grid-row: 2 !important;" in sidebar
+    assert "grid-row: 3 !important;" in sidebar
     assert ".app-shell.sidebar-collapsed .nav-item {" in sidebar
-    assert "height: 44px !important;" in sidebar
-    assert "width: 44px !important;" in sidebar
+    assert "height: 50px !important;" in sidebar
+    assert "width: 50px !important;" in sidebar
 
 
 def test_round10_settings_navigation_icon_has_valid_svg_root():

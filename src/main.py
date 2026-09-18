@@ -17,7 +17,7 @@ import time
 from datetime import datetime, timezone
 from threading import Event
 
-from config import config
+from config import CONFIG_FILE, config
 from dispatcher import Dispatcher
 from inputs.http import HTTPInput
 from inputs.http_matrix_parity import install as install_http_matrix_parity
@@ -27,6 +27,7 @@ from router import Router
 from storage.runtime import initialize_state
 from storage.bootstrap import BootstrapStore
 from storage.backup_scheduler import BackupScheduler
+from storage.housekeeping_scheduler import HousekeepingScheduler
 from version import APP_NAME, VERSION
 
 
@@ -45,6 +46,7 @@ def main() -> int:
     smtp = None
     http = None
     backup_scheduler = None
+    housekeeping_scheduler = None
     shutdown_requested = Event()
 
     def request_shutdown(signum, _frame):
@@ -97,8 +99,14 @@ def main() -> int:
         router = Router(state_database) if state_database is not None else Router()
 
         if state_database is not None:
-            backup_scheduler = BackupScheduler(state_database, config)
+            backup_scheduler = BackupScheduler(
+                state_database,
+                config,
+                config_path=CONFIG_FILE,
+            )
             backup_scheduler.start()
+            housekeeping_scheduler = HousekeepingScheduler(state_database, config)
+            housekeeping_scheduler.start()
 
         smtp = SMTPInput(
             dispatcher=dispatcher,
@@ -136,6 +144,10 @@ def main() -> int:
         return 1
 
     finally:
+
+        if housekeeping_scheduler is not None:
+
+            housekeeping_scheduler.stop()
 
         if backup_scheduler is not None:
 

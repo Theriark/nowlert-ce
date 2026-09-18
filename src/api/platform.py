@@ -39,6 +39,7 @@ from storage.secrets import SecretStore
 from storage.sessions import SessionStore
 from storage.users import UserStore
 from storage.health import HealthCheckService
+from storage.housekeeping import HousekeepingService
 from storage.integrations import IntegrationCategoryStore
 from storage.backup_scheduler import BackupScheduler
 from storage.backup_targets import BackupTargetStore
@@ -76,8 +77,15 @@ class PlatformAPI:
             secrets=self.secrets,
             audit=self.audit,
         )
+        backup_config_path = (
+            getattr(config_service, "path", None)
+            if config_service is not None
+            and getattr(config_service, "reloadable", False)
+            else None
+        )
         self.backups = StateBackupStore(
             database,
+            config_path=backup_config_path,
             audit=self.audit,
             retention=configuration.get(
                 "platform",
@@ -131,7 +139,12 @@ class PlatformAPI:
                     "; ".join(status.errors),
                 )
         self.health = HealthCheckService(database, self.configuration_sync)
-        self.backup_scheduler = BackupScheduler(database, configuration)
+        self.housekeeping = HousekeepingService(database, audit=self.audit)
+        self.backup_scheduler = BackupScheduler(
+            database,
+            configuration,
+            config_path=backup_config_path,
+        )
         self.backup_targets = BackupTargetStore(
             database,
             configuration,
@@ -252,6 +265,10 @@ class PlatformAPI:
                 return self._audit_page_endpoint(method, actor, int(audit_page.group(1)))
             if path == "/api/v2/health-checks":
                 return self._health_endpoint(method, actor)
+            if path == "/api/v2/housekeeping":
+                return self._housekeeping_endpoint(method, payload, actor)
+            if path == "/api/v2/housekeeping/run":
+                return self._housekeeping_run_endpoint(method, actor)
             if path == "/api/v2/backup-settings":
                 return self._backup_settings_endpoint(method, payload, actor)
             if path == "/api/v2/backup-targets":
@@ -825,6 +842,53 @@ class PlatformAPI:
         )
         return APIResponse(200, {"checks": checks})
 
+    def _housekeeping_endpoint(self, method, payload, actor) -> APIResponse:
+        self._require_admin(actor)
+        if method == "GET":
+            return APIResponse(
+                200,
+                {
+                    "settings": self.housekeeping.settings(),
+                    "status": self.housekeeping.status(),
+                },
+            )
+        if method == "PUT":
+            data = self._object(
+                payload,
+                {
+                    "enabled",
+                    "time",
+                    "delivery_history_days",
+                    "audit_history_days",
+                    "backup_run_history_days",
+                },
+            )
+            required = {
+                "enabled",
+                "time",
+                "delivery_history_days",
+                "audit_history_days",
+                "backup_run_history_days",
+            }
+            if set(data) != required:
+                raise ValueError("every housekeeping setting is required")
+            settings = self.housekeeping.update_settings(actor, data)
+            return APIResponse(
+                200,
+                {"settings": settings, "status": self.housekeeping.status()},
+            )
+        return self._method_not_allowed("GET, PUT")
+
+    def _housekeeping_run_endpoint(self, method, actor) -> APIResponse:
+        self._require_admin(actor)
+        if method != "POST":
+            return self._method_not_allowed("POST")
+        result = self.housekeeping.run(actor)
+        return APIResponse(
+            200,
+            {"run": result, "status": self.housekeeping.status()},
+        )
+
     def _backup_settings_endpoint(self, method, payload, actor) -> APIResponse:
         self._require_admin(actor)
         if self.configuration_sync is None:
@@ -1225,6 +1289,47 @@ class PlatformAPI:
         if metrics_match:
             return self._metrics_endpoint(method, actor, metrics_match.group(1))
 
+        external_restore_match = re.fullmatch(
+            r"/api/v2/backup-targets/([0-9a-f]{32})/backups/"
+            r"(state-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8})/restore",
+            path,
+        )
+        if external_restore_match:
+            self._require_admin(actor)
+            if method != "POST":
+                return self._method_not_allowed("POST")
+            target_id, backup_id = external_restore_match.groups()
+            data = self._object(payload, {"confirmation"})
+            target = self.backup_targets.get(actor, target_id)
+            destination = self.backup_targets.ensure_ready(actor, target)
+            result = self.backups.restore_external(
+                actor,
+                backup_id,
+                str(data.get("confirmation") or ""),
+                destination,
+            )
+            result["restart_scheduled"] = self._schedule_restore_restart()
+            return APIResponse(200, {"restore": result}, self._clear_cookies())
+
+        external_list_match = re.fullmatch(
+            r"/api/v2/backup-targets/([0-9a-f]{32})/backups",
+            path,
+        )
+        if external_list_match:
+            self._require_admin(actor)
+            if method != "GET":
+                return self._method_not_allowed("GET")
+            target = self.backup_targets.get(actor, external_list_match.group(1))
+            destination = self.backup_targets.ensure_ready(actor, target)
+            backups = self.backups.list_external(actor, destination)
+            return APIResponse(
+                200,
+                {
+                    "target": target.public(),
+                    "backups": [item.public() for item in backups],
+                },
+            )
+
         target_match = re.fullmatch(
             r"/api/v2/backup-targets/([0-9a-f]{32})(?:/(test))?", path
         )
@@ -1351,7 +1456,16 @@ class PlatformAPI:
             backup_id,
             str(data.get("confirmation") or ""),
         )
+        result["restart_scheduled"] = self._schedule_restore_restart()
         return APIResponse(200, {"restore": result}, self._clear_cookies())
+
+    def _schedule_restore_restart(self) -> bool:
+        if not callable(getattr(self.configuration, "reload", None)):
+            return False
+        timer = threading.Timer(0.75, self.reboot_callback)
+        timer.daemon = True
+        timer.start()
+        return True
 
     def _user_resource(self, method, payload, actor, user_id, action):
         self._require_admin(actor)

@@ -256,6 +256,24 @@
             <div class="panel-heading"><div><p class="eyebrow">Integration behavior</p><h3>Notification policies and aliases</h3><p>Manage formatter filters, device aliases, trusted management clients, and Redfish deduplication without editing config.yaml.</p></div></div>
             <div id="integration-settings-list" class="resource-grid"></div>
           </article>
+          <article class="panel settings-card housekeeping-card">
+            <div class="panel-heading"><div><p class="eyebrow">Housekeeping</p><h3>Operational history retention</h3><p>Keep delivery and audit evidence locally for investigation while automatically removing records older than your retention policy. Use 0 days to keep a category forever.</p></div></div>
+            <form id="housekeeping-form" class="form-grid">
+              <label class="switch-field wide"><input id="housekeeping-enabled" type="checkbox" checked><span>Run housekeeping automatically each day</span></label>
+              <label><span>Run time</span><input id="housekeeping-time" type="time" value="03:15" required></label>
+              <label><span>Delivery history</span><input id="housekeeping-delivery-days" type="number" min="0" max="3650" value="90" required><small>Days to retain; 0 keeps forever.</small></label>
+              <label><span>Audit history</span><input id="housekeeping-audit-days" type="number" min="0" max="3650" value="365" required><small>Days to retain; 0 keeps forever.</small></label>
+              <label><span>Backup run history</span><input id="housekeeping-backup-run-days" type="number" min="0" max="3650" value="180" required><small>Run records only; snapshot retention stays under Backups.</small></label>
+              <div class="wide button-row">
+                <button class="button primary" type="submit">Save housekeeping</button>
+                <button class="button secondary" type="button" data-action="run-housekeeping">Run housekeeping now</button>
+              </div>
+              <div class="wide housekeeping-status">
+                <small id="housekeeping-history-status">History statistics are loading.</small>
+                <small id="housekeeping-last-run">No housekeeping run recorded.</small>
+              </div>
+            </form>
+          </article>
         </section>
 
         <section id="view-updates" class="view" data-page="updates" hidden>
@@ -280,14 +298,14 @@
         </section>
 
         <section id="view-data" class="view" data-page="data" hidden>
-          <div class="section-toolbar"><div><h2>Data tools</h2><p>Export, preview, and import portable configuration without exposing credentials.</p></div></div>
+          <div class="section-toolbar"><div><h2>Data tools</h2><p>Move user-created Nowlert configuration without moving credentials, accounts, history, or recovery data.</p></div></div>
           <div class="data-tools-grid">
             <article class="panel data-tool-card">
-              <div><p class="eyebrow">Portable configuration</p><h3>Export destinations and routes</h3><p>Downloads owner-aware settings without passwords, application tokens, or destination credentials.</p></div>
+              <div><p class="eyebrow">Portable configuration</p><h3>Export user configuration</h3><p>Downloads destinations, reusable routes, route assignments, destination filtering policies, and safe settings. Passwords, application tokens, destination credentials, users, delivery history, and audit history are excluded.</p></div>
               <button class="button secondary" type="button" data-action="export-platform">Download safe JSON</button>
             </article>
             <article class="panel data-tool-card">
-              <div><p class="eyebrow">Validated import</p><h3>Import platform JSON</h3><p>Preview a safe export before merging it. Credentials intentionally remain unset and affected resources stay disabled.</p></div>
+              <div><p class="eyebrow">Validated import</p><h3>Import user configuration</h3><p>Preview a safe export before merging it. Credentials intentionally remain unset and credential-dependent destinations stay disabled until their secret is supplied again.</p></div>
               <label><span>JSON document</span><input id="portable-file" type="file" accept="application/json,.json"></label>
               <button class="button secondary" type="button" data-action="preview-portable">Preview JSON import</button>
             </article>
@@ -295,16 +313,18 @@
         </section>
 
         <section id="view-backups" class="view" data-page="backups" hidden>
-          <div class="section-toolbar"><div><h2>Backups</h2><p>Configure backup destinations, schedules, snapshots, and restore operations.</p></div><button class="button primary" type="button" data-action="new-backup-target">Add backup destination</button></div>
+          <div class="section-toolbar"><div><h2>Backups</h2><p>Create complete Nowlert recovery snapshots and restore them from local, NFS, or SMB storage.</p></div><button class="button primary" type="button" data-action="new-backup-target">Add backup destination</button></div>
           <div class="data-tools-grid">
             <article class="panel data-tool-card backup-targets-card">
-              <div class="panel-heading"><div><p class="eyebrow">Destinations</p><h3>Backup storage</h3><p>Remote targets are reachability-tested, mounted when managed mounts are enabled, and verified with a real write test.</p></div></div>
+              <div class="panel-heading"><div><p class="eyebrow">Destinations</p><h3>Backup storage</h3><p>Local, NFS, and SMB targets are write-tested before use. Remote targets can be mounted by Nowlert when managed mounts are enabled.</p></div></div>
               <div class="table-scroll"><table><thead><tr><th>Type</th><th>Name</th><th>Host</th><th>Backup path</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="backup-target-table"></tbody></table></div>
             </article>
             <article class="panel data-tool-card backup-card">
-              <div><p class="eyebrow">Private state</p><h3>Server-side backups</h3><p>Includes the SQLite database and secret files. Backup contents never leave the server through this API.</p></div>
-              <div class="button-row"><button class="button primary" type="button" data-action="create-backup">Create local snapshot</button><button class="button secondary" type="button" data-action="run-backup-now">Run scheduled backup now</button></div>
+              <div><p class="eyebrow">Complete recovery</p><h3>Recovery snapshots</h3><p>Snapshots include the complete SQLite state — users, configuration records, filtering, delivery history, audit history and backup settings — plus Nowlert-managed secret files and the mounted bootstrap config.yaml. Restores create a safety snapshot first and restart Nowlert after verification.</p></div>
+              <div class="button-row"><button class="button primary" type="button" data-action="create-backup">Create local snapshot</button><button class="button secondary" type="button" data-action="run-backup-now">Run scheduled backup now</button><button class="button secondary" type="button" data-action="refresh-external-backups">Refresh stored snapshots</button></div>
               <div id="backup-list" class="backup-list"></div>
+              <div class="panel-heading backup-external-heading"><div><p class="eyebrow">Stored copies</p><h3>Local / NFS / SMB snapshots</h3><p>Verified snapshots discovered on configured backup destinations. Restore copies the selected snapshot to local staging and validates it before replacing live state.</p></div></div>
+              <div id="external-backup-list" class="backup-list"></div>
             </article>
             <article class="panel data-tool-card backup-schedule-card">
               <div><p class="eyebrow">Scheduled backups</p><h3>Local, NFS, or SMB</h3><p>Select a tested destination. Managed remote mounts require the opt-in deployment override.</p></div>

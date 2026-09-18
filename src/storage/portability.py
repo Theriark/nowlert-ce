@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import re
 import time
 import unicodedata
 
@@ -12,6 +13,7 @@ from dataclasses import dataclass
 
 import yaml
 
+from integrations.catalog import canonical_source
 from outputs.settings import normalize_output_settings, validate_public_https_url
 from storage.audit_events import AuditEventStore
 from storage.database import Database
@@ -23,10 +25,13 @@ from storage.secrets import SecretStore
 from storage.validation import normalized_name
 
 
-PORTABLE_SCHEMA = "nowlert.platform.v1"
+PORTABLE_SCHEMA = "nowlert.platform.v2"
+LEGACY_PORTABLE_SCHEMA = "nowlert.platform.v1"
 MAXIMUM_DOCUMENT_BYTES = 1024 * 1024
 MAXIMUM_DESTINATIONS = 500
 MAXIMUM_ROUTES = 1000
+MAXIMUM_FILTERS = 5000
+_FILTER_SOURCE = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,79}$")
 
 
 @dataclass(frozen=True)
@@ -58,6 +63,8 @@ class ImportPlan:
                     "secret_present": bool(item.get("secret_value")),
                     "secret_required": bool(item.get("secret_required")),
                     "route_refs": list(item.get("route_refs") or ()),
+                    "filtering_enabled": bool(item.get("filtering_enabled", True)),
+                    "filters": len(item.get("filters") or ()),
                 }
                 for item in self.destinations
             ],
@@ -77,6 +84,7 @@ class ImportPlan:
             "summary": {
                 "destinations": len(self.destinations),
                 "routes": len(self.routes),
+                "filters": sum(len(item.get("filters") or ()) for item in self.destinations),
             },
         }
 
@@ -126,6 +134,27 @@ class PlatformPortabilityService:
                 ORDER BY destination_id, route_id
                 """
             ).fetchall()
+            filter_rows = connection.execute(
+                """
+                SELECT destination_id, source, clauses_json
+                FROM destination_filters
+                ORDER BY destination_id, source
+                """
+            ).fetchall()
+            filter_state_rows = connection.execute(
+                """
+                SELECT setting_key, value_json
+                FROM settings_records
+                WHERE namespace = 'destination_filter_enabled'
+                """
+            ).fetchall()
+            filter_master_rows = connection.execute(
+                """
+                SELECT setting_key, value_json
+                FROM settings_records
+                WHERE namespace = 'destination_filter_master_enabled'
+                """
+            ).fetchall()
         destination_refs = {
             str(row["id"]): f"destination-{index}"
             for index, row in enumerate(destination_rows, start=1)
@@ -142,6 +171,47 @@ class PlatformPortabilityService:
             route_id = str(relationship["route_id"])
             if destination_id in destination_routes and route_id in route_refs:
                 destination_routes[destination_id].append(route_refs[route_id])
+
+        disabled_filters = set()
+        for row in filter_state_rows:
+            try:
+                enabled = bool(json.loads(str(row["value_json"])))
+            except (TypeError, ValueError, json.JSONDecodeError):
+                enabled = True
+            if not enabled:
+                disabled_filters.add(str(row["setting_key"]))
+
+        disabled_filtering = set()
+        for row in filter_master_rows:
+            try:
+                enabled = bool(json.loads(str(row["value_json"])))
+            except (TypeError, ValueError, json.JSONDecodeError):
+                enabled = True
+            if not enabled:
+                disabled_filtering.add(str(row["setting_key"]))
+
+        destination_filters: dict[str, list[dict]] = {
+            str(row["id"]): [] for row in destination_rows
+        }
+        for row in filter_rows:
+            destination_id = str(row["destination_id"])
+            if destination_id not in destination_filters:
+                continue
+            source = canonical_source(str(row["source"]))
+            try:
+                policy = json.loads(str(row["clauses_json"]))
+            except (TypeError, ValueError, json.JSONDecodeError) as error:
+                raise ValueError("stored destination filter contains invalid JSON") from error
+            if not isinstance(policy, (list, dict)):
+                raise ValueError("stored destination filter policy is invalid")
+            destination_filters[destination_id].append(
+                {
+                    "source": source,
+                    "policy": policy,
+                    "enabled": f"{destination_id}:{source}" not in disabled_filters,
+                }
+            )
+
         document = {
             "schema": PORTABLE_SCHEMA,
             "exported_at": int(self.clock()),
@@ -156,6 +226,8 @@ class PlatformPortabilityService:
                     "enabled": bool(row["enabled"]),
                     "secret_required": row["secret_id"] is not None,
                     "route_refs": destination_routes[str(row["id"])],
+                    "filtering_enabled": str(row["id"]) not in disabled_filtering,
+                    "filters": destination_filters[str(row["id"])],
                 }
                 for row in destination_rows
             ],
@@ -166,7 +238,6 @@ class PlatformPortabilityService:
                     "name": str(row["name"]),
                     "source": str(row["source"]),
                     "input_type": str(row["input_type"] or ""),
-                    "filters": json.loads(str(row["filters_json"])),
                     "priority": int(row["priority"]),
                     "enabled": bool(row["enabled"]),
                 }
@@ -176,6 +247,7 @@ class PlatformPortabilityService:
         self._audit(actor, "portability.export", "success", {
             "destinations": len(destination_rows),
             "routes": len(route_rows),
+            "filters": sum(len(items) for items in destination_filters.values()),
             "secrets_exported": False,
         })
         return document
@@ -189,14 +261,18 @@ class PlatformPortabilityService:
         warnings: list[str] = []
         destinations: list[dict] = []
         routes: list[dict] = []
-        if not isinstance(decoded, dict) or decoded.get("schema") != PORTABLE_SCHEMA:
+        schema = decoded.get("schema") if isinstance(decoded, dict) else None
+        if schema not in {PORTABLE_SCHEMA, LEGACY_PORTABLE_SCHEMA}:
             return ImportPlan(
                 "portable",
                 fingerprint,
                 (),
                 (),
                 (),
-                (f"document schema must be {PORTABLE_SCHEMA}",),
+                (
+                    f"document schema must be {PORTABLE_SCHEMA} "
+                    f"or {LEGACY_PORTABLE_SCHEMA}",
+                ),
             )
         raw_destinations = decoded.get("destinations", [])
         raw_routes = decoded.get("routes", [])
@@ -221,7 +297,11 @@ class PlatformPortabilityService:
         for index, raw in enumerate(raw_destinations, start=1):
             label = f"destination {index}"
             try:
-                item = self._portable_destination(raw, users)
+                item = self._portable_destination(
+                    raw,
+                    users,
+                    allow_filters=schema == PORTABLE_SCHEMA,
+                )
                 if item["ref"] in destination_refs:
                     raise ValueError("destination reference is duplicated")
                 key = (item["owner_id"], item["name_normalized"])
@@ -577,14 +657,22 @@ class PlatformPortabilityService:
                 )
                 created_routes.append(route.id)
                 route_ids[item["ref"]] = route.id
+            filters_created = 0
             for item in plan.destinations:
+                destination_id = destination_ids[item["ref"]]
                 selected = [route_ids[ref] for ref in item.get("route_refs") or ()]
                 self.relationships.replace_for_destination(
                     actor,
-                    destination_ids[item["ref"]],
+                    destination_id,
                     selected,
                 )
+                filters_created += self._install_portable_filters(
+                    destination_id,
+                    item.get("filters") or (),
+                    filtering_enabled=bool(item.get("filtering_enabled", True)),
+                )
         except Exception:
+            self._clear_portable_filter_state(created_destinations)
             for route_id in reversed(created_routes):
                 try:
                     self.routes.delete(actor, route_id)
@@ -606,6 +694,7 @@ class PlatformPortabilityService:
             "kind": plan.kind,
             "destinations_created": len(created_destinations),
             "routes_created": len(created_routes),
+            "filters_created": filters_created,
             "warnings": list(plan.warnings),
         }
         self._audit(actor, f"portability.{plan.kind}.apply", "success", result)
@@ -620,13 +709,15 @@ class PlatformPortabilityService:
             }
         return result
 
-    def _portable_destination(self, raw, users) -> dict:
+    def _portable_destination(self, raw, users, *, allow_filters: bool = False) -> dict:
         if not isinstance(raw, dict):
             raise ValueError("must be an object")
         allowed = {
             "ref", "owner", "name", "output_type", "settings", "shared",
             "enabled", "secret_required", "route_refs",
         }
+        if allow_filters:
+            allowed.update({"filters", "filtering_enabled"})
         unknown = set(raw) - allowed
         if unknown:
             raise ValueError(f"unsupported field: {sorted(unknown)[0]}")
@@ -657,6 +748,10 @@ class PlatformPortabilityService:
                 raise ValueError("route reference must contain 1 to 128 characters")
             if route_ref not in route_refs:
                 route_refs.append(route_ref)
+        filters = self._portable_filters(raw.get("filters", [])) if allow_filters else ()
+        filtering_enabled = raw.get("filtering_enabled", True) if allow_filters else True
+        if not isinstance(filtering_enabled, bool):
+            raise ValueError("filtering_enabled must be a boolean")
         return {
             "ref": reference,
             "owner": owner_record["username"],
@@ -669,7 +764,144 @@ class PlatformPortabilityService:
             "enabled": enabled,
             "secret_required": required,
             "route_refs": tuple(route_refs),
+            "filtering_enabled": filtering_enabled,
+            "filters": filters,
         }
+
+    def _portable_filters(self, raw_filters) -> tuple[dict, ...]:
+        if not isinstance(raw_filters, list):
+            raise ValueError("filters must be a list")
+        if len(raw_filters) > MAXIMUM_FILTERS:
+            raise ValueError(f"filters must not exceed {MAXIMUM_FILTERS}")
+        result = []
+        seen = set()
+        for position, raw in enumerate(raw_filters, start=1):
+            if not isinstance(raw, dict):
+                raise ValueError(f"filter {position} must be an object")
+            unknown = set(raw) - {"source", "policy", "enabled"}
+            if unknown:
+                raise ValueError(
+                    f"filter {position} unsupported field: {sorted(unknown)[0]}"
+                )
+            source = canonical_source(raw.get("source"))
+            if not _FILTER_SOURCE.fullmatch(source):
+                raise ValueError(f"filter {position} source is invalid")
+            if source in seen:
+                raise ValueError(f"filter {position} source is duplicated")
+            seen.add(source)
+            policy = raw.get("policy")
+            if not isinstance(policy, (list, dict)):
+                raise ValueError(f"filter {position} policy must be an object or list")
+            encoded = json.dumps(
+                policy,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            if not encoded or len(encoded.encode("utf-8")) > 64 * 1024:
+                raise ValueError(f"filter {position} policy is too large")
+            enabled = raw.get("enabled", True)
+            if not isinstance(enabled, bool):
+                raise ValueError(f"filter {position} enabled must be a boolean")
+            result.append(
+                {"source": source, "policy": policy, "enabled": enabled}
+            )
+        return tuple(result)
+
+    def _install_portable_filters(
+        self,
+        destination_id: str,
+        filters,
+        *,
+        filtering_enabled: bool = True,
+    ) -> int:
+        now = int(self.clock())
+        with self.database.transaction() as connection:
+            if filtering_enabled:
+                connection.execute(
+                    """
+                    DELETE FROM settings_records
+                    WHERE namespace = 'destination_filter_master_enabled'
+                      AND setting_key = ?
+                    """,
+                    (destination_id,),
+                )
+            else:
+                connection.execute(
+                    """
+                    INSERT INTO settings_records(
+                        namespace, setting_key, value_json, updated_at
+                    ) VALUES ('destination_filter_master_enabled', ?, 'false', ?)
+                    ON CONFLICT(namespace, setting_key) DO UPDATE SET
+                        value_json = excluded.value_json,
+                        updated_at = excluded.updated_at
+                    """,
+                    (destination_id, now),
+                )
+            for item in filters:
+                source = str(item["source"])
+                encoded = json.dumps(
+                    item["policy"],
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                )
+                connection.execute(
+                    """
+                    INSERT INTO destination_filters(
+                        destination_id, source, clauses_json, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(destination_id, source) DO UPDATE SET
+                        clauses_json = excluded.clauses_json,
+                        updated_at = excluded.updated_at
+                    """,
+                    (destination_id, source, encoded, now, now),
+                )
+                key = f"{destination_id}:{source}"
+                if item["enabled"]:
+                    connection.execute(
+                        """
+                        DELETE FROM settings_records
+                        WHERE namespace = 'destination_filter_enabled'
+                          AND setting_key = ?
+                        """,
+                        (key,),
+                    )
+                else:
+                    connection.execute(
+                        """
+                        INSERT INTO settings_records(
+                            namespace, setting_key, value_json, updated_at
+                        ) VALUES ('destination_filter_enabled', ?, 'false', ?)
+                        ON CONFLICT(namespace, setting_key) DO UPDATE SET
+                            value_json = excluded.value_json,
+                            updated_at = excluded.updated_at
+                        """,
+                        (key, now),
+                    )
+        return len(filters)
+
+    def _clear_portable_filter_state(self, destination_ids) -> None:
+        if not destination_ids:
+            return
+        with self.database.transaction() as connection:
+            for destination_id in destination_ids:
+                connection.execute(
+                    """
+                    DELETE FROM settings_records
+                    WHERE namespace = 'destination_filter_enabled'
+                      AND setting_key LIKE ?
+                    """,
+                    (f"{destination_id}:%",),
+                )
+                connection.execute(
+                    """
+                    DELETE FROM settings_records
+                    WHERE namespace = 'destination_filter_master_enabled'
+                      AND setting_key = ?
+                    """,
+                    (destination_id,),
+                )
 
     def _portable_route(self, raw, users, destination_refs, *, index: int) -> dict:
         if not isinstance(raw, dict):

@@ -189,6 +189,11 @@ const state = {
   users: [],
   backups: [],
   backupTargets: [],
+  externalBackups: [],
+  externalBackupErrors: [],
+  externalBackupsLoading: false,
+  housekeepingSettings: null,
+  housekeepingStatus: null,
   sourceCategories: {},
   removedSources: [],
   integrations: [],
@@ -434,12 +439,22 @@ function showBootstrap(status) {
   (byId("bootstrap-token").value ? byId("bootstrap-username") : byId("bootstrap-token")).focus();
 }
 
+function requestedAppView() {
+  const requested = window.location.hash.slice(1);
+  if (
+    VIEW_TITLES[requested]
+    && (!["users", "settings", "inputs", "backups", "data"].includes(requested) || isAdmin())
+  ) {
+    return requested;
+  }
+  return VIEW_TITLES[state.currentView] ? state.currentView : "dashboard";
+}
+
 function showApp(session) {
   state.user = session.user;
   state.sessionExpiresAt = session.expires_at;
   state.csrf = session.csrf_token || readCsrfCookie(session.cookie_mode);
   byId("login-view").hidden = true;
-  byId("app-shell").hidden = false;
   if (byId("users-nav")) byId("users-nav").hidden = !isAdmin();
   if (byId("settings-nav")) byId("settings-nav").hidden = !isAdmin();
   if (byId("inputs-nav")) byId("inputs-nav").hidden = !isAdmin();
@@ -461,6 +476,12 @@ function showApp(session) {
   accountRole.textContent = admin ? "Administrator" : "User";
   delete accountRole.dataset.i18nSource;
   byId("account-session").textContent = `Session expires ${formatTime(session.expires_at)}`;
+
+  // Restore the requested page before the authenticated shell is revealed.
+  // Routing Flow and Filtering wrappers synchronously hydrate their cached
+  // snapshots during navigate(), so F5 never paints an empty Dashboard first.
+  navigate(requestedAppView(), "replace");
+  byId("app-shell").hidden = false;
 }
 
 async function restoreSession(prefetchedSession = null) {
@@ -613,6 +634,10 @@ async function loadWorkspace() {
       state.backupSettings = value.settings;
       state.backupLastRun = value.last_run;
     }];
+    tasks.housekeeping = ["Housekeeping", request("/housekeeping"), (value) => {
+      state.housekeepingSettings = value.settings;
+      state.housekeepingStatus = value.status;
+    }];
   }
   const entries = Object.values(tasks);
   const settled = await Promise.allSettled(entries.map(([, promise]) => promise));
@@ -640,16 +665,19 @@ async function loadWorkspace() {
     state.configuration = null;
     state.backupSettings = null;
     state.backupLastRun = null;
+    state.housekeepingSettings = null;
+    state.housekeepingStatus = null;
+    state.externalBackups = [];
+    state.externalBackupErrors = [];
   }
   renderAll();
-  const requested = window.location.hash.slice(1);
-  navigate(
-    VIEW_TITLES[requested]
-      && (!["users", "settings", "inputs", "backups", "data"].includes(requested) || isAdmin())
-      ? requested
-      : state.currentView,
-    "replace",
-  );
+  const requestedView = requestedAppView();
+  if (state.currentView !== requestedView) {
+    navigate(requestedView, "replace");
+  }
+  if (state.currentView === "backups" && isAdmin()) {
+    void loadExternalBackups({ silent: true });
+  }
 }
 
 function renderAll() {
@@ -667,6 +695,7 @@ function renderAll() {
   renderConfiguration();
   renderHealthChecks();
   renderBackupSettings();
+  renderHousekeepingSettings();
   renderUpdates();
   renderPreferences();
   renderIntegrationSettings();
@@ -728,6 +757,15 @@ function navigate(view, historyMode = "push") {
   byId("app-shell").classList.remove("nav-open");
   byId("mobile-menu").setAttribute("aria-expanded", "false");
   byId("main-content").focus({ preventScroll: true });
+  if (view === "backups" && isAdmin()) {
+    queueMicrotask(() => {
+      loadExternalBackups({ silent: true }).catch((error) => {
+        if (state.currentView === "backups") {
+          toast(error.message || "Stored snapshots could not be refreshed.", "error");
+        }
+      });
+    });
+  }
 }
 
 function renderDashboard() {
@@ -1989,19 +2027,35 @@ function formatBytes(value) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
+function backupRecoveryDetail(item) {
+  const parts = [
+    `${item.secret_files} managed secret file${Number(item.secret_files) === 1 ? "" : "s"}`,
+    formatBytes(item.size_bytes),
+    `DB schema ${item.schema_version}`,
+  ];
+  if (item.config_included) parts.push("config.yaml included");
+  else parts.push("legacy state-only snapshot");
+  if (item.application_version) parts.push(`Nowlert ${item.application_version}`);
+  return parts.join(" · ");
+}
+
 function renderBackups() {
   const container = byId("backup-list");
   container.replaceChildren();
   if (!isAdmin()) return;
   if (!state.backups.length) {
-    empty(container, "No state backups", "Create a private snapshot before migration or major changes.");
+    empty(
+      container,
+      "No local recovery snapshots",
+      "Create a complete snapshot before migration or major changes.",
+    );
     return;
   }
   for (const item of state.backups) {
     container.append(element("div", { className: "backup-item" }, [
       element("div", {}, [
         element("strong", { text: formatTime(item.created_at) }),
-        element("small", { text: `${item.secret_files} secret files · ${formatBytes(item.size_bytes)} · schema ${item.schema_version}` }),
+        element("small", { text: backupRecoveryDetail(item) }),
         element("code", { text: item.id }),
       ]),
       element("div", { className: "row-actions" }, [
@@ -2009,6 +2063,104 @@ function renderBackups() {
         actionButton("Delete", "delete-backup", item.id, "danger"),
       ]),
     ]));
+  }
+}
+
+function renderExternalBackups() {
+  const container = byId("external-backup-list");
+  if (!container) return;
+  container.replaceChildren();
+  if (!isAdmin()) return;
+
+  if (state.externalBackupsLoading && !state.externalBackups.length) {
+    empty(container, "Checking backup destinations", "Looking for verified Nowlert recovery snapshots.");
+    return;
+  }
+
+  if (!state.externalBackups.length && !state.externalBackupErrors.length) {
+    empty(
+      container,
+      "No stored snapshots discovered",
+      "Run a backup to a configured Local, NFS, or SMB destination, then refresh this list.",
+    );
+    return;
+  }
+
+  for (const item of state.externalBackups) {
+    const restoreId = `${item.target_id}:${item.id}`;
+    container.append(element("div", { className: "backup-item external-backup-item" }, [
+      element("div", {}, [
+        element("strong", { text: formatTime(item.created_at) }),
+        element("small", {
+          text: `${item.target_name} (${String(item.target_type || "").toUpperCase()}) · ${backupRecoveryDetail(item)}`,
+        }),
+        element("code", { text: item.id }),
+      ]),
+      element("div", { className: "row-actions" }, [
+        actionButton("Restore", "restore-external-backup", restoreId),
+      ]),
+    ]));
+  }
+
+  for (const failure of state.externalBackupErrors) {
+    container.append(element("div", { className: "backup-item external-backup-error" }, [
+      element("div", {}, [
+        element("strong", { text: failure.target_name }),
+        element("small", { text: failure.message }),
+      ]),
+      badge("Unavailable", "warning"),
+    ]));
+  }
+}
+
+async function loadExternalBackups({ silent = false } = {}) {
+  if (!isAdmin() || state.externalBackupsLoading) return;
+  const targets = state.backupTargets.filter((item) => item.enabled);
+  state.externalBackupsLoading = true;
+  renderExternalBackups();
+  try {
+    const results = await Promise.allSettled(
+      targets.map(async (target) => {
+        const response = await request(`/backup-targets/${target.id}/backups`);
+        return {
+          target,
+          backups: Array.isArray(response.backups) ? response.backups : [],
+        };
+      }),
+    );
+    const backups = [];
+    const errors = [];
+    results.forEach((result, index) => {
+      const target = targets[index];
+      if (result.status === "fulfilled") {
+        for (const item of result.value.backups) {
+          backups.push({
+            ...item,
+            target_id: target.id,
+            target_name: target.name,
+            target_type: target.type,
+          });
+        }
+      } else {
+        errors.push({
+          target_id: target.id,
+          target_name: target.name,
+          message: result.reason?.message || "Backup destination is unavailable.",
+        });
+      }
+    });
+    backups.sort((left, right) => Number(right.created_at || 0) - Number(left.created_at || 0));
+    state.externalBackups = backups;
+    state.externalBackupErrors = errors;
+    if (!silent && errors.length) {
+      toast(
+        `${errors.length} backup destination${errors.length === 1 ? "" : "s"} could not be inspected.`,
+        "error",
+      );
+    }
+  } finally {
+    state.externalBackupsLoading = false;
+    renderExternalBackups();
   }
 }
 
@@ -2118,6 +2270,33 @@ function renderBackupSettings() {
     : "No scheduled run recorded.";
 }
 
+function renderHousekeepingSettings() {
+  if (!isAdmin() || !state.housekeepingSettings) return;
+  const settings = state.housekeepingSettings;
+  byId("housekeeping-enabled").checked = settings.enabled === true;
+  byId("housekeeping-time").value = settings.time || "03:15";
+  byId("housekeeping-delivery-days").value = String(settings.delivery_history_days ?? 90);
+  byId("housekeeping-audit-days").value = String(settings.audit_history_days ?? 365);
+  byId("housekeeping-backup-run-days").value = String(settings.backup_run_history_days ?? 180);
+
+  const status = state.housekeepingStatus || {};
+  const delivery = status.delivery_history || {};
+  const audit = status.audit_history || {};
+  const runs = status.backup_runs || {};
+  const statusNode = byId("housekeeping-history-status");
+  if (statusNode) {
+    statusNode.textContent =
+      `Stored: ${delivery.rows ?? 0} delivery attempts · ${audit.rows ?? 0} audit events · ${runs.rows ?? 0} backup run records.`;
+  }
+  const lastNode = byId("housekeeping-last-run");
+  if (lastNode) {
+    const last = status.last_run;
+    lastNode.textContent = last
+      ? `Last housekeeping: ${formatTime(last.completed_at || last.started_at)} · ${last.outcome || "completed"} · ${last.deliveries_deleted || 0} deliveries / ${last.audit_deleted || 0} audit events removed.`
+      : "No housekeeping run recorded.";
+  }
+}
+
 function renderUpdates() {
   const version = state.versionStatus || {};
   byId("running-version").textContent = version.running || "—";
@@ -2195,6 +2374,42 @@ async function saveBackupSettings(event) {
   } catch (error) {
     toast(error.message || "Backup settings could not be saved.", "error");
   }
+}
+
+async function saveHousekeepingSettings(event) {
+  event.preventDefault();
+  try {
+    const response = await request("/housekeeping", {
+      method: "PUT",
+      body: {
+        enabled: byId("housekeeping-enabled").checked,
+        time: byId("housekeeping-time").value,
+        delivery_history_days: Number(byId("housekeeping-delivery-days").value),
+        audit_history_days: Number(byId("housekeeping-audit-days").value),
+        backup_run_history_days: Number(byId("housekeeping-backup-run-days").value),
+      },
+    });
+    state.housekeepingSettings = response.settings;
+    state.housekeepingStatus = response.status;
+    renderHousekeepingSettings();
+    toast("Housekeeping settings saved.");
+  } catch (error) {
+    toast(error.message || "Housekeeping settings could not be saved.", "error");
+  }
+}
+
+async function runHousekeepingNow() {
+  const response = await request("/housekeeping/run", {
+    method: "POST",
+    body: {},
+  });
+  state.housekeepingStatus = response.status;
+  renderHousekeepingSettings();
+  const run = response.run || {};
+  toast(
+    `Housekeeping completed: ${run.deliveries_deleted || 0} delivery rows and ${run.audit_deleted || 0} audit rows removed.`,
+    "success",
+  );
 }
 
 function updateBackupTargetFields() {
@@ -2277,6 +2492,9 @@ async function saveBackupTarget(event) {
     });
     byId("backup-target-dialog").close();
     await loadWorkspace();
+    if (state.currentView === "backups") {
+      await loadExternalBackups({ silent: true });
+    }
     toast(type === "local"
       ? (id ? "Backup destination updated." : "Backup destination added.")
       : "Remote backup destination saved with automatic managed mounting enabled.");
@@ -2291,6 +2509,7 @@ async function runBackupNow() {
     body: { target_id: byId("backup-target").value },
   });
   await loadWorkspace();
+  await loadExternalBackups({ silent: true });
   toast(response.run.outcome === "success" ? "Backup completed." : "Backup failed.", response.run.outcome === "success" ? "success" : "error");
 }
 
@@ -2577,21 +2796,21 @@ async function applyImport() {
 
 async function createBackup() {
   const accepted = await confirmAction(
-    "Create a private state backup?",
-    "The snapshot stays on this server and includes database authentication material and destination secret files.",
-    "Create backup",
+    "Create a complete recovery snapshot?",
+    "The snapshot stays on this server and includes the full SQLite state and retained history, Nowlert-managed secret files, and mounted bootstrap config.yaml when available.",
+    "Create snapshot",
   );
   if (!accepted) return;
   await request("/backups", { method: "POST", body: {} });
   await loadWorkspace();
-  toast("State backup created.");
+  toast("Recovery snapshot created.");
 }
 
 async function restoreBackup(id) {
   const accepted = await confirmAction(
-    "Restore this state backup?",
-    `Restore ${id}. Nowlert creates a safety backup first and signs out every browser session. Application-token state returns to the selected snapshot.`,
-    "Restore and sign out",
+    "Restore this recovery snapshot?",
+    `Restore ${id}. Nowlert verifies the snapshot, creates a safety backup first, restores the complete state, signs out every browser session, and restarts the service.`,
+    "Restore and restart",
   );
   if (!accepted) return;
   await request(`/backups/${id}/restore`, {
@@ -2599,7 +2818,26 @@ async function restoreBackup(id) {
     body: { confirmation: id },
   });
   expireSession();
-  toast("State restored. Sign in again.");
+  toast("Recovery snapshot restored. Nowlert is restarting.", "success");
+  window.setTimeout(() => window.location.reload(), 3500);
+}
+
+async function restoreExternalBackup(targetId, backupId) {
+  const target = state.backupTargets.find((item) => item.id === targetId);
+  const targetName = target ? target.name : "backup destination";
+  const accepted = await confirmAction(
+    "Restore this stored recovery snapshot?",
+    `Restore ${backupId} from ${targetName}. The snapshot is copied to local staging and verified first. Nowlert then creates a safety backup, restores the complete state, signs out every browser session, and restarts.`,
+    "Restore and restart",
+  );
+  if (!accepted) return;
+  await request(`/backup-targets/${targetId}/backups/${backupId}/restore`, {
+    method: "POST",
+    body: { confirmation: backupId },
+  });
+  expireSession();
+  toast("Stored recovery snapshot restored. Nowlert is restarting.", "success");
+  window.setTimeout(() => window.location.reload(), 3500);
 }
 
 async function setRoutingAuthority(authority) {
@@ -3234,6 +3472,12 @@ async function resourceAction(action, id) {
     } else if (action === "run-backup-now") {
       await runBackupNow();
       return;
+    } else if (action === "refresh-external-backups") {
+      await loadExternalBackups();
+      return;
+    } else if (action === "run-housekeeping") {
+      await runHousekeepingNow();
+      return;
     } else if (action === "test-backup-target") {
       const response = await request(`/backup-targets/${id}/test`, { method: "POST", body: {} });
       const index = state.backupTargets.findIndex((item) => item.id === id);
@@ -3245,7 +3489,10 @@ async function resourceAction(action, id) {
       const accepted = await confirmAction("Delete backup destination?", "The destination record and stored credential are removed. Existing backup files are not deleted.", "Delete");
       if (!accepted) return;
       await request(`/backup-targets/${id}`, { method: "DELETE" });
+      state.externalBackups = state.externalBackups.filter((item) => item.target_id !== id);
+      state.externalBackupErrors = state.externalBackupErrors.filter((item) => item.target_id !== id);
       await loadWorkspace();
+      if (state.currentView === "backups") renderExternalBackups();
       toast("Backup destination removed.");
       return;
     } else if (action === "restart-platform") {
@@ -3257,15 +3504,22 @@ async function resourceAction(action, id) {
     } else if (action === "restore-backup") {
       await restoreBackup(id);
       return;
+    } else if (action === "restore-external-backup") {
+      const separator = id.indexOf(":");
+      if (separator < 1) throw new Error("Stored backup identifier is invalid.");
+      await restoreExternalBackup(id.slice(0, separator), id.slice(separator + 1));
+      return;
     } else if (action === "delete-backup") {
       const accepted = await confirmAction(
-        `Delete state backup ${id}?`,
-        "This permanently deletes this backup. It cannot be restored after deletion.",
-        "Delete backup",
+        `Delete recovery snapshot ${id}?`,
+        "This permanently deletes this local recovery snapshot. It cannot be restored after deletion.",
+        "Delete snapshot",
       );
       if (!accepted) return;
       await request(`/backups/${id}`, { method: "DELETE" });
-      toast("State backup deleted.");
+      state.backups = state.backups.filter((item) => item.id !== id);
+      renderBackups();
+      toast("Recovery snapshot deleted.");
     } else if (action === "toggle-destination") {
       const item = state.destinations.find((candidate) => candidate.id === id);
       const response = await request(`/destinations/${id}`, {
@@ -3492,6 +3746,7 @@ function bindEvents() {
     closeIntegrationSettings();
   });
   byId("backup-settings-form").addEventListener("submit", saveBackupSettings);
+  byId("housekeeping-form")?.addEventListener("submit", saveHousekeepingSettings);
   byId("backup-target-form").addEventListener("submit", saveBackupTarget);
   byId("backup-target-type").addEventListener("change", updateBackupTargetFields);
   byId("restart-form").addEventListener("submit", restartPlatform);
