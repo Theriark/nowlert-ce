@@ -98,11 +98,10 @@ class BackupTargetStore:
 
     @property
     def managed_mounts(self) -> bool:
-        if self.configuration is None:
-            return False
-        return self.configuration.get(
-            "platform", "backups", "managed_mounts", default=False
-        ) is True
+        # Remote destinations are a first-class backup target. Mount management is
+        # therefore always enabled; container capability/host mount failures are
+        # still surfaced by the bounded mount operation itself.
+        return True
 
     def list(self, actor: Actor) -> list[BackupTarget]:
         self._require_admin(actor)

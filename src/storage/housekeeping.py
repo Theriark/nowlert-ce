@@ -6,9 +6,16 @@ import sqlite3
 import time
 import uuid
 
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from storage.audit_events import AuditEventStore
 from storage.database import Database
-from storage.settings import DEFAULT_HOUSEKEEPING_SETTINGS, SettingsStore
+from storage.settings import (
+    DEFAULT_HOUSEKEEPING_SETTINGS,
+    DEFAULT_REGIONAL_SETTINGS,
+    SettingsStore,
+)
 
 
 _BATCH_SIZE = 5000
@@ -35,6 +42,7 @@ class HousekeepingService:
         return record.value
 
     def status(self) -> dict:
+        settings = self.settings()
         with self.database.connect() as connection:
             deliveries = connection.execute(
                 "SELECT COUNT(*) AS total, MIN(created_at) AS oldest FROM delivery_attempts"
@@ -53,6 +61,15 @@ class HousekeepingService:
                 LIMIT 1
                 """
             ).fetchone()
+            recent = connection.execute(
+                """
+                SELECT * FROM housekeeping_runs
+                WHERE completed_at IS NOT NULL
+                  AND period_key LIKE 'daily:%'
+                ORDER BY completed_at DESC, started_at DESC
+                LIMIT 3
+                """
+            ).fetchall()
         return {
             "delivery_history": {
                 "rows": int(deliveries["total"] or 0),
@@ -67,7 +84,44 @@ class HousekeepingService:
                 "oldest_at": int(backup_runs["oldest"]) if backup_runs["oldest"] is not None else None,
             },
             "last_run": dict(last) if last is not None else None,
+            "recent_runs": [dict(row) for row in recent],
+            "next_run_at": self._next_run_at(settings),
         }
+
+    def _next_run_at(self, settings: dict) -> int | None:
+        if settings.get("enabled") is not True:
+            return None
+        regional, _error = self.settings_store.get_safe(
+            "platform", "regional", DEFAULT_REGIONAL_SETTINGS
+        )
+        try:
+            zone = ZoneInfo(str(regional.get("timezone") or "Europe/Lisbon"))
+        except (ValueError, ZoneInfoNotFoundError):
+            zone = ZoneInfo("UTC")
+        timestamp = int(self.clock())
+        current = datetime.fromtimestamp(timestamp, zone)
+        hour, minute = (
+            int(part) for part in str(settings.get("time") or "03:15").split(":")
+        )
+        candidate = datetime(
+            current.year,
+            current.month,
+            current.day,
+            hour,
+            minute,
+            tzinfo=zone,
+        )
+        if int(candidate.timestamp()) <= timestamp:
+            tomorrow = current.date() + timedelta(days=1)
+            candidate = datetime(
+                tomorrow.year,
+                tomorrow.month,
+                tomorrow.day,
+                hour,
+                minute,
+                tzinfo=zone,
+            )
+        return int(candidate.timestamp())
 
     def run(self, actor=None, *, period_key: str | None = None) -> dict | None:
         now = int(self.clock())
