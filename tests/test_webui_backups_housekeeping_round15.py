@@ -83,8 +83,9 @@ def test_round15_housekeeping_has_spacing_short_copy_and_real_svg_icons():
     assert ">Ⅱ<" not in markup
     assert 'class="housekeeping-symbol"' in markup
     render = _function(app, "function renderHousekeepingSettings()")
-    assert 'backupSvgIcon("broom", "housekeeping-symbol")' in render
+    assert 'backupSvgIcon(enabled ? "check" : "pause", "housekeeping-symbol")' in render
     assert 'backupSvgIcon("clock", "housekeeping-symbol")' in render
+    assert 'backupSvgIcon("broom", "housekeeping-symbol")' not in render
     assert '"Housekeeping runs once per day."' in render
 
     marker = "/* 2026-09-18 round-15 backups/data-tools/housekeeping polish. */"

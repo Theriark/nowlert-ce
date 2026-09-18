@@ -273,8 +273,8 @@ function backupSvgIcon(name, className = "backup-action-icon") {
     edit: ["M4 20l4.5-1 10-10-3.5-3.5-10 10z", "M14 6l3.5 3.5"],
     trash: ["M5 7h14", "M9 7V4h6v3", "M8 10v7", "M12 10v7", "M16 10v7", "M6 7l1 14h10l1-14"],
     check: ["M5 12l4 4L19 6"],
+    pause: ["M9 6v12", "M15 6v12"],
     clock: ["M12 7v5l3 2", "M12 3a9 9 0 1 1-9 9"],
-    broom: ["M15 4l5 5", "M17.5 6.5L10 14", "M10 14l-5 1-2 6 6-2 1-5"],
     restore: ["M9 7H5V3", "M5 7a8 8 0 1 1-1 7"],
   };
 
@@ -477,6 +477,14 @@ function expireSession() {
   byId("bootstrap-view").hidden = true;
   byId("login-view").hidden = false;
   byId("login-password").value = "";
+  byId("login-password").type = "password";
+  const passwordToggle = byId("login-password-toggle");
+  if (passwordToggle) {
+    passwordToggle.setAttribute("aria-pressed", "false");
+    passwordToggle.setAttribute("aria-label", "Show password");
+    passwordToggle.title = "Show password";
+    passwordToggle.classList.remove("is-visible");
+  }
   byId("login-error").hidden = true;
   byId("login-username").focus();
 }
@@ -575,6 +583,18 @@ async function restoreSession(prefetchedSession = null) {
       renderWorkspaceErrors();
     }
   }
+}
+
+function toggleLoginPasswordVisibility() {
+  const input = byId("login-password");
+  const button = byId("login-password-toggle");
+  if (!input || !button) return;
+  const visible = input.type === "password";
+  input.type = visible ? "text" : "password";
+  button.setAttribute("aria-pressed", String(visible));
+  button.setAttribute("aria-label", visible ? "Hide password" : "Show password");
+  button.title = visible ? "Hide password" : "Show password";
+  button.classList.toggle("is-visible", visible);
 }
 
 async function login(event) {
@@ -2577,7 +2597,7 @@ function renderHousekeepingSettings() {
   toggle.title = enabled ? "Click to disable housekeeping" : "Click to enable housekeeping";
 
   byId("housekeeping-status-icon").replaceChildren(
-    backupSvgIcon("broom", "housekeeping-symbol"),
+    backupSvgIcon(enabled ? "check" : "pause", "housekeeping-symbol"),
   );
   byId("housekeeping-status-title").textContent =
     enabled ? "Housekeeping is enabled" : "Housekeeping is disabled";
@@ -4058,6 +4078,7 @@ function setSidebarCollapsed(collapsed) {
 function bindEvents() {
   byId("bootstrap-form").addEventListener("submit", bootstrapAdministrator);
   byId("login-form").addEventListener("submit", login);
+  byId("login-password-toggle")?.addEventListener("click", toggleLoginPasswordVisibility);
   byId("destination-form").addEventListener("submit", saveDestination);
   byId("destination-type").addEventListener("change", () => renderDestinationFields());
   byId("route-form").addEventListener("submit", saveRoute);

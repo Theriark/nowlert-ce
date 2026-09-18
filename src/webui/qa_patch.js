@@ -104,7 +104,9 @@ let qaDeliveryPagination = { page: 1, page_size: qaDeliveryPageSize, total: 0, t
 let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 
 const QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v1";
-const QA_WORKSPACE_CACHE_TTL_MS = 5 * 60 * 1000;
+// sessionStorage is already scoped to the current tab/session. Keep the latest
+// snapshot for first paint regardless of age; loadWorkspace() refreshes it from
+// the authoritative API immediately after the shell is shown.
 const QA_WORKSPACE_CACHE_FIELDS = [
   "integrations",
   "routeSourceOptions",
@@ -197,7 +199,6 @@ function qaHydrateWorkspaceCache(session, { render = true } = {}) {
     || cached.schema !== 1
     || String(cached.user_id || "") !== String(userId)
     || !Number.isFinite(Number(cached.saved_at))
-    || Date.now() - Number(cached.saved_at) > QA_WORKSPACE_CACHE_TTL_MS
     || !cached.state
     || typeof cached.state !== "object"
   ) {
