@@ -40,13 +40,22 @@ def test_operations_dashboard_has_two_synchronized_dashboard_range_controls():
     assert 'syncRangeControls();' in script
 
 
-def test_routing_flow_adds_three_and_six_hour_windows():
+def test_routing_flow_keeps_backend_3h_6h_but_ui_uses_dashboard_windows():
     api = _read("src/api/routing_flow.py")
     script = _read("src/webui/operations_dashboard.js")
     assert '"3h": 10800' in api
     assert '"6h": 21600' in api
-    assert '["3h", "Last 3 hours"]' in script
-    assert '["6h", "Last 6 hours"]' in script
+    assert '["3h", "Last 3 hours"]' not in script
+    assert '["6h", "Last 6 hours"]' not in script
+    assert "select.innerHTML = rangeOptions();" in script
+    for label in (
+        "Last 10 minutes",
+        "Last 1 hour",
+        "Last 24 hours",
+        "Last 1 month",
+        "Last 1 year",
+    ):
+        assert label in script
 
 
 def test_dashboard_visually_retires_legacy_dashboard_routing_flow():
