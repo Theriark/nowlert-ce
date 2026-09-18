@@ -178,6 +178,7 @@ const state = {
   csrf: "",
   currentView: "dashboard",
   destinations: [],
+  privateDestinations: [],
   destinationErrors: [],
   destinationTestResults: {},
   routes: [],
@@ -568,6 +569,9 @@ async function loadWorkspace() {
     }],
     destinations: ["Destinations", request("/destinations"), (value) => {
       state.destinations = value.destinations || [];
+      state.privateDestinations = Array.isArray(value.private_resources)
+        ? value.private_resources
+        : [];
       state.destinationErrors = value.errors || [];
     }],
     routes: ["Routes", request("/routes"), (value) => {

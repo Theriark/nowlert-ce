@@ -224,11 +224,21 @@
       ? `Owner: ${destinationOwnerName(item)}`
       : String(existing.textContent || "Owner: User").trim();
     const owner = existing || readOnlyStatus(label, "destination-owner-badge");
-    owner.className = "badge destination-owner-badge";
-    owner.replaceChildren(span("destination-readonly-label", label));
-
     const sharing = meta.querySelector('[data-action="toggle-destination-shared"]')
       || meta.querySelector(".destination-sharing-control");
+    const ownerLabel = owner.querySelector(".destination-readonly-label");
+    const contentReady = (
+      owner.className === "badge destination-owner-badge"
+      && ownerLabel?.textContent === label
+    );
+    const positionReady = !sharing || sharing.nextElementSibling === owner;
+    if (contentReady && positionReady) return;
+
+    owner.className = "badge destination-owner-badge";
+    if (!ownerLabel || ownerLabel.textContent !== label || owner.children.length !== 1) {
+      owner.replaceChildren(span("destination-readonly-label", label));
+    }
+
     if (sharing && sharing.nextElementSibling !== owner) {
       sharing.after(owner);
     } else if (!sharing && !owner.parentElement) {
@@ -525,13 +535,19 @@
   }
 
   function referencePageNumbers(page, totalPages) {
-    if (totalPages <= 5) return Array.from({ length: totalPages }, (_value, index) => index + 1);
-    const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-    const end = Math.min(totalPages, start + 4);
-    const values = [];
-    if (start > 1) values.push("ellipsis");
-    for (let value = start; value <= end; value += 1) values.push(value);
-    if (end < totalPages) values.push("ellipsis");
+    if (totalPages <= 2) {
+      return Array.from({ length: totalPages }, (_value, index) => index + 1);
+    }
+
+    // Keep the footer compact. First/previous/next/last and direct page entry
+    // already provide full navigation, so only the current page and one nearby
+    // page need numeric buttons.
+    if (page <= 1) return [1, 2, "ellipsis"];
+    if (page >= totalPages) return ["ellipsis", totalPages - 1, totalPages];
+
+    const values = ["ellipsis", page];
+    if (page < totalPages) values.push(page + 1);
+    if (page + 1 < totalPages) values.push("ellipsis");
     return values;
   }
 

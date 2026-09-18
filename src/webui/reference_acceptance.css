@@ -1463,3 +1463,291 @@ button.reference-preview-route-more:focus-visible {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* 2026-09-18 round-four screenshot corrections. */
+
+/* Destinations: suppress only the unfinished first paint. The workspace payload
+   now already carries private-destination metadata, so the accepted card set can
+   be assembled before this gate is released. */
+#view-destinations #destination-list.acceptance-destination-first-paint {
+  visibility: hidden !important;
+}
+
+/* Delivery History / Audit Log: fit the actual controls first, then draw the
+   separators with the four real grid cells. The compact pager intentionally
+   exposes only the current/nearby numeric pages; First/Previous/Next/Last and
+   direct page entry retain complete navigation. */
+#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"],
+#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] {
+  align-items: stretch !important;
+  background-image: none !important;
+  gap: 0 !important;
+  grid-template-columns:
+    minmax(132px, 0.82fr)
+    minmax(250px, 1.62fr)
+    minmax(106px, 0.64fr)
+    minmax(92px, 0.56fr) !important;
+  grid-template-rows: 76px !important;
+  height: 76px !important;
+  min-height: 76px !important;
+}
+
+#view-deliveries .reference-pagination-range,
+#view-audit .reference-pagination-range,
+#view-deliveries .reference-pagination-pages,
+#view-audit .reference-pagination-pages,
+#view-deliveries .reference-pagination-jump,
+#view-audit .reference-pagination-jump,
+#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"] > .qa-pagination-footer,
+#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] > .qa-pagination-footer {
+  align-self: stretch !important;
+  box-sizing: border-box !important;
+  height: 76px !important;
+  margin: 0 !important;
+  min-height: 76px !important;
+}
+
+#view-deliveries .reference-pagination-range,
+#view-audit .reference-pagination-range,
+#view-deliveries .reference-pagination-pages,
+#view-audit .reference-pagination-pages,
+#view-deliveries .reference-pagination-jump,
+#view-audit .reference-pagination-jump {
+  border-left: 0 !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.2) !important;
+}
+
+#view-deliveries .reference-pagination-range,
+#view-audit .reference-pagination-range {
+  padding: 0 14px !important;
+}
+
+#view-deliveries .reference-pagination-pages,
+#view-audit .reference-pagination-pages {
+  gap: 4px !important;
+  justify-content: center !important;
+  padding: 0 8px !important;
+}
+
+#view-deliveries .reference-pagination-control,
+#view-audit .reference-pagination-control,
+#view-deliveries .reference-pagination-page,
+#view-audit .reference-pagination-page {
+  height: 36px !important;
+  min-width: 34px !important;
+  padding-inline: 7px !important;
+}
+
+#view-deliveries .reference-pagination-page,
+#view-audit .reference-pagination-page {
+  min-width: 30px !important;
+}
+
+#view-deliveries .reference-pagination-ellipsis,
+#view-audit .reference-pagination-ellipsis {
+  height: 36px !important;
+  min-width: 12px !important;
+}
+
+#view-deliveries .reference-pagination-jump,
+#view-audit .reference-pagination-jump {
+  align-content: center !important;
+  gap: 4px !important;
+  justify-items: center !important;
+  padding: 7px 9px !important;
+}
+
+#view-deliveries .reference-pagination-input,
+#view-audit .reference-pagination-input {
+  min-height: 36px !important;
+  width: 58px !important;
+}
+
+#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"] > .qa-pagination-footer,
+#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] > .qa-pagination-footer {
+  align-items: center !important;
+  border: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+#view-deliveries .qa-pagination-footer label,
+#view-audit .qa-pagination-footer label {
+  align-content: center !important;
+  box-sizing: border-box !important;
+  display: grid !important;
+  gap: 4px !important;
+  height: 76px !important;
+  justify-items: center !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  padding: 7px 9px !important;
+  width: 100% !important;
+}
+
+#view-deliveries .qa-pagination-footer select,
+#view-audit .qa-pagination-footer select {
+  min-height: 36px !important;
+  min-width: 0 !important;
+  width: 66px !important;
+}
+
+/* Security: both top cards share one row height. Profile & access stretches to
+   the Password & sessions card, while the right-hand security column uses the
+   full available height instead of collapsing into the top corner. */
+.reference-account-grid {
+  align-items: stretch !important;
+}
+
+.reference-profile-card,
+.reference-password-card {
+  align-self: stretch !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.reference-profile-card {
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+}
+
+.reference-profile-body {
+  align-self: stretch !important;
+  align-items: center !important;
+  padding-block: 22px !important;
+}
+
+.reference-password-card {
+  gap: 16px !important;
+  grid-template-columns: minmax(0, 1fr) 236px !important;
+  padding: 16px !important;
+}
+
+.reference-password-main {
+  gap: 9px !important;
+}
+
+.reference-password-heading h2 {
+  font-size: 1.02rem !important;
+}
+
+.reference-password-heading p {
+  font-size: 0.72rem !important;
+  line-height: 1.4 !important;
+  margin-top: 3px !important;
+}
+
+.reference-password-main #password-form {
+  gap: 8px !important;
+}
+
+.reference-password-main #password-form > label {
+  gap: 4px !important;
+}
+
+.reference-password-main #password-form > label > span {
+  font-size: 0.72rem !important;
+}
+
+.reference-password-main #password-form input {
+  min-height: 37px !important;
+  padding-block: 7px !important;
+}
+
+.reference-password-main #password-form button {
+  min-height: 42px !important;
+}
+
+.reference-security-posture {
+  align-content: stretch !important;
+  display: grid !important;
+  gap: 0 !important;
+  grid-template-rows: minmax(0, 1fr) 1px minmax(0, 1fr) 1px minmax(0, 1fr) !important;
+  height: 100% !important;
+  padding-left: 16px !important;
+}
+
+.reference-posture-block {
+  align-items: center !important;
+  align-self: stretch !important;
+  gap: 10px !important;
+  grid-template-columns: 38px minmax(0, 1fr) !important;
+}
+
+.reference-posture-icon {
+  font-size: 1.1rem !important;
+  height: 38px !important;
+  width: 38px !important;
+}
+
+.reference-posture-block > div {
+  align-content: center !important;
+  gap: 3px !important;
+}
+
+.reference-posture-block small {
+  font-size: 0.72rem !important;
+}
+
+.reference-posture-block strong {
+  font-size: 1.25rem !important;
+  line-height: 1.15 !important;
+}
+
+.reference-posture-divider {
+  align-self: center !important;
+  height: 1px !important;
+  width: 100% !important;
+}
+
+.reference-security-posture ul {
+  align-content: center !important;
+  align-self: stretch !important;
+  display: grid !important;
+  gap: 7px !important;
+  font-size: 0.76rem !important;
+  line-height: 1.35 !important;
+}
+
+.reference-security-posture li::before {
+  margin-right: 8px !important;
+}
+
+@media (max-width: 820px) {
+  #view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"],
+  #view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: repeat(4, minmax(58px, auto)) !important;
+    height: auto !important;
+  }
+
+  #view-deliveries .reference-pagination-range,
+  #view-audit .reference-pagination-range,
+  #view-deliveries .reference-pagination-pages,
+  #view-audit .reference-pagination-pages,
+  #view-deliveries .reference-pagination-jump,
+  #view-audit .reference-pagination-jump,
+  #view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"] > .qa-pagination-footer,
+  #view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] > .qa-pagination-footer,
+  #view-deliveries .qa-pagination-footer label,
+  #view-audit .qa-pagination-footer label {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+    border-right: 0 !important;
+    height: auto !important;
+    min-height: 58px !important;
+  }
+
+  .reference-password-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  .reference-security-posture {
+    border-left: 0 !important;
+    border-top: 1px solid rgba(148, 163, 184, 0.15) !important;
+    grid-template-rows: auto 1px auto 1px auto !important;
+    padding-left: 0 !important;
+    padding-top: 16px !important;
+  }
+}
