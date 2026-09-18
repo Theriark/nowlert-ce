@@ -2,6 +2,8 @@
 import json
 import time
 
+import pytest
+
 from test_route_destination_api import api, call, login, create_route, create_destination
 from models import Notification
 from storage.delivery import DeliveryResult
@@ -272,29 +274,30 @@ def test_shared_destination_visibility_does_not_expose_owner_private_filters(api
     assert "Filter details private" in json.dumps(shared_link)
 
 
-def test_fallback_source_reports_current_policy_without_mutating_filtering(api):
+def test_fallback_route_does_not_expand_destination_filtering_scope(api):
     headers = login(api)
     fallback = create_route(api, headers, "Fallback HTTP", "*")
     target = create_destination(api, headers, "Fallback target", [fallback["id"]])
     platform = api["service"].platform
-    platform.filters.set_rules(
+
+    assert platform.filters.available_sources(
         api["admin"].actor,
         target["id"],
-        "grafana",
-        {"policy": [{"action": "block", "conditions": {"alert_name": ["cpu*"]}}]},
-    )
+    ) == ()
+
+    with pytest.raises(ValueError, match="not enabled"):
+        platform.filters.set_rules(
+            api["admin"].actor,
+            target["id"],
+            "grafana",
+            {"policy": [{"action": "block", "conditions": {"alert_name": ["cpu*"]}}]},
+        )
+
     data = snapshot(api, headers).payload
     link = data["links"][0]
     assert link["fallback"] is True
     assert len(link["policies"]) > 1
-    grafana = next(
-        policy for policy in link["policies"] if policy["source"] == "grafana"
-    )
-    assert grafana["policy_rules"] == [
-        {"action": "block", "conditions": {"alert_name": ["cpu*"]}}
-    ]
-    assert grafana["enabled"] is True
-    assert any(not policy["configured"] for policy in link["policies"])
+    assert all(not policy["configured"] for policy in link["policies"])
 
 
 
