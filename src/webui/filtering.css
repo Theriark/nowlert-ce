@@ -309,3 +309,20 @@
   .filtering-editor-actions { flex-wrap: wrap; }
   .filtering-action-spacer { display: none; }
 }
+
+/* 2026-09-19 round-29 filter naming. */
+.filtering-filter-name {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.8rem 0 0.45rem;
+}
+
+.filtering-filter-name > span {
+  color: var(--muted, #a9b6c1);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.filtering-filter-name input {
+  width: 100%;
+}

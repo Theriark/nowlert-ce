@@ -200,6 +200,7 @@ def snapshot(api, actor, range_key):
                         or destination.name
                     ),
                     "destination_id": destination.id,
+                    "filter_name": str(filtering_record.get("filter_name") or ""),
                     "sources": filter_sources,
                     "active_sources": active_filter_sources,
                     "route_ids": filter_route_ids,

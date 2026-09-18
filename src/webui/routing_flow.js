@@ -381,7 +381,7 @@
         row.replaceChildren();
         row.classList.toggle("is-expanded", expanded);
 
-        const label = el("span", "rf-filter-rule-label", `${group.label}:`);
+        const label = el("span", "rf-filter-rule-label", group.label);
         label.dataset.filterLabel = "1";
         label.dataset.filterGroup = String(groupIndex);
         row.append(label);
@@ -612,13 +612,25 @@
       const d = current.destinations.find(item => item.id === filter.destination_id);
       if (!d) return;
       const sourceNames = (filter.sources || []).map(source => friendlyName(source));
+      const descriptor = filterCardDescriptor(filter);
       setDialogTitle("Active filter", icon("filter"));
-      dialogBody.append(
+      const detailRows = [
         detailRow("Sources", sourceNames.join(", ") || "Managed"),
         detailIdentityRow("Destination", destinationLogo(d), d.name),
         detailRow("Status", "Active"),
+      ];
+      for (const group of descriptor.groups) {
+        detailRows.push(detailRow(group.label, group.values.join(", ")));
+      }
+      detailRows.push(
+        detailRow("Total events", filterMetricText(filter.metrics?.received)),
+        detailRow("Filtered out", filterMetricText(filter.metrics?.filtered)),
+        detailRow("Reduction", filterReductionText(filter.metrics)),
       );
-      policyDetailRows({ policies: filter.policies || [], fallback: true }).forEach(row => dialogBody.append(row));
+      dialogBody.append(...detailRows);
+      if (!descriptor.groups.length) {
+        policyDetailRows({ policies: filter.policies || [], fallback: true }).forEach(row => dialogBody.append(row));
+      }
     }
     drawEdges();
     if (!dialog.open) dialog.showModal();

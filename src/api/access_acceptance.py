@@ -30,6 +30,7 @@ _SOURCE_FILTER = re.compile(
     r"/api/v2/filters/destinations/([0-9a-f]{32})/sources/([^/]+)"
 )
 _MASTER_FILTER_NAMESPACE = "destination_filter_master_enabled"
+_FILTER_NAME_NAMESPACE = "destination_filter_name"
 
 
 class AcceptanceDestinationAccessStore(DestinationAccessStore):
@@ -156,6 +157,112 @@ class AcceptanceRouteDestinationStore(AccessControlledRouteDestinationStore):
 class AcceptanceFilterStore(SystemDestinationFilterStore):
     """Evaluate owner-private filters with a non-destructive destination master switch."""
 
+    def filter_name(self, destination_id: str) -> str:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT value_json FROM settings_records "
+                "WHERE namespace = ? AND setting_key = ?",
+                (_FILTER_NAME_NAMESPACE, str(destination_id)),
+            ).fetchone()
+        if row is None:
+            return ""
+        try:
+            value = json.loads(str(row["value_json"]))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return ""
+        return str(value or "").strip()[:120]
+
+    def set_filter_name(self, actor, destination_id: str, name) -> str:
+        self._destination(actor, destination_id, write=True)
+        value = str(name or "").strip()
+        if len(value) > 120:
+            raise ValueError("filter name must be 120 characters or fewer")
+        with self.database.transaction() as connection:
+            if value:
+                connection.execute(
+                    """
+                    INSERT INTO settings_records(namespace, setting_key, value_json, updated_at)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(namespace, setting_key) DO UPDATE SET
+                        value_json = excluded.value_json,
+                        updated_at = excluded.updated_at
+                    """,
+                    (
+                        _FILTER_NAME_NAMESPACE,
+                        str(destination_id),
+                        json.dumps(value),
+                        int(self.clock()),
+                    ),
+                )
+            else:
+                connection.execute(
+                    "DELETE FROM settings_records WHERE namespace = ? AND setting_key = ?",
+                    (_FILTER_NAME_NAMESPACE, str(destination_id)),
+                )
+        self._audit(
+            actor,
+            "filter.destination.rename",
+            destination_id,
+            {"name": value},
+        )
+        return value
+
+    def _fallback_integration(self, actor, destination_id: str):
+        self._destination(actor, destination_id)
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT routes.id, routes.input_type
+                FROM route_destinations
+                JOIN routes ON routes.id = route_destinations.route_id
+                WHERE route_destinations.destination_id = ?
+                  AND routes.source = '*'
+                ORDER BY routes.priority, routes.name_normalized
+                """,
+                (str(destination_id),),
+            ).fetchall()
+        if not rows:
+            return None
+        input_names = {
+            "http": "HTTP",
+            "smtp": "SMTP",
+            "redfish": "Redfish",
+        }
+        input_types = []
+        route_ids = []
+        for row in rows:
+            input_type = str(row["input_type"] or "").strip().casefold()
+            if input_type and input_type not in input_types:
+                input_types.append(input_type)
+            route_ids.append(str(row["id"]))
+        return {
+            "source": "*",
+            "name": "Fallback",
+            "icon_key": "fallback",
+            "category": "Routing",
+            "inputs": [
+                {"id": input_type, "name": input_names.get(input_type, input_type.upper())}
+                for input_type in input_types
+            ],
+            "fields": [],
+            "configured": False,
+            "filter_enabled": False,
+            "rules": {},
+            "legacy_clauses": [],
+            "policy_rules": [],
+            "fallback": True,
+            "configurable": False,
+            "route_ids": route_ids,
+        }
+
+    def destination_view(self, actor, destination_id):
+        view = super().destination_view(actor, destination_id)
+        fallback = self._fallback_integration(actor, destination_id)
+        if fallback is not None:
+            view["integrations"].append(fallback)
+        view["filter_name"] = self.filter_name(destination_id)
+        return view
+
     def destination_filtering_enabled(self, destination_id: str) -> bool:
         with self.database.connect() as connection:
             row = connection.execute(
@@ -205,6 +312,10 @@ class AcceptanceFilterStore(SystemDestinationFilterStore):
             connection.execute(
                 "DELETE FROM settings_records WHERE namespace = ? AND setting_key = ?",
                 (_MASTER_FILTER_NAMESPACE, str(destination_id)),
+            )
+            connection.execute(
+                "DELETE FROM settings_records WHERE namespace = ? AND setting_key = ?",
+                (_FILTER_NAME_NAMESPACE, str(destination_id)),
             )
 
     def matches(self, actor, destination_id: str, notification) -> bool:
@@ -380,6 +491,7 @@ class PlatformAPI(BasePlatformAPI):
                     "can_change_sharing": bool(actor.is_admin and owned),
                     "managed_by_admin": managed_by_admin,
                     "filtering_enabled": master_enabled,
+                    "filter_name": self.filters.filter_name(destination.id),
                     "configured_count": len(configured),
                     "active_count": sum(effective),
                     "available_count": len(view["integrations"]),
@@ -471,13 +583,30 @@ class PlatformAPI(BasePlatformAPI):
                 )
 
         destination_match = _DESTINATION_FILTER.fullmatch(path)
-        if destination_match and method == "GET":
+        if destination_match:
             destination_id = destination_match.group(1)
             self._owner_filter_destination(actor, destination_id)
-            view = self.filters.destination_view(actor, destination_id)
-            view["destination"]["filtering_enabled"] = (
-                self.filters.destination_filtering_enabled(destination_id)
-            )
-            return APIResponse(200, view)
+            if method == "GET":
+                view = self.filters.destination_view(actor, destination_id)
+                view["destination"]["filtering_enabled"] = (
+                    self.filters.destination_filtering_enabled(destination_id)
+                )
+                return APIResponse(200, view)
+            if method == "PUT":
+                data = self._object(payload, {"name"})
+                if set(data) != {"name"}:
+                    raise ValueError("filter name is required")
+                name = data.get("name")
+                if not isinstance(name, str):
+                    raise ValueError("filter name must be a string")
+                return APIResponse(
+                    200,
+                    {
+                        "destination_id": destination_id,
+                        "filter_name": self.filters.set_filter_name(
+                            actor, destination_id, name
+                        ),
+                    },
+                )
 
         return super()._resource_endpoint(method, path, payload, actor)
