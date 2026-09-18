@@ -36,15 +36,19 @@ def test_round27_filter_sources_fill_available_footer_width_before_plus_n():
     assert "const fitCollapsedSources = () => {" in card
     assert "const width = sourceSummary.clientWidth;" in card
     assert 'sourceNode.dataset.filterSource = "1";' in card
-    assert 'toggle.textContent = `+${hidden}`;' in card
-    assert 'sourceSummary.classList.toggle("is-expanded", sourcesExpanded);' in card
+    assert "hiddenSources.push(item.dataset.filterSourceKey);" in card
+    assert "rf-filter-source-overflow-wrap" in card
+    assert "rf-filter-source-popover" in card
+    assert "sourceMenuOpen" in card
+    assert "sourcesExpanded" not in card
 
-    round27 = style[
-        style.index("/* 2026-09-18 round-27 filter semantics and full-width source fitting. */"):
+    round30 = style[
+        style.index("/* 2026-09-19 round-30 compact filter field summary. */"):
     ]
-    assert "width: 100% !important;" in round27
-    assert ".rf-filter-card-sources:not(.is-expanded)" in round27
-    assert ".rf-filter-card-sources.is-expanded" in round27
+    assert ".rf-filter-card-sources" in round30
+    assert ".rf-filter-source-overflow-wrap" in round30
+    assert ".rf-filter-source-popover" in round30
+    assert "position: absolute;" in round30
 
 
 def test_round27_import_preview_scrolls_every_issue_instead_of_truncating_to_eight():

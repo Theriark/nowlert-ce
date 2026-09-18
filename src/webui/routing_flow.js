@@ -318,108 +318,10 @@
 
     function renderFilterRuleRow(group, groupIndex) {
       const row = el("div", "rf-filter-rule-row");
-      let expanded = false;
-      let fitFrame = null;
-
-      const fitCollapsedRow = () => {
-        fitFrame = null;
-        if (expanded || !row.isConnected) return;
-        const width = row.clientWidth;
-        if (!width) return;
-
-        const label = row.querySelector("[data-filter-label]");
-        const values = [...row.querySelectorAll("[data-filter-value]")];
-        const toggle = row.querySelector(".rf-filter-overflow-button");
-        if (!label || !toggle) return;
-
-        label.hidden = false;
-        for (const value of values) value.hidden = false;
-        toggle.hidden = true;
-
-        const computed = getComputedStyle(row);
-        const gap = Number.parseFloat(computed.columnGap || computed.gap || "0") || 0;
-        const labelWidth = label.getBoundingClientRect().width;
-        const valuesWidth = values.reduce(
-          (sum, value, index) => sum + value.getBoundingClientRect().width + (index ? gap : 0),
-          0,
-        );
-        if (labelWidth + (values.length ? gap : 0) + valuesWidth <= width) return;
-
-        toggle.hidden = false;
-        toggle.textContent = "+99";
-        const toggleWidth = toggle.getBoundingClientRect().width;
-        const available = Math.max(
-          0,
-          width - labelWidth - gap - toggleWidth - gap,
-        );
-        let used = 0;
-        for (const value of values) {
-          const valueWidth = value.getBoundingClientRect().width;
-          const next = used + (used ? gap : 0) + valueWidth;
-          if (next <= available) {
-            used = next;
-          } else {
-            value.hidden = true;
-          }
-        }
-
-        const hidden = values.filter(value => value.hidden).length;
-        if (!hidden) {
-          toggle.hidden = true;
-          return;
-        }
-        toggle.textContent = `+${hidden}`;
-        toggle.setAttribute("aria-label", `Show ${hidden} more ${group.label} values`);
-      };
-
-      const scheduleFit = () => {
-        if (fitFrame !== null) cancelAnimationFrame(fitFrame);
-        fitFrame = requestAnimationFrame(fitCollapsedRow);
-      };
-
-      const renderRow = () => {
-        row.replaceChildren();
-        row.classList.toggle("is-expanded", expanded);
-
-        const label = el("span", "rf-filter-rule-label", group.label);
-        label.dataset.filterLabel = "1";
-        label.dataset.filterGroup = String(groupIndex);
-        row.append(label);
-
-        for (const value of group.values) {
-          const item = el(
-            "span",
-            `rf-filter-rule-tag rf-filter-rule-tag-${filterTagTone(value)}`,
-            value,
-          );
-          item.dataset.filterValue = "1";
-          item.dataset.filterGroup = String(groupIndex);
-          row.append(item);
-        }
-
-        const toggle = el(
-          "button",
-          "rf-filter-rule-tag rf-filter-rule-tag-muted rf-filter-overflow-button",
-          expanded ? "−" : "+0",
-        );
-        toggle.type = "button";
-        toggle.hidden = !expanded;
-        toggle.setAttribute("aria-expanded", String(expanded));
-        toggle.setAttribute(
-          "aria-label",
-          expanded ? `Collapse ${group.label} values` : `Show more ${group.label} values`,
-        );
-        toggle.addEventListener("click", event => {
-          event.stopPropagation();
-          expanded = !expanded;
-          renderRow();
-        });
-        row.append(toggle);
-
-        if (!expanded) scheduleFit();
-      };
-
-      renderRow();
+      const label = el("span", "rf-filter-rule-label", group.label);
+      label.dataset.filterLabel = "1";
+      label.dataset.filterGroup = String(groupIndex);
+      row.append(label);
       return row;
     }
 
@@ -444,21 +346,26 @@
     sourceGroup.append(el("b", "", "Sources"));
     const sourceSummary = el("span", "rf-filter-card-sources");
     const configuredSources = [...new Set((filter.sources || []).filter(Boolean))];
-    let sourcesExpanded = false;
+    let sourceMenuOpen = false;
     let sourceFitFrame = null;
 
     const fitCollapsedSources = () => {
       sourceFitFrame = null;
-      if (sourcesExpanded || !sourceSummary.isConnected) return;
+      if (!sourceSummary.isConnected) return;
       const width = sourceSummary.clientWidth;
       if (!width) return;
 
       const sourceNodes = [...sourceSummary.querySelectorAll("[data-filter-source]")];
-      const toggle = sourceSummary.querySelector(".rf-filter-source-overflow");
-      if (!toggle) return;
+      const overflowWrap = sourceSummary.querySelector(".rf-filter-source-overflow-wrap");
+      const toggle = overflowWrap?.querySelector(".rf-filter-source-overflow");
+      const popover = overflowWrap?.querySelector(".rf-filter-source-popover");
+      if (!overflowWrap || !toggle || !popover) return;
 
       for (const item of sourceNodes) item.hidden = false;
-      toggle.hidden = true;
+      sourceMenuOpen = false;
+      popover.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+      overflowWrap.hidden = true;
 
       const gap = Number.parseFloat(
         getComputedStyle(sourceSummary).columnGap
@@ -471,11 +378,12 @@
       );
       if (totalWidth <= width) return;
 
-      toggle.hidden = false;
+      overflowWrap.hidden = false;
       toggle.textContent = "+99";
-      const toggleWidth = toggle.getBoundingClientRect().width + gap;
-      const available = Math.max(0, width - toggleWidth);
+      const overflowWidth = overflowWrap.getBoundingClientRect().width;
+      const available = Math.max(0, width - overflowWidth - gap);
       let used = 0;
+      const hiddenSources = [];
 
       for (const item of sourceNodes) {
         const itemWidth = item.getBoundingClientRect().width;
@@ -484,16 +392,24 @@
           used = next;
         } else {
           item.hidden = true;
+          hiddenSources.push(item.dataset.filterSourceKey);
         }
       }
 
-      const hidden = sourceNodes.filter(item => item.hidden).length;
-      if (!hidden) {
-        toggle.hidden = true;
+      if (!hiddenSources.length) {
+        overflowWrap.hidden = true;
         return;
       }
-      toggle.textContent = `+${hidden}`;
-      toggle.setAttribute("aria-label", `Show ${hidden} more filter sources`);
+
+      toggle.textContent = `+${hiddenSources.length}`;
+      toggle.setAttribute("aria-label", `Show ${hiddenSources.length} more filter sources`);
+      popover.replaceChildren();
+      for (const source of hiddenSources) {
+        const item = el("span", "rf-filter-source-popover-item");
+        item.setAttribute("role", "menuitem");
+        item.append(sourceIcon(source), el("span", "", friendlyName(source)));
+        popover.append(item);
+      }
     };
 
     const scheduleSourceFit = () => {
@@ -503,39 +419,42 @@
 
     const renderSources = () => {
       sourceSummary.replaceChildren();
-      sourceSummary.classList.toggle("is-expanded", sourcesExpanded);
+      sourceMenuOpen = false;
 
       for (const source of configuredSources) {
         const sourceNode = sourceIcon(source);
         sourceNode.dataset.filterSource = "1";
+        sourceNode.dataset.filterSourceKey = source;
         sourceSummary.append(sourceNode);
       }
 
-      const toggle = el(
-        "button",
-        "rf-filter-source-overflow",
-        sourcesExpanded ? "−" : "+0",
-      );
+      const overflowWrap = el("span", "rf-filter-source-overflow-wrap");
+      overflowWrap.hidden = true;
+      const toggle = el("button", "rf-filter-source-overflow", "+0");
       toggle.type = "button";
-      toggle.hidden = !sourcesExpanded;
-      toggle.setAttribute("aria-expanded", String(sourcesExpanded));
-      toggle.setAttribute(
-        "aria-label",
-        sourcesExpanded ? "Collapse filter sources" : "Show more filter sources",
-      );
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.setAttribute("aria-haspopup", "menu");
+      toggle.setAttribute("aria-label", "Show more filter sources");
+
+      const popover = el("span", "rf-filter-source-popover");
+      popover.hidden = true;
+      popover.setAttribute("role", "menu");
+
       toggle.addEventListener("click", event => {
         event.stopPropagation();
-        sourcesExpanded = !sourcesExpanded;
-        renderSources();
+        sourceMenuOpen = !sourceMenuOpen;
+        popover.hidden = !sourceMenuOpen;
+        toggle.setAttribute("aria-expanded", String(sourceMenuOpen));
       });
-      sourceSummary.append(toggle);
+      popover.addEventListener("click", event => event.stopPropagation());
 
+      overflowWrap.append(toggle, popover);
+      sourceSummary.append(overflowWrap);
       sourceSummary.setAttribute(
         "aria-label",
         `${configuredSources.length} configured filter source${configuredSources.length === 1 ? "" : "s"}`,
       );
-
-      if (!sourcesExpanded) scheduleSourceFit();
+      scheduleSourceFit();
     };
     renderSources();
     sourceGroup.append(sourceSummary);
@@ -706,6 +625,17 @@
     }
     return centers;
   }
+  function packCentersFromTop(items, heights, gap, minimumTop) {
+    const centers = new Map();
+    let cursor = minimumTop;
+    for (const item of items) {
+      const height = heights.get(item.id) || 80;
+      const center = cursor + height / 2;
+      centers.set(item.id, center);
+      cursor += height + gap;
+    }
+    return centers;
+  }
   function computeFlowLayout(current, ordered, headerBottom) {
     const routeHeights = new Map(ordered.routeOrder.map(route => [route.id, nodeFor("route", route.id)?.offsetHeight || 80]));
     const destinationHeights = new Map(ordered.destinationOrder.map(destination => [destination.id, nodeFor("destination", destination.id)?.offsetHeight || 150]));
@@ -737,7 +667,7 @@
         ].filter(Number.isFinite)),
       ]));
       filterItems = [...filterItems].sort((a, b) => (filterDesired.get(a.id) ?? 0) - (filterDesired.get(b.id) ?? 0) || a.id.localeCompare(b.id));
-      filterCenters = resolveCenters(filterItems, filterDesired, filterHeights, 12, headerBottom);
+      filterCenters = packCentersFromTop(filterItems, filterHeights, 12, headerBottom);
 
       const nextRouteDesired = new Map(ordered.routeOrder.map(route => [route.id, average((ordered.linksByRoute.get(route.id) || []).flatMap(link => {
         const targets = (link.filter_ids || []).map(filterId => filterCenters.get(filterId)).filter(Number.isFinite);
@@ -762,7 +692,7 @@
       ].filter(Number.isFinite)),
     ]));
     filterItems = [...filterItems].sort((a, b) => (finalFilterDesired.get(a.id) ?? 0) - (finalFilterDesired.get(b.id) ?? 0) || a.id.localeCompare(b.id));
-    filterCenters = resolveCenters(filterItems, finalFilterDesired, filterHeights, 12, headerBottom);
+    filterCenters = packCentersFromTop(filterItems, filterHeights, 12, headerBottom);
 
     const topEdges = [
       ...ordered.routeOrder.map(route => routeCenters.get(route.id) - (routeHeights.get(route.id) || 80) / 2),

@@ -85,7 +85,7 @@
       <div class="table-panel filtering-table-panel">
         <div class="table-scroll">
           <table class="filtering-table">
-            <thead><tr><th>Destination</th><th>Filters</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Destination</th><th>Filter name</th><th>Filters</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="filter-table"></tbody>
           </table>
         </div>
@@ -303,10 +303,13 @@
         );
       }
       body.append(element("tr", {}, [
-        element("td", {}, [destinationSummary(policy)]),
-        element("td", {}, [policyFilterSummary(policy)]),
-        element("td", {}, [policyStatusBadge(policy)]),
-        element("td", {}, [actions]),
+        element("td", { className: "filtering-destination-cell" }, [destinationSummary(policy)]),
+        element("td", { className: "filtering-name-cell" }, [
+          element("strong", { text: String(policy.filter_name || "").trim() || "—" }),
+        ]),
+        element("td", { className: "filtering-configuration-cell" }, [policyFilterSummary(policy)]),
+        element("td", { className: "filtering-status-cell" }, [policyStatusBadge(policy)]),
+        element("td", { className: "filtering-actions-cell" }, [actions]),
       ]));
     }
     const addButton = byId("add-filter-button");

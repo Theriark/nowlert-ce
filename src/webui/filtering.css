@@ -326,3 +326,17 @@
 .filtering-filter-name input {
   width: 100%;
 }
+
+
+/* 2026-09-19 round-30 filter-name overview column. */
+.filtering-name-cell {
+  min-width: 10rem;
+}
+
+.filtering-name-cell > strong {
+  display: block;
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
