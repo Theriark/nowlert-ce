@@ -126,6 +126,8 @@ const QA_WORKSPACE_CACHE_FIELDS = [
   "versionStatus",
   "users",
   "backups",
+  "externalBackups",
+  "externalBackupErrors",
   "backupTargets",
   "managedMounts",
   "configuration",

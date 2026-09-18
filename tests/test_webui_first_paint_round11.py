@@ -57,7 +57,8 @@ def test_round11_housekeeping_data_tools_and_external_restore_are_present():
     assert 'data-action="run-housekeeping"' not in markup
     assert "destination filtering policies" in markup
     assert 'id="external-backup-list"' in markup
-    assert 'data-action="refresh-external-backups"' in markup
+    assert 'data-action="create-remote-backup"' in markup
+    assert 'data-action="refresh-external-backups"' not in markup
 
     assert 'request("/housekeeping")' in app
     assert 'request("/housekeeping/run"' not in app

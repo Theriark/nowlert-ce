@@ -264,7 +264,7 @@
 
             <button id="housekeeping-toggle" class="housekeeping-status-card is-enabled" type="button" data-action="toggle-housekeeping" aria-pressed="true">
               <span class="housekeeping-status-main">
-                <span id="housekeeping-status-icon" class="housekeeping-status-icon" aria-hidden="true">✓</span>
+                <span id="housekeeping-status-icon" class="housekeeping-status-icon" aria-hidden="true"><svg class="housekeeping-symbol" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 4l5 5"></path><path d="M17.5 6.5L10 14"></path><path d="M10 14l-5 1-2 6 6-2 1-5"></path></svg></span>
                 <span class="housekeeping-status-copy">
                   <strong id="housekeeping-status-title">Housekeeping is enabled</strong>
                   <small id="housekeeping-status-description">Automatic clean-up will run daily and remove records older than your configured retention periods.</small>
@@ -272,11 +272,11 @@
               </span>
               <span class="housekeeping-status-divider" aria-hidden="true"></span>
               <span class="housekeeping-next-run-block">
-                <span class="housekeeping-clock-icon" aria-hidden="true">◔</span>
+                <span class="housekeeping-clock-icon" aria-hidden="true"><svg class="housekeeping-symbol" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 7v5l3 2"></path><circle cx="12" cy="12" r="9"></circle></svg></span>
                 <span class="housekeeping-next-run-copy">
                   <small>Next run</small>
                   <strong id="housekeeping-next-run">Calculating…</strong>
-                  <span>Runs once per day when enabled.</span>
+                  <span>Runs once per day.</span>
                 </span>
               </span>
             </button>
@@ -303,9 +303,9 @@
                   </div>
                   <div id="housekeeping-recent-runs" class="housekeeping-recent-runs" aria-live="polite"></div>
                   <div id="housekeeping-schedule-note" class="housekeeping-schedule-note is-enabled">
-                    <span id="housekeeping-schedule-note-icon" class="housekeeping-schedule-note-icon" aria-hidden="true">◔</span>
+                    <span id="housekeeping-schedule-note-icon" class="housekeeping-schedule-note-icon" aria-hidden="true"><svg class="housekeeping-symbol" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 7v5l3 2"></path><circle cx="12" cy="12" r="9"></circle></svg></span>
                     <span>
-                      <strong id="housekeeping-schedule-note-title">Housekeeping runs once per day when enabled.</strong>
+                      <strong id="housekeeping-schedule-note-title">Housekeeping runs once per day.</strong>
                       <small id="housekeeping-schedule-note-copy">Next run is being calculated.</small>
                     </span>
                   </div>
@@ -350,9 +350,8 @@
               <button class="button secondary" type="button" data-action="export-platform">Download safe JSON</button>
             </article>
             <article class="panel data-tool-card">
-              <div><p class="eyebrow">Validated import</p><h3>Import user configuration</h3><p>Preview a safe export before merging it. Credentials intentionally remain unset and credential-dependent destinations stay disabled until their secret is supplied again.</p></div>
+              <div><p class="eyebrow">Validated import</p><h3>Import user configuration</h3><p>Choose a Nowlert user-configuration export. The file is validated automatically before anything can be applied. Credentials remain unset and credential-dependent destinations stay disabled until their secret is supplied again.</p></div>
               <label><span>JSON document</span><input id="portable-file" type="file" accept="application/json,.json"></label>
-              <button class="button secondary" type="button" data-action="preview-portable">Preview JSON import</button>
             </article>
           </div>
         </section>
@@ -416,9 +415,8 @@
                 </div>
                 <div class="backup-tool-box">
                   <div class="backup-tool-heading"><span class="backup-tool-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M4 19h16"></path></svg></span><strong>Import user configuration</strong></div>
-                  <p>Preview a safe export before merging it. Credentials intentionally remain unset and stay disabled.</p>
+                  <p>Choose a Nowlert user-configuration export. It is validated automatically before anything can be applied; credentials remain unset and stay disabled.</p>
                   <label class="file-field compact"><span class="sr-only">JSON document</span><input id="backup-portable-file" type="file" accept="application/json,.json"></label>
-                  <button class="button secondary backup-icon-button" type="button" data-action="preview-backup-portable"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"></circle><path d="M16 16l5 5"></path></svg></span><span>Preview JSON import</span></button>
                 </div>
               </div>
             </article>
@@ -429,7 +427,7 @@
               <div class="panel-heading backup-panel-heading">
                 <div class="backup-section-title"><span class="backup-section-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l9 5-9 5-9-5z"></path><path d="M3 12l9 5 9-5M3 16l9 5 9-5"></path></svg></span><h3>Recovery snapshots</h3></div>
                 <div class="button-row backup-heading-actions">
-                  <button class="button primary backup-icon-button" type="button" data-action="create-backup"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 7h3l2-2h4l2 2h3v12H5z"></path><circle cx="12" cy="13" r="3"></circle></svg></span><span>Create local snapshot</span></button>
+                  <button class="button primary backup-icon-button" type="button" data-action="create-backup"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 7h3l2-2h4l2 2h3v12H5z"></path><circle cx="12" cy="13" r="3"></circle></svg></span><span>Create local</span></button>
                 </div>
               </div>
               <div class="table-scroll"><table class="backup-recovery-table"><thead><tr><th>Date &amp; time</th><th>Type</th><th>Details</th><th>Size</th><th>Actions</th></tr></thead><tbody id="backup-recovery-table"></tbody></table></div>
@@ -440,8 +438,7 @@
               <div class="panel-heading backup-panel-heading">
                 <div class="backup-section-title"><span class="backup-section-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg></span><h3>Stored copies</h3></div>
                 <div class="button-row backup-heading-actions">
-                  <button class="button secondary backup-icon-button" type="button" data-action="run-backup-now"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5l11 7-11 7z"></path></svg></span><span>Run scheduled now</span></button>
-                  <button class="button secondary backup-icon-button" type="button" data-action="refresh-external-backups"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 7v5h-5"></path><path d="M4 17v-5h5"></path><path d="M7 8a7 7 0 0 1 11-1l2 2M4 15l2 2a7 7 0 0 0 11-1"></path></svg></span><span>Refresh</span></button>
+                  <button class="button primary backup-icon-button" type="button" data-action="create-remote-backup"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5l11 7-11 7z"></path></svg></span><span>Create remote</span></button>
                 </div>
               </div>
               <div class="table-scroll"><table class="backup-stored-table"><thead><tr><th>Date &amp; time</th><th>Destination</th><th>Type</th><th>Size</th><th>Actions</th></tr></thead><tbody id="backup-stored-table"></tbody></table></div>

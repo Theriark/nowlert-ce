@@ -53,7 +53,8 @@ def test_backups_page_matches_management_dashboard_reference_structure():
     assert "<th>Last test</th>" in markup
     assert 'data-action="view-all-backups"' in markup
     assert 'data-action="view-all-stored-backups"' in markup
-    assert 'data-action="preview-backup-portable"' in markup
+    assert 'id="backup-portable-file"' in markup
+    assert 'data-action="preview-backup-portable"' not in markup
 
     assert "function renderBackupOverview()" in app
     assert "function renderBackupRecoveryTable()" in app

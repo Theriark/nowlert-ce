@@ -3584,3 +3584,50 @@ textarea:focus {
     grid-column: 2;
   }
 }
+
+
+/* 2026-09-18 round-15 backups/data-tools/housekeeping polish. */
+#backup-data-tools-panel .backup-tool-box {
+  justify-content: flex-start;
+}
+
+#backup-data-tools-panel .backup-tool-box > p {
+  min-height: 30px;
+}
+
+#backup-data-tools-panel .backup-tool-box .button,
+#backup-data-tools-panel .backup-tool-box .file-field {
+  margin-top: auto;
+}
+
+#backup-data-tools-panel .backup-tool-box .button {
+  min-height: 40px;
+}
+
+#backup-data-tools-panel .file-field.compact input {
+  min-height: 40px;
+}
+
+#view-settings .housekeeping-workspace {
+  margin-top: 22px !important;
+}
+
+.housekeeping-symbol {
+  fill: none;
+  height: 24px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+  width: 24px;
+}
+
+.housekeeping-clock-icon .housekeeping-symbol {
+  height: 25px;
+  width: 25px;
+}
+
+.housekeeping-schedule-note-icon .housekeeping-symbol {
+  height: 18px;
+  width: 18px;
+}
