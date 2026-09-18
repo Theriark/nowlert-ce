@@ -114,3 +114,21 @@ def test_development_live_webui_acceptance_uses_cloudflare_service_token():
     assert 'nowlert-ui-build' in live_check
     assert 'qa_patch.css?v=${UI_BUILD}' in live_check
     assert 'app.js?v=${UI_BUILD}' in live_check
+
+
+
+def test_live_webui_acceptance_does_not_pipe_large_assets_into_grep_q():
+    workflow = WORKFLOWS["development"].read_text(encoding="utf-8")
+    marker = "- name: Verify deployed WebUI acceptance bundle"
+    assert marker in workflow
+    live_check = workflow[workflow.index(marker):]
+
+    # With pipefail, "printf large-body | grep -q" can fail after grep finds a
+    # match because printf receives SIGPIPE. Here-strings keep a successful
+    # match successful and make this live gate deterministic.
+    assert "printf '%s' \"${HTML}\" | grep -Fq" not in live_check
+    assert "printf '%s' \"${CSS}\" | grep -Fq" not in live_check
+    assert "printf '%s' \"${APP}\" | grep -Fq" not in live_check
+    assert "printf '%s' \"${OWNERSHIP}\" | grep -Fq" not in live_check
+    assert 'grep -Fq "round-18 acceptance corrections" <<< "${CSS}"' in live_check
+    assert 'grep -Fq "Preview completed." <<< "${APP}"' in live_check
