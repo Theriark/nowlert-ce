@@ -250,6 +250,15 @@
     ]));
   }
 
+  function syncPrivateDestinationMetadataFromState() {
+    const resources = Array.isArray(state.privateDestinations)
+      ? state.privateDestinations
+      : [];
+    privateDestinationMetadata = resources;
+    privateDestinationMetadataSignature = privateDestinationSignature(resources);
+    return resources;
+  }
+
   function appendPrivateDestinationMetadata(items) {
     const list = document.getElementById("destination-list");
     if (!list) return;
@@ -307,6 +316,7 @@
       if (signature === privateDestinationMetadataSignature) return;
       privateDestinationMetadata = resources;
       privateDestinationMetadataSignature = signature;
+      state.privateDestinations = resources;
       appendPrivateDestinationMetadata(privateDestinationMetadata);
     } catch (_error) {
       // The normal Destination view remains usable if metadata refresh fails.
@@ -468,11 +478,25 @@
 
   const previousRenderDestinations = renderDestinations;
   renderDestinations = function renderDestinationsAcceptance() {
+    const list = document.getElementById("destination-list");
+    const firstPaint = Boolean(list && list.dataset.destinationFirstPaint !== "1");
+    if (firstPaint) list.classList.add("acceptance-destination-first-paint");
+
+    syncPrivateDestinationMetadataFromState();
     const result = previousRenderDestinations();
     cleanupDestinationCards();
     if (isAdmin()) appendPrivateDestinationMetadata(privateDestinationMetadata);
     else appendPrivateDestinationMetadata([]);
     refreshDestinationMetadata();
+
+    if (firstPaint) {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          list.classList.remove("acceptance-destination-first-paint");
+          list.dataset.destinationFirstPaint = "1";
+        });
+      });
+    }
     return result;
   };
 

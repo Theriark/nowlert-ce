@@ -5,11 +5,27 @@
   let refreshTimer = 0;
 
   function privateItem(id) {
-    return privateDestinations.get(String(id || "")) || null;
+    const key = String(id || "");
+    const cached = privateDestinations.get(key);
+    if (cached) return cached;
+    return (state.privateDestinations || []).find(
+      (item) => String(item?.id || "") === key,
+    ) || null;
+  }
+
+  function syncPrivateDestinationCards(resources) {
+    const list = document.getElementById("destination-list");
+    if (!list) return;
+    const items = Array.isArray(resources) ? resources : [];
+    privateDestinations.clear();
+    items.forEach((item) => privateDestinations.set(String(item.id), item));
+    const cards = [...list.querySelectorAll(".acceptance-private-destination")];
+    cards.forEach((card, index) => decoratePrivateCard(card, items[index]));
   }
 
   function schedulePrivateDestinationRefresh() {
     window.clearTimeout(refreshTimer);
+    syncPrivateDestinationCards(state.privateDestinations);
     refreshTimer = window.setTimeout(refreshPrivateDestinationCards, 80);
   }
 
@@ -41,11 +57,8 @@
       const resources = Array.isArray(payload.private_resources)
         ? payload.private_resources
         : [];
-      privateDestinations.clear();
-      resources.forEach((item) => privateDestinations.set(String(item.id), item));
-
-      const cards = [...list.querySelectorAll(".acceptance-private-destination")];
-      cards.forEach((card, index) => decoratePrivateCard(card, resources[index]));
+      state.privateDestinations = resources;
+      syncPrivateDestinationCards(resources);
     } catch (_error) {
       // Keep the ordinary Destinations view usable if metadata refresh fails.
     }

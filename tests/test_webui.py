@@ -815,3 +815,49 @@ def test_20260918_round_three_screenshot_regressions():
     assert "No suspicious activity detected." not in reference
     assert "grid-template-columns: minmax(0, 1fr) 188px !important;" in round_three
     assert "min-height: 31px !important;" in round_three
+
+
+
+def test_20260918_round_four_footer_destination_and_security_regressions():
+    app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
+    cleanup = (ROOT / "src" / "webui" / "acceptance_cleanup.js").read_text(encoding="utf-8")
+    destination = (ROOT / "src" / "webui" / "destination_overview_acceptance.js").read_text(encoding="utf-8")
+    management = (ROOT / "src" / "webui" / "management_consistency.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "reference_acceptance.css").read_text(encoding="utf-8")
+
+    # F5 must have the private-destination metadata before Destinations paints,
+    # and only the unfinished first paint is temporarily hidden.
+    assert "privateDestinations: []" in app
+    assert "state.privateDestinations = Array.isArray(value.private_resources)" in app
+    assert "function syncPrivateDestinationMetadataFromState()" in cleanup
+    assert 'list.classList.add("acceptance-destination-first-paint")' in cleanup
+    assert 'list.dataset.destinationFirstPaint = "1"' in cleanup
+    assert "syncPrivateDestinationCards(state.privateDestinations);" in destination
+    assert "state.privateDestinations = resources;" in destination
+    assert "#view-destinations #destination-list.acceptance-destination-first-paint" in styles
+
+    # Owner reconciliation is idempotent instead of replacing the badge DOM on
+    # every consistency pass after the first paint.
+    assert "const contentReady = (" in management
+    assert "if (contentReady && positionReady) return;" in management
+
+    # The wide desktop footer intentionally renders only the current/nearby
+    # numeric pages. On page 1 this removes the old 3 and 4 buttons (and the
+    # unnecessary 5) while preserving direct/first/last navigation.
+    assert 'if (page <= 1) return [1, 2, "ellipsis"];' in management
+    round_four = styles[styles.index("/* 2026-09-18 round-four screenshot corrections. */"):]
+    assert "background-image: none !important;" in round_four
+    assert "minmax(250px, 1.62fr)" in round_four
+    assert "height: 76px !important;" in round_four
+    assert "border-right: 1px solid rgba(148, 163, 184, 0.2) !important;" in round_four
+    assert "gap: 4px !important;" in round_four
+
+    # Security cards share the same row height and the posture column consumes
+    # its full height rather than collapsing after the removed descriptions.
+    assert ".reference-account-grid {" in round_four
+    assert "align-items: stretch !important;" in round_four
+    assert ".reference-profile-card," in round_four
+    assert "align-self: stretch !important;" in round_four
+    assert "grid-template-rows: auto minmax(0, 1fr) auto !important;" in round_four
+    assert "grid-template-columns: minmax(0, 1fr) 236px !important;" in round_four
+    assert "grid-template-rows: minmax(0, 1fr) 1px minmax(0, 1fr) 1px minmax(0, 1fr) !important;" in round_four
