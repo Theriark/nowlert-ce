@@ -13,7 +13,7 @@
     audit: "Review security-relevant actions, health checks, outcomes, and operational details.",
     backups: "Configure backup destinations, schedules, snapshots, restore operations, and portable configuration.",
     tokens: "Allow external applications to submit events to /api/v2/events.",
-    account: "Manage your profile picture, password, and active account security settings.",
+    account: "Manage your profile information and account access.",
   };
   const ADMIN_COPY = "Manage Nowlert users, settings, updates, and portable configuration.";
   const homes = new Map();
@@ -105,7 +105,7 @@
   function expectedTitle(view) {
     if (ADMIN_VIEWS.has(view)) return "Administration";
     if (view === "tokens") return "API access";
-    if (view === "account") return "Security";
+    if (view === "account") return "Profile";
     return VIEW_TITLES?.[view] || document.getElementById("page-title")?.textContent || "Nowlert";
   }
 

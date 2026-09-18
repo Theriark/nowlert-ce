@@ -717,7 +717,7 @@ def test_20260918_webui_polish_regressions():
     assert "#restart-header-button.reference-account-restart" in reference_css
 
     assert 'account: "Profile",' in app
-    assert "<h2>Security</h2>" in markup
+    assert "<h2>Profile</h2>" in markup
 
 
 def test_20260918_round_two_screenshot_regressions():

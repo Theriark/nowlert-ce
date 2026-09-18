@@ -43,15 +43,32 @@ def record_filter_decisions(
     ]
     try:
         with database.transaction() as connection:
-            connection.executemany(
+            # Keep the write path self-healing for installations upgraded from
+            # a failed or interrupted schema transition. Telemetry must never
+            # block notification delivery.
+            connection.execute(
                 """
-                INSERT INTO routing_flow_events(
-                    owner_user_id, route_id, destination_id,
-                    source, filtered, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                rows,
+                CREATE TABLE IF NOT EXISTS routing_flow_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    owner_user_id TEXT NOT NULL,
+                    route_id TEXT NOT NULL,
+                    destination_id TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    filtered INTEGER NOT NULL DEFAULT 0 CHECK (filtered IN (0, 1)),
+                    created_at INTEGER NOT NULL
+                )
+                """
             )
+            for row in rows:
+                connection.execute(
+                    """
+                    INSERT INTO routing_flow_events(
+                        owner_user_id, route_id, destination_id,
+                        source, filtered, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    row,
+                )
             connection.execute(
                 "DELETE FROM routing_flow_events WHERE created_at < ?",
                 (now - 367 * 24 * 60 * 60,),

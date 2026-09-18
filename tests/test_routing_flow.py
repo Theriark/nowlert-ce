@@ -329,6 +329,17 @@ def test_filter_decisions_feed_received_filtered_and_reduction_metrics(api):
 
     assert blocked.matched_routes == 0
     assert allowed.matched_routes == 1
+    with api["database"].connect() as connection:
+        recorded = connection.execute(
+            """
+            SELECT route_id, destination_id, filtered
+            FROM routing_flow_events
+            WHERE route_id = ? AND destination_id = ?
+            ORDER BY id
+            """,
+            (route["id"], destination["id"]),
+        ).fetchall()
+    assert [(row["filtered"]) for row in recorded] == [1, 0]
     data = snapshot(api, headers, "10m").payload
     link = next(
         item for item in data["links"]

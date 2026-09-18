@@ -970,6 +970,17 @@ function ensurePreviewReferenceLayout() {
       posture.innerHTML = '<div class="reference-posture-block"><span class="reference-posture-icon">▣</span><div><small>Active sessions</small><strong id="reference-active-sessions">1</strong></div></div><div class="reference-posture-divider"></div><div class="reference-posture-block"><span class="reference-posture-icon">◇</span><div><small>Security posture</small><strong class="reference-good">Good</strong></div></div><div class="reference-posture-divider"></div><ul><li>Password is set</li><li>Account is active</li><li id="reference-mfa-posture">MFA can be enabled</li></ul>';
       password.replaceChildren(main, posture);
     }
+
+    const tokens = byId("account-api-tokens");
+    if (tokens) {
+      tokens.classList.add("reference-api-tokens");
+      const toolbar = tokens.querySelector(":scope > .section-toolbar");
+      const title = toolbar?.querySelector("h2");
+      if (title) title.textContent = "API tokens";
+      const add = toolbar?.querySelector('[data-action="new-token"]');
+      if (add) add.textContent = "Issue token";
+      ensureApiTokenReferenceLayout();
+    }
   }
 
   function ensureApiTokenReferenceLayout() {
