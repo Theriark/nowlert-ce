@@ -39,7 +39,7 @@ def test_round18_invalid_portable_document_still_opens_preview_dialog():
     assert '"/portability/preview"' in preview
     assert "portable && !response.preview.valid" not in preview
     assert "selectedInput.value = \"\"" not in preview
-    assert 'byId("import-result").textContent = JSON.stringify(response.preview, null, 2);' in preview
+    assert "renderImportPreview(response.preview);" in preview
     assert 'byId("import-apply").disabled = !response.preview.valid;' in preview
     assert 'byId("import-dialog").showModal();' in preview
     assert "Preview completed." in preview
