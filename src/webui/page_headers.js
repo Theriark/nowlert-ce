@@ -284,20 +284,20 @@
   const previousNavigate = navigate;
   navigate = function navigateWithUnifiedPageHeader(view, historyMode = "push") {
     const result = previousNavigate(view, historyMode);
-    scheduleSync();
+    syncPageHeader();
     return result;
   };
 
   const previousShowApp = showApp;
   showApp = function showAppWithUnifiedPageHeader(session) {
     const result = previousShowApp(session);
-    scheduleSync();
+    syncPageHeader();
     return result;
   };
 
   document.addEventListener("DOMContentLoaded", () => {
     bindObserver();
-    scheduleSync();
+    syncPageHeader();
   });
 })();
 

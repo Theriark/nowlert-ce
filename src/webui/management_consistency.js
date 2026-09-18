@@ -197,6 +197,10 @@
       const owned = state.destinations.find((item) => String(item.id || "") === id);
       if (owned) return owned;
     }
+    if (typeof state !== "undefined" && Array.isArray(state.privateDestinations)) {
+      const privateItem = state.privateDestinations.find((item) => String(item.id || "") === id);
+      if (privateItem) return privateItem;
+    }
     return privateDestinationMetadata.get(id) || null;
   }
 
@@ -349,6 +353,15 @@
       || state.currentView !== "destinations"
       || !document.querySelector("#destination-list .acceptance-private-destination")
     ) return;
+
+    if (Array.isArray(state.privateDestinations)) {
+      privateDestinationMetadata.clear();
+      for (const item of state.privateDestinations) {
+        if (item?.id) privateDestinationMetadata.set(String(item.id), item);
+      }
+      privateMetadataLoaded = true;
+      return;
+    }
 
     privateMetadataLoading = true;
     Promise.resolve(request("/destinations"))
@@ -794,6 +807,20 @@
   installDestinationFieldHook();
   installReferencePagination();
   installAssignedRoutesHelpRemoval();
+
+  const previousRenderDestinations = renderDestinations;
+  renderDestinations = function renderDestinationsWithManagementConsistency() {
+    const result = previousRenderDestinations();
+    syncDestinations();
+    return result;
+  };
+
+  const previousRenderUsers = renderUsers;
+  renderUsers = function renderUsersWithManagementConsistency() {
+    const result = previousRenderUsers();
+    syncUsers();
+    return result;
+  };
 
   const previousNavigate = navigate;
   navigate = function navigateWithManagementConsistency(view, historyMode = "push") {

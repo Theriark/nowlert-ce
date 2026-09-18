@@ -110,6 +110,8 @@ const QA_WORKSPACE_CACHE_FIELDS = [
   "routeSourceOptions",
   "integrationSettings",
   "integrationSettingsErrors",
+  "filteringOverview",
+  "routingFlowSnapshots",
   "destinations",
   "privateDestinations",
   "destinationErrors",
@@ -223,12 +225,15 @@ function qaHydrateWorkspaceCache(session) {
 }
 
 function qaClearWorkspaceCache() {
-  if (!state.user || !state.user.id) return;
-  try {
-    window.sessionStorage.removeItem(qaWorkspaceCacheKey(state.user.id));
-  } catch (_error) {
-    // Storage unavailable.
+  if (state.user && state.user.id) {
+    try {
+      window.sessionStorage.removeItem(qaWorkspaceCacheKey(state.user.id));
+    } catch (_error) {
+      // Storage unavailable.
+    }
   }
+  state.filteringOverview = null;
+  state.routingFlowSnapshots = {};
 }
 
 const qaOriginalShowApp = showApp;
