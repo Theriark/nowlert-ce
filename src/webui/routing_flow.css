@@ -587,3 +587,34 @@
 .rf-filter-card-sources {
   max-width: 100% !important;
 }
+
+
+/* 2026-09-18 round-27 filter semantics and full-width source fitting. */
+.rf-filter-card-source-group {
+  box-sizing: border-box;
+  width: 100% !important;
+}
+
+.rf-filter-card-sources {
+  box-sizing: border-box;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  width: 100% !important;
+}
+
+.rf-filter-card-sources:not(.is-expanded) {
+  flex-wrap: nowrap !important;
+}
+
+.rf-filter-card-sources.is-expanded {
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+}
+
+.rf-filter-card-sources [hidden] {
+  display: none !important;
+}
+
+.rf-filter-card-sources .rf-filter-source-overflow {
+  margin-left: auto;
+}

@@ -499,8 +499,8 @@
     <div class="mfa-reference-heading">
       <div>
         <h2 id="mfa-dialog-title">Multi-factor authentication</h2>
-        <p>Set up an authenticator app to add an extra layer of security to your account.</p>
-        <p>Scan the QR code or use the setup key below, then enter the 6-digit code from your app.</p>
+        <p id="mfa-dialog-summary">Set up an authenticator app to add an extra layer of security to your account.</p>
+        <p id="mfa-dialog-detail">Scan the QR code or use the setup key below, then enter the 6-digit code from your app.</p>
       </div>
       <button id="mfa-close" class="icon-button" type="button" aria-label="Close">×</button>
     </div>
@@ -553,15 +553,17 @@
     </section>
 
     <section id="mfa-disable-panel" class="mfa-panel mfa-reference-disable" hidden>
-      <div class="mfa-reference-code-heading">
-        <span class="mfa-reference-code-icon" aria-hidden="true">◇</span>
+      <div class="mfa-reference-code-heading mfa-reference-disable-summary">
+        <span class="mfa-reference-code-icon mfa-reference-disable-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"></path></svg>
+        </span>
         <div><strong>Disable multi-factor authentication</strong><p>Confirm your current password and authenticator code to disable MFA.</p></div>
       </div>
-      <form id="mfa-disable-form" class="stack compact">
+      <form id="mfa-disable-form" class="stack compact mfa-reference-disable-form">
         <label><span>Current password</span><input id="mfa-disable-password" type="password" autocomplete="current-password" required></label>
-        <label><span>Authenticator code</span><input id="mfa-disable-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"></label>
+        <label><span>Authenticator code</span><input id="mfa-disable-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
         <p id="mfa-disable-error" class="form-error" role="alert" hidden></p>
-        <button class="button danger" type="submit">Disable MFA</button>
+        <button class="button danger mfa-reference-disable-submit" type="submit">Disable MFA</button>
       </form>
     </section>
   </dialog>

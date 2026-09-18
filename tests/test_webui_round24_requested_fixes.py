@@ -31,7 +31,8 @@ def test_round24_filter_card_uses_real_filter_fields_counts_and_source_icons():
     assert "group.values.length" in script
     assert "Applied to active route" not in script
     assert "All notifications" not in script[script.index("function filterCardDescriptor(filter)"):script.index("function activeFlowGraph()")]
-    assert "for (const source of visible) sourceSummary.append(sourceIcon(source));" in script
+    assert "for (const source of configuredSources)" in script
+    assert 'sourceNode.dataset.filterSource = "1";' in script
     assert "const configuredSources = [...new Set((filter.sources || []).filter(Boolean))];" in script[script.index("function renderFilterCard"):script.index("function activeFlowGraph()")]
 
 

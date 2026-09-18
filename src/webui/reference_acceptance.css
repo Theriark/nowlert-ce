@@ -3134,3 +3134,227 @@ button.reference-preview-route-more:focus-visible {
     min-width: 0;
   }
 }
+
+
+/* 2026-09-18 round-27 full issue scrolling and approved MFA status/disable references. */
+.reference-import-issue-list {
+  max-height: 360px !important;
+  min-height: 300px;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.reference-import-issues-more {
+  display: none !important;
+}
+
+.reference-account-meta-mfa {
+  align-items: center !important;
+  background:
+    radial-gradient(circle at 12% 50%, rgba(19, 69, 99, 0.22), transparent 9rem),
+    linear-gradient(145deg, rgba(5, 30, 46, 0.98), rgba(3, 22, 35, 0.99)) !important;
+  border: 2px solid rgba(237, 185, 34, 0.9) !important;
+  border-radius: 17px !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(246, 200, 48, 0.08),
+    0 0 18px rgba(237, 185, 34, 0.08) !important;
+  gap: 16px !important;
+  grid-template-columns: 60px minmax(0, 1fr) !important;
+  min-height: 92px !important;
+  padding: 13px 17px !important;
+}
+
+.reference-account-meta-mfa:hover,
+.reference-account-meta-mfa:focus-visible {
+  border-color: #ffd02e !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 208, 46, 0.15),
+    0 0 22px rgba(255, 196, 31, 0.16) !important;
+}
+
+.reference-account-meta-mfa .reference-account-meta-icon {
+  align-items: center !important;
+  background: rgba(8, 34, 49, 0.82) !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  height: 58px !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  width: 58px !important;
+}
+
+.reference-account-meta-mfa.is-enabled .reference-account-meta-icon {
+  background: rgba(5, 69, 55, 0.26) !important;
+  border: 2px solid rgba(19, 177, 119, 0.72) !important;
+  box-shadow: 0 0 16px rgba(24, 219, 143, 0.12);
+  color: #24e2a0 !important;
+}
+
+.reference-account-meta-mfa.is-disabled .reference-account-meta-icon {
+  background: rgba(83, 32, 40, 0.3) !important;
+  border: 2px solid rgba(194, 71, 74, 0.72) !important;
+  box-shadow: 0 0 16px rgba(255, 91, 91, 0.1);
+  color: #ff6868 !important;
+}
+
+.reference-account-meta-mfa .reference-account-meta-copy {
+  gap: 4px !important;
+}
+
+.reference-account-meta-mfa .reference-account-meta-copy small {
+  color: #9bb5cf !important;
+  font-size: 0.82rem !important;
+  font-weight: 500 !important;
+}
+
+.reference-account-meta-mfa .reference-account-meta-copy strong {
+  color: #f6f7f8 !important;
+  font-size: 1.2rem !important;
+  font-weight: 850 !important;
+  line-height: 1.05 !important;
+}
+
+.reference-mfa-dialog.is-disable-mode {
+  max-height: min(94vh, 720px) !important;
+  max-width: min(1000px, calc(100vw - 32px)) !important;
+  padding: 28px 32px 26px !important;
+  width: min(1000px, calc(100vw - 32px)) !important;
+}
+
+.reference-mfa-dialog.is-disable-mode .mfa-reference-heading {
+  border-bottom: 0;
+  margin-bottom: 20px;
+}
+
+.reference-mfa-dialog.is-disable-mode .mfa-reference-heading h2 {
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+}
+
+.reference-mfa-dialog.is-disable-mode .mfa-reference-heading p {
+  font-size: 1rem;
+}
+
+.reference-mfa-dialog.is-disable-mode #mfa-dialog-detail[hidden] {
+  display: none !important;
+}
+
+.reference-mfa-dialog .mfa-reference-disable {
+  gap: 20px !important;
+  padding-top: 0 !important;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-summary {
+  align-items: center;
+  background:
+    radial-gradient(circle at 8% 50%, rgba(26, 94, 139, 0.18), transparent 14rem),
+    rgba(5, 28, 43, 0.92);
+  border: 1px solid rgba(33, 112, 159, 0.78);
+  border-radius: 11px;
+  display: grid !important;
+  gap: 18px !important;
+  grid-template-columns: 68px minmax(0, 1fr) !important;
+  margin: 0 !important;
+  min-height: 98px;
+  padding: 16px 20px;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-icon {
+  background: rgba(9, 47, 70, 0.86) !important;
+  border: 1px solid rgba(35, 128, 184, 0.68) !important;
+  color: #52b9ff !important;
+  height: 58px !important;
+  width: 58px !important;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-icon svg {
+  fill: none;
+  height: 27px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 27px;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-summary strong {
+  color: #f2f5f8;
+  font-size: 1rem;
+  margin: 0 0 6px;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-summary p {
+  color: #9fb5c6;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-form {
+  display: grid !important;
+  gap: 18px !important;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-form label > span {
+  color: #d7e0e7;
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-form input {
+  background: #11181e !important;
+  border: 1px solid rgba(95, 105, 113, 0.7) !important;
+  border-radius: 10px !important;
+  color: #f2f4f5 !important;
+  font-size: 1rem !important;
+  min-height: 55px !important;
+  padding: 0 14px !important;
+  width: 100% !important;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-form input:focus {
+  border-color: rgba(64, 159, 222, 0.9) !important;
+  box-shadow: 0 0 0 2px rgba(64, 159, 222, 0.12) !important;
+  outline: none !important;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-submit {
+  background: linear-gradient(180deg, rgba(63, 25, 32, 0.72), rgba(45, 22, 29, 0.84)) !important;
+  border: 1px solid rgba(225, 78, 78, 0.9) !important;
+  border-radius: 10px !important;
+  color: #ff7474 !important;
+  font-size: 1rem !important;
+  font-weight: 850 !important;
+  min-height: 55px !important;
+  width: 100% !important;
+}
+
+.reference-mfa-dialog .mfa-reference-disable-submit:hover,
+.reference-mfa-dialog .mfa-reference-disable-submit:focus-visible {
+  background: linear-gradient(180deg, rgba(80, 29, 36, 0.82), rgba(54, 24, 30, 0.92)) !important;
+  border-color: #ff6868 !important;
+  outline: none !important;
+}
+
+@media (max-width: 720px) {
+  .reference-mfa-dialog.is-disable-mode {
+    padding: 20px !important;
+  }
+
+  .reference-mfa-dialog .mfa-reference-disable-summary {
+    grid-template-columns: 54px minmax(0, 1fr) !important;
+    padding: 14px;
+  }
+
+  .reference-mfa-dialog .mfa-reference-disable-icon {
+    height: 48px !important;
+    width: 48px !important;
+  }
+}

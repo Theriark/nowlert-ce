@@ -939,10 +939,8 @@ function ensurePreviewReferenceLayout() {
         if (kind === "mfa") {
           item.type = "button";
           item.dataset.action = "account-mfa";
-          item.setAttribute("aria-label", "Enable multi-factor authentication");
-          const action = ref("span", "reference-mfa-action", "Enable MFA");
-          action.id = "reference-account-mfa-action";
-          copy.append(action);
+          item.setAttribute("aria-label", "Manage multi-factor authentication. Current status: Disabled");
+          icon.classList.add("reference-account-meta-mfa-icon");
         }
         item.append(icon, copy);
         meta.append(item);
@@ -1133,17 +1131,15 @@ function ensurePreviewReferenceLayout() {
     }
     const enabled = Boolean(user.mfa_enabled);
     const mfaValue = byId("reference-account-mfa-value");
-    const mfaAction = byId("reference-account-mfa-action");
     const mfaItem = document.querySelector(".reference-account-meta-mfa");
     const mfaIcon = mfaItem?.querySelector(".reference-account-meta-icon");
     if (mfaValue) mfaValue.textContent = enabled ? "Enabled" : "Disabled";
-    if (mfaAction) mfaAction.textContent = enabled ? "Disable MFA" : "Enable MFA";
     if (mfaItem) {
       mfaItem.classList.toggle("is-enabled", enabled);
       mfaItem.classList.toggle("is-disabled", !enabled);
       mfaItem.setAttribute(
         "aria-label",
-        enabled ? "Disable multi-factor authentication" : "Enable multi-factor authentication",
+        `Manage multi-factor authentication. Current status: ${enabled ? "Enabled" : "Disabled"}`,
       );
     }
     if (mfaIcon) mfaIcon.textContent = enabled ? "✓" : "Ⅱ";

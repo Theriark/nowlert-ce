@@ -69,7 +69,8 @@ def test_routing_filter_keeps_outer_size_and_animation_but_uses_reference_interi
     assert "rf-filter-rule-label" in script
     assert "filterTagTone(value)" in script
     assert 'const sourceSummary = el("span", "rf-filter-card-sources")' in script
-    assert "for (const source of visible) sourceSummary.append(sourceIcon(source));" in script
+    assert "for (const source of configuredSources)" in script
+    assert 'sourceNode.dataset.filterSource = "1";' in script
     assert 'const destinationSummary = el("span", "rf-filter-card-destination")' in script
     assert "rf-filter-card-period" not in script
 

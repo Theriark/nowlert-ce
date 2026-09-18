@@ -720,6 +720,8 @@ async function openMfaDialog() {
   const dialog = byId("mfa-dialog");
   const setup = byId("mfa-setup-panel");
   const disable = byId("mfa-disable-panel");
+  const summary = byId("mfa-dialog-summary");
+  const detail = byId("mfa-dialog-detail");
   if (!dialog || !setup || !disable) return;
   clearError("mfa-enable-error");
   clearError("mfa-disable-error");
@@ -727,14 +729,19 @@ async function openMfaDialog() {
   const enabled = Boolean(state.user?.mfa_enabled);
   setup.hidden = enabled;
   disable.hidden = !enabled;
+  dialog.classList.toggle("is-disable-mode", enabled);
+
+  if (summary) {
+    summary.textContent = enabled
+      ? "Confirm your current password and authenticator code to disable MFA."
+      : "Set up an authenticator app to add an extra layer of security to your account.";
+  }
+  if (detail) {
+    detail.hidden = enabled;
+    detail.textContent = "Scan the QR code or use the setup key below, then enter the 6-digit code from your app.";
+  }
 
   if (enabled) {
-    const accepted = await confirmAction(
-      "Disable multi-factor authentication?",
-      "Continue to confirm with your current password and authenticator code.",
-      "Continue",
-    );
-    if (!accepted) return;
     byId("mfa-disable-password").value = "";
     byId("mfa-disable-code").value = "";
     if (!dialog.open) dialog.showModal();
@@ -753,6 +760,7 @@ async function openMfaDialog() {
 
 function closeMfaDialog() {
   const dialog = byId("mfa-dialog");
+  if (dialog) dialog.classList.remove("is-disable-mode");
   resetMfaCodeDigits();
   const secret = byId("mfa-secret-value");
   if (secret) secret.textContent = "";
@@ -3293,7 +3301,7 @@ function renderImportIssues(preview) {
   const visible = filter === "all" ? all : all.filter((item) => item.kind === filter);
   list.replaceChildren();
 
-  for (const [index, issue] of visible.slice(0, 8).entries()) {
+  for (const [index, issue] of visible.entries()) {
     const row = element("div", { className: `reference-import-issue is-${issue.kind}` });
     row.append(
       element("span", { className: "reference-import-issue-index", text: String(index + 1) }),
@@ -3304,9 +3312,9 @@ function renderImportIssues(preview) {
     list.append(row);
   }
 
-  const remaining = Math.max(0, visible.length - 8);
-  more.hidden = remaining === 0;
-  more.textContent = remaining ? `… and ${remaining} more issue${remaining === 1 ? "" : "s"}` : "";
+  list.scrollTop = 0;
+  more.hidden = true;
+  more.textContent = "";
 }
 
 function renderImportPreview(preview) {
