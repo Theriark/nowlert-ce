@@ -47,11 +47,18 @@ def test_round_six_workspace_cache_hydrates_after_session_and_refreshes_in_backg
     app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
     patch = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
 
-    session_start = app.index('const sessionRequest = request("/session");')
-    bootstrap_start = app.index('const status = await request("/bootstrap");')
-    restore = app.index("await restoreSession(sessionRequest);")
-    assert session_start < bootstrap_start < restore
+    prefetch_start = app.index("const startupRequests = {")
+    session_start = app.index('session: request("/session"),', prefetch_start)
+    bootstrap_start = app.index('bootstrap: request("/bootstrap"),', prefetch_start)
+    dom_ready_gate = app.index(
+        'document.addEventListener("DOMContentLoaded", startApplication'
+    )
+    initialize_start = app.index("async function initialize(startupRequests = {})")
+    restore = app.index("await restoreSession(sessionRequest);", initialize_start)
+    assert prefetch_start < session_start < bootstrap_start < dom_ready_gate
+    assert 'const sessionRequest = startupRequests.session || request("/session");' in app
     assert "void sessionRequest.catch(() => {});" in app
+    assert restore > initialize_start
     assert "async function restoreSession(prefetchedSession = null)" in app
 
     assert 'const QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v1";' in patch
