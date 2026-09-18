@@ -19,13 +19,14 @@ def test_empty_snapshot_is_read_only_and_unrecorded_is_not_zero(api):
     assert data["routes"] == []
     assert data["destinations"] == []
     assert data["metrics"] == {
-        "received": None,
-        "filtered": None,
+        "received": 0,
+        "filtered": 0,
         "delivered": 0,
         "pending": 0,
         "failed": 0,
     }
-    assert data["capabilities"]["received"] is False
+    assert data["capabilities"]["received"] is True
+    assert data["capabilities"]["filtered"] is True
     assert call(api, "POST", "/api/v2/routing-flow/15m", {}, headers).status == 405
     assert snapshot(api, headers, "invalid").status == 400
     assert snapshot(api, {}).status == 401
@@ -294,3 +295,56 @@ def test_fallback_source_reports_current_policy_without_mutating_filtering(api):
     ]
     assert grafana["enabled"] is True
     assert any(not policy["configured"] for policy in link["policies"])
+
+
+
+def test_filter_decisions_feed_received_filtered_and_reduction_metrics(api):
+    headers = login(api)
+    route = create_route(api, headers, "Grafana filtered")
+    destination = create_destination(api, headers, "Filtered webhook", [route["id"]])
+    platform = api["service"].platform
+    platform.filters.set_rules(
+        api["admin"].actor,
+        destination["id"],
+        "grafana",
+        {"policy": [{"action": "allow", "conditions": {"severity": ["critical"]}}]},
+    )
+
+    blocked = platform.delivery.deliver(
+        api["admin"].actor,
+        Notification(
+            source="grafana",
+            title="Warning",
+            metadata={"severity": "warning", "_input_type": "http"},
+        ),
+    )
+    allowed = platform.delivery.deliver(
+        api["admin"].actor,
+        Notification(
+            source="grafana",
+            title="Critical",
+            metadata={"severity": "critical", "_input_type": "http"},
+        ),
+    )
+
+    assert blocked.matched_routes == 0
+    assert allowed.matched_routes == 1
+    data = snapshot(api, headers, "10m").payload
+    link = next(
+        item for item in data["links"]
+        if item["route_id"] == route["id"]
+        and item["destination_id"] == destination["id"]
+    )
+    assert link["metrics"]["received"] == 2
+    assert link["metrics"]["filtered"] == 1
+    assert link["metrics"]["delivered"] == 1
+    assert data["metrics"]["received"] == 2
+    assert data["metrics"]["filtered"] == 1
+
+
+def test_routing_flow_supports_dashboard_history_windows(api):
+    headers = login(api)
+    for window in ("10m", "1h", "1d", "1m", "1y"):
+        response = snapshot(api, headers, window)
+        assert response.status == 200
+        assert response.payload["range"] == window

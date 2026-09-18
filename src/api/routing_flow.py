@@ -8,7 +8,14 @@ from integrations.filtering import filter_schema, sources_for_input
 from storage.routing_flow import delivery_snapshot, empty_metrics
 
 
-WINDOWS = {"15m": 900, "1h": 3600, "3h": 10800, "6h": 21600, "1d": 86400}
+WINDOWS = {
+    "10m": 10 * 60,
+    "15m": 15 * 60,
+    "1h": 60 * 60,
+    "1d": 24 * 60 * 60,
+    "1m": 31 * 24 * 60 * 60,
+    "1y": 366 * 24 * 60 * 60,
+}
 
 
 def _public_policy_rules(filters, policy):
@@ -240,7 +247,7 @@ def snapshot(api, actor, range_key):
         "range": range_key,
         "since": since,
         "generated_at": now,
-        "capabilities": {"received": False, "filtered": False, "latency": False},
+        "capabilities": {"received": True, "filtered": True, "latency": False},
         "metrics": stats["metrics"],
         "routes": routes,
         "destinations": destinations,

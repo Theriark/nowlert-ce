@@ -522,7 +522,42 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             ON housekeeping_runs(completed_at DESC)
             """,
         ),
-    ),
+    ),,
+    (
+        14,
+        "account mfa and routing flow telemetry",
+        (
+            """
+            ALTER TABLE users
+            ADD COLUMN mfa_secret_id TEXT
+                REFERENCES secret_records(id) ON DELETE SET NULL
+            """,
+            """
+            ALTER TABLE users
+            ADD COLUMN mfa_enabled INTEGER NOT NULL DEFAULT 0
+                CHECK (mfa_enabled IN (0, 1))
+            """,
+            """
+            CREATE TABLE routing_flow_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                route_id TEXT REFERENCES routes(id) ON DELETE CASCADE,
+                destination_id TEXT REFERENCES destinations(id) ON DELETE CASCADE,
+                source TEXT NOT NULL,
+                filtered INTEGER NOT NULL DEFAULT 0 CHECK (filtered IN (0, 1)),
+                created_at INTEGER NOT NULL
+            )
+            """,
+            """
+            CREATE INDEX routing_flow_events_created
+            ON routing_flow_events(created_at DESC)
+            """,
+            """
+            CREATE INDEX routing_flow_events_route_destination
+            ON routing_flow_events(route_id, destination_id, created_at DESC)
+            """,
+        ),
+    )
 )
 
 

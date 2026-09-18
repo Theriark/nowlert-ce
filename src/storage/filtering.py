@@ -17,6 +17,7 @@ from storage.database import Database
 from storage.delivery import DeliverySummary, PlatformDeliveryService
 from storage.ownership import Actor, OwnershipPolicy
 from storage.routes import Route, RouteStore
+from storage.routing_flow import record_filter_decisions
 
 
 _LEGACY_KEYS = {
@@ -659,9 +660,22 @@ class FilteredPlatformDeliveryService(PlatformDeliveryService):
         self.filters.migrate_legacy_route_filters()
         routes = self.routes.matching(actor, actor.user_id, notification)
         candidates = self.relationships.expand(actor, routes)
-        allowed = [
-            candidate
+        decisions = [
+            (
+                candidate,
+                self.filters.matches(
+                    actor,
+                    candidate.destination_id,
+                    notification,
+                ),
+            )
             for candidate in candidates
-            if self.filters.matches(actor, candidate.destination_id, notification)
         ]
+        record_filter_decisions(
+            self.routes.database,
+            actor,
+            notification,
+            decisions,
+        )
+        allowed = [candidate for candidate, matched in decisions if matched]
         return self._deliver_candidates(actor, notification, allowed)

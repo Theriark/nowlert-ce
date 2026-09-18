@@ -14,7 +14,7 @@
     fit: "M8 3H3v5 M16 3h5v5 M21 16v5h-5 M8 21H3v-5 M8 8h8v8H8z",
   };
   let data = null, signature = "", timer = null, controller = null;
-  let generation = 0, range = "15m", zoom = 1, busy = false;
+  let generation = 0, range = "1d", zoom = 1, busy = false;
   let owner = null, selected = null, seen = new Set(), allHistory = false;
   let pulseFrame = null, pulses = [], edgePaths = new Map(), resizeFrame = null;
   let graphModel = null;
@@ -69,7 +69,7 @@
   section.innerHTML = `
     <div class="section-toolbar rf-toolbar">
       <div><h2>Routing Flow</h2><p>Visualize active routes, filters, and destinations.</p></div>
-      <label class="rf-range"><span class="sr-only">History window</span><select id="rf-range"><option value="15m">Last 15 minutes</option><option value="1h">Last hour</option><option value="1d">Last 24 hours</option></select></label>
+      <label class="rf-range"><span class="sr-only">History window</span><select id="rf-range"><option value="10m">Last 10 minutes</option><option value="1h">Last 1 hour</option><option value="1d" selected>Last 24 hours</option><option value="1m">Last 1 month</option><option value="1y">Last 1 year</option></select></label>
     </div>
     <div id="rf-error" class="rf-error" role="alert" hidden></div>
     <div id="rf-metrics" class="rf-metrics"></div>
@@ -155,9 +155,12 @@
   }
   function rangeLabel(value = range) {
     return {
+      "10m": "Last 10 minutes",
       "15m": "Last 15 minutes",
-      "1h": "Last hour",
+      "1h": "Last 1 hour",
       "1d": "Last 24 hours",
+      "1m": "Last 1 month",
+      "1y": "Last 1 year",
     }[value] || value;
   }
   function filterMetricText(value) {

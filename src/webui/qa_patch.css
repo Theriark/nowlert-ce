@@ -4561,3 +4561,26 @@ textarea:focus {
     min-height: 36px !important;
   }
 }
+
+
+/* 2026-09-18 round-21 profile, backups, and routing metrics. */
+@media (min-width: 901px) {
+  #backup-schedule-panel,
+  #backup-data-tools-panel {
+    height: 350px !important;
+    max-height: 350px !important;
+    min-height: 350px !important;
+  }
+  #backup-data-tools-panel > .backup-data-tools-grid {
+    grid-auto-rows: minmax(0, 1fr) !important;
+    overflow: visible !important;
+  }
+  #backup-data-tools-panel .data-tools-reference-card { overflow: visible !important; }
+  #backup-data-tools-panel .data-tools-reference-download {
+    justify-content: center !important;
+    white-space: nowrap !important;
+    width: 100% !important;
+  }
+  #backup-data-tools-panel .data-tools-reference-file,
+  #backup-data-tools-panel .data-tools-reference-preview { width: 100% !important; }
+}

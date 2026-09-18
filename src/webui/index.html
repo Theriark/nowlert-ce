@@ -85,6 +85,13 @@
             </button>
           </span>
         </label>
+        <label id="login-mfa-field" class="login-reference-field" hidden>
+          <span class="login-reference-label">Authenticator code</span>
+          <span class="login-input-shell">
+            <svg class="login-field-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"></path><path d="M9 12h6"></path><path d="M12 9v6"></path></svg>
+            <input id="login-otp" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000">
+          </span>
+        </label>
         <label class="login-remember"><input id="login-remember" type="checkbox" checked><span>Remember me</span></label>
         <p id="login-error" class="form-error" role="alert" hidden></p>
         <button class="button primary full login-reference-submit" type="submit">
@@ -142,7 +149,7 @@
             <span class="profile-copy"><strong id="profile-name">Account</strong><small id="profile-role">User</small></span>
           </button>
           <div id="profile-menu-popover" class="profile-menu-popover" role="menu" hidden>
-            <button type="button" role="menuitem" data-view="account"><span aria-hidden="true">◇</span> Security</button>
+            <button type="button" role="menuitem" data-view="account"><span aria-hidden="true">◇</span> Profile</button>
             <button type="button" role="menuitem" data-action="logout"><span aria-hidden="true">↪</span> Sign out</button>
           </div>
         </div>
@@ -478,7 +485,7 @@
         </section>
 
         <section id="view-account" class="view" data-page="account" hidden>
-          <div class="section-toolbar"><div><h2>Security</h2><p>Manage your profile picture, password, and active account security settings.</p></div></div>
+          <div class="section-toolbar"><div><h2>Profile</h2><p>Manage your profile information and account access.</p></div></div>
           <div class="account-grid">
             <article class="panel identity-card"><span id="account-avatar" class="avatar large">N</span><div><h3 id="account-name">Account</h3><p id="account-role">User</p><small id="account-session">Session active</small><form id="avatar-form" class="avatar-form"><label class="button secondary small">Choose picture<input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><div id="avatar-editor" class="avatar-editor" hidden><canvas id="avatar-canvas" width="256" height="256" aria-label="Circular profile picture crop preview"></canvas><label><span>Zoom</span><input id="avatar-zoom" type="range" min="1" max="3" step="0.01" value="1"></label><small>Drag the picture to position it inside the circle.</small></div><button id="avatar-save" class="button secondary small" type="submit" disabled hidden>Save picture</button><button class="text-button" type="button" data-action="remove-avatar">Remove</button></form></div></article>
             <article class="panel"><div class="panel-heading"><div><h3>Change password</h3><p>This signs out every active session, including this one.</p></div></div><form id="password-form" class="stack compact"><label><span>Current password</span><input name="current_password" type="password" autocomplete="current-password" required></label><label><span>New password</span><input name="new_password" type="password" autocomplete="new-password" minlength="12" required></label><label><span>Confirm new password</span><input name="confirm_password" type="password" autocomplete="new-password" minlength="12" required></label><button class="button primary" type="submit">Update password</button></form></article>
@@ -487,6 +494,34 @@
       </main>
     </div>
   </div>
+
+  <dialog id="mfa-dialog" class="modal reference-mfa-dialog" aria-labelledby="mfa-dialog-title">
+    <div class="modal-heading">
+      <div><p class="eyebrow">Account security</p><h2 id="mfa-dialog-title">Multi-factor authentication</h2></div>
+      <button id="mfa-close" class="icon-button" type="button" aria-label="Close">×</button>
+    </div>
+    <section id="mfa-setup-panel" class="mfa-panel" hidden>
+      <p>Add Nowlert to your authenticator application using this setup key, then enter the current six-digit code.</p>
+      <div class="mfa-secret-box">
+        <small>Setup key</small>
+        <div><code id="mfa-secret-value"></code><button id="mfa-copy-secret" class="button secondary small" type="button">Copy</button></div>
+      </div>
+      <form id="mfa-enable-form" class="stack compact">
+        <label><span>Authenticator code</span><input id="mfa-enable-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"></label>
+        <p id="mfa-enable-error" class="form-error" role="alert" hidden></p>
+        <button class="button primary" type="submit">Enable MFA</button>
+      </form>
+    </section>
+    <section id="mfa-disable-panel" class="mfa-panel" hidden>
+      <p>Confirm your current password and authenticator code to disable MFA.</p>
+      <form id="mfa-disable-form" class="stack compact">
+        <label><span>Current password</span><input id="mfa-disable-password" type="password" autocomplete="current-password" required></label>
+        <label><span>Authenticator code</span><input id="mfa-disable-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"></label>
+        <p id="mfa-disable-error" class="form-error" role="alert" hidden></p>
+        <button class="button danger" type="submit">Disable MFA</button>
+      </form>
+    </section>
+  </dialog>
 
   <dialog id="integration-settings-dialog" class="modal">
     <form id="integration-settings-form" method="dialog">

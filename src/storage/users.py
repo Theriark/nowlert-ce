@@ -31,6 +31,8 @@ class User:
     created_at: int
     updated_at: int
     avatar_data: str | None = None
+    mfa_enabled: bool = False
+    mfa_secret_id: str | None = None
 
     @property
     def actor(self) -> Actor:
@@ -119,7 +121,7 @@ class UserStore:
                 """
                 SELECT id, username, role, enabled, failed_login_count,
                        locked_until, last_login_at, first_login_at, created_at, updated_at,
-                       avatar_data
+                       avatar_data, mfa_enabled, mfa_secret_id
                 FROM users WHERE id = ?
                 """,
                 (str(user_id),),
@@ -140,7 +142,7 @@ class UserStore:
                 """
                 SELECT id, username, role, enabled, failed_login_count,
                        locked_until, last_login_at, first_login_at, created_at, updated_at,
-                       avatar_data
+                       avatar_data, mfa_enabled, mfa_secret_id
                 FROM users WHERE username_normalized = ?
                 """,
                 (normalized,),
@@ -155,7 +157,7 @@ class UserStore:
                 """
                 SELECT id, username, role, enabled, failed_login_count,
                        locked_until, last_login_at, first_login_at, created_at, updated_at,
-                       avatar_data
+                       avatar_data, mfa_enabled, mfa_secret_id
                 FROM users ORDER BY username_normalized
                 """
             ).fetchall()
@@ -374,6 +376,37 @@ class UserStore:
                 raise KeyError("user not found")
         return self.get(user_id)
 
+    def set_mfa_state(
+        self,
+        user_id: str,
+        secret_id: str | None,
+        enabled: bool,
+    ) -> User:
+        normalized_secret = str(secret_id) if secret_id else None
+        if enabled and not normalized_secret:
+            raise ValueError("MFA cannot be enabled without a secret")
+        if normalized_secret is not None and not re.fullmatch(
+            r"[0-9a-f]{32}", normalized_secret
+        ):
+            raise ValueError("MFA secret identifier is invalid")
+        with self.database.transaction() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE users
+                SET mfa_secret_id = ?, mfa_enabled = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    normalized_secret,
+                    1 if enabled else 0,
+                    int(self.clock()),
+                    str(user_id),
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError("user not found")
+        return self.get(user_id)
+
     @staticmethod
     def _user(row) -> User:
         return User(
@@ -398,6 +431,16 @@ class UserStore:
             avatar_data=(
                 str(row["avatar_data"])
                 if "avatar_data" in row.keys() and row["avatar_data"]
+                else None
+            ),
+            mfa_enabled=(
+                bool(row["mfa_enabled"])
+                if "mfa_enabled" in row.keys()
+                else False
+            ),
+            mfa_secret_id=(
+                str(row["mfa_secret_id"])
+                if "mfa_secret_id" in row.keys() and row["mfa_secret_id"]
                 else None
             ),
         )
