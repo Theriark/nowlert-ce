@@ -446,3 +446,29 @@
   object-fit: contain;
   width: 14px !important;
 }
+
+
+/* 2026-09-18 round-24 filter summary and multi-flow telemetry. */
+.rf-filter-card-sources {
+  gap: 6px;
+  overflow: hidden;
+}
+
+.rf-filter-card-sources > span:last-child {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.rf-filter-card-sources .source-product-icon,
+.rf-filter-card-sources img {
+  flex: 0 0 14px !important;
+  height: 14px !important;
+  object-fit: contain;
+  width: 14px !important;
+}
+
+.rf-filtered-particle {
+  fill: #12bce9;
+  filter: drop-shadow(0 0 4px rgba(18, 188, 233, 0.72));
+}

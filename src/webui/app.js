@@ -642,6 +642,11 @@ async function startMfaSetup() {
     body: {},
   });
   byId("mfa-secret-value").textContent = response.secret || "";
+  const qr = byId("mfa-qr-code");
+  if (qr) {
+    qr.src = response.qr_code || "";
+    qr.hidden = !response.qr_code;
+  }
   byId("mfa-enable-code").value = "";
   return response;
 }
@@ -3164,6 +3169,108 @@ async function selectedFile(id) {
   return file.text();
 }
 
+function importPreviewCount(preview, key) {
+  const summaryValue = Number(preview?.summary?.[key]);
+  if (Number.isFinite(summaryValue)) return summaryValue;
+  const items = preview?.[key];
+  return Array.isArray(items) ? items.length : 0;
+}
+
+function importPreviewIssues(preview) {
+  const normalize = (value) => String(
+    value && typeof value === "object" ? (value.message || value.error || JSON.stringify(value)) : (value || ""),
+  ).trim();
+  return [
+    ...(Array.isArray(preview?.errors) ? preview.errors : []).map((value) => ({
+      kind: "error",
+      text: normalize(value),
+    })),
+    ...(Array.isArray(preview?.warnings) ? preview.warnings : []).map((value) => ({
+      kind: "warning",
+      text: normalize(value),
+    })),
+  ].filter((item) => item.text);
+}
+
+function renderImportIssues(preview) {
+  const list = byId("import-issue-list");
+  const more = byId("import-issues-more");
+  const count = byId("import-issue-count");
+  if (!list || !more || !count) return;
+
+  const all = importPreviewIssues(preview);
+  count.textContent = String(all.length);
+  const filter = byId("import-issue-filter")?.value || "all";
+  const visible = filter === "all" ? all : all.filter((item) => item.kind === filter);
+  list.replaceChildren();
+
+  for (const [index, issue] of visible.slice(0, 8).entries()) {
+    const row = element("div", { className: `reference-import-issue is-${issue.kind}` });
+    row.append(
+      element("span", { className: "reference-import-issue-index", text: String(index + 1) }),
+      element("span", { className: "reference-import-issue-icon", text: issue.kind === "error" ? "!" : "△" }),
+      element("span", { className: "reference-import-issue-text", text: issue.text }),
+      element("small", { text: issue.kind === "error" ? "Error" : "Warning" }),
+    );
+    list.append(row);
+  }
+
+  const remaining = Math.max(0, visible.length - 8);
+  more.hidden = remaining === 0;
+  more.textContent = remaining ? `… and ${remaining} more issue${remaining === 1 ? "" : "s"}` : "";
+}
+
+function renderImportPreview(preview) {
+  const fingerprint = String(preview?.fingerprint || "");
+  const valid = preview?.valid === true;
+  const errors = Array.isArray(preview?.errors) ? preview.errors.length : 0;
+  const warnings = Array.isArray(preview?.warnings) ? preview.warnings.length : 0;
+
+  const fingerprintValue = byId("import-metric-fingerprint");
+  const fingerprintState = byId("import-metric-fingerprint-state");
+  if (fingerprintValue) {
+    fingerprintValue.textContent = fingerprint
+      ? `${fingerprint.slice(0, 12)}${fingerprint.length > 12 ? "…" : ""}`
+      : "—";
+    fingerprintValue.title = fingerprint;
+  }
+  if (fingerprintState) {
+    fingerprintState.textContent = fingerprint ? "Present" : "Missing";
+    fingerprintState.className = fingerprint ? "is-present" : "is-missing";
+  }
+
+  const validValue = byId("import-metric-valid");
+  const validState = byId("import-metric-valid-state");
+  if (validValue) validValue.textContent = String(Boolean(preview?.valid));
+  if (validState) {
+    validState.textContent = valid ? "Valid" : "Invalid";
+    validState.className = valid ? "is-valid" : "is-invalid";
+  }
+
+  if (byId("import-metric-errors")) byId("import-metric-errors").textContent = String(errors);
+  if (byId("import-metric-warnings")) byId("import-metric-warnings").textContent = String(warnings);
+  if (byId("import-metric-destinations")) {
+    byId("import-metric-destinations").textContent = String(importPreviewCount(preview, "destinations"));
+  }
+  if (byId("import-metric-routes")) {
+    byId("import-metric-routes").textContent = String(importPreviewCount(preview, "routes"));
+  }
+
+  byId("import-result").textContent = JSON.stringify(preview || {}, null, 2);
+  renderImportIssues(preview || {});
+}
+
+async function copyImportPreview() {
+  const value = byId("import-result")?.textContent || "";
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+    toast("Configuration preview copied.");
+  } catch (_error) {
+    toast("Configuration preview could not be copied.", "error");
+  }
+}
+
 async function previewImport(kind, portableFileId = "portable-file") {
   clearError("import-error");
   const portable = kind === "portable";
@@ -3197,7 +3304,7 @@ async function previewImport(kind, portableFileId = "portable-file") {
         ? `Validated Nowlert export: ${response.preview.summary.destinations} destinations and ${response.preview.summary.routes} routes are ready to import.`
         : `${response.preview.summary.destinations} destinations and ${response.preview.summary.routes} routes are ready.${local ? " Applying this creates state and configuration backups, imports credentials server-side, and activates WebUI routing." : ""}`
       : `Preview completed. ${Array.isArray(response.preview.errors) ? response.preview.errors.length : 0} issue(s) must be resolved before this document can be applied.`;
-    byId("import-result").textContent = JSON.stringify(response.preview, null, 2);
+    renderImportPreview(response.preview);
     byId("import-apply").disabled = !response.preview.valid;
     byId("import-dialog").showModal();
   } catch (error) {
@@ -4199,6 +4306,10 @@ function bindEvents() {
   byId("mfa-disable-form")?.addEventListener("submit", disableMfa);
   byId("mfa-close")?.addEventListener("click", closeMfaDialog);
   byId("mfa-copy-secret")?.addEventListener("click", copyMfaSecret);
+  byId("import-copy-preview")?.addEventListener("click", copyImportPreview);
+  byId("import-issue-filter")?.addEventListener("change", () => {
+    renderImportIssues(state.pendingImport?.preview || {});
+  });
   byId("preferences-form").addEventListener("submit", savePreferences);
   byId("preference-language").addEventListener("change", applyLanguageDefaultTimezone);
   byId("integration-settings-form").addEventListener("submit", saveIntegrationSettings);

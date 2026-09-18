@@ -5,8 +5,12 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import io
 import re
 import secrets
+
+import qrcode
+import qrcode.image.svg
 import struct
 import time
 
@@ -71,3 +75,21 @@ def provisioning_uri(username: str, secret: str, *, issuer: str = "Nowlert") -> 
         f"otpauth://totp/{label}?secret={quote(str(secret), safe='')}"
         f"&issuer={quote(provider, safe='')}&algorithm=SHA1&digits=6&period=30"
     )
+
+
+def provisioning_qr_data_uri(uri: str) -> str:
+    """Render a compact SVG QR data URI for an authenticator provisioning URI."""
+
+    value = str(uri or "").strip()
+    if not value.startswith("otpauth://"):
+        raise ValueError("MFA provisioning URI is invalid")
+    image = qrcode.make(
+        value,
+        image_factory=qrcode.image.svg.SvgPathImage,
+        box_size=6,
+        border=2,
+    )
+    stream = io.BytesIO()
+    image.save(stream)
+    encoded = base64.b64encode(stream.getvalue()).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"

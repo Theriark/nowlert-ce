@@ -17,6 +17,7 @@ def test_account_mfa_setup_login_challenge_and_disable(api):
     assert setup.payload["user"]["mfa_enabled"] is False
     secret = setup.payload["secret"]
     assert setup.payload["provisioning_uri"].startswith("otpauth://totp/")
+    assert setup.payload["qr_code"].startswith("data:image/svg+xml;base64,")
 
     enabled = call(
         api, "PUT", "/api/v2/account/mfa",

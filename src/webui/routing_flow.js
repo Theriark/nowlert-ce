@@ -235,36 +235,68 @@
   }
 
   function filterCardDescriptor(link) {
-    const entries = [];
-    for (const policy of activePolicies(link)) {
+    const configured = Array.isArray(link.filter_policies) && link.filter_policies.length
+      ? link.filter_policies.filter(policy => !policy.restricted && policy.configured && policy.enabled)
+      : activePolicies(link);
+    const groups = new Map();
+
+    const addValue = (label, value) => {
+      const cleanLabel = String(label || "Filter").trim();
+      const cleanValue = String(value || "").trim();
+      if (!cleanValue) return;
+      const key = cleanLabel.toLowerCase();
+      if (!groups.has(key)) groups.set(key, { label: cleanLabel, values: [] });
+      const group = groups.get(key);
+      if (!group.values.includes(cleanValue)) group.values.push(cleanValue);
+    };
+
+    for (const policy of configured) {
+      const policyRules = Array.isArray(policy.policy_rules) ? policy.policy_rules : [];
+      if (policyRules.length) {
+        for (const rule of policyRules) {
+          for (const [field, rawValues] of Object.entries(rule.conditions || {})) {
+            const label = policy.labels?.[field] || field.replaceAll("_", " ");
+            const values = Array.isArray(rawValues) ? rawValues : [rawValues];
+            values.forEach(value => addValue(label, value));
+          }
+        }
+        continue;
+      }
+
       const clauses = policy.legacy_clauses?.length ? policy.legacy_clauses : [policy.rules || {}];
       for (const clause of clauses) {
         for (const [key, rawValues] of Object.entries(clause || {})) {
-          if (key.startsWith("__")) continue;
-          const label = String(policy.labels?.[key] || key.replaceAll("_", " ")).trim();
           const values = Array.isArray(rawValues) ? rawValues : [rawValues];
           for (const rawValue of values) {
             for (const rawPart of String(rawValue ?? "").split(" AND ")) {
               const part = rawPart.trim();
               if (!part) continue;
-              const value = part.includes(": ") ? part.split(": ").slice(1).join(": ").trim() : part;
-              entries.push({ label, value });
+              if (part.includes(": ")) {
+                const [rawLabel, ...rest] = part.split(": ");
+                addValue(rawLabel, rest.join(": "));
+              } else if (!key.startsWith("__")) {
+                addValue(policy.labels?.[key] || key.replaceAll("_", " "), part);
+              }
             }
           }
         }
       }
     }
 
-    const labels = [...new Set(entries.map(item => item.label).filter(Boolean))];
-    const values = [...new Set(entries.map(item => item.value).filter(Boolean))];
-    const label = labels.length === 1 ? labels[0] : (labels.length ? "Rules" : "Filter");
-    const title = labels.length === 1
-      ? labels[0].replace(/\b\w/g, letter => letter.toUpperCase())
-      : (labels.length > 1 ? "Multiple rules" : "Active");
-    const subtitle = labels.length
-      ? `Applied to ${labels.map(item => item.toLowerCase()).join(" / ")}`
-      : "Applied to active route";
-    return { label, title, subtitle, values: values.length ? values : ["All notifications"] };
+    const items = [...groups.values()];
+    const sourceCount = new Set(link.filter_sources || []).size;
+    const title = items.length
+      ? items.map(group => {
+          const label = group.label.replace(/\b\w/g, letter => letter.toUpperCase());
+          return `${label} (${group.values.length})`;
+        }).join(" · ")
+      : `Managed (${Math.max(sourceCount, configured.length, 1)})`;
+    return {
+      title,
+      groups: items.length
+        ? items
+        : [{ label: "Filters", values: [`${Math.max(sourceCount, configured.length, 1)} active`] }],
+    };
   }
 
   function renderFilterCard(node, link, route, destination, lines) {
@@ -280,23 +312,34 @@
       document.createTextNode("Filter: "),
       el("span", "rf-filter-card-title-accent", descriptor.title),
     );
-    headingCopy.append(
-      title,
-      el("small", "rf-filter-card-subtitle", descriptor.subtitle),
-    );
+    headingCopy.append(title);
     header.append(visual, headingCopy);
 
     const tags = el("div", "rf-filter-card-tags");
-    tags.append(el("span", "rf-filter-rule-label", `${descriptor.label}:`));
-    for (const value of descriptor.values) {
-      tags.append(
-        el(
-          "span",
-          `rf-filter-rule-tag rf-filter-rule-tag-${filterTagTone(value)}`,
-          value,
-        ),
-      );
+    let shown = 0;
+    let hidden = 0;
+    for (const group of descriptor.groups) {
+      if (shown >= 5) {
+        hidden += group.values.length;
+        continue;
+      }
+      tags.append(el("span", "rf-filter-rule-label", `${group.label}:`));
+      for (const value of group.values) {
+        if (shown >= 5) {
+          hidden += 1;
+          continue;
+        }
+        tags.append(
+          el(
+            "span",
+            `rf-filter-rule-tag rf-filter-rule-tag-${filterTagTone(value)}`,
+            value,
+          ),
+        );
+        shown += 1;
+      }
     }
+    if (hidden) tags.append(el("span", "rf-filter-rule-tag rf-filter-rule-tag-muted", `+${hidden}`));
 
     const stats = el("div", "rf-filter-card-stats");
     stats.setAttribute("aria-label", `Filter metrics for ${rangeLabel()}`);
@@ -315,7 +358,10 @@
     const sourceGroup = el("span", "rf-filter-card-source-group");
     sourceGroup.append(el("b", "", "Sources"));
     const sourceSummary = el("span", "rf-filter-card-sources");
-    sourceSummary.append(sourceIcon(route.source), el("span", "", route.integration_name));
+    const sourceKeys = [...new Set((link.filter_sources || []).filter(Boolean))];
+    if (!sourceKeys.length && route.source && route.source !== "*") sourceKeys.push(route.source);
+    sourceSummary.setAttribute("aria-label", `${sourceKeys.length} filtered source${sourceKeys.length === 1 ? "" : "s"}`);
+    for (const source of sourceKeys) sourceSummary.append(sourceIcon(source));
     sourceGroup.append(sourceSummary);
 
     const destinationGroup = el("span", "rf-filter-card-destination-group");
@@ -670,12 +716,32 @@
     for (const item of items.slice(0,12)) {
       const key = linkKey(item.route_id,item.destination_id), paths = edgePaths.get(key);
       if (!paths?.length) continue;
-      const circle = svg("circle", {r:3.2,class:`rf-particle ${item.outcome==='failed'?'rf-failed-particle':''}`});
-      $("rf-particle-layer").append(circle); pulses.push({dot:circle,key,started:null});
+      const filtered = item.outcome === "filtered";
+      const circle = svg("circle", {
+        r: 3.2,
+        class: `rf-particle ${item.outcome === "failed" ? "rf-failed-particle" : filtered ? "rf-filtered-particle" : ""}`,
+      });
+      $("rf-particle-layer").append(circle);
+      pulses.push({dot: circle, key, filtered, started: null});
     }
     function frame(now) {
       if (!active()) { stopPulses(); return; }
-      pulses = pulses.filter(p=>{if(p.started===null)p.started=now;const elapsed=(now-p.started)/1600;if(elapsed>=1){p.dot.remove();return false;}const paths=edgePaths.get(p.key);if(!paths?.length){p.dot.remove();return false;}const scaled=elapsed*paths.length,index=Math.min(paths.length-1,Math.floor(scaled)),progress=scaled-index,path=paths[index];const pt=path.getPointAtLength(path.getTotalLength()*progress);p.dot.setAttribute("cx",pt.x);p.dot.setAttribute("cy",pt.y);return true;});
+      pulses = pulses.filter(p => {
+        if (p.started === null) p.started = now;
+        const elapsed = (now - p.started) / 1600;
+        if (elapsed >= 1) { p.dot.remove(); return false; }
+        const paths = edgePaths.get(p.key);
+        if (!paths?.length) { p.dot.remove(); return false; }
+        const activePaths = p.filtered && paths.length > 1 ? paths.slice(0, 1) : paths;
+        const scaled = elapsed * activePaths.length;
+        const index = Math.min(activePaths.length - 1, Math.floor(scaled));
+        const progress = scaled - index;
+        const path = activePaths[index];
+        const pt = path.getPointAtLength(path.getTotalLength() * progress);
+        p.dot.setAttribute("cx", pt.x);
+        p.dot.setAttribute("cy", pt.y);
+        return true;
+      });
       pulseFrame = pulses.length ? requestAnimationFrame(frame) : null;
     }
     if (pulses.length && pulseFrame===null) pulseFrame=requestAnimationFrame(frame);

@@ -2485,3 +2485,368 @@ button.reference-preview-route-more:focus-visible {
     font-size: 0.88rem !important;
   }
 }
+
+
+/* 2026-09-18 round-24 Security MFA and import preview refinements. */
+@media (min-width: 1181px) {
+  .reference-profile-body #account-avatar {
+    justify-self: end !important;
+  }
+}
+
+.reference-mfa-dialog {
+  max-width: 660px !important;
+}
+
+.reference-mfa-dialog .mfa-setup-grid {
+  align-items: stretch;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 180px minmax(0, 1fr);
+}
+
+.reference-mfa-dialog .mfa-qr-box {
+  align-items: center;
+  background: rgba(3, 24, 37, 0.86);
+  border: 1px solid rgba(43, 112, 151, 0.6);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-height: 176px;
+  padding: 12px;
+}
+
+.reference-mfa-dialog .mfa-qr-box img {
+  background: #fff;
+  border-radius: 7px;
+  display: block;
+  height: 142px;
+  padding: 7px;
+  width: 142px;
+}
+
+.reference-mfa-dialog .mfa-qr-box img[hidden] {
+  display: none !important;
+}
+
+.reference-mfa-dialog .mfa-qr-box small {
+  color: #9dbbe4;
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.reference-mfa-dialog .mfa-secret-box {
+  align-content: center;
+  min-width: 0;
+}
+
+.reference-import-preview-dialog {
+  background:
+    radial-gradient(circle at 18% 0, rgba(27, 76, 108, 0.23), transparent 25rem),
+    linear-gradient(145deg, #0a141d, #071019) !important;
+  border: 1px solid rgba(224, 181, 48, 0.58) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.46) !important;
+  max-height: min(92vh, 920px) !important;
+  max-width: min(1080px, 96vw) !important;
+  overflow: auto !important;
+  padding: 18px !important;
+  width: min(1080px, 96vw) !important;
+}
+
+.reference-import-preview-dialog .reference-import-preview-heading {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+
+.reference-import-preview-dialog .reference-import-preview-heading .eyebrow {
+  color: #f0bd2d;
+  font-size: 0.67rem;
+  letter-spacing: 0.16em;
+  margin-bottom: 4px;
+}
+
+.reference-import-preview-dialog .reference-import-preview-heading h2 {
+  font-size: 1.34rem;
+  margin: 0;
+}
+
+.reference-import-preview-dialog .reference-import-summary {
+  color: #aeb9c4;
+  font-size: 0.78rem;
+  margin: 0 0 12px;
+}
+
+.reference-import-metrics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.reference-import-metric {
+  align-items: center;
+  background: linear-gradient(145deg, rgba(10, 28, 41, 0.96), rgba(7, 20, 30, 0.98));
+  border: 1px solid rgba(62, 93, 117, 0.58);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  min-height: 72px;
+  padding: 9px 10px;
+}
+
+.reference-import-metric-icon {
+  align-items: center;
+  color: #7db4e8;
+  display: flex;
+  font-size: 1.35rem;
+  justify-content: center;
+}
+
+.reference-import-metric.is-error .reference-import-metric-icon,
+.reference-import-metric.is-error strong {
+  color: #ff666b;
+}
+
+.reference-import-metric.is-warning .reference-import-metric-icon,
+.reference-import-metric.is-warning strong {
+  color: #f0bd2d;
+}
+
+.reference-import-metric > div {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.reference-import-metric small {
+  color: #9fb0c0;
+  font-size: 0.66rem;
+  line-height: 1.15;
+}
+
+.reference-import-metric strong {
+  color: #eef4f8;
+  font-size: 1rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reference-import-metric em {
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-style: normal;
+  justify-self: start;
+  margin-top: 2px;
+  padding: 2px 6px;
+}
+
+.reference-import-metric em.is-present,
+.reference-import-metric em.is-valid {
+  background: rgba(48, 185, 124, 0.18);
+  color: #68e0a6;
+}
+
+.reference-import-metric em.is-missing,
+.reference-import-metric em.is-invalid {
+  background: rgba(224, 80, 80, 0.18);
+  color: #ff8383;
+}
+
+.reference-import-workbench {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1.42fr) minmax(340px, 0.86fr);
+  min-height: 342px;
+}
+
+.reference-import-code-panel,
+.reference-import-issues-panel {
+  background: rgba(5, 17, 26, 0.9);
+  border: 1px solid rgba(48, 82, 108, 0.72);
+  border-radius: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.reference-import-code-panel,
+.reference-import-issues-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.reference-import-code-panel > header,
+.reference-import-issues-panel > header {
+  align-items: center;
+  background: rgba(11, 28, 41, 0.9);
+  border-bottom: 1px solid rgba(48, 82, 108, 0.55);
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 42px;
+  padding: 8px 12px;
+}
+
+.reference-import-panel-title {
+  align-items: center;
+  color: #8eaaca;
+  display: inline-flex;
+  font-size: 0.63rem;
+  font-weight: 800;
+  gap: 8px;
+  letter-spacing: 0.08em;
+}
+
+.reference-import-panel-title b {
+  color: #65aee8;
+  font-size: 0.86rem;
+}
+
+.reference-import-panel-title.is-error,
+.reference-import-panel-title.is-error b {
+  color: #ff656b;
+}
+
+.reference-import-code-actions {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.reference-import-code-actions small {
+  background: rgba(37, 73, 105, 0.5);
+  border: 1px solid rgba(74, 111, 146, 0.5);
+  border-radius: 5px;
+  color: #a8c0d9;
+  font-size: 0.58rem;
+  padding: 4px 8px;
+}
+
+.reference-import-code-actions .icon-button {
+  height: 28px;
+  min-height: 28px;
+  width: 28px;
+}
+
+.reference-import-code-panel #import-result {
+  background: linear-gradient(145deg, #061520, #041019) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #cfe1ef !important;
+  font-size: 0.68rem !important;
+  line-height: 1.45 !important;
+  margin: 0 !important;
+  max-height: 360px !important;
+  min-height: 300px !important;
+  overflow: auto !important;
+  padding: 12px 14px !important;
+  white-space: pre !important;
+}
+
+.reference-import-issues-panel > header select {
+  background: #0d1821;
+  border: 1px solid #304150;
+  border-radius: 6px;
+  color: #dce5ec;
+  font-size: 0.66rem;
+  min-height: 30px;
+  padding: 4px 26px 4px 9px;
+}
+
+.reference-import-issue-list {
+  display: grid;
+  align-content: start;
+  max-height: 360px;
+  overflow: auto;
+  padding: 4px 10px;
+}
+
+.reference-import-issue {
+  align-items: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.11);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 18px 20px minmax(0, 1fr) auto;
+  min-height: 44px;
+  padding: 6px 0;
+}
+
+.reference-import-issue-index {
+  color: #82919e;
+  font-size: 0.62rem;
+  text-align: center;
+}
+
+.reference-import-issue-icon {
+  align-items: center;
+  background: rgba(234, 77, 82, 0.95);
+  border-radius: 50%;
+  color: #111820;
+  display: flex;
+  font-size: 0.68rem;
+  font-weight: 900;
+  height: 16px;
+  justify-content: center;
+  width: 16px;
+}
+
+.reference-import-issue.is-warning .reference-import-issue-icon {
+  background: #f0bd2d;
+}
+
+.reference-import-issue-text {
+  color: #cbd6df;
+  font-size: 0.64rem;
+  line-height: 1.28;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reference-import-issue > small {
+  color: #ff6c71;
+  font-size: 0.58rem;
+}
+
+.reference-import-issue.is-warning > small {
+  color: #f0bd2d;
+}
+
+.reference-import-issues-more {
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  color: #8ea0af;
+  font-size: 0.64rem;
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.reference-import-preview-dialog .reference-import-actions {
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.reference-import-preview-dialog #import-apply:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 900px) {
+  .reference-mfa-dialog .mfa-setup-grid,
+  .reference-import-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .reference-import-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reference-import-code-panel #import-result,
+  .reference-import-issue-list {
+    max-height: 280px !important;
+  }
+}
