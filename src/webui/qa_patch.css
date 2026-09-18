@@ -1857,12 +1857,12 @@ textarea:focus {
 }
 
 /* 2026-09-18 sidebar reference lock.
-   qa_patch.css loads after styles.css, so this is the authoritative desktop
-   layer for the supplied expanded/collapsed Nowlert control panel. */
+   This final layer owns the desktop expanded/collapsed control panel and keeps
+   the owl, labels, icons, edition copy, and profile motion on one transition. */
 @media (min-width: 761px) {
   .app-shell {
-    grid-template-columns: 198px minmax(0, 1fr) !important;
-    transition: grid-template-columns 180ms ease;
+    grid-template-columns: 208px minmax(0, 1fr) !important;
+    transition: grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
   }
 
   .app-shell.sidebar-collapsed {
@@ -1880,6 +1880,9 @@ textarea:focus {
     margin: 14px 0 14px 8px !important;
     overflow: visible !important;
     padding: 18px 10px 12px !important;
+    transition:
+      padding 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 240ms ease !important;
   }
 
   .sidebar > .brand.sidebar-brand {
@@ -1889,28 +1892,35 @@ textarea:focus {
     display: grid !important;
     flex: 0 0 auto !important;
     grid-template-columns: 1fr !important;
-    grid-template-rows: auto 52px auto !important;
+    grid-template-rows: 20px 74px 15px !important;
     justify-items: center !important;
-    margin: 0 0 9px !important;
+    margin: 0 0 10px !important;
     min-height: 0 !important;
     overflow: visible !important;
-    padding: 0 0 10px !important;
-    row-gap: 8px !important;
+    padding: 0 0 11px !important;
+    row-gap: 7px !important;
     text-align: center !important;
+    transition:
+      grid-template-rows 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      row-gap 240ms ease !important;
     width: 100% !important;
   }
 
   .sidebar > .brand.sidebar-brand > .brand-wordmark {
     align-items: baseline !important;
     display: inline-flex !important;
-    font-size: 18px !important;
-    font-weight: 820 !important;
+    font-size: 19px !important;
+    font-weight: 840 !important;
     gap: 0 !important;
-    letter-spacing: 0.05em !important;
+    grid-row: 1 !important;
+    letter-spacing: 0.055em !important;
     line-height: 1 !important;
     margin: 0 !important;
     order: 0 !important;
     padding: 0 !important;
+    transition:
+      font-size 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      letter-spacing 240ms ease !important;
     white-space: nowrap !important;
   }
 
@@ -1918,13 +1928,23 @@ textarea:focus {
     align-items: center !important;
     background: transparent !important;
     border: 0 !important;
+    border-radius: 12px !important;
     display: flex !important;
-    height: 52px !important;
+    grid-row: 2 !important;
+    height: 74px !important;
     justify-content: center !important;
     margin: 0 !important;
     order: 1 !important;
     padding: 0 !important;
-    width: 52px !important;
+    transition:
+      width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      height 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 160ms ease !important;
+    width: 74px !important;
+  }
+
+  .sidebar > .brand.sidebar-brand > .sidebar-owl-button:hover {
+    background: rgba(244, 197, 66, 0.055) !important;
   }
 
   .sidebar > .brand.sidebar-brand > .sidebar-owl-button .brand-mark {
@@ -1932,42 +1952,66 @@ textarea:focus {
     background: transparent !important;
     border: 0 !important;
     display: flex !important;
-    height: 52px !important;
+    height: 74px !important;
     justify-content: center !important;
     margin: 0 !important;
     overflow: visible !important;
     padding: 0 !important;
-    width: 52px !important;
+    transition:
+      width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      height 240ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    width: 74px !important;
   }
 
   .sidebar > .brand.sidebar-brand > .sidebar-owl-button .brand-mark img {
     display: block !important;
-    height: 52px !important;
+    height: 92px !important;
     margin: 0 !important;
     max-height: none !important;
     max-width: none !important;
     object-fit: contain !important;
     padding: 0 !important;
     transform: none !important;
-    width: 52px !important;
+    transition:
+      width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      height 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      filter 240ms ease !important;
+    width: 92px !important;
   }
 
-  .sidebar > .brand.sidebar-brand > .sidebar-edition-expanded {
+  .sidebar > .brand.sidebar-brand > .sidebar-edition {
     color: #f0e4d3 !important;
     display: block !important;
-    font-size: 10px !important;
-    font-weight: 760 !important;
-    letter-spacing: 0.10em !important;
+    grid-column: 1 !important;
+    grid-row: 3 !important;
     line-height: 1 !important;
     margin: 0 !important;
-    order: 2 !important;
+    max-height: 15px !important;
+    overflow: hidden !important;
     padding: 0 !important;
+    pointer-events: none !important;
     text-align: center !important;
+    transform: translateY(0) !important;
+    transition:
+      opacity 160ms ease,
+      transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      font-size 220ms ease !important;
     white-space: nowrap !important;
   }
 
+  .sidebar > .brand.sidebar-brand > .sidebar-edition-expanded {
+    font-size: 11px !important;
+    font-weight: 780 !important;
+    letter-spacing: 0.105em !important;
+    opacity: 1 !important;
+  }
+
   .sidebar > .brand.sidebar-brand > .sidebar-edition-collapsed {
-    display: none !important;
+    font-size: 12px !important;
+    font-weight: 820 !important;
+    letter-spacing: 0.10em !important;
+    opacity: 0 !important;
+    transform: translateY(5px) !important;
   }
 
   .sidebar > .brand.sidebar-brand::before,
@@ -1983,16 +2027,28 @@ textarea:focus {
   }
 
   .nav-list {
-    gap: 3px !important;
+    gap: 4px !important;
   }
 
   .nav-item {
-    border-radius: 8px !important;
-    font-size: 12px !important;
-    gap: 10px !important;
-    min-height: 36px !important;
-    padding: 7px 8px !important;
+    align-items: center !important;
+    border-radius: 9px !important;
+    display: grid !important;
+    font-size: 14px !important;
+    gap: 0 !important;
+    grid-template-columns: 22px minmax(0, 1fr) !important;
+    min-height: 41px !important;
+    overflow: hidden !important;
+    padding: 8px 9px !important;
     transform: none !important;
+    transition:
+      width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      min-height 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      padding 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 160ms ease,
+      box-shadow 180ms ease !important;
+    width: 100% !important;
   }
 
   .nav-item.active {
@@ -2003,14 +2059,38 @@ textarea:focus {
   }
 
   .nav-icon {
-    flex: 0 0 18px !important;
-    height: 18px !important;
-    width: 18px !important;
+    align-items: center !important;
+    display: flex !important;
+    flex: 0 0 21px !important;
+    height: 21px !important;
+    justify-content: center !important;
+    transition:
+      width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      height 240ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    width: 21px !important;
   }
 
   .nav-icon svg {
-    height: 18px !important;
-    width: 18px !important;
+    height: 21px !important;
+    transition:
+      width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      height 240ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    width: 21px !important;
+  }
+
+  .nav-label {
+    display: block !important;
+    margin-left: 11px !important;
+    max-width: 145px !important;
+    opacity: 1 !important;
+    overflow: hidden !important;
+    transform: translateX(0) !important;
+    transition:
+      max-width 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      margin-left 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 150ms ease 70ms,
+      transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    white-space: nowrap !important;
   }
 
   .sidebar-footer {
@@ -2020,87 +2100,124 @@ textarea:focus {
   }
 
   .profile-chip {
+    align-items: center !important;
     border-radius: 8px !important;
-    gap: 8px !important;
-    min-height: 52px !important;
+    display: grid !important;
+    gap: 0 !important;
+    grid-template-columns: 40px minmax(0, 1fr) !important;
+    min-height: 54px !important;
+    overflow: hidden !important;
     padding: 7px 8px !important;
+    transition:
+      width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      padding 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 160ms ease !important;
+    width: 100% !important;
   }
 
   .profile-chip .avatar {
-    flex: 0 0 36px !important;
-    height: 36px !important;
-    width: 36px !important;
+    flex: 0 0 38px !important;
+    height: 38px !important;
+    width: 38px !important;
+  }
+
+  .profile-copy {
+    display: block !important;
+    margin-left: 8px !important;
+    max-width: 120px !important;
+    opacity: 1 !important;
+    overflow: hidden !important;
+    transition:
+      max-width 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      margin-left 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 150ms ease 70ms !important;
   }
 
   .app-shell.sidebar-collapsed .sidebar > .brand.sidebar-brand {
-    grid-template-rows: auto 44px auto !important;
+    grid-template-rows: 16px 60px 15px !important;
+    row-gap: 6px !important;
   }
 
   .app-shell.sidebar-collapsed .sidebar > .brand.sidebar-brand > .brand-wordmark {
-    font-size: 12px !important;
-    letter-spacing: 0.045em !important;
+    font-size: 13px !important;
+    letter-spacing: 0.05em !important;
   }
 
   .app-shell.sidebar-collapsed .sidebar > .brand.sidebar-brand > .sidebar-owl-button,
-  .app-shell.sidebar-collapsed .sidebar > .brand.sidebar-brand > .sidebar-owl-button .brand-mark,
+  .app-shell.sidebar-collapsed .sidebar > .brand.sidebar-brand > .sidebar-owl-button .brand-mark {
+    height: 60px !important;
+    width: 60px !important;
+  }
+
   .app-shell.sidebar-collapsed .sidebar > .brand.sidebar-brand > .sidebar-owl-button .brand-mark img {
-    height: 44px !important;
+    height: 78px !important;
     transform: none !important;
-    width: 44px !important;
+    width: 78px !important;
   }
 
   .app-shell.sidebar-collapsed .sidebar > .brand.sidebar-brand > .sidebar-edition-expanded {
-    display: none !important;
+    opacity: 0 !important;
+    transform: translateY(-5px) !important;
   }
 
   .app-shell.sidebar-collapsed .sidebar > .brand.sidebar-brand > .sidebar-edition-collapsed {
-    color: #f0e4d3 !important;
-    display: block !important;
-    font-size: 10px !important;
-    font-weight: 760 !important;
-    letter-spacing: 0.08em !important;
-    line-height: 1 !important;
-    margin: 0 !important;
-    order: 2 !important;
-    padding: 0 !important;
+    opacity: 1 !important;
+    transform: translateY(0) !important;
   }
 
   .app-shell.sidebar-collapsed .nav-list {
-    justify-items: center !important;
+    align-items: center !important;
   }
 
   .app-shell.sidebar-collapsed .nav-item {
-    gap: 0 !important;
-    height: 44px !important;
+    grid-template-columns: 24px 0fr !important;
+    height: 50px !important;
     justify-content: center !important;
-    min-height: 44px !important;
-    padding: 0 !important;
-    width: 44px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    min-height: 50px !important;
+    padding: 13px !important;
+    width: 50px !important;
   }
 
   .app-shell.sidebar-collapsed .nav-icon,
   .app-shell.sidebar-collapsed .nav-icon svg {
-    height: 20px !important;
-    width: 20px !important;
+    height: 24px !important;
+    width: 24px !important;
   }
 
-  .app-shell.sidebar-collapsed .nav-label,
-  .app-shell.sidebar-collapsed .profile-copy {
-    display: none !important;
+  .app-shell.sidebar-collapsed .nav-label {
+    display: block !important;
+    margin-left: 0 !important;
+    max-width: 0 !important;
+    opacity: 0 !important;
+    transform: translateX(-8px) !important;
   }
 
   .app-shell.sidebar-collapsed .profile-chip {
     background: transparent !important;
     border-color: transparent !important;
+    grid-template-columns: 42px 0fr !important;
     justify-content: center !important;
-    min-height: 44px !important;
-    padding: 3px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    min-height: 50px !important;
+    padding: 4px !important;
+    width: 50px !important;
+  }
+
+  .app-shell.sidebar-collapsed .profile-copy {
+    display: block !important;
+    margin-left: 0 !important;
+    max-width: 0 !important;
+    opacity: 0 !important;
   }
 
   .app-shell.sidebar-collapsed .profile-chip .avatar {
-    flex-basis: 38px !important;
-    height: 38px !important;
-    width: 38px !important;
+    flex-basis: 40px !important;
+    height: 40px !important;
+    width: 40px !important;
   }
 
   .app-shell.sidebar-collapsed .profile-menu-popover {
@@ -2108,6 +2225,27 @@ textarea:focus {
     left: calc(100% + 10px) !important;
     min-width: 190px !important;
     width: 190px !important;
+  }
+
+  .housekeeping-status {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .backup-external-heading {
+    margin-top: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell,
+  .sidebar,
+  .sidebar *,
+  .nav-item,
+  .nav-label,
+  .profile-chip,
+  .profile-copy {
+    transition-duration: 0.01ms !important;
   }
 }
 

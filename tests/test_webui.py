@@ -365,8 +365,8 @@ def test_v310_management_descriptions_content_headers_and_ranking_empty_states()
         "Configure regional preferences and integration-specific behavior.",
         "Review the running version and any advertised Nowlert update.",
         "Inspect and manage the SMTP, HTTP, and Redfish listeners used to receive events.",
-        "Configure backup destinations, schedules, snapshots, and restore operations.",
-        "Export, preview, and import portable configuration without exposing credentials.",
+        "Create complete Nowlert recovery snapshots and restore them from local, NFS, or SMB storage.",
+        "Move user-created Nowlert configuration without moving credentials, accounts, history, or recovery data.",
         "Manage your profile picture, password, and active account security settings.",
     )
     for copy in descriptions:
@@ -621,7 +621,7 @@ def test_nce30_nce31_admin_delete_controls():
 
     assert "the user still owns destinations, secrets, or backup destinations" in script
     assert "It cannot be restored after deletion." in script
-    assert '"Delete backup"' in script
+    assert '"Delete snapshot"' in script
 
 
 
@@ -637,8 +637,8 @@ def test_nce31_nce33_nce34_nce35_development_followups():
     )
 
     # NCE-31: destructive backup action has an explicit confirmation.
-    assert "`Delete state backup ${id}?`" in app
-    assert '"Delete backup"' in app
+    assert "`Delete recovery snapshot ${id}?`" in app
+    assert '"Delete snapshot"' in app
     assert "It cannot be restored after deletion." in app
 
     # NCE-33: role display uses the same authority as access control and

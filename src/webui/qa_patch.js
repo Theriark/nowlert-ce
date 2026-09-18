@@ -131,6 +131,8 @@ const QA_WORKSPACE_CACHE_FIELDS = [
   "configuration",
   "backupSettings",
   "backupLastRun",
+  "housekeepingSettings",
+  "housekeepingStatus",
   "sourceCategories",
   "removedSources",
   "historyRange",

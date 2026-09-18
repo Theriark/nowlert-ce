@@ -1,10 +1,10 @@
 # WebUI
 
-Nowlert v3.1.2 packages a responsive, dependency-free management interface in
+Current Nowlert packages a responsive, dependency-free management interface in
 the application image. The browser uses the authenticated same-origin
 `/api/v2` contract and never needs direct access to SQLite or secret files.
 
-The v3.1.2 patch keeps the approved v3.1.0 visual design. Existing approved
+The current WebUI keeps the approved v3.1 visual language while evolving the management workflows. Existing approved
 screenshots therefore remain the visual baseline where a screenshot is useful;
 new screenshots are required only when the rendered UI materially changes.
 
@@ -170,6 +170,7 @@ display **User**.
 Settings includes:
 
 - language, IANA timezone, and 12/24-hour clock;
+- housekeeping retention for Delivery History, Audit Log, and backup-run records;
 - Xen Orchestra job/run ID visibility;
 - Zabbix problem ID visibility;
 - Dell iDRAC trusted management clients;
@@ -190,17 +191,19 @@ require a Nowlert restart when changed.
 
 The administration UI provides:
 
-- verified private state snapshots;
-- individual private snapshot deletion after confirmation;
-- Local/NFS/SMB backup destinations;
+- complete recovery snapshots containing SQLite state/history, managed secrets,
+  and mounted bootstrap configuration when available;
+- individual local snapshot deletion after confirmation;
+- Local/NFS/SMB backup destinations and discovery of snapshots stored there;
 - scheduled daily, weekly, or monthly backup execution;
 - manual backup runs;
-- credential-free platform export/import; and
-- guarded private-state restore.
+- restore from either local or Local/NFS/SMB storage using local staging,
+  integrity verification, a pre-restore safety snapshot and an automatic
+  service restart; and
+- credential-free Data Tools export/import for user-created configuration only.
 
-Deleting one private state backup does not affect other backups and is audited.
-Restore remains a separate confirmed operation with integrity verification and
-a safety snapshot.
+Data Tools deliberately excludes users, credentials, token material, Delivery
+History and Audit Log. Housekeeping controls local history retention separately.
 
 ## Browser security
 
@@ -221,8 +224,8 @@ WebUI-managed resources are database-authoritative under `/nowlert/state`.
 transport security, state location, and WebUI publication. See
 [current-configuration-model.md](current-configuration-model.md).
 
-## Upgrade from v3.1.1
+## Current persistent schema
 
-v3.1.2 keeps database schema 9 and `platform_database_v1`. No database migration
-is required from v3.1.1. Take a matched backup of `config`, `state`, and external
-`secrets` before upgrading and keep it until acceptance passes.
+Current development uses database schema **13** and
+`platform_database_v1`. Take a verified recovery snapshot before an upgrade
+and keep an off-host copy until acceptance passes.

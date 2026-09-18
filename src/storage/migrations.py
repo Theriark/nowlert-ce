@@ -501,6 +501,27 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             """,
             "DROP TABLE route_destination_seed",
         ),
+    ),    (
+        13,
+        "history housekeeping runs",
+        (
+            """
+            CREATE TABLE housekeeping_runs (
+                period_key TEXT PRIMARY KEY,
+                started_at INTEGER NOT NULL,
+                completed_at INTEGER,
+                outcome TEXT,
+                deliveries_deleted INTEGER NOT NULL DEFAULT 0,
+                audit_deleted INTEGER NOT NULL DEFAULT 0,
+                backup_runs_deleted INTEGER NOT NULL DEFAULT 0,
+                sessions_deleted INTEGER NOT NULL DEFAULT 0
+            )
+            """,
+            """
+            CREATE INDEX housekeeping_runs_completed
+            ON housekeeping_runs(completed_at DESC)
+            """,
+        ),
     ),
 )
 

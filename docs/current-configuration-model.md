@@ -1,6 +1,6 @@
 # Current configuration model
 
-Nowlert v3.1.2 separates **process bootstrap** from **database-authoritative
+Current Nowlert separates **process bootstrap** from **database-authoritative
 platform resources**.
 
 The active model is `platform_database_v1`.
@@ -34,7 +34,7 @@ SQLite is authoritative for:
 - regional preferences;
 - backup schedules and target metadata;
 - integration categories, behavior, aliases, and Redfish settings;
-- notices;
+- housekeeping policy and run history;
 - audit history; and
 - delivery history.
 
@@ -43,7 +43,7 @@ returned through normal read APIs.
 
 ## Removed legacy YAML resources
 
-Fresh v3.1.2 configurations must not recreate WebUI-managed legacy sections such
+Fresh current configurations must not recreate WebUI-managed legacy sections such
 as:
 
 - `outputs`;
@@ -80,23 +80,28 @@ active `platform.state_dir` has been confirmed.
 
 ## Backup boundary
 
-A complete recovery set keeps these together:
+Application-managed recovery snapshots now include the complete SQLite state,
+Nowlert-managed secret store, and mounted `config/config.yaml` when available.
+Because SQLite is snapshotted as a whole, new database-managed resources and
+retained Delivery/Audit history automatically remain inside the recovery
+boundary instead of requiring table-specific backup code.
 
-1. mounted `config`;
-2. mounted `state`;
-3. mounted external `secrets`, when used;
-4. the exact image reference/digest; and
-5. the deployment definition used with that image.
+A full infrastructure disaster-recovery set must still preserve:
 
-Portable JSON export is useful for migration but is not a disaster-recovery
-backup because it deliberately omits credentials, passwords, sessions, token
-values, and other private state.
+1. the Nowlert recovery snapshot/off-host state copy;
+2. externally managed secrets that are mounted read-only from outside Nowlert;
+3. the exact image reference/digest; and
+4. the deployment definition used with that image.
 
-## v3.1.1 -> v3.1.2
+Portable JSON export is configuration portability, not disaster recovery. It
+deliberately omits users, credentials, sessions, token material, history and
+other private state.
 
-v3.1.2 keeps database schema 9 and `platform_database_v1`. No database migration
-is required. This release changes documentation, dependencies, and release
-safety, not the configuration authority model.
+## Current schema
 
-Take a matched backup before upgrading and keep it until the v3.1.2 acceptance
-checks pass.
+Current development uses database schema **13** with
+`platform_database_v1`. Schema 13 adds bounded operational-history
+housekeeping metadata; existing schema-12 state is migrated transactionally.
+
+Take a verified recovery snapshot before upgrading and keep the off-host copy
+until acceptance checks pass.

@@ -1,4 +1,4 @@
-"""Server-side, integrity-checked backups for platform database and secrets."""
+"""Server-side, integrity-checked recovery backups for complete Nowlert state."""
 
 from __future__ import annotations
 
@@ -22,13 +22,16 @@ from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.migrations import LATEST_SCHEMA_VERSION
 from storage.ownership import Actor
+from version import VERSION
 
 
-BACKUP_SCHEMA = "nowlert.state-backup.v1"
+BACKUP_SCHEMA = "nowlert.state-backup.v2"
+_LEGACY_BACKUP_SCHEMA = "nowlert.state-backup.v1"
 _BACKUP_ID = re.compile(r"^state-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$")
 _SECRET_FILE = re.compile(r"^[0-9a-f]{32}\.v[1-9][0-9]*$")
 _MAXIMUM_SECRET_FILES = 5000
 _MAXIMUM_SECRET_BYTES = 64 * 1024
+_MAXIMUM_CONFIG_BYTES = 2 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -38,6 +41,8 @@ class StateBackup:
     schema_version: int
     secret_files: int
     size_bytes: int
+    config_included: bool = False
+    application_version: str = ""
 
     def public(self) -> dict:
         return {
@@ -46,6 +51,8 @@ class StateBackup:
             "schema_version": self.schema_version,
             "secret_files": self.secret_files,
             "size_bytes": self.size_bytes,
+            "config_included": self.config_included,
+            "application_version": self.application_version,
         }
 
 
@@ -58,6 +65,7 @@ class StateBackupStore:
         *,
         secret_directory: str | Path | None = None,
         backup_directory: str | Path | None = None,
+        config_path: str | Path | None = None,
         audit: AuditEventStore | None = None,
         clock=time.time,
         retention: int = 20,
@@ -69,6 +77,7 @@ class StateBackupStore:
         self.backup_directory = Path(
             backup_directory or database.path.parent / "backups"
         ).absolute()
+        self.config_path = Path(config_path).absolute() if config_path else None
         self.audit = audit
         self.clock = clock
         self.retention = max(1, min(100, int(retention)))
@@ -130,12 +139,24 @@ class StateBackupStore:
                         destination = secret_target / source.name
                         self._copy_secret(source, destination)
                         files[f"secrets/{source.name}"] = self._digest(destination)
+
+                config_included = False
+                if self.config_path is not None and self.config_path.exists():
+                    config_target_dir = temporary / "config"
+                    config_target_dir.mkdir(mode=0o700)
+                    config_target = config_target_dir / "config.yaml"
+                    self._copy_config(self.config_path, config_target)
+                    files["config/config.yaml"] = self._digest(config_target)
+                    config_included = True
+
                 manifest = {
                     "schema": BACKUP_SCHEMA,
                     "id": backup_id,
                     "created_at": int(self.clock()),
+                    "application_version": VERSION,
                     "database_schema": self.database.schema_version,
                     "secret_files": secret_count,
+                    "config_included": config_included,
                     "files": files,
                 }
                 self._write_manifest(temporary / "manifest.json", manifest)
@@ -156,85 +177,175 @@ class StateBackupStore:
         confirmation: str,
     ) -> dict:
         self._require_admin(actor)
-        if not _BACKUP_ID.fullmatch(str(backup_id)):
-            raise ValueError("backup identifier is invalid")
-        if str(confirmation) != str(backup_id):
-            raise ValueError("restore confirmation must match the backup identifier")
+        self._validate_backup_identity(backup_id, confirmation)
         with self._lock, self.database.maintenance():
             source = self.backup_directory / str(backup_id)
-            backup = self._validate(source)
-            safety = self.create(actor, protected={str(backup_id)})
-            stage = self.database.path.parent / f".restore-{uuid.uuid4().hex}"
-            rollback_database = (
-                self.database.path.parent / f".rollback-{uuid.uuid4().hex}.db"
-            )
-            rollback_secrets = (
-                self.database.path.parent / f".rollback-secrets-{uuid.uuid4().hex}"
-            )
-            stage.mkdir(mode=0o700)
-            os.chmod(stage, 0o700)
-            try:
-                staged_database = stage / "nowlert.db"
-                shutil.copyfile(source / "nowlert.db", staged_database)
-                os.chmod(staged_database, 0o600)
-                self._validate_database(staged_database)
-                staged_secrets = stage / "secrets"
-                staged_secrets.mkdir(mode=0o700)
-                for item in sorted((source / "secrets").iterdir()):
-                    self._copy_secret(item, staged_secrets / item.name)
+            return self._restore_from_directory(actor, source, backup_id)
 
-                moved_database = False
-                moved_secrets = False
-                installed_database = False
-                installed_secrets = False
-                try:
-                    os.replace(self.database.path, rollback_database)
-                    moved_database = True
-                    if self.secret_directory.exists():
-                        os.replace(self.secret_directory, rollback_secrets)
-                        moved_secrets = True
-                    os.replace(staged_database, self.database.path)
-                    installed_database = True
-                    os.chmod(self.database.path, 0o600)
-                    os.replace(staged_secrets, self.secret_directory)
-                    installed_secrets = True
-                    os.chmod(self.secret_directory, 0o700)
-                    self._validate_database(self.database.path)
-                    with self.database.transaction() as connection:
-                        connection.execute("DELETE FROM sessions")
-                except Exception:
-                    if installed_database and self.database.path.exists():
-                        self.database.path.unlink()
-                    if moved_database and rollback_database.exists():
-                        os.replace(rollback_database, self.database.path)
-                    if installed_secrets and self.secret_directory.exists():
-                        shutil.rmtree(self.secret_directory)
-                    if moved_secrets and rollback_secrets.exists():
-                        os.replace(rollback_secrets, self.secret_directory)
-                    raise
-                rollback_database.unlink(missing_ok=True)
-                if rollback_secrets.exists():
-                    shutil.rmtree(rollback_secrets)
+    def list_external(
+        self,
+        actor: Actor,
+        external_root: str | Path,
+    ) -> list[StateBackup]:
+        self._require_admin(actor)
+        managed = self._external_managed_root(external_root)
+        if not managed.exists():
+            return []
+        backups = []
+        for path in sorted(managed.iterdir(), reverse=True):
+            if not path.is_dir() or not _BACKUP_ID.fullmatch(path.name):
+                continue
+            try:
+                backups.append(self._validate(path))
+            except (OSError, RuntimeError, TypeError, ValueError):
+                continue
+        return backups
+
+    def restore_external(
+        self,
+        actor: Actor,
+        backup_id: str,
+        confirmation: str,
+        external_root: str | Path,
+    ) -> dict:
+        self._require_admin(actor)
+        self._validate_backup_identity(backup_id, confirmation)
+        managed = self._external_managed_root(external_root)
+        source = managed / str(backup_id)
+        if not source.exists():
+            raise KeyError("backup not found")
+        stage_root = self.backup_directory / f".external-restore-{uuid.uuid4().hex}"
+        staged = stage_root / str(backup_id)
+        stage_root.mkdir(mode=0o700)
+        os.chmod(stage_root, 0o700)
+        try:
+            shutil.copytree(source, staged, symlinks=False)
+            for path in staged.rglob("*"):
+                if path.is_symlink():
+                    raise ValueError("backup copy contains a symbolic link")
+            self._validate(staged)
+            with self._lock, self.database.maintenance():
+                return self._restore_from_directory(actor, staged, backup_id)
+        finally:
+            shutil.rmtree(stage_root, ignore_errors=True)
+
+    def _restore_from_directory(
+        self,
+        actor: Actor,
+        source: Path,
+        backup_id: str,
+    ) -> dict:
+        backup = self._validate(source)
+        protected = (
+            {str(backup_id)}
+            if (self.backup_directory / str(backup_id)).exists()
+            else set()
+        )
+        safety = self.create(actor, protected=protected)
+        stage = self.database.path.parent / f".restore-{uuid.uuid4().hex}"
+        rollback_database = self.database.path.parent / f".rollback-{uuid.uuid4().hex}.db"
+        rollback_secrets = self.database.path.parent / f".rollback-secrets-{uuid.uuid4().hex}"
+        rollback_config = None
+        stage.mkdir(mode=0o700)
+        os.chmod(stage, 0o700)
+        try:
+            staged_database = stage / "nowlert.db"
+            shutil.copyfile(source / "nowlert.db", staged_database)
+            os.chmod(staged_database, 0o600)
+            self._upgrade_database(staged_database)
+            self._validate_database(staged_database, require_latest=True)
+
+            staged_secrets = stage / "secrets"
+            staged_secrets.mkdir(mode=0o700)
+            for item in sorted((source / "secrets").iterdir()):
+                self._copy_secret(item, staged_secrets / item.name)
+
+            staged_config = None
+            if backup.config_included:
+                staged_config = stage / "config.yaml"
+                self._copy_config(source / "config" / "config.yaml", staged_config)
+
+            moved_database = False
+            moved_secrets = False
+            installed_database = False
+            installed_secrets = False
+            installed_config = False
+            original_config_existed = False
+            try:
+                os.replace(self.database.path, rollback_database)
+                moved_database = True
+                if self.secret_directory.exists():
+                    os.replace(self.secret_directory, rollback_secrets)
+                    moved_secrets = True
+                os.replace(staged_database, self.database.path)
+                installed_database = True
+                os.chmod(self.database.path, 0o600)
+                os.replace(staged_secrets, self.secret_directory)
+                installed_secrets = True
+                os.chmod(self.secret_directory, 0o700)
+
+                if staged_config is not None and self.config_path is not None:
+                    original_config_existed = self.config_path.exists()
+                    rollback_config = self.config_path.parent / (
+                        f".rollback-config-{uuid.uuid4().hex}.yaml"
+                    )
+                    if original_config_existed:
+                        shutil.copy2(self.config_path, rollback_config)
+                    self._install_config(staged_config, self.config_path)
+                    installed_config = True
+
+                self._validate_database(self.database.path)
+                with self.database.transaction() as connection:
+                    connection.execute("DELETE FROM sessions")
             except Exception:
-                self._audit(
-                    actor,
-                    "state.backup.restore",
-                    "failed",
-                    {"backup_id": backup_id, "safety_backup_id": safety.id},
-                )
+                if installed_database and self.database.path.exists():
+                    self.database.path.unlink()
+                if moved_database and rollback_database.exists():
+                    os.replace(rollback_database, self.database.path)
+                if installed_secrets and self.secret_directory.exists():
+                    shutil.rmtree(self.secret_directory)
+                if moved_secrets and rollback_secrets.exists():
+                    os.replace(rollback_secrets, self.secret_directory)
+                if installed_config and self.config_path is not None:
+                    if rollback_config is not None and rollback_config.exists():
+                        self._install_config(rollback_config, self.config_path)
+                    elif not original_config_existed:
+                        self.config_path.unlink(missing_ok=True)
                 raise
-            finally:
-                shutil.rmtree(stage, ignore_errors=True)
+
+            rollback_database.unlink(missing_ok=True)
+            if rollback_secrets.exists():
+                shutil.rmtree(rollback_secrets)
+            if rollback_config is not None:
+                rollback_config.unlink(missing_ok=True)
+        except Exception:
+            self._audit(
+                actor,
+                "state.backup.restore",
+                "failed",
+                {"backup_id": backup_id, "safety_backup_id": safety.id},
+            )
+            raise
+        finally:
+            shutil.rmtree(stage, ignore_errors=True)
+
         result = {
             "restored": backup.public(),
             "safety_backup_id": safety.id,
             "sessions_revoked": True,
+            "config_restored": bool(backup.config_included and self.config_path is not None),
         }
-        self._audit(actor, "state.backup.restore", "success", {
-            "backup_id": backup_id,
-            "safety_backup_id": safety.id,
-            "sessions_revoked": True,
-        })
+        self._audit(
+            actor,
+            "state.backup.restore",
+            "success",
+            {
+                "backup_id": backup_id,
+                "safety_backup_id": safety.id,
+                "sessions_revoked": True,
+                "config_restored": result["config_restored"],
+            },
+        )
         return result
 
     def delete(self, actor: Actor, backup_id: str) -> StateBackup:
@@ -274,15 +385,9 @@ class StateBackupStore:
         """Copy one verified state backup to a host-mounted NFS/SMB directory."""
 
         self._require_admin(actor)
-        root = Path(external_root).expanduser().absolute()
-        if root == Path("/") or root.is_symlink() or not root.is_dir():
-            raise ValueError("external backup path must be a mounted directory")
         source = self.backup_directory / str(backup_id)
         self._validate(source)
-        managed = root / "nowlert-state-backups"
-        if managed.is_symlink():
-            raise ValueError("external backup directory must not be a symbolic link")
-        managed.mkdir(mode=0o700, exist_ok=True)
+        managed = self._external_managed_root(external_root, create=True)
         final = managed / str(backup_id)
         temporary = managed / f".copy-{uuid.uuid4().hex}"
         if final.exists():
@@ -313,9 +418,10 @@ class StateBackupStore:
         if manifest_path.stat().st_size > 1024 * 1024:
             raise ValueError("backup manifest is too large")
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        schema = manifest.get("schema") if isinstance(manifest, dict) else None
         if (
             not isinstance(manifest, dict)
-            or manifest.get("schema") != BACKUP_SCHEMA
+            or schema not in {BACKUP_SCHEMA, _LEGACY_BACKUP_SCHEMA}
             or manifest.get("id") != directory.name
         ):
             raise ValueError("backup manifest is invalid")
@@ -330,6 +436,14 @@ class StateBackupStore:
             if item.is_symlink() or not item.is_file() or not _SECRET_FILE.fullmatch(item.name):
                 raise ValueError("backup contains an invalid secret file")
             expected_names.add(f"secrets/{item.name}")
+        config_included = bool(manifest.get("config_included", False))
+        if config_included:
+            config_file = directory / "config" / "config.yaml"
+            if config_file.is_symlink() or not config_file.is_file():
+                raise ValueError("backup configuration file is invalid")
+            if config_file.stat().st_size > _MAXIMUM_CONFIG_BYTES:
+                raise ValueError("backup configuration file is too large")
+            expected_names.add("config/config.yaml")
         if set(files) != expected_names:
             raise ValueError("backup manifest file list does not match contents")
         size = 0
@@ -342,16 +456,24 @@ class StateBackupStore:
             if not hmac.compare_digest(self._digest(path), str(digest)):
                 raise RuntimeError("backup integrity check failed")
             size += path.stat().st_size
-        self._validate_database(directory / "nowlert.db")
+        database_version = self._validate_database(directory / "nowlert.db")
+        manifest_version = int(manifest.get("database_schema", -1))
+        if manifest_version != database_version:
+            raise ValueError("backup database schema does not match manifest")
         secret_count = int(manifest.get("secret_files", -1))
-        if secret_count != len(expected_names) - 1:
+        actual_secret_count = len(
+            [name for name in expected_names if name.startswith("secrets/")]
+        )
+        if secret_count != actual_secret_count:
             raise ValueError("backup secret count does not match contents")
         return StateBackup(
             id=directory.name,
             created_at=int(manifest["created_at"]),
-            schema_version=int(manifest["database_schema"]),
+            schema_version=database_version,
             secret_files=secret_count,
             size_bytes=size,
+            config_included=config_included,
+            application_version=str(manifest.get("application_version") or ""),
         )
 
     def _snapshot_database(self, target: Path) -> None:
@@ -363,10 +485,10 @@ class StateBackupStore:
             finally:
                 destination.close()
         os.chmod(target, 0o600)
-        self._validate_database(target)
+        self._validate_database(target, require_latest=True)
 
     @staticmethod
-    def _validate_database(path: Path) -> None:
+    def _validate_database(path: Path, *, require_latest: bool = False) -> int:
         connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         try:
             integrity = str(connection.execute("PRAGMA integrity_check").fetchone()[0])
@@ -375,10 +497,76 @@ class StateBackupStore:
             connection.close()
         if integrity != "ok":
             raise RuntimeError("backup database integrity check failed")
-        if version != LATEST_SCHEMA_VERSION:
+        if version < 1 or version > LATEST_SCHEMA_VERSION:
+            raise RuntimeError(
+                f"backup database schema {version} is not supported"
+            )
+        if require_latest and version != LATEST_SCHEMA_VERSION:
             raise RuntimeError(
                 f"backup database schema must be {LATEST_SCHEMA_VERSION}"
             )
+        return version
+
+    @staticmethod
+    def _upgrade_database(path: Path) -> None:
+        database = Database(path)
+        database.migrate()
+
+    @staticmethod
+    def _validate_backup_identity(backup_id: str, confirmation: str) -> None:
+        if not _BACKUP_ID.fullmatch(str(backup_id)):
+            raise ValueError("backup identifier is invalid")
+        if str(confirmation) != str(backup_id):
+            raise ValueError("restore confirmation must match the backup identifier")
+
+    @staticmethod
+    def _external_managed_root(
+        external_root: str | Path,
+        *,
+        create: bool = False,
+    ) -> Path:
+        root = Path(external_root).expanduser().absolute()
+        if root == Path("/") or root.is_symlink() or not root.is_dir():
+            raise ValueError("external backup path must be a mounted directory")
+        managed = root / "nowlert-state-backups"
+        if managed.is_symlink():
+            raise ValueError("external backup directory must not be a symbolic link")
+        if create:
+            # Do not chmod an existing external directory: CIFS/NFS permission
+            # semantics may reject chmod even when the target is writable.
+            managed.mkdir(mode=0o700, exist_ok=True)
+        elif managed.exists() and not managed.is_dir():
+            raise ValueError("external backup directory is invalid")
+        return managed
+
+    @staticmethod
+    def _copy_config(source: Path, destination: Path) -> None:
+        if source.is_symlink() or not source.is_file():
+            raise ValueError("configuration backup source is invalid")
+        if source.stat().st_size > _MAXIMUM_CONFIG_BYTES:
+            raise ValueError("configuration file exceeds backup size limit")
+        destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        os.chmod(destination.parent, 0o700)
+        shutil.copyfile(source, destination)
+        os.chmod(destination, 0o600)
+
+    @staticmethod
+    def _install_config(source: Path, destination: Path) -> None:
+        destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        original = destination.stat() if destination.exists() else None
+        temporary = destination.parent / f".restore-config-{uuid.uuid4().hex}.yaml"
+        try:
+            shutil.copyfile(source, temporary)
+            os.chmod(temporary, (original.st_mode & 0o777) if original else 0o600)
+            if original is not None:
+                try:
+                    os.chown(temporary, original.st_uid, original.st_gid)
+                except PermissionError:
+                    pass
+            os.replace(temporary, destination)
+        except Exception:
+            temporary.unlink(missing_ok=True)
+            raise
 
     @staticmethod
     def _copy_secret(source: Path, destination: Path) -> None:

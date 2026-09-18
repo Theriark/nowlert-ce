@@ -1,142 +1,137 @@
-# Platform data portability and migration
+# Platform data portability, history, and recovery
 
-Nowlert v3.1.2 provides two intentionally different mechanisms:
+Current Nowlert deployments intentionally separate three responsibilities:
 
-1. **credential-free portability** for moving safe platform configuration; and
-2. **private state backups** for recovery/rollback of the full local platform
-   state.
+1. **Data Tools** move credential-free user-created configuration.
+2. **Housekeeping** controls how long operational history is retained locally.
+3. **Recovery backups** capture the complete application state for rollback and disaster recovery.
 
-Do not treat a portability export as a disaster-recovery backup.
+Do not treat a Data Tools export as a recovery backup.
 
 ## Current authority model
 
-Normal v3.1.2 deployments use `platform_database_v1`.
+The active configuration model is `platform_database_v1`.
 
-- SQLite is authoritative for WebUI-managed resources.
-- `config.yaml` contains process/bootstrap and listener/security settings.
-- destination credentials remain in private owner-scoped secret files.
+- SQLite is authoritative for WebUI-managed resources and operational history.
+- `config/config.yaml` contains process/bootstrap and listener/security settings.
+- destination and managed backup-target credentials remain in private secret files.
 
-Legacy YAML inventory/import endpoints exist for migration and compatibility,
-not as the normal current editing model.
+## Data Tools: safe user configuration
 
-## Safe platform export
+The administrator-only export produces a versioned `nowlert.platform.v2` JSON
+document containing safe user-created configuration:
 
-The administrator-only portability export produces a versioned
-`nowlert.platform.v1` JSON document containing safe resource metadata such as:
+- destination owner/name/output/public settings, sharing and enabled state;
+- reusable route owner/name/source/input/priority/enabled state;
+- destination-to-route assignments; and
+- destination-owned filtering policies and their enabled state.
 
-- destination owner names, display names, output types, public settings,
-  sharing, and enabled state; and
-- route owner names, integrations/sources, input types, filters, priorities,
-  enabled state, and portable destination references.
+The v2 export does **not** back up route-owned filter JSON. Filtering is now
+owned by Destinations; the portable document follows that current model.
 
 The export deliberately excludes:
 
-- password hashes;
-- browser session material;
+- users, password hashes, and browser sessions;
 - Event API token values/digests;
-- destination credentials;
+- destination and backup-target credentials;
 - secret identifiers and file paths;
-- webhook URLs stored as secrets; and
-- other private recovery material.
+- delivery history and audit history;
+- backup archives and recovery-only private material.
 
-A credential-dependent destination imported from safe JSON remains disabled
-until an administrator supplies its credential through the normal write-only
-form.
+Credential-dependent destinations imported from safe JSON remain disabled until
+an administrator supplies their credential through the normal write-only form.
+
+The importer remains compatible with `nowlert.platform.v1` documents. Legacy
+v1 route-filter fields are accepted only for backward compatibility; new v2
+exports no longer use that route-owned filtering shape.
 
 ## Preview and fingerprint boundary
 
-Import is preview-first.
+Import is preview-first. The backend validates the bounded JSON document,
+ownership, names, public destination settings, route assignments, filtering
+payloads and collisions, then returns a fingerprint plus warnings.
 
-The backend validates normalization, ownership, output settings, route filters,
-and name collisions, then returns a fingerprint plus bounded actions/warnings.
+Apply succeeds only when preview has no blocking errors, the administrator
+explicitly confirms the operation, and the submitted document still produces
+the same fingerprint. Partial creation is rolled back.
 
-Apply succeeds only when:
+## Housekeeping
 
-1. preview has no blocking errors;
-2. the administrator explicitly confirms the operation; and
-3. the submitted document produces the same fingerprint.
+Delivery History and Audit Log are persisted in SQLite for administrator
+inspection. They are not transient browser data.
 
-Unexpected partial creation is rolled back. Import does not silently overwrite
-unrelated existing resources.
+Default retention is:
 
-## Legacy v1 YAML migration
+- Delivery History: **90 days**;
+- Audit Log: **365 days**; and
+- completed backup-run records: **180 days**.
 
-The compatibility migration path can translate supported legacy output/routing
-structures into database-authoritative destinations/routes and owner-scoped
-secrets.
+A value of `0` keeps that category forever. Housekeeping runs daily at the
+configured time, deletes in bounded batches, removes expired/revoked browser
+sessions after a short grace period, records each run, and writes a secret-free
+audit event. Snapshot retention remains controlled separately by the backup
+retention setting.
 
-Placeholders, unsupported output types, and unsupported match fields are
-rejected or skipped with bounded warnings rather than guessed. Credential values
-must never be echoed into previews, audit detail, or normal API responses.
+## Complete recovery backups
 
-This path is for supported upgrades from old installations. A healthy current
-v3.1.2 deployment should not be converted back to legacy YAML resource
-authority.
+Recovery snapshots live below `platform.state_dir/backups`. New snapshots use
+the `nowlert.state-backup.v2` manifest and contain:
 
-## Private state backups
+- a consistent SQLite snapshot, including users, settings, destinations,
+  reusable routes/assignments, filtering, API-token records, Delivery History,
+  Audit Log, backup settings and housekeeping settings/history;
+- Nowlert-managed owner-scoped secret files;
+- the mounted bootstrap `config/config.yaml`, when available;
+- the running Nowlert version and database schema metadata; and
+- a SHA-256 integrity manifest covering every included file.
 
-Private state snapshots live below `platform.state_dir/backups` and contain:
+Older `nowlert.state-backup.v1` state-only snapshots remain readable. When an
+older supported database schema is restored, Nowlert upgrades the staged copy to
+the current schema before it replaces live state.
 
-- a consistent SQLite snapshot;
-- owner-scoped secret files; and
-- a SHA-256 integrity manifest.
+Raw application logs, the deployment definition, container image bytes, and
+externally managed orchestrator secrets such as read-only `/run/secrets` are
+not copied into the application snapshot. Keep those deployment-level
+dependencies under normal host/infrastructure backup control.
 
-Directories are private and backup bytes are not downloadable through normal
-WebUI/API endpoints.
+## Local, NFS, and SMB restore
 
-`platform.backup_retention` defaults to 20 snapshots and accepts a bounded
-configured value.
+Scheduled/manual backups can be mirrored to configured Local, NFS, or SMB
+destinations under `nowlert-state-backups/`.
 
-Create a backup before:
+The Backups page can discover verified snapshots on those targets. External
+restore never swaps live state directly from a network filesystem. Nowlert:
 
-- platform upgrades;
-- risky account/ownership changes;
-- configuration migrations; and
-- restore tests.
+1. makes the configured target ready;
+2. copies the selected snapshot to private local staging;
+3. verifies the manifest, SHA-256 digests and SQLite integrity;
+4. creates a safety snapshot of the currently running instance;
+5. upgrades the staged database if required;
+6. atomically restores the database, managed secret store and included
+   `config.yaml`;
+7. revokes browser sessions; and
+8. restarts Nowlert so restored bootstrap/runtime state is authoritative.
 
-Also include the complete state bind mount in encrypted off-host backups.
-Application-managed snapshots are not a replacement for host-level disaster
-recovery.
-
-### Restore
-
-Restore requires the exact backup identifier. Nowlert creates a safety snapshot
-first, verifies the selected snapshot, checks SQLite integrity/schema, stages the
-replacement, and swaps only after validation.
-
-A successful restore revokes browser sessions. Event API token records and
-other private state return to the selected point in time; review/rotate tokens
-when that rollback history matters.
-
-### Delete one snapshot
-
-v3.1.1 adds administrator deletion of an individual private state snapshot.
-
-Deletion:
-
-- requires administrator authority and CSRF protection;
-- targets the exact backup identifier;
-- is separate from restore;
-- removes only the selected snapshot; and
-- writes an audit event.
-
-Use this for lifecycle cleanup after confirming the snapshot is no longer needed.
-It is not an automatic substitute for the configured retention policy.
+If staging or validation fails, live state is left untouched.
 
 ## API routes
 
 | Method | Route | Purpose |
 |---|---|---|
-| GET | `/api/v2/portability/export` | credential-free JSON export |
-| POST | `/api/v2/portability/preview` | validate/fingerprint platform JSON |
-| POST | `/api/v2/portability/import` | apply unchanged confirmed JSON |
-| POST | `/api/v2/migrations/v1/preview` | validate/fingerprint legacy YAML |
-| POST | `/api/v2/migrations/v1/import` | apply confirmed legacy import |
-| GET | `/api/v2/configuration/inventory` | inspect mounted bootstrap/migration metadata without secrets |
-| GET | `/api/v2/backups` | list verified private snapshots |
-| POST | `/api/v2/backups` | create private snapshot |
-| DELETE | `/api/v2/backups/{id}` | permanently delete selected snapshot |
-| POST | `/api/v2/backups/{id}/restore` | restore after exact-ID confirmation |
+| GET | `/api/v2/portability/export` | credential-free v2 user configuration |
+| POST | `/api/v2/portability/preview` | validate/fingerprint portable JSON |
+| POST | `/api/v2/portability/import` | apply unchanged confirmed portable JSON |
+| GET/PUT | `/api/v2/housekeeping` | inspect/update retention settings and status |
+| POST | `/api/v2/housekeeping/run` | run housekeeping immediately |
+| GET | `/api/v2/backups` | list local verified recovery snapshots |
+| POST | `/api/v2/backups` | create a local recovery snapshot |
+| DELETE | `/api/v2/backups/{id}` | permanently delete one local snapshot |
+| POST | `/api/v2/backups/{id}/restore` | restore a local snapshot and restart |
+| GET | `/api/v2/backup-targets/{id}/backups` | discover verified snapshots on one Local/NFS/SMB target |
+| POST | `/api/v2/backup-targets/{id}/backups/{backup}/restore` | stage, verify, restore and restart from external storage |
+| POST | `/api/v2/migrations/v1/preview` | preview supported legacy YAML migration |
+| POST | `/api/v2/migrations/v1/import` | apply supported legacy YAML migration |
 
 See [platform-api.md](platform-api.md) for the complete authenticated API and
-[platform-state.md](platform-state.md) for storage/recovery boundaries.
+[current-configuration-model.md](current-configuration-model.md) for the
+storage/authority boundary.

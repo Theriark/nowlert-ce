@@ -66,13 +66,23 @@ def test_changelog_preserves_release_history():
     assert changelog.index("## 3.1.0") < changelog.index("## 3.0.0")
 
 
-def test_unchanged_runtime_guides_remain_on_v312_contract():
-    """v3.1.6 does not change the runtime contracts documented from v3.1.2."""
+def test_current_runtime_guides_do_not_regress_to_v311_contract():
+    """Current guides may evolve on development; historical release docs stay versioned."""
 
     for relative in CURRENT_RELEASE_GUIDES:
         document = (ROOT / relative).read_text(encoding="utf-8")
-        assert "Nowlert v3.1.2" in document, relative
+        assert document.strip(), relative
         assert "Nowlert v3.1.1" not in document, relative
+
+    assert "database schema **13**" in (
+        ROOT / "docs" / "current-configuration-model.md"
+    ).read_text(encoding="utf-8")
+    assert "nowlert.platform.v2" in (
+        ROOT / "docs" / "data-portability.md"
+    ).read_text(encoding="utf-8")
+    assert "schema **13**" in (
+        ROOT / "docs" / "platform-state.md"
+    ).read_text(encoding="utf-8")
 
 
 def test_historical_v300_v310_v311_v312_v313_v314_and_v315_documents_remain_historical():
