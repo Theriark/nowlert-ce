@@ -57,26 +57,41 @@
     </div>
   </section>
 
-  <section id="login-view" class="login-view" aria-labelledby="login-title" hidden>
+  <section id="login-view" class="login-view login-reference" aria-labelledby="login-title" hidden>
     <div class="login-atmosphere" aria-hidden="true"></div>
-    <div class="login-card">
-      <div class="brand brand-login">
-        <span class="brand-mark"><img src="/ui/brand/nowlert-owl-v3.1.0.png" alt=""></span>
-        <strong class="brand-wordmark"><span class="brand-now">NOW</span><span class="brand-lert">LERT</span></strong>
+    <div id="login-reference-card" class="login-card login-reference-card">
+      <div class="login-reference-brand">
+        <span class="brand-mark login-reference-owl"><img src="/ui/brand/nowlert-owl-v3.1.0.png" alt=""></span>
+        <strong class="brand-wordmark login-reference-wordmark"><span class="brand-now">NOW</span><span class="brand-lert">LERT</span></strong>
+        <p class="login-reference-tagline"><span>MONITOR</span><b aria-hidden="true">•</b><span>MANAGE</span><b aria-hidden="true">•</b><span>STAY AHEAD</span></p>
       </div>
       <h1 id="login-title" class="sr-only">Sign in to Nowlert</h1>
-      <form id="login-form" class="stack" autocomplete="on">
-        <label>
-          <span>Username</span>
-          <input id="login-username" name="username" autocomplete="username" required maxlength="80">
+      <form id="login-form" class="login-reference-form" autocomplete="on">
+        <label class="login-reference-field">
+          <span class="login-reference-label">Username</span>
+          <span class="login-input-shell">
+            <svg class="login-field-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.5"></circle><path d="M5.5 20c.7-4.1 3-6.2 6.5-6.2s5.8 2.1 6.5 6.2"></path></svg>
+            <input id="login-username" name="username" autocomplete="username" required maxlength="80" placeholder="Enter your username">
+          </span>
         </label>
-        <label>
-          <span>Password</span>
-          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        <label class="login-reference-field">
+          <span class="login-reference-label">Password</span>
+          <span class="login-input-shell">
+            <svg class="login-field-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="10" width="12" height="10" rx="2"></rect><path d="M9 10V7a3 3 0 0 1 6 0v3"></path></svg>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Enter your password">
+            <button id="login-password-toggle" class="login-password-toggle" type="button" aria-label="Show password" aria-pressed="false" title="Show password">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12s3.2-5 9-5 9 5 9 5-3.2 5-9 5-9-5-9-5z"></path><circle cx="12" cy="12" r="2.5"></circle><path class="login-eye-slash" d="M4 4l16 16"></path></svg>
+            </button>
+          </span>
         </label>
+        <label class="login-remember"><input id="login-remember" type="checkbox" checked><span>Remember me</span></label>
         <p id="login-error" class="form-error" role="alert" hidden></p>
-        <button class="button primary full" type="submit">Sign in</button>
+        <button class="button primary full login-reference-submit" type="submit">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 5h8v14h-8"></path><path d="M13 12H3"></path><path d="M6 9l-3 3 3 3"></path></svg>
+          <span>Sign in</span>
+        </button>
       </form>
+      <div class="login-reference-footer"><span aria-hidden="true"></span><small>Secure access to your infrastructure</small><span aria-hidden="true"></span></div>
     </div>
   </section>
 
@@ -264,7 +279,7 @@
 
             <button id="housekeeping-toggle" class="housekeeping-status-card is-enabled" type="button" data-action="toggle-housekeeping" aria-pressed="true">
               <span class="housekeeping-status-main">
-                <span id="housekeeping-status-icon" class="housekeeping-status-icon" aria-hidden="true"><svg class="housekeeping-symbol" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 4l5 5"></path><path d="M17.5 6.5L10 14"></path><path d="M10 14l-5 1-2 6 6-2 1-5"></path></svg></span>
+                <span id="housekeeping-status-icon" class="housekeeping-status-icon" aria-hidden="true"><svg class="housekeeping-symbol" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12l4 4L19 6"></path></svg></span>
                 <span class="housekeeping-status-copy">
                   <strong id="housekeeping-status-title">Housekeeping is enabled</strong>
                   <small id="housekeeping-status-description">Automatic clean-up will run daily and remove records older than your configured retention periods.</small>
@@ -376,7 +391,7 @@
             </div>
             <div class="backup-summary-item">
               <span class="backup-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M7 3v4M17 3v4M3 10h18"></path></svg></span>
-              <div><strong id="backup-summary-schedule">0</strong><span>Scheduled backup</span><small id="backup-summary-schedule-note">Disabled</small></div>
+              <div><strong id="backup-summary-schedule">0</strong><span>Scheduled backup</span><small id="backup-summary-schedule-note">Loading…</small></div>
             </div>
             <div class="backup-summary-item">
               <span class="backup-summary-icon success" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l7 3v5c0 4.7-2.9 8.2-7 10-4.1-1.8-7-5.3-7-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg></span>
@@ -401,7 +416,7 @@
                 <label class="backup-field"><span>Run time</span><span class="backup-field-control"><span class="backup-field-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span><select id="backup-time" required></select></span></label>
                 <label class="backup-field"><span>Monthly day</span><span class="backup-field-control"><span class="backup-field-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M7 3v4M17 3v4M3 10h18"></path></svg></span><input id="backup-day" type="number" min="1" max="28" value="1"></span></label>
                 <label class="backup-field backup-schedule-destination"><span>Backup destination</span><span class="backup-field-control"><span class="backup-field-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 4h14l2 7v8H3v-8z"></path><path d="M3 12h18"></path><circle cx="17" cy="15.5" r="1"></circle></svg></span><select id="backup-target"><option value="">Local state only</option></select></span></label>
-                <div class="backup-schedule-actions"><button class="button primary backup-icon-button" type="submit"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3h12l2 2v16H5z"></path><path d="M8 3v6h8V3M8 15h8v6H8z"></path></svg></span><span>Save backup settings</span></button><small id="backup-time-display">Next run: Disabled</small></div>
+                <div class="backup-schedule-actions"><button class="button primary backup-icon-button" type="submit"><span class="backup-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3h12l2 2v16H5z"></path><path d="M8 3v6h8V3M8 15h8v6H8z"></path></svg></span><span>Save backup settings</span></button><small id="backup-time-display">Next run: Loading…</small></div>
               </form>
             </article>
 
