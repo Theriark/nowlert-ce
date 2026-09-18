@@ -544,14 +544,15 @@ async function bootstrapAdministrator(event) {
   }
 }
 
-async function initialize() {
-  // Bootstrap status and session validation are independent. Start the session
-  // request immediately so an F5 costs one network round-trip instead of two.
-  const sessionRequest = request("/session");
+async function initialize(startupRequests = {}) {
+  // Start authentication/bootstrap requests as soon as app.js executes, but
+  // consume them only after every deferred WebUI layer has finished loading.
+  // This keeps F5 fast without revealing the base shell before extensions exist.
+  const sessionRequest = startupRequests.session || request("/session");
   void sessionRequest.catch(() => {});
 
   try {
-    const status = await request("/bootstrap");
+    const status = await (startupRequests.bootstrap || request("/bootstrap"));
     if (status.required) {
       showBootstrap(status);
       return;
@@ -3561,21 +3562,30 @@ function bindEvents() {
   window.addEventListener("hashchange", navigateFromHistory);
 }
 
+// Prefetch both startup requests during app.js execution. The authenticated
+// shell remains gated below until DOMContentLoaded, after every deferred WebUI
+// extension has executed, so cached pages can hydrate immediately without an
+// old-interface flash.
+const startupRequests = {
+  session: request("/session"),
+  bootstrap: request("/bootstrap"),
+};
+void startupRequests.session.catch(() => {});
+void startupRequests.bootstrap.catch(() => {});
+
 bindEvents();
 
 let applicationStarted = false;
 function startApplication() {
   if (applicationStarted) return;
   applicationStarted = true;
-  void initialize();
+  void initialize(startupRequests);
 }
 
 // app.js is the first deferred script, while the production WebUI injects the
 // Routing Flow, Filtering, ownership, header, and acceptance layers after it.
-// Starting immediately here lets a fast same-origin /session response reveal
-// the base interface before those layers exist. DOMContentLoaded runs only
-// after every deferred script has executed, so the first authenticated paint
-// uses the final navigation and page structure.
+// DOMContentLoaded still gates the first authenticated paint; only the network
+// requests are prefetched while those layers execute.
 document.addEventListener("DOMContentLoaded", startApplication, { once: true });
 window.addEventListener("load", startApplication, { once: true });
 if (document.readyState === "complete") startApplication();
