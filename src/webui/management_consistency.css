@@ -62,19 +62,35 @@
   margin-top: 2px;
 }
 
-#view-destinations .destination-reference-card .resource-meta {
-  align-items: center;
+#view-destinations .destination-reference-card .resource-meta,
+#view-destinations .acceptance-private-destination .resource-meta {
+  align-items: stretch;
+  display: grid;
   gap: 8px;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  grid-template-columns: none;
   min-height: 54px;
   padding-block: 10px;
+}
+
+#view-destinations .destination-reference-card .resource-meta > *,
+#view-destinations .acceptance-private-destination .resource-meta > * {
+  box-sizing: border-box;
+  height: 34px;
+  min-height: 34px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 #view-destinations .destination-reference-card .resource-meta .destination-test-state {
   border-radius: 0.65rem;
   box-sizing: border-box;
-  flex: 0 0 auto;
-  min-height: 2rem;
+  min-height: 34px;
   padding: 0.32rem 0.72rem;
+  width: 100%;
 }
 
 #view-destinations .destination-reference-card .resource-actions {
@@ -165,21 +181,6 @@
 #view-destinations .acceptance-private-destination .destination-sharing-control,
 #view-destinations .acceptance-private-destination .destination-status-control {
   cursor: default;
-}
-
-#view-destinations .acceptance-private-destination .resource-meta {
-  align-items: center;
-  display: grid;
-  grid-auto-rows: 2rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-#view-destinations .acceptance-private-destination .resource-meta > * {
-  box-sizing: border-box;
-  height: 2rem;
-  min-height: 2rem;
-  min-width: 0;
-  width: 100%;
 }
 
 .destination-channel-field .destination-channel-input {

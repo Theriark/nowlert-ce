@@ -38,14 +38,14 @@ def test_routing_filter_values_are_full_width_or_moved_to_overflow():
 
 
 def test_round39_build_and_live_gate_track_full_value_overflow():
-    assert UI_BUILD == "20260919-r39"
+    assert UI_BUILD == "20260919-r50"
 
     index = read("src/webui/index.html")
     workflow = read(".github/workflows/ci.yml")
 
-    assert 'name="nowlert-ui-build" content="20260919-r39"' in index
-    assert "/ui/app.js?v=20260919-r39" in index
-    assert "/ui/qa_patch.css?v=20260919-r39" in index
-    assert "/ui/qa_patch.js?v=20260919-r39" in index
+    assert 'name="nowlert-ui-build" content="20260919-r50"' in index
+    assert "/ui/app.js?v=20260919-r50" in index
+    assert "/ui/qa_patch.css?v=20260919-r50" in index
+    assert "/ui/qa_patch.js?v=20260919-r50" in index
     assert "Routing Flow full filter values" in workflow
     assert '".rf-filter-card-tags [data-filter-value]"' in workflow

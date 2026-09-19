@@ -286,8 +286,8 @@
         ]),
         element("div", { className: "resource-meta" }, [
           badge("Private", "warning"),
-          badge(item.owner_username, ""),
-          badge("Metadata only", ""),
+          badge(item.owner_username, "destination-owner-badge"),
+          badge("View only", "destination-view-only-badge"),
         ]),
         element("p", {
           className: "field-help",

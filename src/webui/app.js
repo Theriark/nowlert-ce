@@ -467,7 +467,9 @@ function isAdmin() {
 }
 
 function ownResource(item) {
-  return item && state.user && item.owner_user_id === state.user.id;
+  if (!item || !state.user) return false;
+  if (typeof item.owned === "boolean") return item.owned;
+  return String(item.owner_user_id || "") === String(state.user.id || "");
 }
 
 function expireSession() {
@@ -1687,6 +1689,12 @@ function renderDestinations() {
       metaItems.push(element("span", {
         className: "badge destination-owner-badge",
         text: ownerUsername,
+      }));
+    }
+    if (!editable) {
+      metaItems.push(element("span", {
+        className: "badge destination-view-only-badge",
+        text: "View only",
       }));
     }
     if (!item.secret_configured && ["discord", "teams", "slack", "webhook"].includes(item.output_type)) {
