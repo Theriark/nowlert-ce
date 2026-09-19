@@ -61,6 +61,8 @@ jobs:
           set -euo pipefail
           node --check src/webui/app.js
           node --check src/webui/filtering.js
+          node --check src/webui/routing_flow.js
+          node --check src/webui/reference_acceptance.js
 
       - name: Validate public YAML files
         shell: bash

@@ -27,7 +27,7 @@ def test_routing_filter_card_shows_rule_values_in_one_row_with_plus_n_popover():
     assert '"rf-filter-value-overflow rf-filter-source-overflow"' in card
     assert '"rf-filter-value-popover"' in card
     assert 'toggle.textContent = `+${hiddenValues.length}`;' in card
-    assert 'valuePopover.hidden = !valueMenuOpen;' in card
+    assert 'valuePopover.setAttribute("popover", "auto");' in card\n    assert "valuePopover.showPopover();" in card
 
     assert ".rf-filter-value-overflow-wrap" in styles
     assert ".rf-filter-value-popover" in styles
