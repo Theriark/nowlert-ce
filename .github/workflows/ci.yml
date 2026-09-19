@@ -306,7 +306,7 @@ jobs:
             require_contains "Routing Flow filter names" 'String(filter?.filter_name || filter?.name || "").trim()' "${routing}" || return 1
             require_contains "Routing Flow filter values" "function filterCardValues(filter)" "${routing}" || return 1
             require_contains "Routing Flow value overflow" "rf-filter-value-overflow-wrap" "${routing}" || return 1
-            require_contains "Routing Flow six visible values" "const visibleValueLimit = 6;" "${routing}" || return 1
+            require_contains "Routing Flow dynamic value fitting" "const visibleNodes = valueNodes;" "${routing}" || return 1
             require_contains "Routing Flow value popover labels" "rf-filter-value-popover-label" "${routing}" || return 1
             require_contains "Routing Flow interactive node shell" 'const node = el("div", `rf-node rf-${kind}`);' "${routing}" || return 1
             require_contains "Routing Flow value menu ownership" 'valueToggle.setAttribute("aria-controls", valuePopover.id);' "${routing}" || return 1

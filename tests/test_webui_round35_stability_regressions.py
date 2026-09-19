@@ -20,7 +20,8 @@ def test_routing_filter_value_overflow_shows_six_and_renders_above_sibling_nodes
     card_end = script.index("function activeFlowGraph", card_start)
     card = script[card_start:card_end]
 
-    assert "const visibleValueLimit = 6;" in card
+    assert "const visibleValueLimit = 6;" not in card
+    assert "const visibleNodes = valueNodes;" in card
     assert 'const label = el("span", "rf-filter-value-popover-label", friendlyName(value));' in card
     assert "item.append(label);" in card
     assert '.rf-filter-card:has(.rf-filter-value-overflow[aria-expanded="true"])' in styles
@@ -78,9 +79,9 @@ def test_account_reference_role_uses_live_admin_authority():
 
 
 def test_round35_build_versions_the_changed_webui_bundle():
-    assert UI_BUILD == "20260919-r37"
+    assert UI_BUILD == "20260919-r38"
     index = read("src/webui/index.html")
-    assert 'name="nowlert-ui-build" content="20260919-r37"' in index
-    assert "/ui/app.js?v=20260919-r37" in index
-    assert "/ui/qa_patch.css?v=20260919-r37" in index
-    assert "/ui/qa_patch.js?v=20260919-r37" in index
+    assert 'name="nowlert-ui-build" content="20260919-r38"' in index
+    assert "/ui/app.js?v=20260919-r38" in index
+    assert "/ui/qa_patch.css?v=20260919-r38" in index
+    assert "/ui/qa_patch.js?v=20260919-r38" in index
