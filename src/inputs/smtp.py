@@ -98,6 +98,13 @@ class Handler:
                 getattr(notification, "metadata", None) or {}
             )
             notification.metadata.setdefault("_input_type", "SMTP")
+            recipients = [
+                str(value).strip()
+                for value in envelope.rcpt_tos
+                if str(value).strip()
+            ]
+            if recipients:
+                notification.metadata.setdefault("to", ", ".join(recipients))
 
             self.router.route(
                 notification,
