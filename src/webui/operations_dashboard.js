@@ -39,6 +39,7 @@
   };
 
   let filterSnapshot = null;
+  let dashboardDeliveries = [];
   let refreshTimer = null;
   let clockTimer = null;
   let refreshBusy = false;
@@ -92,7 +93,7 @@
       return false;
     }
 
-    state.deliveries = snapshot.deliveries;
+    dashboardDeliveries = snapshot.deliveries;
     state.metrics = snapshot.metrics;
     state.audit = snapshot.audit;
     filterSnapshot = snapshot.filters && typeof snapshot.filters === "object"
@@ -113,7 +114,7 @@
         user_id: dashboardSnapshotIdentity(session),
         range,
         saved_at: Date.now(),
-        deliveries: Array.isArray(state.deliveries) ? state.deliveries : [],
+        deliveries: Array.isArray(dashboardDeliveries) ? dashboardDeliveries : [],
         metrics: state.metrics && typeof state.metrics === "object" ? state.metrics : {},
         audit: Array.isArray(state.audit) ? state.audit : [],
         filters: filterSnapshot,
@@ -252,7 +253,7 @@
       controls.id = "ops-dashboard-top-actions";
       controls.innerHTML = `
         <label class="ops-global-range"><span class="sr-only">Dashboard range</span><span class="ops-calendar" aria-hidden="true">▣</span><select id="ops-dashboard-range">${rangeOptions()}</select></label>
-        <span class="ops-live"><span class="ops-live-dot" aria-hidden="true"></span><span><strong>Live</strong><small id="ops-live-age">Updated just now</small></span></span>
+        <span class="ops-live" data-live-contract="data-feed" aria-live="polite"><span class="ops-live-dot" aria-hidden="true"></span><span><strong id="ops-feed-state">Connecting</strong><small id="ops-feed-age">Waiting for dashboard data</small></span></span>
       `;
       topbarActions.prepend(controls);
     }
@@ -297,7 +298,7 @@
 
   function latestAttempts() {
     const latest = new Map();
-    for (const item of state.deliveries || []) {
+    for (const item of dashboardDeliveries) {
       const key = item.delivery_id || item.id;
       const current = latest.get(key);
       if (!current || Number(item.attempt_number || 0) >= Number(current.attempt_number || 0)) {
@@ -675,10 +676,10 @@
     const requestedRange = state.historyRange;
     try {
       const jobs = await Promise.allSettled([
-        request(`/metrics/${requestedRange}`),
-        request("/deliveries"),
-        request("/filters"),
-        request("/audit-events"),
+        request(`/metrics/${requestedRange}`, { dashboardFeed: true }),
+        request("/deliveries", { dashboardFeed: true }),
+        request("/filters", { dashboardFeed: true }),
+        request("/audit-events", { dashboardFeed: true }),
       ]);
 
       // A range change can happen while this batch is in flight. Never paint
@@ -689,7 +690,7 @@
       }
 
       if (jobs[0].status === "fulfilled") state.metrics = jobs[0].value.metrics;
-      if (jobs[1].status === "fulfilled") state.deliveries = jobs[1].value.deliveries || [];
+      if (jobs[1].status === "fulfilled") dashboardDeliveries = jobs[1].value.deliveries || [];
       if (jobs[2].status === "fulfilled") filterSnapshot = jobs[2].value;
       if (jobs[3].status === "fulfilled") state.audit = jobs[3].value.audit_events || [];
       lastUpdatedAt = Date.now();
@@ -740,6 +741,7 @@
   expireSession = function operationsDashboardExpireSession() {
     clearDashboardSnapshots(state.user);
     filterSnapshot = null;
+    dashboardDeliveries = [];
     refreshPending = false;
     lastUpdatedAt = 0;
     return previousExpireSession();

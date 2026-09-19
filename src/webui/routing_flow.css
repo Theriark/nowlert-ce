@@ -746,3 +746,23 @@
   overflow: visible !important;
   position: relative;
 }
+
+/* 2026-09-19 round-35 keep open filter popovers above adjacent graph nodes. */
+.rf-filter-card:has(.rf-filter-source-overflow[aria-expanded="true"]),
+.rf-filter-card:has(.rf-filter-value-overflow[aria-expanded="true"]) {
+  z-index: 80 !important;
+}
+
+.rf-filter-value-popover-item {
+  color: #dcebf3 !important;
+}
+
+.rf-filter-value-popover-label {
+  color: #dcebf3 !important;
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.25;
+  min-width: 0;
+  white-space: nowrap;
+}

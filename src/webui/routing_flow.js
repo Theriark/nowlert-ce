@@ -315,7 +315,7 @@
 
     const tags = el("div", "rf-filter-card-tags");
     const filterValues = filterCardValues(filter);
-    const visibleValueLimit = 4;
+    const visibleValueLimit = 6;
     let valueMenuOpen = false;
     let valueFitFrame = null;
 
@@ -388,8 +388,10 @@
       toggle.setAttribute("aria-label", `Show ${hiddenValues.length} more filter values`);
       popover.replaceChildren();
       for (const value of hiddenValues) {
-        const item = el("span", "rf-filter-value-popover-item", friendlyName(value));
+        const item = el("span", "rf-filter-value-popover-item");
+        const label = el("span", "rf-filter-value-popover-label", friendlyName(value));
         item.setAttribute("role", "menuitem");
+        item.append(label);
         popover.append(item);
       }
     };
