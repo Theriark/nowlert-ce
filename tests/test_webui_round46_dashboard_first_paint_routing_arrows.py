@@ -45,10 +45,6 @@ def test_routing_flow_connections_end_at_shared_card_ports_without_arrowheads():
     assert 'classList.remove("rf-has-incoming")' in draw
     assert 'classList.add("rf-has-incoming")' in draw
 
-    port_start = css.index(".rf-node.rf-has-incoming::after")
-    port_end = css.index("}", port_start)
-    port = css[port_start:port_end]
-
-    assert 'content:""' in port
-    assert "border-radius:50%" in port
-    assert "background:#eac044" in port
+    assert ".rf-socket {" in css
+    assert ".rf-node.rf-has-incoming > .rf-socket-left" in css
+    assert ".rf-node.rf-has-outgoing > .rf-socket-right" in css
