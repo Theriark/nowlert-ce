@@ -734,6 +734,7 @@
   const previousShowApp = showApp;
   showApp = function operationsDashboardShowApp(session) {
     restoreDashboardSnapshot(session, state.historyRange);
+    renderOperationsDashboard();
     return previousShowApp(session);
   };
 
