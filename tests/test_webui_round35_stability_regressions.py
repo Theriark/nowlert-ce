@@ -54,7 +54,7 @@ def test_dashboard_uses_dedicated_delivery_feed_and_only_marks_dashboard_refresh
     assert "dashboardDeliveries = snapshot.deliveries;" in dashboard
     assert "dashboardDeliveries = jobs[1].value.deliveries || [];" in dashboard
     assert 'request("/deliveries", { dashboardFeed: true })' in dashboard
-    assert 'request(\`/metrics/\${requestedRange}\`, { dashboardFeed: true })' in dashboard
+    assert 'request(`/metrics/${requestedRange}`, { dashboardFeed: true })' in dashboard
     assert 'request("/filters", { dashboardFeed: true })' in dashboard
     assert 'request("/audit-events", { dashboardFeed: true })' in dashboard
 

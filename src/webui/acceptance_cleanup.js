@@ -396,18 +396,23 @@
     }
   }
 
+  function applyFilteringAcceptance(payload) {
+    if (!payload || state.currentView !== "filtering") return;
+    const policies = normalFilterRows(payload);
+    const rows = [...document.querySelectorAll("#filter-table > tr.filtering-policy-row")];
+    policies.forEach((policy, index) => {
+      const row = rows[index];
+      if (row) decorateConfiguredFilters(row, policy);
+    });
+    if (isAdmin()) appendPrivateFilterMetadata(payload.private_resources || []);
+    else document.querySelectorAll(".acceptance-private-filter").forEach((node) => node.remove());
+    relocateLegacyVisibilityBadges();
+  }
+
   async function refreshFilteringAcceptance() {
     try {
       const payload = await request("/filters");
-      const policies = normalFilterRows(payload);
-      const rows = [...document.querySelectorAll("#filter-table > tr.filtering-policy-row")];
-      policies.forEach((policy, index) => {
-        const row = rows[index];
-        if (row) decorateConfiguredFilters(row, policy);
-      });
-      if (isAdmin()) appendPrivateFilterMetadata(payload.private_resources || []);
-      else document.querySelectorAll(".acceptance-private-filter").forEach((node) => node.remove());
-      relocateLegacyVisibilityBadges();
+      applyFilteringAcceptance(payload);
     } catch (_error) {
       // Core Filtering rendering remains available if decoration fails.
     }
@@ -527,6 +532,10 @@
       resetIntegrationOrder();
     }
   }, true);
+
+  document.addEventListener("nowlert:filtering-rendered", event => {
+    applyFilteringAcceptance(event.detail);
+  });
 
   document.addEventListener("DOMContentLoaded", () => {
     cleanupDestinationCards();

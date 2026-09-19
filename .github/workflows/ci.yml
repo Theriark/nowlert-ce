@@ -245,7 +245,7 @@ jobs:
           }
 
           verify_live_bundle() {
-            local html css app ownership routing routing_css filtering filter_sync filter_sync_css filter_css qa_patch dashboard acceptance cleanup
+            local html css app ownership routing routing_css filtering filter_sync filter_sync_css filter_css qa_patch dashboard acceptance cleanup reference
 
             html="$(
               curl --fail --silent --show-error \
@@ -304,6 +304,8 @@ jobs:
             require_contains "Routing Flow filter names" 'String(filter?.filter_name || filter?.name || "").trim()' "${routing}" || return 1
             require_contains "Routing Flow filter values" "function filterCardValues(filter)" "${routing}" || return 1
             require_contains "Routing Flow value overflow" "rf-filter-value-overflow-wrap" "${routing}" || return 1
+            require_contains "Routing Flow six visible values" "const visibleValueLimit = 6;" "${routing}" || return 1
+            require_contains "Routing Flow value popover labels" "rf-filter-value-popover-label" "${routing}" || return 1
             require_contains "Routing Flow selected range" "const requestRange = selectedRoutingRange();" "${routing}" || return 1
             require_contains "Routing Flow response range" "String(next.range || \"\") !== requestRange" "${routing}" || return 1
 
@@ -314,6 +316,7 @@ jobs:
             )" || { echo "WAIT: routing_flow.css request failed"; return 1; }
             require_contains "Routing Flow filter summary" ".rf-filter-card-summary" "${routing_css}" || return 1
             require_contains "Routing Flow value popover" ".rf-filter-value-popover" "${routing_css}" || return 1
+            require_contains "Routing Flow open popover stacking" 'rf-filter-card:has(.rf-filter-value-overflow[aria-expanded="true"])' "${routing_css}" || return 1
 
             filtering="$(
               curl --fail --silent --show-error \
@@ -323,6 +326,7 @@ jobs:
             require_contains "Filtering six-column header" 'data-filter-sync-column="sharing">Sharing</th><th>Actions</th>' "${filtering}" || return 1
             require_contains "Filtering full-width details" 'className: "filtering-expanded-row"' "${filtering}" || return 1
             require_contains "Filtering title reset" "delete title.dataset.i18nSource;" "${filtering}" || return 1
+            require_contains "Filtering synchronous final-paint event" "nowlert:filtering-rendered" "${filtering}" || return 1
 
             filter_sync="$(
               curl --fail --silent --show-error \
@@ -330,6 +334,7 @@ jobs:
                 "${BASE_URL}/ui/filtering_ownership_sync.js?v=${UI_BUILD}"
             )" || { echo "WAIT: filtering_ownership_sync.js request failed"; return 1; }
             require_contains "Filtering Name enforcement" 'nameHeading.textContent !== "Name"' "${filter_sync}" || return 1
+            require_contains "Filtering synchronous ownership decorator" "decorate(event.detail);" "${filter_sync}" || return 1
 
             filter_sync_css="$(
               curl --fail --silent --show-error \
@@ -363,6 +368,8 @@ jobs:
             require_contains "Dashboard queued refresh" "refreshPending = true;" "${dashboard}" || return 1
             require_contains "Dashboard first-paint snapshot" "function restoreDashboardSnapshot(session, range)" "${dashboard}" || return 1
             require_contains "Dashboard range-scoped snapshot" "snapshot.range !== range" "${dashboard}" || return 1
+            require_contains "Dashboard dedicated delivery feed" "let dashboardDeliveries = [];" "${dashboard}" || return 1
+            require_contains "Dashboard tagged live refresh" "dashboardFeed: true" "${dashboard}" || return 1
 
             acceptance="$(
               curl --fail --silent --show-error \
@@ -370,6 +377,7 @@ jobs:
                 "${BASE_URL}/ui/operations_acceptance.js?v=${UI_BUILD}"
             )" || { echo "WAIT: operations_acceptance.js request failed"; return 1; }
             require_contains "Dashboard persisted range bootstrap" "readStoredRangeForSession(session, \"dashboard-range\")" "${acceptance}" || return 1
+            require_contains "Dashboard live status only tracks tagged refreshes" "if (!options.dashboardFeed)" "${acceptance}" || return 1
 
             cleanup="$(
               curl --fail --silent --show-error \
@@ -377,6 +385,14 @@ jobs:
                 "${BASE_URL}/ui/acceptance_cleanup.js?v=${UI_BUILD}"
             )" || { echo "WAIT: acceptance_cleanup.js request failed"; return 1; }
             require_contains "Filtering cleanup main rows" '#filter-table > tr.filtering-policy-row' "${cleanup}" || return 1
+            require_contains "Filtering synchronous acceptance decorator" "applyFilteringAcceptance(event.detail);" "${cleanup}" || return 1
+
+            reference="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/reference_acceptance.js?v=${UI_BUILD}"
+            )" || { echo "WAIT: reference_acceptance.js request failed"; return 1; }
+            require_contains "Security stable authenticated role" "referenceAuthenticatedRole" "${reference}" || return 1
 
             return 0
           }

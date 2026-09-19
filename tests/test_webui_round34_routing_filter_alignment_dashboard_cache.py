@@ -54,7 +54,7 @@ def test_dashboard_has_range_aware_first_paint_snapshot_for_f5():
     assert "function restoreDashboardSnapshot(session, range)" in script
     assert "function saveDashboardSnapshot(range)" in script
     assert "snapshot.range !== range" in script
-    assert "state.deliveries = snapshot.deliveries;" in script
+    assert "dashboardDeliveries = snapshot.deliveries;" in script
     assert "state.metrics = snapshot.metrics;" in script
     assert "state.audit = snapshot.audit;" in script
     assert 'filterSnapshot = snapshot.filters && typeof snapshot.filters === "object"' in script
@@ -73,9 +73,9 @@ def test_dashboard_has_range_aware_first_paint_snapshot_for_f5():
 
 
 def test_round34_build_versions_the_changed_webui_bundle():
-    assert UI_BUILD == "20260919-r34"
+    assert UI_BUILD == "20260919-r35"
     index = read("src/webui/index.html")
-    assert 'name="nowlert-ui-build" content="20260919-r34"' in index
-    assert "/ui/app.js?v=20260919-r34" in index
-    assert "/ui/qa_patch.css?v=20260919-r34" in index
-    assert "/ui/qa_patch.js?v=20260919-r34" in index
+    assert 'name="nowlert-ui-build" content="20260919-r35"' in index
+    assert "/ui/app.js?v=20260919-r35" in index
+    assert "/ui/qa_patch.css?v=20260919-r35" in index
+    assert "/ui/qa_patch.js?v=20260919-r35" in index

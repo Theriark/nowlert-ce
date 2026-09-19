@@ -602,6 +602,10 @@
     return result;
   };
 
+  document.addEventListener("nowlert:filtering-rendered", event => {
+    decorate(event.detail);
+  });
+
   document.addEventListener("DOMContentLoaded", () => {
     if (state.user?.username) authenticatedUsername = String(state.user.username);
     syncProfileIdentity();

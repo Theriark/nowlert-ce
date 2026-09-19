@@ -437,6 +437,7 @@
 
   const previousRequest = request;
   request = async function operationsAcceptanceRequest(path, options = {}) {
+    if (!options.dashboardFeed) return previousRequest(path, options);
     const key = dashboardFeedKey(path);
     if (!key || state.currentView !== "dashboard") return previousRequest(path, options);
     syncAuthenticatedUser();

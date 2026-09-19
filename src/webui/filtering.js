@@ -357,6 +357,7 @@
     }
     const addButton = byId("add-filter-button");
     if (addButton) addButton.hidden = !canCreateFilter();
+    document.dispatchEvent(new CustomEvent("nowlert:filtering-rendered", { detail: payload }));
   }
 
   function actionButtonForFilter(label, action, id = "", style = "secondary") {
