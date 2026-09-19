@@ -13,7 +13,7 @@ from storage.destinations import Destination
 CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Embed"
 
 SOURCE_SIGNATURES = (
-    ("xo", "🗃️ Storage"),
+    ("xo", "📁 Storage"),
     ("zabbix", "🚨 Problem"),
     ("grafana", "📂 Rule"),
     ("portainer", "📦 Portainer"),
@@ -236,10 +236,12 @@ def test_classic_embed_v1_xo_uses_v1_kpi_and_storage_geometry():
     fields = preview.payload["embeds"][0]["fields"]
     names = [field["name"] for field in fields]
 
-    assert names[:3] == ["⌛ Duration", "💿 Transfer Size", "⚡ Transfer Speed"]
-    assert "🗃️ Storage" in names
-    assert "🕰️ Timing" in names
-    assert "🧾 Job Details" in names
+    assert names[:3] == ["⏱️ Duration", "📦 Transfer Size", "🚀 Transfer Speed"]
+    assert "📁 Storage" in names
+    assert "⏱️ Timing" in names
+    assert "✉️ Subject" in names
+    assert "🆔 Job ID" in names
+    assert "🔢 Job Details" in names
 
 
 def test_components_v2_bypasses_classic_embed_v1():
@@ -276,7 +278,7 @@ def test_direct_xo_formatter_no_longer_emits_legacy_classic_geometry():
     embed = payload["embeds"][0]
     names = [str(field.get("name") or "") for field in embed.get("fields", [])]
 
-    assert "🗃️ Storage" in names
+    assert "📁 Storage" in names
     assert "📋 Event details" not in names
     assert embed["footer"] == {"text": CLASSIC_FOOTER}
 
@@ -289,3 +291,123 @@ def test_direct_components_v2_still_uses_existing_modern_contract():
     assert "components" in payload
     assert "embeds" not in payload
     assert CLASSIC_FOOTER not in repr(payload)
+
+
+FINAL_EE_REQUIRED_FIELDS = {
+    "zabbix": [
+        "🚨 Problem",
+        "📈 Operational Data",
+        "🧪 Trigger",
+        "🏷️ Event Tags",
+        "🆔 Problem ID",
+        "⏱️ Timing",
+        "📘 Runbook",
+        "📧 Email",
+        "✉️ Subject",
+    ],
+    "grafana": [
+        "📣 Alert",
+        "📂 Rule",
+        "📊 Location",
+        "🗄️ Datasource",
+        "🏷️ Labels",
+        "📈 Values",
+        "⏱️ Timing",
+        "📝 Details",
+    ],
+    "portainer": [
+        "⚠️ Alert",
+        "📦 Portainer",
+        "🔐 Authentication",
+        "📈 Signal",
+        "⏱️ Timing",
+    ],
+    "proxmox": [
+        "⚠️ Alert",
+        "🟧 Proxmox VE",
+        "💾 Storage",
+        "⏱️ Timing",
+    ],
+    "qnap": [
+        "⚠️ Alert",
+        "🗄️ QNAP NAS",
+        "💽 Storage",
+        "⏱️ Timing",
+    ],
+    "synology": [
+        "⚠️ Alert",
+        "🗄️ Synology NAS",
+        "💽 Storage",
+        "⏱️ Timing",
+    ],
+    "truenas": [
+        "⚠️ Alert",
+        "🗄️ TrueNAS System",
+        "💽 Storage",
+        "⏱️ Timing",
+    ],
+    "unifi_network": [
+        "⚠️ Alert",
+        "🎛️ UniFi Controller",
+        "💻 Client",
+        "📶 Network / Wi-Fi",
+        "📍 Last Access Point",
+        "⏱️ Timing",
+    ],
+    "unifi_protect": [
+        "⚠️ Alert",
+        "🎯 Trigger",
+        "🚨 Alarm Rule",
+        "🔎 Condition",
+        "⏱️ Timing",
+    ],
+    "unifi_drive": [
+        "⚠️ Alert",
+        "🗄️ UniFi Drive",
+        "🔔 Alarm",
+        "⏱️ Timing",
+    ],
+    "supermicro": [
+        "⚠️ Alert",
+        "🖥️ Supermicro BMC",
+        "🔎 Hardware Event",
+        "📍 Hardware Origin",
+        "⏱️ Timing",
+    ],
+    "hpe_ilo": [
+        "⚠️ Alert",
+        "🖥️ HPE iLO",
+        "🔎 Hardware Event",
+        "📍 Hardware Origin",
+        "⏱️ Timing",
+    ],
+    "dell_idrac": [
+        "⚠️ Alert",
+        "🖥️ Dell iDRAC",
+        "🔎 Hardware Event",
+        "📍 Hardware Origin",
+        "⏱️ Timing",
+    ],
+    "home_assistant": [
+        "⚠️ Alert",
+        "🏠 Home Assistant",
+        "🎯 Entity / Device",
+        "🔎 Source Details",
+        "⏱️ Timing",
+    ],
+}
+
+
+@pytest.mark.parametrize(("source", "required"), FINAL_EE_REQUIRED_FIELDS.items())
+def test_non_xo_classic_templates_match_final_ee_operator_sections(source, required):
+    embed = DiscordOutput().source_formatters[source].format(notification(source))["embeds"][0]
+    names = [str(field.get("name") or "") for field in embed.get("fields", [])]
+
+    positions = [names.index(name) for name in required]
+    assert positions == sorted(positions), source
+    assert embed["footer"] == {"text": CLASSIC_FOOTER}, source
+    assert all(name not in names for name in ("Body", "Metadata", "Job Details")), source
+    assert all(
+        marker not in repr(embed)
+        for marker in ("Nowlert AI", "Insight", "Context", "Recommended Action")
+    ), source

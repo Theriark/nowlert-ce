@@ -151,14 +151,19 @@ def _lifecycle(status: object, severity: object, *, state: object = "") -> tuple
 
 
 def _render_xo(notification, payload, normalized, metadata):
-    status = str(normalized.get("status") or "").strip()
-    status_words = _normal_words(status)
-    if status_words in {"failure", "failed", "error", "critical"}:
-        color, icon, lifecycle = _RED, "❌", "Backup Failed"
-    elif status_words in {"skipped", "warning", "warn"}:
-        color, icon, lifecycle = _ORANGE, "⚠️", "Backup Skipped"
+    """Render the final accepted EE Xen Orchestra Classic Embed v1 geometry."""
+
+    status = _normal_words(normalized.get("status"))
+    failed = status in {"failure", "failed", "error", "critical"}
+    skipped_count = int(normalized.get("vm_skipped") or 0)
+    skipped = status == "skipped" or (not failed and skipped_count > 0)
+
+    if failed:
+        color, icon, lifecycle = 0xED4245, "❌", "Backup Failed"
+    elif skipped:
+        color, icon, lifecycle = 0x5865F2, "⏭️", "Backup Skipped"
     else:
-        color, icon, lifecycle = _GREEN, "✅", "Backup Successful"
+        color, icon, lifecycle = 0x57F287, "✅", "Backup Successful"
 
     job_name = str(
         normalized.get("job_name")
@@ -166,22 +171,46 @@ def _render_xo(notification, payload, normalized, metadata):
         or normalized.get("subject")
         or "Xen Orchestra backup"
     ).strip()
-    description = str(normalized.get("body") or lifecycle).strip()[:4096]
+
+    vm_success = int(normalized.get("vm_success") or 0)
+    vm_failed = int(normalized.get("vm_failed") or 0)
+    vm_total = int(normalized.get("vm_total") or 0)
+
+    if failed:
+        count = max(1, vm_failed)
+        description = (
+            f"Backup operation failed with {count} VM error."
+            if count == 1
+            else f"Backup operation failed with {count} VM errors."
+        )
+    elif skipped:
+        protected = vm_success
+        protected_label = "VM" if protected == 1 else "VMs"
+        skipped_label = "VM was" if skipped_count == 1 else "VMs were"
+        description = (
+            f"{protected} {protected_label} protected successfully and "
+            f"{skipped_count} {skipped_label} skipped by backup policy."
+        )
+    else:
+        protected = vm_success or vm_total
+        protected_label = "VM" if protected == 1 else "VMs"
+        description = f"{protected} {protected_label} protected successfully with no failures."
+
     fields: list[dict[str, Any]] = []
 
     for field in (
-        _field("⌛ Duration", _code(str(normalized.get("duration") or "").replace(" minutes", " min").replace(" minute", " min")), inline=True),
-        _field("💿 Transfer Size", _code(normalized.get("transfer_size")), inline=True),
-        _field("⚡ Transfer Speed", _code(normalized.get("transfer_speed")), inline=True),
+        _field("⏱️ Duration", _code(normalized.get("duration")), inline=True),
+        _field("📦 Transfer Size", _code(normalized.get("transfer_size")), inline=True),
+        _field("🚀 Transfer Speed", _code(normalized.get("transfer_speed")), inline=True),
         _rows_field(
-            "🗃️ Storage",
+            "📁 Storage",
             [
                 ("Repository", normalized.get("repository")),
                 ("Mode", normalized.get("mode")),
             ],
         ),
         _rows_field(
-            "🕰️ Timing",
+            "⏱️ Timing",
             [
                 ("Started", normalized.get("start_time")),
                 ("Finished", normalized.get("end_time")),
@@ -191,53 +220,58 @@ def _render_xo(notification, payload, normalized, metadata):
         if field is not None:
             fields.append(field)
 
-    def vm_field(name: str, icon_value: str, values: object, *, errors: bool = False):
+    details = normalized.get("vm_details")
+    if not isinstance(details, dict):
+        details = {}
+
+    def vm_value(vm_name: str) -> str:
+        item = details.get(vm_name)
+        if not isinstance(item, dict):
+            item = {}
+        values = [
+            str(item.get(key) or "").strip()
+            for key in ("size", "speed")
+            if str(item.get(key) or "").strip()
+        ]
+        return " · ".join(values)
+
+    def vm_section(name: str, values: object, *, include_error: bool = False):
         if not isinstance(values, list) or not values:
             return None
-        details = normalized.get("vm_details")
-        if not isinstance(details, dict):
-            details = {}
-        blocks = []
-        for vm in values[:10]:
-            vm_name = str(vm or "").strip()
+        lines = []
+        for raw_name in values[:10]:
+            vm_name = str(raw_name or "").strip()
             if not vm_name:
                 continue
-            item = details.get(vm_name)
-            if not isinstance(item, dict):
-                item = {}
-            facts = []
-            if item.get("size"):
-                facts.append(str(item["size"]))
-            if item.get("speed"):
-                facts.append(str(item["speed"]))
-            if item.get("repository") and item.get("repository") != normalized.get("repository"):
-                facts.append(str(item["repository"]))
-            line = f"{icon_value} **{vm_name}**"
-            if facts:
-                line += "\n" + " · ".join(facts)
-            if errors and item.get("error"):
-                line += f"\nError: {item['error']}"
-            blocks.append(line)
-        remaining = len(values) - len(blocks)
+            value = vm_value(vm_name)
+            lines.append(
+                f"**{vm_name}:** {_code(value) if value else _code('Reported')}"
+            )
+            if include_error:
+                item = details.get(vm_name)
+                if isinstance(item, dict) and str(item.get("error") or "").strip():
+                    lines.append(f"**Error:** {_code(item.get('error'))}")
+        remaining = len(values) - min(len(values), 10)
         if remaining > 0:
-            blocks.append(f"… and {remaining} more")
-        return _field(name, "\n".join(blocks))
+            lines.append(f"… and {remaining} more")
+        return _field(name, "\n".join(lines))
 
     for field in (
-        vm_field("❌ Failed VMs", "❌", normalized.get("failed_vms"), errors=True),
-        vm_field("⚠️ Skipped VMs", "⚠️", normalized.get("skipped_vms"), errors=True),
-        vm_field("🟩 Successful VMs", "✅", normalized.get("successful_vms")),
+        vm_section("✅ Successful VMs", normalized.get("successful_vms")),
+        vm_section("❌ Failed VMs", normalized.get("failed_vms"), include_error=True),
+        vm_section("⏭️ Skipped VMs", normalized.get("skipped_vms"), include_error=True),
         _rows_field(
-            "📨 Message",
+            "📧 Email",
             [
                 ("From", normalized.get("sender")),
-                ("Subject", normalized.get("subject")),
+                ("To", _metadata_value(metadata, "to", "recipient")),
             ],
         ),
+        _field("✉️ Subject", _code(normalized.get("subject"))),
+        _field("🆔 Job ID", _code(normalized.get("job_id"))),
         _rows_field(
-            "🧾 Job Details",
+            "🔢 Job Details",
             [
-                ("Job ID", normalized.get("job_id")),
                 ("Run ID", normalized.get("run_id")),
                 ("Provider", "Xen Orchestra"),
                 ("Source", "xo"),
@@ -252,7 +286,6 @@ def _render_xo(notification, payload, normalized, metadata):
         {"title": title, "description": description, "color": color, "fields": fields},
         payload,
     )
-
 
 _ZABBIX_RECOGNIZED = {
     "problem name", "host", "severity", "operational data", "original problem id",
@@ -315,7 +348,8 @@ def _render_zabbix(notification, payload, normalized, metadata):
         ("Duration", normalized.get("duration") or source_fields.get("problem duration")),
     ]))
     append(_field("📘 Runbook", _code(source_fields.get("runbook"))))
-    append(_rows_field("📧 Email", [("From", normalized.get("sender")), ("Subject", normalized.get("subject"))]))
+    append(_rows_field("📧 Email", [("From", normalized.get("sender")), ("To", _metadata_value(metadata, "to", "recipient"))]))
+    append(_field("✉️ Subject", _code(normalized.get("subject"))))
 
     for raw_label, raw_value in source_fields.items():
         label = _normal_words(raw_label)
@@ -395,7 +429,7 @@ def _render_grafana(notification, payload, normalized, metadata):
         ("Message", metadata.get("message")),
     ]))
     if _normal_words(metadata.get("_input_type")) != "http":
-        append(_rows_field("📧 Email", [("From", normalized.get("sender")), ("Subject", normalized.get("subject"))]))
+        append(_rows_field("📧 Email", [("From", normalized.get("sender")), ("To", _metadata_value(metadata, "to", "recipient")), ("Subject", normalized.get("subject"))]))
 
     for raw_label, raw_value in source_fields.items():
         label = _normal_words(raw_label)
