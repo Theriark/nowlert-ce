@@ -112,8 +112,8 @@ def test_filtering_webui_shows_active_filter_cards_and_reference_editor():
     assert "white-space: normal;" in styles
     assert 'byId("page-title").textContent = VIEW_TITLES.filtering;' in script
     assert "width: min(1040px, calc(100vw - 2rem));" in styles
-    assert "grid-template-columns: repeat(3, minmax(220px, 1fr));" in styles
-    assert "justify-content: stretch;" in styles
+    assert "grid-template-columns: repeat(auto-fit, minmax(220px, 280px));" in styles
+    assert "justify-content: start;" in styles
     assert 'className: "filtering-expanded-cell"' in script
     assert "grid-template-columns: minmax(4.8rem, 6rem) minmax(8rem, 9.5rem) minmax(0, 1fr) auto;" in styles
     assert "sourceIcon(integration.source)" in script

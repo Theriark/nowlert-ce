@@ -281,6 +281,22 @@
       groups: items,
     };
   }
+
+  function filterCardValues(filter) {
+    const values = [];
+    const seen = new Set();
+    for (const group of filterCardDescriptor(filter).groups) {
+      for (const rawValue of group.values || []) {
+        const value = String(rawValue || "").trim();
+        const key = value.toLowerCase();
+        if (!value || seen.has(key)) continue;
+        seen.add(key);
+        values.push(value);
+      }
+    }
+    return values;
+  }
+
   function renderFilterCard(node, filter, routes, destination) {
     node.classList.add("rf-filter-card");
     const descriptor = filterCardDescriptor(filter);
@@ -298,19 +314,120 @@
     header.append(visual, headingCopy);
 
     const tags = el("div", "rf-filter-card-tags");
+    const filterValues = filterCardValues(filter);
+    const visibleValueLimit = 4;
+    let valueMenuOpen = false;
+    let valueFitFrame = null;
 
-    function renderFilterRuleRow(group, groupIndex) {
-      const row = el("div", "rf-filter-rule-row");
-      const label = el("span", "rf-filter-rule-label", group.label);
-      label.dataset.filterLabel = "1";
-      label.dataset.filterGroup = String(groupIndex);
-      row.append(label);
-      return row;
+    const fitCollapsedFilterValues = () => {
+      valueFitFrame = null;
+      if (!tags.isConnected) return;
+      const width = tags.clientWidth;
+      if (!width) return;
+
+      const valueNodes = [...tags.querySelectorAll("[data-filter-value]")];
+      const overflowWrap = tags.querySelector(".rf-filter-value-overflow-wrap");
+      const toggle = overflowWrap?.querySelector(".rf-filter-value-overflow");
+      const popover = overflowWrap?.querySelector(".rf-filter-value-popover");
+      if (!overflowWrap || !toggle || !popover) return;
+
+      valueNodes.forEach((item, index) => {
+        item.hidden = index >= visibleValueLimit;
+      });
+      valueMenuOpen = false;
+      popover.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+
+      const gap = Number.parseFloat(
+        getComputedStyle(tags).columnGap
+        || getComputedStyle(tags).gap
+        || "0",
+      ) || 0;
+      const visibleNodes = valueNodes.slice(0, visibleValueLimit);
+      const visibleWidth = visibleNodes.reduce(
+        (sum, item, index) => sum + item.getBoundingClientRect().width + (index ? gap : 0),
+        0,
+      );
+
+      let hiddenValues = valueNodes
+        .filter(item => item.hidden)
+        .map(item => item.dataset.filterValueText);
+      if (!hiddenValues.length && visibleWidth <= width) {
+        overflowWrap.hidden = true;
+        return;
+      }
+
+      overflowWrap.hidden = false;
+      toggle.textContent = "+99";
+      const overflowWidth = overflowWrap.getBoundingClientRect().width;
+      const available = Math.max(0, width - overflowWidth - gap);
+      let used = 0;
+
+      for (const item of visibleNodes) {
+        const itemWidth = item.getBoundingClientRect().width;
+        const next = used + (used ? gap : 0) + itemWidth;
+        if (next <= available) {
+          item.hidden = false;
+          used = next;
+        } else {
+          item.hidden = true;
+        }
+      }
+
+      hiddenValues = valueNodes
+        .filter(item => item.hidden)
+        .map(item => item.dataset.filterValueText)
+        .filter(Boolean);
+
+      if (!hiddenValues.length) {
+        overflowWrap.hidden = true;
+        return;
+      }
+
+      toggle.textContent = `+${hiddenValues.length}`;
+      toggle.setAttribute("aria-label", `Show ${hiddenValues.length} more filter values`);
+      popover.replaceChildren();
+      for (const value of hiddenValues) {
+        const item = el("span", "rf-filter-value-popover-item", friendlyName(value));
+        item.setAttribute("role", "menuitem");
+        popover.append(item);
+      }
+    };
+
+    const scheduleValueFit = () => {
+      if (valueFitFrame !== null) cancelAnimationFrame(valueFitFrame);
+      valueFitFrame = requestAnimationFrame(fitCollapsedFilterValues);
+    };
+
+    for (const value of filterValues) {
+      const chip = el("span", "rf-filter-rule-tag rf-filter-rule-tag-muted", friendlyName(value));
+      chip.dataset.filterValue = "1";
+      chip.dataset.filterValueText = value;
+      chip.title = value;
+      tags.append(chip);
     }
 
-    for (const [groupIndex, group] of descriptor.groups.entries()) {
-      tags.append(renderFilterRuleRow(group, groupIndex));
-    }
+    const valueOverflowWrap = el("span", "rf-filter-value-overflow-wrap");
+    valueOverflowWrap.hidden = true;
+    const valueToggle = el("button", "rf-filter-value-overflow rf-filter-source-overflow", "+0");
+    valueToggle.type = "button";
+    valueToggle.setAttribute("aria-expanded", "false");
+    valueToggle.setAttribute("aria-haspopup", "menu");
+    valueToggle.setAttribute("aria-label", "Show more filter values");
+    const valuePopover = el("span", "rf-filter-value-popover");
+    valuePopover.hidden = true;
+    valuePopover.setAttribute("role", "menu");
+
+    valueToggle.addEventListener("click", event => {
+      event.stopPropagation();
+      valueMenuOpen = !valueMenuOpen;
+      valuePopover.hidden = !valueMenuOpen;
+      valueToggle.setAttribute("aria-expanded", String(valueMenuOpen));
+    });
+    valuePopover.addEventListener("click", event => event.stopPropagation());
+    valueOverflowWrap.append(valueToggle, valuePopover);
+    tags.append(valueOverflowWrap);
+    scheduleValueFit();
 
     const stats = el("div", "rf-filter-card-stats");
     stats.setAttribute("aria-label", `Filter metrics for ${rangeLabel()}`);
@@ -450,6 +567,7 @@
 
     footer.append(sourceGroup, destinationGroup);
     node.append(header, tags, stats, footer);
+    scheduleValueFit();
     scheduleSourceFit();
   }
   function activeFlowGraph() {

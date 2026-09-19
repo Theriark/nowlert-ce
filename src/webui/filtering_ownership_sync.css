@@ -49,9 +49,9 @@ button.filtering-status-control { cursor: pointer; }
 }
 .filtering-managed-integration .filtering-overview-chips { display: none; }
 .filtering-owner-picker { width: min(620px, calc(100vw - 2rem)); }
-.filtering-table td:last-child > div,
-.filtering-table td:last-child > .filtering-table-actions,
-.filtering-table td:last-child > .table-actions {
+.filtering-table .filtering-actions-cell > div,
+.filtering-table .filtering-actions-cell > .filtering-table-actions,
+.filtering-table .filtering-actions-cell > .table-actions {
   align-items: center;
   display: flex;
   flex-wrap: nowrap;

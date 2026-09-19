@@ -10,18 +10,18 @@ def read(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_routing_filter_card_shows_only_field_name_tags_in_one_row():
+def test_routing_filter_card_keeps_subtitle_but_uses_actual_rule_values_in_one_row():
     script = read("src/webui/routing_flow.js")
     styles = read("src/webui/routing_flow.css")
-    start = script.index("function renderFilterRuleRow(group, groupIndex)")
+    start = script.index("function renderFilterCard")
     end = script.index("const stats =", start)
     block = script[start:end]
 
-    assert 'const row = el("div", "rf-filter-rule-row");' in block
-    assert 'const label = el("span", "rf-filter-rule-label", group.label);' in block
-    assert "data-filter-value" not in block
-    assert "for (const value of group.values)" not in block
-    assert "rf-filter-overflow-button" not in block
+    assert "const filterValues = filterCardValues(filter);" in block
+    assert 'chip.dataset.filterValue = "1";' in block
+    assert 'friendlyName(value)' in block
+    assert '"rf-filter-value-overflow-wrap"' in block
+    assert '"rf-filter-value-popover"' in block
 
     assert "/* 2026-09-19 round-30 compact filter field summary. */" in styles
     round30 = styles.split(
@@ -29,8 +29,7 @@ def test_routing_filter_card_shows_only_field_name_tags_in_one_row():
     )[1]
     assert "display: flex !important;" in round30
     assert "flex-wrap: nowrap !important;" in round30
-    assert ".rf-filter-rule-row" in round30
-    assert "display: contents !important;" in round30
+    assert ".rf-filter-card-tags" in round30
 
 
 def test_routing_filter_source_overflow_uses_hovering_popover_not_second_line():

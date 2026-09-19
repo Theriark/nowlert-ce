@@ -57,11 +57,13 @@ def test_round25_filter_card_overflow_and_destination_alignment_are_interactive(
     assert "FILTER_SOURCE_LIMIT" not in script
     assert "FILTER_VALUE_LIMIT" not in script
     assert "const configuredSources = [...new Set((filter.sources || []).filter(Boolean))];" in script
-    assert "function renderFilterRuleRow(group, groupIndex)" in script
-    assert "data-filter-value" not in script[
-        script.index("function renderFilterRuleRow(group, groupIndex)"):
-        script.index("const stats =", script.index("function renderFilterRuleRow(group, groupIndex)"))
+    assert "function filterCardValues(filter)" in script
+    value_block = script[
+        script.index("const filterValues = filterCardValues(filter);"):
+        script.index("const stats =", script.index("const filterValues = filterCardValues(filter);"))
     ]
+    assert 'chip.dataset.filterValue = "1";' in value_block
+    assert "rf-filter-value-overflow-wrap" in value_block
     assert "getBoundingClientRect().width" in script
     assert "const fitCollapsedSources = () => {" in script
     assert "const width = sourceSummary.clientWidth;" in script
