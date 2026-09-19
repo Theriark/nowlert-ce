@@ -133,7 +133,8 @@ def test_filtering_webui_matches_reference_controls_and_icons():
     assert "matches wildcard" in script
     assert "filtering-overview-chip" in script
     assert "filtering-integration-mark" not in script
-    assert "grid-template-columns: repeat(3" in styles
+    assert "grid-template-columns: repeat(auto-fit, minmax(220px, 280px));" in styles
+    assert "justify-content: start;" in styles
     assert ".filtering-editor-identity" in styles
     assert "max-height: min(calc(100vh - 8rem), 860px);" in styles
     assert "max-height: min(92vh, 860px);" not in styles

@@ -151,13 +151,14 @@ def test_routing_flow_filter_details_show_fields_and_filter_metrics():
     assert 'detailRow("Reduction", filterReductionText(filter.metrics))' in block
 
 
-def test_routing_flow_filter_field_label_tags_have_no_colon():
+def test_routing_flow_filter_value_tags_show_values_without_field_prefixes():
     script = read("src/webui/routing_flow.js")
-    start = script.index("function renderFilterRuleRow(group, groupIndex)")
+    start = script.index("const filterValues = filterCardValues(filter);")
     block = script[start:script.index("const stats =", start)]
 
-    assert 'el("span", "rf-filter-rule-label", group.label)' in block
-    assert '`${group.label}:`' not in block
+    assert 'friendlyName(value)' in block
+    assert 'chip.dataset.filterValue = "1";' in block
+    assert 'group.label' not in block
 
 
 def test_filtering_dialog_has_filter_name_and_visible_nonconfigurable_fallback():

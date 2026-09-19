@@ -24,7 +24,7 @@ def test_routing_filter_card_shows_rule_values_in_one_row_with_plus_n_popover():
     assert "const filterValues = filterCardValues(filter);" in card
     assert 'dataset.filterValue = "1";' in card
     assert '"rf-filter-value-overflow-wrap"' in card
-    assert '"rf-filter-value-overflow"' in card
+    assert '"rf-filter-value-overflow rf-filter-source-overflow"' in card
     assert '"rf-filter-value-popover"' in card
     assert 'toggle.textContent = `+${hiddenValues.length}`;' in card
     assert 'valuePopover.hidden = !valueMenuOpen;' in card
@@ -57,7 +57,7 @@ def test_dashboard_has_range_aware_first_paint_snapshot_for_f5():
     assert "state.deliveries = snapshot.deliveries;" in script
     assert "state.metrics = snapshot.metrics;" in script
     assert "state.audit = snapshot.audit;" in script
-    assert "filterSnapshot = snapshot.filters;" in script
+    assert 'filterSnapshot = snapshot.filters && typeof snapshot.filters === "object"' in script
 
     refresh_start = script.index("async function refreshDashboardData")
     refresh_end = script.index("function updateLiveAge", refresh_start)

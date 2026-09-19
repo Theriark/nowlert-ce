@@ -66,7 +66,8 @@ def test_routing_filter_keeps_outer_size_and_animation_but_uses_reference_interi
     assert "policy.policy_rules" in script
     assert "current.filters" in script
     assert "filter.route_ids" in script
-    assert "rf-filter-rule-label" in script
+    assert "function filterCardValues(filter)" in script
+    assert "rf-filter-rule-tag" in script
     assert "filterTagTone(value)" in script
     assert 'const sourceSummary = el("span", "rf-filter-card-sources")' in script
     assert "for (const source of configuredSources)" in script
