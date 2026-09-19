@@ -1,4 +1,4 @@
-"""Round-53 contracts for Datadog Runtime SCA in CE Development."""
+"""Round-54 contracts for Datadog Runtime SCA in CE Development."""
 
 from __future__ import annotations
 
@@ -52,12 +52,48 @@ def test_runtime_sca_contract_enables_sca_and_keeps_iast_off():
         Namespace(dd_runtime_sca=False)
     ) == {}
     assert module.datadog_runtime_security(
-        Namespace(dd_runtime_sca=True)
+        Namespace(
+            dd_runtime_sca=True,
+            dd_agent_host="datadog-agent",
+            dd_trace_agent_port=8126,
+        )
     ) == {
         "NOWLERT_DDTRACE_ENABLED": "true",
         "DD_APPSEC_SCA_ENABLED": "true",
         "DD_IAST_ENABLED": "false",
+        "DD_AGENT_HOST": "datadog-agent",
+        "DD_TRACE_AGENT_PORT": "8126",
     }
+
+
+def test_runtime_sca_requires_agent_transport():
+    module = load_swarm_deploy()
+
+    try:
+        module.datadog_runtime_security(
+            Namespace(
+                dd_runtime_sca=True,
+                dd_agent_host="",
+                dd_trace_agent_port=8126,
+            )
+        )
+    except module.DokployError as exc:
+        assert "--dd-agent-host" in str(exc)
+    else:
+        raise AssertionError("missing Datadog Agent host must fail")
+
+    try:
+        module.datadog_runtime_security(
+            Namespace(
+                dd_runtime_sca=True,
+                dd_agent_host="datadog-agent",
+                dd_trace_agent_port=0,
+            )
+        )
+    except module.DokployError as exc:
+        assert "--dd-trace-agent-port" in str(exc)
+    else:
+        raise AssertionError("invalid Datadog trace port must fail")
 
 
 def test_startup_wraps_python_only_when_datadog_is_enabled():
@@ -82,4 +118,6 @@ def test_development_workflow_activates_runtime_sca_only():
     assert '--dd-service "nowlert-ce"' in deploy
     assert '--dd-env "development"' in deploy
     assert '--dd-version "${SOURCE_SHA}"' in deploy
+    assert '--dd-agent-host "datadog-agent"' in deploy
+    assert "--dd-trace-agent-port 8126" in deploy
     assert "--dd-iast" not in deploy

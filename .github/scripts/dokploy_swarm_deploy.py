@@ -72,10 +72,29 @@ def datadog_identity(args: argparse.Namespace) -> dict[str, str]:
 def datadog_runtime_security(args: argparse.Namespace) -> dict[str, str]:
     if not bool(getattr(args, "dd_runtime_sca", False)):
         return {}
+
+    agent_host = str(getattr(args, "dd_agent_host", "") or "").strip()
+    trace_agent_port = int(getattr(args, "dd_trace_agent_port", 0) or 0)
+
+    if not agent_host:
+        raise DokployError(
+            "Datadog Runtime SCA requires --dd-agent-host"
+        )
+    if not re.fullmatch(r"[a-z0-9][a-z0-9.-]*", agent_host):
+        raise DokployError(
+            "DD_AGENT_HOST must use lowercase DNS-safe characters"
+        )
+    if not 1 <= trace_agent_port <= 65535:
+        raise DokployError(
+            "Datadog Runtime SCA requires --dd-trace-agent-port in 1..65535"
+        )
+
     return {
         "NOWLERT_DDTRACE_ENABLED": "true",
         "DD_APPSEC_SCA_ENABLED": "true",
         "DD_IAST_ENABLED": "false",
+        "DD_AGENT_HOST": agent_host,
+        "DD_TRACE_AGENT_PORT": str(trace_agent_port),
     }
 
 
@@ -122,7 +141,10 @@ def verify_datadog_runtime_security(
             "Dokploy Datadog Runtime SCA mismatch: "
             f"observed {observed}, expected {expected}"
         )
-    print("PASS: Datadog Runtime SCA enabled and IAST explicitly disabled")
+    print(
+        "PASS: Datadog Runtime SCA enabled, IAST explicitly disabled, "
+        f"agent={expected['DD_AGENT_HOST']}:{expected['DD_TRACE_AGENT_PORT']}"
+    )
 
 
 def validate_sha_tag(image: str) -> None:
@@ -289,6 +311,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dd-service", default="")
     parser.add_argument("--dd-env", default="")
     parser.add_argument("--dd-version", default="")
+    parser.add_argument("--dd-agent-host", default="")
+    parser.add_argument("--dd-trace-agent-port", type=int, default=0)
     parser.add_argument("--dd-runtime-sca", action="store_true")
     parser.add_argument("--noop-ok", action="store_true")
     return parser

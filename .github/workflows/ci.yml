@@ -223,6 +223,8 @@ jobs:
             --dd-service "nowlert-ce" \
             --dd-env "development" \
             --dd-version "${SOURCE_SHA}" \
+            --dd-agent-host "datadog-agent" \
+            --dd-trace-agent-port 8126 \
             --dd-runtime-sca \
             --title "CE Development ${SOURCE_SHA}" \
             --description "GitHub Actions run ${{ github.run_id }}"
