@@ -147,6 +147,8 @@ DD_VERSION=<40-char development SHA>
 NOWLERT_DDTRACE_ENABLED=true
 DD_APPSEC_SCA_ENABLED=true
 DD_IAST_ENABLED=false
+DD_AGENT_HOST=datadog-agent
+DD_TRACE_AGENT_PORT=8126
 ```
 
 The production image ships the pinned Datadog Python tracer, but `start.sh`
@@ -158,8 +160,11 @@ IAST remains explicitly disabled for this pass.
 
 The deployment helper preserves unrelated Dokploy environment variables and
 verifies both the Datadog identity and Runtime SCA settings after the deployment
-is healthy. This change does not guess or overwrite `DD_AGENT_HOST`; Datadog
-Agent transport remains an environment-specific deployment setting.
+is healthy. CE Development explicitly connects to the dedicated Datadog Agent
+through the private `dokploy-network` service alias `datadog-agent` on trace
+port `8126`; the Agent does not publish that port on the host. Stage and public
+release environments are not opted into this Development-only runtime-security
+transport contract.
 
 ## Stage
 
