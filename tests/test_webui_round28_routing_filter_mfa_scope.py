@@ -20,7 +20,8 @@ def test_round28_filter_values_render_as_one_compact_overflow_row():
     assert 'chip.dataset.filterValue = "1";' in block
     assert '"rf-filter-value-overflow-wrap"' in block
     assert '"rf-filter-value-popover"' in block
-    assert "visibleValueLimit = 6" in block
+    assert "const visibleValueLimit = 6;" not in block
+    assert "const visibleNodes = valueNodes;" in block
     assert ".rf-filter-card-tags" in style
     assert "flex-wrap: nowrap !important;" in style
 

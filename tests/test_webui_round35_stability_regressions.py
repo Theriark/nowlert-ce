@@ -20,7 +20,8 @@ def test_routing_filter_value_overflow_shows_six_and_renders_above_sibling_nodes
     card_end = script.index("function activeFlowGraph", card_start)
     card = script[card_start:card_end]
 
-    assert "const visibleValueLimit = 6;" in card
+    assert "const visibleValueLimit = 6;" not in card
+    assert "const visibleNodes = valueNodes;" in card
     assert 'const label = el("span", "rf-filter-value-popover-label", friendlyName(value));' in card
     assert "item.append(label);" in card
     assert '.rf-filter-card:has(.rf-filter-value-overflow[aria-expanded="true"])' in styles
