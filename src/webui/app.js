@@ -218,9 +218,19 @@ const state = {
   preferences: { timezone: "Europe/Lisbon", language: "en-GB", time_format: "24" },
   pendingImport: null,
   sessionExpiresAt: null,
+  sessionIdleExpiresAt: null,
+  lastSessionKeepaliveAt: 0,
   confirmResolve: null,
   integrationSettingsBaseline: "",
 };
+
+const SESSION_IDLE_WARNING_MS = 5 * 60 * 1000;
+const SESSION_KEEPALIVE_MIN_INTERVAL_MS = 5 * 60 * 1000;
+const SESSION_ACTIVITY_DEBOUNCE_MS = 750;
+let sessionActivityTimer = null;
+let reauthPromise = null;
+let reauthResolve = null;
+let reauthUserId = "";
 
 const byId = (id) => document.getElementById(id);
 
@@ -401,8 +411,26 @@ async function request(path, options = {}) {
     }
   }
   if (!response.ok) {
-    if (response.status === 401 && state.user && path !== "/session") expireSession();
-    throw new APIError(response.status, payload && payload.error, path, payload && payload.code, payload && payload.reference);
+    const error = new APIError(
+      response.status,
+      payload && payload.error,
+      path,
+      payload && payload.code,
+      payload && payload.reference,
+    );
+    if (
+      response.status === 401
+      && state.user
+      && path !== "/session"
+      && options.reauthenticate !== false
+      && options._reauthRetry !== true
+    ) {
+      const restored = await requireReauthentication();
+      if (restored) {
+        return request(path, { ...options, _reauthRetry: true });
+      }
+    }
+    throw error;
   }
   return payload;
 }
@@ -472,9 +500,274 @@ function ownResource(item) {
   return String(item.owner_user_id || "") === String(state.user.id || "");
 }
 
-function expireSession() {
+function ensureSessionResilienceUi() {
+  if (byId("session-warning") && byId("reauth-dialog")) return;
+
+  const warning = element("div", {
+    className: "session-warning",
+    attributes: { id: "session-warning", role: "status", "aria-live": "polite" },
+    hidden: true,
+  }, [
+    element("span", { attributes: { id: "session-warning-copy" }, text: "Session expires soon." }),
+    element("button", {
+      className: "button small primary",
+      text: "Stay signed in",
+      type: "button",
+      attributes: { id: "session-stay-signed-in" },
+    }),
+  ]);
+
+  const dialog = element("dialog", {
+    className: "modal small-modal session-reauth-modal",
+    attributes: { id: "reauth-dialog", "aria-labelledby": "reauth-title" },
+  });
+  const form = element("form", { attributes: { id: "reauth-form" } }, [
+    element("div", { className: "modal-heading" }, [
+      element("div", {}, [
+        element("h2", { attributes: { id: "reauth-title" }, text: "Session expired" }),
+        element("p", {
+          className: "session-reauth-copy",
+          attributes: { id: "reauth-copy" },
+          text: "Your work is still here. Sign in again to continue.",
+        }),
+      ]),
+    ]),
+    element("label", {}, [
+      element("span", { text: "Account" }),
+      element("input", {
+        type: "text",
+        disabled: true,
+        attributes: { id: "reauth-username", autocomplete: "username" },
+      }),
+    ]),
+    element("label", {}, [
+      element("span", { text: "Password" }),
+      element("input", {
+        type: "password",
+        attributes: {
+          id: "reauth-password",
+          autocomplete: "current-password",
+          required: "",
+        },
+      }),
+    ]),
+    element("label", {
+      attributes: { id: "reauth-otp-field" },
+      hidden: true,
+    }, [
+      element("span", { text: "Authenticator code" }),
+      element("input", {
+        type: "text",
+        attributes: {
+          id: "reauth-otp",
+          inputmode: "numeric",
+          autocomplete: "one-time-code",
+          maxlength: "8",
+        },
+      }),
+    ]),
+    element("p", {
+      className: "form-error",
+      attributes: { id: "reauth-error", role: "alert" },
+      hidden: true,
+    }),
+    element("div", { className: "modal-actions" }, [
+      element("button", {
+        className: "button secondary",
+        text: "Sign out",
+        type: "button",
+        attributes: { id: "reauth-signout" },
+      }),
+      element("button", {
+        className: "button primary",
+        text: "Continue",
+        type: "submit",
+        attributes: { id: "reauth-submit" },
+      }),
+    ]),
+  ]);
+  dialog.append(form);
+  document.body.append(warning, dialog);
+}
+
+function effectiveSessionExpiry() {
+  const idle = Number(state.sessionIdleExpiresAt || 0);
+  const absolute = Number(state.sessionExpiresAt || 0);
+  if (idle && absolute) return Math.min(idle, absolute);
+  return idle || absolute || 0;
+}
+
+function renderSessionExpiryLabel() {
+  const label = byId("account-session");
+  if (!label) return;
+  const idle = state.sessionIdleExpiresAt || state.sessionExpiresAt;
+  if (!idle) {
+    label.textContent = "Session inactive";
+    return;
+  }
+  if (state.sessionExpiresAt && Number(state.sessionExpiresAt) !== Number(idle)) {
+    label.textContent = `Idle timeout ${formatTime(idle)} · maximum ${formatTime(state.sessionExpiresAt)}`;
+    return;
+  }
+  label.textContent = `Session expires ${formatTime(idle)}`;
+}
+
+function applySessionMetadata(session) {
+  if (!session) return;
+  if (session.user) state.user = session.user;
+  if (session.expires_at) state.sessionExpiresAt = session.expires_at;
+  state.sessionIdleExpiresAt = session.idle_expires_at || session.expires_at || state.sessionIdleExpiresAt;
+  if (session.csrf_token) {
+    state.csrf = session.csrf_token;
+  } else if (!state.csrf) {
+    state.csrf = readCsrfCookie(session.cookie_mode);
+  }
+  state.lastSessionKeepaliveAt = Date.now();
+  renderSessionExpiryLabel();
+  updateSessionWarning();
+}
+
+function finishReauthentication(result) {
+  const dialog = byId("reauth-dialog");
+  if (dialog?.open) dialog.close();
+  const resolve = reauthResolve;
+  reauthResolve = null;
+  reauthPromise = null;
+  reauthUserId = "";
+  resolve?.(result);
+}
+
+async function submitReauthentication(event) {
+  event.preventDefault();
+  if (!state.user || !reauthPromise) return;
+  const submit = byId("reauth-submit");
+  const error = byId("reauth-error");
+  const otpField = byId("reauth-otp-field");
+  const expectedUserId = reauthUserId;
+  submit.disabled = true;
+  error.hidden = true;
+  error.textContent = "";
+  try {
+    const body = {
+      username: state.user.username,
+      password: byId("reauth-password").value,
+    };
+    if (!otpField.hidden) body.otp = byId("reauth-otp").value.trim();
+    const session = await request("/session", {
+      method: "POST",
+      body,
+      reauthenticate: false,
+    });
+    if (String(session.user?.id || "") !== String(expectedUserId || "")) {
+      try {
+        await request("/session", { method: "DELETE", reauthenticate: false });
+      } catch (_error) {
+      }
+      throw new Error("The signed-in account changed. Sign out and sign in again.");
+    }
+    applySessionMetadata(session);
+    finishReauthentication(true);
+  } catch (reauthError) {
+    if (reauthError instanceof APIError && ["mfa_required", "mfa_invalid"].includes(reauthError.code)) {
+      otpField.hidden = false;
+      error.textContent = reauthError.code === "mfa_required"
+        ? "Enter your authenticator code to continue."
+        : "The authenticator code is invalid.";
+      error.hidden = false;
+      byId("reauth-otp").focus();
+      return;
+    }
+    error.textContent = reauthError.message || "Sign-in failed.";
+    error.hidden = false;
+  } finally {
+    submit.disabled = false;
+  }
+}
+
+function requireReauthentication(message = "Your session expired. Sign in again to continue without losing your work.") {
+  if (!state.user) return Promise.resolve(false);
+  if (reauthPromise) return reauthPromise;
+  ensureSessionResilienceUi();
+  reauthUserId = String(state.user.id || "");
+  byId("reauth-title").textContent = "Session expired";
+  byId("reauth-copy").textContent = message;
+  byId("reauth-username").value = state.user.username || "";
+  byId("reauth-password").value = "";
+  byId("reauth-otp").value = "";
+  byId("reauth-otp-field").hidden = true;
+  byId("reauth-error").hidden = true;
+  byId("session-warning").hidden = true;
+  reauthPromise = new Promise((resolve) => {
+    reauthResolve = resolve;
+  });
+  const dialog = byId("reauth-dialog");
+  if (!dialog.open) dialog.showModal();
+  window.setTimeout(() => byId("reauth-password")?.focus(), 0);
+  return reauthPromise;
+}
+
+async function refreshSession({ promptOnExpiry = true } = {}) {
+  if (!state.user) return false;
+  try {
+    const session = await request("/session", { reauthenticate: false });
+    applySessionMetadata(session);
+    return true;
+  } catch (error) {
+    if (error instanceof APIError && error.status === 401 && state.user && promptOnExpiry) {
+      return requireReauthentication();
+    }
+    return false;
+  }
+}
+
+function updateSessionWarning() {
+  ensureSessionResilienceUi();
+  const warning = byId("session-warning");
+  if (!state.user || document.visibilityState === "hidden") {
+    warning.hidden = true;
+    return;
+  }
+  const expiry = effectiveSessionExpiry();
+  if (!expiry) {
+    warning.hidden = true;
+    return;
+  }
+  const remaining = expiry * 1000 - Date.now();
+  if (remaining <= 0) {
+    warning.hidden = true;
+    void requireReauthentication();
+    return;
+  }
+  if (remaining <= SESSION_IDLE_WARNING_MS) {
+    const minutes = Math.max(1, Math.ceil(remaining / 60000));
+    byId("session-warning-copy").textContent = `Session expires in about ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+    warning.hidden = false;
+    return;
+  }
+  warning.hidden = true;
+}
+
+function noteSessionActivity() {
+  if (!state.user || document.visibilityState === "hidden" || reauthPromise) return;
+  if (Date.now() - Number(state.lastSessionKeepaliveAt || 0) < SESSION_KEEPALIVE_MIN_INTERVAL_MS) return;
+  if (sessionActivityTimer !== null) return;
+  sessionActivityTimer = window.setTimeout(() => {
+    sessionActivityTimer = null;
+    void refreshSession();
+  }, SESSION_ACTIVITY_DEBOUNCE_MS);
+}
+
+function expireSession(options = {}) {
   state.user = null;
   state.csrf = "";
+  state.sessionExpiresAt = null;
+  state.sessionIdleExpiresAt = null;
+  state.lastSessionKeepaliveAt = 0;
+  window.clearTimeout(sessionActivityTimer);
+  sessionActivityTimer = null;
+  const warning = byId("session-warning");
+  if (warning) warning.hidden = true;
+  if (reauthPromise) finishReauthentication(false);
   byId("app-shell").hidden = true;
   byId("bootstrap-view").hidden = true;
   byId("login-view").hidden = false;
@@ -492,6 +785,7 @@ function expireSession() {
   }
   byId("login-error").hidden = true;
   byId("login-username").focus();
+  return options;
 }
 
 function showBootstrap(status) {
@@ -524,8 +818,7 @@ function requestedAppView() {
 
 function showApp(session) {
   state.user = session.user;
-  state.sessionExpiresAt = session.expires_at;
-  state.csrf = session.csrf_token || readCsrfCookie(session.cookie_mode);
+  applySessionMetadata(session);
   byId("login-view").hidden = true;
   if (byId("audit-nav")) byId("audit-nav").hidden = !isAdmin();
   if (byId("users-nav")) byId("users-nav").hidden = !isAdmin();
@@ -548,7 +841,7 @@ function showApp(session) {
   const accountRole = byId("account-role");
   accountRole.textContent = admin ? "Administrator" : "User";
   delete accountRole.dataset.i18nSource;
-  byId("account-session").textContent = `Session expires ${formatTime(session.expires_at)}`;
+  renderSessionExpiryLabel();
 
   // Restore the requested page before the authenticated shell is revealed.
   // Routing Flow and Filtering wrappers synchronously hydrate their cached
@@ -570,7 +863,7 @@ async function restoreSession(prefetchedSession = null) {
     if (prefetchedSession) session = await prefetchedSession;
     else session = await request("/session");
   } catch (error) {
-    expireSession();
+    expireSession({ preserveCache: error instanceof APIError && error.status === 401 });
     if (!(error instanceof APIError) || ![401, 404].includes(error.status)) {
       byId("login-error").textContent = error.message || "Nowlert is not reachable.";
       byId("login-error").hidden = false;
@@ -2872,7 +3165,7 @@ function renderUpdates() {
 }
 
 function renderPreferences() {
-  if (state.sessionExpiresAt) byId("account-session").textContent = `Session expires ${formatTime(state.sessionExpiresAt)}`;
+  renderSessionExpiryLabel();
   if (!isAdmin()) return;
   byId("preference-language").value = state.preferences.language || "en-GB";
   byId("preference-timezone").value = state.preferences.timezone || "Europe/Lisbon";
@@ -4330,7 +4623,7 @@ async function changePassword(event) {
   if (!accepted) return;
   try {
     await request("/account/password", { method: "PUT", body: { current_password: form.get("current_password"), new_password: form.get("new_password") } });
-    expireSession();
+    expireSession({ preserveCache: false });
     toast("Password changed. Sign in again.");
   } catch (error) {
     toast(error.message || "Password change failed.", "error");
@@ -4342,7 +4635,7 @@ async function logout() {
     await request("/session", { method: "DELETE" });
   } catch (_error) {
   }
-  expireSession();
+  expireSession({ preserveCache: false });
 }
 
 function toggleProfileMenu() {
@@ -4415,6 +4708,7 @@ function setSidebarCollapsed(collapsed) {
 }
 
 function bindEvents() {
+  ensureSessionResilienceUi();
   byId("bootstrap-form").addEventListener("submit", bootstrapAdministrator);
   byId("login-form").addEventListener("submit", login);
   byId("login-password-toggle")?.addEventListener("click", toggleLoginPasswordVisibility);
@@ -4502,6 +4796,24 @@ function bindEvents() {
   byId("sidebar-collapse-button")?.addEventListener("click", () => {
     setSidebarCollapsed(!byId("app-shell").classList.contains("sidebar-collapsed"));
   });
+  byId("session-stay-signed-in")?.addEventListener("click", () => {
+    void refreshSession();
+  });
+  byId("reauth-form")?.addEventListener("submit", submitReauthentication);
+  byId("reauth-signout")?.addEventListener("click", () => {
+    finishReauthentication(false);
+    void logout();
+  });
+  byId("reauth-dialog")?.addEventListener("cancel", (event) => {
+    event.preventDefault();
+  });
+  for (const eventName of ["pointerdown", "keydown", "input"]) {
+    document.addEventListener(eventName, noteSessionActivity, true);
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") updateSessionWarning();
+  });
+  window.setInterval(updateSessionWarning, 15_000);
   document.addEventListener("click", handleClick);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !byId("profile-menu-popover").hidden) {

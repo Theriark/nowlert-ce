@@ -191,6 +191,31 @@ def event(source="home_lab", severity="warning"):
     }
 
 
+def test_session_api_exposes_absolute_and_idle_expiry(platform_api):
+    response = call(
+        platform_api,
+        "POST",
+        "/api/v2/session",
+        {"username": "administrator", "password": PASSWORD},
+    )
+    assert response.status == 200
+    assert response.payload["expires_at"] - response.payload["idle_expires_at"] == 22 * 60 * 60
+
+    cookies = [value for name, value in response.headers if name == "Set-Cookie"]
+    session_cookie = next(item.split(";", 1)[0] for item in cookies if "session=" in item)
+    current = call(
+        platform_api,
+        "GET",
+        "/api/v2/session",
+        headers={"Cookie": session_cookie},
+    )
+
+    assert current.status == 200
+    assert current.payload["expires_at"] == response.payload["expires_at"]
+    assert current.payload["idle_expires_at"] <= current.payload["expires_at"]
+    assert current.payload["idle_expires_at"] >= response.payload["idle_expires_at"]
+
+
 def test_login_session_cookie_and_csrf_boundary(platform_api):
     denied = call(
         platform_api,

@@ -189,6 +189,7 @@ class PlatformAPI:
             principal = self._session(
                 headers,
                 require_csrf=method not in _SAFE_METHODS,
+                touch=(path == "/api/v2/session" or method not in _SAFE_METHODS),
             )
         except Exception as error:
             return self._unexpected(path, error)
@@ -471,6 +472,7 @@ class PlatformAPI:
                 "user": self._user(user),
                 "csrf_token": credentials.csrf_token,
                 "expires_at": credentials.expires_at,
+                "idle_expires_at": credentials.idle_expires_at,
                 "cookie_mode": "secure" if self.secure_cookies else "standard",
             },
             headers,
@@ -483,6 +485,7 @@ class PlatformAPI:
                 {
                     "user": self._user(self.users.get(principal.user_id)),
                     "expires_at": principal.expires_at,
+                    "idle_expires_at": principal.idle_expires_at,
                     "csrf_required": True,
                     "cookie_mode": "secure" if self.secure_cookies else "standard",
                 },
@@ -1948,7 +1951,7 @@ class PlatformAPI:
             if not self.token_limiter.allow(token_principal, str(client)):
                 return APIResponse(429, {"error": "rate limit exceeded"})
         else:
-            session = self._session(headers, require_csrf=True)
+            session = self._session(headers, require_csrf=True, touch=True)
             actor = session.actor if session else None
             if session is not None:
                 session_rate = Principal(
@@ -1984,13 +1987,14 @@ class PlatformAPI:
             },
         )
 
-    def _session(self, headers, *, require_csrf):
+    def _session(self, headers, *, require_csrf, touch=False):
         token = self._session_token(headers)
         csrf = self._header(headers, "X-CSRF-Token")
         return self.sessions.authenticate(
             token,
             csrf_token=csrf,
             require_csrf=require_csrf,
+            touch=touch,
         )
 
     def _session_token(self, headers) -> str:

@@ -1214,7 +1214,10 @@
         headers: { Accept: "application/json" },
         signal: abort.signal,
       });
-      if (response.status === 401) return;
+      if (response.status === 401) {
+        if (state.user) await requireReauthentication();
+        return;
+      }
       if (!response.ok) return;
       const next = await response.json();
       if (
@@ -1325,7 +1328,13 @@
     const timeout=setTimeout(()=>abort.abort(),20000);
     try {
       const response=await fetch(`${API}/routing-flow/${requestRange}`,{method:"GET",credentials:"same-origin",cache:"no-store",headers:{Accept:"application/json"},signal:abort.signal});
-      if(response.status===401){expireSession();return;}
+      if(response.status===401){
+        const restored = state.user ? await requireReauthentication() : false;
+        if (restored) {
+          pendingRefreshOptions = { allowCache: true, forceRender: true };
+        }
+        return;
+      }
       if(!response.ok) throw new Error(`Overview request failed (${response.status}).`);
       const next=await response.json();
       if(token!==generation || !active() || state.user?.id!==userId || requestRange!==selectedRoutingRange()) return;
@@ -1386,11 +1395,11 @@
     const result=previousNavigate(view,historyMode);sync();return result;
   };
   const previousExpire=expireSession;
-  expireSession=function routingFlowExpireSession(){
+  expireSession=function routingFlowExpireSession(options = {}){
     invalidate();
     clearPrivateData();
-    state.routingFlowSnapshots = {};
-    return previousExpire();
+    if (options.preserveCache !== true) state.routingFlowSnapshots = {};
+    return previousExpire(options);
   };
   document.addEventListener("nowlert:routing-topology-changed", () => {
     invalidate();

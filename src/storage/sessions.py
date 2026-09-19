@@ -23,6 +23,7 @@ class SessionCredentials:
     session_token: str
     csrf_token: str
     expires_at: int
+    idle_expires_at: int
 
     def cookie(self, *, secure: bool = True) -> str:
         cookie_name = "__Host-nowlert_session" if secure else "nowlert_session"
@@ -45,6 +46,7 @@ class SessionPrincipal:
     username: str
     role: str
     expires_at: int
+    idle_expires_at: int
 
     @property
     def actor(self) -> Actor:
@@ -57,8 +59,8 @@ class SessionStore:
         database: Database,
         *,
         clock: Callable[[], float] = time.time,
-        absolute_ttl_seconds: int = 12 * 60 * 60,
-        idle_ttl_seconds: int = 30 * 60,
+        absolute_ttl_seconds: int = 24 * 60 * 60,
+        idle_ttl_seconds: int = 2 * 60 * 60,
     ):
         self.database = database
         self.clock = clock
@@ -104,6 +106,7 @@ class SessionStore:
             session_token=session_token,
             csrf_token=csrf_token,
             expires_at=expires_at,
+            idle_expires_at=idle_expires_at,
         )
 
     def authenticate(
@@ -147,6 +150,7 @@ class SessionStore:
                     str(row["csrf_hash"]),
                 ):
                     return None
+            idle_expires_at = int(row["idle_expires_at"])
             if touch:
                 idle_expires_at = min(
                     int(row["expires_at"]),
@@ -166,6 +170,7 @@ class SessionStore:
                 username=str(row["username"]),
                 role=str(row["role"]),
                 expires_at=int(row["expires_at"]),
+                idle_expires_at=idle_expires_at,
             )
 
     def revoke(self, session_id: str) -> bool:

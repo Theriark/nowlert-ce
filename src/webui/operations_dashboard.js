@@ -739,13 +739,13 @@
   };
 
   const previousExpireSession = expireSession;
-  expireSession = function operationsDashboardExpireSession() {
-    clearDashboardSnapshots(state.user);
+  expireSession = function operationsDashboardExpireSession(options = {}) {
+    if (options.preserveCache !== true) clearDashboardSnapshots(state.user);
     filterSnapshot = null;
     dashboardDeliveries = [];
     refreshPending = false;
     lastUpdatedAt = 0;
-    return previousExpireSession();
+    return previousExpireSession(options);
   };
 
   installDashboard();

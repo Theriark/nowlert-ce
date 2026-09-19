@@ -218,6 +218,12 @@ The WebUI relies on server-enforced security boundaries:
 - CSRF protection for unsafe session requests;
 - restrictive content-security and frame policies;
 - no credential, CSRF, token, or API-response persistence in localStorage;
+- active-user keepalive for the 2-hour idle timeout without background-tab
+  polling keeping an unattended session alive;
+- a five-minute session-expiry warning and in-place re-authentication that keeps
+  the current page and form state available while credentials are revalidated;
+- timeout re-authentication preserves user-scoped sessionStorage display
+  snapshots for warm first paint, while explicit Sign out purges those caches;
 - write-only destination secrets; and
 - one-time Event API token display.
 

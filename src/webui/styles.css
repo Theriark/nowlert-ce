@@ -1968,6 +1968,64 @@ dialog::backdrop {
   border-left-color: var(--danger);
 }
 
+.session-warning {
+  align-items: center;
+  background: linear-gradient(145deg, rgba(47, 39, 14, 0.97), rgba(24, 24, 18, 0.97));
+  border: 1px solid rgba(244, 197, 66, 0.58);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34);
+  color: var(--text);
+  display: flex;
+  gap: 0.9rem;
+  left: 50%;
+  max-width: min(560px, calc(100vw - 2rem));
+  padding: 0.7rem 0.8rem 0.7rem 1rem;
+  position: fixed;
+  top: 1rem;
+  transform: translateX(-50%);
+  z-index: 120;
+}
+
+.session-warning[hidden] {
+  display: none;
+}
+
+.session-warning > span {
+  flex: 1;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.session-warning .button {
+  flex: 0 0 auto;
+}
+
+.session-reauth-modal {
+  max-width: 470px;
+}
+
+.session-reauth-copy {
+  color: var(--muted);
+  margin: 0.35rem 0 0;
+}
+
+.session-reauth-modal label {
+  display: grid;
+  gap: 0.42rem;
+  margin-top: 0.85rem;
+}
+
+.session-reauth-modal label > span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.session-reauth-modal input:disabled {
+  color: var(--text);
+  opacity: 0.78;
+}
+
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
