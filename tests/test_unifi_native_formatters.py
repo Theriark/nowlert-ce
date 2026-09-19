@@ -132,6 +132,7 @@ def test_protect_classic_v1_lists_configured_sources_as_operator_context():
         "🎯 Trigger",
         "🚨 Alarm Rule",
         "🔎 Condition",
+        "⏱️ Timing",
     ]
     assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
 

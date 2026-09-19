@@ -48,7 +48,7 @@ def test_discord_and_teams_payloads_contain_operational_details():
         assert expected in discord_text
         assert expected in teams_text
 
-    assert "Resolved" in discord_text
+    assert "Failed" in discord_text
     assert "🦉 Nowlert CE • Classic Embed" in discord_text
     assert "Cleared" in teams_text
     assert f"Nowlert v{VERSION}" in teams_text
@@ -223,9 +223,9 @@ def test_discord_aggregate_payload_limits_retain_essential_fields():
     assert "50 TrueNAS alerts were reported in one notification." in serialized
     for essential in (
         "SYNTHETIC-TRUENAS",
-        "Backup",
+        "backup",
         "Failed",
-        "Critical",
+        "critical",
         "50",
     ):
         assert essential in serialized

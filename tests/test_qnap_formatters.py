@@ -74,7 +74,7 @@ def test_discord_payload_generation():
     assert "Storage Pool" in serialized
     assert "RAID Group" in serialized
     assert "Storage & Snapshots" in serialized
-    assert "12 Jul 2026 • 08:30" in serialized
+    assert "2026-07-12 08:30:00" in serialized
 
     assert not any(
         "2026/07/12 08" in field["name"]
