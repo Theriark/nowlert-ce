@@ -234,78 +234,105 @@ jobs:
             -H "User-Agent: Theriark-GitHub-Actions/1.0"
           )
 
-          HTML="$(
-            curl --fail --silent --show-error \
-              "${ACCESS_HEADERS[@]}" \
-              "${BASE_URL}/?ui_acceptance=${SOURCE_SHA}"
-          )"
-          grep -Fq "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\"" <<< "${HTML}"
-          grep -Fq "/ui/qa_patch.css?v=${UI_BUILD}" <<< "${HTML}"
-          grep -Fq "/ui/app.js?v=${UI_BUILD}" <<< "${HTML}"
-          grep -Fq "/ui/routing_flow.js?v=${UI_BUILD}" <<< "${HTML}"
-          grep -Fq "/ui/filtering.js?v=${UI_BUILD}" <<< "${HTML}"
-          grep -Fq "/ui/filtering_ownership_sync.css?v=${UI_BUILD}" <<< "${HTML}"
-          grep -Fq "/ui/management_consistency.js?v=${UI_BUILD}" <<< "${HTML}"
-          grep -Fq "/ui/source_ui_retirement.js?v=${UI_BUILD}" <<< "${HTML}"
+          require_contains() {
+            local label="$1"
+            local needle="$2"
+            local haystack="$3"
+            if ! grep -Fq "$needle" <<< "$haystack"; then
+              echo "WAIT: $label is not serving expected WebUI build $UI_BUILD"
+              return 1
+            fi
+          }
 
-          CSS="$(
-            curl --fail --silent --show-error \
-              "${ACCESS_HEADERS[@]}" \
-              "${BASE_URL}/ui/qa_patch.css?v=${UI_BUILD}"
-          )"
-          grep -Fq "round-18 acceptance corrections" <<< "${CSS}"
-          grep -Fq "#primary-nav .nav-item[hidden]" <<< "${CSS}"
-          grep -Fq "transform: scale(1.65)" <<< "${CSS}"
-          grep -Fq "#app-shell .workspace" <<< "${CSS}"
-          grep -Fq "backup-dashboard-grid-top" <<< "${CSS}"
+          verify_live_bundle() {
+            local html css app ownership routing filtering filter_sync filter_css
 
-          APP="$(
-            curl --fail --silent --show-error \
-              "${ACCESS_HEADERS[@]}" \
-              "${BASE_URL}/ui/app.js?v=${UI_BUILD}"
-          )"
-          grep -Fq "Preview completed." <<< "${APP}"
+            html="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/?ui_acceptance=${SOURCE_SHA}"
+            )" || { echo "WAIT: WebUI HTML request failed"; return 1; }
+            require_contains "HTML build marker" "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\"" "${html}" || return 1
+            require_contains "HTML qa_patch" "/ui/qa_patch.css?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML app" "/ui/app.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML Routing Flow" "/ui/routing_flow.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML Filtering" "/ui/filtering.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML Filtering CSS" "/ui/filtering_ownership_sync.css?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML consistency layer" "/ui/management_consistency.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML retirement layer" "/ui/source_ui_retirement.js?v=${UI_BUILD}" "${html}" || return 1
 
-          OWNERSHIP="$(
-            curl --fail --silent --show-error \
-              "${ACCESS_HEADERS[@]}" \
-              "${BASE_URL}/ui/source_ui_retirement.js?v=${UI_BUILD}"
-          )"
-          grep -Fq "auditNav.hidden = !admin;" <<< "${OWNERSHIP}"
-          grep -Fq "backupsNav.hidden = !admin;" <<< "${OWNERSHIP}"
-          grep -Fq "usersNav.hidden = !admin;" <<< "${OWNERSHIP}"
+            css="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/qa_patch.css?v=${UI_BUILD}"
+            )" || { echo "WAIT: qa_patch.css request failed"; return 1; }
+            require_contains "qa_patch.css marker" "round-18 acceptance corrections" "${css}" || return 1
+            require_contains "qa_patch.css navigation" "#primary-nav .nav-item[hidden]" "${css}" || return 1
+            require_contains "qa_patch.css owl" "transform: scale(1.65)" "${css}" || return 1
+            require_contains "qa_patch.css workspace" "#app-shell .workspace" "${css}" || return 1
+            require_contains "qa_patch.css backups" "backup-dashboard-grid-top" "${css}" || return 1
 
-          ROUTING="$(
-            curl --fail --silent --show-error \
-              "${ACCESS_HEADERS[@]}" \
-              "${BASE_URL}/ui/routing_flow.js?v=${UI_BUILD}"
-          )"
-          grep -Fq "function sortLayerByDesired(items, desired)" <<< "${ROUTING}"
-          grep -Fq "const requestRange = selectedRoutingRange();" <<< "${ROUTING}"
-          grep -Fq "String(next.range || \"\") !== requestRange" <<< "${ROUTING}"
+            app="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/app.js?v=${UI_BUILD}"
+            )" || { echo "WAIT: app.js request failed"; return 1; }
+            require_contains "app.js preview" "Preview completed." "${app}" || return 1
 
-          FILTERING="$(
-            curl --fail --silent --show-error \
-              "${ACCESS_HEADERS[@]}" \
-              "${BASE_URL}/ui/filtering.js?v=${UI_BUILD}"
-          )"
-          grep -Fq 'data-filter-sync-column="sharing">Sharing</th><th>Actions</th>' <<< "${FILTERING}"
+            ownership="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/source_ui_retirement.js?v=${UI_BUILD}"
+            )" || { echo "WAIT: source_ui_retirement.js request failed"; return 1; }
+            require_contains "retirement audit" "auditNav.hidden = !admin;" "${ownership}" || return 1
+            require_contains "retirement backups" "backupsNav.hidden = !admin;" "${ownership}" || return 1
+            require_contains "retirement users" "usersNav.hidden = !admin;" "${ownership}" || return 1
 
-          FILTER_SYNC="$(
-            curl --fail --silent --show-error \
-              "${ACCESS_HEADERS[@]}" \
-              "${BASE_URL}/ui/filtering_ownership_sync.js?v=${UI_BUILD}"
-          )"
-          grep -Fq 'nameHeading.textContent !== "Name"' <<< "${FILTER_SYNC}"
+            routing="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/routing_flow.js?v=${UI_BUILD}"
+            )" || { echo "WAIT: routing_flow.js request failed"; return 1; }
+            require_contains "Routing Flow adaptive layout" "function sortLayerByDesired(items, desired)" "${routing}" || return 1
+            require_contains "Routing Flow selected range" "const requestRange = selectedRoutingRange();" "${routing}" || return 1
+            require_contains "Routing Flow response range" "String(next.range || \"\") !== requestRange" "${routing}" || return 1
 
-          FILTER_CSS="$(
-            curl --fail --silent --show-error \
-              "${ACCESS_HEADERS[@]}" \
-              "${BASE_URL}/ui/filtering.css?v=${UI_BUILD}"
-          )"
-          grep -Fq ".filtering-table th:nth-child(6) { width: 24%; }" <<< "${FILTER_CSS}"
+            filtering="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/filtering.js?v=${UI_BUILD}"
+            )" || { echo "WAIT: filtering.js request failed"; return 1; }
+            require_contains "Filtering six-column header" 'data-filter-sync-column="sharing">Sharing</th><th>Actions</th>' "${filtering}" || return 1
 
-          echo "PASS: live CE Development is serving WebUI acceptance bundle ${UI_BUILD}"
+            filter_sync="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/filtering_ownership_sync.js?v=${UI_BUILD}"
+            )" || { echo "WAIT: filtering_ownership_sync.js request failed"; return 1; }
+            require_contains "Filtering Name enforcement" 'nameHeading.textContent !== "Name"' "${filter_sync}" || return 1
+
+            filter_css="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/filtering.css?v=${UI_BUILD}"
+            )" || { echo "WAIT: filtering.css request failed"; return 1; }
+            require_contains "Filtering Actions width" ".filtering-table th:nth-child(6) { width: 24%; }" "${filter_css}" || return 1
+
+            return 0
+          }
+
+          for attempt in $(seq 1 12); do
+            if verify_live_bundle; then
+              echo "PASS: live CE Development is serving WebUI acceptance bundle ${UI_BUILD}"
+              break
+            fi
+            if [ "${attempt}" -eq 12 ]; then
+              echo "ERROR: live CE Development did not converge to WebUI acceptance bundle ${UI_BUILD}"
+              exit 1
+            fi
+            echo "WAIT: deployment is still converging (${attempt}/12); retrying in 5 seconds"
+            sleep 5
+          done
 
       - name: Record immutable Development result
         shell: bash

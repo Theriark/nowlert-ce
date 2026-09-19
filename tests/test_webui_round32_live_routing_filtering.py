@@ -103,3 +103,7 @@ def test_development_acceptance_checks_the_live_changed_assets():
     assert "/ui/filtering_ownership_sync.css?v=${UI_BUILD}" in workflow
     assert "function sortLayerByDesired(items, desired)" in workflow
     assert 'data-filter-sync-column="sharing">Sharing</th><th>Actions</th>' in workflow
+    assert "verify_live_bundle()" in workflow
+    assert "for attempt in \\$(seq 1 12)" not in workflow
+    assert "for attempt in $(seq 1 12)" in workflow
+    assert 'WAIT: deployment is still converging' in workflow
