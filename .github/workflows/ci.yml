@@ -324,6 +324,7 @@ jobs:
             require_contains "Routing Flow value popover" ".rf-filter-value-popover" "${routing_css}" || return 1
             require_contains "Routing Flow open popover stacking" 'rf-filter-card:has(.rf-filter-value-overflow[aria-expanded="true"])' "${routing_css}" || return 1
             require_contains "Routing Flow top-layer value menu CSS" ".rf-filter-value-popover[popover]" "${routing_css}" || return 1
+            require_contains "Routing Flow full filter values" ".rf-filter-card-tags [data-filter-value]" "${routing_css}" || return 1
 
             filtering="$(
               curl --fail --silent --show-error \

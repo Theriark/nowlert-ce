@@ -785,3 +785,15 @@
 .rf-filter-value-popover[popover]:popover-open {
   display: grid;
 }
+
+
+/* 2026-09-19 round-39: filter values are either fully visible or moved to +N.
+   Never shrink or ellipsize a value before the width fitter measures it. */
+.rf-filter-card-tags [data-filter-value] {
+  flex: 0 0 auto !important;
+  max-width: none !important;
+  min-width: max-content;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap;
+}
