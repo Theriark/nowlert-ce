@@ -7,6 +7,9 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 
+UI_BUILD = "20260919-r32"
+
+
 SECURITY_HEADERS = (
     (
         "Content-Security-Policy",
@@ -323,35 +326,36 @@ class WebUIService:
             return WebUIResponse(404)
         if route in {"/", "/ui", "/ui/"}:
             text = body.decode("utf-8")
+            version = f"?v={UI_BUILD}"
             extension = (
-                '  <link rel="stylesheet" href="/ui/filtering.css">\n'
-                '  <link rel="stylesheet" href="/ui/destination_routes.css">\n'
-                '  <link rel="stylesheet" href="/ui/destination_editor_fix.css">\n'
-                '  <link rel="stylesheet" href="/ui/policy_simplification.css">\n'
-                '  <link rel="stylesheet" href="/ui/routing_flow.css">\n'
-                '  <link rel="stylesheet" href="/ui/filtering_ownership_sync.css">\n'
-                '  <link rel="stylesheet" href="/ui/operations_dashboard.css">\n'
-                '  <link rel="stylesheet" href="/ui/operations_acceptance.css">\n'
-                '  <link rel="stylesheet" href="/ui/page_headers.css">\n'
-                '  <link rel="stylesheet" href="/ui/destination_overview_acceptance.css">\n'
-                '  <link rel="stylesheet" href="/ui/audit_log_refinement.css">\n'
-                '  <link rel="stylesheet" href="/ui/management_consistency.css">\n'
-                '  <link rel="stylesheet" href="/ui/reference_acceptance.css">\n'
-                '  <script src="/ui/filtering.js" defer></script>\n'
-                '  <script src="/ui/source_ui_retirement.js" defer></script>\n'
-                '  <script src="/ui/destination_routes.js" defer></script>\n'
-                '  <script src="/ui/destination_editor_fix.js" defer></script>\n'
-                '  <script src="/ui/policy_simplification.js" defer></script>\n'
-                '  <script src="/ui/acceptance_cleanup.js" defer></script>\n'
-                '  <script src="/ui/routing_flow.js" defer></script>\n'
-                '  <script src="/ui/filtering_ownership_sync.js" defer></script>\n'
-                '  <script src="/ui/operations_dashboard.js" defer></script>\n'
-                '  <script src="/ui/operations_acceptance.js" defer></script>\n'
-                '  <script src="/ui/page_headers.js" defer></script>\n'
-                '  <script src="/ui/destination_overview_acceptance.js" defer></script>\n'
-                '  <script src="/ui/audit_log_refinement.js" defer></script>\n'
-                '  <script src="/ui/management_consistency.js" defer></script>\n'
-                '  <script src="/ui/reference_acceptance.js" defer></script>\n'
+                f'  <link rel="stylesheet" href="/ui/filtering.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/destination_routes.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/destination_editor_fix.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/policy_simplification.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/routing_flow.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/filtering_ownership_sync.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/operations_dashboard.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/operations_acceptance.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/page_headers.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/destination_overview_acceptance.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/audit_log_refinement.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/management_consistency.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/reference_acceptance.css{version}">\n'
+                f'  <script src="/ui/filtering.js{version}" defer></script>\n'
+                f'  <script src="/ui/source_ui_retirement.js{version}" defer></script>\n'
+                f'  <script src="/ui/destination_routes.js{version}" defer></script>\n'
+                f'  <script src="/ui/destination_editor_fix.js{version}" defer></script>\n'
+                f'  <script src="/ui/policy_simplification.js{version}" defer></script>\n'
+                f'  <script src="/ui/acceptance_cleanup.js{version}" defer></script>\n'
+                f'  <script src="/ui/routing_flow.js{version}" defer></script>\n'
+                f'  <script src="/ui/filtering_ownership_sync.js{version}" defer></script>\n'
+                f'  <script src="/ui/operations_dashboard.js{version}" defer></script>\n'
+                f'  <script src="/ui/operations_acceptance.js{version}" defer></script>\n'
+                f'  <script src="/ui/page_headers.js{version}" defer></script>\n'
+                f'  <script src="/ui/destination_overview_acceptance.js{version}" defer></script>\n'
+                f'  <script src="/ui/audit_log_refinement.js{version}" defer></script>\n'
+                f'  <script src="/ui/management_consistency.js{version}" defer></script>\n'
+                f'  <script src="/ui/reference_acceptance.js{version}" defer></script>\n'
             )
             body = text.replace("</head>", extension + "</head>", 1).encode("utf-8")
         return WebUIResponse(200, body, content_type, cache_control)

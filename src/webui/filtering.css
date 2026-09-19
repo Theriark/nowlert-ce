@@ -23,13 +23,14 @@
 }
 
 .filtering-toolbar { padding-block: 1rem; }
-.filtering-table-panel { overflow: hidden; }
+.filtering-table-panel { overflow: hidden; overflow-x: hidden !important; }
 .filtering-table { table-layout: fixed; width: 100%; }
-.filtering-table th:nth-child(1) { width: 20%; }
+.filtering-table th:nth-child(1) { width: 17%; }
 .filtering-table th:nth-child(2) { width: 18%; }
-.filtering-table th:nth-child(3) { width: 37%; }
-.filtering-table th:nth-child(4) { width: 10%; }
-.filtering-table th:nth-child(5) { width: 15%; }
+.filtering-table th:nth-child(3) { width: 21%; }
+.filtering-table th:nth-child(4) { width: 9%; }
+.filtering-table th:nth-child(5) { width: 11%; }
+.filtering-table th:nth-child(6) { width: 24%; }
 .filtering-table td { vertical-align: middle; }
 .filtering-table tbody td:first-child,
 .filtering-table tbody td:nth-child(3),

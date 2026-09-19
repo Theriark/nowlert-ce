@@ -13,8 +13,8 @@ def test_management_consistency_assets_are_registered_and_loaded_last():
     assert '"src/webui/management_consistency.js"' in service
     assert '"/ui/management_consistency.css"' in service
     assert '"src/webui/management_consistency.css"' in service
-    assert '<link rel="stylesheet" href="/ui/management_consistency.css">' in service
-    assert '<script src="/ui/management_consistency.js" defer></script>' in service
+    assert 'management_consistency.css{version}' in service
+    assert 'management_consistency.js{version}' in service
     assert service.rfind("management_consistency.css") > service.rfind("audit_log_refinement.css")
     assert service.rfind("management_consistency.js") > service.rfind("audit_log_refinement.js")
 
@@ -56,7 +56,7 @@ def test_management_consistency_runtime_matches_selected_ui_contract():
     assert '[data-delivery-workbench-action="close-detail"]' not in script
     assert '"#view-audit .audit-log-detail-close"' in script
     assert '"#view-users .private-resource-count"' in script
-    assert 'second.textContent = "Name"' in script
+    assert "syncFilteringTableHeading" not in script
     assert 'element("h3", { text: "Integration behavior" })' in script
     assert 'Configure how each integration handles and maps incoming data.' in script
     assert 'integration-behavior-count' in script

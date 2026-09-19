@@ -225,7 +225,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          UI_BUILD="20260918-r19"
+          UI_BUILD="$(PYTHONPATH=src python -c 'from webui.service import UI_BUILD; print(UI_BUILD)')"
           BASE_URL="https://ce-dev-nowlert.theriark.dev"
           ACCESS_HEADERS=(
             -H "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}"
@@ -242,7 +242,11 @@ jobs:
           grep -Fq "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\"" <<< "${HTML}"
           grep -Fq "/ui/qa_patch.css?v=${UI_BUILD}" <<< "${HTML}"
           grep -Fq "/ui/app.js?v=${UI_BUILD}" <<< "${HTML}"
-          grep -Fq "/ui/source_ui_retirement.js" <<< "${HTML}"
+          grep -Fq "/ui/routing_flow.js?v=${UI_BUILD}" <<< "${HTML}"
+          grep -Fq "/ui/filtering.js?v=${UI_BUILD}" <<< "${HTML}"
+          grep -Fq "/ui/filtering_ownership_sync.css?v=${UI_BUILD}" <<< "${HTML}"
+          grep -Fq "/ui/management_consistency.js?v=${UI_BUILD}" <<< "${HTML}"
+          grep -Fq "/ui/source_ui_retirement.js?v=${UI_BUILD}" <<< "${HTML}"
 
           CSS="$(
             curl --fail --silent --show-error \
@@ -265,11 +269,41 @@ jobs:
           OWNERSHIP="$(
             curl --fail --silent --show-error \
               "${ACCESS_HEADERS[@]}" \
-              "${BASE_URL}/ui/source_ui_retirement.js"
+              "${BASE_URL}/ui/source_ui_retirement.js?v=${UI_BUILD}"
           )"
           grep -Fq "auditNav.hidden = !admin;" <<< "${OWNERSHIP}"
           grep -Fq "backupsNav.hidden = !admin;" <<< "${OWNERSHIP}"
           grep -Fq "usersNav.hidden = !admin;" <<< "${OWNERSHIP}"
+
+          ROUTING="$(
+            curl --fail --silent --show-error \
+              "${ACCESS_HEADERS[@]}" \
+              "${BASE_URL}/ui/routing_flow.js?v=${UI_BUILD}"
+          )"
+          grep -Fq "function sortLayerByDesired(items, desired)" <<< "${ROUTING}"
+          grep -Fq "const requestRange = selectedRoutingRange();" <<< "${ROUTING}"
+          grep -Fq "String(next.range || \"\") !== requestRange" <<< "${ROUTING}"
+
+          FILTERING="$(
+            curl --fail --silent --show-error \
+              "${ACCESS_HEADERS[@]}" \
+              "${BASE_URL}/ui/filtering.js?v=${UI_BUILD}"
+          )"
+          grep -Fq 'data-filter-sync-column="sharing">Sharing</th><th>Actions</th>' <<< "${FILTERING}"
+
+          FILTER_SYNC="$(
+            curl --fail --silent --show-error \
+              "${ACCESS_HEADERS[@]}" \
+              "${BASE_URL}/ui/filtering_ownership_sync.js?v=${UI_BUILD}"
+          )"
+          grep -Fq 'nameHeading.textContent !== "Name"' <<< "${FILTER_SYNC}"
+
+          FILTER_CSS="$(
+            curl --fail --silent --show-error \
+              "${ACCESS_HEADERS[@]}" \
+              "${BASE_URL}/ui/filtering.css?v=${UI_BUILD}"
+          )"
+          grep -Fq ".filtering-table th:nth-child(6) { width: 24%; }" <<< "${FILTER_CSS}"
 
           echo "PASS: live CE Development is serving WebUI acceptance bundle ${UI_BUILD}"
 

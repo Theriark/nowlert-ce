@@ -93,7 +93,7 @@ def test_server_metrics_for_filters_and_destinations_follow_requested_window(api
         )
 
     fire_pair()
-    old = int(time.time()) - 1800
+    old = int(time.time()) - (2 * 60 * 60)
     with api["database"].transaction() as connection:
         connection.execute(
             "UPDATE routing_flow_events SET created_at = ?",
@@ -107,31 +107,34 @@ def test_server_metrics_for_filters_and_destinations_follow_requested_window(api
     fire_pair()
 
     ten = call(api, "GET", "/api/v2/routing-flow/10m", headers=headers).payload
-    hour = call(api, "GET", "/api/v2/routing-flow/1h", headers=headers).payload
+    day = call(api, "GET", "/api/v2/routing-flow/1d", headers=headers).payload
 
     ten_destination = next(item for item in ten["destinations"] if item["id"] == destination["id"])
-    hour_destination = next(item for item in hour["destinations"] if item["id"] == destination["id"])
+    day_destination = next(item for item in day["destinations"] if item["id"] == destination["id"])
     ten_filter = next(item for item in ten["filters"] if item["destination_id"] == destination["id"])
-    hour_filter = next(item for item in hour["filters"] if item["destination_id"] == destination["id"])
+    day_filter = next(item for item in day["filters"] if item["destination_id"] == destination["id"])
 
     assert ten_destination["metrics"]["delivered"] == 1
-    assert hour_destination["metrics"]["delivered"] == 2
+    assert day_destination["metrics"]["delivered"] == 2
     assert ten_filter["metrics"]["received"] == 2
     assert ten_filter["metrics"]["filtered"] == 1
-    assert hour_filter["metrics"]["received"] == 4
-    assert hour_filter["metrics"]["filtered"] == 2
+    assert day_filter["metrics"]["received"] == 4
+    assert day_filter["metrics"]["filtered"] == 2
 
 
-def test_layout_keeps_barycentric_vertical_alignment_instead_of_reanchoring_columns():
+def test_layout_freely_reorders_all_three_layers_from_connected_centers():
     script = read("src/webui/routing_flow.js")
+    layout = script[
+        script.index("function computeFlowLayout(current, ordered, headerBottom)"):
+        script.index("function positionNode", script.index("function computeFlowLayout(current, ordered, headerBottom)"))
+    ]
 
-    assert "function shiftCentersToTop(" not in script
-    assert "routeCenters = shiftCentersToTop(" not in script
-    assert "filterCenters = shiftCentersToTop(" not in script
-    assert "destinationCenters = shiftCentersToTop(" not in script
-    assert "const routeDesired = new Map" in script
-    assert "const filterDesired = new Map" in script
-    assert "const destinationDesired = new Map" in script
+    assert "function sortLayerByDesired(items, desired)" in script
+    assert "routeItems = sortLayerByDesired(routeItems, routeDesired);" in layout
+    assert "filterItems = sortLayerByDesired(filterItems, filterDesired);" in layout
+    assert "destinationItems = sortLayerByDesired(destinationItems, destinationDesired);" in layout
+    assert "routeOrder: routeItems" in layout
+    assert "destinationOrder: destinationItems" in layout
 
 
 def test_edges_use_a_bounded_short_curve_instead_of_half_gap_bends():
@@ -143,14 +146,19 @@ def test_edges_use_a_bounded_short_curve_instead_of_half_gap_bends():
     assert "gap * .52" not in block
 
 
-def test_filtering_table_uses_name_header_and_balanced_five_column_widths():
+def test_filtering_table_uses_name_and_native_balanced_six_column_widths():
     script = read("src/webui/filtering.js")
     style = read("src/webui/filtering.css")
 
-    assert "<th>Destination</th><th>Name</th><th>Filters</th><th>Status</th><th>Actions</th>" in script
-    assert ".filtering-table th:nth-child(1) { width: 20%; }" in style
-    assert ".filtering-table th:nth-child(2) { width: 18%; }" in style
-    assert ".filtering-table th:nth-child(3) { width: 37%; }" in style
-    assert ".filtering-table th:nth-child(4) { width: 10%; }" in style
-    assert ".filtering-table th:nth-child(5) { width: 15%; }" in style
-    assert ".filtering-table th:nth-child(2) { width: 56%; text-align: center; }" not in style
+    assert '<th>Destination</th><th>Name</th><th>Filters</th><th>Status</th><th data-filter-sync-column="sharing">Sharing</th><th>Actions</th>' in script
+    assert 'className: "filtering-sharing-cell"' in script
+    for selector, width in (
+        ("1", "17%"),
+        ("2", "18%"),
+        ("3", "21%"),
+        ("4", "9%"),
+        ("5", "11%"),
+        ("6", "24%"),
+    ):
+        assert f".filtering-table th:nth-child({selector}) {{ width: {width}; }}" in style
+    assert "overflow-x: hidden !important;" in style

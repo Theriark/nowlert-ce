@@ -39,13 +39,13 @@ def test_profile_card_matches_approved_left_status_right_and_three_bottom_cards(
     assert "grid-template-columns: repeat(3, minmax(0, 1fr)) !important;" in final
 
 
-def test_routing_flow_uses_same_range_contract_as_dashboard():
+def test_routing_flow_owns_its_range_control_without_dashboard_rewrites():
     flow = read("src/webui/routing_flow.js")
     dashboard = read("src/webui/operations_dashboard.js")
 
     assert 'class="rf-range ops-dashboard-range-control"' in flow
-    assert "select.innerHTML = rangeOptions();" in dashboard
-    assert 'const selected = previousValue || state.historyRange || "1h";' in dashboard
+    assert "syncRangeOptionsFromDashboard" not in flow
+    assert "installRoutingFlowRanges" not in dashboard
     assert '["15m", "Last 15 minutes"]' not in dashboard
     for label in (
         "Last 10 minutes",
@@ -54,7 +54,7 @@ def test_routing_flow_uses_same_range_contract_as_dashboard():
         "Last 1 month",
         "Last 1 year",
     ):
-        assert label in dashboard
+        assert label in flow
 
 
 def test_routing_filter_keeps_outer_size_and_animation_but_uses_reference_interior():

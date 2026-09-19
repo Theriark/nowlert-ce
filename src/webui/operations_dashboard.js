@@ -176,22 +176,7 @@
     byId("ops-destinations-view-all")?.addEventListener("click", () => navigate("destinations"));
     byId("ops-health-details")?.addEventListener("click", () => navigate("audit"));
 
-    installRoutingFlowRanges();
     syncDashboardChrome();
-  }
-
-  function installRoutingFlowRanges() {
-    const select = byId("rf-range");
-    if (!select) return;
-    const previousValue = select.value;
-    const selected = previousValue || state.historyRange || "1h";
-    select.innerHTML = rangeOptions();
-    select.value = Object.hasOwn(RANGE_LABELS, selected)
-      ? selected
-      : (Object.hasOwn(RANGE_LABELS, state.historyRange) ? state.historyRange : "1h");
-    if (select.value !== previousValue) {
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    }
   }
 
   function syncDashboardChrome() {
@@ -631,8 +616,7 @@
     const result = previousNavigate(view, historyMode);
     syncDashboardChrome();
     if (view === DASHBOARD_VIEW) {
-      installRoutingFlowRanges();
-      refreshDashboardData(false);
+        refreshDashboardData(false);
     }
     return result;
   };

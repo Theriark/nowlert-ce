@@ -735,15 +735,6 @@
     routeAssignmentEnsureDestinationPicker = replacement;
   }
 
-  function syncFilteringTableHeading() {
-    const second = document.querySelector(
-      "#view-filtering .filtering-table thead th:nth-child(2)",
-    );
-    if (second && second.textContent !== "Name") {
-      second.textContent = "Name";
-    }
-  }
-
   function syncIntegrationBehaviorHeading() {
     const panel = document.getElementById("filtering-deterministic-processing");
     const heading = panel?.querySelector(":scope > .panel-heading");
@@ -791,7 +782,6 @@
     syncDeliveryHistory();
     syncAuditLog();
     syncAssignedRoutesHelp();
-    syncFilteringTableHeading();
     syncIntegrationBehaviorHeading();
     syncDestinationChannelField();
     syncReferencePagers();
