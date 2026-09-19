@@ -4187,6 +4187,8 @@ async function resourceAction(action, id) {
       });
       const updated = response.destination || { ...item, enabled: !item.enabled };
       updateDestinationState(updated);
+      document.dispatchEvent(new CustomEvent("nowlert:filtering-state-invalidated"));
+      document.dispatchEvent(new CustomEvent("nowlert:routing-topology-changed"));
       toast(`Destination ${updated.enabled ? "enabled" : "disabled"}.`);
       return;
     } else if (action === "toggle-destination-shared") {
