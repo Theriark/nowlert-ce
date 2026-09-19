@@ -12,6 +12,7 @@ import requests
 
 from formatters.slack import SlackFormatter
 from models import Notification
+from formatters.discord_classic_v1 import render_classic_embed_v1
 from outputs.discord import DiscordOutput
 from outputs.platform_common import (
     decode_secret,
@@ -102,6 +103,7 @@ class DiscordPlatformAdapter(_HTTPAdapter):
             payload = formatter.format_components_v2(notification)
         else:
             payload = formatter.format(notification)
+            payload = render_classic_embed_v1(notification, payload)
         payload = formatter._sanitize_payload(payload)
         return OutputPreview(
             "discord",
