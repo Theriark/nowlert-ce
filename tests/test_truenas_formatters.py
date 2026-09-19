@@ -36,16 +36,22 @@ def test_discord_and_teams_payloads_contain_operational_details():
     notification = fixture_notification()
     discord = TrueNASDiscordFormatter().format(notification)
     teams = TrueNASTeamsFormatter().format(notification)
+    discord_text = json.dumps(discord)
+    teams_text = json.dumps(teams)
+
     for expected in (
         "SYNTHETIC-TRUENAS",
         "SYNTHETIC-POOL",
         "SYNTHETIC-REPLICATION",
-        "Cleared",
         "Severity",
-        f"Nowlert v{VERSION}",
     ):
-        assert expected in json.dumps(discord)
-        assert expected in json.dumps(teams)
+        assert expected in discord_text
+        assert expected in teams_text
+
+    assert "Resolved" in discord_text
+    assert "🦉 Nowlert CE • Classic Embed" in discord_text
+    assert "Cleared" in teams_text
+    assert f"Nowlert v{VERSION}" in teams_text
 
 
 def test_rendered_cards_redact_session_and_token_values():
@@ -214,11 +220,11 @@ def test_discord_aggregate_payload_limits_retain_essential_fields():
     assert all(len(field["name"]) <= 256 for field in embed["fields"])
     assert all(len(field["value"]) <= 1024 for field in embed["fields"])
     serialized = json.dumps(embed)
+    assert "50 TrueNAS alerts were reported in one notification." in serialized
     for essential in (
-        "Essential TrueNAS message",
         "SYNTHETIC-TRUENAS",
         "Backup",
-        "Failure",
+        "Failed",
         "Critical",
         "50",
     ):

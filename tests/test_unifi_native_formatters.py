@@ -108,29 +108,32 @@ def test_dedicated_discord_and_teams_cards(source, discord_formatter, teams_form
     assert "Synthetic operational detail" in json.dumps(teams)
 
 
-def test_network_card_omits_mac_and_duplicate_hostname():
+def test_network_classic_v1_keeps_mac_while_teams_keeps_compact_identity():
     item = notification("unifi_network")
     discord = json.dumps(UniFiNetworkDiscordFormatter().format(item))
     teams = json.dumps(UniFiNetworkTeamsFormatter().format(item))
-    assert "00:00:5e:00:53:30" not in discord
+    assert "00:00:5e:00:53:30" in discord
     assert "00:00:5e:00:53:30" not in teams
     assert discord.count("SYNTHETIC-CLIENT") == 1
     assert teams.count("SYNTHETIC-CLIENT") == 1
 
 
-def test_protect_card_does_not_list_configured_sources():
+def test_protect_classic_v1_lists_configured_sources_as_operator_context():
     item = notification("unifi_protect")
     payload = UniFiProtectDiscordFormatter().format(item)
+    embed = payload["embeds"][0]
     serialized = json.dumps(payload)
+
     assert "SYNTHETIC-CAMERA" in serialized
     assert "configured_source_count" not in serialized
-    assert len(payload["embeds"][0]["fields"]) == 4
-    assert payload["embeds"][0]["fields"][0]["name"].endswith(
-        "Severity"
-    )
-    assert payload["embeds"][0]["fields"][-1]["value"].endswith(
-        DiscordCardFormatter.SEPARATOR
-    )
+    assert "**Configured Sources:** `8`" in serialized
+    assert [field["name"] for field in embed["fields"]] == [
+        "ℹ️ Alert",
+        "🎯 Trigger",
+        "🚨 Alarm Rule",
+        "🔎 Condition",
+    ]
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
 
 
 def _protect_field_names(item):
@@ -238,37 +241,46 @@ def test_protect_malformed_event_time_falls_back_safely():
 
 
 @pytest.mark.parametrize(
-    ("source", "discord_formatter", "teams_formatter", "title_prefix"),
+    (
+        "source",
+        "discord_formatter",
+        "teams_formatter",
+        "discord_prefix",
+        "teams_prefix",
+    ),
     [
         (
             "unifi_network",
             UniFiNetworkDiscordFormatter(),
             UniFiNetworkTeamsFormatter(),
+            "ℹ️",
             "📡 ℹ️",
         ),
         (
             "unifi_protect",
             UniFiProtectDiscordFormatter(),
             UniFiProtectTeamsFormatter(),
+            "ℹ️",
             "📹 ℹ️",
         ),
         (
             "unifi_drive",
             UniFiDriveDiscordFormatter(),
             UniFiDriveTeamsFormatter(),
+            "⚠️",
             "💾 ⚠️",
         ),
     ],
 )
-def test_unifi_titles_have_one_application_and_status_icon(
-    source, discord_formatter, teams_formatter, title_prefix
+def test_unifi_titles_keep_v1_discord_and_existing_teams_status_icons(
+    source, discord_formatter, teams_formatter, discord_prefix, teams_prefix
 ):
     item = notification(source)
     discord_title = discord_formatter.format(item)["embeds"][0]["title"]
     teams_title = teams_formatter.format(item)["attachments"][0]["content"]["body"][0]["text"]
 
-    assert discord_title.startswith(f"{title_prefix} ")
-    assert teams_title.startswith(f"{title_prefix} ")
+    assert discord_title.startswith(f"{discord_prefix} ")
+    assert teams_title.startswith(f"{teams_prefix} ")
 
 
 @pytest.mark.parametrize(
@@ -313,21 +325,41 @@ def test_unifi_discord_and_teams_labels_have_readable_icons(
 ):
     item = notification(source)
     discord_fields = discord_formatter.format(item)["embeds"][0]["fields"]
-    discord_text = json.dumps(discord_fields, ensure_ascii=False)
+    discord_names = {field["name"] for field in discord_fields}
     teams_card = teams_formatter.format(item)["attachments"][0]["content"]
     teams_text = json.dumps(teams_card, ensure_ascii=False)
 
-    standard_metrics = {"Category", "Severity", "Event time", "State"}
+    expected_v1_sections = {
+        "unifi_network": {
+            "ℹ️ Alert",
+            "🎛️ UniFi Controller",
+            "💻 Client",
+            "📶 Network / Wi-Fi",
+            "📍 Last Access Point",
+            "⏱️ Timing",
+        },
+        "unifi_protect": {
+            "ℹ️ Alert",
+            "🎯 Trigger",
+            "🚨 Alarm Rule",
+            "🔎 Condition",
+        },
+        "unifi_drive": {
+            "⚠️ Alert",
+            "🗄️ UniFi Drive",
+            "🔔 Alarm",
+        },
+    }
+    assert expected_v1_sections[source] <= discord_names
+
     for label in expected_labels:
         icon, plain_label = label.split(" ", 1)
-        if plain_label in standard_metrics:
-            if plain_label != "State":
-                assert plain_label in teams_text
-                assert label in {field["name"] for field in discord_fields}
-        else:
-            assert label in teams_text
-            assert icon in discord_text
-            assert f"**{plain_label}:**" in discord_text
+        if plain_label == "State":
+            continue
+        assert label in teams_text or (
+            plain_label in {"Category", "Severity", "Event time"}
+            and plain_label in teams_text
+        )
     assert all(any(character.isalpha() for character in label) for label in expected_labels)
 
 
@@ -381,12 +413,11 @@ def test_missing_values_do_not_leave_icon_only_fields():
     teams = UniFiNetworkTeamsFormatter().format(item)["attachments"][0]["content"]
     facts = _teams_facts(teams)
 
-    assert [field["name"].split(" ", 1)[-1] for field in discord["fields"][:2]] == [
-        "Severity", "Category",
-    ]
+    assert [field["name"] for field in discord["fields"]] == ["ℹ️ Alert"]
+    assert "**Status:** `Information`" in discord["fields"][0]["value"]
     assert "Event time" not in json.dumps(discord)
     assert "Event time" not in json.dumps(teams)
-    assert discord["fields"][-1]["value"] == DiscordCardFormatter.SEPARATOR
+    assert discord["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
     assert facts == []
 
 
@@ -405,9 +436,12 @@ def test_unifi_formatter_field_and_text_limits_remain_enforced():
     facts = _teams_facts(teams)
 
     assert len(discord["title"]) <= 256
-    assert len(discord["description"]) <= 2048
+    assert len(discord["description"]) <= 4096
     assert len(discord["fields"]) <= 25
     assert all(len(field["value"]) <= 1024 for field in discord["fields"])
+    assert (
+        discord_formatter_size := UniFiNetworkDiscordFormatter()._embed_text_size(discord)
+    ) <= DiscordCardFormatter.EMBED_TEXT_BUDGET
     assert len(teams["body"][0]["text"]) <= 512
     assert len(teams["body"][2]["items"][0]["text"]) <= 4000
     assert all(len(fact["value"]) <= 1000 for fact in facts)

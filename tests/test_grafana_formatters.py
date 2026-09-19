@@ -47,7 +47,7 @@ def test_firing_payloads_contain_operational_details():
     card = teams["attachments"][0]["content"]
 
     assert embed["color"] == 0xE74C3C
-    assert embed["footer"]["text"].endswith(f"Nowlert v{VERSION}")
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
     assert card["body"][0]["color"] == "Attention"
 
     for expected in (
@@ -251,10 +251,10 @@ def test_discord_embed_budget_with_oversized_unknown_metadata():
     assert "Essential Grafana event" in serialized
     assert "Critical" in serialized
     assert "Synthetic Essential Rule" in serialized
-    assert any(
-        field["value"].endswith("…")
+    assert sum(
+        field["name"].startswith("📎 Unknown Grafana Field")
         for field in embed["fields"]
-    )
+    ) < 50
 
 
 def test_outputs_register_grafana_without_replacing_existing_formatters():

@@ -151,7 +151,7 @@ def test_dell_ipmi_session_event_extracts_source_ip():
     item = RedfishParser().parse(value, "dell")[0]
 
     assert item.metadata["source_ip"] == "192.0.2.164"
-    assert "🌐 **Source IP:** 192.0.2.164" in json.dumps(
+    assert "**Source IP:** `192.0.2.164`" in json.dumps(
         DellIDRACDiscordFormatter().format(item),
         ensure_ascii=False,
     )

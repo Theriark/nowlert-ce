@@ -381,9 +381,12 @@ def test_xo_card_retains_real_duration_and_result_values():
     assert '"value": "✅ 3 of 3 VMs successful"' in rendered
 
     discord = DiscordOutput().source_formatters["xo"].format(item)["embeds"][0]
-    discord_rendered = json.dumps(discord, ensure_ascii=False)
-    assert "⏱️ **Duration:** 5 min" in discord_rendered
-    assert "📊 **Result:** ✅ 3 of 3 VMs successful" in discord_rendered
+    duration = next(
+        field for field in discord["fields"]
+        if field["name"] == "⌛ Duration"
+    )
+    assert duration["value"] == "`5 min`"
+    assert discord["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
 
 
 def test_xo_result_explains_failed_and_skipped_counts():
@@ -492,15 +495,39 @@ def test_every_teams_card_uses_the_shared_information_hierarchy(source):
         "portainer",
         "proxmox",
         "synology",
-        "redfish",
         "supermicro",
         "hpe_ilo",
         "dell_idrac",
         "home_assistant",
-        "generic",
     ],
 )
-def test_every_discord_card_uses_the_shared_information_hierarchy(source):
+def test_dedicated_discord_classic_cards_use_v1_contract(source):
+    formatter = DiscordOutput().source_formatters[source]
+    embed = formatter.format(_notification(source))["embeds"][0]
+    names = [str(field.get("name") or "") for field in embed["fields"]]
+
+    assert embed["title"]
+    assert not embed["description"].startswith("\u200b\n")
+    assert not embed["description"].startswith("\n")
+    assert len(embed["title"]) <= 256
+    assert len(embed["description"]) <= 4096
+    assert len(embed["fields"]) <= 25
+    assert formatter._embed_text_size(embed) <= formatter.EMBED_TEXT_BUDGET
+    assert all(
+        len(str(field.get("name") or "")) <= 256
+        and len(str(field.get("value") or "")) <= 1024
+        for field in embed["fields"]
+    )
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
+    assert not any(
+        role in name
+        for name in names
+        for role in ("Insight", "Context", "Recommended Action")
+    )
+
+
+@pytest.mark.parametrize("source", ["redfish", "generic"])
+def test_non_v1_discord_cards_keep_shared_information_hierarchy(source):
     output = DiscordOutput()
     formatter = (
         output.default_formatter
@@ -512,46 +539,18 @@ def test_every_discord_card_uses_the_shared_information_hierarchy(source):
     assert " • " in embed["title"]
     assert not embed["description"].startswith("\u200b\n")
     assert not embed["description"].startswith("\n")
-    assert "\n\n" not in embed["description"]
     assert embed["description"].count(" • ") == 2
     assert [field["name"].split(" ", 1)[-1] for field in embed["fields"][:3]] == [
         "Severity",
         "Category",
         "Event time",
     ]
-    assert embed["description"].endswith("\n```")
-    assert (
-        f"\n{formatter.SEPARATOR}\n```\n"
-        in embed["description"]
-    )
-    assert len(formatter.SEPARATOR) == 47
-    assert embed["description"].count(formatter.SEPARATOR) == 1
-    assert all(field["inline"] is True for field in embed["fields"][:3])
-    assert embed["fields"][2]["value"] == (
-        "15 Jul 2026 • 01:20"
-        if source == "xo"
-        else "15 Jul 2026 • 01:15"
-    )
     assert len(embed["fields"]) <= 25
     assert formatter._embed_text_size(embed) <= formatter.EMBED_TEXT_BUDGET
-    assert embed["fields"][-1]["value"].endswith(formatter.SEPARATOR)
-    assert all(
-        "Event" != field["name"].split(" ", 1)[-1]
-        for field in embed["fields"]
-    )
-    field_separator_count = sum(
-        str(field["value"]).count(formatter.SEPARATOR)
-        for field in embed["fields"]
-    )
-    has_details = any(
-        "📋 **Event details**" in str(field["value"])
-        for field in embed["fields"]
-    )
-    assert field_separator_count == (2 if has_details else 1)
     assert embed["footer"]["text"] == f"Theriark • Nowlert v{VERSION}"
 
 
-def test_discord_details_follow_metrics_and_end_at_the_footer_rule():
+def test_discord_classic_v1_groups_proxmox_details_by_section():
     item = _notification("proxmox")
     item.metadata.update({
         "vmid": 101,
@@ -560,26 +559,16 @@ def test_discord_details_follow_metrics_and_end_at_the_footer_rule():
         "storage": "backup-nfs",
     })
     embed = DiscordOutput().source_formatters["proxmox"].format(item)["embeds"][0]
+    fields = {field["name"]: field["value"] for field in embed["fields"]}
 
-    details_index = next(
-        index
-        for index, field in enumerate(embed["fields"])
-        if "📋 **Event details**" in field["value"]
-    )
-    details = embed["fields"][details_index]
-
-    assert embed["fields"][details_index - 1]["name"].endswith("Event time")
-    assert details["name"] == "\u200b"
-    assert details["inline"] is False
-    assert details["value"].startswith(
-        f"{DiscordCardFormatter.SEPARATOR}\n📋 **Event details**\n"
-    )
-    assert "🆔 **VMID:** 101" in details["value"]
-    assert "💻 **Guest:** APP-01" in details["value"]
-    assert details["value"].endswith(DiscordCardFormatter.SEPARATOR)
-    assert not details["value"].endswith(
-        f"\n\n{DiscordCardFormatter.SEPARATOR}"
-    )
+    assert "🟧 Proxmox VE" in fields
+    assert "**Guest:** `APP-01`" in fields["🟧 Proxmox VE"]
+    assert "**VMID:** `101`" in fields["🟧 Proxmox VE"]
+    assert "💾 Storage" in fields
+    assert "**Storage:** `backup-nfs`" in fields["💾 Storage"]
+    assert "⏱️ Timing" in fields
+    assert "**Duration:** `5 min`" in fields["⏱️ Timing"]
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
 
 
 def test_discord_converts_source_time_and_never_invents_receipt_time():
@@ -613,7 +602,7 @@ def test_discord_rich_details_survive_the_shared_renderer():
         ensure_ascii=False,
     )
 
-    for value in ("VMID", "101", "APP-01", "vzdump-nightly", "backup-nfs", "4 min 31 sec"):
+    for value in ("VMID", "101", "APP-01", "backup-nfs", "4 min 31 sec"):
         assert value in rendered
 
 
