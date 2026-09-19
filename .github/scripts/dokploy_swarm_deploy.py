@@ -17,6 +17,81 @@ SHA_TAG_RE = re.compile(
 DokployError = shared.DokployError
 
 
+def merge_environment(current: str, values: dict[str, str]) -> str:
+    """Upsert selected environment variables without disturbing unrelated entries."""
+    managed = set(values)
+    written: set[str] = set()
+    lines: list[str] = []
+    for raw_line in (current or "").splitlines():
+        stripped = raw_line.strip()
+        if stripped and not stripped.startswith("#") and "=" in raw_line:
+            key = raw_line.split("=", 1)[0].strip()
+            if key in managed:
+                if key not in written:
+                    lines.append(f"{key}={values[key]}")
+                    written.add(key)
+                continue
+        lines.append(raw_line)
+    for key, value in values.items():
+        if key not in written:
+            lines.append(f"{key}={value}")
+    return "\n".join(lines).rstrip("\n") + "\n"
+
+
+def application_environment(application_id: str) -> str:
+    response = shared.request_json(
+        "GET",
+        "application.one",
+        query={"applicationId": application_id},
+    )
+    value = shared.find_key(response, "env")
+    return value if isinstance(value, str) else ""
+
+
+def datadog_identity(args: argparse.Namespace) -> dict[str, str]:
+    values = {
+        "DD_SERVICE": args.dd_service.strip(),
+        "DD_ENV": args.dd_env.strip(),
+        "DD_VERSION": args.dd_version.strip(),
+    }
+    supplied = [value for value in values.values() if value]
+    if supplied and len(supplied) != len(values):
+        raise DokployError(
+            "Datadog identity requires --dd-service, --dd-env, and --dd-version together"
+        )
+    if not supplied:
+        return {}
+    for key in ("DD_SERVICE", "DD_ENV"):
+        if not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", values[key]):
+            raise DokployError(f"{key} must use lowercase Datadog-safe characters")
+    if not re.fullmatch(r"[0-9a-f]{40}", values["DD_VERSION"]):
+        raise DokployError("DD_VERSION must be the exact 40-character source SHA")
+    return values
+
+
+def verify_datadog_identity(application_id: str, expected: dict[str, str]) -> None:
+    if not expected:
+        return
+    environment = application_environment(application_id)
+    observed: dict[str, str] = {}
+    for raw_line in environment.splitlines():
+        if "=" not in raw_line:
+            continue
+        key, value = raw_line.split("=", 1)
+        key = key.strip()
+        if key in expected:
+            observed[key] = value
+    if observed != expected:
+        raise DokployError(
+            f"Dokploy Datadog identity mismatch: observed {observed}, expected {expected}"
+        )
+    print(
+        "PASS: Datadog identity "
+        f"service={expected['DD_SERVICE']} env={expected['DD_ENV']} "
+        f"version={expected['DD_VERSION']}"
+    )
+
+
 def validate_sha_tag(image: str) -> None:
     if not SHA_TAG_RE.fullmatch(image):
         raise DokployError(
@@ -104,17 +179,28 @@ def deploy(args: argparse.Namespace) -> None:
     shared.write_output("previous_image", previous)
     shared.write_output("deployed_image", args.image)
 
-    if previous == args.image and args.noop_ok:
+    identity = datadog_identity(args)
+    current_env = application_environment(args.application_id) if identity else ""
+    merged_env = merge_environment(current_env, identity) if identity else current_env
+    environment_changed = bool(identity and merged_env != current_env)
+
+    if previous == args.image and not environment_changed and args.noop_ok:
         print(f"No image change required for {args.application_id}: {args.image}")
     else:
         before = {
             shared.record_id(record)
             for record in list_application_deployments(args.application_id)
         }
+        update_payload = {
+            "applicationId": args.application_id,
+            "dockerImage": args.image,
+        }
+        if identity:
+            update_payload["env"] = merged_env
         shared.request_json(
             "POST",
             "application.update",
-            payload={"applicationId": args.application_id, "dockerImage": args.image},
+            payload=update_payload,
         )
         trigger = shared.request_json(
             "POST",
@@ -144,6 +230,7 @@ def deploy(args: argparse.Namespace) -> None:
             f"Dokploy application {args.application_id} reports {observed}, expected {args.image}"
         )
     print(f"PASS: Dokploy application image is exactly {observed}")
+    verify_datadog_identity(args.application_id, identity)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -155,6 +242,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--description", default="Managed by GitHub Actions")
     parser.add_argument("--timeout", type=int, default=600)
     parser.add_argument("--expected-version", default="")
+    parser.add_argument("--dd-service", default="")
+    parser.add_argument("--dd-env", default="")
+    parser.add_argument("--dd-version", default="")
     parser.add_argument("--noop-ok", action="store_true")
     return parser
 
