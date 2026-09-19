@@ -1073,7 +1073,8 @@
   }
   function edgeCurve(a, b) {
     const x = a.offsetLeft + a.offsetWidth, y = a.offsetTop + a.offsetHeight / 2;
-    const xx = b.offsetLeft, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x, bend = Math.max(20, Math.min(gap * .2, 80));
+    const targetInset = 7;
+    const xx = b.offsetLeft - targetInset, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x, bend = Math.max(20, Math.min(gap * .2, 80));
     return `M${x} ${y} C${x+bend} ${y} ${xx-bend} ${yy} ${xx} ${yy}`;
   }
   function drawEdges() {
@@ -1082,8 +1083,8 @@
     const edgeLayer = $("rf-edge-layer"); edgeLayer.replaceChildren(); edgePaths = new Map();
     if (graph.hidden || graph.clientWidth === 0 || window.innerWidth <= 640) return;
     edges.setAttribute("viewBox", `0 0 ${graph.clientWidth} ${graph.clientHeight}`);
-    const defs = svg("defs"), marker = svg("marker", { id:"rf-arrow", viewBox:"0 0 8 8", refX:7, refY:4, markerWidth:7, markerHeight:7, orient:"auto" });
-    marker.append(svg("path", {d:"M0 0 L8 4 L0 8 Z", fill:"currentColor"})); defs.append(marker); edgeLayer.append(defs);
+    const defs = svg("defs"), marker = svg("marker", { id:"rf-arrow", viewBox:"0 0 6 6", refX:6, refY:3, markerWidth:6, markerHeight:6, markerUnits:"userSpaceOnUse", orient:"auto" });
+    marker.append(svg("path", {d:"M0 0 L6 3 L0 6 Z", fill:"currentColor"})); defs.append(marker); edgeLayer.append(defs);
     const current = graphModel || activeFlowGraph();
 
     for (const link of current.links) {
