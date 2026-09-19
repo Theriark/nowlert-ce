@@ -870,7 +870,11 @@ def _render_unifi_network(notification, payload, normalized, metadata):
 
 
 def _render_unifi_protect(notification, payload, normalized, metadata):
-    from formatters.unifi import (\n        format_protect_event_time,\n        protect_condition_display,\n        protect_device_display,\n    )\n
+    from formatters.unifi import (
+        format_protect_event_time,
+        protect_condition_display,
+        protect_device_display,
+    )
     status = str(normalized.get("status") or "").strip()
     severity = str(metadata.get("severity") or status).strip()
     category = str(normalized.get("category") or metadata.get("category") or "security").strip()
