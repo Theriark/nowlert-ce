@@ -383,7 +383,7 @@ def test_xo_card_retains_real_duration_and_result_values():
     discord = DiscordOutput().source_formatters["xo"].format(item)["embeds"][0]
     duration = next(
         field for field in discord["fields"]
-        if field["name"] == "⌛ Duration"
+        if field["name"] == "⏱️ Duration"
     )
     assert duration["value"] == "`5 min`"
     assert discord["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
