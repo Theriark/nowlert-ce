@@ -49,7 +49,7 @@ def test_discord_and_teams_payloads_contain_operational_details():
         assert expected in teams_text
 
     assert "Failed" in discord_text
-    assert "🦉 Nowlert CE • Classic Embed" in discord_text
+    assert discord["embeds"][0]["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
     assert "Cleared" in teams_text
     assert f"Nowlert v{VERSION}" in teams_text
 
