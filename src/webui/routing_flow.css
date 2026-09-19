@@ -48,6 +48,20 @@
 .rf-unassigned { align-self:center; font-size:12px; color:#bbcbd6; }
 .rf-edges { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; color:#eac044; }
 .rf-edge { fill:none; stroke:#eac044; stroke-width:1.4; }
+.rf-node.rf-has-incoming::after {
+  content:"";
+  position:absolute;
+  left:0;
+  top:50%;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#eac044;
+  box-shadow:0 0 0 2px #0c1b25, 0 0 7px rgba(234,192,68,.42);
+  pointer-events:none;
+  transform:translate(-50%,-50%);
+  z-index:4;
+}
 .rf-edge.rf-off { stroke:#81909a; stroke-dasharray:4 5; }
 .rf-edge.rf-dim { opacity:.18; }
 .rf-particle { fill:#fff5b9; filter:drop-shadow(0 0 4px #ffcd43) drop-shadow(0 0 7px #ffb900); }
