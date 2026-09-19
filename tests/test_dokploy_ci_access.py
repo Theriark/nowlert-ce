@@ -130,5 +130,7 @@ def test_live_webui_acceptance_does_not_pipe_large_assets_into_grep_q():
     assert "printf '%s' \"${CSS}\" | grep -Fq" not in live_check
     assert "printf '%s' \"${APP}\" | grep -Fq" not in live_check
     assert "printf '%s' \"${OWNERSHIP}\" | grep -Fq" not in live_check
-    assert 'grep -Fq "round-18 acceptance corrections" <<< "${CSS}"' in live_check
-    assert 'grep -Fq "Preview completed." <<< "${APP}"' in live_check
+    assert "require_contains()" in live_check
+    assert 'grep -Fq "$needle" <<< "$haystack"' in live_check
+    assert 'require_contains "qa_patch.css marker" "round-18 acceptance corrections"' in live_check
+    assert 'require_contains "app.js preview" "Preview completed."' in live_check
