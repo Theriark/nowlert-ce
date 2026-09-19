@@ -1,13 +1,14 @@
 /* Ownership/status alignment layered after Filtering and Routing Flow styles. */
-.filtering-table th:nth-child(1) { width: 19%; }
+.filtering-table th:nth-child(1) { width: 18%; }
 .filtering-table th:nth-child(2) {
   padding-left: 0.75rem;
   text-align: left !important;
-  width: 36%;
+  width: 15%;
 }
-.filtering-table th:nth-child(3) { width: 11%; }
-.filtering-table th:nth-child(4) { width: 12%; }
-.filtering-table th:nth-child(5) { width: 22%; }
+.filtering-table th:nth-child(3) { width: 30%; }
+.filtering-table th:nth-child(4) { width: 10%; }
+.filtering-table th:nth-child(5) { width: 10%; }
+.filtering-table th:nth-child(6) { width: 17%; }
 .filtering-table td:nth-child(2) { text-align: left; }
 .filtering-table tbody td:nth-child(3),
 .filtering-table tbody td:nth-child(4),
@@ -88,4 +89,16 @@ button.filtering-status-control { cursor: pointer; }
   box-sizing: border-box;
   padding-left: 0 !important;
   text-align: left;
+}
+
+
+@media (max-width: 720px) {
+  .filtering-table th:nth-child(1),
+  .filtering-table th:nth-child(2),
+  .filtering-table th:nth-child(3),
+  .filtering-table th:nth-child(4),
+  .filtering-table th:nth-child(5),
+  .filtering-table th:nth-child(6) {
+    width: auto;
+  }
 }

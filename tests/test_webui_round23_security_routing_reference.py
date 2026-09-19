@@ -45,7 +45,7 @@ def test_routing_flow_uses_same_range_contract_as_dashboard():
 
     assert 'class="rf-range ops-dashboard-range-control"' in flow
     assert "select.innerHTML = rangeOptions();" in dashboard
-    assert 'const selected = select.value || state.historyRange || "1h";' in dashboard
+    assert 'const selected = previousValue || state.historyRange || "1h";' in dashboard
     assert '["15m", "Last 15 minutes"]' not in dashboard
     for label in (
         "Last 10 minutes",

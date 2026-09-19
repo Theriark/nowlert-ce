@@ -56,7 +56,7 @@ def test_management_consistency_runtime_matches_selected_ui_contract():
     assert '[data-delivery-workbench-action="close-detail"]' not in script
     assert '"#view-audit .audit-log-detail-close"' in script
     assert '"#view-users .private-resource-count"' in script
-    assert 'second.textContent = "Configuration"' in script
+    assert 'second.textContent = "Name"' in script
     assert 'element("h3", { text: "Integration behavior" })' in script
     assert 'Configure how each integration handles and maps incoming data.' in script
     assert 'integration-behavior-count' in script

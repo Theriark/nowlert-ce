@@ -7,7 +7,7 @@
   const DASHBOARD_STALE_MS = 120_000;
   const FLOW_LIVE_MS = 15_000;
   const DASHBOARD_RANGES = new Set(["10m", "1h", "1d", "1m", "1y"]);
-  const FLOW_RANGES = new Set(["15m", "1h", "3h", "6h", "1d"]);
+  const FLOW_RANGES = new Set(["10m", "1h", "1d", "1m", "1y"]);
   const WORKSPACE_SUMMARY_ITEMS = [
     { key: "tokens", valueId: "ops-config-tokens" },
     { key: "filters", valueId: "ops-config-filters" },

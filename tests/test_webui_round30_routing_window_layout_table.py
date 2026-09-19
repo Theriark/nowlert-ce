@@ -32,16 +32,20 @@ def test_filter_details_do_not_repeat_generic_active_status():
     assert 'detailRow("Filtered out", filterMetricText(filter.metrics?.filtered))' in block
 
 
-def test_range_change_requires_a_fresh_window_snapshot_and_forced_render():
+def test_range_change_uses_visible_selection_and_preserves_matching_cache():
     script = read("src/webui/routing_flow.js")
 
+    assert "function selectedRoutingRange()" in script
     assert "function changeRoutingRange(nextRange)" in script
-    assert "delete state.routingFlowSnapshots[nextRange];" in script
-    assert "refresh({ allowCache: false, forceRender: true });" in script
+    assert "delete state.routingFlowSnapshots[nextRange];" not in script
+    assert "refresh({ allowCache: true, forceRender: true });" in script
     assert "async function refresh(options = {})" in script
     assert "const allowCache = options.allowCache !== false;" in script
     assert "const forceRender = options.forceRender === true;" in script
     assert "if (allowCache) hydrateCachedRoutingFlow();" in script
+    assert "const requestRange = selectedRoutingRange();" in script
+    assert 'String(cached.range || "") !== range' in script
+    assert 'String(next.range || "") !== requestRange' in script
     assert "if (forceRender || nextSignature !== signature)" in script
     assert 'changeRoutingRange($("rf-range").value)' in script
 
@@ -118,13 +122,13 @@ def test_server_metrics_for_filters_and_destinations_follow_requested_window(api
     assert hour_filter["metrics"]["filtered"] == 2
 
 
-def test_layout_dynamically_compacts_all_three_columns_to_the_top():
+def test_layout_keeps_barycentric_vertical_alignment_instead_of_reanchoring_columns():
     script = read("src/webui/routing_flow.js")
 
-    assert "function shiftCentersToTop(" in script
-    assert "routeCenters = shiftCentersToTop(" in script
-    assert "filterCenters = shiftCentersToTop(" in script
-    assert "destinationCenters = shiftCentersToTop(" in script
+    assert "function shiftCentersToTop(" not in script
+    assert "routeCenters = shiftCentersToTop(" not in script
+    assert "filterCenters = shiftCentersToTop(" not in script
+    assert "destinationCenters = shiftCentersToTop(" not in script
     assert "const routeDesired = new Map" in script
     assert "const filterDesired = new Map" in script
     assert "const destinationDesired = new Map" in script
@@ -135,7 +139,7 @@ def test_edges_use_a_bounded_short_curve_instead_of_half_gap_bends():
     start = script.index("function edgeCurve(a, b)")
     block = script[start:script.index("function drawEdges()", start)]
 
-    assert "Math.max(24, Math.min(gap * .3, 120))" in block
+    assert "Math.max(20, Math.min(gap * .2, 80))" in block
     assert "gap * .52" not in block
 
 

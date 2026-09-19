@@ -65,7 +65,7 @@ def test_filtering_overview_shows_persisted_filter_name_column():
     assert 'row.querySelector(".filtering-status-cell")' in ownership
 
 
-def test_routing_flow_filter_cards_are_packed_from_top_after_ordering():
+def test_routing_flow_filter_cards_can_float_to_connected_barycenters():
     script = read("src/webui/routing_flow.js")
 
     assert "function packCentersFromTop(items, heights, gap, minimumTop)" in script
@@ -74,6 +74,6 @@ def test_routing_flow_filter_cards_are_packed_from_top_after_ordering():
         script.index("function positionNode", script.index("function computeFlowLayout(current, ordered, headerBottom)"))
     ]
     assert "filterCenters = packCentersFromTop(filterItems, filterHeights, 12, headerBottom);" in layout
-    assert layout.count(
-        "filterCenters = shiftCentersToTop(filterCenters, filterItems, filterHeights, headerBottom);"
-    ) >= 2
+    assert "filterCenters = resolveCenters(filterItems, filterDesired, filterHeights, 12, headerBottom);" in layout
+    assert "filterCenters = resolveCenters(filterItems, finalFilterDesired, filterHeights, 12, headerBottom);" in layout
+    assert "shiftCentersToTop" not in layout
