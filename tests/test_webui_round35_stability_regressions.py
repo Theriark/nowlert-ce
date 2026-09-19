@@ -66,23 +66,21 @@ def test_dashboard_uses_dedicated_delivery_feed_and_only_marks_dashboard_refresh
     assert "return previousRequest(path, options);" in acceptance
 
 
-def test_account_reference_role_uses_authenticated_session_role():
+def test_account_reference_role_uses_live_admin_authority():
     script = read("src/webui/reference_acceptance.js")
 
-    assert 'let referenceAuthenticatedRole = "";' in script
-    assert 'const role = referenceAuthenticatedRole || String(user.role || "");' in script
-    assert 'role === "admin" ? "Administrator" : "User"' in script
-    show_start = script.index("showApp = function showAppWithReferenceAcceptance")
-    show_end = script.index("const pageTitle =", show_start)
-    show = script[show_start:show_end]
-    assert 'referenceAuthenticatedRole = String(session?.user?.role || "");' in show
-    assert show.index('referenceAuthenticatedRole = String(session?.user?.role || "");') < show.index("base(session)")
+    assert "referenceAuthenticatedRole" not in script
+    sync_start = script.index("function syncAccountReference()")
+    sync_end = script.index("function syncAll()", sync_start)
+    sync = script[sync_start:sync_end]
+    assert 'const admin = typeof isAdmin === "function" && isAdmin();' in sync
+    assert 'admin ? "Administrator" : "User"' in sync
 
 
 def test_round35_build_versions_the_changed_webui_bundle():
-    assert UI_BUILD == "20260919-r35"
+    assert UI_BUILD == "20260919-r36"
     index = read("src/webui/index.html")
-    assert 'name="nowlert-ui-build" content="20260919-r35"' in index
-    assert "/ui/app.js?v=20260919-r35" in index
-    assert "/ui/qa_patch.css?v=20260919-r35" in index
-    assert "/ui/qa_patch.js?v=20260919-r35" in index
+    assert 'name="nowlert-ui-build" content="20260919-r36"' in index
+    assert "/ui/app.js?v=20260919-r36" in index
+    assert "/ui/qa_patch.css?v=20260919-r36" in index
+    assert "/ui/qa_patch.js?v=20260919-r36" in index

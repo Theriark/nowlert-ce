@@ -15,7 +15,6 @@
   let previewRouteSelection = new Set();
   let previewRouteMoreOpen = false;
   let syncQueued = false;
-  let referenceAuthenticatedRole = "";
 
   const ref = (tag, className = "", text = "") => {
     const node = document.createElement(tag);
@@ -1133,9 +1132,9 @@ function ensurePreviewReferenceLayout() {
     ensureAccountReferenceLayout();
     forceProfileTitle();
     const user = state.user || {};
-    const role = referenceAuthenticatedRole || String(user.role || "");
+    const admin = typeof isAdmin === "function" && isAdmin();
     if (byId("reference-account-role-value")) {
-      byId("reference-account-role-value").textContent = role === "admin" ? "Administrator" : "User";
+      byId("reference-account-role-value").textContent = admin ? "Administrator" : "User";
     }
     if (byId("reference-account-member-value")) {
       byId("reference-account-member-value").textContent = memberSince(user);
@@ -1202,7 +1201,7 @@ function ensurePreviewReferenceLayout() {
   if (typeof renderUpdates === "function") { const base = renderUpdates; renderUpdates = function renderUpdatesWithReferenceLayout() { const result = base(); syncSettingsUpdateState(); return result; }; }
   if (typeof renderTokens === "function") { const base = renderTokens; renderTokens = function renderTokensWithReferenceLayout() { const result = base(); ensureAccountReferenceLayout(); syncApiTokensReference(); return result; }; }
   if (typeof navigate === "function") { const base = navigate; navigate = function navigateWithReferenceAcceptance(view, mode = "push") { const result = base(view, mode); syncAll(); scheduleSync(); return result; }; }
-  if (typeof showApp === "function") { const base = showApp; showApp = function showAppWithReferenceAcceptance(session) { referenceAuthenticatedRole = String(session?.user?.role || ""); const result = base(session); syncAll(); scheduleSync(); return result; }; }
+  if (typeof showApp === "function") { const base = showApp; showApp = function showAppWithReferenceAcceptance(session) { const result = base(session); syncAll(); scheduleSync(); return result; }; }
 
   const pageTitle = byId("page-title");
   if (pageTitle && typeof MutationObserver === "function") {

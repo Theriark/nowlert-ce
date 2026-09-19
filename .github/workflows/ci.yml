@@ -306,6 +306,8 @@ jobs:
             require_contains "Routing Flow value overflow" "rf-filter-value-overflow-wrap" "${routing}" || return 1
             require_contains "Routing Flow six visible values" "const visibleValueLimit = 6;" "${routing}" || return 1
             require_contains "Routing Flow value popover labels" "rf-filter-value-popover-label" "${routing}" || return 1
+            require_contains "Routing Flow interactive node shell" 'const node = el("div", `rf-node rf-${kind}`);' "${routing}" || return 1
+            require_contains "Routing Flow value menu ownership" 'valueToggle.setAttribute("aria-controls", valuePopover.id);' "${routing}" || return 1
             require_contains "Routing Flow selected range" "const requestRange = selectedRoutingRange();" "${routing}" || return 1
             require_contains "Routing Flow response range" "String(next.range || \"\") !== requestRange" "${routing}" || return 1
 
@@ -392,7 +394,7 @@ jobs:
                 "${ACCESS_HEADERS[@]}" \
                 "${BASE_URL}/ui/reference_acceptance.js?v=${UI_BUILD}"
             )" || { echo "WAIT: reference_acceptance.js request failed"; return 1; }
-            require_contains "Security stable authenticated role" "referenceAuthenticatedRole" "${reference}" || return 1
+            require_contains "Security authoritative live role" 'const admin = typeof isAdmin === "function" && isAdmin();' "${reference}" || return 1
 
             return 0
           }
