@@ -137,6 +137,20 @@ DEVELOPMENT_RUN_ID=<successful development Continuous Integration run id>
 
 Do not replace the immutable digest with a mutable tag for later promotions.
 
+CE Development also receives Datadog unified service identity during the same
+Dokploy deployment:
+
+```text
+DD_SERVICE=nowlert-ce
+DD_ENV=development
+DD_VERSION=<40-char development SHA>
+```
+
+The deployment helper preserves unrelated Dokploy environment variables, updates
+only these three Datadog identity keys, and verifies the persisted values after
+the deployment is healthy. Runtime Code Security instrumentation is intentionally
+separate from this identity-only step.
+
 ## Stage
 
 Stage promotion is manually dispatched from `development` with:

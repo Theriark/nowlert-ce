@@ -220,6 +220,9 @@ jobs:
             --image "${IMAGE}:sha-${SOURCE_SHA}" \
             --health-url https://ce-dev-nowlert.theriark.dev/api/health \
             --expected-version "${EXPECTED_VERSION}" \
+            --dd-service "nowlert-ce" \
+            --dd-env "development" \
+            --dd-version "${SOURCE_SHA}" \
             --title "CE Development ${SOURCE_SHA}" \
             --description "GitHub Actions run ${{ github.run_id }}"
 
