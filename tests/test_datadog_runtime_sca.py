@@ -1,4 +1,4 @@
-"""Round-54 contracts for Datadog Runtime SCA in CE Development."""
+"""Round-55 contracts for Datadog Runtime SCA and IAST in CE Development."""
 
 from __future__ import annotations
 
@@ -45,25 +45,39 @@ def test_runtime_sca_dependencies_are_exactly_pinned():
     } <= requirements
 
 
-def test_runtime_sca_contract_enables_sca_and_keeps_iast_off():
+def test_runtime_security_contract_enables_sca_and_iast():
     module = load_swarm_deploy()
 
     assert module.datadog_runtime_security(
-        Namespace(dd_runtime_sca=False)
+        Namespace(dd_runtime_sca=False, dd_iast=False)
     ) == {}
     assert module.datadog_runtime_security(
         Namespace(
             dd_runtime_sca=True,
+            dd_iast=True,
             dd_agent_host="datadog-agent",
             dd_trace_agent_port=8126,
         )
     ) == {
         "NOWLERT_DDTRACE_ENABLED": "true",
         "DD_APPSEC_SCA_ENABLED": "true",
-        "DD_IAST_ENABLED": "false",
+        "DD_IAST_ENABLED": "true",
         "DD_AGENT_HOST": "datadog-agent",
         "DD_TRACE_AGENT_PORT": "8126",
     }
+
+
+def test_iast_requires_runtime_sca_contract():
+    module = load_swarm_deploy()
+
+    try:
+        module.datadog_runtime_security(
+            Namespace(dd_runtime_sca=False, dd_iast=True)
+        )
+    except module.DokployError as exc:
+        assert "--dd-runtime-sca" in str(exc)
+    else:
+        raise AssertionError("IAST without Runtime SCA contract must fail")
 
 
 def test_runtime_sca_requires_agent_transport():
@@ -73,6 +87,7 @@ def test_runtime_sca_requires_agent_transport():
         module.datadog_runtime_security(
             Namespace(
                 dd_runtime_sca=True,
+                dd_iast=True,
                 dd_agent_host="",
                 dd_trace_agent_port=8126,
             )
@@ -86,6 +101,7 @@ def test_runtime_sca_requires_agent_transport():
         module.datadog_runtime_security(
             Namespace(
                 dd_runtime_sca=True,
+                dd_iast=True,
                 dd_agent_host="datadog-agent",
                 dd_trace_agent_port=0,
             )
@@ -108,7 +124,7 @@ def test_startup_wraps_python_only_when_datadog_is_enabled():
     assert script.endswith("exec python3 main.py\n")
 
 
-def test_development_workflow_activates_runtime_sca_only():
+def test_development_workflow_activates_runtime_sca_and_iast():
     workflow = CI.read_text(encoding="utf-8")
     marker = "- name: Deploy exact CE SHA tag to Development"
     assert marker in workflow
@@ -120,4 +136,4 @@ def test_development_workflow_activates_runtime_sca_only():
     assert '--dd-version "${SOURCE_SHA}"' in deploy
     assert '--dd-agent-host "datadog-agent"' in deploy
     assert "--dd-trace-agent-port 8126" in deploy
-    assert "--dd-iast" not in deploy
+    assert "--dd-iast" in deploy

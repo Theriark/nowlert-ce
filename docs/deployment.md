@@ -146,7 +146,7 @@ DD_ENV=development
 DD_VERSION=<40-char development SHA>
 NOWLERT_DDTRACE_ENABLED=true
 DD_APPSEC_SCA_ENABLED=true
-DD_IAST_ENABLED=false
+DD_IAST_ENABLED=true
 DD_AGENT_HOST=datadog-agent
 DD_TRACE_AGENT_PORT=8126
 ```
@@ -155,12 +155,12 @@ The production image ships the pinned Datadog Python tracer, but `start.sh`
 wraps Nowlert with `ddtrace-run` only when `NOWLERT_DDTRACE_ENABLED=true`.
 Continuous Integration sets that activation flag only for CE Development, so
 the same image keeps the normal `python3 main.py` startup unless another
-environment explicitly opts in. Runtime SCA is enabled for Development while
-IAST remains explicitly disabled for this pass.
+environment explicitly opts in. Runtime SCA and Python IAST are both enabled
+for CE Development; Stage and public release environments remain opted out.
 
 The deployment helper preserves unrelated Dokploy environment variables and
-verifies both the Datadog identity and Runtime SCA settings after the deployment
-is healthy. CE Development explicitly connects to the dedicated Datadog Agent
+verifies the Datadog identity, Runtime SCA, IAST, and Agent transport settings
+after the deployment is healthy. CE Development explicitly connects to the dedicated Datadog Agent
 through the private `dokploy-network` service alias `datadog-agent` on trace
 port `8126`; the Agent does not publish that port on the host. Stage and public
 release environments are not opted into this Development-only runtime-security
