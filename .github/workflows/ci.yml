@@ -223,6 +223,7 @@ jobs:
             --dd-service "nowlert-ce" \
             --dd-env "development" \
             --dd-version "${SOURCE_SHA}" \
+            --dd-runtime-sca \
             --title "CE Development ${SOURCE_SHA}" \
             --description "GitHub Actions run ${{ github.run_id }}"
 

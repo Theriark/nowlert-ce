@@ -69,6 +69,16 @@ def datadog_identity(args: argparse.Namespace) -> dict[str, str]:
     return values
 
 
+def datadog_runtime_security(args: argparse.Namespace) -> dict[str, str]:
+    if not bool(getattr(args, "dd_runtime_sca", False)):
+        return {}
+    return {
+        "NOWLERT_DDTRACE_ENABLED": "true",
+        "DD_APPSEC_SCA_ENABLED": "true",
+        "DD_IAST_ENABLED": "false",
+    }
+
+
 def verify_datadog_identity(application_id: str, expected: dict[str, str]) -> None:
     if not expected:
         return
@@ -90,6 +100,29 @@ def verify_datadog_identity(application_id: str, expected: dict[str, str]) -> No
         f"service={expected['DD_SERVICE']} env={expected['DD_ENV']} "
         f"version={expected['DD_VERSION']}"
     )
+
+
+def verify_datadog_runtime_security(
+    application_id: str,
+    expected: dict[str, str],
+) -> None:
+    if not expected:
+        return
+    environment = application_environment(application_id)
+    observed: dict[str, str] = {}
+    for raw_line in environment.splitlines():
+        if "=" not in raw_line:
+            continue
+        key, value = raw_line.split("=", 1)
+        key = key.strip()
+        if key in expected:
+            observed[key] = value
+    if observed != expected:
+        raise DokployError(
+            "Dokploy Datadog Runtime SCA mismatch: "
+            f"observed {observed}, expected {expected}"
+        )
+    print("PASS: Datadog Runtime SCA enabled and IAST explicitly disabled")
 
 
 def validate_sha_tag(image: str) -> None:
@@ -180,9 +213,19 @@ def deploy(args: argparse.Namespace) -> None:
     shared.write_output("deployed_image", args.image)
 
     identity = datadog_identity(args)
-    current_env = application_environment(args.application_id) if identity else ""
-    merged_env = merge_environment(current_env, identity) if identity else current_env
-    environment_changed = bool(identity and merged_env != current_env)
+    runtime_security = datadog_runtime_security(args)
+    managed_environment = {**identity, **runtime_security}
+    current_env = (
+        application_environment(args.application_id) if managed_environment else ""
+    )
+    merged_env = (
+        merge_environment(current_env, managed_environment)
+        if managed_environment
+        else current_env
+    )
+    environment_changed = bool(
+        managed_environment and merged_env != current_env
+    )
 
     if previous == args.image and not environment_changed and args.noop_ok:
         print(f"No image change required for {args.application_id}: {args.image}")
@@ -195,7 +238,7 @@ def deploy(args: argparse.Namespace) -> None:
             "applicationId": args.application_id,
             "dockerImage": args.image,
         }
-        if identity:
+        if managed_environment:
             update_payload["env"] = merged_env
         shared.request_json(
             "POST",
@@ -231,6 +274,7 @@ def deploy(args: argparse.Namespace) -> None:
         )
     print(f"PASS: Dokploy application image is exactly {observed}")
     verify_datadog_identity(args.application_id, identity)
+    verify_datadog_runtime_security(args.application_id, runtime_security)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -245,6 +289,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dd-service", default="")
     parser.add_argument("--dd-env", default="")
     parser.add_argument("--dd-version", default="")
+    parser.add_argument("--dd-runtime-sca", action="store_true")
     parser.add_argument("--noop-ok", action="store_true")
     return parser
 

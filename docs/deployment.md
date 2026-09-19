@@ -137,19 +137,29 @@ DEVELOPMENT_RUN_ID=<successful development Continuous Integration run id>
 
 Do not replace the immutable digest with a mutable tag for later promotions.
 
-CE Development also receives Datadog unified service identity during the same
-Dokploy deployment:
+CE Development receives Datadog unified service identity and Runtime SCA during
+the same Dokploy deployment:
 
 ```text
 DD_SERVICE=nowlert-ce
 DD_ENV=development
 DD_VERSION=<40-char development SHA>
+NOWLERT_DDTRACE_ENABLED=true
+DD_APPSEC_SCA_ENABLED=true
+DD_IAST_ENABLED=false
 ```
 
-The deployment helper preserves unrelated Dokploy environment variables, updates
-only these three Datadog identity keys, and verifies the persisted values after
-the deployment is healthy. Runtime Code Security instrumentation is intentionally
-separate from this identity-only step.
+The production image ships the pinned Datadog Python tracer, but `start.sh`
+wraps Nowlert with `ddtrace-run` only when `NOWLERT_DDTRACE_ENABLED=true`.
+Continuous Integration sets that activation flag only for CE Development, so
+the same image keeps the normal `python3 main.py` startup unless another
+environment explicitly opts in. Runtime SCA is enabled for Development while
+IAST remains explicitly disabled for this pass.
+
+The deployment helper preserves unrelated Dokploy environment variables and
+verifies both the Datadog identity and Runtime SCA settings after the deployment
+is healthy. This change does not guess or overwrite `DD_AGENT_HOST`; Datadog
+Agent transport remains an environment-specific deployment setting.
 
 ## Stage
 

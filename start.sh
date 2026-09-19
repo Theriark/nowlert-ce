@@ -23,6 +23,17 @@ touch /nowlert/logs/nowlert.log
 
 cd /nowlert/src
 
+if [ "${NOWLERT_DDTRACE_ENABLED:-false}" = "true" ]; then
+    if ! command -v ddtrace-run >/dev/null 2>&1; then
+        echo "ERROR: NOWLERT_DDTRACE_ENABLED=true but ddtrace-run is unavailable." >&2
+        exit 1
+    fi
+
+    echo
+    echo "[1/1] Starting Nowlert with Datadog runtime instrumentation..."
+    exec ddtrace-run python3 main.py
+fi
+
 echo
 echo "[1/1] Starting Nowlert..."
 
