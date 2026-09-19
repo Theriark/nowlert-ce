@@ -55,11 +55,11 @@ def test_round_seven_filtering_renders_cached_overview_before_network_refresh():
     finish = script.index("function filterFieldDescriptor", start)
     block = script[start:finish]
     cached = block.index("const cached = filteringState.overview || state.filteringOverview;")
-    render_cached = block.index("renderOverview();", cached)
+    apply_cached = block.index("applyFilteringOverview(cached, { persist: false });", cached)
     network = block.index('const next = await request("/filters");')
-    assert cached < render_cached < network
-    assert "state.filteringOverview = next;" in block
-    assert 'typeof qaSaveWorkspaceCache === "function"' in block
+    assert cached < apply_cached < network
+    assert "return applyFilteringOverview(next);" in block
+    assert 'typeof qaSaveWorkspaceCache === "function"' in script
     assert "state.filteringOverview = null;" in script
 
 

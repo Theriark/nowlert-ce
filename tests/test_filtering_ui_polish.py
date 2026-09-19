@@ -148,8 +148,10 @@ def test_filtering_overview_final_polish_contract():
     script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
 
-    assert "const active = integrations.length;" in script
-    assert '`${active} active filter${active === 1 ? "" : "s"}`' in script
+    assert "policy.configured_count" in script
+    assert "policy.active_count" in script
+    assert "policy.filtering_enabled === false" in script
+    assert "configured · disabled" in script
     assert 'actionButtonForFilter("✎ Configure", "manage-destination", policy.destination_id, "primary")' in script
     assert ".filtering-overview-integration:hover {" in styles
     assert '.filtering-source-icon[data-source-key="qnap"]' in styles
@@ -170,7 +172,8 @@ def test_filtering_overview_shows_only_active_filters_and_full_width_expand():
     assert 'className: "filtering-expanded-row"' in script
     assert 'attributes: { colspan: "6" }' in script
     assert 'detailRow.hidden = !expanded;' in script
-    assert 'return badge("Active", "success");' in script
+    assert '? badge("Disabled", "warning")' in script
+    assert ': badge("Active", "success");' in script
     assert '.filter((policy) => Array.isArray(policy.integrations) && policy.integrations.length > 0)' in script
     assert "unconfiguredIntegrations.forEach" not in script
     assert 'configured ? "Filter off" : "No filter / All notifications"' in script
