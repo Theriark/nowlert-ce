@@ -633,8 +633,22 @@
     const destinationIds = new Set(enabledDestinations.map(destination => destination.id));
     const links = data.links.filter(link => link.enabled && routeIds.has(link.route_id) && destinationIds.has(link.destination_id));
     const connectedRouteIds = new Set(links.map(link => link.route_id));
+    const filterHasActiveIntegration = filter => {
+      const activeSources = Array.isArray(filter?.active_sources)
+        ? filter.active_sources.filter(Boolean)
+        : [];
+      const activeCount = Number(filter?.active_count);
+      if (activeSources.length > 0) return true;
+      if (Number.isFinite(activeCount)) return activeCount > 0;
+      return (filter?.policies || []).some(policy => {
+        const enabled = Object.prototype.hasOwnProperty.call(policy || {}, "filter_enabled")
+          ? policy.filter_enabled
+          : policy?.enabled;
+        return !policy?.restricted && policy?.configured && enabled !== false;
+      });
+    };
     const filters = (data.filters || [])
-      .filter(filter => destinationIds.has(filter.destination_id))
+      .filter(filter => destinationIds.has(filter.destination_id) && filterHasActiveIntegration(filter))
       .map(filter => ({
         ...filter,
         route_ids: (filter.route_ids || []).filter(routeId => routeIds.has(routeId)),

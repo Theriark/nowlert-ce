@@ -188,7 +188,7 @@ def snapshot(api, actor, range_key):
 
         destination_filter_id = (
             f"{destination.id}:filter"
-            if filter_policies and filter_route_ids
+            if active_filter_sources and filter_route_ids
             else None
         )
         if destination_filter_id is not None:
