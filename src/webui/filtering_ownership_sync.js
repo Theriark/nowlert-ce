@@ -494,7 +494,7 @@
         masterNotice = node(
           "p",
           "filtering-warning filtering-master-disabled-note",
-          "Destination filtering is disabled. Saved integration filter states are preserved and will resume when filtering is enabled.",
+          "Destination filtering is disabled; all integration filters are disabled and must be re-enabled individually when filtering is enabled. Saved filter rules are kept.",
         );
         const visibleSection = [...dialog.querySelectorAll(":scope > section")].find(section => !section.hidden);
         visibleSection?.prepend(masterNotice);
@@ -512,7 +512,7 @@
       body: { enabled: !current },
     });
     await refresh();
-    toast(!current ? "Destination filtering enabled." : "Destination filtering disabled; saved rules were kept.", "success");
+    toast(!current ? "Destination filtering enabled. Integration filters remain off until you enable them." : "Destination filtering disabled; all integration filters were turned off.", "success");
   }
 
   async function toggleSharing(button) {

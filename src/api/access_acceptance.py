@@ -277,27 +277,54 @@ class AcceptanceFilterStore(SystemDestinationFilterStore):
         except (TypeError, ValueError, json.JSONDecodeError):
             return True
 
-    def set_destination_filtering_enabled(
-        self, actor, destination_id: str, enabled: bool
-    ) -> bool:
-        self._destination(actor, destination_id, write=True)
+    def _write_destination_filtering_enabled(
+        self, destination_id: str, enabled: bool
+    ) -> None:
+        destination_id = str(destination_id)
+        now = int(self.clock())
         with self.database.transaction() as connection:
             if enabled:
                 connection.execute(
                     "DELETE FROM settings_records WHERE namespace = ? AND setting_key = ?",
-                    (_MASTER_FILTER_NAMESPACE, str(destination_id)),
+                    (_MASTER_FILTER_NAMESPACE, destination_id),
                 )
-            else:
+                return
+
+            connection.execute(
+                """
+                INSERT INTO settings_records(namespace, setting_key, value_json, updated_at)
+                VALUES (?, ?, 'false', ?)
+                ON CONFLICT(namespace, setting_key) DO UPDATE SET
+                    value_json = excluded.value_json,
+                    updated_at = excluded.updated_at
+                """,
+                (_MASTER_FILTER_NAMESPACE, destination_id, now),
+            )
+            configured = connection.execute(
+                "SELECT source, clauses_json FROM destination_filters "
+                "WHERE destination_id = ?",
+                (destination_id,),
+            ).fetchall()
+            for row in configured:
+                if not self._decode_policy_rules(row["clauses_json"]):
+                    continue
+                source = canonical_source(str(row["source"]))
                 connection.execute(
                     """
                     INSERT INTO settings_records(namespace, setting_key, value_json, updated_at)
-                    VALUES (?, ?, 'false', ?)
+                    VALUES ('destination_filter_enabled', ?, 'false', ?)
                     ON CONFLICT(namespace, setting_key) DO UPDATE SET
                         value_json = excluded.value_json,
                         updated_at = excluded.updated_at
                     """,
-                    (_MASTER_FILTER_NAMESPACE, str(destination_id), int(self.clock())),
+                    (self._state_key(destination_id, source), now),
                 )
+
+    def set_destination_filtering_enabled(
+        self, actor, destination_id: str, enabled: bool
+    ) -> bool:
+        self._destination(actor, destination_id, write=True)
+        self._write_destination_filtering_enabled(destination_id, enabled)
         self._audit(
             actor,
             "filter.destination.enable" if enabled else "filter.destination.disable",
@@ -305,6 +332,17 @@ class AcceptanceFilterStore(SystemDestinationFilterStore):
             {"enabled": bool(enabled)},
         )
         return bool(enabled)
+
+    def disable_for_destination(self, actor, destination_id: str) -> None:
+        """Cascade an authorized Destination disable into Filtering state."""
+
+        self._write_destination_filtering_enabled(destination_id, False)
+        self._audit(
+            actor,
+            "filter.destination.disable",
+            destination_id,
+            {"enabled": False, "reason": "destination_disabled"},
+        )
 
     def clear_destination(self, actor, destination_id: str) -> None:
         super().clear_destination(actor, destination_id)
@@ -398,7 +436,27 @@ class PlatformAPI(BasePlatformAPI):
         if action is not None and not self.yaml_resource_authority:
             row = self.destination_access.destination_row(destination_id)
             self.destination_access.require_view(actor, row)
-        return super()._destination_resource(method, payload, actor, destination_id, action)
+
+        response = super()._destination_resource(
+            method,
+            payload,
+            actor,
+            destination_id,
+            action,
+        )
+        if (
+            action is None
+            and method == "PATCH"
+            and not self.yaml_resource_authority
+            and response.status < 300
+            and isinstance(payload, dict)
+            and "enabled" in payload
+            and isinstance(response.payload, dict)
+            and isinstance(response.payload.get("destination"), dict)
+            and response.payload["destination"].get("enabled") is False
+        ):
+            self.filters.disable_for_destination(actor, destination_id)
+        return response
 
     def _owner_filter_destination(self, actor, destination_id: str):
         row = self.destination_access.destination_row(destination_id)

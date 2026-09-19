@@ -40,16 +40,34 @@ def configure_zabbix_filter(platform, actor, destination_id: str):
     )
 
 
-def test_destination_master_filter_switch_preserves_saved_integration_state(api):
+def test_destination_master_disable_turns_off_every_configured_integration(api):
     headers = login(api)
-    route = create_route(api, headers, "Zabbix HTTP", source="zabbix")
-    destination = create_destination(api, headers, "Operations", [route["id"]])
+    zabbix = create_route(api, headers, "Zabbix HTTP", source="zabbix")
+    grafana = create_route(api, headers, "Grafana HTTP", source="grafana")
+    destination = create_destination(
+        api,
+        headers,
+        "Operations",
+        [zabbix["id"], grafana["id"]],
+    )
     platform = api["service"].platform
     configure_zabbix_filter(platform, api["admin"].actor, destination["id"])
+    platform.filters.set_rules(
+        api["admin"].actor,
+        destination["id"],
+        "grafana",
+        {
+            "policy": [
+                {
+                    "action": "allow",
+                    "conditions": {"severity": ["warning"]},
+                }
+            ]
+        },
+    )
 
-    rejected = Notification(source="zabbix", metadata={"severity": "information"})
-    assert not platform.filters.matches(api["admin"].actor, destination["id"], rejected)
     assert platform.filters.filter_enabled(destination["id"], "zabbix") is True
+    assert platform.filters.filter_enabled(destination["id"], "grafana") is True
 
     disabled = call(
         api,
@@ -60,15 +78,20 @@ def test_destination_master_filter_switch_preserves_saved_integration_state(api)
     )
     assert disabled.status == 200
     assert disabled.payload["enabled"] is False
-    assert platform.filters.filter_enabled(destination["id"], "zabbix") is True
-    assert platform.filters.matches(api["admin"].actor, destination["id"], rejected)
+    assert platform.filters.destination_filtering_enabled(destination["id"]) is False
+    assert platform.filters.filter_enabled(destination["id"], "zabbix") is False
+    assert platform.filters.filter_enabled(destination["id"], "grafana") is False
 
-    overview = call(api, "GET", "/api/v2/filters", headers=headers).payload
-    policy = next(item for item in overview["filters"] if item["destination_id"] == destination["id"])
-    assert policy["filtering_enabled"] is False
-    assert policy["configured_count"] == 1
-    assert policy["active_count"] == 0
-    assert policy["integrations"][0]["filter_enabled"] is False
+    view = platform.filters.destination_view(api["admin"].actor, destination["id"])
+    configured = {
+        item["source"]: item
+        for item in view["integrations"]
+        if item.get("configured")
+    }
+    assert configured["zabbix"]["rules"]
+    assert configured["grafana"]["rules"]
+    assert configured["zabbix"]["filter_enabled"] is False
+    assert configured["grafana"]["filter_enabled"] is False
 
     enabled = call(
         api,
@@ -79,8 +102,67 @@ def test_destination_master_filter_switch_preserves_saved_integration_state(api)
     )
     assert enabled.status == 200
     assert enabled.payload["enabled"] is True
-    assert platform.filters.filter_enabled(destination["id"], "zabbix") is True
-    assert not platform.filters.matches(api["admin"].actor, destination["id"], rejected)
+    assert platform.filters.destination_filtering_enabled(destination["id"]) is True
+    assert platform.filters.filter_enabled(destination["id"], "zabbix") is False
+    assert platform.filters.filter_enabled(destination["id"], "grafana") is False
+
+    rejected = Notification(source="zabbix", metadata={"severity": "information"})
+    assert platform.filters.matches(api["admin"].actor, destination["id"], rejected)
+
+
+def test_disabling_destination_cascades_filtering_and_does_not_restore_on_enable(api):
+    headers = login(api)
+    zabbix = create_route(api, headers, "Zabbix destination", source="zabbix")
+    grafana = create_route(api, headers, "Grafana destination", source="grafana")
+    destination = create_destination(
+        api,
+        headers,
+        "Destination cascade",
+        [zabbix["id"], grafana["id"]],
+    )
+    platform = api["service"].platform
+    configure_zabbix_filter(platform, api["admin"].actor, destination["id"])
+    platform.filters.set_rules(
+        api["admin"].actor,
+        destination["id"],
+        "grafana",
+        {"severity": ["warning"]},
+    )
+
+    disabled = call(
+        api,
+        "PATCH",
+        f'/api/v2/destinations/{destination["id"]}',
+        {"enabled": False},
+        headers,
+    )
+    assert disabled.status == 200
+    assert disabled.payload["destination"]["enabled"] is False
+    assert platform.filters.destination_filtering_enabled(destination["id"]) is False
+    assert platform.filters.filter_enabled(destination["id"], "zabbix") is False
+    assert platform.filters.filter_enabled(destination["id"], "grafana") is False
+
+    view = platform.filters.destination_view(api["admin"].actor, destination["id"])
+    configured = {
+        item["source"]: item
+        for item in view["integrations"]
+        if item.get("configured")
+    }
+    assert configured["zabbix"]["rules"]
+    assert configured["grafana"]["rules"]
+
+    enabled = call(
+        api,
+        "PATCH",
+        f'/api/v2/destinations/{destination["id"]}',
+        {"enabled": True},
+        headers,
+    )
+    assert enabled.status == 200
+    assert enabled.payload["destination"]["enabled"] is True
+    assert platform.filters.destination_filtering_enabled(destination["id"]) is False
+    assert platform.filters.filter_enabled(destination["id"], "zabbix") is False
+    assert platform.filters.filter_enabled(destination["id"], "grafana") is False
 
 
 def test_shared_admin_filter_is_visible_but_rule_private_to_normal_user(api):
