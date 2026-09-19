@@ -36,7 +36,7 @@ def test_filtering_expansion_uses_a_full_width_companion_row():
     assert 'attributes: { colspan: "6" }' in script
     assert 'dataset: { filterOverviewToggle: policy.destination_id }' in script
     assert 'detailRow.hidden = !expanded;' in script
-    assert "grid-template-columns: repeat(3, minmax(220px, 1fr));" in styles
+    assert "grid-template-columns: repeat(auto-fit, minmax(220px, 280px));" in styles
     assert '.filtering-expanded-row[hidden] { display: none; }' in styles
     assert '"#filter-table > tr.filtering-policy-row"' in ownership
     assert '"#filter-table > tr.filtering-policy-row"' in acceptance
@@ -107,10 +107,10 @@ def test_routing_layout_caps_connection_slack_and_filter_cards_use_saved_names()
     assert ".rf-filter-card-summary" in styles
 
 
-def test_round33_build_versions_the_repaired_bundle():
-    assert UI_BUILD == "20260919-r33"
+def test_round33_repaired_bundle_remains_versioned_in_current_build():
+    assert UI_BUILD == "20260919-r34"
     index = read("src/webui/index.html")
-    assert 'name="nowlert-ui-build" content="20260919-r33"' in index
-    assert "/ui/app.js?v=20260919-r33" in index
-    assert "/ui/qa_patch.css?v=20260919-r33" in index
-    assert "/ui/qa_patch.js?v=20260919-r33" in index
+    assert 'name="nowlert-ui-build" content="20260919-r34"' in index
+    assert "/ui/app.js?v=20260919-r34" in index
+    assert "/ui/qa_patch.css?v=20260919-r34" in index
+    assert "/ui/qa_patch.js?v=20260919-r34" in index

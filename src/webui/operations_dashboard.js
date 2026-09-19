@@ -18,6 +18,9 @@
     "1m": "Last 1 month",
     "1y": "Last 1 year",
   };
+  const DASHBOARD_SNAPSHOT_SCHEMA = 1;
+  const DASHBOARD_SNAPSHOT_MAX_AGE_MS = 10 * 60_000;
+  const DASHBOARD_SNAPSHOT_PREFIX = "nowlert.dashboard-first-paint";
   const SVG_NS = "http://www.w3.org/2000/svg";
   const ICON_PATHS = {
     integrations: "M8 3v6M16 3v6M5 9h14v3a7 7 0 0 1-7 7v2M9 21h6",
@@ -47,6 +50,90 @@
     if (className) item.className = className;
     if (text !== "") item.textContent = String(text);
     return item;
+  }
+
+  function dashboardSnapshotIdentity(session) {
+    const user = session?.user || state.user;
+    const value = user?.id ?? user?.username ?? "";
+    return String(value || "").trim();
+  }
+
+  function dashboardSnapshotKey(session, range) {
+    const identity = dashboardSnapshotIdentity(session);
+    if (!identity || !Object.hasOwn(RANGE_LABELS, range)) return "";
+    return `${DASHBOARD_SNAPSHOT_PREFIX}:v${DASHBOARD_SNAPSHOT_SCHEMA}:${encodeURIComponent(identity)}:${range}`;
+  }
+
+  function restoreDashboardSnapshot(session, range) {
+    const key = dashboardSnapshotKey(session, range);
+    if (!key) return false;
+
+    let snapshot;
+    try {
+      snapshot = JSON.parse(window.sessionStorage.getItem(key) || "null");
+    } catch (_error) {
+      return false;
+    }
+
+    const savedAt = Number(snapshot?.saved_at || 0);
+    if (
+      !snapshot
+      || snapshot.schema !== DASHBOARD_SNAPSHOT_SCHEMA
+      || snapshot.range !== range
+      || dashboardSnapshotIdentity(session) !== String(snapshot.user_id || "")
+      || !Number.isFinite(savedAt)
+      || savedAt <= 0
+      || Date.now() - savedAt > DASHBOARD_SNAPSHOT_MAX_AGE_MS
+      || !Array.isArray(snapshot.deliveries)
+      || !Array.isArray(snapshot.audit)
+      || !snapshot.metrics
+      || typeof snapshot.metrics !== "object"
+    ) {
+      return false;
+    }
+
+    state.deliveries = snapshot.deliveries;
+    state.metrics = snapshot.metrics;
+    state.audit = snapshot.audit;
+    filterSnapshot = snapshot.filters && typeof snapshot.filters === "object"
+      ? snapshot.filters
+      : null;
+    lastUpdatedAt = savedAt;
+    return true;
+  }
+
+  function saveDashboardSnapshot(range) {
+    const session = { user: state.user };
+    const key = dashboardSnapshotKey(session, range);
+    if (!key) return;
+
+    try {
+      window.sessionStorage.setItem(key, JSON.stringify({
+        schema: DASHBOARD_SNAPSHOT_SCHEMA,
+        user_id: dashboardSnapshotIdentity(session),
+        range,
+        saved_at: Date.now(),
+        deliveries: Array.isArray(state.deliveries) ? state.deliveries : [],
+        metrics: state.metrics && typeof state.metrics === "object" ? state.metrics : {},
+        audit: Array.isArray(state.audit) ? state.audit : [],
+        filters: filterSnapshot,
+      }));
+    } catch (_error) {
+      // A live refresh remains authoritative if browser storage is unavailable.
+    }
+  }
+
+  function clearDashboardSnapshots(user = state.user) {
+    const session = { user };
+    for (const range of Object.keys(RANGE_LABELS)) {
+      const key = dashboardSnapshotKey(session, range);
+      if (!key) continue;
+      try {
+        window.sessionStorage.removeItem(key);
+      } catch (_error) {
+        return;
+      }
+    }
   }
 
   function svgIcon(name, className = "") {
@@ -606,6 +693,9 @@
       if (jobs[2].status === "fulfilled") filterSnapshot = jobs[2].value;
       if (jobs[3].status === "fulfilled") state.audit = jobs[3].value.audit_events || [];
       lastUpdatedAt = Date.now();
+      if (jobs[0].status === "fulfilled" && jobs[1].status === "fulfilled") {
+        saveDashboardSnapshot(requestedRange);
+      }
       renderOperationsDashboard();
     } finally {
       refreshBusy = false;
@@ -640,8 +730,15 @@
     return result;
   };
 
+  const previousShowApp = showApp;
+  showApp = function operationsDashboardShowApp(session) {
+    restoreDashboardSnapshot(session, state.historyRange);
+    return previousShowApp(session);
+  };
+
   const previousExpireSession = expireSession;
   expireSession = function operationsDashboardExpireSession() {
+    clearDashboardSnapshots(state.user);
     filterSnapshot = null;
     refreshPending = false;
     lastUpdatedAt = 0;

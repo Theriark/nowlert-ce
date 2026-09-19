@@ -92,8 +92,8 @@
 .filtering-overview-grid {
   display: grid;
   gap: 0.55rem;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
-  justify-content: stretch;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
+  justify-content: start;
   width: 100%;
 }
 .filtering-overview-integration {

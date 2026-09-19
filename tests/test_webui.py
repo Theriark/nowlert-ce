@@ -213,16 +213,16 @@ def test_webui_markup_is_semantic_external_and_complete():
     for retired in ("notice-console", "notice-composer", "notice-form", "notice-panel", "notice-list"):
         assert retired not in inspector.ids
     assert inspector.scripts == [
-        "/ui/app.js?v=20260919-r33",
+        "/ui/app.js?v=20260919-r34",
         "/ui/enhancements.js",
-        "/ui/qa_patch.js?v=20260919-r33",
+        "/ui/qa_patch.js?v=20260919-r34",
         "/ui/i18n.js",
         "/ui/dashboard.js",
     ]
     assert inspector.stylesheets == [
         "/ui/styles.css",
         "/ui/enhancements.css",
-        "/ui/qa_patch.css?v=20260919-r33",
+        "/ui/qa_patch.css?v=20260919-r34",
         "/ui/professional.css",
     ]
     assert inspector.inline_handlers == []
@@ -914,9 +914,9 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
     assert response is not None and response.status == 200
     markup = response.body.decode("utf-8")
 
-    assert 'name="nowlert-ui-build" content="20260919-r33"' in markup
-    assert "/ui/app.js?v=20260919-r33" in markup
-    assert "/ui/qa_patch.css?v=20260919-r33" in markup
+    assert 'name="nowlert-ui-build" content="20260919-r34"' in markup
+    assert "/ui/app.js?v=20260919-r34" in markup
+    assert "/ui/qa_patch.css?v=20260919-r34" in markup
 
     # Every runtime extension receives the same build key so a newly deployed
     # WebUI cannot keep executing an older extension bundle.

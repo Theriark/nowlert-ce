@@ -245,7 +245,7 @@ jobs:
           }
 
           verify_live_bundle() {
-            local html css app ownership routing routing_css filtering filter_sync filter_css qa_patch dashboard acceptance cleanup
+            local html css app ownership routing routing_css filtering filter_sync filter_sync_css filter_css qa_patch dashboard acceptance cleanup
 
             html="$(
               curl --fail --silent --show-error \
@@ -302,6 +302,8 @@ jobs:
             require_contains "Routing Flow captured range" 'const routingRangeSelect = section.querySelector("#rf-range");' "${routing}" || return 1
             require_contains "Routing Flow bounded layout" "const maxSlack = Math.max(24, Math.min(48, gap * 3));" "${routing}" || return 1
             require_contains "Routing Flow filter names" 'String(filter?.filter_name || filter?.name || "").trim()' "${routing}" || return 1
+            require_contains "Routing Flow filter values" "function filterCardValues(filter)" "${routing}" || return 1
+            require_contains "Routing Flow value overflow" "rf-filter-value-overflow-wrap" "${routing}" || return 1
             require_contains "Routing Flow selected range" "const requestRange = selectedRoutingRange();" "${routing}" || return 1
             require_contains "Routing Flow response range" "String(next.range || \"\") !== requestRange" "${routing}" || return 1
 
@@ -311,6 +313,7 @@ jobs:
                 "${BASE_URL}/ui/routing_flow.css?v=${UI_BUILD}"
             )" || { echo "WAIT: routing_flow.css request failed"; return 1; }
             require_contains "Routing Flow filter summary" ".rf-filter-card-summary" "${routing_css}" || return 1
+            require_contains "Routing Flow value popover" ".rf-filter-value-popover" "${routing_css}" || return 1
 
             filtering="$(
               curl --fail --silent --show-error \
@@ -328,13 +331,21 @@ jobs:
             )" || { echo "WAIT: filtering_ownership_sync.js request failed"; return 1; }
             require_contains "Filtering Name enforcement" 'nameHeading.textContent !== "Name"' "${filter_sync}" || return 1
 
+            filter_sync_css="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/filtering_ownership_sync.css?v=${UI_BUILD}"
+            )" || { echo "WAIT: filtering_ownership_sync.css request failed"; return 1; }
+            require_contains "Filtering scoped actions alignment" ".filtering-table .filtering-actions-cell > div" "${filter_sync_css}" || return 1
+
             filter_css="$(
               curl --fail --silent --show-error \
                 "${ACCESS_HEADERS[@]}" \
                 "${BASE_URL}/ui/filtering.css?v=${UI_BUILD}"
             )" || { echo "WAIT: filtering.css request failed"; return 1; }
             require_contains "Filtering Actions width" ".filtering-table th:nth-child(6) { width: 24%; }" "${filter_css}" || return 1
-            require_contains "Filtering full-width grid" "grid-template-columns: repeat(3, minmax(220px, 1fr));" "${filter_css}" || return 1
+            require_contains "Filtering left-aligned grid" "grid-template-columns: repeat(auto-fit, minmax(220px, 280px));" "${filter_css}" || return 1
+            require_contains "Filtering left alignment" "justify-content: start;" "${filter_css}" || return 1
 
             qa_patch="$(
               curl --fail --silent --show-error \
@@ -350,6 +361,8 @@ jobs:
             )" || { echo "WAIT: operations_dashboard.js request failed"; return 1; }
             require_contains "Dashboard request range capture" "const requestedRange = state.historyRange;" "${dashboard}" || return 1
             require_contains "Dashboard queued refresh" "refreshPending = true;" "${dashboard}" || return 1
+            require_contains "Dashboard first-paint snapshot" "function restoreDashboardSnapshot(session, range)" "${dashboard}" || return 1
+            require_contains "Dashboard range-scoped snapshot" "snapshot.range !== range" "${dashboard}" || return 1
 
             acceptance="$(
               curl --fail --silent --show-error \

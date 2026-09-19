@@ -8,7 +8,7 @@ def read(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_round28_filter_values_render_one_row_per_filter_field():
+def test_round28_filter_values_render_as_one_compact_overflow_row():
     script = read("src/webui/routing_flow.js")
     style = read("src/webui/routing_flow.css")
     block = script[
@@ -16,13 +16,13 @@ def test_round28_filter_values_render_one_row_per_filter_field():
         script.index("function activeFlowGraph()")
     ]
 
-    assert "function renderFilterRuleRow(group, groupIndex)" in block
-    assert 'const row = el("div", "rf-filter-rule-row");' in block
-    assert "for (const [groupIndex, group] of descriptor.groups.entries())" in block
-    assert "tags.append(renderFilterRuleRow(group, groupIndex));" in block
-    assert "rf-filter-rule-row" in style
-    assert "flex-wrap: nowrap" in style
-    assert "width: 100%" in style
+    assert "const filterValues = filterCardValues(filter);" in block
+    assert 'chip.dataset.filterValue = "1";' in block
+    assert '"rf-filter-value-overflow-wrap"' in block
+    assert '"rf-filter-value-popover"' in block
+    assert "visibleValueLimit = 4" in block
+    assert ".rf-filter-card-tags" in style
+    assert "flex-wrap: nowrap !important;" in style
 
 
 def test_round28_filter_title_never_falls_back_to_managed_copy():
