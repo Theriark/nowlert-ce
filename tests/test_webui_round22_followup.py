@@ -58,10 +58,13 @@ def test_round22_mfa_action_uses_main_application_click_dispatcher():
     assert 'id="mfa-disable-form"' in markup
 
 
-def test_round22_routing_flow_range_options_follow_dashboard_range_options():
+def test_round22_routing_flow_range_options_are_owned_by_routing_flow():
     script = _read("src/webui/routing_flow.js")
 
-    assert "function syncRangeOptionsFromDashboard()" in script
-    assert 'document.getElementById("history-range")' in script
-    assert 'const prefix = option.textContent.trim().startsWith("Last ") ? "" : "Last ";' in script
-    assert "syncRangeOptionsFromDashboard();" in script
+    assert "syncRangeOptionsFromDashboard" not in script
+    assert 'document.getElementById("history-range")' not in script
+    assert 'option value="10m">Last 10 minutes</option>' in script
+    assert 'option value="1h">Last 1 hour</option>' in script
+    assert 'option value="1d" selected>Last 24 hours</option>' in script
+    assert 'option value="1m">Last 1 month</option>' in script
+    assert 'option value="1y">Last 1 year</option>' in script

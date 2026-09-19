@@ -261,7 +261,7 @@
   }
 
   function cachedRoutingFlowTimestamp() {
-    const range = byId("rf-range")?.value || "15m";
+    const range = byId("rf-range")?.value || "1d";
     const cached = state.routingFlowSnapshots && state.routingFlowSnapshots[range];
     if (!cached) return 0;
     const raw = Number(cached.generated_at || cached.generatedAt || 0);

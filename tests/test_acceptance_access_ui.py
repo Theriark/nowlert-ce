@@ -33,7 +33,7 @@ def test_private_destination_metadata_stays_admin_only_while_filter_metadata_is_
     assert 'document.querySelectorAll(\'[data-action="destination-access"]\')' in script
     assert '"private_resources": []' in access
     assert '"/ui/acceptance_cleanup.js"' in service
-    assert '<script src="/ui/acceptance_cleanup.js" defer></script>' in service
+    assert '<script src="/ui/acceptance_cleanup.js{version}" defer></script>' in service
 
 
 def test_private_destination_metadata_is_reused_synchronously_across_destination_renders():

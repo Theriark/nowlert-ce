@@ -89,30 +89,6 @@
     return ROUTING_RANGE_KEYS.has(value) ? value : "1d";
   }
 
-  function syncRangeOptionsFromDashboard() {
-    const dashboardRange = document.getElementById("history-range");
-    const routingRange = $("rf-range");
-    if (!dashboardRange || !routingRange) return;
-
-    const selected = routingRange.value || range;
-    const fragment = document.createDocumentFragment();
-    for (const option of dashboardRange.options) {
-      const next = document.createElement("option");
-      next.value = option.value;
-      const prefix = option.textContent.trim().startsWith("Last ") ? "" : "Last ";
-      next.textContent = `${prefix}${option.textContent.trim()}`;
-      fragment.append(next);
-    }
-    routingRange.replaceChildren(fragment);
-
-    const hasSelected = [...routingRange.options].some(
-      (option) => option.value === selected,
-    );
-    routingRange.value = hasSelected ? selected : (dashboardRange.value || "1d");
-    range = routingRange.value;
-  }
-
-  syncRangeOptionsFromDashboard();
   $("rf-fit").prepend(icon("fit"));
   const dialog = el("dialog", "rf-dialog");
   dialog.setAttribute("aria-labelledby", "rf-details-title");
@@ -641,17 +617,31 @@
     }
     return centers;
   }
+  function sortLayerByDesired(items, desired) {
+    const fallback = new Map(items.map((item, index) => [item.id, index]));
+    return [...items].sort((a, b) => {
+      const aTarget = desired.get(a.id);
+      const bTarget = desired.get(b.id);
+      const aFinite = Number.isFinite(aTarget);
+      const bFinite = Number.isFinite(bTarget);
+      if (aFinite && bFinite && aTarget !== bTarget) return aTarget - bTarget;
+      if (aFinite !== bFinite) return aFinite ? -1 : 1;
+      return fallback.get(a.id) - fallback.get(b.id);
+    });
+  }
   function computeFlowLayout(current, ordered, headerBottom) {
-    const routeHeights = new Map(ordered.routeOrder.map(route => [route.id, nodeFor("route", route.id)?.offsetHeight || 80]));
-    const destinationHeights = new Map(ordered.destinationOrder.map(destination => [destination.id, nodeFor("destination", destination.id)?.offsetHeight || 150]));
+    let routeItems = [...ordered.routeOrder];
+    let destinationItems = [...ordered.destinationOrder];
     let filterItems = current.filters.map(filter => ({ id: filter.id, filter }));
+    const routeHeights = new Map(routeItems.map(route => [route.id, nodeFor("route", route.id)?.offsetHeight || 80]));
+    const destinationHeights = new Map(destinationItems.map(destination => [destination.id, nodeFor("destination", destination.id)?.offsetHeight || 150]));
     const filterHeights = new Map(filterItems.map(item => [item.id, nodeFor("filter", item.id)?.offsetHeight || 168]));
 
-    let routeCenters = packCentersFromTop(ordered.routeOrder, routeHeights, 12, headerBottom);
-    let destinationCenters = packCentersFromTop(ordered.destinationOrder, destinationHeights, 24, headerBottom);
+    let routeCenters = packCentersFromTop(routeItems, routeHeights, 12, headerBottom);
+    let destinationCenters = packCentersFromTop(destinationItems, destinationHeights, 24, headerBottom);
     let filterCenters = packCentersFromTop(filterItems, filterHeights, 12, headerBottom);
 
-    for (let pass = 0; pass < 7; pass++) {
+    for (let pass = 0; pass < 10; pass++) {
       const filterDesired = new Map(filterItems.map(item => [
         item.id,
         average([
@@ -659,13 +649,10 @@
           destinationCenters.get(item.filter.destination_id),
         ].filter(Number.isFinite)),
       ]));
-      filterItems = [...filterItems].sort((a, b) =>
-        (filterDesired.get(a.id) ?? 0) - (filterDesired.get(b.id) ?? 0)
-        || a.id.localeCompare(b.id)
-      );
+      filterItems = sortLayerByDesired(filterItems, filterDesired);
       filterCenters = resolveCenters(filterItems, filterDesired, filterHeights, 12, headerBottom);
 
-      const routeDesired = new Map(ordered.routeOrder.map(route => [
+      const routeDesired = new Map(routeItems.map(route => [
         route.id,
         average((ordered.linksByRoute.get(route.id) || []).flatMap(link => {
           const targets = (link.filter_ids || [])
@@ -678,9 +665,10 @@
           return targets;
         }).filter(Number.isFinite)),
       ]));
-      routeCenters = resolveCenters(ordered.routeOrder, routeDesired, routeHeights, 12, headerBottom);
+      routeItems = sortLayerByDesired(routeItems, routeDesired);
+      routeCenters = resolveCenters(routeItems, routeDesired, routeHeights, 12, headerBottom);
 
-      const destinationDesired = new Map(ordered.destinationOrder.map(destination => [
+      const destinationDesired = new Map(destinationItems.map(destination => [
         destination.id,
         average((ordered.linksByDestination.get(destination.id) || []).flatMap(link => {
           const targets = (link.filter_ids || [])
@@ -693,7 +681,8 @@
           return targets;
         }).filter(Number.isFinite)),
       ]));
-      destinationCenters = resolveCenters(ordered.destinationOrder, destinationDesired, destinationHeights, 24, headerBottom);
+      destinationItems = sortLayerByDesired(destinationItems, destinationDesired);
+      destinationCenters = resolveCenters(destinationItems, destinationDesired, destinationHeights, 24, headerBottom);
     }
 
     const finalFilterDesired = new Map(filterItems.map(item => [
@@ -703,17 +692,55 @@
         destinationCenters.get(item.filter.destination_id),
       ].filter(Number.isFinite)),
     ]));
-    filterItems = [...filterItems].sort((a, b) =>
-      (finalFilterDesired.get(a.id) ?? 0) - (finalFilterDesired.get(b.id) ?? 0)
-      || a.id.localeCompare(b.id)
-    );
+    filterItems = sortLayerByDesired(filterItems, finalFilterDesired);
     filterCenters = resolveCenters(filterItems, finalFilterDesired, filterHeights, 12, headerBottom);
 
+    const finalRouteDesired = new Map(routeItems.map(route => [
+      route.id,
+      average((ordered.linksByRoute.get(route.id) || []).flatMap(link => {
+        const targets = (link.filter_ids || [])
+          .map(filterId => filterCenters.get(filterId))
+          .filter(Number.isFinite);
+        if (link.direct || !targets.length) {
+          const destinationCenter = destinationCenters.get(link.destination_id);
+          if (Number.isFinite(destinationCenter)) targets.push(destinationCenter);
+        }
+        return targets;
+      }).filter(Number.isFinite)),
+    ]));
+    routeItems = sortLayerByDesired(routeItems, finalRouteDesired);
+    routeCenters = resolveCenters(routeItems, finalRouteDesired, routeHeights, 12, headerBottom);
+
+    const finalDestinationDesired = new Map(destinationItems.map(destination => [
+      destination.id,
+      average((ordered.linksByDestination.get(destination.id) || []).flatMap(link => {
+        const targets = (link.filter_ids || [])
+          .map(filterId => filterCenters.get(filterId))
+          .filter(Number.isFinite);
+        if (link.direct || !targets.length) {
+          const routeCenter = routeCenters.get(link.route_id);
+          if (Number.isFinite(routeCenter)) targets.push(routeCenter);
+        }
+        return targets;
+      }).filter(Number.isFinite)),
+    ]));
+    destinationItems = sortLayerByDesired(destinationItems, finalDestinationDesired);
+    destinationCenters = resolveCenters(destinationItems, finalDestinationDesired, destinationHeights, 24, headerBottom);
+
     const bottoms = [headerBottom];
-    for (const route of ordered.routeOrder) bottoms.push(routeCenters.get(route.id) + (routeHeights.get(route.id) || 80) / 2);
-    for (const destination of ordered.destinationOrder) bottoms.push(destinationCenters.get(destination.id) + (destinationHeights.get(destination.id) || 150) / 2);
+    for (const route of routeItems) bottoms.push(routeCenters.get(route.id) + (routeHeights.get(route.id) || 80) / 2);
+    for (const destination of destinationItems) bottoms.push(destinationCenters.get(destination.id) + (destinationHeights.get(destination.id) || 150) / 2);
     for (const item of filterItems) bottoms.push(filterCenters.get(item.id) + (filterHeights.get(item.id) || 168) / 2);
-    return { ...ordered, routeCenters, destinationCenters, filterCenters, filterItems, height: Math.max(...bottoms) + 20 };
+    return {
+      ...ordered,
+      routeOrder: routeItems,
+      destinationOrder: destinationItems,
+      routeCenters,
+      destinationCenters,
+      filterCenters,
+      filterItems,
+      height: Math.max(...bottoms) + 20,
+    };
   }
   function positionNode(node, column, center, headerBottom) {
     if (!node || !column || !Number.isFinite(center)) return;

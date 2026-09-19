@@ -131,6 +131,6 @@ def test_destination_overview_statuses_fill_row_and_private_card_has_only_safe_a
 
     assert '"/ui/destination_overview_acceptance.js"' in webui_service
     assert '"/ui/destination_overview_acceptance.css"' in webui_service
-    assert '<script src="/ui/destination_overview_acceptance.js" defer></script>' in webui_service
-    assert '<link rel="stylesheet" href="/ui/destination_overview_acceptance.css">' in webui_service
+    assert '<script src="/ui/destination_overview_acceptance.js{version}" defer></script>' in webui_service
+    assert '<link rel="stylesheet" href="/ui/destination_overview_acceptance.css{version}">' in webui_service
     assert "from api.private_destination_actions import PlatformAPI" in api_service

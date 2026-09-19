@@ -13,7 +13,7 @@ import inputs.http as http_module
 from dispatcher import Dispatcher
 from inputs.http import HTTPServer
 from storage.database import Database
-from webui.service import SECURITY_HEADERS, WebUIService
+from webui.service import SECURITY_HEADERS, UI_BUILD, WebUIService
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -213,7 +213,7 @@ def test_webui_markup_is_semantic_external_and_complete():
     for retired in ("notice-console", "notice-composer", "notice-form", "notice-panel", "notice-list"):
         assert retired not in inspector.ids
     assert inspector.scripts == [
-        "/ui/app.js?v=20260918-r19",
+        "/ui/app.js?v=20260919-r32",
         "/ui/enhancements.js",
         "/ui/qa_patch.js",
         "/ui/i18n.js",
@@ -222,7 +222,7 @@ def test_webui_markup_is_semantic_external_and_complete():
     assert inspector.stylesheets == [
         "/ui/styles.css",
         "/ui/enhancements.css",
-        "/ui/qa_patch.css?v=20260918-r19",
+        "/ui/qa_patch.css?v=20260919-r32",
         "/ui/professional.css",
     ]
     assert inspector.inline_handlers == []
@@ -914,15 +914,14 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
     assert response is not None and response.status == 200
     markup = response.body.decode("utf-8")
 
-    assert 'name="nowlert-ui-build" content="20260918-r19"' in markup
-    assert "/ui/app.js?v=20260918-r19" in markup
-    assert "/ui/qa_patch.css?v=20260918-r19" in markup
+    assert 'name="nowlert-ui-build" content="20260919-r32"' in markup
+    assert "/ui/app.js?v=20260919-r32" in markup
+    assert "/ui/qa_patch.css?v=20260919-r32" in markup
 
-    # Existing extension URLs stay stable; their registration is relied on by
-    # the extension contract tests. Only the two round-18 assets need a fresh
-    # browser/cache key.
-    assert '<script src="/ui/source_ui_retirement.js" defer></script>' in markup
-    assert '<link rel="stylesheet" href="/ui/reference_acceptance.css">' in markup
+    # Every runtime extension receives the same build key so a newly deployed
+    # WebUI cannot keep executing an older extension bundle.
+    assert f'<script src="/ui/source_ui_retirement.js?v={UI_BUILD}" defer></script>' in markup
+    assert f'<link rel="stylesheet" href="/ui/reference_acceptance.css?v={UI_BUILD}">' in markup
 
     app = service.response("/ui/app.js")
     patch = service.response("/ui/qa_patch.css")

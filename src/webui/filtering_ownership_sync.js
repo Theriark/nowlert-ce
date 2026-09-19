@@ -171,6 +171,8 @@
   function ensureSharingColumn() {
     const headerRow = document.querySelector(".filtering-table thead tr");
     if (!headerRow) return;
+    const nameHeading = headerRow.children[1];
+    if (nameHeading && nameHeading.textContent !== "Name") nameHeading.textContent = "Name";
     let heading = headerRow.querySelector('[data-filter-sync-column="sharing"]');
     if (!heading) {
       heading = node("th", "", "Sharing");

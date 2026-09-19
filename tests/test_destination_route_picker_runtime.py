@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from webui.service import WebUIService
+from webui.service import UI_BUILD, WebUIService
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,8 +18,8 @@ def test_destination_route_runtime_assets_are_served_and_loaded():
 
     page = service.response("/")
     assert page is not None and page.status == 200
-    assert b'<link rel="stylesheet" href="/ui/destination_routes.css">' in page.body
-    assert b'<script src="/ui/destination_routes.js" defer></script>' in page.body
+    assert f'<link rel="stylesheet" href="/ui/destination_routes.css?v={UI_BUILD}">'.encode() in page.body
+    assert f'<script src="/ui/destination_routes.js?v={UI_BUILD}" defer></script>'.encode() in page.body
 
     stylesheet = service.response("/ui/destination_routes.css")
     assert stylesheet is not None and stylesheet.status == 200
