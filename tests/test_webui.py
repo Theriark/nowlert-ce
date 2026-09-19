@@ -918,11 +918,10 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
     assert "/ui/app.js?v=20260919-r32" in markup
     assert "/ui/qa_patch.css?v=20260919-r32" in markup
 
-    # Existing extension URLs stay stable; their registration is relied on by
-    # the extension contract tests. Only the two round-18 assets need a fresh
-    # browser/cache key.
+    # Every runtime extension receives the same build key so a newly deployed
+    # WebUI cannot keep executing an older extension bundle.
     assert f'<script src="/ui/source_ui_retirement.js?v={UI_BUILD}" defer></script>' in markup
-    assert '<link rel="stylesheet" href="/ui/reference_acceptance.css">' in markup
+    assert f'<link rel="stylesheet" href="/ui/reference_acceptance.css?v={UI_BUILD}">' in markup
 
     app = service.response("/ui/app.js")
     patch = service.response("/ui/qa_patch.css")

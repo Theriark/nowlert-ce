@@ -17,8 +17,8 @@ def test_reference_acceptance_assets_are_registered_and_loaded_after_consistency
     assert '"src/webui/reference_acceptance.js"' in service
     assert '"/ui/reference_acceptance.css"' in service
     assert '"src/webui/reference_acceptance.css"' in service
-    assert '<link rel="stylesheet" href="/ui/reference_acceptance.css">' in service
-    assert '<script src="/ui/reference_acceptance.js" defer></script>' in service
+    assert '<link rel="stylesheet" href="/ui/reference_acceptance.css{version}">' in service
+    assert '<script src="/ui/reference_acceptance.js{version}" defer></script>' in service
     assert service.rfind("reference_acceptance.css") > service.rfind("management_consistency.css")
     assert service.rfind("reference_acceptance.js") > service.rfind("management_consistency.js")
 

@@ -18,7 +18,7 @@ def test_destinations_overview_is_delivered_as_csp_safe_static_css():
     assert 'style-src \'self\'' in service
     assert "'unsafe-inline'" not in service
     assert '"/ui/operations_acceptance.css"' in service
-    assert 'href="/ui/operations_acceptance.css"' in service
+    assert 'href="/ui/operations_acceptance.css{version}"' in service
     assert "#view-destinations #destination-list {" in destination_css
     assert "grid-template-columns: repeat(4, minmax(0, 1fr));" in destination_css
     assert "@media (max-width: 980px)" in destination_css

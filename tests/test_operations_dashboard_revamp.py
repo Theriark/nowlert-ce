@@ -40,14 +40,15 @@ def test_operations_dashboard_has_two_synchronized_dashboard_range_controls():
     assert 'syncRangeControls();' in script
 
 
-def test_routing_flow_keeps_backend_3h_6h_but_ui_uses_dashboard_windows():
+def test_routing_flow_keeps_backend_3h_6h_but_ui_owns_supported_windows():
     api = _read("src/api/routing_flow.py")
-    script = _read("src/webui/operations_dashboard.js")
+    dashboard = _read("src/webui/operations_dashboard.js")
+    flow = _read("src/webui/routing_flow.js")
     assert '"3h": 10800' in api
     assert '"6h": 21600' in api
-    assert '["3h", "Last 3 hours"]' not in script
-    assert '["6h", "Last 6 hours"]' not in script
-    assert "select.innerHTML = rangeOptions();" in script
+    assert '["3h", "Last 3 hours"]' not in dashboard
+    assert '["6h", "Last 6 hours"]' not in dashboard
+    assert "installRoutingFlowRanges" not in dashboard
     for label in (
         "Last 10 minutes",
         "Last 1 hour",
@@ -55,7 +56,7 @@ def test_routing_flow_keeps_backend_3h_6h_but_ui_uses_dashboard_windows():
         "Last 1 month",
         "Last 1 year",
     ):
-        assert label in script
+        assert label in flow
 
 
 def test_dashboard_visually_retires_legacy_dashboard_routing_flow():
@@ -73,8 +74,8 @@ def test_operations_dashboard_assets_are_packaged_after_existing_extensions():
     assert '"src/webui/operations_dashboard.js"' in service
     assert '"/ui/operations_dashboard.css"' in service
     assert '"src/webui/operations_dashboard.css"' in service
-    assert '<link rel="stylesheet" href="/ui/operations_dashboard.css">' in service
-    assert '<script src="/ui/operations_dashboard.js" defer></script>' in service
+    assert '<link rel="stylesheet" href="/ui/operations_dashboard.css{version}">' in service
+    assert '<script src="/ui/operations_dashboard.js{version}" defer></script>' in service
     assert service.index('/ui/filtering_ownership_sync.js') < service.index('/ui/operations_dashboard.js')
 
 
