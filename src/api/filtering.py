@@ -161,8 +161,6 @@ class PlatformAPI(BasePlatformAPI):
             )
 
         if method == "POST" and isinstance(payload, dict):
-            if not actor.is_admin and payload.get("shared") is True:
-                raise PermissionError("normal users cannot share destinations")
             if "route_ids" in payload:
                 route_ids = payload.get("route_ids")
                 payload = {
@@ -333,8 +331,6 @@ class PlatformAPI(BasePlatformAPI):
         destination = self.destinations.get(actor, destination_id)
         row = self._access_store().destination_row(destination_id)
         self._access_store().require_edit_destination(actor, row)
-        if "shared" in data and not actor.is_admin:
-            raise PermissionError("only administrators can change sharing")
 
         route_ids = data.pop("route_ids", None) if "route_ids" in data else None
         normalized_routes = None
@@ -813,6 +809,7 @@ class PlatformAPI(BasePlatformAPI):
 
     def _destination(self, item):
         data = BasePlatformAPI._destination(item)
+        data["owner_username"] = self.users.get(item.owner_user_id).username
         data["route_ids"] = list(
             self.relationships.route_ids_for_destination(
                 self._serialization_actor(item.owner_user_id), item.id

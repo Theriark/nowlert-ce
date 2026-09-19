@@ -286,7 +286,7 @@
         ]),
         element("div", { className: "resource-meta" }, [
           badge("Private", "warning"),
-          badge(`Owner: ${item.owner_username || "User"}`, ""),
+          badge(item.owner_username, ""),
           badge("Metadata only", ""),
         ]),
         element("p", {
@@ -388,7 +388,7 @@
         ]),
         element("td", {}, [
           badge("Private", "warning"),
-          badge(`Owner: ${item.owner_username || "User"}`, ""),
+          badge(item.owner_username, ""),
         ]),
         element("td", {}, [badge("Metadata only", "")]),
       ]);

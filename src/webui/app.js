@@ -1647,16 +1647,21 @@ function renderDestinations() {
     return;
   }
   for (const item of state.destinations) {
-    const editable = isAdmin();
-    const actions = element("div", { className: "resource-actions" }, [
-      actionButton("Preview", "preview-destination", item.id),
-    ]);
+    const editable = ownResource(item);
+    const canTest = editable || isAdmin() || item.shared;
+    const actions = element("div", { className: "resource-actions" });
     if (editable) {
       actions.append(
-        actionButton("Send test", "test-destination-card", item.id, "primary"),
         actionButton("Edit", "edit-destination", item.id),
+        actionButton("Send test", "test-destination-card", item.id, "primary"),
+        actionButton("Preview", "preview-destination", item.id),
         actionButton("Delete", "delete-destination", item.id, "danger"),
       );
+    } else {
+      actions.append(actionButton("Preview", "preview-destination", item.id));
+      if (canTest) {
+        actions.append(actionButton("Send test", "test-destination-card", item.id, "primary"));
+      }
     }
     const testResult = destinationTestResult(item);
     const metaItems = [
@@ -1675,6 +1680,15 @@ function renderDestinations() {
         dataset: { action: "toggle-destination-shared", id: item.id },
       }),
     ];
+    const ownerUsername = String(
+      item.owner_username || (ownResource(item) ? state.user?.username : "") || "",
+    ).trim();
+    if (ownerUsername) {
+      metaItems.push(element("span", {
+        className: "badge destination-owner-badge",
+        text: ownerUsername,
+      }));
+    }
     if (!item.secret_configured && ["discord", "teams", "slack", "webhook"].includes(item.output_type)) {
       metaItems.push(badge("Credentials required", "danger"));
     }
@@ -3645,7 +3659,7 @@ function openDestination(id = "") {
   byId("destination-type").disabled = false;
   byId("destination-enabled").checked = item ? item.enabled : true;
   byId("destination-shared").checked = item ? item.shared : false;
-  byId("destination-shared-field").hidden = !isAdmin();
+  byId("destination-shared-field").hidden = item ? !ownResource(item) : false;
   byId("destination-dialog-title").textContent = item ? `Edit ${item.name}` : "Add destination";
   byId("destination-submit").textContent = item ? "Save changes" : "Add destination";
   renderDestinationFields(item ? item.settings : {});
@@ -3702,7 +3716,9 @@ async function saveDestination(event) {
       settings,
       enabled: byId("destination-enabled").checked,
     };
-    if (isAdmin()) payload.shared = byId("destination-shared").checked;
+    if (!byId("destination-shared-field").hidden) {
+      payload.shared = byId("destination-shared").checked;
+    }
     if (Object.keys(secret).length) payload.secret = secret;
     await request(id ? `/destinations/${id}` : "/destinations", { method: id ? "PATCH" : "POST", body: payload });
     byId("destination-dialog").close();

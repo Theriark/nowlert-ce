@@ -216,7 +216,7 @@
     status.title = sharedInput.checked
       ? "Make this destination private"
       : "Share this destination with users";
-    status.hidden = typeof isAdmin === "function" ? !isAdmin() : Boolean(sharedField?.hidden);
+    status.hidden = Boolean(sharedField?.hidden);
   }
 
   function normalizeSharedControl() {

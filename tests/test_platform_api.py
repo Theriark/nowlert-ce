@@ -762,6 +762,120 @@ def test_session_event_submission_requires_csrf(platform_api):
     assert accepted.payload["matched"] == 0
 
 
+def test_destination_owner_username_is_stable_for_shared_viewers(platform_api):
+    owner = platform_api["owner"]
+    owner_headers = login(
+        platform_api,
+        "owner-user",
+        "owner secure password",
+        client="127.0.0.2",
+    )
+    destination = create_destination(
+        platform_api,
+        owner_headers,
+        shared=True,
+    )
+    another_headers = login(
+        platform_api,
+        "another-user",
+        "another secure password",
+        client="127.0.0.3",
+    )
+
+    visible = call(platform_api, "GET", "/api/v2/destinations", headers=another_headers)
+    shared = next(
+        item for item in visible.payload["destinations"]
+        if item["id"] == destination["id"]
+    )
+    denied_update = call(
+        platform_api,
+        "PATCH",
+        f"/api/v2/destinations/{destination['id']}",
+        {"enabled": False},
+        another_headers,
+    )
+    shared_test = call(
+        platform_api,
+        "POST",
+        f"/api/v2/destinations/{destination['id']}/test",
+        {"event": event()},
+        another_headers,
+    )
+
+    assert destination["owner_user_id"] == owner.id
+    assert destination["owner_username"] == "owner-user"
+    assert shared["owner_user_id"] == owner.id
+    assert shared["owner_username"] == "owner-user"
+    assert denied_update.status == 403
+    assert shared_test.status == 200
+    assert shared_test.payload["result"]["success"] is True
+
+
+def test_destination_owner_mutates_while_admin_is_view_only_and_can_test(platform_api):
+    owner_headers = login(
+        platform_api,
+        "owner-user",
+        "owner secure password",
+        client="127.0.0.2",
+    )
+    destination = create_destination(platform_api, owner_headers)
+
+    shared = call(
+        platform_api,
+        "PATCH",
+        f"/api/v2/destinations/{destination['id']}",
+        {"shared": True},
+        owner_headers,
+    )
+
+    admin_headers = login(platform_api)
+    admin_shared_update = call(
+        platform_api,
+        "PATCH",
+        f"/api/v2/destinations/{destination['id']}",
+        {"enabled": False},
+        admin_headers,
+    )
+    admin_shared_delete = call(
+        platform_api,
+        "DELETE",
+        f"/api/v2/destinations/{destination['id']}",
+        headers=admin_headers,
+    )
+    admin_shared_test = call(
+        platform_api,
+        "POST",
+        f"/api/v2/destinations/{destination['id']}/test",
+        {"event": event()},
+        admin_headers,
+    )
+    private = call(
+        platform_api,
+        "PATCH",
+        f"/api/v2/destinations/{destination['id']}",
+        {"shared": False},
+        owner_headers,
+    )
+    admin_private_test = call(
+        platform_api,
+        "POST",
+        f"/api/v2/destinations/{destination['id']}/test",
+        {"event": event()},
+        admin_headers,
+    )
+
+    assert shared.status == 200
+    assert shared.payload["destination"]["shared"] is True
+    assert admin_shared_update.status == 403
+    assert admin_shared_delete.status == 403
+    assert admin_shared_test.status == 200
+    assert admin_shared_test.payload["result"]["success"] is True
+    assert private.status == 200
+    assert private.payload["destination"]["shared"] is False
+    assert admin_private_test.status == 200
+    assert admin_private_test.payload["result"]["success"] is True
+
+
 def test_destination_secrets_are_write_only_and_shared_use_keeps_owner_secret(platform_api):
     admin_headers = login(platform_api)
     owner_id = platform_api["owner"].id
@@ -999,7 +1113,7 @@ def test_rejected_multifield_destination_patch_is_non_partial(platform_api):
         platform_api,
         "PATCH",
         f"/api/v2/destinations/{destination['id']}",
-        {"settings": {"method": "PUT"}, "shared": True},
+        {"output_type": "discord", "shared": True},
         owner_headers,
     )
     current = call(
@@ -1009,7 +1123,8 @@ def test_rejected_multifield_destination_patch_is_non_partial(platform_api):
         headers=owner_headers,
     )
 
-    assert rejected.status == 403
+    assert rejected.status == 400
+    assert current.payload["destination"]["output_type"] == "webhook"
     assert current.payload["destination"]["settings"]["method"] == "POST"
     assert current.payload["destination"]["shared"] is False
 

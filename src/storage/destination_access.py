@@ -318,18 +318,21 @@ class AccessControlledDestinationStore(DestinationStore):
         return super().set_enabled(self._elevated(actor), destination_id, enabled)
 
     def set_shared(self, actor, destination_id, shared):
-        if not actor.is_admin:
-            raise PermissionError("only administrators can change destination sharing")
         row = self._record(destination_id)
+        if str(row["owner_user_id"]) != actor.user_id:
+            raise PermissionError("only the destination owner can change sharing")
         self.access.require_view(actor, row)
         return super().set_shared(actor, destination_id, shared)
 
     def update(self, actor, destination_id, **kwargs):
         row = self._record(destination_id)
         self.access.require_edit_destination(actor, row)
-        if "shared" in kwargs and kwargs["shared"] is not None and not actor.is_admin:
-            if bool(kwargs["shared"]) != bool(row["shared"]):
-                raise PermissionError("only administrators can change destination sharing")
+        if "shared" in kwargs and kwargs["shared"] is not None:
+            if (
+                bool(kwargs["shared"]) != bool(row["shared"])
+                and str(row["owner_user_id"]) != actor.user_id
+            ):
+                raise PermissionError("only the destination owner can change sharing")
         settings = kwargs.get("settings")
         if (
             not actor.is_admin
@@ -366,7 +369,7 @@ class AccessControlledDestinationStore(DestinationStore):
     def delete(self, actor, destination_id):
         row = self._record(destination_id)
         owner = str(row["owner_user_id"]) == actor.user_id
-        if not owner and not (actor.is_admin and bool(row["shared"])):
+        if not owner:
             raise PermissionError("destination cannot be deleted by this user")
         self.access.require_view(actor, row)
         result = super().delete(self._elevated(actor), destination_id)

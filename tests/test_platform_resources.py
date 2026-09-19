@@ -216,35 +216,25 @@ def test_destination_cannot_use_another_users_secret(platform):
         )
 
 
-def test_only_admin_can_share_destinations_and_shared_routes_are_explicit(platform):
+def test_destination_owner_can_share_and_shared_routes_are_explicit(platform):
     admin = platform["admin"]
     owner = platform["owner"]
     another = platform["another"]
     destinations = platform["destinations"]
     routes = platform["routes"]
-    secret = platform["secrets"].create(
-        admin.actor,
-        admin.id,
-        "Shared webhook",
-        "webhook",
-        "shared-private-value",
-    )
-    with pytest.raises(PermissionError, match="administrators"):
-        destinations.create(
-            owner.actor,
-            owner.id,
-            "User shared",
-            "webhook",
-            shared=True,
-        )
+
     shared = destinations.create(
-        admin.actor,
-        admin.id,
-        "Shared infrastructure",
+        owner.actor,
+        owner.id,
+        "User shared",
         "webhook",
-        secret_id=secret.id,
         shared=True,
     )
+    assert shared.shared is True
+
+    with pytest.raises(PermissionError, match="destination owner"):
+        destinations.set_shared(admin.actor, shared.id, False)
+
     route = routes.create(
         another.actor,
         another.id,
@@ -255,7 +245,7 @@ def test_only_admin_can_share_destinations_and_shared_routes_are_explicit(platfo
     assert route.destination_id == shared.id
     assert shared.id in {item.id for item in destinations.list_visible(another.actor)}
     with pytest.raises(ValueError, match="another user's route"):
-        destinations.set_shared(admin.actor, shared.id, False)
+        destinations.set_shared(owner.actor, shared.id, False)
 
 
 def test_private_destination_cannot_be_used_by_another_users_route(platform):

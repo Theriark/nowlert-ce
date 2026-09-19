@@ -83,15 +83,16 @@ def test_private_user_destination_is_hidden_from_admin_but_owned_by_user(access_
     assert destinations.get(alice.actor, private.id).id == private.id
     with pytest.raises(PermissionError):
         destinations.get(admin.actor, private.id)
-    with pytest.raises(PermissionError):
-        destinations.create(
-            alice.actor,
-            alice.id,
-            "Alice shared",
-            "discord",
-            settings={},
-            shared=True,
-        )
+    alice_shared = destinations.create(
+        alice.actor,
+        alice.id,
+        "Alice shared",
+        "discord",
+        settings={},
+        shared=True,
+    )
+    assert alice_shared.owner_user_id == alice.id
+    assert alice_shared.shared is True
     assert platform["access"].private_destination_count(alice.id) == 1
 
 

@@ -75,8 +75,10 @@ The normalized input badges are **SMTP**, **HTTP**, and **Redfish**.
 
 ### Destinations
 
-Administrators can create, edit, preview, test, enable/disable, share/private,
-and delete destinations.
+Destination owners can create, edit, preview, test, enable/disable,
+share/private, and delete their own destinations. Sharing preserves the
+creator's owner identity. Administrators can inspect, preview, and test another
+user's destination, while its configuration remains view-only.
 
 Credentials are write-only. The WebUI can indicate that a credential exists,
 but normal read APIs do not return the stored webhook URL, password, token, or
