@@ -728,10 +728,11 @@ def test_20260918_round_two_screenshot_regressions():
     styles = (ROOT / "src" / "webui" / "reference_acceptance.css").read_text(encoding="utf-8")
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
 
-    # Routing Flow always anchors the first visible node below the headings.
-    assert "const topEdges = [" in routing
-    assert "const topShift = topEdges.length" in routing
-    assert "centers.set(id, center - topShift);" in routing
+    # Routing Flow anchors every dynamic column below the headings.
+    assert "function shiftCentersToTop(" in routing
+    assert "routeCenters = shiftCentersToTop(" in routing
+    assert "filterCenters = shiftCentersToTop(" in routing
+    assert "destinationCenters = shiftCentersToTop(" in routing
 
     # Restart keeps the existing action but uses the supplied confirmation UI.
     assert 'class="modal small-modal restart-reference-dialog"' in markup

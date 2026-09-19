@@ -17,7 +17,7 @@
   let generation = 0, range = "1d", zoom = 1, busy = false;
   let owner = null, selected = null, seen = new Set(), allHistory = false;
   let pulseFrame = null, pulses = [], edgePaths = new Map(), resizeFrame = null;
-  let graphModel = null;
+  let graphModel = null, pendingRefreshOptions = null;
 
   function el(tag, cls = "", text = "") {
     const n = document.createElement(tag);
@@ -536,7 +536,6 @@
       const detailRows = [
         detailRow("Sources", sourceNames.join(", ") || "Managed"),
         detailIdentityRow("Destination", destinationLogo(d), d.name),
-        detailRow("Status", "Active"),
       ];
       for (const group of descriptor.groups) {
         detailRows.push(detailRow(group.label, group.values.join(", ")));
@@ -636,29 +635,27 @@
     }
     return centers;
   }
+  function shiftCentersToTop(centers, items, heights, minimumTop) {
+    if (!items.length) return centers;
+    const top = Math.min(...items.map(item =>
+      (centers.get(item.id) || minimumTop) - (heights.get(item.id) || 80) / 2
+    ));
+    const shift = Math.max(0, top - minimumTop);
+    if (!shift) return centers;
+    for (const [id, center] of centers) centers.set(id, center - shift);
+    return centers;
+  }
   function computeFlowLayout(current, ordered, headerBottom) {
     const routeHeights = new Map(ordered.routeOrder.map(route => [route.id, nodeFor("route", route.id)?.offsetHeight || 80]));
     const destinationHeights = new Map(ordered.destinationOrder.map(destination => [destination.id, nodeFor("destination", destination.id)?.offsetHeight || 150]));
     let filterItems = current.filters.map(filter => ({ id: filter.id, filter }));
     const filterHeights = new Map(filterItems.map(item => [item.id, nodeFor("filter", item.id)?.offsetHeight || 168]));
 
-    const destinationSeed = new Map();
-    let seedCursor = headerBottom;
-    for (const destination of ordered.destinationOrder) {
-      const incoming = ordered.linksByDestination.get(destination.id) || [];
-      const averageRouteHeight = average(incoming.map(link => routeHeights.get(link.route_id)).filter(Number.isFinite)) || 80;
-      const bandHeight = Math.max(destinationHeights.get(destination.id) || 150, incoming.length * (averageRouteHeight + 12));
-      destinationSeed.set(destination.id, seedCursor + bandHeight / 2);
-      seedCursor += bandHeight + 24;
-    }
+    let routeCenters = packCentersFromTop(ordered.routeOrder, routeHeights, 12, headerBottom);
+    let destinationCenters = packCentersFromTop(ordered.destinationOrder, destinationHeights, 24, headerBottom);
+    let filterCenters = packCentersFromTop(filterItems, filterHeights, 12, headerBottom);
 
-    const routeDesired = new Map(ordered.routeOrder.map(route => [route.id, average((ordered.linksByRoute.get(route.id) || []).map(link => destinationSeed.get(link.destination_id)).filter(Number.isFinite))]));
-    let routeCenters = resolveCenters(ordered.routeOrder, routeDesired, routeHeights, 12, headerBottom);
-    const destinationDesired = new Map(ordered.destinationOrder.map(destination => [destination.id, average((ordered.linksByDestination.get(destination.id) || []).map(link => routeCenters.get(link.route_id)).filter(Number.isFinite))]));
-    let destinationCenters = resolveCenters(ordered.destinationOrder, destinationDesired, destinationHeights, 24, headerBottom);
-    let filterCenters = new Map();
-
-    for (let pass = 0; pass < 5; pass++) {
+    for (let pass = 0; pass < 7; pass++) {
       const filterDesired = new Map(filterItems.map(item => [
         item.id,
         average([
@@ -666,22 +663,44 @@
           destinationCenters.get(item.filter.destination_id),
         ].filter(Number.isFinite)),
       ]));
-      filterItems = [...filterItems].sort((a, b) => (filterDesired.get(a.id) ?? 0) - (filterDesired.get(b.id) ?? 0) || a.id.localeCompare(b.id));
-      filterCenters = packCentersFromTop(filterItems, filterHeights, 12, headerBottom);
+      filterItems = [...filterItems].sort((a, b) =>
+        (filterDesired.get(a.id) ?? 0) - (filterDesired.get(b.id) ?? 0)
+        || a.id.localeCompare(b.id)
+      );
+      filterCenters = resolveCenters(filterItems, filterDesired, filterHeights, 12, headerBottom);
+      filterCenters = shiftCentersToTop(filterCenters, filterItems, filterHeights, headerBottom);
 
-      const nextRouteDesired = new Map(ordered.routeOrder.map(route => [route.id, average((ordered.linksByRoute.get(route.id) || []).flatMap(link => {
-        const targets = (link.filter_ids || []).map(filterId => filterCenters.get(filterId)).filter(Number.isFinite);
-        if (link.direct || !targets.length) targets.push(destinationCenters.get(link.destination_id));
-        return targets;
-      }).filter(Number.isFinite))]));
-      routeCenters = resolveCenters(ordered.routeOrder, nextRouteDesired, routeHeights, 12, headerBottom);
+      const routeDesired = new Map(ordered.routeOrder.map(route => [
+        route.id,
+        average((ordered.linksByRoute.get(route.id) || []).flatMap(link => {
+          const targets = (link.filter_ids || [])
+            .map(filterId => filterCenters.get(filterId))
+            .filter(Number.isFinite);
+          if (link.direct || !targets.length) {
+            const destinationCenter = destinationCenters.get(link.destination_id);
+            if (Number.isFinite(destinationCenter)) targets.push(destinationCenter);
+          }
+          return targets;
+        }).filter(Number.isFinite)),
+      ]));
+      routeCenters = resolveCenters(ordered.routeOrder, routeDesired, routeHeights, 12, headerBottom);
+      routeCenters = shiftCentersToTop(routeCenters, ordered.routeOrder, routeHeights, headerBottom);
 
-      const nextDestinationDesired = new Map(ordered.destinationOrder.map(destination => [destination.id, average((ordered.linksByDestination.get(destination.id) || []).flatMap(link => {
-        const targets = (link.filter_ids || []).map(filterId => filterCenters.get(filterId)).filter(Number.isFinite);
-        if (link.direct || !targets.length) targets.push(routeCenters.get(link.route_id));
-        return targets;
-      }).filter(Number.isFinite))]));
-      destinationCenters = resolveCenters(ordered.destinationOrder, nextDestinationDesired, destinationHeights, 24, headerBottom);
+      const destinationDesired = new Map(ordered.destinationOrder.map(destination => [
+        destination.id,
+        average((ordered.linksByDestination.get(destination.id) || []).flatMap(link => {
+          const targets = (link.filter_ids || [])
+            .map(filterId => filterCenters.get(filterId))
+            .filter(Number.isFinite);
+          if (link.direct || !targets.length) {
+            const routeCenter = routeCenters.get(link.route_id);
+            if (Number.isFinite(routeCenter)) targets.push(routeCenter);
+          }
+          return targets;
+        }).filter(Number.isFinite)),
+      ]));
+      destinationCenters = resolveCenters(ordered.destinationOrder, destinationDesired, destinationHeights, 24, headerBottom);
+      destinationCenters = shiftCentersToTop(destinationCenters, ordered.destinationOrder, destinationHeights, headerBottom);
     }
 
     const finalFilterDesired = new Map(filterItems.map(item => [
@@ -691,20 +710,12 @@
         destinationCenters.get(item.filter.destination_id),
       ].filter(Number.isFinite)),
     ]));
-    filterItems = [...filterItems].sort((a, b) => (finalFilterDesired.get(a.id) ?? 0) - (finalFilterDesired.get(b.id) ?? 0) || a.id.localeCompare(b.id));
-    filterCenters = packCentersFromTop(filterItems, filterHeights, 12, headerBottom);
-
-    const topEdges = [
-      ...ordered.routeOrder.map(route => routeCenters.get(route.id) - (routeHeights.get(route.id) || 80) / 2),
-      ...ordered.destinationOrder.map(destination => destinationCenters.get(destination.id) - (destinationHeights.get(destination.id) || 150) / 2),
-      ...filterItems.map(item => filterCenters.get(item.id) - (filterHeights.get(item.id) || 168) / 2),
-    ].filter(Number.isFinite);
-    const topShift = topEdges.length ? Math.max(0, Math.min(...topEdges) - headerBottom) : 0;
-    if (topShift > 0) {
-      for (const centers of [routeCenters, destinationCenters, filterCenters]) {
-        for (const [id, center] of centers) centers.set(id, center - topShift);
-      }
-    }
+    filterItems = [...filterItems].sort((a, b) =>
+      (finalFilterDesired.get(a.id) ?? 0) - (finalFilterDesired.get(b.id) ?? 0)
+      || a.id.localeCompare(b.id)
+    );
+    filterCenters = resolveCenters(filterItems, finalFilterDesired, filterHeights, 12, headerBottom);
+    filterCenters = shiftCentersToTop(filterCenters, filterItems, filterHeights, headerBottom);
 
     const bottoms = [headerBottom];
     for (const route of ordered.routeOrder) bottoms.push(routeCenters.get(route.id) + (routeHeights.get(route.id) || 80) / 2);
@@ -823,7 +834,7 @@
   }
   function edgeCurve(a, b) {
     const x = a.offsetLeft + a.offsetWidth, y = a.offsetTop + a.offsetHeight / 2;
-    const xx = b.offsetLeft, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x, bend = gap * .52;
+    const xx = b.offsetLeft, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x, bend = Math.max(24, Math.min(gap * .3, 120));
     return `M${x} ${y} C${x+bend} ${y} ${xx-bend} ${yy} ${xx} ${yy}`;
   }
   function drawEdges() {
@@ -976,16 +987,26 @@
     $("rf-error").hidden=true;
     if(dialog.open) dialog.close();
   }
-  async function refresh() {
-    if (!active() || busy) return;
+  async function refresh(options = {}) {
+    const allowCache = options.allowCache !== false;
+    const forceRender = options.forceRender === true;
+    if (!active()) return;
+    if (busy) {
+      const previous = pendingRefreshOptions || { allowCache: true, forceRender: false };
+      pendingRefreshOptions = {
+        allowCache: previous.allowCache && allowCache,
+        forceRender: previous.forceRender || forceRender,
+      };
+      return;
+    }
     if(owner!==state.user.id){clearPrivateData();owner=state.user.id;}
-    hydrateCachedRoutingFlow();
+    if (allowCache) hydrateCachedRoutingFlow();
     busy=true;
     const token=generation, userId=state.user.id, requestRange=range;
     const abort=new AbortController(); controller=abort;
     const timeout=setTimeout(()=>abort.abort(),20000);
     try {
-      const response=await fetch(`${API}/routing-flow/${range}`,{method:"GET",credentials:"same-origin",cache:"no-store",headers:{Accept:"application/json"},signal:abort.signal});
+      const response=await fetch(`${API}/routing-flow/${requestRange}`,{method:"GET",credentials:"same-origin",cache:"no-store",headers:{Accept:"application/json"},signal:abort.signal});
       if(response.status===401){expireSession();return;}
       if(!response.ok) throw new Error(`Overview request failed (${response.status}).`);
       const next=await response.json();
@@ -996,10 +1017,13 @@
       const nextSignature=JSON.stringify({...next,generated_at:0,since:0});data=next;
       state.routingFlowSnapshots = {
         ...(state.routingFlowSnapshots || {}),
-        [range]: next,
+        [requestRange]: next,
       };
       if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
-      if(nextSignature!==signature){signature=nextSignature;render();}
+      if (forceRender || nextSignature !== signature) {
+        signature=nextSignature;
+        render();
+      }
       $("rf-error").hidden=!next.errors?.length;
       $("rf-error").textContent=(next.errors||[]).map(e=>`${e.component}: ${e.message}`).join(" · ");
       animateAttempts(fresh);
@@ -1008,8 +1032,17 @@
       $("rf-error").hidden=false;
       $("rf-error").textContent=`${error.name==='AbortError'?'Overview request timed out.':error.message} ${data?'Showing the last successful snapshot.':'No overview loaded.'} Retrying automatically.`;
     } finally {
-      clearTimeout(timeout);if(controller===abort)controller=null;busy=false;
-      if(active()) timer=setTimeout(refresh,token===generation?POLL_MS:0);
+      clearTimeout(timeout);
+      if(controller===abort)controller=null;
+      busy=false;
+      const pending = pendingRefreshOptions;
+      pendingRefreshOptions = null;
+      if(active()) {
+        timer=setTimeout(
+          () => pending ? refresh(pending) : refresh(),
+          pending || token!==generation ? 0 : POLL_MS,
+        );
+      }
     }
   }
   function sync() {
@@ -1033,7 +1066,17 @@
     return previousExpire();
   };
   document.addEventListener("visibilitychange",sync);
-  $("rf-range").addEventListener("change",()=>{range=$("rf-range").value;signature="";invalidate();clearPrivateData();refresh();});
+  function changeRoutingRange(nextRange) {
+    range = String(nextRange || "").trim() || "1d";
+    signature = "";
+    invalidate();
+    clearPrivateData();
+    if (state.routingFlowSnapshots && typeof state.routingFlowSnapshots === "object") {
+      delete state.routingFlowSnapshots[nextRange];
+    }
+    refresh({ allowCache: false, forceRender: true });
+  }
+  $("rf-range").addEventListener("change",()=>changeRoutingRange($("rf-range").value));
   function setZoom(value){zoom=Math.min(1,Math.max(.7,Math.round(value*10)/10));$("rf-graph").style.transform=`scale(${zoom})`;$("rf-zoom-value").textContent=`${Math.round(zoom*100)}%`;$("rf-plus").disabled=zoom===1;$("rf-minus").disabled=zoom===.7;}
   $("rf-minus").addEventListener("click",()=>setZoom(zoom-.1));$("rf-plus").addEventListener("click",()=>setZoom(zoom+.1));$("rf-fit").addEventListener("click",()=>setZoom(1));
   $("rf-history-toggle").addEventListener("click",()=>{allHistory=!allHistory;if(data)renderHistory();});

@@ -85,7 +85,7 @@
       <div class="table-panel filtering-table-panel">
         <div class="table-scroll">
           <table class="filtering-table">
-            <thead><tr><th>Destination</th><th>Filter name</th><th>Filters</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Destination</th><th>Name</th><th>Filters</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="filter-table"></tbody>
           </table>
         </div>

@@ -68,11 +68,11 @@ def test_round_seven_routing_flow_uses_last_snapshot_immediately():
 
     assert "function cachedRoutingFlowSnapshot()" in script
     assert "function hydrateCachedRoutingFlow()" in script
-    refresh_start = script.index("async function refresh()")
+    refresh_start = script.index("async function refresh(options = {})")
     refresh = script[refresh_start:script.index("function sync()", refresh_start)]
-    assert refresh.index("hydrateCachedRoutingFlow();") < refresh.index("busy=true;")
+    assert refresh.index("if (allowCache) hydrateCachedRoutingFlow();") < refresh.index("busy=true;")
     assert "state.routingFlowSnapshots = {" in refresh
-    assert "[range]: next" in refresh
+    assert "[requestRange]: next" in refresh
     assert 'typeof qaSaveWorkspaceCache === "function"' in refresh
     assert "state.routingFlowSnapshots = {};" in script
 

@@ -42,7 +42,7 @@ def test_filter_dialog_has_identity_icons_status_and_policy_rows():
     assert 'setDialogTitle("Active filter", icon("filter"))' in filter_branch
     assert 'detailRow("Sources", sourceNames.join(", ") || "Managed")' in filter_branch
     assert 'detailIdentityRow("Destination", destinationLogo(d), d.name)' in filter_branch
-    assert 'detailRow("Status", "Active")' in filter_branch
+    assert 'detailRow("Status", "Active")' not in filter_branch
     assert "policyDetailRows({ policies: filter.policies || [], fallback: true }).forEach" in filter_branch
     assert 'detailRow("Connection"' not in filter_branch
 
