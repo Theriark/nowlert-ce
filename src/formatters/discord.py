@@ -42,6 +42,7 @@ class DiscordFormatter(DiscordCardFormatter):
         message = notification.body or notification.title or notification.subject or status_text
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source="xo",
                 integration="Xen Orchestra",
                 device=job_name,

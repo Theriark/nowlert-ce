@@ -107,6 +107,7 @@ class QNAPDiscordFormatter(DiscordCardFormatter):
 
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source="qnap",
                 integration="QNAP",
                 device=nas_name,

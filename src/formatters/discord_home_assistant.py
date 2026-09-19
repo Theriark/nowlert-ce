@@ -29,6 +29,7 @@ class HomeAssistantDiscordFormatter(DiscordCardFormatter):
         title = notification.title or "Home Assistant event"
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source="home_assistant",
                 integration="Home Assistant",
                 device=device or metadata.get("area") or "Home Assistant",

@@ -46,6 +46,7 @@ class DiscordCardData:
     event_icon: str = "🔔"
     details: tuple[DiscordFact, ...] = ()
     url: str = ""
+    notification: Any = None
 
 
 class DiscordCardFormatter(BaseFormatter):
@@ -140,7 +141,16 @@ class DiscordCardFormatter(BaseFormatter):
         self._set_discord_thumbnail(embed, data.source)
         self._enforce_discord_budget(embed)
         self._finish_discord_footer(embed)
-        return {"embeds": [embed]}
+        payload = {"embeds": [embed]}
+        if data.notification is None:
+            return payload
+
+        # Classic Embed v1 is the formatter contract itself, not an
+        # adapter-only post-processing step. Components V2 returns above
+        # before this path is reached.
+        from formatters.discord_classic_v1 import render_classic_embed_v1
+
+        return render_classic_embed_v1(data.notification, payload)
 
     def _render_discord_components_v2(
         self,

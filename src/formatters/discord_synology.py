@@ -13,6 +13,7 @@ class SynologyDiscordFormatter(DiscordCardFormatter):
         device = metadata.get("nas_name") or metadata.get("hostname") or "Synology NAS"
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source="synology",
                 integration="Synology DSM",
                 device=device,

@@ -25,6 +25,7 @@ class ZabbixDiscordFormatter(DiscordCardFormatter):
             details.append(DiscordFact("🆔", "Event ID", metadata.get("problem_id")))
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source="zabbix",
                 integration="Zabbix",
                 device=host,

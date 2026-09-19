@@ -18,6 +18,7 @@ class PortainerDiscordFormatter(DiscordCardFormatter):
         )
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source="portainer",
                 integration="Portainer",
                 device=metadata.get("instance") or "Portainer",

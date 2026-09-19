@@ -28,6 +28,7 @@ class _UniFiDiscordFormatter(DiscordCardFormatter):
         title = notification.title or f"{self.label} notification"
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source=self.source_name,
                 integration=self.label,
                 device=device or self.label,

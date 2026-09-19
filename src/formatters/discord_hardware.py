@@ -17,6 +17,7 @@ class HardwareDiscordFormatter(DiscordCardFormatter):
         severity = str(metadata.get("severity") or notification.status)
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source=notification.source,
                 integration=provider,
                 device=str(metadata.get("system") or provider),
@@ -67,6 +68,7 @@ class DellIDRACDiscordFormatter(HardwareDiscordFormatter):
         severity = str(metadata.get("severity") or notification.status)
         return self._render_discord_components_v2(
             DiscordCardData(
+                notification=notification,
                 source=notification.source,
                 integration=provider,
                 device=str(metadata.get("system") or provider),
