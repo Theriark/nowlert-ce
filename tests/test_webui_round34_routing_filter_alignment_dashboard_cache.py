@@ -73,9 +73,9 @@ def test_dashboard_has_range_aware_first_paint_snapshot_for_f5():
 
 
 def test_round34_build_versions_the_changed_webui_bundle():
-    assert UI_BUILD == "20260919-r36"
+    assert UI_BUILD == "20260919-r37"
     index = read("src/webui/index.html")
-    assert 'name="nowlert-ui-build" content="20260919-r36"' in index
-    assert "/ui/app.js?v=20260919-r36" in index
-    assert "/ui/qa_patch.css?v=20260919-r36" in index
-    assert "/ui/qa_patch.js?v=20260919-r36" in index
+    assert 'name="nowlert-ui-build" content="20260919-r37"' in index
+    assert "/ui/app.js?v=20260919-r37" in index
+    assert "/ui/qa_patch.css?v=20260919-r37" in index
+    assert "/ui/qa_patch.js?v=20260919-r37" in index
