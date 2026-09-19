@@ -64,7 +64,7 @@ def test_filtering_actions_stay_on_one_line_with_room_for_two_controls():
     style = _read("src/webui/filtering_ownership_sync.css")
 
     assert ".filtering-table td:last-child" in style
-    assert ".filtering-table th:nth-child(5) { width: 22%; }" in style
+    assert ".filtering-table th:nth-child(6) { width: 17%; }" in style
     assert "flex-wrap: nowrap" in style
     assert "gap: 0.75rem" in style
     assert "white-space: nowrap" in style
