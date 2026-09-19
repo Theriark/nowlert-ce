@@ -50,9 +50,9 @@ def application_environment(application_id: str) -> str:
 
 def datadog_identity(args: argparse.Namespace) -> dict[str, str]:
     values = {
-        "DD_SERVICE": args.dd_service.strip(),
-        "DD_ENV": args.dd_env.strip(),
-        "DD_VERSION": args.dd_version.strip(),
+        "DD_SERVICE": str(getattr(args, "dd_service", "") or "").strip(),
+        "DD_ENV": str(getattr(args, "dd_env", "") or "").strip(),
+        "DD_VERSION": str(getattr(args, "dd_version", "") or "").strip(),
     }
     supplied = [value for value in values.values() if value]
     if supplied and len(supplied) != len(values):
