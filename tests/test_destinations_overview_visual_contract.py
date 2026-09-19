@@ -40,6 +40,7 @@ def test_destinations_overview_keeps_private_metadata_card_read_only():
 
     assert "acceptance-private-destination" in private_block
     assert 'badge("Private", "warning")' in private_block
-    assert 'badge("Metadata only", "")' in private_block
+    assert 'badge(item.owner_username, "destination-owner-badge")' in private_block
+    assert 'badge("View only", "destination-view-only-badge")' in private_block
     assert "resource-actions" not in private_block
     assert "actionButton(" not in private_block

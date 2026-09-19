@@ -119,16 +119,24 @@
     const current = String(button.textContent || "").trim().toLowerCase();
     const shared = current === "shared";
     const stateName = shared ? "shared" : "private";
+    const card = button.closest(".resource-card");
+    const item = destinationItemForCard(card);
+    const owned = item ? ownResource(item) : !button.disabled;
+    button.disabled = !owned;
     if (
       button.dataset.consistencySharing === stateName
       && button.querySelector(".destination-share-icon")
+      && button.dataset.consistencyOwned === String(owned)
     ) return;
 
     button.dataset.consistencySharing = stateName;
+    button.dataset.consistencyOwned = String(owned);
     button.className = `button small destination-sharing-control is-${stateName}`;
     button.setAttribute(
       "aria-label",
-      shared ? "Shared destination. Click to make private." : "Private destination. Click to share.",
+      owned
+        ? (shared ? "Shared destination. Click to make private." : "Private destination. Click to share.")
+        : (shared ? "Shared destination. View only." : "Private destination. View only."),
     );
     button.replaceChildren(
       shareIcon(),
@@ -332,6 +340,20 @@
     }
   }
 
+  function syncDestinationViewOnlyBadge(card) {
+    const viewOnly = card?.querySelector(".destination-view-only-badge");
+    if (!viewOnly) return;
+    const label = viewOnly.querySelector(".destination-readonly-label");
+    if (viewOnly.querySelector(".destination-view-icon") && label?.textContent === "View only") {
+      return;
+    }
+    viewOnly.className = "badge destination-view-only-badge";
+    viewOnly.replaceChildren(
+      eyeIcon(),
+      span("destination-readonly-label", "View only"),
+    );
+  }
+
   function syncDestinationActionOrder(card) {
     if (card.classList.contains("acceptance-private-destination")) return;
     const actions = card.querySelector(".resource-actions");
@@ -398,6 +420,7 @@
       syncDestinationSharingButton(card.querySelector('[data-action="toggle-destination-shared"]'));
       syncMetadataPrivateSharing(card);
       syncDestinationOwnerBadge(card);
+      syncDestinationViewOnlyBadge(card);
       syncDestinationProviderIcon(card);
       syncDestinationSubtitle(card);
       syncDestinationTransientFailure(card);

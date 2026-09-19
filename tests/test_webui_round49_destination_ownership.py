@@ -43,5 +43,5 @@ def test_destination_cards_use_dynamic_owner_identity_and_owner_scoped_controls(
     assert '|| "User"' not in consistency
     assert '.replace(/^owner:\\s*/i, "")' in consistency
     assert "status.hidden = Boolean(sharedField?.hidden);" in editor
-    assert 'badge(item.owner_username, "")' in cleanup
+    assert 'badge(item.owner_username, "destination-owner-badge")' in cleanup
     assert 'Owner: ${item.owner_username' not in cleanup
