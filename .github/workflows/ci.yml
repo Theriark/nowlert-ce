@@ -61,6 +61,8 @@ jobs:
           set -euo pipefail
           node --check src/webui/app.js
           node --check src/webui/filtering.js
+          node --check src/webui/routing_flow.js
+          node --check src/webui/reference_acceptance.js
 
       - name: Validate public YAML files
         shell: bash
@@ -308,6 +310,8 @@ jobs:
             require_contains "Routing Flow value popover labels" "rf-filter-value-popover-label" "${routing}" || return 1
             require_contains "Routing Flow interactive node shell" 'const node = el("div", `rf-node rf-${kind}`);' "${routing}" || return 1
             require_contains "Routing Flow value menu ownership" 'valueToggle.setAttribute("aria-controls", valuePopover.id);' "${routing}" || return 1
+            require_contains "Routing Flow value top-layer popover" 'valuePopover.setAttribute("popover", "auto");' "${routing}" || return 1
+            require_contains "Routing Flow value popover activation" "valuePopover.showPopover();" "${routing}" || return 1
             require_contains "Routing Flow selected range" "const requestRange = selectedRoutingRange();" "${routing}" || return 1
             require_contains "Routing Flow response range" "String(next.range || \"\") !== requestRange" "${routing}" || return 1
 
@@ -319,6 +323,7 @@ jobs:
             require_contains "Routing Flow filter summary" ".rf-filter-card-summary" "${routing_css}" || return 1
             require_contains "Routing Flow value popover" ".rf-filter-value-popover" "${routing_css}" || return 1
             require_contains "Routing Flow open popover stacking" 'rf-filter-card:has(.rf-filter-value-overflow[aria-expanded="true"])' "${routing_css}" || return 1
+            require_contains "Routing Flow top-layer value menu CSS" ".rf-filter-value-popover[popover]" "${routing_css}" || return 1
 
             filtering="$(
               curl --fail --silent --show-error \
@@ -395,6 +400,8 @@ jobs:
                 "${BASE_URL}/ui/reference_acceptance.js?v=${UI_BUILD}"
             )" || { echo "WAIT: reference_acceptance.js request failed"; return 1; }
             require_contains "Security authoritative live role" 'const admin = typeof isAdmin === "function" && isAdmin();' "${reference}" || return 1
+            require_contains "Security authenticated role guard" "if (!state.user) return;" "${reference}" || return 1
+            require_contains "Security clears stale role translation" "delete roleValue.dataset.i18nSource;" "${reference}" || return 1
 
             return 0
           }

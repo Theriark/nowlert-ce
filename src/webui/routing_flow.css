@@ -766,3 +766,22 @@
   min-width: 0;
   white-space: nowrap;
 }
+
+/* 2026-09-19 round-37: value overflow uses the browser top layer so the
+   transformed routing graph cannot clip or bury the menu. */
+.rf-filter-value-popover[popover] {
+  bottom: auto;
+  inset: auto;
+  margin: 0;
+  position: fixed;
+  right: auto;
+  z-index: 2147483647;
+}
+
+.rf-filter-value-popover[popover]:not(:popover-open) {
+  display: none !important;
+}
+
+.rf-filter-value-popover[popover]:popover-open {
+  display: grid;
+}

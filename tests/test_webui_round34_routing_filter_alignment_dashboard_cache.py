@@ -27,7 +27,8 @@ def test_routing_filter_card_shows_rule_values_in_one_row_with_plus_n_popover():
     assert '"rf-filter-value-overflow rf-filter-source-overflow"' in card
     assert '"rf-filter-value-popover"' in card
     assert 'toggle.textContent = `+${hiddenValues.length}`;' in card
-    assert 'valuePopover.hidden = !valueMenuOpen;' in card
+    assert 'valuePopover.setAttribute("popover", "auto");' in card
+    assert "valuePopover.showPopover();" in card
 
     assert ".rf-filter-value-overflow-wrap" in styles
     assert ".rf-filter-value-popover" in styles
@@ -73,9 +74,9 @@ def test_dashboard_has_range_aware_first_paint_snapshot_for_f5():
 
 
 def test_round34_build_versions_the_changed_webui_bundle():
-    assert UI_BUILD == "20260919-r36"
+    assert UI_BUILD == "20260919-r37"
     index = read("src/webui/index.html")
-    assert 'name="nowlert-ui-build" content="20260919-r36"' in index
-    assert "/ui/app.js?v=20260919-r36" in index
-    assert "/ui/qa_patch.css?v=20260919-r36" in index
-    assert "/ui/qa_patch.js?v=20260919-r36" in index
+    assert 'name="nowlert-ui-build" content="20260919-r37"' in index
+    assert "/ui/app.js?v=20260919-r37" in index
+    assert "/ui/qa_patch.css?v=20260919-r37" in index
+    assert "/ui/qa_patch.js?v=20260919-r37" in index

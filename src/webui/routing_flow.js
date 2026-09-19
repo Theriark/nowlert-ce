@@ -336,6 +336,9 @@
       });
       valueMenuOpen = false;
       overflowWrap.classList.remove("is-open");
+      if (typeof popover.hidePopover === "function" && popover.matches(":popover-open")) {
+        popover.hidePopover();
+      }
       popover.hidden = true;
       toggle.setAttribute("aria-expanded", "false");
 
@@ -421,14 +424,63 @@
     valuePopover.id = `rf-filter-values-${filter.id}`;
     valuePopover.hidden = true;
     valuePopover.setAttribute("role", "menu");
+    valuePopover.setAttribute("popover", "auto");
     valueToggle.setAttribute("aria-controls", valuePopover.id);
+
+    function positionValuePopover() {
+      if (valuePopover.hidden) return;
+      const toggleRect = valueToggle.getBoundingClientRect();
+      const menuRect = valuePopover.getBoundingClientRect();
+      const menuWidth = Math.max(150, menuRect.width || 150);
+      const menuHeight = Math.max(24, menuRect.height || 24);
+      const left = Math.max(
+        8,
+        Math.min(toggleRect.right - menuWidth, window.innerWidth - menuWidth - 8),
+      );
+      const above = toggleRect.top - menuHeight - 6;
+      const below = Math.min(
+        toggleRect.bottom + 6,
+        window.innerHeight - menuHeight - 8,
+      );
+      valuePopover.style.left = `${Math.round(left)}px`;
+      valuePopover.style.top = `${Math.round(above >= 8 ? above : Math.max(8, below))}px`;
+    }
+
+    function closeValuePopover() {
+      if (typeof valuePopover.hidePopover === "function" && valuePopover.matches(":popover-open")) {
+        valuePopover.hidePopover();
+      }
+      valuePopover.hidden = true;
+      valueMenuOpen = false;
+      valueOverflowWrap.classList.remove("is-open");
+      valueToggle.setAttribute("aria-expanded", "false");
+    }
+
+    function openValuePopover() {
+      valuePopover.hidden = false;
+      valuePopover.style.visibility = "hidden";
+      if (typeof valuePopover.showPopover === "function") {
+        if (!valuePopover.matches(":popover-open")) valuePopover.showPopover();
+      }
+      positionValuePopover();
+      valuePopover.style.visibility = "";
+      valueMenuOpen = true;
+      valueOverflowWrap.classList.add("is-open");
+      valueToggle.setAttribute("aria-expanded", "true");
+    }
 
     valueToggle.addEventListener("click", event => {
       event.stopPropagation();
-      valueMenuOpen = !valueMenuOpen;
-      valueOverflowWrap.classList.toggle("is-open", valueMenuOpen);
-      valuePopover.hidden = !valueMenuOpen;
-      valueToggle.setAttribute("aria-expanded", String(valueMenuOpen));
+      if (valueMenuOpen || valuePopover.matches(":popover-open")) closeValuePopover();
+      else openValuePopover();
+    });
+    valuePopover.addEventListener("toggle", event => {
+      if (event.newState === "closed") {
+        valuePopover.hidden = true;
+        valueMenuOpen = false;
+        valueOverflowWrap.classList.remove("is-open");
+        valueToggle.setAttribute("aria-expanded", "false");
+      }
     });
     valuePopover.addEventListener("click", event => event.stopPropagation());
     valueOverflowWrap.append(valueToggle, valuePopover);

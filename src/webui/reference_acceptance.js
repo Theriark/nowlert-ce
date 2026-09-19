@@ -1129,12 +1129,15 @@ function ensurePreviewReferenceLayout() {
   }
 
   function syncAccountReference() {
+    if (!state.user) return;
     ensureAccountReferenceLayout();
     forceProfileTitle();
-    const user = state.user || {};
+    const user = state.user;
     const admin = typeof isAdmin === "function" && isAdmin();
-    if (byId("reference-account-role-value")) {
-      byId("reference-account-role-value").textContent = admin ? "Administrator" : "User";
+    const roleValue = byId("reference-account-role-value");
+    if (roleValue) {
+      delete roleValue.dataset.i18nSource;
+      roleValue.textContent = admin ? "Administrator" : "User";
     }
     if (byId("reference-account-member-value")) {
       byId("reference-account-member-value").textContent = memberSince(user);
