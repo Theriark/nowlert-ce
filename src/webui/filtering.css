@@ -25,10 +25,11 @@
 .filtering-toolbar { padding-block: 1rem; }
 .filtering-table-panel { overflow: hidden; }
 .filtering-table { table-layout: fixed; width: 100%; }
-.filtering-table th:nth-child(1) { width: 19%; }
-.filtering-table th:nth-child(2) { width: 56%; text-align: center; }
-.filtering-table th:nth-child(3) { width: 10%; }
-.filtering-table th:nth-child(4) { width: 15%; }
+.filtering-table th:nth-child(1) { width: 20%; }
+.filtering-table th:nth-child(2) { width: 18%; }
+.filtering-table th:nth-child(3) { width: 37%; }
+.filtering-table th:nth-child(4) { width: 10%; }
+.filtering-table th:nth-child(5) { width: 15%; }
 .filtering-table td { vertical-align: middle; }
 .filtering-table tbody td:first-child,
 .filtering-table tbody td:nth-child(3),
@@ -299,7 +300,7 @@
 
 @media (max-width: 720px) {
   .filtering-overview-grid { grid-template-columns: 1fr; }
-  .filtering-table th:nth-child(1), .filtering-table th:nth-child(2), .filtering-table th:nth-child(3), .filtering-table th:nth-child(4) { width: auto; }
+  .filtering-table th:nth-child(1), .filtering-table th:nth-child(2), .filtering-table th:nth-child(3), .filtering-table th:nth-child(4), .filtering-table th:nth-child(5) { width: auto; }
   .filtering-table tbody td:first-child, .filtering-table tbody td:nth-child(3), .filtering-table tbody td:nth-child(4) { padding-top: 0.85rem; }
   .filtering-integration-row { align-items: start; grid-template-columns: auto minmax(0, 1fr); }
   .filtering-integration-actions { grid-column: 2; justify-content: flex-start; }
