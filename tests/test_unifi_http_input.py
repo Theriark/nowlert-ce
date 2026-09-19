@@ -286,7 +286,11 @@ def test_http_input_graceful_startup_and_shutdown(monkeypatch):
 def test_existing_smtp_handler_still_dispatches_email(monkeypatch, tmp_path):
     class DispatcherStub:
         def parse(self, message):
-            return type("Notification", (), {"source": "generic"})()
+            return type(
+                "Notification",
+                (),
+                {"source": "generic", "metadata": {}},
+            )()
 
     router = RecordingRouter()
     handler = SMTPHandler(DispatcherStub(), router)
@@ -309,6 +313,8 @@ def test_existing_smtp_handler_still_dispatches_email(monkeypatch, tmp_path):
 
     assert result == "250 Message accepted"
     assert len(router.notifications) == 1
+    assert router.notifications[0].metadata["_input_type"] == "SMTP"
+    assert router.notifications[0].metadata["to"] == "receiver@example.invalid"
     assert list(tmp_path.glob("*.eml"))
 
 
