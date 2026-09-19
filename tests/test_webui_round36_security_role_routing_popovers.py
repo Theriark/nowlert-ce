@@ -52,9 +52,9 @@ def test_routing_filter_overflow_toggle_owns_its_menu_and_explicit_open_state():
 
 
 def test_round36_build_versions_the_changed_webui_bundle():
-    assert UI_BUILD == "20260919-r37"
+    assert UI_BUILD == "20260919-r38"
     index = read("src/webui/index.html")
-    assert 'name="nowlert-ui-build" content="20260919-r37"' in index
-    assert "/ui/app.js?v=20260919-r37" in index
-    assert "/ui/qa_patch.css?v=20260919-r37" in index
-    assert "/ui/qa_patch.js?v=20260919-r37" in index
+    assert 'name="nowlert-ui-build" content="20260919-r38"' in index
+    assert "/ui/app.js?v=20260919-r38" in index
+    assert "/ui/qa_patch.css?v=20260919-r38" in index
+    assert "/ui/qa_patch.js?v=20260919-r38" in index

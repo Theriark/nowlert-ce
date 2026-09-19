@@ -315,7 +315,6 @@
 
     const tags = el("div", "rf-filter-card-tags");
     const filterValues = filterCardValues(filter);
-    const visibleValueLimit = 6;
     let valueMenuOpen = false;
     let valueFitFrame = null;
 
@@ -331,9 +330,7 @@
       const popover = overflowWrap?.querySelector(".rf-filter-value-popover");
       if (!overflowWrap || !toggle || !popover) return;
 
-      valueNodes.forEach((item, index) => {
-        item.hidden = index >= visibleValueLimit;
-      });
+      for (const item of valueNodes) item.hidden = false;
       valueMenuOpen = false;
       overflowWrap.classList.remove("is-open");
       if (typeof popover.hidePopover === "function" && popover.matches(":popover-open")) {
@@ -347,7 +344,7 @@
         || getComputedStyle(tags).gap
         || "0",
       ) || 0;
-      const visibleNodes = valueNodes.slice(0, visibleValueLimit);
+      const visibleNodes = valueNodes;
       const visibleWidth = visibleNodes.reduce(
         (sum, item, index) => sum + item.getBoundingClientRect().width + (index ? gap : 0),
         0,
