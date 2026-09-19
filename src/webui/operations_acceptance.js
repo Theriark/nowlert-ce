@@ -64,6 +64,17 @@
     }
   }
 
+  function readStoredRangeForSession(session, scope) {
+    const identity = session?.user?.id ?? session?.user?.username ?? "";
+    if (identity === "") return "";
+    const key = `nowlert:${encodeURIComponent(String(identity))}:${scope}`;
+    try {
+      return window.localStorage.getItem(key) || "";
+    } catch (_error) {
+      return "";
+    }
+  }
+
   function writeStoredRange(scope, value) {
     const key = storageKey(scope);
     if (!key) return;
@@ -476,6 +487,13 @@
 
   const previousShowApp = showApp;
   showApp = function operationsAcceptanceShowApp(session) {
+    // Restore the Dashboard window before wrapped showApp() calls navigate().
+    // That prevents the first Dashboard request and first paint from using the
+    // default 1h window before the persisted selection is applied.
+    const storedDashboardRange = readStoredRangeForSession(session, "dashboard-range");
+    if (DASHBOARD_RANGES.has(storedDashboardRange)) {
+      state.historyRange = storedDashboardRange;
+    }
     const result = previousShowApp(session);
     syncAuthenticatedUser();
     return result;

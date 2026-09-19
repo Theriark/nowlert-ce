@@ -329,7 +329,7 @@
   }
 
   function relocateLegacyVisibilityBadges() {
-    for (const row of document.querySelectorAll("#filter-table > tr:not(.acceptance-private-filter)")) {
+    for (const row of document.querySelectorAll("#filter-table > tr.filtering-policy-row")) {
       row.querySelectorAll(".filtering-access-badge, .acceptance-visibility-badge")
         .forEach((node) => node.remove());
     }
@@ -345,7 +345,11 @@
         ? `${configuredCount} configured · ${activeCount} active`
         : `${configuredCount} configured · disabled`;
     }
-    const cards = [...row.querySelectorAll(".filtering-overview-integration")];
+    const detailRow = row.nextElementSibling?.matches(".filtering-expanded-row")
+      && row.nextElementSibling.dataset.filterDetailId === String(policy.destination_id)
+      ? row.nextElementSibling
+      : null;
+    const cards = [...(detailRow || row).querySelectorAll(".filtering-overview-integration")];
     cards.forEach((card, index) => {
       const marker = card.querySelector(".filtering-card-check");
       const integration = integrations[index];
@@ -396,7 +400,7 @@
     try {
       const payload = await request("/filters");
       const policies = normalFilterRows(payload);
-      const rows = [...document.querySelectorAll("#filter-table > tr:not(.acceptance-private-filter)")];
+      const rows = [...document.querySelectorAll("#filter-table > tr.filtering-policy-row")];
       policies.forEach((policy, index) => {
         const row = rows[index];
         if (row) decorateConfiguredFilters(row, policy);
@@ -546,7 +550,7 @@
         const normalRowAdded = mutations.some((mutation) => (
           [...mutation.addedNodes].some((node) => (
             node.nodeType === Node.ELEMENT_NODE
-            && !node.classList.contains("acceptance-private-filter")
+            && node.classList.contains("filtering-policy-row")
           ))
         ));
         if (normalRowAdded) scheduleFilteringAcceptance();

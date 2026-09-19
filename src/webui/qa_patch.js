@@ -121,10 +121,7 @@ const QA_WORKSPACE_CACHE_FIELDS = [
   "routes",
   "routeErrors",
   "tokens",
-  "deliveries",
-  "audit",
   "preferences",
-  "metrics",
   "versionStatus",
   "users",
   "backups",
@@ -139,7 +136,6 @@ const QA_WORKSPACE_CACHE_FIELDS = [
   "housekeepingStatus",
   "sourceCategories",
   "removedSources",
-  "historyRange",
 ];
 
 function qaWorkspaceCacheKey(userId) {

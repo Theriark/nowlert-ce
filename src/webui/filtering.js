@@ -244,18 +244,54 @@
     ]);
   }
 
+  function filterDetailDomId(destinationId) {
+    return `filtering-details-${String(destinationId || "").replace(/[^A-Za-z0-9_-]/g, "-")}`;
+  }
+
   function policyFilterSummary(policy) {
     const integrations = Array.isArray(policy.integrations) ? policy.integrations : [];
     const active = integrations.length;
-    const container = element("details", { className: "filtering-overview-list filtering-overview-details" });
-    container.append(element("summary", { className: "filtering-overview-header" }, [
+    const control = element("button", {
+      className: "filtering-overview-list filtering-overview-header",
+      type: "button",
+      dataset: { filterOverviewToggle: policy.destination_id },
+      attributes: {
+        "aria-expanded": "false",
+        "aria-controls": filterDetailDomId(policy.destination_id),
+      },
+    }, [
       element("span", { className: "filtering-overview-header-check", text: "✓" }),
       element("strong", { text: `${active} active filter${active === 1 ? "" : "s"}` }),
-    ]));
+    ]);
+    return control;
+  }
+
+  function policyFilterDetailRow(policy) {
+    const integrations = Array.isArray(policy.integrations) ? policy.integrations : [];
     const grid = element("div", { className: "filtering-overview-grid" });
     integrations.forEach((integration) => grid.append(filterOverviewIntegration(integration)));
-    container.append(grid);
-    return container;
+    return element("tr", {
+      className: "filtering-expanded-row",
+      hidden: true,
+      attributes: {
+        id: filterDetailDomId(policy.destination_id),
+        "data-filter-detail-id": policy.destination_id,
+      },
+    }, [
+      element("td", {
+        className: "filtering-expanded-cell",
+        attributes: { colspan: "6" },
+      }, [grid]),
+    ]);
+  }
+
+  function togglePolicyFilterDetail(control) {
+    const targetId = control.getAttribute("aria-controls");
+    const detailRow = targetId ? document.getElementById(targetId) : null;
+    if (!detailRow) return;
+    const expanded = control.getAttribute("aria-expanded") !== "true";
+    control.setAttribute("aria-expanded", String(expanded));
+    detailRow.hidden = !expanded;
   }
 
   function destinationSummary(policy) {
@@ -302,16 +338,22 @@
           badge("Read only", "warning"),
         );
       }
-      body.append(element("tr", {}, [
-        element("td", { className: "filtering-destination-cell" }, [destinationSummary(policy)]),
-        element("td", { className: "filtering-name-cell" }, [
-          element("strong", { text: String(policy.filter_name || "").trim() || "—" }),
+      body.append(
+        element("tr", {
+          className: "filtering-policy-row",
+          attributes: { "data-filter-policy-id": policy.destination_id },
+        }, [
+          element("td", { className: "filtering-destination-cell" }, [destinationSummary(policy)]),
+          element("td", { className: "filtering-name-cell" }, [
+            element("strong", { text: String(policy.filter_name || "").trim() || "—" }),
+          ]),
+          element("td", { className: "filtering-configuration-cell" }, [policyFilterSummary(policy)]),
+          element("td", { className: "filtering-status-cell" }, [policyStatusBadge(policy)]),
+          element("td", { className: "filtering-sharing-cell", attributes: { "data-filter-sync-column": "sharing" } }),
+          element("td", { className: "filtering-actions-cell" }, [actions]),
         ]),
-        element("td", { className: "filtering-configuration-cell" }, [policyFilterSummary(policy)]),
-        element("td", { className: "filtering-status-cell" }, [policyStatusBadge(policy)]),
-        element("td", { className: "filtering-sharing-cell", attributes: { "data-filter-sync-column": "sharing" } }),
-        element("td", { className: "filtering-actions-cell" }, [actions]),
-      ]));
+        policyFilterDetailRow(policy),
+      );
     }
     const addButton = byId("add-filter-button");
     if (addButton) addButton.hidden = !canCreateFilter();
@@ -792,6 +834,12 @@
 
   function bindFilteringEvents() {
     document.addEventListener("click", (event) => {
+      const overviewToggle = event.target.closest("button[data-filter-overview-toggle]");
+      if (overviewToggle) {
+        event.preventDefault();
+        togglePolicyFilterDetail(overviewToggle);
+        return;
+      }
       const button = event.target.closest("button[data-filter-action]");
       if (!button) return;
       event.preventDefault();
@@ -818,6 +866,10 @@
     const previousNavigate = navigate;
     navigate = function filteringNavigate(view, historyMode = "push") {
       if (view === "routes") view = "destinations";
+      if (view === "filtering") {
+        const title = byId("page-title");
+        if (title) delete title.dataset.i18nSource;
+      }
       const result = previousNavigate(view, historyMode);
       if (state.currentView === "filtering") {
         const pageTitle = byId("page-title");

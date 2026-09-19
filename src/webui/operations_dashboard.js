@@ -39,6 +39,7 @@
   let refreshTimer = null;
   let clockTimer = null;
   let refreshBusy = false;
+  let refreshPending = false;
   let lastUpdatedAt = 0;
 
   function node(tag, className = "", text = "") {
@@ -577,15 +578,29 @@
   }
 
   async function refreshDashboardData(force = false) {
-    if (!state.user || refreshBusy || (!force && state.currentView !== DASHBOARD_VIEW)) return;
+    if (!state.user || (!force && state.currentView !== DASHBOARD_VIEW)) return;
+    if (refreshBusy) {
+      if (force) refreshPending = true;
+      return;
+    }
+
     refreshBusy = true;
+    const requestedRange = state.historyRange;
     try {
       const jobs = await Promise.allSettled([
-        request(`/metrics/${state.historyRange}`),
+        request(`/metrics/${requestedRange}`),
         request("/deliveries"),
         request("/filters"),
         request("/audit-events"),
       ]);
+
+      // A range change can happen while this batch is in flight. Never paint
+      // the old batch over the newly selected window.
+      if (requestedRange !== state.historyRange) {
+        refreshPending = true;
+        return;
+      }
+
       if (jobs[0].status === "fulfilled") state.metrics = jobs[0].value.metrics;
       if (jobs[1].status === "fulfilled") state.deliveries = jobs[1].value.deliveries || [];
       if (jobs[2].status === "fulfilled") filterSnapshot = jobs[2].value;
@@ -594,6 +609,10 @@
       renderOperationsDashboard();
     } finally {
       refreshBusy = false;
+      if (refreshPending && state.user && state.currentView === DASHBOARD_VIEW) {
+        refreshPending = false;
+        window.queueMicrotask(() => refreshDashboardData(true));
+      }
     }
   }
 
@@ -624,6 +643,7 @@
   const previousExpireSession = expireSession;
   expireSession = function operationsDashboardExpireSession() {
     filterSnapshot = null;
+    refreshPending = false;
     lastUpdatedAt = 0;
     return previousExpireSession();
   };

@@ -197,7 +197,11 @@
   }
 
   function decorateManagedIntegrations(row, policy) {
-    const cards = [...row.querySelectorAll(".filtering-overview-integration")];
+    const detailRow = row.nextElementSibling?.matches(".filtering-expanded-row")
+      && row.nextElementSibling.dataset.filterDetailId === String(policy.destination_id)
+      ? row.nextElementSibling
+      : null;
+    const cards = [...(detailRow || row).querySelectorAll(".filtering-overview-integration")];
     cards.forEach((card, index) => {
       const integration = policy.integrations[index];
       if (!integration) return;
@@ -307,7 +311,7 @@
       syncProfileIdentity();
       ensureSharingColumn();
       document.querySelectorAll("#filter-table > .acceptance-private-filter").forEach(item => item.remove());
-      const rows = [...document.querySelectorAll("#filter-table > tr:not(.acceptance-private-filter)")];
+      const rows = [...document.querySelectorAll("#filter-table > tr.filtering-policy-row")];
       const policies = policyRows(payload);
       policies.forEach((policy, index) => {
         if (rows[index]) decorateRow(rows[index], policy);

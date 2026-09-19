@@ -81,7 +81,8 @@
     <div class="rf-history"><div class="rf-history-heading"><h3>Recent Deliveries</h3><button id="rf-history-toggle" class="rf-control" type="button">View all</button></div><div class="rf-table-scroll"><table><thead><tr><th>Time</th><th>Integration</th><th>Destination</th><th>Status</th><th>Attempt</th></tr></thead><tbody id="rf-history-body"></tbody></table></div><p id="rf-history-empty" class="rf-empty" hidden>No deliveries recorded in this window.</p></div>
   `;
   byId("view-dashboard").after(section);
-  const $ = id => section.querySelector(`#${id}`);
+  const routingRangeSelect = section.querySelector("#rf-range");
+  const $ = id => id === "rf-range" ? routingRangeSelect : section.querySelector(`#${id}`);
   const ROUTING_RANGE_KEYS = new Set(["10m", "1h", "1d", "1m", "1y"]);
 
   function selectedRoutingRange() {
@@ -288,12 +289,12 @@
     const visual = el("span", "rf-filter-card-icon");
     visual.append(icon("filter"));
     const headingCopy = el("span", "rf-filter-card-heading-copy");
-    const title = el("strong", "rf-filter-card-title");
-    title.append(
-      document.createTextNode("Filter: "),
-      el("span", "rf-filter-card-title-accent", descriptor.title),
-    );
+    const configuredName = String(filter?.filter_name || filter?.name || "").trim();
+    const title = el("strong", "rf-filter-card-title", configuredName || descriptor.title || "Filter");
     headingCopy.append(title);
+    if (configuredName && descriptor.title) {
+      headingCopy.append(el("small", "rf-filter-card-summary", descriptor.title));
+    }
     header.append(visual, headingCopy);
 
     const tags = el("div", "rf-filter-card-tags");
@@ -514,7 +515,7 @@
       if (!d) return;
       const sourceNames = (filter.sources || []).map(source => friendlyName(source));
       const descriptor = filterCardDescriptor(filter);
-      setDialogTitle("Active filter", icon("filter"));
+      setDialogTitle(String(filter.filter_name || filter.name || "").trim() || "Active filter", icon("filter"));
       const detailRows = [
         detailRow("Sources", sourceNames.join(", ") || "Managed"),
         detailIdentityRow("Destination", destinationLogo(d), d.name),
@@ -588,21 +589,38 @@
   }
   function resolveCenters(items, desired, heights, gap, minimumTop) {
     const centers = new Map();
+    if (!items.length) return centers;
+
+    // Connection targets influence ordering and position, but no single target
+    // may drag every following node hundreds of pixels down the canvas.
+    const maxSlack = Math.max(24, Math.min(48, gap * 3));
     let cursor = minimumTop;
     for (const item of items) {
       const height = heights.get(item.id) || 80;
+      const baseCenter = cursor + height / 2;
       const target = desired.get(item.id);
-      const center = Math.max(Number.isFinite(target) ? target : cursor + height / 2, cursor + height / 2);
+      const localShift = Number.isFinite(target)
+        ? Math.max(0, Math.min(maxSlack, target - baseCenter))
+        : 0;
+      const center = baseCenter + localShift;
       centers.set(item.id, center);
       cursor = center + height / 2 + gap;
     }
+
     const wanted = items.map(item => desired.get(item.id)).filter(Number.isFinite);
-    if (wanted.length && items.length) {
+    if (wanted.length) {
       const actualMean = average(items.map(item => centers.get(item.id)));
       const wantedMean = average(wanted);
-      const availableUp = Math.min(...items.map(item => centers.get(item.id) - (heights.get(item.id) || 80) / 2 - minimumTop));
-      const shift = Math.min(Math.max(0, actualMean - wantedMean), Math.max(0, availableUp));
-      if (shift > 0) for (const item of items) centers.set(item.id, centers.get(item.id) - shift);
+      const requestedShift = wantedMean - actualMean;
+      const availableUp = Math.min(...items.map(
+        item => centers.get(item.id) - (heights.get(item.id) || 80) / 2 - minimumTop,
+      ));
+      const layerShift = requestedShift < 0
+        ? Math.max(requestedShift, -Math.max(0, availableUp))
+        : Math.min(requestedShift, maxSlack);
+      if (layerShift) {
+        for (const item of items) centers.set(item.id, centers.get(item.id) + layerShift);
+      }
     }
     return centers;
   }
@@ -802,7 +820,7 @@
       const headerBottom = Math.max(...[...headingNodes.values()].map(head => head.offsetTop + head.offsetHeight)) + 18;
       const layout = computeFlowLayout(current, ordered, headerBottom);
       graph.style.height = `${Math.ceil(layout.height)}px`;
-      graph.dataset.layoutMode = "connected-pixel-auto";
+      graph.dataset.layoutMode = "connected-compact-auto";
       for (const route of layout.routeOrder) positionNode(nodeFor("route", route.id), columns.get("route"), layout.routeCenters.get(route.id), headerBottom);
       for (const item of layout.filterItems) positionNode(nodeFor("filter", item.id), columns.get("filter"), layout.filterCenters.get(item.id), headerBottom);
       for (const destination of layout.destinationOrder) positionNode(nodeFor("destination", destination.id), columns.get("destination"), layout.destinationCenters.get(destination.id), headerBottom);

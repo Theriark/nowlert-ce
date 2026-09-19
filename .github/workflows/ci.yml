@@ -245,7 +245,7 @@ jobs:
           }
 
           verify_live_bundle() {
-            local html css app ownership routing filtering filter_sync filter_css
+            local html css app ownership routing routing_css filtering filter_sync filter_css qa_patch dashboard acceptance cleanup
 
             html="$(
               curl --fail --silent --show-error \
@@ -256,8 +256,13 @@ jobs:
             require_contains "HTML qa_patch" "/ui/qa_patch.css?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML app" "/ui/app.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML Routing Flow" "/ui/routing_flow.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML Routing Flow CSS" "/ui/routing_flow.css?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML Filtering" "/ui/filtering.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML Filtering CSS" "/ui/filtering_ownership_sync.css?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML qa_patch JS" "/ui/qa_patch.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML Dashboard" "/ui/operations_dashboard.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML acceptance" "/ui/operations_acceptance.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML cleanup" "/ui/acceptance_cleanup.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML consistency layer" "/ui/management_consistency.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML retirement layer" "/ui/source_ui_retirement.js?v=${UI_BUILD}" "${html}" || return 1
 
@@ -294,8 +299,18 @@ jobs:
                 "${BASE_URL}/ui/routing_flow.js?v=${UI_BUILD}"
             )" || { echo "WAIT: routing_flow.js request failed"; return 1; }
             require_contains "Routing Flow adaptive layout" "function sortLayerByDesired(items, desired)" "${routing}" || return 1
+            require_contains "Routing Flow captured range" 'const routingRangeSelect = section.querySelector("#rf-range");' "${routing}" || return 1
+            require_contains "Routing Flow bounded layout" "const maxSlack = Math.max(24, Math.min(48, gap * 3));" "${routing}" || return 1
+            require_contains "Routing Flow filter names" 'String(filter?.filter_name || filter?.name || "").trim()' "${routing}" || return 1
             require_contains "Routing Flow selected range" "const requestRange = selectedRoutingRange();" "${routing}" || return 1
             require_contains "Routing Flow response range" "String(next.range || \"\") !== requestRange" "${routing}" || return 1
+
+            routing_css="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/routing_flow.css?v=${UI_BUILD}"
+            )" || { echo "WAIT: routing_flow.css request failed"; return 1; }
+            require_contains "Routing Flow filter summary" ".rf-filter-card-summary" "${routing_css}" || return 1
 
             filtering="$(
               curl --fail --silent --show-error \
@@ -303,6 +318,8 @@ jobs:
                 "${BASE_URL}/ui/filtering.js?v=${UI_BUILD}"
             )" || { echo "WAIT: filtering.js request failed"; return 1; }
             require_contains "Filtering six-column header" 'data-filter-sync-column="sharing">Sharing</th><th>Actions</th>' "${filtering}" || return 1
+            require_contains "Filtering full-width details" 'className: "filtering-expanded-row"' "${filtering}" || return 1
+            require_contains "Filtering title reset" "delete title.dataset.i18nSource;" "${filtering}" || return 1
 
             filter_sync="$(
               curl --fail --silent --show-error \
@@ -317,6 +334,36 @@ jobs:
                 "${BASE_URL}/ui/filtering.css?v=${UI_BUILD}"
             )" || { echo "WAIT: filtering.css request failed"; return 1; }
             require_contains "Filtering Actions width" ".filtering-table th:nth-child(6) { width: 24%; }" "${filter_css}" || return 1
+            require_contains "Filtering full-width grid" "grid-template-columns: repeat(3, minmax(220px, 1fr));" "${filter_css}" || return 1
+
+            qa_patch="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/qa_patch.js?v=${UI_BUILD}"
+            )" || { echo "WAIT: qa_patch.js request failed"; return 1; }
+            require_contains "Workspace cache fields" "const QA_WORKSPACE_CACHE_FIELDS" "${qa_patch}" || return 1
+
+            dashboard="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/operations_dashboard.js?v=${UI_BUILD}"
+            )" || { echo "WAIT: operations_dashboard.js request failed"; return 1; }
+            require_contains "Dashboard request range capture" "const requestedRange = state.historyRange;" "${dashboard}" || return 1
+            require_contains "Dashboard queued refresh" "refreshPending = true;" "${dashboard}" || return 1
+
+            acceptance="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/operations_acceptance.js?v=${UI_BUILD}"
+            )" || { echo "WAIT: operations_acceptance.js request failed"; return 1; }
+            require_contains "Dashboard persisted range bootstrap" "readStoredRangeForSession(session, \"dashboard-range\")" "${acceptance}" || return 1
+
+            cleanup="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/acceptance_cleanup.js?v=${UI_BUILD}"
+            )" || { echo "WAIT: acceptance_cleanup.js request failed"; return 1; }
+            require_contains "Filtering cleanup main rows" '#filter-table > tr.filtering-policy-row' "${cleanup}" || return 1
 
             return 0
           }

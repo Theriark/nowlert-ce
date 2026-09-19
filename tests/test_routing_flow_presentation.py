@@ -39,7 +39,7 @@ def test_filter_dialog_has_identity_icons_status_and_policy_rows():
     filter_branch = SCRIPT.split(
         "const filter = current.filters.find(item => item.id === identity);", 1
     )[1].split("    drawEdges();", 1)[0]
-    assert 'setDialogTitle("Active filter", icon("filter"))' in filter_branch
+    assert 'setDialogTitle(String(filter.filter_name || filter.name || "").trim() || "Active filter", icon("filter"))' in filter_branch
     assert 'detailRow("Sources", sourceNames.join(", ") || "Managed")' in filter_branch
     assert 'detailIdentityRow("Destination", destinationLogo(d), d.name)' in filter_branch
     assert 'detailRow("Status", "Active")' not in filter_branch
