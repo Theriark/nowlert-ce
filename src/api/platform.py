@@ -792,6 +792,11 @@ class PlatformAPI:
                 enabled=self._boolean(data, "enabled", True),
             )
             if secret_value is not None:
+                destination_actor = (
+                    actor
+                    if owner_id == actor.user_id
+                    else Actor(owner_id, "user")
+                )
                 try:
                     secret = self.secrets.create(
                         actor,
@@ -801,12 +806,12 @@ class PlatformAPI:
                         secret_value,
                     )
                     destination = self.destinations.set_secret(
-                        actor,
+                        destination_actor,
                         destination.id,
                         secret.id,
                     )
                 except Exception:
-                    self.destinations.delete(actor, destination.id)
+                    self.destinations.delete(destination_actor, destination.id)
                     raise
             return APIResponse(201, {"destination": self._destination(destination)})
         return self._method_not_allowed("GET, POST")
@@ -1816,10 +1821,8 @@ class PlatformAPI:
                     {"destination": {**self._destination(destination), "management": "yaml"}},
                 )
             destination = self.destinations.get(actor, destination_id)
-            if destination.owner_user_id != actor.user_id and not actor.is_admin:
+            if destination.owner_user_id != actor.user_id:
                 raise PermissionError("destination cannot be changed by this user")
-            if "shared" in data and not actor.is_admin:
-                raise PermissionError("only administrators can change sharing")
 
             next_name = data.get("name", destination.name)
             next_type = str(
@@ -1889,6 +1892,9 @@ class PlatformAPI:
             if self.yaml_resource_authority:
                 self.configuration_sync.delete_destination(actor, destination_id)
                 return APIResponse(204)
+            destination = self.destinations.get(actor, destination_id)
+            if destination.owner_user_id != actor.user_id:
+                raise PermissionError("destination cannot be changed by this user")
             self.destinations.delete(actor, destination_id)
             return APIResponse(204)
         return self._method_not_allowed("GET, PATCH, DELETE")

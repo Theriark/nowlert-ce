@@ -74,8 +74,6 @@ class DestinationStore:
         enabled: bool = True,
     ) -> Destination:
         OwnershipPolicy.require_write(actor, str(owner_user_id))
-        if shared and not actor.is_admin:
-            raise PermissionError("only administrators can create shared destinations")
         display, normalized = normalized_name(name, "destination name")
         _output_display, normalized_output = normalized_identifier(
             output_type,
@@ -296,9 +294,9 @@ class DestinationStore:
         destination_id: str,
         shared: bool,
     ) -> Destination:
-        if not actor.is_admin:
-            raise PermissionError("only administrators can change destination sharing")
         row = self._record(destination_id)
+        if str(row["owner_user_id"]) != actor.user_id:
+            raise PermissionError("only the destination owner can change sharing")
         now = int(self.clock())
         with self.database.transaction() as connection:
             if not shared:
@@ -376,8 +374,6 @@ class DestinationStore:
             shared_value = shared
         else:
             raise ValueError("destination shared must be a boolean")
-        if shared_value != bool(row["shared"]) and not actor.is_admin:
-            raise PermissionError("only administrators can change destination sharing")
         if enabled is None:
             enabled_value = bool(row["enabled"])
         elif isinstance(enabled, bool):

@@ -42,9 +42,12 @@ Credential-like keys are rejected from public settings. Webhook URLs,
 passwords, tokens, and similar values use the owner-scoped secret store. Normal
 read APIs report only safe metadata such as `secret_configured`.
 
-Private destinations are visible to their owner and administrators. Only an
-administrator can share a destination. A route may reference a shared
-destination without revealing or rotating that destination owner's credential.
+Private destinations are visible to their owner and administrators. A destination
+owner can choose whether the destination is private or shared; sharing never
+changes ownership. Administrators may inspect, preview, and test another user's
+destination, but user-facing destination mutations remain owner-only. A route may
+reference a shared destination without revealing or rotating that destination
+owner's credential.
 
 ## Route identity
 

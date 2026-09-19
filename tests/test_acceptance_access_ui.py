@@ -72,13 +72,13 @@ def test_api_service_uses_owner_private_filtering_with_destination_master_state(
     assert "from api.private_destination_actions import PlatformAPI" in service
     assert "from api.access_acceptance import PlatformAPI as AcceptancePlatformAPI" in private_actions
     assert "class PlatformAPI(AcceptancePlatformAPI)" in private_actions
-    assert 'return str(owner["role"]) == "admin"' in access
+    assert 'return str(owner["role"]) == "admin"' not in access
     assert 'return actor.user_id == str(destination["owner_user_id"])' in access
     assert "class AcceptanceDestinationStore" in access
     assert '_MASTER_FILTER_NAMESPACE = "destination_filter_master_enabled"' in access
     assert "destination_filtering_enabled" in access
     assert '"managed_by_admin": managed_by_admin' in access
-    assert '"can_change_sharing": bool(actor.is_admin and owned)' in access
+    assert '"can_change_sharing": bool(owned)' in access
     assert '"private_resources": []' in access
 
 

@@ -20,7 +20,7 @@ def fast_hash(password: str) -> str:
     return hash_password(password, salt=b"\x17" * 16, iterations=1_000)
 
 
-def test_shared_destination_is_operable_while_filters_remain_owner_private(tmp_path):
+def test_shared_destination_is_visible_but_mutation_and_filters_remain_owner_private(tmp_path):
     database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
     users = UserStore(database, password_hasher=fast_hash)
@@ -42,11 +42,12 @@ def test_shared_destination_is_operable_while_filters_remain_owner_private(tmp_p
     )
     row = access.destination_row(shared.id)
     assert access.can_view(user.actor, row) is True
-    assert access.can_edit_destination(user.actor, row) is True
+    assert access.can_edit_destination(user.actor, row) is False
     assert access.can_manage_filters(user.actor, row) is False
 
-    destinations.set_enabled(user.actor, shared.id, False)
-    assert destinations.get(user.actor, shared.id).enabled is False
+    with pytest.raises(PermissionError):
+        destinations.set_enabled(user.actor, shared.id, False)
+    assert destinations.get(user.actor, shared.id).enabled is True
 
     route = routes.create(
         admin.actor,
@@ -55,7 +56,8 @@ def test_shared_destination_is_operable_while_filters_remain_owner_private(tmp_p
         "zabbix",
         input_type="smtp",
     )
-    relationships.replace_for_destination(user.actor, shared.id, [route.id])
+    with pytest.raises(PermissionError):
+        relationships.replace_for_destination(user.actor, shared.id, [route.id])
     with pytest.raises(PermissionError):
         filters.set_rules(
             user.actor,

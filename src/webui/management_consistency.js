@@ -170,9 +170,10 @@
       meta.prepend(active);
     }
 
-    const owner = [...meta.children].find((item) => (
-      String(item.textContent || "").trim().toLowerCase().startsWith("owner:")
-    ));
+    const owner = meta.querySelector(".destination-owner-badge")
+      || [...meta.children].find((item) => (
+        String(item.textContent || "").trim().toLowerCase().startsWith("owner:")
+      ));
     if (owner) owner.classList.add("destination-owner-badge");
 
     const viewOnly = [...meta.children].find((item) => {
@@ -212,21 +213,24 @@
     const ownUsername = ownerId && ownerId === String(state?.user?.id || "")
       ? state.user?.username
       : "";
-    return String(item?.owner_username || knownOwner?.username || ownUsername || "User").trim() || "User";
+    return String(item?.owner_username || knownOwner?.username || ownUsername || "").trim();
   }
 
   function syncDestinationOwnerBadge(card) {
     const meta = card?.querySelector(".resource-meta");
     if (!meta) return;
-    const existing = [...meta.children].find((item) => (
-      String(item.textContent || "").trim().toLowerCase().startsWith("owner:")
-    ));
+    const existing = meta.querySelector(".destination-owner-badge")
+      || [...meta.children].find((item) => (
+        String(item.textContent || "").trim().toLowerCase().startsWith("owner:")
+      ));
     const item = destinationItemForCard(card);
     if (!item && !existing) return;
 
-    const label = item
-      ? `Owner: ${destinationOwnerName(item)}`
-      : String(existing.textContent || "Owner: User").trim();
+    const fallback = String(existing?.textContent || "")
+      .replace(/^owner:\s*/i, "")
+      .trim();
+    const label = item ? (destinationOwnerName(item) || fallback) : fallback;
+    if (!label) return;
     const owner = existing || readOnlyStatus(label, "destination-owner-badge");
     const sharing = meta.querySelector('[data-action="toggle-destination-shared"]')
       || meta.querySelector(".destination-sharing-control");

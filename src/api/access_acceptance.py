@@ -34,22 +34,10 @@ _FILTER_NAME_NAMESPACE = "destination_filter_name"
 
 
 class AcceptanceDestinationAccessStore(DestinationAccessStore):
-    """Admin-shared Destinations are collaborative; Filtering stays owner-private."""
+    """Keep Destination mutation owner-only while shared resources remain visible."""
 
     def can_edit_destination(self, actor, destination) -> bool:
-        owner_user_id = str(destination["owner_user_id"])
-        if actor.user_id == owner_user_id:
-            return True
-        if not bool(destination["shared"]):
-            return False
-        if actor.is_admin:
-            return True
-        # Normal users cannot share their own Destinations. A shared
-        # administrator Destination is therefore the collaborative resource
-        # normal users may operate; a Destination merely owned by another
-        # normal user is never made cross-user editable.
-        owner = self._user_row(owner_user_id)
-        return str(owner["role"]) == "admin"
+        return actor.user_id == str(destination["owner_user_id"])
 
     def can_manage_filters(self, actor, destination) -> bool:
         return actor.user_id == str(destination["owner_user_id"])
@@ -499,7 +487,7 @@ class PlatformAPI(BasePlatformAPI):
                         "shared": destination.shared,
                         "owned": True,
                         "can_manage_filters": True,
-                        "can_change_sharing": bool(actor.is_admin),
+                        "can_change_sharing": bool(owned),
                         "filtering_enabled": master_enabled,
                         "available_integration_count": len(available),
                     }
@@ -546,7 +534,7 @@ class PlatformAPI(BasePlatformAPI):
                     "shared": destination.shared,
                     "owned": owned,
                     "can_manage_filters": bool(can_manage),
-                    "can_change_sharing": bool(actor.is_admin and owned),
+                    "can_change_sharing": bool(owned),
                     "managed_by_admin": managed_by_admin,
                     "filtering_enabled": master_enabled,
                     "filter_name": self.filters.filter_name(destination.id),
