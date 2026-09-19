@@ -1073,18 +1073,16 @@
   }
   function edgeCurve(a, b) {
     const x = a.offsetLeft + a.offsetWidth, y = a.offsetTop + a.offsetHeight / 2;
-    const targetInset = 7;
-    const xx = b.offsetLeft - targetInset, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x, bend = Math.max(20, Math.min(gap * .2, 80));
+    const xx = b.offsetLeft, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x, bend = Math.max(20, Math.min(gap * .2, 80));
     return `M${x} ${y} C${x+bend} ${y} ${xx-bend} ${yy} ${xx} ${yy}`;
   }
   function drawEdges() {
     if (!data || section.hidden) return;
     const graph = $("rf-graph"), edges = $("rf-edges");
     const edgeLayer = $("rf-edge-layer"); edgeLayer.replaceChildren(); edgePaths = new Map();
+    graph.querySelectorAll(".rf-node.rf-has-incoming").forEach(node => node.classList.remove("rf-has-incoming"));
     if (graph.hidden || graph.clientWidth === 0 || window.innerWidth <= 640) return;
     edges.setAttribute("viewBox", `0 0 ${graph.clientWidth} ${graph.clientHeight}`);
-    const defs = svg("defs"), marker = svg("marker", { id:"rf-arrow", viewBox:"0 0 6 6", refX:6, refY:3, markerWidth:6, markerHeight:6, markerUnits:"userSpaceOnUse", orient:"auto" });
-    marker.append(svg("path", {d:"M0 0 L6 3 L0 6 Z", fill:"currentColor"})); defs.append(marker); edgeLayer.append(defs);
     const current = graphModel || activeFlowGraph();
 
     for (const link of current.links) {
@@ -1098,10 +1096,10 @@
         .filter(Boolean);
 
       if (link.direct || !filterRecords.length) {
+        destination.classList.add("rf-has-incoming");
         const path = svg("path", {
           d: edgeCurve(route, destination),
           class: `rf-edge${relevant(link) ? "" : " rf-dim"}`,
-          "marker-end": "url(#rf-arrow)",
         });
         edgeLayer.append(path);
         bundle.direct.push(path);
@@ -1112,10 +1110,10 @@
         if (!filterNode) continue;
         const paths = [];
         for (const [a, b] of [[route, filterNode], [filterNode, destination]]) {
+          b.classList.add("rf-has-incoming");
           const path = svg("path", {
             d: edgeCurve(a, b),
             class: `rf-edge${relevant(link, filter.id) ? "" : " rf-dim"}`,
-            "marker-end": "url(#rf-arrow)",
           });
           edgeLayer.append(path);
           paths.push(path);
@@ -1132,7 +1130,6 @@
       const all = [...new Set([...bundle.direct, ...[...bundle.filters.values()].flat()])];
       for (const p of all) {
         const copy = p.cloneNode();
-        copy.removeAttribute("marker-end");
         copy.setAttribute("transform", `scale(${130/graph.clientWidth} ${46/graph.clientHeight})`);
         mini.append(copy);
       }
