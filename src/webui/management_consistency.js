@@ -739,8 +739,8 @@
     const second = document.querySelector(
       "#view-filtering .filtering-table thead th:nth-child(2)",
     );
-    if (second && second.textContent !== "Configuration") {
-      second.textContent = "Configuration";
+    if (second && second.textContent !== "Name") {
+      second.textContent = "Name";
     }
   }
 

@@ -300,7 +300,7 @@
 
 @media (max-width: 720px) {
   .filtering-overview-grid { grid-template-columns: 1fr; }
-  .filtering-table th:nth-child(1), .filtering-table th:nth-child(2), .filtering-table th:nth-child(3), .filtering-table th:nth-child(4), .filtering-table th:nth-child(5) { width: auto; }
+  .filtering-table th:nth-child(1), .filtering-table th:nth-child(2), .filtering-table th:nth-child(3), .filtering-table th:nth-child(4), .filtering-table th:nth-child(5), .filtering-table th:nth-child(6) { width: auto; }
   .filtering-table tbody td:first-child, .filtering-table tbody td:nth-child(3), .filtering-table tbody td:nth-child(4) { padding-top: 0.85rem; }
   .filtering-integration-row { align-items: start; grid-template-columns: auto minmax(0, 1fr); }
   .filtering-integration-actions { grid-column: 2; justify-content: flex-start; }

@@ -728,11 +728,12 @@ def test_20260918_round_two_screenshot_regressions():
     styles = (ROOT / "src" / "webui" / "reference_acceptance.css").read_text(encoding="utf-8")
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
 
-    # Routing Flow anchors every dynamic column below the headings.
-    assert "function shiftCentersToTop(" in routing
-    assert "routeCenters = shiftCentersToTop(" in routing
-    assert "filterCenters = shiftCentersToTop(" in routing
-    assert "destinationCenters = shiftCentersToTop(" in routing
+    # Routing Flow keeps connected barycentric placement instead of
+    # independently pulling each column back to the top.
+    assert "function shiftCentersToTop(" not in routing
+    assert "routeCenters = resolveCenters(" in routing
+    assert "filterCenters = resolveCenters(" in routing
+    assert "destinationCenters = resolveCenters(" in routing
 
     # Restart keeps the existing action but uses the supplied confirmation UI.
     assert 'class="modal small-modal restart-reference-dialog"' in markup

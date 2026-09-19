@@ -82,6 +82,12 @@
   `;
   byId("view-dashboard").after(section);
   const $ = id => section.querySelector(`#${id}`);
+  const ROUTING_RANGE_KEYS = new Set(["10m", "1h", "1d", "1m", "1y"]);
+
+  function selectedRoutingRange() {
+    const value = String($("rf-range")?.value || range || "1d").trim();
+    return ROUTING_RANGE_KEYS.has(value) ? value : "1d";
+  }
 
   function syncRangeOptionsFromDashboard() {
     const dashboardRange = document.getElementById("history-range");
@@ -635,16 +641,6 @@
     }
     return centers;
   }
-  function shiftCentersToTop(centers, items, heights, minimumTop) {
-    if (!items.length) return centers;
-    const top = Math.min(...items.map(item =>
-      (centers.get(item.id) || minimumTop) - (heights.get(item.id) || 80) / 2
-    ));
-    const shift = Math.max(0, top - minimumTop);
-    if (!shift) return centers;
-    for (const [id, center] of centers) centers.set(id, center - shift);
-    return centers;
-  }
   function computeFlowLayout(current, ordered, headerBottom) {
     const routeHeights = new Map(ordered.routeOrder.map(route => [route.id, nodeFor("route", route.id)?.offsetHeight || 80]));
     const destinationHeights = new Map(ordered.destinationOrder.map(destination => [destination.id, nodeFor("destination", destination.id)?.offsetHeight || 150]));
@@ -668,7 +664,6 @@
         || a.id.localeCompare(b.id)
       );
       filterCenters = resolveCenters(filterItems, filterDesired, filterHeights, 12, headerBottom);
-      filterCenters = shiftCentersToTop(filterCenters, filterItems, filterHeights, headerBottom);
 
       const routeDesired = new Map(ordered.routeOrder.map(route => [
         route.id,
@@ -684,7 +679,6 @@
         }).filter(Number.isFinite)),
       ]));
       routeCenters = resolveCenters(ordered.routeOrder, routeDesired, routeHeights, 12, headerBottom);
-      routeCenters = shiftCentersToTop(routeCenters, ordered.routeOrder, routeHeights, headerBottom);
 
       const destinationDesired = new Map(ordered.destinationOrder.map(destination => [
         destination.id,
@@ -700,7 +694,6 @@
         }).filter(Number.isFinite)),
       ]));
       destinationCenters = resolveCenters(ordered.destinationOrder, destinationDesired, destinationHeights, 24, headerBottom);
-      destinationCenters = shiftCentersToTop(destinationCenters, ordered.destinationOrder, destinationHeights, headerBottom);
     }
 
     const finalFilterDesired = new Map(filterItems.map(item => [
@@ -715,7 +708,6 @@
       || a.id.localeCompare(b.id)
     );
     filterCenters = resolveCenters(filterItems, finalFilterDesired, filterHeights, 12, headerBottom);
-    filterCenters = shiftCentersToTop(filterCenters, filterItems, filterHeights, headerBottom);
 
     const bottoms = [headerBottom];
     for (const route of ordered.routeOrder) bottoms.push(routeCenters.get(route.id) + (routeHeights.get(route.id) || 80) / 2);
@@ -834,7 +826,7 @@
   }
   function edgeCurve(a, b) {
     const x = a.offsetLeft + a.offsetWidth, y = a.offsetTop + a.offsetHeight / 2;
-    const xx = b.offsetLeft, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x, bend = Math.max(24, Math.min(gap * .3, 120));
+    const xx = b.offsetLeft, yy = b.offsetTop + b.offsetHeight / 2, gap = xx - x, bend = Math.max(20, Math.min(gap * .2, 80));
     return `M${x} ${y} C${x+bend} ${y} ${xx-bend} ${yy} ${xx} ${yy}`;
   }
   function drawEdges() {
@@ -951,12 +943,14 @@
     stopPulses();
   }
   function cachedRoutingFlowSnapshot() {
+    range = selectedRoutingRange();
     const snapshots = state.routingFlowSnapshots && typeof state.routingFlowSnapshots === "object"
       ? state.routingFlowSnapshots
       : {};
     const cached = snapshots[range];
     if (
       !cached
+      || String(cached.range || "") !== range
       || !Array.isArray(cached.routes)
       || !Array.isArray(cached.destinations)
       || !Array.isArray(cached.filters)
@@ -991,6 +985,9 @@
     const allowCache = options.allowCache !== false;
     const forceRender = options.forceRender === true;
     if (!active()) return;
+    range = selectedRoutingRange();
+    if(owner!==state.user.id){clearPrivateData();owner=state.user.id;}
+    if (allowCache) hydrateCachedRoutingFlow();
     if (busy) {
       const previous = pendingRefreshOptions || { allowCache: true, forceRender: false };
       pendingRefreshOptions = {
@@ -999,10 +996,10 @@
       };
       return;
     }
-    if(owner!==state.user.id){clearPrivateData();owner=state.user.id;}
-    if (allowCache) hydrateCachedRoutingFlow();
     busy=true;
-    const token=generation, userId=state.user.id, requestRange=range;
+    const requestRange = selectedRoutingRange();
+    range = requestRange;
+    const token=generation, userId=state.user.id;
     const abort=new AbortController(); controller=abort;
     const timeout=setTimeout(()=>abort.abort(),20000);
     try {
@@ -1010,7 +1007,8 @@
       if(response.status===401){expireSession();return;}
       if(!response.ok) throw new Error(`Overview request failed (${response.status}).`);
       const next=await response.json();
-      if(token!==generation || !active() || state.user?.id!==userId || requestRange!==range) return;
+      if(token!==generation || !active() || state.user?.id!==userId || requestRange!==selectedRoutingRange()) return;
+      if (String(next.range || "") !== requestRange) throw new Error(`Overview response range mismatch (requested ${requestRange}, received ${next.range || "missing"}).`);
       if(!Array.isArray(next.routes)||!Array.isArray(next.destinations)||!Array.isArray(next.filters)||!Array.isArray(next.links)||!Array.isArray(next.history)||!next.metrics) throw new Error("The overview response is invalid.");
       const fresh=data?next.history.filter(h=>!seen.has(h.id)):[];
       seen=new Set(next.history.map(h=>h.id));
@@ -1067,14 +1065,12 @@
   };
   document.addEventListener("visibilitychange",sync);
   function changeRoutingRange(nextRange) {
-    range = String(nextRange || "").trim() || "1d";
+    const requested = String(nextRange || "").trim();
+    range = ROUTING_RANGE_KEYS.has(requested) ? requested : selectedRoutingRange();
     signature = "";
     invalidate();
     clearPrivateData();
-    if (state.routingFlowSnapshots && typeof state.routingFlowSnapshots === "object") {
-      delete state.routingFlowSnapshots[nextRange];
-    }
-    refresh({ allowCache: false, forceRender: true });
+    refresh({ allowCache: true, forceRender: true });
   }
   $("rf-range").addEventListener("change",()=>changeRoutingRange($("rf-range").value));
   function setZoom(value){zoom=Math.min(1,Math.max(.7,Math.round(value*10)/10));$("rf-graph").style.transform=`scale(${zoom})`;$("rf-zoom-value").textContent=`${Math.round(zoom*100)}%`;$("rf-plus").disabled=zoom===1;$("rf-minus").disabled=zoom===.7;}
