@@ -150,7 +150,13 @@ class DiscordCardFormatter(BaseFormatter):
         # before this path is reached.
         from formatters.discord_classic_v1 import render_classic_embed_v1
 
-        return render_classic_embed_v1(data.notification, payload)
+        rendered = self._sanitize_payload(
+            render_classic_embed_v1(data.notification, payload)
+        )
+        embeds = rendered.get("embeds") if isinstance(rendered, dict) else None
+        if isinstance(embeds, list) and embeds and isinstance(embeds[0], dict):
+            self._enforce_discord_budget(embeds[0])
+        return rendered
 
     def _render_discord_components_v2(
         self,
