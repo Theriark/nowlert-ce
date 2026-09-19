@@ -104,6 +104,9 @@ def test_ownership_sync_extension_loads_after_routing_flow_and_uses_distinct_col
     assert "refreshDestinationsState" in script
     assert 'method: "PATCH"' in script and 'body: { shared: !current }' in script
     assert 'method: "PUT"' in script and 'body: { enabled: !current }' in script
+    assert "all integration filters are disabled and must be re-enabled individually" in script
+    assert "all integration filters were turned off" in script
+    assert "saved integration filter states are preserved" not in script.lower()
     assert '"/ui/filtering_ownership_sync.js"' in service
     assert '"/ui/filtering_ownership_sync.css"' in service
     assert service.index('/ui/filtering_ownership_sync.js') > service.index('/ui/routing_flow.js')
