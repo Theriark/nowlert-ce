@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from models import Notification
+from outputs.discord import DiscordOutput
 from outputs.platform import DiscordPlatformAdapter
 from storage.destinations import Destination
 
@@ -252,3 +253,39 @@ def test_components_v2_bypasses_classic_embed_v1():
     assert "embeds" not in preview.payload
     rendered = repr(preview.payload)
     assert CLASSIC_FOOTER not in rendered
+
+
+@pytest.mark.parametrize(("source", "signature"), SOURCE_SIGNATURES)
+def test_direct_classic_formatter_uses_v1_contract(source: str, signature: str):
+    """Direct formatter calls must not bypass the Classic Embed v1 renderer."""
+
+    output = DiscordOutput()
+    formatter = output.source_formatters[source]
+    payload = formatter.format(notification(source))
+
+    assert set(payload) == {"embeds"}
+    embed = payload["embeds"][0]
+    names = [str(field.get("name") or "") for field in embed.get("fields", [])]
+
+    assert signature in names, source
+    assert embed["footer"] == {"text": CLASSIC_FOOTER}, source
+
+
+def test_direct_xo_formatter_no_longer_emits_legacy_classic_geometry():
+    payload = DiscordOutput().source_formatters["xo"].format(notification("xo"))
+    embed = payload["embeds"][0]
+    names = [str(field.get("name") or "") for field in embed.get("fields", [])]
+
+    assert "🗃️ Storage" in names
+    assert "📋 Event details" not in names
+    assert embed["footer"] == {"text": CLASSIC_FOOTER}
+
+
+def test_direct_components_v2_still_uses_existing_modern_contract():
+    formatter = DiscordOutput().source_formatters["xo"]
+    payload = formatter.format_components_v2(notification("xo"))
+
+    assert payload["flags"] == 32768
+    assert "components" in payload
+    assert "embeds" not in payload
+    assert CLASSIC_FOOTER not in repr(payload)
