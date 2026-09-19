@@ -18,6 +18,7 @@
   let owner = null, selected = null, seen = new Set(), allHistory = false;
   let pulseFrame = null, pulses = [], edgePaths = new Map(), resizeFrame = null;
   let graphModel = null, pendingRefreshOptions = null;
+  let warmTimer = null, warmController = null;
 
   function el(tag, cls = "", text = "") {
     const n = document.createElement(tag);
@@ -1188,6 +1189,72 @@
     if (controller) controller.abort(); controller=null;
     stopPulses();
   }
+  async function warmRoutingFlowSnapshot() {
+    if (!state.user) return;
+    const requestRange = selectedRoutingRange();
+    const userId = state.user.id;
+    const token = generation;
+    const abort = new AbortController();
+    if (warmController) warmController.abort();
+    warmController = abort;
+    const timeout = setTimeout(() => abort.abort(), 20000);
+    try {
+      const response = await fetch(`${API}/routing-flow/${requestRange}`, {
+        method: "GET",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+        signal: abort.signal,
+      });
+      if (response.status === 401) return;
+      if (!response.ok) return;
+      const next = await response.json();
+      if (
+        token !== generation
+        || state.user?.id !== userId
+        || String(next.range || "") !== requestRange
+        || !Array.isArray(next.routes)
+        || !Array.isArray(next.destinations)
+        || !Array.isArray(next.filters)
+        || !Array.isArray(next.links)
+        || !Array.isArray(next.history)
+        || !next.metrics
+      ) return;
+      state.routingFlowSnapshots = {
+        ...(state.routingFlowSnapshots || {}),
+        [requestRange]: next,
+      };
+      if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
+      if (active()) {
+        data = next;
+        owner = userId;
+        seen = new Set(next.history.map(item => item.id));
+        signature = JSON.stringify({ ...next, generated_at: 0, since: 0 });
+        render();
+        $("rf-error").hidden = !next.errors?.length;
+        $("rf-error").textContent = (next.errors || [])
+          .map(error => `${error.component}: ${error.message}`)
+          .join(" · ");
+      }
+    } catch (error) {
+      if (error.name !== "AbortError" && active()) {
+        $("rf-error").hidden = false;
+        $("rf-error").textContent = "Routing Flow could not be refreshed.";
+      }
+    } finally {
+      clearTimeout(timeout);
+      if (warmController === abort) warmController = null;
+    }
+  }
+
+  function scheduleRoutingFlowWarmup(delay = 180) {
+    window.clearTimeout(warmTimer);
+    warmTimer = window.setTimeout(() => {
+      warmTimer = null;
+      void warmRoutingFlowSnapshot();
+    }, delay);
+  }
+
   function cachedRoutingFlowSnapshot() {
     range = selectedRoutingRange();
     const snapshots = state.routingFlowSnapshots && typeof state.routingFlowSnapshots === "object"
@@ -1291,6 +1358,14 @@
   }
   function sync() {
     invalidate();
+    if (warmTimer !== null) {
+      window.clearTimeout(warmTimer);
+      warmTimer = null;
+    }
+    if (warmController) {
+      warmController.abort();
+      warmController = null;
+    }
     if(!state.user){clearPrivateData();return;}
     if(!active())return;
     requestAnimationFrame(drawEdges);refresh();
@@ -1309,6 +1384,17 @@
     state.routingFlowSnapshots = {};
     return previousExpire();
   };
+  document.addEventListener("nowlert:routing-topology-changed", () => {
+    invalidate();
+    if (warmController) {
+      warmController.abort();
+      warmController = null;
+    }
+    state.routingFlowSnapshots = {};
+    clearPrivateData();
+    if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
+    scheduleRoutingFlowWarmup();
+  });
   document.addEventListener("visibilitychange",sync);
   function changeRoutingRange(nextRange) {
     const requested = String(nextRange || "").trim();

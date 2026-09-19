@@ -327,6 +327,7 @@
     if (!state.user || state.currentView !== FILTER_VIEW) return;
     try {
       const payload = await request("/filters");
+      document.dispatchEvent(new CustomEvent("nowlert:filtering-overview-updated", { detail: payload }));
       decorate(payload);
     } catch (_error) {
       // Core Filtering remains usable if this presentation/access sync fails.
@@ -512,6 +513,7 @@
       body: { enabled: !current },
     });
     await refresh();
+    document.dispatchEvent(new CustomEvent("nowlert:routing-topology-changed"));
     toast(!current ? "Destination filtering enabled. Integration filters remain off until you enable them." : "Destination filtering disabled; all integration filters were turned off.", "success");
   }
 

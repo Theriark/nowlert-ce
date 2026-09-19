@@ -173,20 +173,37 @@
     byId("filter-editor-step").hidden = true;
   }
 
-  async function loadOverview() {
-    const cached = filteringState.overview || state.filteringOverview;
-    if (cached) {
-      filteringState.overview = cached;
-      renderOverview();
-    }
-
-    const next = await request("/filters");
-    filteringState.overview = next;
-    state.filteringOverview = next;
-    renderOverview();
-    if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
+  function applyFilteringOverview(payload, { render = true, persist = true } = {}) {
+    if (!payload || typeof payload !== "object") return filteringState.overview;
+    filteringState.overview = payload;
+    state.filteringOverview = payload;
+    if (render && state.currentView === "filtering") renderOverview();
+    if (persist && typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
     return filteringState.overview;
   }
+
+  function invalidateFilteringOverview() {
+    filteringState.overview = null;
+    state.filteringOverview = null;
+    if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
+  }
+
+  async function loadOverview() {
+    const cached = filteringState.overview || state.filteringOverview;
+    if (cached) applyFilteringOverview(cached, { persist: false });
+
+    const next = await request("/filters");
+    return applyFilteringOverview(next);
+  }
+
+  document.addEventListener("nowlert:filtering-overview-updated", event => {
+    const payload = event.detail;
+    applyFilteringOverview(payload);
+  });
+
+  document.addEventListener("nowlert:filtering-state-invalidated", () => {
+    invalidateFilteringOverview();
+  });
 
   function filterFieldDescriptor(integration, key) {
     const nativeKey = key.startsWith("exclude_") ? key.slice("exclude_".length) : key;
@@ -250,7 +267,15 @@
 
   function policyFilterSummary(policy) {
     const integrations = Array.isArray(policy.integrations) ? policy.integrations : [];
-    const active = integrations.length;
+    const configured = Number.isFinite(Number(policy.configured_count))
+      ? Number(policy.configured_count)
+      : integrations.filter(integration => integration.configured).length;
+    const active = Number.isFinite(Number(policy.active_count))
+      ? Number(policy.active_count)
+      : integrations.filter(integration => integration.filter_enabled).length;
+    const label = policy.filtering_enabled === false
+      ? `${configured} configured · disabled`
+      : `${configured} configured · ${active} active`;
     const control = element("button", {
       className: "filtering-overview-list filtering-overview-header",
       type: "button",
@@ -261,7 +286,7 @@
       },
     }, [
       element("span", { className: "filtering-overview-header-check", text: "✓" }),
-      element("strong", { text: `${active} active filter${active === 1 ? "" : "s"}` }),
+      element("strong", { text: label }),
     ]);
     return control;
   }
@@ -306,8 +331,10 @@
     ]);
   }
 
-  function policyStatusBadge() {
-    return badge("Active", "success");
+  function policyStatusBadge(policy) {
+    return policy.filtering_enabled === false
+      ? badge("Disabled", "warning")
+      : badge("Active", "success");
   }
 
   function renderOverview() {
@@ -744,6 +771,7 @@
     filteringState.integration = null;
     renderIntegrationStep();
     await loadOverview();
+    document.dispatchEvent(new CustomEvent("nowlert:routing-topology-changed"));
     toast(response.integration.filter_enabled ? "Filter saved and enabled." : response.integration.configured ? "Filter saved but disabled." : "No filter configured; all notifications are allowed.", "success");
   }
 
@@ -764,6 +792,7 @@
     if (index >= 0) view.integrations[index] = response.integration;
     renderIntegrationStep();
     await loadOverview();
+    document.dispatchEvent(new CustomEvent("nowlert:routing-topology-changed"));
     toast(enabled ? "Filter enabled." : "Filter disabled; saved rules were kept.", "success");
   }
 
@@ -782,6 +811,7 @@
     filteringState.integration = null;
     renderIntegrationStep();
     await loadOverview();
+    document.dispatchEvent(new CustomEvent("nowlert:routing-topology-changed"));
     toast("Integration filter removed.");
   }
 
@@ -796,6 +826,7 @@
     if (!accepted) return;
     await request(`/filters/destinations/${destinationId}`, { method: "DELETE" });
     await loadOverview();
+    document.dispatchEvent(new CustomEvent("nowlert:routing-topology-changed"));
     toast("Destination filter deleted.");
   }
 
