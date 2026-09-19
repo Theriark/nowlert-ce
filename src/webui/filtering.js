@@ -913,12 +913,12 @@
   }
 
   const previousExpireSession = expireSession;
-  expireSession = function filteringExpireSession() {
+  expireSession = function filteringExpireSession(options = {}) {
     filteringState.overview = null;
     filteringState.destinationView = null;
     filteringState.integration = null;
-    state.filteringOverview = null;
-    return previousExpireSession();
+    if (options.preserveCache !== true) state.filteringOverview = null;
+    return previousExpireSession(options);
   };
 
   installNavigation();

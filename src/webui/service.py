@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 
-UI_BUILD = "20260919-r50"
+UI_BUILD = "20260919-r51"
 
 
 SECURITY_HEADERS = (

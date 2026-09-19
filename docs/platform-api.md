@@ -55,8 +55,12 @@ Browser and management operations use a local session:
 - session-authenticated `POST`, `PUT`, `PATCH`, and `DELETE` requests must send
   `X-CSRF-Token`.
 
-Sessions have idle and absolute expiry. Logout, password reset, account disable,
-and private-state restore revoke affected sessions.
+Browser sessions have a 2-hour idle expiry and a 24-hour absolute expiry.
+Authenticated unsafe writes and explicit `GET /api/v2/session` keepalives refresh
+the idle deadline without extending the 24-hour maximum. Session responses expose
+both `idle_expires_at` and `expires_at` so clients can warn before timeout.
+Logout, password reset, account disable, and private-state restore revoke
+affected sessions.
 
 ## Event API tokens
 

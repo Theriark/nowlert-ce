@@ -246,9 +246,9 @@ showApp = function showAppWithWorkspaceCache(session) {
 };
 
 const qaOriginalExpireSession = expireSession;
-expireSession = function expireSessionWithWorkspaceCacheClear() {
-  qaClearWorkspaceCache();
-  return qaOriginalExpireSession();
+expireSession = function expireSessionWithWorkspaceCacheClear(options = {}) {
+  if (options.preserveCache !== true) qaClearWorkspaceCache();
+  return qaOriginalExpireSession(options);
 };
 
 function qaPager(containerId, pagination, onPage) {

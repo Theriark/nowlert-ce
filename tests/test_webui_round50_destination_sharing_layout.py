@@ -15,7 +15,7 @@ def test_destination_owner_control_uses_authoritative_ownership_and_shared_viewe
     consistency = read("src/webui/management_consistency.js")
 
     own_start = app.index("function ownResource(item)")
-    own_end = app.index("function expireSession()", own_start)
+    own_end = app.index("function ensureSessionResilienceUi()", own_start)
     own = app[own_start:own_end]
     assert 'typeof item.owned === "boolean"' in own
     assert 'String(item.owner_user_id || "") === String(state.user.id || "")' in own

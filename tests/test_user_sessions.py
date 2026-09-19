@@ -111,6 +111,35 @@ def test_last_enabled_admin_cannot_be_disabled(accounts):
     assert users.authenticate("first-admin", "correct horse battery staple") is None
 
 
+def test_default_session_policy_is_two_hours_idle_and_twenty_four_hours_absolute(accounts):
+    database, clock, users = accounts
+    user = users.bootstrap_admin("administrator", "correct horse battery staple")
+    sessions = SessionStore(database, clock=clock)
+
+    credentials = sessions.create(user.id)
+
+    assert credentials.expires_at == clock.value + 24 * 60 * 60
+    assert credentials.idle_expires_at == clock.value + 2 * 60 * 60
+
+    principal = sessions.authenticate(credentials.session_token, touch=False)
+    assert principal is not None
+    assert principal.expires_at == credentials.expires_at
+    assert principal.idle_expires_at == credentials.idle_expires_at
+
+    clock.value += 5 * 60
+    touched = sessions.authenticate(credentials.session_token, touch=True)
+    assert touched is not None
+    assert touched.idle_expires_at == clock.value + 2 * 60 * 60
+
+    with database.connect() as connection:
+        row = connection.execute(
+            "SELECT expires_at, idle_expires_at FROM sessions WHERE id = ?",
+            (credentials.session_id,),
+        ).fetchone()
+    assert int(row["expires_at"]) == credentials.expires_at
+    assert int(row["idle_expires_at"]) == touched.idle_expires_at
+
+
 def test_session_tokens_and_csrf_values_are_hashed(accounts):
     database, clock, users = accounts
     user = users.bootstrap_admin("administrator", "correct horse battery staple")
