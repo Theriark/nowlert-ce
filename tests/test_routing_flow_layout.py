@@ -26,7 +26,7 @@ def test_routing_flow_uses_pixel_auto_layout_instead_of_grid_rows():
     assert 'node.style.position = "absolute"' in script
     assert "node.style.top =" in script
     assert "node.dataset.layoutY" in script
-    assert "connected-pixel-auto" in script
+    assert "connected-compact-auto" in script
     assert "routeRows" not in script
     assert "destinationRows" not in script
     assert "filterRows" not in script

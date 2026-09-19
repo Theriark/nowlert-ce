@@ -112,9 +112,9 @@ def test_filtering_webui_shows_active_filter_cards_and_reference_editor():
     assert "white-space: normal;" in styles
     assert 'byId("page-title").textContent = VIEW_TITLES.filtering;' in script
     assert "width: min(1040px, calc(100vw - 2rem));" in styles
-    assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in styles
-    assert "justify-content: center;" in styles
-    assert "margin-inline: auto;" in styles
+    assert "grid-template-columns: repeat(3, minmax(220px, 1fr));" in styles
+    assert "justify-content: stretch;" in styles
+    assert 'className: "filtering-expanded-cell"' in script
     assert "grid-template-columns: minmax(4.8rem, 6rem) minmax(8rem, 9.5rem) minmax(0, 1fr) auto;" in styles
     assert "sourceIcon(integration.source)" in script
     assert "filtering-switch" in script
@@ -160,20 +160,22 @@ def test_filtering_overview_final_polish_contract():
     assert "vertical-align: top;" in styles
 
 
-def test_filtering_overview_shows_only_active_filters_and_collapse():
+def test_filtering_overview_shows_only_active_filters_and_full_width_expand():
     script = (ROOT / "src" / "webui" / "filtering.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "filtering.css").read_text(encoding="utf-8")
 
     assert "function filterOverviewUnconfiguredIntegration(integration)" not in script
     assert 'text: "No filter · All notifications"' not in script
-    assert 'element("details", { className: "filtering-overview-list filtering-overview-details" })' in script
-    assert "container.open = true;" not in script
+    assert 'dataset: { filterOverviewToggle: policy.destination_id }' in script
+    assert 'className: "filtering-expanded-row"' in script
+    assert 'attributes: { colspan: "6" }' in script
+    assert 'detailRow.hidden = !expanded;' in script
     assert 'return badge("Active", "success");' in script
     assert '.filter((policy) => Array.isArray(policy.integrations) && policy.integrations.length > 0)' in script
     assert "unconfiguredIntegrations.forEach" not in script
     assert 'configured ? "Filter off" : "No filter / All notifications"' in script
     assert 'toast(enabled ? "Filter enabled." : "Filter disabled; saved rules were kept.", "success");' in script
-    assert ".filtering-overview-details:not([open]) > .filtering-overview-header::after" in styles
+    assert '.filtering-overview-header[aria-expanded="true"]::after' in styles
     assert "font-size: 0.6rem;" in styles
 
 
