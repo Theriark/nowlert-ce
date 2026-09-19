@@ -81,7 +81,7 @@ def test_dashboard_restores_saved_range_before_show_app_and_queues_inflight_chan
     refresh_end = dashboard.index("function updateLiveAge", refresh_start)
     refresh = dashboard[refresh_start:refresh_end]
     assert "const requestedRange = state.historyRange;" in refresh
-    assert 'request(`/metrics/${requestedRange}`)' in refresh
+    assert 'request(`/metrics/${requestedRange}`, { dashboardFeed: true })' in refresh
     assert "if (requestedRange !== state.historyRange)" in refresh
     assert "refreshPending = true;" in refresh
     assert "window.queueMicrotask(() => refreshDashboardData(true));" in refresh
