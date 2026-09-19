@@ -58,7 +58,7 @@ def test_filtering_overview_shows_persisted_filter_name_column():
     script = read("src/webui/filtering.js")
     ownership = read("src/webui/filtering_ownership_sync.js")
 
-    assert "<th>Filter name</th>" in script
+    assert "<th>Name</th>" in script
     assert 'className: "filtering-name-cell"' in script
     assert 'text: String(policy.filter_name || "").trim() || "—"' in script
     assert 'className: "filtering-status-cell"' in script
@@ -75,5 +75,5 @@ def test_routing_flow_filter_cards_are_packed_from_top_after_ordering():
     ]
     assert "filterCenters = packCentersFromTop(filterItems, filterHeights, 12, headerBottom);" in layout
     assert layout.count(
-        "filterCenters = packCentersFromTop(filterItems, filterHeights, 12, headerBottom);"
+        "filterCenters = shiftCentersToTop(filterCenters, filterItems, filterHeights, headerBottom);"
     ) >= 2
