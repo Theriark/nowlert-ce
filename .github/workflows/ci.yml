@@ -226,6 +226,7 @@ jobs:
             --dd-agent-host "datadog-agent" \
             --dd-trace-agent-port 8126 \
             --dd-runtime-sca \
+            --dd-iast \
             --title "CE Development ${SOURCE_SHA}" \
             --description "GitHub Actions run ${{ github.run_id }}"
 
