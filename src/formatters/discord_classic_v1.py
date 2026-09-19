@@ -870,8 +870,11 @@ def _render_unifi_network(notification, payload, normalized, metadata):
 
 
 def _render_unifi_protect(notification, payload, normalized, metadata):
-    from formatters.unifi import format_protect_event_time, protect_condition_display
-
+    from formatters.unifi import (
+        format_protect_event_time,
+        protect_condition_display,
+        protect_device_display,
+    )
     status = str(normalized.get("status") or "").strip()
     severity = str(metadata.get("severity") or status).strip()
     category = str(normalized.get("category") or metadata.get("category") or "security").strip()
@@ -879,6 +882,9 @@ def _render_unifi_protect(notification, payload, normalized, metadata):
     description = str(normalized.get("body") or title_text).strip()[:4096]
     trigger_key = str(_metadata_value(metadata, "trigger_key") or "").strip()
     trigger_label = str(_metadata_value(metadata, "trigger_label") or trigger_key or title_text).strip()
+    trigger_device = protect_device_display(
+        _metadata_value(metadata, "trigger_device")
+    )
     alarm_name = str(_metadata_value(metadata, "alarm_name") or "").strip()
     condition = protect_condition_display(
         str(_metadata_value(metadata, "condition_source") or ""),
@@ -897,7 +903,7 @@ def _render_unifi_protect(notification, payload, normalized, metadata):
         _rows_field(f"{icon} Alert", [("Status", lifecycle), ("Severity", severity), ("Category", category)]),
         _rows_field("🎯 Trigger", [
             ("Type", trigger_label),
-            ("Device", _metadata_value(metadata, "trigger_device")),
+            ("Device", trigger_device),
             ("Triggers", _metadata_value(metadata, "trigger_count")),
         ]),
         _rows_field("🚨 Alarm Rule", [

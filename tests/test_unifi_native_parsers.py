@@ -401,7 +401,7 @@ def test_drive_body_removes_action_url_signature_and_footer_but_keeps_operations
     assert "UniFi Drive > Settings > Remote backup" in notification.body
     assert action_link not in visible_discord
     assert action_link not in visible_teams
-    assert discord["embeds"][0]["url"] == action_link
+    assert "url" not in discord["embeds"][0]
     teams_card = teams["attachments"][0]["content"]
     assert teams_card["actions"] == [
         {

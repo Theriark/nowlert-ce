@@ -42,6 +42,7 @@ class TrueNASDiscordFormatter(DiscordCardFormatter):
         status = notification.status
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source="truenas",
                 integration="TrueNAS",
                 device=host or "TrueNAS",

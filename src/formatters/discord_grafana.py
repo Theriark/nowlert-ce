@@ -124,6 +124,7 @@ class GrafanaDiscordFormatter(DiscordCardFormatter):
         )
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source="grafana",
                 integration="Grafana",
                 device=device,

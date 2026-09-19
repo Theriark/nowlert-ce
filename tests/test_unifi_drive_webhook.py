@@ -189,19 +189,18 @@ def test_drive_http_endpoint_uses_global_shared_token_and_routes():
     ] == ["unifi_drive"]
 
 
-def test_drive_alarm_rule_is_formatted_and_alarm_id_is_hidden():
+def test_drive_alarm_rule_and_classic_v1_alarm_identity_are_formatted():
     payload = drive_payload()
     notification = DriveParser().parse_webhook(payload)
 
     discord = UniFiDriveDiscordFormatter().format(notification)
     teams = UniFiDriveTeamsFormatter().format(notification)
-    rendered = json.dumps({"discord": discord, "teams": teams})
 
     discord_embed = discord["embeds"][0]
-    discord_details = next(
+    discord_alarm = next(
         field
         for field in discord_embed["fields"]
-        if "📋 **Event details**" in field["value"]
+        if field["name"] == "🔔 Alarm"
     )
 
     teams_card = teams["attachments"][0]["content"]
@@ -211,17 +210,13 @@ def test_drive_alarm_rule_is_formatted_and_alarm_id_is_hidden():
         if fact["title"] == "🚨 Alarm rule:"
     )
 
-    assert payload["alarm_id"] not in rendered
+    assert "Drive settings alarm" in discord_embed["title"]
+    assert payload["alarm_id"] in discord_alarm["value"]
+    assert discord_embed["footer"] == {
+        "text": "🦉 Nowlert CE • Classic Embed"
+    }
 
-    assert discord_embed["title"].endswith("Settings")
-    assert discord_embed["description"].startswith(
-        "UniFi Drive • ℹ️ **Triggered** • 📍 Administration\n"
-    )
-    assert "🚨 **Alarm rule:** Nowlert | Drive - Settings" in (
-        discord_details["value"]
-    )
-    assert discord_details["inline"] is False
-
+    assert payload["alarm_id"] not in json.dumps(teams)
     assert teams_card["body"][0]["text"].endswith("Settings")
     assert teams_card["body"][2]["items"][0]["text"] == "🔔 Settings alarm triggered"
     assert teams_alarm_rule == {

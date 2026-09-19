@@ -31,6 +31,7 @@ class ProxmoxDiscordFormatter(DiscordCardFormatter):
         device = metadata.get("node") or metadata.get("host") or metadata.get("guest") or "Proxmox"
         return self._render_discord_card(
             DiscordCardData(
+                notification=notification,
                 source="proxmox",
                 integration="Proxmox VE",
                 device=device,

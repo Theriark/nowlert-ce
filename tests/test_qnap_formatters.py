@@ -55,13 +55,10 @@ def test_discord_payload_generation():
 
     embed = payload["embeds"][0]
 
-    assert "SYNTHETIC-QNAP-HERO" in embed["title"]
-    assert "QNAP" in embed["description"]
-    assert "Warning" in embed["description"]
+    assert "Storage Pool 1" in embed["title"]
+    assert "Warning" in embed["title"]
     assert embed["color"] == 0xF39C12
-    assert embed["footer"]["text"].endswith(
-        f"Nowlert v{VERSION}"
-    )
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
     assert embed["fields"]
     assert all(
         field["name"] and field["value"]
@@ -77,7 +74,7 @@ def test_discord_payload_generation():
     assert "Storage Pool" in serialized
     assert "RAID Group" in serialized
     assert "Storage & Snapshots" in serialized
-    assert "12 Jul 2026 • 08:30" in serialized
+    assert "2026-07-12 08:30:00" in serialized
 
     assert not any(
         "2026/07/12 08" in field["name"]
@@ -186,7 +183,7 @@ def test_alert_severity_is_consistently_warning_colored():
 
     assert notification.status == "warning"
     assert discord["color"] == 0xF39C12
-    assert "Warning" in discord["description"]
+    assert "Warning" in discord["title"]
     assert '"color": "Warning"' in json.dumps(
         teams,
     )
@@ -274,7 +271,8 @@ def test_status_colors_are_aligned_across_outputs(
     )["attachments"][0]["content"]
 
     assert discord["color"] == discord_color
-    assert status_text in discord["description"]
+    discord_status = "Failed" if status_text == "Failure" else status_text
+    assert discord_status in json.dumps(discord)
     assert teams_card["body"][0]["color"] == teams_color
     assert status_text in teams_card["body"][1]["text"]
 
@@ -356,9 +354,12 @@ def test_event_specific_details_reach_both_payloads(
         )
     )
 
+    discord_aliases = {
+        "Job Name": "Job",
+        "Connection Type": "Connection",
+    }
     for expected in expected_details:
-
-        assert expected in discord
+        assert discord_aliases.get(expected, expected) in discord
         assert expected in teams
 
 
@@ -450,10 +451,10 @@ def test_discord_oversized_unknown_metadata_stays_inside_embed_budget():
     assert "Essential synthetic event message" in serialized
     assert "Critical" in serialized
     assert "Storage & Snapshots" in serialized
-    assert any(
-        field["value"].endswith("…")
+    assert sum(
+        field["name"].startswith("📎 Synthetic Unknown Field")
         for field in embed["fields"]
-    )
+    ) < 40
 
 
 @pytest.mark.parametrize(
