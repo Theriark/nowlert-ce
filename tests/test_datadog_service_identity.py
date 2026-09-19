@@ -61,7 +61,9 @@ def test_merge_environment_collapses_duplicate_datadog_keys():
     )
 
     assert merged == "DD_SERVICE=nowlert-ce\nTZ=Europe/Lisbon\n"
-\n\ndef test_datadog_identity_requires_complete_lowercase_identity():
+
+
+def test_datadog_identity_requires_complete_lowercase_identity():
     module = load_swarm_deploy()
     valid = Namespace(
         dd_service="nowlert-ce",
