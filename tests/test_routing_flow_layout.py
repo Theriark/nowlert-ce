@@ -72,3 +72,14 @@ def test_particle_animation_uses_first_raf_timestamp_as_clock_origin():
     assert "const started = performance.now();" not in animate
     assert "pulses.push({dot: circle, key, source, filtered, started: null});" in animate
     assert "if (p.started === null) p.started = now;" in animate
+
+
+def test_routing_flow_frontend_hides_stale_inactive_filter_snapshots():
+    script = ROUTING_FLOW.read_text(encoding="utf-8")
+    block = script.split("function activeFlowGraph()", 1)[1].split(
+        "function showDetails", 1
+    )[0]
+
+    assert "active_sources" in block
+    assert "active_count" in block
+    assert "filterHasActiveIntegration" in block

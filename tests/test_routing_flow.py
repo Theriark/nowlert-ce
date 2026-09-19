@@ -492,3 +492,143 @@ def test_routing_flow_supports_dashboard_history_windows(api):
         response = snapshot(api, headers, window)
         assert response.status == 200
         assert response.payload["range"] == window
+
+
+def test_routing_flow_hides_filter_when_master_or_all_children_are_disabled(api):
+    headers = login(api)
+    route = create_route(api, headers, "Zabbix filtered", source="zabbix")
+    destination = create_destination(api, headers, "Filtered destination", [route["id"]])
+    platform = api["service"].platform
+    actor = api["admin"].actor
+
+    platform.filters.set_rules(
+        actor,
+        destination["id"],
+        "zabbix",
+        {
+            "policy": [
+                {
+                    "action": "block",
+                    "conditions": {"severity": ["warning"]},
+                }
+            ]
+        },
+    )
+
+    active = snapshot(api, headers, "10m").payload
+    assert len(active["filters"]) == 1
+    active_link = next(
+        item
+        for item in active["links"]
+        if item["route_id"] == route["id"]
+        and item["destination_id"] == destination["id"]
+    )
+    assert active_link["filter_ids"] == [f'{destination["id"]}:filter']
+    assert active_link["direct"] is False
+
+    disabled = call(
+        api,
+        "PUT",
+        f'/api/v2/filters/destinations/{destination["id"]}/enabled',
+        {"enabled": False},
+        headers,
+    )
+    assert disabled.status == 200
+
+    master_off = snapshot(api, headers, "10m").payload
+    assert master_off["filters"] == []
+    master_off_link = next(
+        item
+        for item in master_off["links"]
+        if item["route_id"] == route["id"]
+        and item["destination_id"] == destination["id"]
+    )
+    assert master_off_link["filter_ids"] == []
+    assert master_off_link["direct"] is True
+
+    enabled = call(
+        api,
+        "PUT",
+        f'/api/v2/filters/destinations/{destination["id"]}/enabled',
+        {"enabled": True},
+        headers,
+    )
+    assert enabled.status == 200
+
+    no_children = snapshot(api, headers, "10m").payload
+    assert no_children["filters"] == []
+    no_children_link = next(
+        item
+        for item in no_children["links"]
+        if item["route_id"] == route["id"]
+        and item["destination_id"] == destination["id"]
+    )
+    assert no_children_link["filter_ids"] == []
+    assert no_children_link["direct"] is True
+
+    platform.filters.set_enabled(actor, destination["id"], "zabbix", True)
+
+    restored = snapshot(api, headers, "10m").payload
+    assert len(restored["filters"]) == 1
+    restored_link = next(
+        item
+        for item in restored["links"]
+        if item["route_id"] == route["id"]
+        and item["destination_id"] == destination["id"]
+    )
+    assert restored_link["filter_ids"] == [f'{destination["id"]}:filter']
+    assert restored_link["direct"] is False
+
+
+def test_destination_reenable_does_not_restore_disabled_filter_to_routing_flow(api):
+    headers = login(api)
+    route = create_route(api, headers, "Grafana filtered", source="grafana")
+    destination = create_destination(api, headers, "Destination toggle", [route["id"]])
+    platform = api["service"].platform
+    actor = api["admin"].actor
+
+    platform.filters.set_rules(
+        actor,
+        destination["id"],
+        "grafana",
+        {
+            "policy": [
+                {
+                    "action": "allow",
+                    "conditions": {"severity": ["critical"]},
+                }
+            ]
+        },
+    )
+
+    assert len(snapshot(api, headers, "10m").payload["filters"]) == 1
+
+    disabled = call(
+        api,
+        "PATCH",
+        f'/api/v2/destinations/{destination["id"]}',
+        {"enabled": False},
+        headers,
+    )
+    assert disabled.status == 200
+
+    reenabled = call(
+        api,
+        "PATCH",
+        f'/api/v2/destinations/{destination["id"]}',
+        {"enabled": True},
+        headers,
+    )
+    assert reenabled.status == 200
+
+    current = snapshot(api, headers, "10m").payload
+    assert any(item["id"] == destination["id"] for item in current["destinations"])
+    assert current["filters"] == []
+    link = next(
+        item
+        for item in current["links"]
+        if item["route_id"] == route["id"]
+        and item["destination_id"] == destination["id"]
+    )
+    assert link["filter_ids"] == []
+    assert link["direct"] is True
