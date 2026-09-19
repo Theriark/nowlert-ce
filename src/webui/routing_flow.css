@@ -48,19 +48,27 @@
 .rf-unassigned { align-self:center; font-size:12px; color:#bbcbd6; }
 .rf-edges { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; color:#eac044; }
 .rf-edge { fill:none; stroke:#eac044; stroke-width:1.4; }
-.rf-node.rf-has-incoming::after {
-  content:"";
-  position:absolute;
-  left:0;
-  top:50%;
-  width:6px;
-  height:6px;
-  border-radius:50%;
-  background:#eac044;
-  box-shadow:0 0 0 2px #0c1b25, 0 0 7px rgba(234,192,68,.42);
+.rf-socket {
+  background:linear-gradient(180deg,rgba(255,205,67,.1),#ffd13a 30%,#ffb916 50%,#ffd13a 70%,rgba(255,205,67,.1));
+  border-radius:999px;
+  height:20px;
+  opacity:0;
   pointer-events:none;
-  transform:translate(-50%,-50%);
+  position:absolute !important;
+  top:50%;
+  width:2px;
   z-index:4;
+}
+.rf-socket-left { left:0; transform:translate(-50%,-50%); }
+.rf-socket-right { right:0; transform:translate(50%,-50%); }
+.rf-node.rf-has-incoming > .rf-socket-left,
+.rf-node.rf-has-outgoing > .rf-socket-right {
+  animation:rf-socket-pulse 2.2s ease-in-out infinite;
+  opacity:1;
+}
+@keyframes rf-socket-pulse {
+  0%,100% { box-shadow:0 0 3px rgba(255,205,67,.42),0 0 8px rgba(255,185,22,.18); filter:brightness(.92); }
+  50% { box-shadow:0 0 5px rgba(255,209,58,.95),0 0 14px rgba(255,185,22,.48); filter:brightness(1.18); }
 }
 .rf-edge.rf-off { stroke:#81909a; stroke-dasharray:4 5; }
 .rf-edge.rf-dim { opacity:.18; }
@@ -346,6 +354,13 @@
   .rf-filter-card::before {
     animation: none;
     --rf-filter-border-angle: 300deg;
+  }
+
+  .rf-node.rf-has-incoming > .rf-socket-left,
+  .rf-node.rf-has-outgoing > .rf-socket-right {
+    animation:none;
+    box-shadow:0 0 4px rgba(255,205,67,.55);
+    filter:none;
   }
 }
 

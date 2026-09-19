@@ -744,6 +744,11 @@
     node.dataset.identity = identity;
     node.dataset.focusKey = `${kind}:${identity}`;
     node.setAttribute("aria-label", label);
+    const leftSocket = el("span", "rf-socket rf-socket-left");
+    const rightSocket = el("span", "rf-socket rf-socket-right");
+    leftSocket.setAttribute("aria-hidden", "true");
+    rightSocket.setAttribute("aria-hidden", "true");
+    node.append(leftSocket, rightSocket);
     node.style.gridColumn = String({ route: 1, filter: 2, destination: 3 }[kind]);
     $("rf-graph").append(node);
     return node;
@@ -1080,7 +1085,10 @@
     if (!data || section.hidden) return;
     const graph = $("rf-graph"), edges = $("rf-edges");
     const edgeLayer = $("rf-edge-layer"); edgeLayer.replaceChildren(); edgePaths = new Map();
-    graph.querySelectorAll(".rf-node.rf-has-incoming").forEach(node => node.classList.remove("rf-has-incoming"));
+    graph.querySelectorAll(".rf-node.rf-has-incoming, .rf-node.rf-has-outgoing").forEach(node => {
+      node.classList.remove("rf-has-incoming");
+      node.classList.remove("rf-has-outgoing");
+    });
     if (graph.hidden || graph.clientWidth === 0 || window.innerWidth <= 640) return;
     edges.setAttribute("viewBox", `0 0 ${graph.clientWidth} ${graph.clientHeight}`);
     const current = graphModel || activeFlowGraph();
@@ -1096,6 +1104,7 @@
         .filter(Boolean);
 
       if (link.direct || !filterRecords.length) {
+        route.classList.add("rf-has-outgoing");
         destination.classList.add("rf-has-incoming");
         const path = svg("path", {
           d: edgeCurve(route, destination),
@@ -1110,6 +1119,7 @@
         if (!filterNode) continue;
         const paths = [];
         for (const [a, b] of [[route, filterNode], [filterNode, destination]]) {
+          a.classList.add("rf-has-outgoing");
           b.classList.add("rf-has-incoming");
           const path = svg("path", {
             d: edgeCurve(a, b),
