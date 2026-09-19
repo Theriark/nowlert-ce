@@ -335,6 +335,7 @@
         item.hidden = index >= visibleValueLimit;
       });
       valueMenuOpen = false;
+      overflowWrap.classList.remove("is-open");
       popover.hidden = true;
       toggle.setAttribute("aria-expanded", "false");
 
@@ -417,12 +418,15 @@
     valueToggle.setAttribute("aria-haspopup", "menu");
     valueToggle.setAttribute("aria-label", "Show more filter values");
     const valuePopover = el("span", "rf-filter-value-popover");
+    valuePopover.id = `rf-filter-values-${filter.id}`;
     valuePopover.hidden = true;
     valuePopover.setAttribute("role", "menu");
+    valueToggle.setAttribute("aria-controls", valuePopover.id);
 
     valueToggle.addEventListener("click", event => {
       event.stopPropagation();
       valueMenuOpen = !valueMenuOpen;
+      valueOverflowWrap.classList.toggle("is-open", valueMenuOpen);
       valuePopover.hidden = !valueMenuOpen;
       valueToggle.setAttribute("aria-expanded", String(valueMenuOpen));
     });
@@ -657,7 +661,21 @@
     if (!dialog.open) dialog.showModal();
   }
   function createNode(kind, identity, label) {
-    const node = button("", () => showDetails(kind, identity), `rf-node rf-${kind}`);
+    const node = el("div", `rf-node rf-${kind}`);
+    const openDetails = event => {
+      if (event.target instanceof Element && event.target.closest("button, a, input, select, textarea")) return;
+      showDetails(kind, identity);
+    };
+    node.setAttribute("role", "button");
+    node.tabIndex = 0;
+    node.addEventListener("click", openDetails);
+    node.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        if (event.target !== node) return;
+        event.preventDefault();
+        showDetails(kind, identity);
+      }
+    });
     node.dataset.kind = kind;
     node.dataset.identity = identity;
     node.dataset.focusKey = `${kind}:${identity}`;
