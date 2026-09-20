@@ -184,7 +184,7 @@
     }
     select.append(
       new Option("Modern Card", "modern"),
-      new Option("Classic Embed", "classic"),
+      new Option("Classic Card", "classic"),
     );
     select.disabled = false;
     const settings = destination.settings || {};
@@ -564,7 +564,7 @@ function ensurePreviewReferenceLayout() {
       return field;
     };
     const style = document.createElement("select");
-    style.append(new Option("Modern Card", "modern"), new Option("Classic Embed", "classic"));
+    style.append(new Option("Modern Card", "modern"), new Option("Classic Card", "classic"));
     if (severityField) severityField.className = "reference-preview-field";
     fields.append(
       severityField || ref("div"),

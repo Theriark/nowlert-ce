@@ -1089,7 +1089,7 @@ function qaApplyDiscordMessageStyle() {
   });
   select.append(
     element("option", { value: "modern", text: "Modern Card" }),
-    element("option", { value: "classic", text: "Classic Embed" }),
+    element("option", { value: "classic", text: "Classic Card" }),
   );
   select.value = checkbox.checked ? "modern" : "classic";
   select.addEventListener("change", () => {
@@ -1103,7 +1103,7 @@ function qaApplyDiscordMessageStyle() {
     element("span", { text: "Message style" }),
     select,
     element("small", {
-      text: "Modern Card uses responsive structured sections; Classic Embed uses the traditional Discord embed layout.",
+      text: "Modern Card uses responsive structured sections; Classic Card uses the traditional Discord embed layout.",
     }),
     checkbox,
   );

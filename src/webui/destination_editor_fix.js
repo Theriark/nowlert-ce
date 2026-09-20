@@ -136,7 +136,7 @@
       modern.textContent = "Modern Card";
       const classic = document.createElement("option");
       classic.value = "classic";
-      classic.textContent = "Classic Embed";
+      classic.textContent = "Classic Card";
       select.append(modern, classic);
       styleField.append(title, select);
     }

@@ -13,7 +13,7 @@ from parsers.grafana import Parser as GrafanaParser
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "grafana"
-FOOTER = {"text": "🦉 Nowlert CE • Classic Embed"}
+FOOTER = {"text": "🦉 Nowlert CE • Classic Card"}
 
 
 def render_fixture(name: str) -> tuple[object, dict]:

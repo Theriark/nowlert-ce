@@ -56,7 +56,7 @@ def test_generic_webhook_uses_destination_label_message_style_and_credentials():
     assert 'channelTitle.textContent = "Destination label"' in SCRIPT
     assert 'title.textContent = "Message style"' in SCRIPT
     assert 'modern.textContent = "Modern Card"' in SCRIPT
-    assert 'classic.textContent = "Classic Embed"' in SCRIPT
+    assert 'classic.textContent = "Classic Card"' in SCRIPT
     assert 'urlTitle.textContent = "Webhook URL"' in SCRIPT
     assert 'title.textContent = "Credentials"' in SCRIPT
     assert 'routing.after(credentials)' in SCRIPT

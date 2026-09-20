@@ -1,6 +1,6 @@
-"""Deterministic Discord Classic Embed v1 presentation.
+"""Deterministic Discord Classic Card v1 presentation.
 
-This is the non-AI CE port of the source-specific Classic Embed v1 layouts
+This is the non-AI CE port of the source-specific Classic Card v1 layouts
 validated in Nowlert EE.  It is intentionally invoked only for Discord
 classic destinations; Components V2 keeps using the existing formatter path.
 """
@@ -13,7 +13,7 @@ import re
 from typing import Any
 
 
-CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Embed"
+CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
 
 _WORDS = re.compile(r"[^a-z0-9]+")
 _RED = 0xE74C3C
@@ -151,7 +151,7 @@ def _lifecycle(status: object, severity: object, *, state: object = "") -> tuple
 
 
 def _render_xo(notification, payload, normalized, metadata):
-    """Render the compact CE Xen Orchestra Classic Embed v1 geometry."""
+    """Render the compact CE Xen Orchestra Classic Card v1 geometry."""
 
     status = _normal_words(normalized.get("status"))
     failed = status in {"failure", "failed", "error", "critical"}
@@ -358,7 +358,7 @@ _GRAFANA_RECOGNIZED = {
 
 
 def _render_grafana(notification, payload, normalized, metadata):
-    """Render the compact CE Grafana Classic Embed v1 geometry."""
+    """Render the compact CE Grafana Classic Card v1 geometry."""
 
     source_fields = metadata.get("source_fields")
     if not isinstance(source_fields, dict):
@@ -524,7 +524,7 @@ def _render_grafana(notification, payload, normalized, metadata):
 
 
 def _render_portainer(notification, payload, normalized, metadata):
-    """Render the compact CE Portainer Classic Embed v1 geometry."""
+    """Render the compact CE Portainer Classic Card v1 geometry."""
 
     status = str(normalized.get("status") or "").strip()
     state = str(metadata.get("state") or status).strip()
@@ -629,7 +629,7 @@ def _usage_percent(metadata: dict[str, Any]) -> str:
 
 
 def _render_proxmox(notification, payload, normalized, metadata):
-    """Render the compact CE Proxmox Classic Embed v1 geometry."""
+    """Render the compact CE Proxmox Classic Card v1 geometry."""
 
     status = str(normalized.get("status") or "").strip()
     state = str(metadata.get("state") or status).strip()
@@ -756,7 +756,7 @@ def _source_value(source_fields: dict[str, Any], *names: str) -> object:
 
 
 def _render_qnap(notification, payload, normalized, metadata):
-    """Render the compact CE QNAP Classic Embed v1 geometry."""
+    """Render the compact CE QNAP Classic Card v1 geometry."""
 
     source_fields = _source_fields(metadata)
     status = str(normalized.get("status") or "").strip()
@@ -1042,7 +1042,7 @@ def _render_qnap(notification, payload, normalized, metadata):
 
 
 def _render_synology(notification, payload, normalized, metadata):
-    """Render the compact CE Synology Classic Embed v1 geometry."""
+    """Render the compact CE Synology Classic Card v1 geometry."""
 
     status = str(normalized.get("status") or "").strip()
     state = str(metadata.get("state") or status).strip()
@@ -1387,7 +1387,7 @@ def _truenas_detail(
 
 
 def _render_truenas(notification, payload, normalized, metadata):
-    """Render the compact CE TrueNAS Classic Embed v1 geometry."""
+    """Render the compact CE TrueNAS Classic Card v1 geometry."""
 
     alerts = _truenas_alerts(metadata)
     try:
@@ -1565,7 +1565,7 @@ def _render_truenas(notification, payload, normalized, metadata):
 
 
 def _render_unifi_network(notification, payload, normalized, metadata):
-    """Render the compact CE UniFi Network Classic Embed v1 geometry."""
+    """Render the compact CE UniFi Network Classic Card v1 geometry."""
 
     status = str(normalized.get("status") or "").strip()
     severity = str(
@@ -1710,7 +1710,7 @@ def _render_unifi_network(notification, payload, normalized, metadata):
 
 
 def _render_unifi_protect(notification, payload, normalized, metadata):
-    """Render the compact CE UniFi Protect Classic Embed v1 geometry."""
+    """Render the compact CE UniFi Protect Classic Card v1 geometry."""
 
     from formatters.unifi import (
         format_protect_event_time,
@@ -1822,7 +1822,7 @@ def _render_unifi_protect(notification, payload, normalized, metadata):
 
 
 def _render_unifi_drive(notification, payload, normalized, metadata):
-    """Render the compact CE UniFi Drive Classic Embed v1 geometry."""
+    """Render the compact CE UniFi Drive Classic Card v1 geometry."""
 
     status = str(normalized.get("status") or "").strip()
     severity = str(
@@ -2009,7 +2009,7 @@ def _tags_text(value: object) -> str:
 
 
 def _render_home_assistant(notification, payload, normalized, metadata):
-    """Render the compact CE Home Assistant Classic Embed v1 geometry."""
+    """Render the compact CE Home Assistant Classic Card v1 geometry."""
 
     status = str(normalized.get("status") or "").strip()
     severity = str(

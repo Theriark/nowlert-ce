@@ -1,4 +1,4 @@
-"""Round-40 Discord Classic Embed v1 port contract."""
+"""Round-40 Discord Classic Card v1 port contract."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from outputs.platform import DiscordPlatformAdapter
 from storage.destinations import Destination
 
 
-CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Embed"
+CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
 
 SOURCE_SIGNATURES = (
     ("xo", "📁 Storage"),
@@ -271,7 +271,7 @@ def test_components_v2_bypasses_classic_embed_v1():
 
 @pytest.mark.parametrize(("source", "signature"), SOURCE_SIGNATURES)
 def test_direct_classic_formatter_uses_v1_contract(source: str, signature: str):
-    """Direct formatter calls must not bypass the Classic Embed v1 renderer."""
+    """Direct formatter calls must not bypass the Classic Card v1 renderer."""
 
     output = DiscordOutput()
     formatter = output.source_formatters[source]
