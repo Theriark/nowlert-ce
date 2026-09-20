@@ -1083,6 +1083,5 @@ def test_routing_flow_intentional_abort_does_not_flash_stale():
     # Navigation intentionally aborts the warm Routing Flow request. That is not
     # a failed health refresh and must preserve the last successful Live state.
     assert 'if (error?.name !== "AbortError") flowLatestOk = false;' in fetch_wrapper
-    assert "flowLatestOk = false;\n      updateRoutingFlowStatus();" not in fetch_wrapper
+    assert 'catch (error) {\n      flowLatestOk = false;' not in fetch_wrapper
     assert "throw error;" in fetch_wrapper
-
