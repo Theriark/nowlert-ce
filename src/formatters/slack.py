@@ -230,31 +230,28 @@ class SlackFormatter(PresentationMixin):
                 "🚀 Transfer Speed",
                 self._classic_code(getattr(notification, "transfer_speed", "")),
                 short=True,
-                space_after=True,
             ),
             self._classic_field(
                 "📁 Storage",
                 self._classic_code(storage_value),
+                short=True,
             ),
             self._classic_vm_field(
                 "✅ Successful VMs",
                 getattr(notification, "successful_vms", None),
                 getattr(notification, "vm_details", None),
-                space_after=True,
             ),
             self._classic_vm_field(
                 "❌ Failed VMs",
                 getattr(notification, "failed_vms", None),
                 getattr(notification, "vm_details", None),
                 include_error=True,
-                space_after=True,
             ),
             self._classic_vm_field(
                 "⏭️ Skipped VMs",
                 getattr(notification, "skipped_vms", None),
                 getattr(notification, "vm_details", None),
                 include_error=True,
-                space_after=True,
             ),
             self._classic_field(
                 "🆔 Job ID",
@@ -304,6 +301,7 @@ class SlackFormatter(PresentationMixin):
 
         blocks = [header]
         short_fields = []
+        job_id_value = ""
 
         def flush_short_fields():
             if not short_fields:
@@ -317,11 +315,18 @@ class SlackFormatter(PresentationMixin):
             short_fields.clear()
 
         for field in fields:
+            title = str(field.get("title") or "")
+            value = str(field.get("value") or "").removesuffix("\n\u200b")
+
+            if title == "🆔 Job ID":
+                job_id_value = value
+                continue
+
             block_text = {
                 "type": "mrkdwn",
                 "text": (
-                    f"*{self._escape(field.get('title') or '')}*\n"
-                    f"{field.get('value') or ''}"
+                    f"*{self._escape(title)}*\n"
+                    f"{value}"
                 )[:2000],
             }
             if field.get("short"):
@@ -339,13 +344,18 @@ class SlackFormatter(PresentationMixin):
             )
 
         flush_short_fields()
+
+        footer_text = CLASSIC_FOOTER
+        if job_id_value:
+            footer_text = f"🆔 {job_id_value}  •  {CLASSIC_FOOTER}"
+
         blocks.append(
             {
                 "type": "context",
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": CLASSIC_FOOTER,
+                        "text": footer_text,
                     }
                 ],
             }

@@ -66,19 +66,31 @@ def test_xo_uses_compact_classic_slack_attachment_matching_discord_geometry():
     assert header["accessory"]["image_url"].endswith("/xen-orchestra.png")
     assert header["accessory"]["alt_text"] == "Xen Orchestra"
 
+    assert len(blocks) == 5
+
+    first_metrics = blocks[1]["fields"]
+    second_metrics = blocks[2]["fields"]
+    assert len(first_metrics) == 2
+    assert len(second_metrics) == 2
+
     rendered = str(blocks)
     assert "*⏱️ Duration*\\n`28 minutes`" in rendered
     assert "*📦 Transfer Size*\\n`52.06 GiB`" in rendered
-    assert "*🚀 Transfer Speed*" in rendered
+    assert "*🚀 Transfer Speed*\\n`33.73 MiB/s`" in rendered
     assert "*📁 Storage*" in rendered
     assert "SYNTHETIC-REPOSITORY · SYNTHETIC-REMOTE · NFS · Full" in rendered
     assert "VM-OK-1" in rendered
-    assert "*🆔 Job ID*\\n`JOB-SLACK-XO`" in rendered
+    assert "\\u200b" not in rendered
 
     footer = blocks[-1]
     assert footer == {
         "type": "context",
-        "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
+        "elements": [
+            {
+                "type": "mrkdwn",
+                "text": f"🆔 `JOB-SLACK-XO`  •  {CLASSIC_FOOTER}",
+            }
+        ],
     }
 
 
