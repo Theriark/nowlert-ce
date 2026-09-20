@@ -41,8 +41,8 @@
       actions = element("div", {
         className: "resource-actions acceptance-private-actions",
       }, [
-        actionButton("Preview", "preview-private-destination", item.id),
         actionButton("Send test", "test-private-destination-card", item.id, "primary"),
+        actionButton("Preview", "preview-private-destination", item.id),
       ]);
       card.append(actions);
     }

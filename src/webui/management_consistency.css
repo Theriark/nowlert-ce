@@ -183,6 +183,13 @@
   cursor: default;
 }
 
+#view-destinations .acceptance-private-destination .destination-control-readonly {
+  cursor: default;
+  filter: none !important;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .destination-channel-field .destination-channel-input {
   align-items: stretch;
   display: flex;

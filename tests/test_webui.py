@@ -959,3 +959,47 @@ def test_destination_state_refreshes_across_signed_in_sessions():
     assert 'new CustomEvent("nowlert:filtering-state-invalidated")' in script
     assert 'new CustomEvent("nowlert:routing-topology-changed")' in script
 
+def test_private_destination_admin_card_tracks_owner_state_and_matches_read_only_layout():
+    cleanup = (ROOT / "src" / "webui" / "acceptance_cleanup.js").read_text(encoding="utf-8")
+    management = (ROOT / "src" / "webui" / "management_consistency.js").read_text(encoding="utf-8")
+    management_css = (ROOT / "src" / "webui" / "management_consistency.css").read_text(encoding="utf-8")
+    destination = (ROOT / "src" / "webui" / "destination_overview_acceptance.js").read_text(encoding="utf-8")
+    destination_css = (ROOT / "src" / "webui" / "destination_overview_acceptance.css").read_text(encoding="utf-8")
+
+    # A private owner's enable/disable change must invalidate the admin-side
+    # metadata signature so the card is rebuilt from the latest API response.
+    signature = cleanup[
+        cleanup.index("function privateDestinationSignature(items)"):
+        cleanup.index("function syncPrivateDestinationMetadataFromState()")
+    ]
+    assert "item.enabled === true" in signature
+
+    # The private admin card must render the current owner state instead of a
+    # hard-coded Active badge, and both owner-only controls stay view-only.
+    private_sync = management[
+        management.index("function syncMetadataPrivateSharing(card)"):
+        management.index("function destinationCardId(card)")
+    ]
+    assert 'const enabled = item?.enabled === true;' in private_sync
+    assert 'const statusLabel = enabled ? "Active" : "Disabled";' in private_sync
+    assert 'const statusState = enabled ? "active" : "disabled";' in private_sync
+    assert "destination-control-readonly" in private_sync
+    assert 'Private destination. View only.' in private_sync
+    assert '${statusLabel} destination. View only.' in private_sync
+
+    # Read-only controls use the same dimmed treatment as disabled controls.
+    assert ".acceptance-private-destination .destination-control-readonly" in management_css
+    assert "opacity: 0.45;" in management_css
+    assert "pointer-events: none;" in management_css
+
+    # Admin private cards keep the same action order and four-column desktop
+    # geometry as ordinary read-only cards instead of stretching two buttons.
+    action_block = destination[
+        destination.index('className: "resource-actions acceptance-private-actions"'):
+        destination.index("card.append(actions);")
+    ]
+    assert action_block.index('actionButton("Send test"') < action_block.index('actionButton("Preview"')
+    assert "grid-template-columns: repeat(4, minmax(0, 1fr)) !important;" in destination_css
+    assert "@media (max-width: 620px)" in destination_css
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr)) !important;" in destination_css
+
