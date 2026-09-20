@@ -195,8 +195,11 @@ def test_xo_slack_classic_card_uses_visible_block_icon():
     assert header["accessory"]["type"] == "image"
     assert header["accessory"]["image_url"].endswith("/xen-orchestra.png")
     assert header["accessory"]["alt_text"] == "Xen Orchestra"
-    assert CLASSIC_FOOTER in str(attachment["blocks"])
-    assert "Body Timeout Error" in str(attachment["blocks"])
+    rendered = str(attachment["blocks"])
+    assert CLASSIC_FOOTER in rendered
+    assert "synthetic-job-id" in rendered
+    assert "*🆔 Job ID*" not in rendered
+    assert "Body Timeout Error" in rendered
 
 
 def test_grafana_slack_classic_links_use_native_slack_mrkdwn():
