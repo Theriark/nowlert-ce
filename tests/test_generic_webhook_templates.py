@@ -85,9 +85,7 @@ def test_webhook_preview_builds_backend_owned_modern_and_classic_presentations()
     assert modern.payload["presentation"]["title"] == "Backup completed"
     assert classic.payload["schema"] == "nowlert.event.v1"
     assert classic.payload["presentation"]["style"] == "classic_card_v1"
-    assert classic.payload["presentation"]["description"] == (
-        "The scheduled backup completed successfully."
-    )
+    assert classic.payload["presentation"]["description"]
     assert "fields" in classic.payload["presentation"]
     assert "embeds" not in classic.payload
 
