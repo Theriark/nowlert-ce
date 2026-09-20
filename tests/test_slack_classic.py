@@ -193,12 +193,15 @@ def test_xo_slack_classic_card_uses_visible_block_icon():
     assert attachment["color"] == "#ED4245"
     assert "thumb_url" not in attachment
     assert header["accessory"]["type"] == "image"
-    assert header["accessory"]["image_url"].endswith("/xen-orchestra.png")
+    assert header["accessory"]["image_url"].endswith("/discord/xen-orchestra.png")
     assert header["accessory"]["alt_text"] == "Xen Orchestra"
     rendered = str(attachment["blocks"])
-    assert CLASSIC_FOOTER in rendered
+    assert attachment["blocks"][-1] == {
+        "type": "context",
+        "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
+    }
     assert "synthetic-job-id" in rendered
-    assert "*🆔 Job ID*" not in rendered
+    assert "*🆔 Job ID*" in rendered
     assert "Body Timeout Error" in rendered
 
 

@@ -63,7 +63,7 @@ def test_xo_uses_compact_classic_slack_attachment_matching_discord_geometry():
     assert "*✅ Backup Successful — Synthetic backup job*" in header["text"]["text"]
     assert "2 VMs protected successfully with no failures." in header["text"]["text"]
     assert header["accessory"]["type"] == "image"
-    assert header["accessory"]["image_url"].endswith("/xen-orchestra.png")
+    assert header["accessory"]["image_url"].endswith("/discord/xen-orchestra.png")
     assert header["accessory"]["alt_text"] == "Xen Orchestra"
 
     assert len(blocks) == 5
@@ -82,13 +82,17 @@ def test_xo_uses_compact_classic_slack_attachment_matching_discord_geometry():
     assert "VM-OK-1" in rendered
     assert "\\u200b" not in rendered
 
+    vm_section = blocks[-2]
+    assert vm_section["type"] == "section"
+    assert "*🆔 Job ID* `JOB-SLACK-XO`" in vm_section["text"]["text"]
+
     footer = blocks[-1]
     assert footer == {
         "type": "context",
         "elements": [
             {
                 "type": "mrkdwn",
-                "text": f"🆔 `JOB-SLACK-XO`  •  {CLASSIC_FOOTER}",
+                "text": CLASSIC_FOOTER,
             }
         ],
     }
@@ -105,7 +109,7 @@ def test_xo_failed_classic_slack_card_keeps_failure_details():
     header = attachment["blocks"][0]
     assert "*❌ Backup Failed — Synthetic backup job*" in header["text"]["text"]
     assert "Backup operation failed with 1 VM error." in header["text"]["text"]
-    assert header["accessory"]["image_url"].endswith("/xen-orchestra.png")
+    assert header["accessory"]["image_url"].endswith("/discord/xen-orchestra.png")
 
     rendered = str(attachment["blocks"])
     assert "VM-FAILED" in rendered
