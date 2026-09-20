@@ -1070,3 +1070,18 @@ def test_history_audit_and_backup_first_paint_cache_contract():
     assert 'if (state.currentView === "backups") qaRestoreBackupOverviewCache(session);' in patch
     assert "Number(state.workspaceLoadedAt || 0) <= 0" in patch
     assert "renderBackupOverviewWithFirstPaintCache" in patch
+
+def test_routing_flow_intentional_abort_does_not_flash_stale():
+    acceptance = (ROOT / "src" / "webui" / "operations_acceptance.js").read_text(
+        encoding="utf-8"
+    )
+
+    fetch_start = acceptance.index("window.fetch = async function operationsAcceptanceFetch")
+    fetch_end = acceptance.index("const previousNavigate = navigate;", fetch_start)
+    fetch_wrapper = acceptance[fetch_start:fetch_end]
+
+    # Navigation intentionally aborts the warm Routing Flow request. That is not
+    # a failed health refresh and must preserve the last successful Live state.
+    assert 'if (error?.name !== "AbortError") flowLatestOk = false;' in fetch_wrapper
+    assert 'catch (error) {\n      flowLatestOk = false;' not in fetch_wrapper
+    assert "throw error;" in fetch_wrapper

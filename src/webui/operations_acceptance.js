@@ -506,7 +506,7 @@
       updateRoutingFlowStatus();
       return response;
     } catch (error) {
-      flowLatestOk = false;
+      if (error?.name !== "AbortError") flowLatestOk = false;
       updateRoutingFlowStatus();
       throw error;
     }
