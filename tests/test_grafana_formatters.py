@@ -47,7 +47,7 @@ def test_firing_payloads_contain_operational_details():
     card = teams["attachments"][0]["content"]
 
     assert embed["color"] == 0xE74C3C
-    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
     assert card["body"][0]["color"] == "Attention"
 
     for expected in (

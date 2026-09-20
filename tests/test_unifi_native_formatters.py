@@ -134,7 +134,7 @@ def test_protect_classic_v1_keeps_compact_operator_context():
         "🔎 Condition",
         "⏱️ Timing",
     ]
-    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
 
 
 def _protect_field_names(item):
@@ -418,7 +418,7 @@ def test_missing_values_do_not_leave_icon_only_fields():
     assert "**Category:**" not in discord["fields"][0]["value"]
     assert "Event time" not in json.dumps(discord)
     assert "Event time" not in json.dumps(teams)
-    assert discord["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
+    assert discord["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
     assert facts == []
 
 

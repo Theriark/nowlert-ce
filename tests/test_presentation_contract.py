@@ -386,7 +386,7 @@ def test_xo_card_retains_real_duration_and_result_values():
         if field["name"] == "⏱️ Duration"
     )
     assert duration["value"] == "`5 min`"
-    assert discord["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
+    assert discord["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
 
 
 
@@ -594,7 +594,7 @@ def test_dedicated_discord_classic_cards_use_v1_contract(source):
         and len(str(field.get("value") or "")) <= 1024
         for field in embed["fields"]
     )
-    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
     assert not any(
         role in name
         for name in names
@@ -646,7 +646,7 @@ def test_discord_classic_v1_groups_proxmox_details_by_section():
     assert "**Started:**" in fields["⏱️ Timing"]
     assert "**Finished:**" in fields["⏱️ Timing"]
     assert "**Duration:**" not in fields["⏱️ Timing"]
-    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
 
 
 def test_discord_generic_classic_uses_source_time_without_inventing_receipt_time():
@@ -660,7 +660,7 @@ def test_discord_generic_classic_uses_source_time_without_inventing_receipt_time
         "**Started:** `20 Jul 2026 • 13:09`"
     )
     assert "UTC" not in json.dumps(embed)
-    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
 
     item.metadata["event_time"] = ""
     missing = DiscordOutput().default_formatter.format(item)["embeds"][0]
