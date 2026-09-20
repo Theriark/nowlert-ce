@@ -1043,3 +1043,30 @@ def test_refresh_request_budget_and_dashboard_first_paint_regressions():
     assert "function workspaceDashboardTimestamp()" in acceptance
     assert "Math.max(" in acceptance
     assert 'document.addEventListener("nowlert:workspace-loaded"' in acceptance
+
+def test_history_audit_and_backup_first_paint_cache_contract():
+    patch = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
+
+    # F5 restores the real current Delivery History and Audit Log page rows,
+    # but keeps them out of the generic workspace fields so Dashboard cannot
+    # inherit range-bound history data.
+    fields = patch[
+        patch.index("const QA_WORKSPACE_CACHE_FIELDS = ["):
+        patch.index("];", patch.index("const QA_WORKSPACE_CACHE_FIELDS = [")) + 2
+    ]
+    assert '"deliveries",' not in fields
+    assert '"audit",' not in fields
+    assert "rows: state.deliveries," in patch
+    assert "rows: state.audit," in patch
+    assert 'requestedView === "deliveries"' in patch
+    assert 'requestedView === "audit"' in patch
+
+    # Backup overview placeholders are replaced from the last resolved
+    # authenticated admin snapshot before the authoritative refresh completes.
+    assert 'const QA_BACKUP_OVERVIEW_CACHE_KEY = "nowlert.backup-overview.v1";' in patch
+    assert "function qaBackupOverviewSnapshot()" in patch
+    assert "function qaSaveBackupOverviewCache()" in patch
+    assert "function qaRestoreBackupOverviewCache(session)" in patch
+    assert 'if (state.currentView === "backups") qaRestoreBackupOverviewCache(session);' in patch
+    assert "Number(state.workspaceLoadedAt || 0) <= 0" in patch
+    assert "renderBackupOverviewWithFirstPaintCache" in patch

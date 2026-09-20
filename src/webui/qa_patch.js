@@ -104,6 +104,19 @@ let qaDeliveryPagination = { page: 1, page_size: qaDeliveryPageSize, total: 0, t
 let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 
 const QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v1";
+const QA_BACKUP_OVERVIEW_CACHE_KEY = "nowlert.backup-overview.v1";
+const QA_BACKUP_OVERVIEW_IDS = [
+  "backup-last-backup",
+  "backup-system-status",
+  "backup-summary-destinations",
+  "backup-summary-destinations-note",
+  "backup-summary-snapshots",
+  "backup-summary-snapshots-note",
+  "backup-summary-schedule",
+  "backup-summary-schedule-note",
+  "backup-summary-health",
+  "backup-summary-health-note",
+];
 // sessionStorage is already scoped to the current tab/session. Keep the latest
 // snapshot for first paint regardless of age; loadWorkspace() refreshes it from
 // the authoritative API immediately after the shell is shown.
@@ -142,6 +155,71 @@ function qaWorkspaceCacheKey(userId) {
   return `${QA_WORKSPACE_CACHE_KEY}:${String(userId || "")}`;
 }
 
+function qaBackupOverviewCacheKey(userId) {
+  return `${QA_BACKUP_OVERVIEW_CACHE_KEY}:${String(userId || "")}`;
+}
+
+function qaBackupOverviewSnapshot() {
+  const values = {};
+  for (const id of QA_BACKUP_OVERVIEW_IDS) {
+    const node = byId(id);
+    if (node) values[id] = node.textContent;
+  }
+  return {
+    schema: 1,
+    saved_at: Date.now(),
+    values,
+    system_warning: Boolean(byId("backup-system-status")?.classList.contains("warning")),
+  };
+}
+
+function qaSaveBackupOverviewCache() {
+  if (
+    !state.user
+    || !state.user.id
+    || !isAdmin()
+    || Number(state.workspaceLoadedAt || 0) <= 0
+  ) return;
+  try {
+    window.sessionStorage.setItem(
+      qaBackupOverviewCacheKey(state.user.id),
+      JSON.stringify(qaBackupOverviewSnapshot()),
+    );
+  } catch (_error) {
+    // First-paint cache is optional; authoritative backup state still renders.
+  }
+}
+
+function qaRestoreBackupOverviewCache(session) {
+  const userId = session?.user?.id;
+  if (!userId || session?.user?.role !== "admin") return false;
+  let cached;
+  try {
+    cached = JSON.parse(
+      window.sessionStorage.getItem(qaBackupOverviewCacheKey(userId)) || "null",
+    );
+  } catch (_error) {
+    return false;
+  }
+  if (
+    !cached
+    || cached.schema !== 1
+    || !cached.values
+    || typeof cached.values !== "object"
+  ) return false;
+
+  for (const id of QA_BACKUP_OVERVIEW_IDS) {
+    if (!Object.hasOwn(cached.values, id)) continue;
+    const node = byId(id);
+    if (node) node.textContent = String(cached.values[id] ?? "");
+  }
+  byId("backup-system-status")?.classList.toggle(
+    "warning",
+    cached.system_warning === true,
+  );
+  return true;
+}
+
 function qaWorkspaceCacheSnapshot() {
   const snapshot = {};
   for (const field of QA_WORKSPACE_CACHE_FIELDS) {
@@ -164,11 +242,13 @@ function qaSaveWorkspaceCache() {
           page: qaDeliveryPage,
           page_size: qaDeliveryPageSize,
           pagination: qaDeliveryPagination,
+          rows: state.deliveries,
         },
         audit: {
           page: qaAuditPage,
           page_size: qaAuditPageSize,
           pagination: qaAuditPagination,
+          rows: state.audit,
         },
       }),
     );
@@ -205,11 +285,16 @@ function qaHydrateWorkspaceCache(session, { render = true } = {}) {
     if (Object.hasOwn(cached.state, field)) state[field] = cached.state[field];
   }
 
+  const requestedView = window.location.hash.slice(1);
+
   if (cached.delivery && typeof cached.delivery === "object") {
     const size = Number(cached.delivery.page_size || qaDeliveryPageSize);
     if (QA_DELIVERY_PAGE_SIZES.includes(size)) qaDeliveryPageSize = size;
     qaDeliveryPage = Math.max(1, Number(cached.delivery.page || 1));
     if (cached.delivery.pagination) qaDeliveryPagination = cached.delivery.pagination;
+    if (requestedView === "deliveries" && Array.isArray(cached.delivery.rows)) {
+      state.deliveries = cached.delivery.rows;
+    }
   }
 
   if (cached.audit && typeof cached.audit === "object") {
@@ -217,6 +302,9 @@ function qaHydrateWorkspaceCache(session, { render = true } = {}) {
     if (QA_AUDIT_PAGE_SIZES.includes(size)) qaAuditPageSize = size;
     qaAuditPage = Math.max(1, Number(cached.audit.page || 1));
     if (cached.audit.pagination) qaAuditPagination = cached.audit.pagination;
+    if (requestedView === "audit" && Array.isArray(cached.audit.rows)) {
+      state.audit = cached.audit.rows;
+    }
     if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
   }
 
@@ -229,6 +317,7 @@ function qaClearWorkspaceCache() {
   if (state.user && state.user.id) {
     try {
       window.sessionStorage.removeItem(qaWorkspaceCacheKey(state.user.id));
+      window.sessionStorage.removeItem(qaBackupOverviewCacheKey(state.user.id));
     } catch (_error) {
       // Storage unavailable.
     }
@@ -242,6 +331,14 @@ showApp = function showAppWithWorkspaceCache(session) {
   const hydrated = qaHydrateWorkspaceCache(session, { render: false });
   const result = qaOriginalShowApp(session);
   if (hydrated) renderAll();
+  if (state.currentView === "backups") qaRestoreBackupOverviewCache(session);
+  return result;
+};
+
+const qaOriginalRenderBackupOverview = renderBackupOverview;
+renderBackupOverview = function renderBackupOverviewWithFirstPaintCache(...args) {
+  const result = qaOriginalRenderBackupOverview(...args);
+  qaSaveBackupOverviewCache();
   return result;
 };
 

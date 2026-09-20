@@ -75,3 +75,25 @@ def test_audit_log_alignment_polish_matches_accepted_desktop_layout():
     assert "align-items: stretch;" in styles
     assert "grid-template-columns: minmax(300px, 1.78fr)" in styles
     assert "height: 100%;" in styles
+
+def test_audit_summary_analytics_restore_immediately_after_refresh():
+    script = (ROOT / "src" / "webui" / "audit_log_refinement.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'const AUDIT_ANALYTICS_STORAGE_VERSION = "v1";' in script
+    assert "function auditAnalyticsStorageKey()" in script
+    assert "function normalizedAuditAnalytics(value)" in script
+    assert "function readAuditAnalytics()" in script
+    assert "function persistAuditAnalytics(value)" in script
+    assert "function restoreAuditAnalytics()" in script
+    assert "window.sessionStorage.getItem(key)" in script
+    assert "window.sessionStorage.setItem(key, JSON.stringify(normalized))" in script
+    assert "persistAuditAnalytics(auditAnalytics);" in script
+
+    refine_start = script.index("function refineAudit()")
+    refine_end = script.index("function scheduleRefine()", refine_start)
+    refine = script[refine_start:refine_end]
+    assert refine.index("restoreAuditAnalytics();") < refine.index("ensureSummaryMetricChrome();")
+    assert refine.index("restoreAuditAnalytics();") < refine.index("applyAuditAnalytics();")
+
