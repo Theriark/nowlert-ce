@@ -602,7 +602,7 @@ def test_dedicated_discord_classic_cards_use_v1_contract(source):
     )
 
 
-@pytest.mark.parametrize("source", ["redfish", "generic"])
+@pytest.mark.parametrize("source", ["redfish"])
 def test_non_v1_discord_cards_keep_shared_information_hierarchy(source):
     output = DiscordOutput()
     formatter = (
@@ -649,21 +649,24 @@ def test_discord_classic_v1_groups_proxmox_details_by_section():
     assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
 
 
-def test_discord_converts_source_time_and_never_invents_receipt_time():
+def test_discord_generic_classic_uses_source_time_without_inventing_receipt_time():
     item = _notification("generic")
     item.start_time = ""
     item.metadata["event_time"] = "2026-07-20T18:09:00+05:00"
     embed = DiscordOutput().default_formatter.format(item)["embeds"][0]
+    fields = {field["name"]: field["value"] for field in embed["fields"]}
 
-    assert embed["fields"][2]["value"] == "20 Jul 2026 • 13:09"
+    assert fields["⏱️ Timing"] == (
+        "**Started:** `20 Jul 2026 • 13:09`"
+    )
     assert "UTC" not in json.dumps(embed)
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
 
     item.metadata["event_time"] = ""
     missing = DiscordOutput().default_formatter.format(item)["embeds"][0]
-    assert all(
-        field["name"].split(" ", 1)[-1] != "Event time"
-        for field in missing["fields"]
-    )
+    assert "⏱️ Timing" not in {
+        field["name"] for field in missing["fields"]
+    }
 
 
 def test_discord_rich_details_survive_the_shared_renderer():

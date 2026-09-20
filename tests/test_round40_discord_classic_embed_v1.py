@@ -372,28 +372,24 @@ FINAL_EE_REQUIRED_FIELDS = {
     "unifi_drive": [
         "⚠️ Alert",
         "🗄️ UniFi Drive",
-        "🔔 Alarm",
         "⏱️ Timing",
     ],
     "supermicro": [
         "⚠️ Alert",
         "🖥️ Supermicro BMC",
         "🔎 Hardware Event",
-        "📍 Hardware Origin",
         "⏱️ Timing",
     ],
     "hpe_ilo": [
         "⚠️ Alert",
         "🖥️ HPE iLO",
         "🔎 Hardware Event",
-        "📍 Hardware Origin",
         "⏱️ Timing",
     ],
     "dell_idrac": [
         "⚠️ Alert",
         "🖥️ Dell iDRAC",
         "🔎 Hardware Event",
-        "📍 Hardware Origin",
         "⏱️ Timing",
     ],
     "home_assistant": [

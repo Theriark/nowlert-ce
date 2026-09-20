@@ -1042,50 +1042,184 @@ def _render_qnap(notification, payload, normalized, metadata):
 
 
 def _render_synology(notification, payload, normalized, metadata):
+    """Render the compact CE Synology Classic Embed v1 geometry."""
+
     status = str(normalized.get("status") or "").strip()
     state = str(metadata.get("state") or status).strip()
     severity = str(metadata.get("severity") or status).strip()
-    category = str(normalized.get("category") or metadata.get("category") or "event").strip()
-    title_text = str(normalized.get("title") or normalized.get("subject") or "Synology DSM notification").strip()
-    description = str(normalized.get("body") or title_text).strip()[:4096]
-    nas_name = str(_metadata_value(metadata, "nas_name", "hostname", "host") or "").strip()
-    model = str(_metadata_value(metadata, "model", "model name") or "").strip()
-    color, icon, lifecycle = _lifecycle(status, severity, state=state)
+    category = str(
+        normalized.get("category")
+        or metadata.get("category")
+        or "event"
+    ).strip()
+    title_text = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or "Synology DSM notification"
+    ).strip()
+    description = str(
+        normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+    nas_name = str(
+        _metadata_value(metadata, "nas_name", "hostname", "host")
+        or ""
+    ).strip()
+    model = str(
+        _metadata_value(metadata, "model", "model name")
+        or ""
+    ).strip()
+
+    color, icon, lifecycle = _lifecycle(
+        status,
+        severity,
+        state=state,
+    )
+
     fields: list[dict[str, Any]] = []
+
     def append(field):
         if field is not None:
             fields.append(field)
 
-    append(_rows_field(f"{icon} Alert", [("Status", lifecycle), ("Severity", severity), ("Category", category)]))
-    append(_rows_field("🗄️ Synology NAS", [("NAS", nas_name), ("Model", model)]))
+    append(
+        _rows_field(
+            f"{icon} Alert",
+            [("Severity", severity)],
+        )
+    )
+    append(
+        _rows_field(
+            "🗄️ Synology NAS",
+            [
+                ("NAS", nas_name),
+                ("Model", model),
+            ],
+        )
+    )
+
     cat = _normal_words(category)
     if cat == "backup":
-        append(_rows_field("💾 Backup", [
-            ("Task", _metadata_value(metadata, "task", "job", "backup task")),
-            ("Storage", _metadata_value(metadata, "storage", "destination", "target")),
-            ("Package", _metadata_value(metadata, "package", "application")),
-        ]))
+        append(
+            _rows_field(
+                "💾 Backup",
+                [
+                    (
+                        "Task",
+                        _metadata_value(
+                            metadata,
+                            "task",
+                            "job",
+                            "backup task",
+                        ),
+                    ),
+                    (
+                        "Storage",
+                        _metadata_value(
+                            metadata,
+                            "storage",
+                            "destination",
+                            "target",
+                        ),
+                    ),
+                ],
+            )
+        )
     elif cat == "storage":
-        append(_rows_field("💽 Storage", [
-            ("Storage Pool", _metadata_value(metadata, "storage_pool", "storage pool", "pool")),
-            ("Volume", _metadata_value(metadata, "volume")),
-            ("Storage", _metadata_value(metadata, "storage")),
-        ]))
+        storage_pool = str(
+            _metadata_value(
+                metadata,
+                "storage_pool",
+                "storage pool",
+                "pool",
+            )
+            or ""
+        ).strip()
+        storage = str(
+            _metadata_value(metadata, "storage")
+            or ""
+        ).strip()
+        if _normal_words(storage) == _normal_words(storage_pool):
+            storage = ""
+        append(
+            _rows_field(
+                "💽 Storage",
+                [
+                    ("Storage Pool", storage_pool),
+                    ("Volume", _metadata_value(metadata, "volume")),
+                    ("Storage", storage),
+                ],
+            )
+        )
     elif cat == "disk":
-        append(_rows_field("💿 Disk", [
-            ("Disk", _metadata_value(metadata, "disk", "drive")),
-            ("Storage Pool", _metadata_value(metadata, "storage_pool", "storage pool", "pool")),
-            ("Volume", _metadata_value(metadata, "volume")),
-        ]))
+        append(
+            _rows_field(
+                "💿 Disk",
+                [
+                    ("Disk", _metadata_value(metadata, "disk", "drive")),
+                    (
+                        "Storage Pool",
+                        _metadata_value(
+                            metadata,
+                            "storage_pool",
+                            "storage pool",
+                            "pool",
+                        ),
+                    ),
+                    ("Volume", _metadata_value(metadata, "volume")),
+                ],
+            )
+        )
     elif cat == "security":
-        append(_rows_field("🔐 Security", [
-            ("User", _metadata_value(metadata, "username", "user", "account")),
-            ("Source IP", _metadata_value(metadata, "source_ip", "source ip", "ip_address", "ip address")),
-        ]))
+        append(
+            _rows_field(
+                "🔐 Security",
+                [
+                    (
+                        "User",
+                        _metadata_value(
+                            metadata,
+                            "username",
+                            "user",
+                            "account",
+                        ),
+                    ),
+                    (
+                        "Source IP",
+                        _metadata_value(
+                            metadata,
+                            "source_ip",
+                            "source ip",
+                            "ip_address",
+                            "ip address",
+                        ),
+                    ),
+                ],
+            )
+        )
     elif cat == "power":
-        append(_rows_field("🔋 Power", [("Event", metadata.get("event_type")), ("State", metadata.get("state"))]))
+        append(
+            _rows_field(
+                "🔋 Power",
+                [("Event", metadata.get("event_type"))],
+            )
+        )
     elif cat == "package":
-        append(_rows_field("📦 Package", [("Package", _metadata_value(metadata, "package", "application"))]))
+        append(
+            _rows_field(
+                "📦 Package",
+                [
+                    (
+                        "Package",
+                        _metadata_value(
+                            metadata,
+                            "package",
+                            "application",
+                        ),
+                    ),
+                ],
+            )
+        )
     else:
         label = {
             "availability": "🌐 Availability",
@@ -1093,18 +1227,53 @@ def _render_synology(notification, payload, normalized, metadata):
             "replication": "🔄 Replication",
             "system": "⚙️ System",
         }.get(cat, "📋 Event Details")
-        append(_rows_field(label, [
-            ("Event", metadata.get("event_type")),
-            ("Storage Pool", _metadata_value(metadata, "storage_pool", "storage pool")),
-            ("Volume", _metadata_value(metadata, "volume")),
-            ("Package", _metadata_value(metadata, "package", "application")),
-        ]))
-    append(_rows_field("⏱️ Timing", [
-        ("Started", normalized.get("start_time") or metadata.get("event_time")),
-        ("Finished", normalized.get("end_time")),
-    ]))
+        append(
+            _rows_field(
+                label,
+                [
+                    ("Event", metadata.get("event_type")),
+                    (
+                        "Storage Pool",
+                        _metadata_value(
+                            metadata,
+                            "storage_pool",
+                            "storage pool",
+                        ),
+                    ),
+                    ("Volume", _metadata_value(metadata, "volume")),
+                    (
+                        "Package",
+                        _metadata_value(
+                            metadata,
+                            "package",
+                            "application",
+                        ),
+                    ),
+                ],
+            )
+        )
+
+    append(
+        _rows_field(
+            "⏱️ Timing",
+            [
+                (
+                    "Started",
+                    normalized.get("start_time")
+                    or metadata.get("event_time"),
+                ),
+                ("Finished", normalized.get("end_time")),
+            ],
+        )
+    )
+
     return _finish(
-        {"title": f"{icon} {title_text} — {lifecycle}"[:256], "description": description, "color": color, "fields": fields},
+        {
+            "title": f"{icon} {title_text} — {lifecycle}"[:256],
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
         payload,
     )
 
@@ -1114,209 +1283,532 @@ def _truenas_alerts(metadata: dict[str, Any]) -> list[dict[str, Any]]:
     return [item for item in alerts if isinstance(item, dict)] if isinstance(alerts, list) else []
 
 
-def _truenas_detail(category: str, title: str, message: str, lifecycle: str):
+def _truenas_detail(
+    category: str,
+    title: str,
+    message: str,
+    lifecycle: str,
+):
     words = f"{title} {message}".casefold()
+
     def match(pattern):
-        found = re.search(pattern, message, flags=re.IGNORECASE)
-        return found.group(1).strip(" .,:;") if found else ""
+        found = re.search(
+            pattern,
+            message,
+            flags=re.IGNORECASE,
+        )
+        return (
+            found.group(1).strip(" .,:;")
+            if found
+            else ""
+        )
+
     if category == "power" or "ups" in words:
-        state = "Recovered" if lifecycle == "Resolved" else "On battery" if "on battery" in message.casefold() else lifecycle
-        return _rows_field("🔋 Power", [
-            ("UPS", match(r"\bUPS\s+([A-Za-z0-9_.:-]+)")),
-            ("Status", state),
-            ("Cause", "Utility power loss" if "utility power loss" in message.casefold() else ""),
-        ])
+        return _rows_field(
+            "🔋 Power",
+            [
+                (
+                    "UPS",
+                    match(r"\bUPS\s+([A-Za-z0-9_.:-]+)"),
+                ),
+                (
+                    "Cause",
+                    "Utility power loss"
+                    if "utility power loss" in message.casefold()
+                    else "",
+                ),
+            ],
+        )
+
     if "replication" in words:
-        return _rows_field("🔄 Replication", [
-            ("Task", match(r"\bReplication task\s+([^\s:]+)")),
-            ("Destination", match(r"\bdestination\s+([^\s]+)")),
-            ("Status", lifecycle),
-        ])
+        return _rows_field(
+            "🔄 Replication",
+            [
+                (
+                    "Task",
+                    match(r"\bReplication task\s+([^\s:]+)"),
+                ),
+                (
+                    "Destination",
+                    match(r"\bdestination\s+([^\s]+)"),
+                ),
+            ],
+        )
+
     if "scrub" in words:
-        return _rows_field("🧹 Scrub", [
-            ("Pool", match(r"\bpool\s+([A-Za-z0-9_.:-]+)")),
-            ("Result", lifecycle),
-            ("Error", match(r"\bfailed with\s+(?:a|an)\s+(.+)$")),
-        ])
+        return _rows_field(
+            "🧹 Scrub",
+            [
+                (
+                    "Pool",
+                    match(r"\bpool\s+([A-Za-z0-9_.:-]+)"),
+                ),
+                (
+                    "Error",
+                    match(r"\bfailed with\s+(?:a|an)\s+(.+)$"),
+                ),
+            ],
+        )
+
     if "smart" in words or "s.m.a.r.t" in words:
-        return _rows_field("💿 Disk", [
-            ("Device", match(r"\bDevice\s+([A-Za-z0-9_.:-]+)")),
-            ("SMART Status", "Warning" if lifecycle == "Warning" else lifecycle),
-        ])
+        return _rows_field(
+            "💿 Disk",
+            [
+                (
+                    "Device",
+                    match(r"\bDevice\s+([A-Za-z0-9_.:-]+)"),
+                ),
+            ],
+        )
+
     if category == "storage" or "pool" in words:
-        detail = message.split(":", 1)[1].strip() if ":" in message else ""
-        return _rows_field("💽 Storage", [
-            ("Pool", match(r"\bPool\s+([A-Za-z0-9_.:-]+)")),
-            ("Pool Status", match(r"\bstate is\s+([^:.]+)") or lifecycle),
-            ("Condition", detail),
-        ])
-    if category == "backup":
-        return _rows_field("💾 Backup", [("Status", lifecycle)])
+        detail = (
+            message.split(":", 1)[1].strip()
+            if ":" in message
+            else ""
+        )
+        return _rows_field(
+            "💽 Storage",
+            [
+                (
+                    "Pool",
+                    match(r"\bPool\s+([A-Za-z0-9_.:-]+)"),
+                ),
+                (
+                    "Pool Status",
+                    match(r"\bstate is\s+([^:.]+)")
+                    or lifecycle,
+                ),
+                ("Condition", detail),
+            ],
+        )
+
     return None
 
 
 def _render_truenas(notification, payload, normalized, metadata):
+    """Render the compact CE TrueNAS Classic Embed v1 geometry."""
+
     alerts = _truenas_alerts(metadata)
     try:
-        alert_count = int(metadata.get("alert_count") or len(alerts) or 1)
+        alert_count = int(
+            metadata.get("alert_count")
+            or len(alerts)
+            or 1
+        )
     except (TypeError, ValueError):
         alert_count = len(alerts) or 1
+
     status = str(normalized.get("status") or "").strip()
-    severity = str(metadata.get("severity") or status).strip()
-    category = str(normalized.get("category") or "generic").strip()
-    recovery = bool(metadata.get("recovery")) and alert_count == 1 and _normal_words(status) == "success"
-    title_text = " ".join(str(normalized.get("title") or "TrueNAS alert").split()).strip()
-    title_text = title_text[:1].upper() + title_text[1:] if title_text else "TrueNAS alert"
-    message = str(metadata.get("message") or normalized.get("body") or title_text).strip()
-    host = str(_metadata_value(metadata, "host", "hostname") or "").strip()
-    color, icon, lifecycle = _lifecycle(status, severity)
+    severity = str(
+        metadata.get("severity")
+        or status
+    ).strip()
+    category = str(
+        normalized.get("category")
+        or "generic"
+    ).strip()
+
+    recovery = (
+        bool(metadata.get("recovery"))
+        and alert_count == 1
+        and _normal_words(status) == "success"
+    )
+
+    title_text = " ".join(
+        str(
+            normalized.get("title")
+            or "TrueNAS alert"
+        ).split()
+    ).strip()
+    title_text = (
+        title_text[:1].upper() + title_text[1:]
+        if title_text
+        else "TrueNAS alert"
+    )
+
+    message = str(
+        metadata.get("message")
+        or normalized.get("body")
+        or title_text
+    ).strip()
+    host = str(
+        _metadata_value(metadata, "host", "hostname")
+        or ""
+    ).strip()
+
+    color, icon, lifecycle = _lifecycle(
+        status,
+        severity,
+    )
     if recovery:
         color, icon, lifecycle = _GREEN, "✅", "Resolved"
+
     is_grouped = alert_count > 1
-    is_test = _normal_words(metadata.get("event_type")) == "test" or _normal_words(title_text) == "truenas test alert"
+    is_test = (
+        _normal_words(metadata.get("event_type")) == "test"
+        or _normal_words(title_text) == "truenas test alert"
+    )
+
     fields: list[dict[str, Any]] = []
+
     def append(field):
         if field is not None:
             fields.append(field)
 
+    alert_rows: list[tuple[str, object]] = [
+        ("Severity", severity),
+    ]
     if is_grouped:
-        categories = ", ".join(str(value) for value in (metadata.get("categories") or []) if str(value).strip())
-        append(_rows_field(f"{icon} Alert", [
-            ("Status", lifecycle), ("Severity", severity), ("Alerts", alert_count), ("Categories", categories or category),
-        ]))
-    else:
-        append(_rows_field(f"{icon} Alert", [("Status", lifecycle), ("Severity", severity), ("Category", category)]))
-    append(_rows_field("🗄️ TrueNAS System", [("Host", host)]))
+        alert_rows.append(("Alerts", alert_count))
+    append(_rows_field(f"{icon} Alert", alert_rows))
+
+    append(
+        _rows_field(
+            "🗄️ TrueNAS System",
+            [("Host", host)],
+        )
+    )
+
     if is_grouped:
         blocks = []
         for alert in alerts:
-            _, aicon, alabel = _lifecycle(alert.get("status"), alert.get("severity"))
-            atitle = " ".join(str(alert.get("title") or "TrueNAS alert").split()).strip()
-            amessage = " ".join(str(alert.get("message") or "").split()).strip()
+            _, aicon, alabel = _lifecycle(
+                alert.get("status"),
+                alert.get("severity"),
+            )
+            atitle = " ".join(
+                str(
+                    alert.get("title")
+                    or "TrueNAS alert"
+                ).split()
+            ).strip()
+            amessage = " ".join(
+                str(alert.get("message") or "").split()
+            ).strip()
             if len(amessage) > 180:
-                amessage = amessage[:179].rstrip() + "…"
+                amessage = (
+                    amessage[:179].rstrip()
+                    + "…"
+                )
             block = f"{aicon} {atitle} — {alabel}"
             if amessage:
                 block += "\n" + amessage
             blocks.append(block)
-        append(_field("📚 Grouped Alerts", "\n\n".join(blocks)))
+
+        append(
+            _field(
+                f"📚 Grouped Alerts · {alert_count}",
+                "\n\n".join(blocks),
+            )
+        )
     elif is_test:
-        append(_rows_field("🧪 Notification Test", [("Result", "Received")]))
+        append(
+            _rows_field(
+                "🧪 Notification Test",
+                [("Result", "Received")],
+            )
+        )
     else:
-        append(_truenas_detail(category, title_text, message, lifecycle))
-    append(_rows_field("⏱️ Timing", [
-        ("Started", normalized.get("start_time") or metadata.get("event_time")),
-        ("Finished", normalized.get("end_time")),
-    ]))
+        append(
+            _truenas_detail(
+                category,
+                title_text,
+                message,
+                lifecycle,
+            )
+        )
+
+    append(
+        _rows_field(
+            "⏱️ Timing",
+            [
+                (
+                    "Started",
+                    normalized.get("start_time")
+                    or metadata.get("event_time"),
+                ),
+                ("Finished", normalized.get("end_time")),
+            ],
+        )
+    )
 
     if is_grouped:
-        description = f"{alert_count} TrueNAS alerts were reported in one notification."
+        description = (
+            f"{alert_count} TrueNAS alerts were reported "
+            "in one notification."
+        )
     elif is_test:
-        description = "TrueNAS test notification received successfully."
+        description = (
+            "TrueNAS test notification received successfully."
+        )
     elif lifecycle == "Resolved" and category == "power":
-        description = "The TrueNAS UPS power alert was cleared."
+        description = (
+            "The TrueNAS UPS power alert was cleared."
+        )
     else:
-        description = str(normalized.get("body") or message or title_text).strip()[:4096]
+        description = str(
+            normalized.get("body")
+            or message
+            or title_text
+        ).strip()[:4096]
+
     return _finish(
-        {"title": f"{icon} {title_text} — {lifecycle}"[:256], "description": description, "color": color, "fields": fields},
+        {
+            "title": f"{icon} {title_text} — {lifecycle}"[:256],
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
         payload,
     )
 
 
 def _render_unifi_network(notification, payload, normalized, metadata):
+    """Render the compact CE UniFi Network Classic Embed v1 geometry."""
+
     status = str(normalized.get("status") or "").strip()
-    severity = str(metadata.get("severity") or status).strip()
-    category = str(normalized.get("category") or metadata.get("category") or "network").strip()
-    title_text = str(normalized.get("title") or normalized.get("subject") or "UniFi Network notification").strip()
-    description = str(metadata.get("message") or normalized.get("body") or title_text).strip()[:4096]
-    color, icon, lifecycle = _lifecycle(status, severity)
+    severity = str(
+        metadata.get("severity")
+        or status
+    ).strip()
+    title_text = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or "UniFi Network notification"
+    ).strip()
+    description = str(
+        metadata.get("message")
+        or normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+
+    color, icon, lifecycle = _lifecycle(
+        status,
+        severity,
+    )
+
     fields: list[dict[str, Any]] = []
+
     def append(field):
         if field is not None:
             fields.append(field)
 
-    append(_rows_field(f"{icon} Alert", [("Status", lifecycle), ("Severity", severity), ("Category", category)]))
-    append(_rows_field("🎛️ UniFi Controller", [("Controller", _metadata_value(metadata, "controller", "host"))]))
-    client = str(_metadata_value(metadata, "client_display_name", "client_alias", "client_hostname") or "").strip()
-    client_hostname = str(_metadata_value(metadata, "client_hostname") or "").strip()
-    append(_rows_field("💻 Client", [
-        ("Client", client),
-        ("Hostname", client_hostname if client_hostname.casefold() != client.casefold() else ""),
-        ("IP", _metadata_value(metadata, "client_ip")),
-        ("MAC", _metadata_value(metadata, "client_mac")),
-    ]))
-    append(_rows_field("📶 Network / Wi-Fi", [
-        ("Network", _metadata_value(metadata, "network_name")),
-        ("VLAN", _metadata_value(metadata, "network_vlan")),
-        ("Wi-Fi", _metadata_value(metadata, "wifi_name")),
-        ("Band", _metadata_value(metadata, "wifi_band")),
-        ("Channel", _metadata_value(metadata, "wifi_channel")),
-        ("RSSI", _metadata_value(metadata, "wifi_rssi")),
-    ]))
-    append(_rows_field("📍 Last Access Point", [
-        ("Access Point", _metadata_value(metadata, "last_device_name")),
-        ("Model", _metadata_value(metadata, "last_device_model")),
-        ("IP", _metadata_value(metadata, "last_device_ip")),
-        ("MAC", _metadata_value(metadata, "last_device_mac")),
-    ]))
-    append(_rows_field("⏱️ Timing", [
-        ("Started", normalized.get("start_time") or _metadata_value(metadata, "event_time")),
-        ("Duration", normalized.get("duration") or _metadata_value(metadata, "duration")),
-    ]))
+    append(
+        _rows_field(
+            f"{icon} Alert",
+            [("Severity", severity)],
+        )
+    )
+    append(
+        _rows_field(
+            "🎛️ UniFi Controller",
+            [
+                (
+                    "Controller",
+                    _metadata_value(
+                        metadata,
+                        "controller",
+                        "host",
+                    ),
+                ),
+            ],
+        )
+    )
+
+    client = str(
+        _metadata_value(
+            metadata,
+            "client_display_name",
+            "client_alias",
+            "client_hostname",
+        )
+        or ""
+    ).strip()
+
+    append(
+        _rows_field(
+            "💻 Client",
+            [
+                ("Client", client),
+                ("IP", _metadata_value(metadata, "client_ip")),
+                ("MAC", _metadata_value(metadata, "client_mac")),
+            ],
+        )
+    )
+    append(
+        _rows_field(
+            "📶 Network / Wi-Fi",
+            [
+                (
+                    "Network",
+                    _metadata_value(metadata, "network_name"),
+                ),
+                ("VLAN", _metadata_value(metadata, "network_vlan")),
+                ("Wi-Fi", _metadata_value(metadata, "wifi_name")),
+                ("Band", _metadata_value(metadata, "wifi_band")),
+                ("Channel", _metadata_value(metadata, "wifi_channel")),
+                ("RSSI", _metadata_value(metadata, "wifi_rssi")),
+            ],
+        )
+    )
+    append(
+        _rows_field(
+            "📍 Last Access Point",
+            [
+                (
+                    "Access Point",
+                    _metadata_value(
+                        metadata,
+                        "last_device_name",
+                    ),
+                ),
+                (
+                    "Model",
+                    _metadata_value(
+                        metadata,
+                        "last_device_model",
+                    ),
+                ),
+                (
+                    "IP",
+                    _metadata_value(
+                        metadata,
+                        "last_device_ip",
+                    ),
+                ),
+            ],
+        )
+    )
+    append(
+        _rows_field(
+            "⏱️ Timing",
+            [
+                (
+                    "Started",
+                    normalized.get("start_time")
+                    or _metadata_value(metadata, "event_time"),
+                ),
+                (
+                    "Duration",
+                    normalized.get("duration")
+                    or _metadata_value(metadata, "duration"),
+                ),
+            ],
+        )
+    )
+
     return _finish(
-        {"title": f"{icon} {title_text} — {lifecycle}"[:256], "description": description, "color": color, "fields": fields},
+        {
+            "title": f"{icon} {title_text} — {lifecycle}"[:256],
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
         payload,
     )
 
 
 def _render_unifi_protect(notification, payload, normalized, metadata):
+    """Render the compact CE UniFi Protect Classic Embed v1 geometry."""
+
     from formatters.unifi import (
         format_protect_event_time,
         protect_condition_display,
         protect_device_display,
     )
+
     status = str(normalized.get("status") or "").strip()
-    severity = str(metadata.get("severity") or status).strip()
-    category = str(normalized.get("category") or metadata.get("category") or "security").strip()
-    title_text = str(normalized.get("title") or normalized.get("subject") or "UniFi Protect notification").strip()
-    description = str(normalized.get("body") or title_text).strip()[:4096]
-    trigger_key = str(_metadata_value(metadata, "trigger_key") or "").strip()
-    trigger_label = str(_metadata_value(metadata, "trigger_label") or trigger_key or title_text).strip()
+    severity = str(
+        metadata.get("severity")
+        or status
+    ).strip()
+    title_text = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or "UniFi Protect notification"
+    ).strip()
+    description = str(
+        normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+
+    trigger_key = str(
+        _metadata_value(metadata, "trigger_key")
+        or ""
+    ).strip()
+    trigger_label = str(
+        _metadata_value(metadata, "trigger_label")
+        or trigger_key
+        or title_text
+    ).strip()
     trigger_device = protect_device_display(
         _metadata_value(metadata, "trigger_device")
     )
-    alarm_name = str(_metadata_value(metadata, "alarm_name") or "").strip()
+    alarm_name = str(
+        _metadata_value(metadata, "alarm_name")
+        or ""
+    ).strip()
     condition = protect_condition_display(
-        str(_metadata_value(metadata, "condition_source") or ""),
-        str(_metadata_value(metadata, "condition_operator") or ""),
+        str(
+            _metadata_value(metadata, "condition_source")
+            or ""
+        ),
+        str(
+            _metadata_value(metadata, "condition_operator")
+            or ""
+        ),
         trigger_key,
         omit_redundant=bool(alarm_name),
     )
-    started = format_protect_event_time(_metadata_value(metadata, "event_time", "trigger_timestamp") or normalized.get("start_time"))
-    received = format_protect_event_time(_metadata_value(metadata, "outer_timestamp"))
-    if received == started:
-        received = ""
+    started = format_protect_event_time(
+        _metadata_value(
+            metadata,
+            "event_time",
+            "trigger_timestamp",
+        )
+        or normalized.get("start_time")
+    )
 
-    color, icon, lifecycle = _lifecycle(status, severity)
+    color, icon, lifecycle = _lifecycle(
+        status,
+        severity,
+    )
+
     fields: list[dict[str, Any]] = []
     for field in (
-        _rows_field(f"{icon} Alert", [("Status", lifecycle), ("Severity", severity), ("Category", category)]),
-        _rows_field("🎯 Trigger", [
-            ("Type", trigger_label),
-            ("Device", trigger_device),
-            ("Triggers", _metadata_value(metadata, "trigger_count")),
-        ]),
-        _rows_field("🚨 Alarm Rule", [
-            ("Rule", alarm_name),
-            ("Configured Sources", _metadata_value(metadata, "configured_source_count")),
-        ]),
-        _rows_field("🔎 Condition", [("Condition", condition)]),
-        _rows_field("⏱️ Timing", [("Event", started), ("Webhook", received)]),
+        _rows_field(
+            f"{icon} Alert",
+            [("Severity", severity)],
+        ),
+        _rows_field(
+            "🎯 Trigger",
+            [
+                ("Type", trigger_label),
+                ("Device", trigger_device),
+            ],
+        ),
+        _rows_field(
+            "🚨 Alarm Rule",
+            [("Rule", alarm_name)],
+        ),
+        _rows_field(
+            "🔎 Condition",
+            [("Condition", condition)],
+        ),
+        _rows_field(
+            "⏱️ Timing",
+            [("Event", started)],
+        ),
     ):
         if field is not None:
             fields.append(field)
 
-    event_link = str(_metadata_value(metadata, "event_link") or "").strip()
+    event_link = str(
+        _metadata_value(metadata, "event_link")
+        or ""
+    ).strip()
+
     embed = {
         "title": f"{icon} {title_text} — {lifecycle}"[:256],
         "description": description,
@@ -1325,74 +1817,186 @@ def _render_unifi_protect(notification, payload, normalized, metadata):
     }
     if event_link:
         embed["url"] = event_link
+
     return _finish(embed, payload)
 
 
 def _render_unifi_drive(notification, payload, normalized, metadata):
+    """Render the compact CE UniFi Drive Classic Embed v1 geometry."""
+
     status = str(normalized.get("status") or "").strip()
-    severity = str(_metadata_value(metadata, "severity") or status).strip()
-    category = str(normalized.get("category") or _metadata_value(metadata, "category") or "general").strip()
-    raw_title = str(normalized.get("title") or normalized.get("subject") or "UniFi Drive alarm").strip()
-    title_text = "Drive settings alarm" if _normal_words(raw_title) == "settings" else raw_title
-    body = str(normalized.get("body") or title_text).strip()[:4096]
-    color, icon, lifecycle = _lifecycle(status, severity)
-    description = f"{raw_title} successfully." if lifecycle == "Success" and "completed" in _normal_words(raw_title) else body
+    severity = str(
+        _metadata_value(metadata, "severity")
+        or status
+    ).strip()
+    raw_title = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or "UniFi Drive alarm"
+    ).strip()
+    title_text = (
+        "Drive settings alarm"
+        if _normal_words(raw_title) == "settings"
+        else raw_title
+    )
+    body = str(
+        normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+
+    color, icon, lifecycle = _lifecycle(
+        status,
+        severity,
+    )
+    description = (
+        f"{raw_title} successfully."
+        if (
+            lifecycle == "Success"
+            and "completed" in _normal_words(raw_title)
+        )
+        else body
+    )
+
     fields: list[dict[str, Any]] = []
     for field in (
-        _rows_field(f"{icon} Alert", [("Status", lifecycle), ("Severity", severity), ("Category", category)]),
-        _rows_field("🗄️ UniFi Drive", [
-            ("Provider", _metadata_value(metadata, "provider") or "UniFi Drive"),
-            ("System", _metadata_value(metadata, "system", "host")),
-            ("Backup Task", _metadata_value(metadata, "backup_task")),
-        ]),
-        _rows_field("🔔 Alarm", [
-            ("Name", _metadata_value(metadata, "event_title") or raw_title),
-            ("Alarm ID", _metadata_value(metadata, "alarm_id")),
-            ("State", _metadata_value(metadata, "event_state") or status),
-        ]),
-        _rows_field("⏱️ Timing", [
-            ("Started", normalized.get("start_time") or _metadata_value(metadata, "event_time")),
-        ]),
+        _rows_field(
+            f"{icon} Alert",
+            [("Severity", severity)],
+        ),
+        _rows_field(
+            "🗄️ UniFi Drive",
+            [
+                (
+                    "System",
+                    _metadata_value(
+                        metadata,
+                        "system",
+                        "host",
+                    ),
+                ),
+                (
+                    "Backup Task",
+                    _metadata_value(
+                        metadata,
+                        "backup_task",
+                    ),
+                ),
+            ],
+        ),
+        _rows_field(
+            "🆔 Alarm",
+            [
+                (
+                    "Alarm ID",
+                    _metadata_value(
+                        metadata,
+                        "alarm_id",
+                    ),
+                ),
+            ],
+        ),
+        _rows_field(
+            "⏱️ Timing",
+            [
+                (
+                    "Started",
+                    normalized.get("start_time")
+                    or _metadata_value(metadata, "event_time"),
+                ),
+            ],
+        ),
     ):
         if field is not None:
             fields.append(field)
+
     return _finish(
-        {"title": f"{icon} {title_text} — {lifecycle}"[:256], "description": description, "color": color, "fields": fields},
+        {
+            "title": f"{icon} {title_text} — {lifecycle}"[:256],
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
         payload,
         preserve=("thumbnail",),
     )
 
 
-def _render_hardware(notification, payload, normalized, metadata, *, source: str, label: str, default_provider: str):
+def _render_hardware(
+    notification,
+    payload,
+    normalized,
+    metadata,
+    *,
+    source: str,
+    label: str,
+    default_provider: str,
+):
+    """Render compact CE Redfish hardware Classic cards."""
+
     status = str(normalized.get("status") or "").strip()
-    severity = str(_metadata_value(metadata, "severity") or status).strip()
-    category = str(normalized.get("category") or "hardware").strip()
-    title_text = str(normalized.get("title") or normalized.get("subject") or f"{label} hardware event").strip()
-    body = str(normalized.get("body") or title_text).strip()[:4096]
-    color, icon, lifecycle = _lifecycle(status, severity)
+    severity = str(
+        _metadata_value(metadata, "severity")
+        or status
+    ).strip()
+    title_text = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or f"{label} hardware event"
+    ).strip()
+    body = str(
+        normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+
+    color, icon, lifecycle = _lifecycle(
+        status,
+        severity,
+    )
+
     fields: list[dict[str, Any]] = []
     for field in (
-        _rows_field(f"{icon} Alert", [("Status", lifecycle), ("Severity", severity), ("Category", category)]),
-        _rows_field(f"🖥️ {label}", [
-            ("System", _metadata_value(metadata, "system")),
-            ("Provider", _metadata_value(metadata, "provider", "vendor") or default_provider),
-            ("Source IP", _metadata_value(metadata, "source_ip")),
-        ]),
-        _rows_field("🔎 Hardware Event", [
-            ("Registry", _metadata_value(metadata, "registry")),
-            ("Message ID", _metadata_value(metadata, "message_id") or normalized.get("subject")),
-            ("Event ID", _metadata_value(metadata, "event_id")),
-        ]),
-        _rows_field("📍 Hardware Origin", [
-            ("Origin", _metadata_value(metadata, "origin")),
-            ("Sensor", _metadata_value(metadata, "sensor")),
-        ]),
-        _rows_field("⏱️ Timing", [("Started", normalized.get("start_time"))]),
+        _rows_field(
+            f"{icon} Alert",
+            [("Severity", severity)],
+        ),
+        _rows_field(
+            f"🖥️ {label}",
+            [
+                (
+                    "System",
+                    _metadata_value(metadata, "system"),
+                ),
+            ],
+        ),
+        _rows_field(
+            "🔎 Hardware Event",
+            [
+                (
+                    "Registry",
+                    _metadata_value(metadata, "registry"),
+                ),
+                (
+                    "Message ID",
+                    _metadata_value(metadata, "message_id")
+                    or normalized.get("subject"),
+                ),
+            ],
+        ),
+        _rows_field(
+            "⏱️ Timing",
+            [("Started", normalized.get("start_time"))],
+        ),
     ):
         if field is not None:
             fields.append(field)
+
     return _finish(
-        {"title": f"{icon} {title_text} — {lifecycle}"[:256], "description": body, "color": color, "fields": fields},
+        {
+            "title": f"{icon} {title_text} — {lifecycle}"[:256],
+            "description": body,
+            "color": color,
+            "fields": fields,
+        },
         payload,
         preserve=("thumbnail",),
     )
@@ -1405,41 +2009,195 @@ def _tags_text(value: object) -> str:
 
 
 def _render_home_assistant(notification, payload, normalized, metadata):
+    """Render the compact CE Home Assistant Classic Embed v1 geometry."""
+
     status = str(normalized.get("status") or "").strip()
-    severity = str(_metadata_value(metadata, "severity") or status).strip()
-    category = str(normalized.get("category") or "automation").strip()
-    title_text = str(normalized.get("title") or normalized.get("subject") or "Home Assistant event").strip()
-    body = str(normalized.get("body") or title_text).strip()[:4096]
-    retry_seconds = str(_metadata_value(metadata, "retry_seconds") or "").strip()
-    color, icon, lifecycle = _lifecycle(status, severity)
+    severity = str(
+        _metadata_value(metadata, "severity")
+        or status
+    ).strip()
+    title_text = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or "Home Assistant event"
+    ).strip()
+    body = str(
+        normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+    retry_seconds = str(
+        _metadata_value(metadata, "retry_seconds")
+        or ""
+    ).strip()
+
+    color, icon, lifecycle = _lifecycle(
+        status,
+        severity,
+    )
+
     fields: list[dict[str, Any]] = []
     for field in (
-        _rows_field(f"{icon} Alert", [("Status", lifecycle), ("Severity", severity), ("Category", category)]),
-        _rows_field("🏠 Home Assistant", [
-            ("Provider", _metadata_value(metadata, "provider") or "Home Assistant"),
-            ("Area", _metadata_value(metadata, "area")),
-            ("Service", _metadata_value(metadata, "service")),
-            ("Event Type", _metadata_value(metadata, "event_type")),
-        ]),
-        _rows_field("🎯 Entity / Device", [
-            ("Device", _metadata_value(metadata, "device")),
-            ("Entity", _metadata_value(metadata, "entity_id")),
-        ]),
-        _rows_field("🔎 Source Details", [
-            ("Component", _metadata_value(metadata, "component")),
-            ("Endpoint", _metadata_value(metadata, "endpoint")),
-            ("Error", _metadata_value(metadata, "error_code")),
-            ("Retry", f"{retry_seconds} seconds" if retry_seconds else ""),
-            ("Tags", _tags_text(_metadata_value(metadata, "tags"))),
-        ]),
-        _rows_field("⏱️ Timing", [("Started", normalized.get("start_time"))]),
+        _rows_field(
+            f"{icon} Alert",
+            [("Severity", severity)],
+        ),
+        _rows_field(
+            "🏠 Home Assistant",
+            [
+                ("Area", _metadata_value(metadata, "area")),
+                ("Service", _metadata_value(metadata, "service")),
+            ],
+        ),
+        _rows_field(
+            "🎯 Entity / Device",
+            [
+                ("Device", _metadata_value(metadata, "device")),
+                ("Entity", _metadata_value(metadata, "entity_id")),
+            ],
+        ),
+        _rows_field(
+            "🔎 Source Details",
+            [
+                (
+                    "Component",
+                    _metadata_value(metadata, "component"),
+                ),
+                (
+                    "Endpoint",
+                    _metadata_value(metadata, "endpoint"),
+                ),
+                (
+                    "Error",
+                    _metadata_value(metadata, "error_code"),
+                ),
+                (
+                    "Retry",
+                    f"{retry_seconds} seconds"
+                    if retry_seconds
+                    else "",
+                ),
+            ],
+        ),
+        _rows_field(
+            "⏱️ Timing",
+            [("Started", normalized.get("start_time"))],
+        ),
     ):
         if field is not None:
             fields.append(field)
+
     return _finish(
-        {"title": f"{icon} {title_text} — {lifecycle}"[:256], "description": body, "color": color, "fields": fields},
+        {
+            "title": f"{icon} {title_text} — {lifecycle}"[:256],
+            "description": body,
+            "color": color,
+            "fields": fields,
+        },
         payload,
         preserve=("thumbnail",),
+    )
+
+
+def _render_generic(notification, payload, normalized, metadata):
+    """Render the compact CE Generic fallback Classic card."""
+
+    status = str(normalized.get("status") or "").strip()
+    severity = str(
+        _metadata_value(metadata, "severity")
+        or status
+    ).strip()
+    title_text = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or "Notification"
+    ).strip()
+    description = str(
+        normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+
+    source = str(
+        _metadata_value(metadata, "provider")
+        or normalized.get("source")
+        or "generic"
+    ).strip()
+    device = str(
+        _metadata_value(
+            metadata,
+            "host",
+            "device",
+            "instance",
+        )
+        or ""
+    ).strip()
+
+    original = _original_embed(payload)
+    formatted_time = ""
+    original_fields = original.get("fields")
+    if isinstance(original_fields, list):
+        for field in original_fields:
+            if not isinstance(field, dict):
+                continue
+            if str(field.get("name") or "").endswith("Event time"):
+                formatted_time = str(field.get("value") or "").strip()
+                break
+
+    color, icon, lifecycle = _lifecycle(
+        status,
+        severity,
+    )
+
+    fields: list[dict[str, Any]] = []
+
+    def append(field):
+        if field is not None:
+            fields.append(field)
+
+    append(
+        _rows_field(
+            f"{icon} Alert",
+            [("Severity", severity)],
+        )
+    )
+    append(
+        _rows_field(
+            "📍 Source",
+            [
+                ("Source", source),
+                ("Device", device),
+            ],
+        )
+    )
+    append(
+        _rows_field(
+            "🧩 Context",
+            [
+                (
+                    "Environment",
+                    _metadata_value(metadata, "environment"),
+                ),
+                (
+                    "Component",
+                    _metadata_value(metadata, "component"),
+                ),
+            ],
+        )
+    )
+    append(
+        _rows_field(
+            "⏱️ Timing",
+            [("Started", formatted_time)],
+        )
+    )
+
+    return _finish(
+        {
+            "title": f"{icon} {title_text} — {lifecycle}"[:256],
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
+        payload,
     )
 
 
@@ -1486,7 +2244,14 @@ def render_classic_embed_v1(notification, payload):
 
     renderer = _RENDERERS.get(source)
     if renderer is None:
-        return payload
+        if source == "redfish":
+            return payload
+        return _render_generic(
+            notification,
+            payload,
+            normalized,
+            metadata,
+        )
     return renderer(notification, payload, normalized, metadata)
 
 

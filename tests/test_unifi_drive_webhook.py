@@ -200,7 +200,7 @@ def test_drive_alarm_rule_and_classic_v1_alarm_identity_are_formatted():
     discord_alarm = next(
         field
         for field in discord_embed["fields"]
-        if field["name"] == "🔔 Alarm"
+        if field["name"] == "🆔 Alarm"
     )
 
     teams_card = teams["attachments"][0]["content"]
