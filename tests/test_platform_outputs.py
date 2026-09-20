@@ -162,14 +162,28 @@ def test_slack_preview_is_classic_sanitized_and_has_safe_action():
     attachment = preview.payload["attachments"][0]
 
     assert "blocks" not in preview.payload
-    assert attachment["title"]
-    assert attachment["title_link"] == (
-        "https://monitoring.example.com/alerts/42"
-    )
-    assert attachment["footer"] == "🦉 Nowlert CE • Classic Card"
     assert attachment["color"].startswith("#")
-    assert len(attachment["fields"]) <= 10
-    assert attachment["thumb_url"].endswith("/grafana.png")
+    assert "title" not in attachment
+    assert "fields" not in attachment
+    assert "thumb_url" not in attachment
+
+    header = attachment["blocks"][0]
+    assert (
+        "<https://monitoring.example.com/alerts/42|"
+        in header["text"]["text"]
+    )
+    assert header["accessory"]["image_url"].endswith(
+        "/discord/grafana.png"
+    )
+    assert attachment["blocks"][-1] == {
+        "type": "context",
+        "elements": [
+            {
+                "type": "mrkdwn",
+                "text": "🦉 Nowlert CE • Classic Card",
+            }
+        ],
+    }
     assert "private-token" not in encoded
 
 
