@@ -313,6 +313,7 @@ class WebhookPlatformAdapter(_HTTPAdapter):
             http_client=self.http_client,
             resolver=self.resolver,
         )
+        self.discord_preview = self.discord
 
     @staticmethod
     def _presentation(payload: dict, style: str) -> dict:
@@ -388,7 +389,7 @@ class WebhookPlatformAdapter(_HTTPAdapter):
             destination,
             "classic",
         )
-        preview = self.discord.preview(
+        preview = self.discord_preview.preview(
             discord_destination,
             notification,
         )

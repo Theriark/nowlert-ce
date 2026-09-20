@@ -427,7 +427,7 @@ def test_webhook_classic_grafana_contains_source_specific_sections():
     ]
 
     assert preview.payload["presentation"]["style"] == "classic_card_v1"
-    assert "🚨 Alert" in names
+    assert "📣 Alert" in names
     assert "📂 Rule" in names
     assert "⏱️ Timing" in names
     assert names != ["severity", "status", "source", "category"]
