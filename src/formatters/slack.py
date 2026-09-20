@@ -264,24 +264,93 @@ class SlackFormatter(PresentationMixin):
             if field is not None:
                 fields.append(field)
 
+        icon_url = self._product_icon_url("xo")
         attachment = {
             "fallback": title,
             "color": color,
-            "title": title,
-            "text": f"{description}\n\u200b",
-            "fields": fields[:10],
-            "footer": CLASSIC_FOOTER,
-            "mrkdwn_in": ["text", "fields"],
+            "blocks": self._xo_classic_blocks(
+                title,
+                description,
+                fields[:10],
+                icon_url,
+            ),
         }
-        icon_url = self._product_icon_url("xo")
-        if icon_url:
-            attachment["thumb_url"] = icon_url
 
         return self._sanitize_payload(
             {
                 "attachments": [attachment],
             }
         )
+
+    def _xo_classic_blocks(self, title, description, fields, icon_url):
+        """Render the XO Classic Card with a visible Block Kit icon."""
+
+        header = {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    f"*{self._escape(title)}*\n"
+                    f"{self._escape(description)}"
+                )[:3000],
+            },
+        }
+        if icon_url:
+            header["accessory"] = {
+                "type": "image",
+                "image_url": icon_url,
+                "alt_text": "Xen Orchestra",
+            }
+
+        blocks = [header]
+        short_fields = []
+
+        def flush_short_fields():
+            if not short_fields:
+                return
+            blocks.append(
+                {
+                    "type": "section",
+                    "fields": list(short_fields),
+                }
+            )
+            short_fields.clear()
+
+        for field in fields:
+            block_text = {
+                "type": "mrkdwn",
+                "text": (
+                    f"*{self._escape(field.get('title') or '')}*\n"
+                    f"{field.get('value') or ''}"
+                )[:2000],
+            }
+            if field.get("short"):
+                short_fields.append(block_text)
+                if len(short_fields) == 2:
+                    flush_short_fields()
+                continue
+
+            flush_short_fields()
+            blocks.append(
+                {
+                    "type": "section",
+                    "text": block_text,
+                }
+            )
+
+        flush_short_fields()
+        blocks.append(
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": CLASSIC_FOOTER,
+                    }
+                ],
+            }
+        )
+        return blocks
 
     def _classic_vm_field(
         self,

@@ -50,28 +50,36 @@ def test_xo_uses_compact_classic_slack_attachment_matching_discord_geometry():
 
     attachment = payload["attachments"][0]
     assert attachment["color"] == "#57F287"
-    assert attachment["title"] == "✅ Backup Successful — Synthetic backup job"
-    assert attachment["fallback"] == attachment["title"]
-    assert attachment["text"] == (
-        "2 VMs protected successfully with no failures.\n\u200b"
-    )
-    assert attachment["footer"] == CLASSIC_FOOTER
-    assert attachment["mrkdwn_in"] == ["text", "fields"]
+    assert attachment["fallback"] == "✅ Backup Successful — Synthetic backup job"
+    assert "title" not in attachment
+    assert "text" not in attachment
+    assert "fields" not in attachment
+    assert "thumb_url" not in attachment
 
-    fields = {field["title"]: field for field in attachment["fields"]}
-    assert fields["⏱️ Duration"] == {
-        "title": "⏱️ Duration",
-        "value": "`28 minutes`",
-        "short": True,
+    blocks = attachment["blocks"]
+    header = blocks[0]
+    assert header["type"] == "section"
+    assert header["text"]["type"] == "mrkdwn"
+    assert "*✅ Backup Successful — Synthetic backup job*" in header["text"]["text"]
+    assert "2 VMs protected successfully with no failures." in header["text"]["text"]
+    assert header["accessory"]["type"] == "image"
+    assert header["accessory"]["image_url"].endswith("/xen-orchestra.png")
+    assert header["accessory"]["alt_text"] == "Xen Orchestra"
+
+    rendered = str(blocks)
+    assert "*⏱️ Duration*\\n`28 minutes`" in rendered
+    assert "*📦 Transfer Size*\\n`52.06 GiB`" in rendered
+    assert "*🚀 Transfer Speed*" in rendered
+    assert "*📁 Storage*" in rendered
+    assert "SYNTHETIC-REPOSITORY · SYNTHETIC-REMOTE · NFS · Full" in rendered
+    assert "VM-OK-1" in rendered
+    assert "*🆔 Job ID*\\n`JOB-SLACK-XO`" in rendered
+
+    footer = blocks[-1]
+    assert footer == {
+        "type": "context",
+        "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
     }
-    assert fields["📦 Transfer Size"]["value"] == "`52.06 GiB`"
-    assert fields["🚀 Transfer Speed"]["value"] == "`33.73 MiB/s`\n\u200b"
-    assert fields["📁 Storage"]["value"] == (
-        "`SYNTHETIC-REPOSITORY · SYNTHETIC-REMOTE · NFS · Full`"
-    )
-    assert "VM-OK-1" in fields["✅ Successful VMs · 2"]["value"]
-    assert fields["✅ Successful VMs · 2"]["value"].endswith("\n\u200b")
-    assert fields["🆔 Job ID"]["value"] == "`JOB-SLACK-XO`"
 
 
 def test_xo_failed_classic_slack_card_keeps_failure_details():
@@ -79,16 +87,17 @@ def test_xo_failed_classic_slack_card_keeps_failure_details():
     attachment = payload["attachments"][0]
 
     assert "text" not in payload
-    assert attachment["title"] == "❌ Backup Failed — Synthetic backup job"
-    assert attachment["fallback"] == attachment["title"]
+    assert attachment["fallback"] == "❌ Backup Failed — Synthetic backup job"
     assert attachment["color"] == "#ED4245"
-    assert attachment["text"] == "Backup operation failed with 1 VM error.\n\u200b"
 
-    fields = {field["title"]: field for field in attachment["fields"]}
-    failed = fields["❌ Failed VMs · 1"]["value"]
-    assert "VM-FAILED" in failed
-    assert "Synthetic timeout" in failed
-    assert failed.endswith("\n\u200b")
+    header = attachment["blocks"][0]
+    assert "*❌ Backup Failed — Synthetic backup job*" in header["text"]["text"]
+    assert "Backup operation failed with 1 VM error." in header["text"]["text"]
+    assert header["accessory"]["image_url"].endswith("/xen-orchestra.png")
+
+    rendered = str(attachment["blocks"])
+    assert "VM-FAILED" in rendered
+    assert "Synthetic timeout" in rendered
 
 
 def test_non_xo_slack_notifications_use_classic_attachment():
