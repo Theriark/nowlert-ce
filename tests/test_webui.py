@@ -945,3 +945,17 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
     assert b"auditNav.hidden = !admin;" in retirement.body
     assert b"backupsNav.hidden = !admin;" in retirement.body
     assert b"usersNav.hidden = !admin;" in retirement.body
+
+def test_destination_state_refreshes_across_signed_in_sessions():
+    script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
+
+    assert "DESTINATION_STATE_SYNC_INTERVAL_MS = 2 * 1000" in script
+    assert "async function refreshDestinationState()" in script
+    assert 'request("/destinations", {' in script
+    assert "reauthenticate: false" in script
+    assert 'document.visibilityState === "hidden"' in script
+    assert 'window.addEventListener("focus"' in script
+    assert 'document.addEventListener("visibilitychange"' in script
+    assert 'new CustomEvent("nowlert:filtering-state-invalidated")' in script
+    assert 'new CustomEvent("nowlert:routing-topology-changed")' in script
+

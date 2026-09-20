@@ -982,6 +982,56 @@ def test_destination_owner_mutates_while_admin_is_view_only_and_can_test(platfor
     assert admin_private_test.payload["result"]["success"] is True
 
 
+
+def test_admin_destination_listing_reflects_owner_enabled_changes(platform_api):
+    owner_headers = login(
+        platform_api,
+        "owner-user",
+        "owner secure password",
+        client="127.0.0.2",
+    )
+    destination = create_destination(
+        platform_api,
+        owner_headers,
+        shared=True,
+    )
+    admin_headers = login(platform_api)
+
+    before = call(
+        platform_api,
+        "GET",
+        "/api/v2/destinations",
+        headers=admin_headers,
+    )
+    disabled = call(
+        platform_api,
+        "PATCH",
+        f"/api/v2/destinations/{destination['id']}",
+        {"enabled": False},
+        owner_headers,
+    )
+    after = call(
+        platform_api,
+        "GET",
+        "/api/v2/destinations",
+        headers=admin_headers,
+    )
+
+    before_item = next(
+        item for item in before.payload["destinations"]
+        if item["id"] == destination["id"]
+    )
+    after_item = next(
+        item for item in after.payload["destinations"]
+        if item["id"] == destination["id"]
+    )
+
+    assert before_item["enabled"] is True
+    assert disabled.status == 200
+    assert disabled.payload["destination"]["enabled"] is False
+    assert after_item["enabled"] is False
+
+
 def test_destination_secrets_are_write_only_and_shared_use_keeps_owner_secret(platform_api):
     admin_headers = login(platform_api)
     owner_id = platform_api["owner"].id

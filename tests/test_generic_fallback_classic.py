@@ -152,6 +152,9 @@ def test_generic_redfish_classic_card_is_operationally_useful():
     fields = field_map(embed)
 
     assert embed["footer"] == FOOTER
+    assert embed["thumbnail"]["url"] == (
+        "nowlert-asset://discord/nowlert-owl-v3.1.0.png"
+    )
     assert embed["color"] == 0xE74C3C
     assert "critical condition" in embed["description"]
     assert "**Severity:** `critical`" in fields["🚨 Alert"]

@@ -247,7 +247,7 @@ def test_every_discord_integration_uses_its_exact_official_product_asset(
     )
     embed = formatter.format(item)["embeds"][0]
 
-    icon_source = "nowlert" if source == "generic" else source
+    icon_source = "nowlert" if source in {"generic", "redfish"} else source
     expected = PresentationMixin.DISCORD_PRODUCT_ICONS.get(
         icon_source,
         filename,
@@ -616,6 +616,9 @@ def test_redfish_classic_card_uses_fallback_information_hierarchy():
     assert "**System:** `synthetic-drive`" in fields["📍 Source"]
     assert len(embed["fields"]) <= 25
     assert formatter._embed_text_size(embed) <= formatter.EMBED_TEXT_BUDGET
+    assert embed["thumbnail"]["url"] == (
+        "nowlert-asset://discord/nowlert-owl-v3.1.0.png"
+    )
     assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
 
 
@@ -769,7 +772,7 @@ def test_every_discord_product_thumbnail_resolves_to_a_packaged_asset(
 
     assert resolved is not None
     resolved_filename, resolved_path, thumbnail = resolved
-    icon_source = "nowlert" if source == "generic" else source
+    icon_source = "nowlert" if source in {"generic", "redfish"} else source
     expected_relative = formatter.DISCORD_PRODUCT_ICONS.get(
         icon_source,
         formatter.PRODUCT_ICONS.get(icon_source, filename),

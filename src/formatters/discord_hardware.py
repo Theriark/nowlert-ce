@@ -46,6 +46,18 @@ class HardwareDiscordFormatter(DiscordCardFormatter):
 class RedfishDiscordFormatter(HardwareDiscordFormatter):
     provider = "Redfish"
 
+    def format(self, notification: Notification) -> dict:
+        """Render standard Redfish as a Nowlert-branded fallback Classic Card."""
+
+        payload = super().format(notification)
+        embeds = payload.get("embeds") if isinstance(payload, dict) else None
+        if isinstance(embeds, list) and embeds and isinstance(embeds[0], dict):
+            # Standard Redfish is the generic hardware fallback. Keep the
+            # Redfish event details, but do not present it as a dedicated
+            # vendor integration.
+            self._set_discord_thumbnail(embeds[0], "nowlert")
+        return payload
+
 
 class SupermicroDiscordFormatter(HardwareDiscordFormatter):
     provider = "Supermicro BMC"
