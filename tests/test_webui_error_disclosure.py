@@ -52,3 +52,14 @@ assert.equal(byId("validation-error").textContent, "The passwords do not match."
 
     assert "error.message" not in renderers
     assert "error.stack" not in renderers
+
+
+def test_delivery_pagination_error_does_not_expose_request_details():
+    script = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
+    handler_start = script.index("async function qaLoadDeliveryPage")
+    handler_end = script.index("\n}\n", handler_start) + 3
+    handler = script[handler_start:handler_end]
+
+    assert 'toast("Delivery history page could not be loaded.", "error");' in handler
+    assert "error.message" not in handler
+    assert "error.stack" not in handler

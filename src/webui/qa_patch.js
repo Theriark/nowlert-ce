@@ -494,8 +494,8 @@ async function qaLoadDeliveryPage(page) {
     qaOriginalRenderDeliveries();
     qaMountPager("view-deliveries", "delivery-pagination", qaDeliveryPagination, qaLoadDeliveryPage);
     qaSaveWorkspaceCache();
-  } catch (error) {
-    toast(error.message || "Delivery history page could not be loaded.", "error");
+  } catch {
+    toast("Delivery history page could not be loaded.", "error");
   }
 }
 
