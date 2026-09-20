@@ -643,7 +643,9 @@ def test_discord_classic_v1_groups_proxmox_details_by_section():
     assert "💾 Storage" in fields
     assert "**Storage:** `backup-nfs`" in fields["💾 Storage"]
     assert "⏱️ Timing" in fields
-    assert "**Duration:** `5 min`" in fields["⏱️ Timing"]
+    assert "**Started:**" in fields["⏱️ Timing"]
+    assert "**Finished:**" in fields["⏱️ Timing"]
+    assert "**Duration:**" not in fields["⏱️ Timing"]
     assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
 
 
@@ -678,8 +680,9 @@ def test_discord_rich_details_survive_the_shared_renderer():
         ensure_ascii=False,
     )
 
-    for value in ("VMID", "101", "APP-01", "backup-nfs", "4 min 31 sec"):
+    for value in ("VMID", "101", "APP-01", "backup-nfs"):
         assert value in rendered
+    assert "4 min 31 sec" not in rendered
 
 
 def test_xo_and_generic_formatters_are_selected_explicitly():

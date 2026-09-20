@@ -629,12 +629,26 @@ def _usage_percent(metadata: dict[str, Any]) -> str:
 
 
 def _render_proxmox(notification, payload, normalized, metadata):
+    """Render the compact CE Proxmox Classic Embed v1 geometry."""
+
     status = str(normalized.get("status") or "").strip()
     state = str(metadata.get("state") or status).strip()
     severity = str(metadata.get("severity") or status).strip()
-    category = str(normalized.get("category") or metadata.get("category") or "event").strip()
-    title_text = str(normalized.get("title") or normalized.get("subject") or "Proxmox VE notification").strip()
-    description = str(normalized.get("body") or title_text).strip()[:4096]
+    category = str(
+        normalized.get("category")
+        or metadata.get("category")
+        or "event"
+    ).strip()
+    title_text = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or "Proxmox VE notification"
+    ).strip()
+    description = str(
+        normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+
     color, icon, lifecycle = _lifecycle(status, severity, state=state)
     fields: list[dict[str, Any]] = []
 
@@ -642,33 +656,48 @@ def _render_proxmox(notification, payload, normalized, metadata):
         if field is not None:
             fields.append(field)
 
-    append(_rows_field(f"{icon} Alert", [
-        ("Status", lifecycle),
-        ("State", state if _normal_words(state) != _normal_words(lifecycle) else ""),
-        ("Severity", severity),
-        ("Category", category),
-    ]))
-    append(_rows_field("🟧 Proxmox VE", [
-        ("Node", metadata.get("node") or metadata.get("host")),
-        ("Guest", metadata.get("guest")),
-        ("VMID", metadata.get("vmid")),
-    ]))
-    category_words = _normal_words(category)
-    if category_words == "storage":
-        append(_rows_field("💾 Storage", [
-            ("Storage", metadata.get("storage") or normalized.get("repository")),
-            ("Usage", _usage_percent(metadata)),
+    append(_rows_field(
+        f"{icon} Alert",
+        [("Severity", severity)],
+    ))
+
+    append(_rows_field(
+        "🟧 Proxmox VE",
+        [
+            ("Node", metadata.get("node") or metadata.get("host")),
             ("Guest", metadata.get("guest")),
             ("VMID", metadata.get("vmid")),
-        ]))
+        ],
+    ))
+
+    category_words = _normal_words(category)
+    if category_words == "storage":
+        append(_rows_field(
+            "💾 Storage",
+            [
+                (
+                    "Storage",
+                    metadata.get("storage")
+                    or normalized.get("repository"),
+                ),
+            ],
+        ))
     elif category_words == "backup":
-        append(_rows_field("💾 Backup", [
-            ("Storage", metadata.get("storage") or normalized.get("repository")),
-            ("Job", metadata.get("job_id") or normalized.get("job_id")),
-            ("Guests", normalized.get("vm_total")),
-            ("Guests OK", normalized.get("vm_success")),
-            ("Guests Failed", normalized.get("vm_failed")),
-        ]))
+        append(_rows_field(
+            "💾 Backup",
+            [
+                (
+                    "Storage",
+                    metadata.get("storage")
+                    or normalized.get("repository"),
+                ),
+                (
+                    "Job",
+                    metadata.get("job_id")
+                    or normalized.get("job_id"),
+                ),
+            ],
+        ))
     else:
         label = {
             "replication": "🔄 Replication",
@@ -678,22 +707,37 @@ def _render_proxmox(notification, payload, normalized, metadata):
             "guest": "🖥️ Guest",
             "system": "⚙️ System",
         }.get(category_words, "📋 Event Details")
-        append(_rows_field(label, [
-            ("Guest", metadata.get("guest")),
-            ("VMID", metadata.get("vmid")),
-            ("Job", metadata.get("job_id") or normalized.get("job_id")),
-            ("Storage", metadata.get("storage") or normalized.get("repository")),
-        ]))
-    append(_list_field("❌ Failed Guests", normalized.get("failed_vms")))
-    append(_list_field("🧯 Error Details", normalized.get("errors")))
-    append(_list_field("✅ Successful Guests", normalized.get("successful_vms")))
-    append(_rows_field("⏱️ Timing", [
-        ("Started", normalized.get("start_time")),
-        ("Finished", normalized.get("end_time")),
-        ("Duration", normalized.get("duration")),
-    ]))
+        append(_rows_field(
+            label,
+            [
+                (
+                    "Job",
+                    metadata.get("job_id")
+                    or normalized.get("job_id"),
+                ),
+                (
+                    "Storage",
+                    metadata.get("storage")
+                    or normalized.get("repository"),
+                ),
+            ],
+        ))
+
+    append(_rows_field(
+        "⏱️ Timing",
+        [
+            ("Started", normalized.get("start_time")),
+            ("Finished", normalized.get("end_time")),
+        ],
+    ))
+
     return _finish(
-        {"title": f"{icon} {title_text} — {lifecycle}"[:256], "description": description, "color": color, "fields": fields},
+        {
+            "title": f"{icon} {title_text} — {lifecycle}"[:256],
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
         payload,
     )
 
