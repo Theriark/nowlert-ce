@@ -227,10 +227,12 @@ const state = {
 const SESSION_IDLE_WARNING_MS = 5 * 60 * 1000;
 const SESSION_KEEPALIVE_MIN_INTERVAL_MS = 5 * 60 * 1000;
 const SESSION_ACTIVITY_DEBOUNCE_MS = 750;
+const DESTINATION_STATE_SYNC_INTERVAL_MS = 2 * 1000;
 let sessionActivityTimer = null;
 let reauthPromise = null;
 let reauthResolve = null;
 let reauthUserId = "";
+let destinationStateSyncPromise = null;
 
 const byId = (id) => document.getElementById(id);
 
@@ -1355,6 +1357,11 @@ function navigate(view, historyMode = "push") {
       });
     });
   }
+  if (state.user) {
+    queueMicrotask(() => {
+      refreshDestinationState().catch(() => {});
+    });
+  }
 }
 
 function renderDashboard() {
@@ -1578,6 +1585,50 @@ function updateDestinationState(updated) {
   renderDestinations();
   renderFlow();
   return true;
+}
+
+async function refreshDestinationState() {
+  if (!state.user || document.visibilityState === "hidden") return false;
+  if (destinationStateSyncPromise) return destinationStateSyncPromise;
+
+  const previous = JSON.stringify({
+    destinations: state.destinations,
+    privateResources: state.privateDestinations,
+    errors: state.destinationErrors,
+  });
+
+  destinationStateSyncPromise = request("/destinations", {
+    reauthenticate: false,
+  }).then((value) => {
+    const nextDestinations = value.destinations || [];
+    const nextPrivateResources = Array.isArray(value.private_resources)
+      ? value.private_resources
+      : [];
+    const nextErrors = value.errors || [];
+    const current = JSON.stringify({
+      destinations: nextDestinations,
+      privateResources: nextPrivateResources,
+      errors: nextErrors,
+    });
+    if (current === previous) return false;
+
+    state.destinations = nextDestinations;
+    state.privateDestinations = nextPrivateResources;
+    state.destinationErrors = nextErrors;
+    renderWorkspaceErrors();
+    renderDestinations();
+    renderFlow();
+    document.dispatchEvent(new CustomEvent("nowlert:filtering-state-invalidated"));
+    document.dispatchEvent(new CustomEvent("nowlert:routing-topology-changed"));
+    return true;
+  }).catch((error) => {
+    if (error instanceof APIError && error.status === 401) return false;
+    throw error;
+  }).finally(() => {
+    destinationStateSyncPromise = null;
+  });
+
+  return destinationStateSyncPromise;
 }
 
 function destinationFlowLabels(destination) {
@@ -4702,6 +4753,18 @@ function setSidebarCollapsed(collapsed) {
 
 function bindEvents() {
   ensureSessionResilienceUi();
+  window.setInterval(() => {
+    if (!state.user || document.visibilityState === "hidden") return;
+    refreshDestinationState().catch(() => {});
+  }, DESTINATION_STATE_SYNC_INTERVAL_MS);
+  window.addEventListener("focus", () => {
+    if (!state.user) return;
+    refreshDestinationState().catch(() => {});
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (!state.user || document.visibilityState !== "visible") return;
+    refreshDestinationState().catch(() => {});
+  });
   byId("bootstrap-form").addEventListener("submit", bootstrapAdministrator);
   byId("login-form").addEventListener("submit", login);
   byId("login-password-toggle")?.addEventListener("click", toggleLoginPasswordVisibility);
