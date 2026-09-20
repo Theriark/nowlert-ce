@@ -166,6 +166,23 @@ def test_native_http_serves_get_and_head_with_strict_browser_headers(
     assert set(SECURITY_HEADERS).issubset(set(page[1]))
 
 
+def test_teams_destination_editor_exposes_modern_and_classic_message_style():
+    script = (
+        ROOT / "src" / "webui" / "app.js"
+    ).read_text(encoding="utf-8")
+
+    teams_start = script.index("teams: {")
+    slack_start = script.index("slack: {", teams_start)
+    teams_block = script[teams_start:slack_start]
+
+    assert 'key: "message_style"' in teams_block
+    assert 'label: "Message style"' in teams_block
+    assert '["modern", "Modern Card"]' in teams_block
+    assert '["classic", "Classic Card"]' in teams_block
+    assert 'default: "modern"' in teams_block
+
+
+
 def test_webui_markup_is_semantic_external_and_complete():
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
     inspector = MarkupInspector()

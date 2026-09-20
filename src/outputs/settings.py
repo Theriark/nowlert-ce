@@ -91,8 +91,15 @@ def _discord(settings, _complete):
 
 
 def _teams(settings, _complete):
-    _unknown(settings, set())
-    return {}
+    _unknown(settings, {"message_style"})
+    style = str(
+        settings.get("message_style", "modern") or ""
+    ).strip().casefold()
+    if style not in {"modern", "classic"}:
+        raise ValueError(
+            "teams message_style must be modern or classic"
+        )
+    return {"message_style": style}
 
 
 def _slack(settings, _complete):

@@ -16,6 +16,9 @@ from urllib.parse import urlsplit
 
 from config import config
 from formatters.teams import TeamsFormatter
+from formatters.teams_classic_v1 import (
+    TeamsClassicXenOrchestraFormatter,
+)
 from formatters.teams_generic import GenericTeamsFormatter
 from formatters.teams_grafana import GrafanaTeamsFormatter
 from formatters.teams_hardware import (
@@ -99,6 +102,10 @@ class TeamsOutput:
             "hpe_ilo": HPEILOTeamsFormatter(),
             "dell_idrac": DellIDRACTeamsFormatter(),
             "home_assistant": HomeAssistantTeamsFormatter(),
+        }
+
+        self.classic_source_formatters = {
+            "xo": TeamsClassicXenOrchestraFormatter(),
         }
 
     def send(

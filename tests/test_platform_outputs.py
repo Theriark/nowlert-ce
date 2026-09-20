@@ -315,6 +315,116 @@ def test_registry_exposes_supported_platform_output_types():
     assert PlatformOutputRegistry([]).delivery_adapters() == {}
 
 
+def test_teams_message_style_defaults_to_modern_and_accepts_classic():
+    assert normalize_output_settings("teams", {}) == {
+        "message_style": "modern"
+    }
+    assert normalize_output_settings(
+        "teams",
+        {"message_style": "modern"},
+    ) == {"message_style": "modern"}
+    assert normalize_output_settings(
+        "teams",
+        {"message_style": "classic"},
+    ) == {"message_style": "classic"}
+
+
+def test_teams_message_style_rejects_unknown_values():
+    with pytest.raises(ValueError, match="teams message_style"):
+        normalize_output_settings(
+            "teams",
+            {"message_style": "legacy"},
+        )
+
+
+def test_teams_default_and_explicit_modern_xo_use_existing_formatter():
+    item = notification_for_source("xo")
+    adapter = TeamsPlatformAdapter(resolver=public_resolver)
+
+    default_preview = adapter.preview(
+        destination("teams"),
+        item,
+    )
+    explicit_preview = adapter.preview(
+        destination("teams", {"message_style": "modern"}),
+        item,
+    )
+
+    assert default_preview.metadata["message_style"] == "modern"
+    assert default_preview.metadata["rendered_style"] == "modern"
+    assert default_preview.metadata["formatter"] == "TeamsFormatter"
+    assert explicit_preview.payload == default_preview.payload
+
+
+def test_teams_classic_xo_uses_isolated_classic_formatter():
+    item = notification_for_source("xo")
+    preview = TeamsPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("teams", {"message_style": "classic"}),
+        item,
+    )
+
+    assert preview.metadata["message_style"] == "classic"
+    assert preview.metadata["rendered_style"] == "classic"
+    assert (
+        preview.metadata["formatter"]
+        == "TeamsClassicXenOrchestraFormatter"
+    )
+    assert "🦉 Nowlert CE • Classic Card" in json.dumps(
+        preview.payload,
+        ensure_ascii=False,
+    )
+
+
+def test_teams_classic_unimplemented_source_temporarily_falls_back_to_modern():
+    item = notification_for_source("grafana")
+    adapter = TeamsPlatformAdapter(resolver=public_resolver)
+
+    requested_classic = adapter.preview(
+        destination("teams", {"message_style": "classic"}),
+        item,
+    )
+    modern = adapter.preview(
+        destination("teams", {"message_style": "modern"}),
+        item,
+    )
+
+    assert requested_classic.metadata["message_style"] == "classic"
+    assert requested_classic.metadata["rendered_style"] == "modern"
+    assert requested_classic.metadata["formatter"] == "GrafanaTeamsFormatter"
+    assert requested_classic.payload == modern.payload
+
+
+def test_teams_classic_xo_is_sanitized_and_bounded():
+    item = notification_for_source("xo")
+    item.failed_vms = ["VM-FAILED"]
+    item.vm_details = {
+        "VM-FAILED": {
+            "error": "Bearer private-token",
+            "size": "22 GiB",
+        }
+    }
+    item.status = "failure"
+    item.vm_failed = 1
+
+    preview = TeamsPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("teams", {"message_style": "classic"}),
+        item,
+    )
+    encoded = json.dumps(preview.payload)
+
+    assert "private-token" not in encoded
+    assert "<redacted>" in encoded
+    assert (
+        preview.metadata["payload_bytes"]
+        <= preview.metadata["payload_limit_bytes"]
+    )
+
+
+
 def test_discord_and_teams_previews_reuse_source_specific_formatters():
     item = notification()
     discord = DiscordPlatformAdapter(resolver=public_resolver).preview(
