@@ -200,10 +200,14 @@ def test_truenas_and_unifi_network_sections_do_not_need_show_more():
             "controller": "synthetic-controller.example.invalid",
             "client_display_name": "SYNTHETIC-CLIENT",
             "client_mac": "00:00:5e:00:53:20",
+            "network_name": "SYNTHETIC-NETWORK",
+            "network_vlan": "101",
             "wifi_name": "SYNTHETIC-WIFI",
+            "wifi_band": "5 GHz",
+            "wifi_channel": "36",
+            "wifi_rssi": "-61 dBm",
             "last_device_name": "SYNTHETIC-AP",
             "last_device_model": "Synthetic AP",
-            "wifi_rssi": "-60 dBm",
         }
     )
     unifi_blocks = formatter.format(unifi)["attachments"][0]["blocks"]
@@ -224,11 +228,41 @@ def test_truenas_and_unifi_network_sections_do_not_need_show_more():
     unifi_rendered = str(unifi_blocks)
     for expected in (
         "SYNTHETIC-CLIENT",
+        "SYNTHETIC-NETWORK",
         "SYNTHETIC-WIFI",
         "SYNTHETIC-AP",
         "5m 30s",
+        "Channel",
+        "36",
+        "RSSI",
+        "-61 dBm",
     ):
         assert expected in unifi_rendered
+
+    field_items = [
+        field
+        for block in unifi_sections
+        for field in block.get("fields", [])
+    ]
+    field_by_title = {
+        item["text"].split("\n", 1)[0].strip("*"): item["text"]
+        for item in field_items
+    }
+
+    network_field = field_by_title["📶 Network / Wi-Fi"]
+    radio_field = field_by_title["📡 Radio / Signal"]
+
+    assert "Network" in network_field
+    assert "VLAN" in network_field
+    assert "Wi-Fi" in network_field
+    assert "Band" in network_field
+    assert "Channel" not in network_field
+    assert "RSSI" not in network_field
+    assert network_field.count("\n") == 4
+
+    assert "Channel" in radio_field
+    assert "RSSI" in radio_field
+    assert radio_field.count("\n") == 2
 
     alerts = [
         {
