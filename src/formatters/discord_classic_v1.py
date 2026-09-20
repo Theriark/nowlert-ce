@@ -756,70 +756,287 @@ def _source_value(source_fields: dict[str, Any], *names: str) -> object:
 
 
 def _render_qnap(notification, payload, normalized, metadata):
+    """Render the compact CE QNAP Classic Embed v1 geometry."""
+
     source_fields = _source_fields(metadata)
     status = str(normalized.get("status") or "").strip()
     severity = str(metadata.get("severity") or status).strip()
-    category = _normal_words(normalized.get("category") or metadata.get("category") or "generic") or "generic"
-    event_type = str(metadata.get("event_type") or _source_value(source_fields, "event type") or "").strip()
-    nas_name = str(metadata.get("nas_name") or _source_value(source_fields, "nas name") or "").strip()
-    application = str(metadata.get("application") or _source_value(source_fields, "app name", "application") or "").strip()
-    title_text = str(normalized.get("title") or normalized.get("subject") or event_type or "QNAP notification").strip()
-    description = str(metadata.get("message") or normalized.get("body") or title_text).strip()[:4096]
-    color, icon, lifecycle = _lifecycle(status, severity)
+    category = (
+        _normal_words(
+            normalized.get("category")
+            or metadata.get("category")
+            or "generic"
+        )
+        or "generic"
+    )
+    event_type = str(
+        metadata.get("event_type")
+        or _source_value(source_fields, "event type")
+        or ""
+    ).strip()
+    nas_name = str(
+        metadata.get("nas_name")
+        or _source_value(source_fields, "nas name")
+        or ""
+    ).strip()
+    application = str(
+        metadata.get("application")
+        or _source_value(
+            source_fields,
+            "app name",
+            "application",
+        )
+        or ""
+    ).strip()
+
+    raw_title = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or event_type
+        or "QNAP notification"
+    ).strip()
+    title_text = re.sub(
+        r"^(?:\s*\[[^\]]+\])+\s*",
+        "",
+        raw_title,
+    ).strip() or raw_title
+
+    description = str(
+        metadata.get("message")
+        or normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+
+    color, icon, lifecycle = _lifecycle(
+        status,
+        severity,
+    )
+
     fields: list[dict[str, Any]] = []
+
     def append(field):
         if field is not None:
             fields.append(field)
 
-    append(_rows_field(f"{icon} Alert", [("Status", lifecycle), ("Severity", severity), ("Category", category)]))
-    append(_rows_field("🗄️ QNAP NAS", [("NAS", nas_name), ("Application", application), ("Event", event_type)]))
+    append(
+        _rows_field(
+            f"{icon} Alert",
+            [("Severity", severity)],
+        )
+    )
+
+    append(
+        _rows_field(
+            "🗄️ QNAP NAS",
+            [
+                ("NAS", nas_name),
+                ("Application", application),
+            ],
+        )
+    )
+
     if category == "security":
-        append(_rows_field("🔐 Security", [
-            ("Account", _source_value(source_fields, "account", "user", "username")),
-            ("Connection", _source_value(source_fields, "connection type", "connection")),
-            ("Login Result", _source_value(source_fields, "login result", "result")),
-        ]))
+        append(
+            _rows_field(
+                "🔐 Security",
+                [
+                    (
+                        "Account",
+                        _source_value(
+                            source_fields,
+                            "account",
+                            "user",
+                            "username",
+                        ),
+                    ),
+                    (
+                        "Login Result",
+                        _source_value(
+                            source_fields,
+                            "login result",
+                            "result",
+                        ),
+                    ),
+                ],
+            )
+        )
+
     elif category == "backup":
-        append(_rows_field("💾 Backup", [
-            ("Job", _source_value(source_fields, "job name", "job")),
-            ("Type", _source_value(source_fields, "job type", "type")),
-            ("Source", _source_value(source_fields, "source folder", "source")),
-            ("Destination", _source_value(source_fields, "destination", "target")),
-            ("Job Status", _source_value(source_fields, "job status", "status")),
-        ]))
+        append(
+            _rows_field(
+                "💾 Backup",
+                [
+                    (
+                        "Job",
+                        _source_value(
+                            source_fields,
+                            "job name",
+                            "job",
+                        ),
+                    ),
+                    (
+                        "Type",
+                        _source_value(
+                            source_fields,
+                            "job type",
+                            "type",
+                        ),
+                    ),
+                    (
+                        "Source",
+                        _source_value(
+                            source_fields,
+                            "source folder",
+                            "source",
+                        ),
+                    ),
+                    (
+                        "Destination",
+                        _source_value(
+                            source_fields,
+                            "destination",
+                            "target",
+                        ),
+                    ),
+                ],
+            )
+        )
+
     elif category == "storage":
-        append(_rows_field("💽 Storage", [
-            ("Disk", _source_value(source_fields, "disk", "drive")),
-            ("Disk Health", _source_value(source_fields, "disk health", "drive health")),
-            ("SMART Test", _source_value(source_fields, "smart test", "s.m.a.r.t. test")),
-            ("SMART Result", _source_value(source_fields, "smart result", "s.m.a.r.t. result")),
-            ("Storage Pool", _source_value(source_fields, "storage pool", "pool")),
-            ("RAID Group", _source_value(source_fields, "raid group")),
-            ("RAID Type", _source_value(source_fields, "raid type")),
-            ("Pool Status", _source_value(source_fields, "pool status")),
-        ]))
+        append(
+            _rows_field(
+                "💽 Storage",
+                [
+                    (
+                        "Disk",
+                        _source_value(
+                            source_fields,
+                            "disk",
+                            "drive",
+                        ),
+                    ),
+                    (
+                        "SMART Result",
+                        _source_value(
+                            source_fields,
+                            "smart result",
+                            "s.m.a.r.t. result",
+                        ),
+                    ),
+                    (
+                        "SMART Test",
+                        _source_value(
+                            source_fields,
+                            "smart test",
+                            "s.m.a.r.t. test",
+                        ),
+                    ),
+                    (
+                        "Storage Pool",
+                        _source_value(
+                            source_fields,
+                            "storage pool",
+                            "pool",
+                        ),
+                    ),
+                    (
+                        "RAID Group",
+                        _source_value(
+                            source_fields,
+                            "raid group",
+                        ),
+                    ),
+                    (
+                        "RAID Type",
+                        _source_value(
+                            source_fields,
+                            "raid type",
+                        ),
+                    ),
+                ],
+            )
+        )
+
     elif category == "system":
-        append(_rows_field("⚙️ System", [
-            ("Update Type", _source_value(source_fields, "update type")),
-            ("Current Version", _source_value(source_fields, "current version")),
-            ("Available Version", _source_value(source_fields, "available version")),
-        ]))
+        append(
+            _rows_field(
+                "⚙️ System",
+                [
+                    (
+                        "Update Type",
+                        _source_value(
+                            source_fields,
+                            "update type",
+                        ),
+                    ),
+                    (
+                        "Current Version",
+                        _source_value(
+                            source_fields,
+                            "current version",
+                        ),
+                    ),
+                    (
+                        "Available Version",
+                        _source_value(
+                            source_fields,
+                            "available version",
+                        ),
+                    ),
+                ],
+            )
+        )
+
     elif category == "power":
-        append(_rows_field("🔋 Power", [
-            ("UPS Status", _source_value(source_fields, "ups status")),
-            ("Power Event", _source_value(source_fields, "power event")),
-            ("Estimated Runtime", _source_value(source_fields, "estimated runtime")),
-        ]))
-    append(_rows_field("⏱️ Timing", [
-        ("Started", normalized.get("start_time") or metadata.get("event_time")),
-        ("Finished", normalized.get("end_time")),
-    ]))
-    if lifecycle in {"Resolved", "Success"} and "recover" in _normal_words(event_type):
-        display_title = f"{title_text} — Resolved"
-    else:
-        display_title = f"{title_text} — {lifecycle}"
+        append(
+            _rows_field(
+                "🔋 Power",
+                [
+                    (
+                        "Power Event",
+                        _source_value(
+                            source_fields,
+                            "power event",
+                        ),
+                    ),
+                    (
+                        "Estimated Runtime",
+                        _source_value(
+                            source_fields,
+                            "estimated runtime",
+                        ),
+                    ),
+                ],
+            )
+        )
+
+    append(
+        _rows_field(
+            "⏱️ Timing",
+            [
+                (
+                    "Started",
+                    normalized.get("start_time")
+                    or (
+                        metadata.get("event_time")
+                        if not normalized.get("end_time")
+                        else ""
+                    ),
+                ),
+                ("Finished", normalized.get("end_time")),
+            ],
+        )
+    )
+
+    display_title = f"{title_text} — {lifecycle}"
+
     return _finish(
-        {"title": f"{icon} {display_title}"[:256], "description": description, "color": color, "fields": fields},
+        {
+            "title": f"{icon} {display_title}"[:256],
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
         payload,
     )
 

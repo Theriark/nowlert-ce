@@ -280,7 +280,8 @@ def test_status_colors_are_aligned_across_outputs(
 @pytest.mark.parametrize(
     (
         "fixture_name",
-        "expected_details",
+        "discord_details",
+        "teams_details",
     ),
     [
         (
@@ -289,9 +290,17 @@ def test_status_colors_are_aligned_across_outputs(
                 "Storage Pool",
                 "RAID Group",
             ),
+            (
+                "Storage Pool",
+                "RAID Group",
+            ),
         ),
         (
             "hbs_backup_failure.eml",
+            (
+                "Job",
+                "Destination",
+            ),
             (
                 "Job Name",
                 "Destination",
@@ -301,11 +310,19 @@ def test_status_colors_are_aligned_across_outputs(
             "failed_login.eml",
             (
                 "Account",
+                "Login Result",
+            ),
+            (
+                "Account",
                 "Connection Type",
             ),
         ),
         (
             "ups_power_event.eml",
+            (
+                "Power Event",
+                "Estimated Runtime",
+            ),
             (
                 "UPS Status",
                 "Power Event",
@@ -317,12 +334,17 @@ def test_status_colors_are_aligned_across_outputs(
                 "Current Version",
                 "Available Version",
             ),
+            (
+                "Current Version",
+                "Available Version",
+            ),
         ),
     ],
 )
 def test_event_specific_details_reach_both_payloads(
     fixture_name: str,
-    expected_details: tuple[str, ...],
+    discord_details: tuple[str, ...],
+    teams_details: tuple[str, ...],
 ):
 
     fixture_path = (
@@ -354,12 +376,10 @@ def test_event_specific_details_reach_both_payloads(
         )
     )
 
-    discord_aliases = {
-        "Job Name": "Job",
-        "Connection Type": "Connection",
-    }
-    for expected in expected_details:
-        assert discord_aliases.get(expected, expected) in discord
+    for expected in discord_details:
+        assert expected in discord
+
+    for expected in teams_details:
         assert expected in teams
 
 
