@@ -310,12 +310,9 @@ FINAL_EE_REQUIRED_FIELDS = {
         "🚨 Problem",
         "📈 Operational Data",
         "🧪 Trigger",
-        "🏷️ Event Tags",
         "🆔 Problem ID",
         "⏱️ Timing",
         "📘 Runbook",
-        "📧 Email",
-        "✉️ Subject",
     ],
     "grafana": [
         "📣 Alert",
