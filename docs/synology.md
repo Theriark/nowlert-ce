@@ -36,38 +36,29 @@ and clearly retains the real-system validation requirement.
 - authentication, login, certificate, malware, firewall, and blocked-IP events;
 - network and NAS availability events.
 
-## Nowlert configuration
+## Nowlert routing
 
-```yaml
-http:
-  enabled: true
-  host: 0.0.0.0
-  port: 8080
-  max_body_bytes: 1048576
-  shared_secret: "PASTE_64_CHARACTER_HEX_SECRET"
+Current releases use database-authoritative Destinations and Routes managed
+through the WebUI. Synology supports two independent normalized inputs:
+**SMTP** and **HTTP**.
 
-outputs:
-  discord:
-    enabled: true
-    synology:
-      webhook: "PASTE_SYNOLOGY_DISCORD_WEBHOOK"
+When both DSM email notifications and the native webhook are used, create one
+dedicated Route for each transport:
 
-  teams:
-    enabled: false
-    synology:
-      webhook: "PASTE_SYNOLOGY_TEAMS_WORKFLOW_WEBHOOK"
+- Integration: **Synology**, Input: **SMTP** -> the intended Synology
+  Destination(s).
+- Integration: **Synology**, Input: **HTTP** -> the intended Synology
+  Destination(s).
 
-routing:
-  synology:
-    outputs:
-      - output: discord
-        target: synology
+A **Fallback (SMTP)** Route is evaluated only when no enabled dedicated
+Synology SMTP Route matches. If the Synology SMTP Route is missing or disabled,
+the email is therefore expected to use the SMTP fallback while retaining
+`source = synology`; Discord and other outputs can still render the Synology
+presentation because fallback routing does not change the parsed source.
 
-      # - output: teams
-      #   target: synology
-```
-
-Do not commit the real HTTP secret or destination URLs.
+Do not add legacy `outputs` or `routing` sections to current
+`platform_database_v1` configurations. Destination credentials and Route
+assignments are persisted in the platform database.
 
 ## SMTP input
 
