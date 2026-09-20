@@ -91,7 +91,7 @@ def test_xo_failed_classic_slack_card_keeps_failure_details():
     assert failed.endswith("\n\u200b")
 
 
-def test_non_xo_slack_notifications_keep_existing_block_kit_fallback():
+def test_non_xo_slack_notifications_use_classic_attachment():
     item = Notification(
         source="grafana",
         category="monitoring",
@@ -103,6 +103,11 @@ def test_non_xo_slack_notifications_keep_existing_block_kit_fallback():
 
     payload = SlackFormatter().format(item)
 
-    assert "blocks" in payload
-    assert "attachments" not in payload
-    assert payload["text"] == "Synthetic Grafana alert"
+    assert "blocks" not in payload
+    assert "text" not in payload
+    assert len(payload["attachments"]) == 1
+    attachment = payload["attachments"][0]
+    assert attachment["title"] == "🚨 Synthetic Grafana alert"
+    assert attachment["color"] == "#E74C3C"
+    assert attachment["footer"] == CLASSIC_FOOTER
+    assert attachment["thumb_url"].endswith("/grafana.png")
