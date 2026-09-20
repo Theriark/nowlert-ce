@@ -74,6 +74,14 @@ def expected_icon_source(source: str) -> str:
     return source if source in SlackFormatter.PRODUCT_ICONS else "nowlert"
 
 
+def expected_icon_path(formatter: SlackFormatter, source: str) -> str:
+    icon_source = expected_icon_source(source)
+    return formatter.DISCORD_PRODUCT_ICONS.get(
+        icon_source,
+        formatter.PRODUCT_ICONS[icon_source],
+    )
+
+
 def test_all_dedicated_slack_sources_use_classic_attachments():
     formatter = SlackFormatter()
 
@@ -104,18 +112,31 @@ def test_all_dedicated_slack_sources_use_classic_attachments():
             },
         )["embeds"][0]
 
-        assert attachment["title"] == discord_embed["title"][:200]
         assert attachment["color"] == (
             f"#{discord_embed['color'] & 0xFFFFFF:06X}"
         )
-        assert attachment["footer"] == CLASSIC_FOOTER
-        assert attachment["title_link"] == item.metadata["action_link"]
-        assert attachment["mrkdwn_in"] == ["text", "fields"]
-        assert len(attachment["fields"]) <= 10
-        assert attachment["fields"]
+        assert "title" not in attachment
+        assert "text" not in attachment
+        assert "fields" not in attachment
+        assert "thumb_url" not in attachment
 
-        icon = formatter.PRODUCT_ICONS[expected_icon_source(source)]
-        assert attachment["thumb_url"].endswith(f"/{icon}")
+        blocks = attachment["blocks"]
+        header = blocks[0]
+        assert header["type"] == "section"
+        assert discord_embed["title"][:200] in header["text"]["text"]
+        assert (
+            f"<{item.metadata['action_link']}|"
+            in header["text"]["text"]
+        )
+        assert header["accessory"]["type"] == "image"
+        assert header["accessory"]["image_url"].endswith(
+            f"/{expected_icon_path(formatter, source)}"
+        )
+        assert len(header.get("fields", [])) <= 10
+        assert blocks[-1] == {
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
+        }
 
 
 def test_slack_generic_fallback_uses_nowlert_classic_card():
@@ -134,9 +155,16 @@ def test_slack_generic_fallback_uses_nowlert_classic_card():
     rendered = str(payload)
 
     assert "blocks" not in payload
-    assert attachment["footer"] == CLASSIC_FOOTER
-    assert attachment["thumb_url"].endswith("/nowlert.png")
-    assert "Synthetic presentation warning" in attachment["title"]
+    blocks = attachment["blocks"]
+    header = blocks[0]
+    assert blocks[-1] == {
+        "type": "context",
+        "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
+    }
+    assert header["accessory"]["image_url"].endswith(
+        "/discord/nowlert-owl-v3.1.0.png"
+    )
+    assert "Synthetic presentation warning" in header["text"]["text"]
     assert "Alert" in rendered
     assert "Source" in rendered
     assert "Context" in rendered
@@ -156,8 +184,11 @@ def test_slack_redfish_fallback_keeps_nowlert_branding():
     )
 
     attachment = formatter.format(item)["attachments"][0]
+    header = attachment["blocks"][0]
 
-    assert attachment["thumb_url"].endswith("/nowlert.png")
+    assert header["accessory"]["image_url"].endswith(
+        "/discord/nowlert-owl-v3.1.0.png"
+    )
     assert "Redfish" in str(attachment)
 
 
@@ -219,11 +250,7 @@ def test_grafana_slack_classic_links_use_native_slack_mrkdwn():
     )
 
     attachment = formatter.format(item)["attachments"][0]
-    links = next(
-        field["value"]
-        for field in attachment["fields"]
-        if field["title"] == "🔗 Links"
-    )
+    links = str(attachment["blocks"])
 
     assert (
         "<https://grafana.example.invalid/d/service|Dashboard>"

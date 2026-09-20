@@ -72,36 +72,123 @@ class SlackFormatter(PresentationMixin):
         description = self._slack_classic_mrkdwn(
             embed.get("description") or ""
         )
+        fields = [
+            self._slack_classic_field(field)
+            for field in embed.get("fields", [])[:10]
+            if isinstance(field, dict)
+        ]
+        footer = str(
+            (embed.get("footer") or {}).get("text")
+            or CLASSIC_FOOTER
+        )[:300]
+        title_link = safe_action_url(embed.get("url") or action)
+        icon_url = self._slack_classic_icon_url(icon_source)
+
         attachment = {
             "fallback": title,
             "color": self._slack_classic_color(embed.get("color")),
-            "title": title,
-            "text": f"{description}\n\u200b" if description else "\u200b",
-            "fields": [
-                self._slack_classic_field(field)
-                for field in embed.get("fields", [])[:10]
-                if isinstance(field, dict)
-            ],
-            "footer": str(
-                (embed.get("footer") or {}).get("text")
-                or CLASSIC_FOOTER
-            )[:300],
-            "mrkdwn_in": ["text", "fields"],
+            "blocks": self._slack_classic_blocks(
+                title,
+                description,
+                fields,
+                icon_url,
+                title_link=title_link,
+                footer=footer,
+            ),
         }
-
-        title_link = safe_action_url(embed.get("url") or action)
-        if title_link:
-            attachment["title_link"] = title_link
-
-        icon_url = self._product_icon_url(icon_source)
-        if icon_url:
-            attachment["thumb_url"] = icon_url
 
         return self._sanitize_payload(
             {
                 "attachments": [attachment],
             }
         )
+
+    def _slack_classic_blocks(
+        self,
+        title,
+        description,
+        fields,
+        icon_url,
+        *,
+        title_link="",
+        footer=CLASSIC_FOOTER,
+    ):
+        """Render a compact Slack Classic card with visible product branding."""
+
+        title_text = self._escape(title)
+        if title_link:
+            title_text = f"<{self._escape(title_link)}|{title_text}>"
+
+        header_text = f"*{title_text}*"
+        if description:
+            header_text = f"{header_text}\n{description}"
+
+        header = {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": header_text[:3000],
+            },
+        }
+        if icon_url:
+            header["accessory"] = {
+                "type": "image",
+                "image_url": icon_url,
+                "alt_text": "Nowlert integration",
+            }
+
+        blocks = [header]
+        header_fields = []
+
+        for field in fields:
+            field_title = str(field.get("title") or "")
+            field_value = str(field.get("value") or "").removesuffix("\n\u200b")
+            if not field_title and not field_value:
+                continue
+
+            block_text = {
+                "type": "mrkdwn",
+                "text": (
+                    f"*{self._escape(field_title)}*\n"
+                    f"{field_value}"
+                )[:2000],
+            }
+            if field.get("short"):
+                header_fields.append(block_text)
+                continue
+
+            blocks.append(
+                {
+                    "type": "section",
+                    "text": block_text,
+                }
+            )
+
+        if header_fields:
+            header["fields"] = header_fields[:10]
+
+        blocks.append(
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": footer,
+                    }
+                ],
+            }
+        )
+        return blocks
+
+    def _slack_classic_icon_url(self, source):
+        """Prefer padded artwork for Slack's fixed image-accessory slot."""
+
+        normalized = str(source or "").strip().casefold()
+        icon_url = self._product_icon_url(normalized)
+        padded = self.DISCORD_PRODUCT_ICONS.get(normalized)
+        if not icon_url or not padded:
+            return icon_url
+        return f"{icon_url.rsplit('/', 1)[0]}/{padded}"
 
     def _slack_classic_field(self, field):
         return {

@@ -112,7 +112,7 @@ def test_xo_failed_classic_slack_card_keeps_failure_details():
     assert "Synthetic timeout" in rendered
 
 
-def test_non_xo_slack_notifications_use_classic_attachment():
+def test_non_xo_slack_notifications_use_compact_classic_attachment():
     item = Notification(
         source="grafana",
         category="monitoring",
@@ -128,7 +128,15 @@ def test_non_xo_slack_notifications_use_classic_attachment():
     assert "text" not in payload
     assert len(payload["attachments"]) == 1
     attachment = payload["attachments"][0]
-    assert attachment["title"] == "🚨 Synthetic Grafana alert"
     assert attachment["color"] == "#E74C3C"
-    assert attachment["footer"] == CLASSIC_FOOTER
-    assert attachment["thumb_url"].endswith("/grafana.png")
+    assert "title" not in attachment
+    assert "thumb_url" not in attachment
+    header = attachment["blocks"][0]
+    assert "🚨 Synthetic Grafana alert" in header["text"]["text"]
+    assert header["accessory"]["image_url"].endswith(
+        "/discord/grafana.png"
+    )
+    assert attachment["blocks"][-1] == {
+        "type": "context",
+        "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
+    }
