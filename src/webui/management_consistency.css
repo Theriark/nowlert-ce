@@ -102,6 +102,10 @@
   min-height: 2.35rem;
 }
 
+#view-destinations .destination-reference-card:has(.destination-view-only-badge):has(.destination-sharing-control.is-shared) .resource-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 #view-destinations .destination-status-control,
 #view-destinations .destination-sharing-control,
 #view-destinations .destination-owner-badge,
