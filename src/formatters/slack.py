@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from formatters.discord_classic_v1 import render_classic_embed_v1
 from formatters.presentation import PresentationMixin
 from models import Notification
@@ -9,6 +11,7 @@ from outputs.platform_common import safe_action_url
 
 
 CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
+_MARKDOWN_LINK = re.compile(r"\[([^\]\n]{1,120})\]\((https://[^)\s]+)\)")
 
 
 class SlackFormatter(PresentationMixin):
@@ -110,8 +113,28 @@ class SlackFormatter(PresentationMixin):
         }
 
     def _slack_classic_mrkdwn(self, value):
-        rendered = self._escape(value)
-        return rendered.replace("**", "*")
+        """Translate Discord Classic markdown into Slack mrkdwn safely."""
+
+        text = str(value or "")
+        parts = []
+        cursor = 0
+
+        for match in _MARKDOWN_LINK.finditer(text):
+            parts.append(self._escape(text[cursor:match.start()]))
+
+            label = match.group(1).strip()
+            url = safe_action_url(match.group(2))
+            if url:
+                parts.append(
+                    f"<{self._escape(url)}|{self._escape(label)}>"
+                )
+            else:
+                parts.append(self._escape(match.group(0)))
+
+            cursor = match.end()
+
+        parts.append(self._escape(text[cursor:]))
+        return "".join(parts).replace("**", "*")
 
     @staticmethod
     def _slack_classic_color(value):
