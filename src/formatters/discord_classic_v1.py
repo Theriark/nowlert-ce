@@ -358,13 +358,22 @@ _GRAFANA_RECOGNIZED = {
 
 
 def _render_grafana(notification, payload, normalized, metadata):
+    """Render the compact CE Grafana Classic Embed v1 geometry."""
+
     source_fields = metadata.get("source_fields")
     if not isinstance(source_fields, dict):
         source_fields = {}
+
     state = str(metadata.get("state") or "").strip()
     severity = str(metadata.get("severity") or "").strip()
     status = str(normalized.get("status") or "").strip()
-    alert_name = str(metadata.get("alert_name") or normalized.get("title") or normalized.get("subject") or "Grafana alert").strip()
+    alert_name = str(
+        metadata.get("alert_name")
+        or normalized.get("title")
+        or normalized.get("subject")
+        or "Grafana alert"
+    ).strip()
+
     try:
         count = max(1, int(metadata.get("alert_count") or 1))
     except (TypeError, ValueError):
@@ -372,11 +381,21 @@ def _render_grafana(notification, payload, normalized, metadata):
 
     state_words = _normal_words(state)
     severity_words = _normal_words(severity)
-    if _normal_words(status) == "success" or state_words in {"resolved", "normal", "ok"}:
+    status_words = _normal_words(status)
+
+    if status_words == "success" or state_words in {"resolved", "normal", "ok"}:
         color, icon = _GREEN, "✅"
-    elif _normal_words(status) == "warning" or state_words in {"pending", "no data"} or severity_words == "warning":
+    elif (
+        status_words == "warning"
+        or state_words in {"pending", "no data"}
+        or severity_words == "warning"
+    ):
         color, icon = _ORANGE, "⚠️"
-    elif _normal_words(status) == "failure" or state_words in {"firing", "error"} or severity_words in {"critical", "error"}:
+    elif (
+        status_words == "failure"
+        or state_words in {"firing", "error"}
+        or severity_words in {"critical", "error"}
+    ):
         color, icon = _RED, "🚨"
     else:
         color, icon = _BLUE, "ℹ️"
@@ -384,47 +403,122 @@ def _render_grafana(notification, payload, normalized, metadata):
     grouped = f" ({count} alerts)" if count > 1 else ""
     suffix = f" — {state}" if state else ""
     title = f"{icon} {alert_name}{grouped}{suffix}"[:256]
-    description = str(metadata.get("summary") or metadata.get("message") or normalized.get("body") or normalized.get("subject") or "Grafana notification").strip()[:4096]
+    description = str(
+        metadata.get("summary")
+        or metadata.get("message")
+        or normalized.get("body")
+        or normalized.get("subject")
+        or "Grafana notification"
+    ).strip()[:4096]
 
     fields: list[dict[str, Any]] = []
+
     def append(field):
         if field is not None:
             fields.append(field)
 
-    append(_rows_field("🚨 Alert" if color == _RED else "📣 Alert", [
-        ("Name", alert_name), ("State", state), ("Severity", severity), ("Count", count if count > 1 else ""),
-    ]))
-    append(_rows_field("📂 Rule", [
-        ("Rule", metadata.get("alert_rule") or metadata.get("rule_name")),
-        ("Folder", metadata.get("folder")),
-        ("Organization", metadata.get("organization")),
-    ]))
-    append(_rows_field("📊 Location", [("Dashboard", metadata.get("dashboard")), ("Panel", metadata.get("panel"))]))
+    append(
+        _rows_field(
+            "🚨 Alert" if color == _RED else "📣 Alert",
+            [("Severity", severity)],
+        )
+    )
+    append(
+        _rows_field(
+            "📂 Rule",
+            [
+                ("Rule", metadata.get("alert_rule") or metadata.get("rule_name")),
+                ("Folder", metadata.get("folder")),
+            ],
+        )
+    )
+    append(
+        _rows_field(
+            "📊 Location",
+            [
+                ("Dashboard", metadata.get("dashboard")),
+                ("Panel", metadata.get("panel")),
+            ],
+        )
+    )
     append(_field("🗄️ Datasource", _code(metadata.get("datasource"))))
+
+    evaluation_error = str(
+        source_fields.get("evaluation error")
+        or metadata.get("evaluation_error")
+        or ""
+    ).strip()
+    append(_field("❌ Evaluation Error", _code(evaluation_error)))
+
     append(_field("🏷️ Labels", _code(metadata.get("labels"))))
+
     if count == 1:
         append(_field("📈 Values", _code(metadata.get("values"))))
-    append(_rows_field("⏱️ Timing", [
-        ("Started", metadata.get("starts_at") or normalized.get("start_time")),
-        ("Resolved", metadata.get("ends_at") or normalized.get("end_time")),
-        ("Event Time", metadata.get("event_time")),
-    ]))
-    append(_rows_field("📝 Details", [
-        ("Summary", metadata.get("summary")),
-        ("Description", metadata.get("description")),
-        ("Message", metadata.get("message")),
-    ]))
-    if _normal_words(metadata.get("_input_type")) != "http":
-        append(_rows_field("📧 Email", [("From", normalized.get("sender")), ("To", _metadata_value(metadata, "to", "recipient")), ("Subject", normalized.get("subject"))]))
+    else:
+        member_lines: list[str] = []
+        for index in range(1, min(count, 10) + 1):
+            member_name = str(source_fields.get(f"alert {index}") or "").strip()
+            member_state = str(
+                source_fields.get(f"alert {index} state") or ""
+            ).strip()
+            member_values = str(
+                source_fields.get(f"alert {index} values") or ""
+            ).strip()
 
-    for raw_label, raw_value in source_fields.items():
-        label = _normal_words(raw_label)
-        if not label or label in _GRAFANA_RECOGNIZED or not str(raw_value or "").strip():
-            continue
-        append(_field(f"📎 {str(raw_label).strip().title()}"[:256], _code(raw_value)))
+            if not any((member_name, member_state, member_values)):
+                continue
+
+            line = f"**{member_name or f'Alert {index}'}**"
+            if member_state:
+                line += f" · {member_state}"
+            if member_values:
+                line += f" · {_code(member_values)}"
+            member_lines.append(line)
+
+        if member_lines:
+            if count > 10:
+                member_lines.append(f"… and {count - 10} more")
+            append(_field(f"👥 Alerts · {count}", "\n".join(member_lines)))
+
+    started = (
+        metadata.get("starts_at")
+        or normalized.get("start_time")
+        or (
+            metadata.get("event_time")
+            if status_words != "success"
+            and state_words not in {"resolved", "normal", "ok"}
+            else ""
+        )
+    )
+    resolved = metadata.get("ends_at") or normalized.get("end_time")
+
+    timing_rows = [("Started", started)]
+    if (
+        status_words == "success"
+        or state_words in {"resolved", "normal", "ok"}
+    ):
+        timing_rows.append(("Resolved", resolved or metadata.get("event_time")))
+    append(_rows_field("⏱️ Timing", timing_rows))
+
+    links: list[str] = []
+    for label, key in (
+        ("Dashboard", "dashboard_url"),
+        ("Panel", "panel_url"),
+        ("Rule", "rule_url"),
+        ("Silence", "silence_url"),
+    ):
+        url = str(metadata.get(key) or "").strip()
+        if url:
+            links.append(f"[{label}]({url})")
+    append(_field("🔗 Links", " · ".join(links)))
 
     return _finish(
-        {"title": title, "description": description, "color": color, "fields": fields},
+        {
+            "title": title,
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
         payload,
     )
 

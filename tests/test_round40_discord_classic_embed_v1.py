@@ -322,7 +322,6 @@ FINAL_EE_REQUIRED_FIELDS = {
         "🏷️ Labels",
         "📈 Values",
         "⏱️ Timing",
-        "📝 Details",
     ],
     "portainer": [
         "⚠️ Alert",
