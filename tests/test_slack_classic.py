@@ -168,8 +168,6 @@ def test_remaining_dedicated_slack_cards_stay_compact_without_show_more_layout()
     formatter = SlackFormatter()
 
     for source in (
-        "truenas",
-        "unifi_network",
         "unifi_protect",
         "unifi_drive",
         "home_assistant",
@@ -190,6 +188,105 @@ def test_remaining_dedicated_slack_cards_stay_compact_without_show_more_layout()
             "type": "context",
             "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
         }
+
+
+def test_truenas_and_unifi_network_sections_do_not_need_show_more():
+    formatter = SlackFormatter()
+
+    unifi = notification("unifi_network")
+    unifi.metadata.update(
+        {
+            "controller": "synthetic-controller.example.invalid",
+            "client_display_name": "SYNTHETIC-CLIENT",
+            "client_mac": "00:00:5e:00:53:20",
+            "wifi_name": "SYNTHETIC-WIFI",
+            "last_device_name": "SYNTHETIC-AP",
+            "last_device_model": "Synthetic AP",
+            "wifi_rssi": "-60 dBm",
+            "duration": "5m 30s",
+        }
+    )
+    unifi_blocks = formatter.format(unifi)["attachments"][0]["blocks"]
+    unifi_sections = [
+        block for block in unifi_blocks
+        if block.get("type") == "section"
+    ]
+
+    assert len(unifi_sections) >= 2
+    assert all(
+        len(block.get("fields", [])) <= 2
+        for block in unifi_sections
+    )
+    assert any(
+        block.get("fields")
+        for block in unifi_sections[1:]
+    )
+    unifi_rendered = str(unifi_blocks)
+    for expected in (
+        "SYNTHETIC-CLIENT",
+        "SYNTHETIC-WIFI",
+        "SYNTHETIC-AP",
+        "5m 30s",
+    ):
+        assert expected in unifi_rendered
+
+    alerts = [
+        {
+            "event_type": "new",
+            "message": "Pool SYNTHETIC-POOL state is DEGRADED.",
+            "status": "warning",
+        },
+        {
+            "event_type": "new",
+            "message": "Replication task SYNTHETIC-REPLICATION failed.",
+            "status": "failure",
+        },
+        {
+            "event_type": "current",
+            "message": "Scrub of pool SYNTHETIC-POOL failed.",
+            "status": "failure",
+        },
+        {
+            "event_type": "current",
+            "message": "SMART warning reported for SYNTHETIC-DISK-01.",
+            "status": "warning",
+        },
+    ]
+    truenas = notification("truenas")
+    truenas.status = "failure"
+    truenas.title = "TrueNAS alerts (4)"
+    truenas.body = "4 TrueNAS alerts were reported in one notification."
+    truenas.items = alerts
+    truenas.metadata.update(
+        {
+            "host": "SYNTHETIC-TRUENAS",
+            "severity": "critical",
+            "alert_count": 4,
+            "alerts": alerts,
+        }
+    )
+
+    truenas_blocks = formatter.format(truenas)["attachments"][0]["blocks"]
+    body_sections = [
+        block for block in truenas_blocks
+        if block.get("type") == "section"
+        and "accessory" not in block
+        and isinstance(block.get("text"), dict)
+    ]
+
+    assert body_sections
+    assert all(
+        block["text"]["text"].count("\n") <= 4
+        for block in body_sections
+    )
+    truenas_rendered = str(truenas_blocks)
+    for expected in (
+        "Grouped Alerts",
+        "SYNTHETIC-POOL",
+        "SYNTHETIC-REPLICATION",
+        "SYNTHETIC-DISK-01",
+    ):
+        assert expected in truenas_rendered
 
 
 def test_slack_generic_fallback_uses_nowlert_classic_card():
