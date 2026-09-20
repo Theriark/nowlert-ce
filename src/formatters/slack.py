@@ -178,6 +178,7 @@ class SlackFormatter(PresentationMixin):
                 "🚀 Transfer Speed",
                 self._classic_code(getattr(notification, "transfer_speed", "")),
                 short=True,
+                space_after=True,
             ),
             self._classic_field(
                 "📁 Storage",
@@ -187,18 +188,21 @@ class SlackFormatter(PresentationMixin):
                 "✅ Successful VMs",
                 getattr(notification, "successful_vms", None),
                 getattr(notification, "vm_details", None),
+                space_after=True,
             ),
             self._classic_vm_field(
                 "❌ Failed VMs",
                 getattr(notification, "failed_vms", None),
                 getattr(notification, "vm_details", None),
                 include_error=True,
+                space_after=True,
             ),
             self._classic_vm_field(
                 "⏭️ Skipped VMs",
                 getattr(notification, "skipped_vms", None),
                 getattr(notification, "vm_details", None),
                 include_error=True,
+                space_after=True,
             ),
             self._classic_field(
                 "🆔 Job ID",
@@ -209,9 +213,10 @@ class SlackFormatter(PresentationMixin):
                 fields.append(field)
 
         attachment = {
+            "fallback": title,
             "color": color,
             "title": title,
-            "text": description,
+            "text": f"{description}\n\u200b",
             "fields": fields[:10],
             "footer": CLASSIC_FOOTER,
             "mrkdwn_in": ["text", "fields"],
@@ -222,7 +227,6 @@ class SlackFormatter(PresentationMixin):
 
         return self._sanitize_payload(
             {
-                "text": title,
                 "attachments": [attachment],
             }
         )
@@ -234,6 +238,7 @@ class SlackFormatter(PresentationMixin):
         details,
         *,
         include_error: bool = False,
+        space_after: bool = False,
     ):
         if not isinstance(values, list) or not values:
             return None
@@ -272,12 +277,22 @@ class SlackFormatter(PresentationMixin):
         return self._classic_field(
             f"{name} · {len(vm_names)}",
             "\n".join(lines),
+            space_after=space_after,
         )
 
-    def _classic_field(self, title, value, *, short: bool = False):
+    def _classic_field(
+        self,
+        title,
+        value,
+        *,
+        short: bool = False,
+        space_after: bool = False,
+    ):
         rendered = str(value or "").strip()
         if not rendered:
             return None
+        if space_after:
+            rendered = f"{rendered}\n\u200b"
         return {
             "title": self._truncate(title, 200),
             "value": rendered[:1800],

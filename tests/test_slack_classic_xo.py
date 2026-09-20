@@ -45,15 +45,15 @@ def test_xo_uses_compact_classic_slack_attachment_matching_discord_geometry():
     payload = SlackFormatter().format(xo_notification())
 
     assert "blocks" not in payload
-    assert payload["text"] == "✅ Backup Successful — Synthetic backup job"
+    assert "text" not in payload
     assert len(payload["attachments"]) == 1
 
     attachment = payload["attachments"][0]
     assert attachment["color"] == "#57F287"
-    assert attachment["title"] == payload["text"]
-    assert (
-        attachment["text"]
-        == "2 VMs protected successfully with no failures."
+    assert attachment["title"] == "✅ Backup Successful — Synthetic backup job"
+    assert attachment["fallback"] == attachment["title"]
+    assert attachment["text"] == (
+        "2 VMs protected successfully with no failures.\n\u200b"
     )
     assert attachment["footer"] == CLASSIC_FOOTER
     assert attachment["mrkdwn_in"] == ["text", "fields"]
@@ -65,11 +65,12 @@ def test_xo_uses_compact_classic_slack_attachment_matching_discord_geometry():
         "short": True,
     }
     assert fields["📦 Transfer Size"]["value"] == "`52.06 GiB`"
-    assert fields["🚀 Transfer Speed"]["value"] == "`33.73 MiB/s`"
+    assert fields["🚀 Transfer Speed"]["value"] == "`33.73 MiB/s`\n\u200b"
     assert fields["📁 Storage"]["value"] == (
         "`SYNTHETIC-REPOSITORY · SYNTHETIC-REMOTE · NFS · Full`"
     )
     assert "VM-OK-1" in fields["✅ Successful VMs · 2"]["value"]
+    assert fields["✅ Successful VMs · 2"]["value"].endswith("\n\u200b")
     assert fields["🆔 Job ID"]["value"] == "`JOB-SLACK-XO`"
 
 
@@ -77,14 +78,17 @@ def test_xo_failed_classic_slack_card_keeps_failure_details():
     payload = SlackFormatter().format(xo_notification(status="failure"))
     attachment = payload["attachments"][0]
 
-    assert payload["text"] == "❌ Backup Failed — Synthetic backup job"
+    assert "text" not in payload
+    assert attachment["title"] == "❌ Backup Failed — Synthetic backup job"
+    assert attachment["fallback"] == attachment["title"]
     assert attachment["color"] == "#ED4245"
-    assert attachment["text"] == "Backup operation failed with 1 VM error."
+    assert attachment["text"] == "Backup operation failed with 1 VM error.\n\u200b"
 
     fields = {field["title"]: field for field in attachment["fields"]}
     failed = fields["❌ Failed VMs · 1"]["value"]
     assert "VM-FAILED" in failed
     assert "Synthetic timeout" in failed
+    assert failed.endswith("\n\u200b")
 
 
 def test_non_xo_slack_notifications_keep_existing_block_kit_fallback():
