@@ -29,7 +29,7 @@ def test_management_consistency_runtime_matches_selected_ui_contract():
     assert 'span("destination-status-label", enabled ? "Active" : "Disabled")' in script
     assert 'span("destination-sharing-label", shared ? "Shared" : "Private")' in script
     assert 'acceptance-private-destination' in script
-    assert 'privateBadge.className = "badge destination-sharing-control is-private"' in script
+    assert 'privateBadge.className = "badge destination-sharing-control is-private destination-control-readonly"' in script
     assert '"Owner: User"' not in script
     assert "item?.owner_username" in script
     assert '.replace(/^owner:\\s*/i, "")' in script
