@@ -45,7 +45,7 @@ def xo_success() -> Notification:
     return item
 
 
-def test_xo_success_matches_final_ee_classic_v1_geometry_without_ai():
+def test_xo_success_matches_compact_ce_classic_v1_geometry():
     embed = DiscordOutput().source_formatters["xo"].format(xo_success())["embeds"][0]
 
     assert embed["title"] == "✅ Backup Successful — [NON-CRITICAL - 01] Administration"
@@ -58,45 +58,36 @@ def test_xo_success_matches_final_ee_classic_v1_geometry_without_ai():
         "📦 Transfer Size",
         "🚀 Transfer Speed",
         "📁 Storage",
-        "⏱️ Timing",
-        "✅ Successful VMs",
-        "📧 Email",
-        "✉️ Subject",
+        "✅ Successful VMs · 3",
         "🆔 Job ID",
-        "🔢 Job Details",
     ]
 
     assert embed["fields"][3]["value"] == (
-        "**Repository:** `UNAS-01 | NFS | Non-Critical Backups`\n"
-        "**Mode:** `full`"
+        "`Non-Critical Backups · UNAS-01 · NFS · Full`"
     )
-    assert embed["fields"][5]["value"].splitlines() == [
-        "**VM-01 | Admin:** `45.01 GiB · 33.73 MiB/s`",
-        "**VM-06 | XO-02:** `3.42 GiB · 28.11 MiB/s`",
-        "**VM-02 | XO-01:** `3.62 GiB · 22.27 MiB/s`",
+    assert embed["fields"][4]["value"].splitlines() == [
+        "**VM-01 | Admin** · `45.01 GiB`",
+        "**VM-06 | XO-02** · `3.42 GiB`",
+        "**VM-02 | XO-01** · `3.62 GiB`",
     ]
-    assert embed["fields"][6]["value"].splitlines() == [
-        "**From:** `Xen Orchestra <xo@xen-orchestra-development.invalid>`",
-        "**To:** `mock-ce-dev@nowlert.theriark.invalid`",
-    ]
-    assert embed["fields"][7] == {
-        "name": "✉️ Subject",
-        "value": "`Backup report for [NON-CRITICAL - 01] Administration`",
-        "inline": False,
-    }
-    assert embed["fields"][8] == {
+    assert embed["fields"][5] == {
         "name": "🆔 Job ID",
         "value": "`91f9f6d3-9439-5376-b6b6-e379a4227b69`",
         "inline": False,
     }
-    assert embed["fields"][9]["value"].splitlines() == [
-        "**Run ID:** `178943504801`",
-        "**Provider:** `Xen Orchestra`",
-        "**Source:** `xo`",
-    ]
 
     rendered = repr(embed)
+    assert "33.73 MiB/s" in rendered
+    assert "28.11 MiB/s" not in rendered
+    assert "22.27 MiB/s" not in rendered
+    assert "178943504801" not in rendered
+    assert "Xen Orchestra <xo@xen-orchestra-development.invalid>" not in rendered
+    assert "mock-ce-dev@nowlert.theriark.invalid" not in rendered
+    assert "Backup report for [NON-CRITICAL - 01] Administration" not in [
+        field["value"] for field in embed["fields"]
+    ]
     assert "Insight" not in rendered
     assert "Context" not in rendered
     assert "Recommended Action" not in rendered
     assert "Nowlert AI" not in rendered
+

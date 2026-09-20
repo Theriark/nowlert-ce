@@ -151,7 +151,7 @@ def _lifecycle(status: object, severity: object, *, state: object = "") -> tuple
 
 
 def _render_xo(notification, payload, normalized, metadata):
-    """Render the final accepted EE Xen Orchestra Classic Embed v1 geometry."""
+    """Render the compact CE Xen Orchestra Classic Embed v1 geometry."""
 
     status = _normal_words(normalized.get("status"))
     failed = status in {"failure", "failed", "error", "critical"}
@@ -196,26 +196,29 @@ def _render_xo(notification, payload, normalized, metadata):
         protected_label = "VM" if protected == 1 else "VMs"
         description = f"{protected} {protected_label} protected successfully with no failures."
 
-    fields: list[dict[str, Any]] = []
+    repository = str(normalized.get("repository") or "").strip()
+    repository_parts = [
+        part.strip()
+        for part in repository.split("|")
+        if part.strip()
+    ]
+    if len(repository_parts) >= 3:
+        repository_parts = [repository_parts[-1], *repository_parts[:-1]]
 
+    mode = str(normalized.get("mode") or "").strip()
+    if mode:
+        mode = mode[:1].upper() + mode[1:]
+    storage_parts = list(repository_parts)
+    if mode:
+        storage_parts.append(mode)
+    storage_value = " · ".join(storage_parts)
+
+    fields: list[dict[str, Any]] = []
     for field in (
         _field("⏱️ Duration", _code(normalized.get("duration")), inline=True),
         _field("📦 Transfer Size", _code(normalized.get("transfer_size")), inline=True),
         _field("🚀 Transfer Speed", _code(normalized.get("transfer_speed")), inline=True),
-        _rows_field(
-            "📁 Storage",
-            [
-                ("Repository", normalized.get("repository")),
-                ("Mode", normalized.get("mode")),
-            ],
-        ),
-        _rows_field(
-            "⏱️ Timing",
-            [
-                ("Started", normalized.get("start_time")),
-                ("Finished", normalized.get("end_time")),
-            ],
-        ),
+        _field("📁 Storage", _code(storage_value)),
     ):
         if field is not None:
             fields.append(field)
@@ -224,59 +227,49 @@ def _render_xo(notification, payload, normalized, metadata):
     if not isinstance(details, dict):
         details = {}
 
-    def vm_value(vm_name: str) -> str:
+    def vm_size(vm_name: str) -> str:
         item = details.get(vm_name)
         if not isinstance(item, dict):
             item = {}
-        values = [
-            str(item.get(key) or "").strip()
-            for key in ("size", "speed")
-            if str(item.get(key) or "").strip()
-        ]
-        return " · ".join(values)
+        return str(item.get("size") or "").strip()
 
     def vm_section(name: str, values: object, *, include_error: bool = False):
         if not isinstance(values, list) or not values:
             return None
+
+        vm_names = [
+            str(raw_name or "").strip()
+            for raw_name in values
+            if str(raw_name or "").strip()
+        ]
+        if not vm_names:
+            return None
+
         lines = []
-        for raw_name in values[:10]:
-            vm_name = str(raw_name or "").strip()
-            if not vm_name:
-                continue
-            value = vm_value(vm_name)
-            lines.append(
-                f"**{vm_name}:** {_code(value) if value else _code('Reported')}"
-            )
+        shown = vm_names[:10]
+        for vm_name in shown:
+            size = vm_size(vm_name)
+            line = f"**{vm_name}**"
+            if size:
+                line += f" · {_code(size)}"
+            lines.append(line)
+
             if include_error:
                 item = details.get(vm_name)
                 if isinstance(item, dict) and str(item.get("error") or "").strip():
                     lines.append(f"**Error:** {_code(item.get('error'))}")
-        remaining = len(values) - min(len(values), 10)
+
+        remaining = len(vm_names) - len(shown)
         if remaining > 0:
             lines.append(f"… and {remaining} more")
-        return _field(name, "\n".join(lines))
+
+        return _field(f"{name} · {len(vm_names)}", "\n".join(lines))
 
     for field in (
         vm_section("✅ Successful VMs", normalized.get("successful_vms")),
         vm_section("❌ Failed VMs", normalized.get("failed_vms"), include_error=True),
         vm_section("⏭️ Skipped VMs", normalized.get("skipped_vms"), include_error=True),
-        _rows_field(
-            "📧 Email",
-            [
-                ("From", normalized.get("sender")),
-                ("To", _metadata_value(metadata, "to", "recipient")),
-            ],
-        ),
-        _field("✉️ Subject", _code(normalized.get("subject"))),
         _field("🆔 Job ID", _code(normalized.get("job_id"))),
-        _rows_field(
-            "🔢 Job Details",
-            [
-                ("Run ID", normalized.get("run_id")),
-                ("Provider", "Xen Orchestra"),
-                ("Source", "xo"),
-            ],
-        ),
     ):
         if field is not None:
             fields.append(field)

@@ -228,20 +228,32 @@ def test_classic_embed_v1_uses_ee_source_layout_without_ai(source: str, signatur
     assert "Recommended Action" not in names, source
 
 
-def test_classic_embed_v1_xo_uses_v1_kpi_and_storage_geometry():
+def test_classic_embed_v1_xo_uses_compact_ce_geometry():
     preview = DiscordPlatformAdapter().preview(
         destination(components_v2=False),
         notification("xo"),
     )
     fields = preview.payload["embeds"][0]["fields"]
     names = [field["name"] for field in fields]
+    values = {field["name"]: field["value"] for field in fields}
 
-    assert names[:3] == ["⏱️ Duration", "📦 Transfer Size", "🚀 Transfer Speed"]
-    assert "📁 Storage" in names
-    assert "⏱️ Timing" in names
-    assert "✉️ Subject" in names
-    assert "🆔 Job ID" in names
-    assert "🔢 Job Details" in names
+    assert names == [
+        "⏱️ Duration",
+        "📦 Transfer Size",
+        "🚀 Transfer Speed",
+        "📁 Storage",
+        "✅ Successful VMs · 2",
+        "❌ Failed VMs · 1",
+        "🆔 Job ID",
+    ]
+    assert values["📁 Storage"] == "`SYNTHETIC-REPOSITORY · Full`"
+    assert "30 MiB/s" not in values["✅ Successful VMs · 2"]
+    assert "29 MiB/s" not in values["✅ Successful VMs · 2"]
+    assert "Synthetic timeout" in values["❌ Failed VMs · 1"]
+    assert "⏱️ Timing" not in names
+    assert "📧 Email" not in names
+    assert "✉️ Subject" not in names
+    assert "🔢 Job Details" not in names
 
 
 def test_components_v2_bypasses_classic_embed_v1():

@@ -389,6 +389,82 @@ def test_xo_card_retains_real_duration_and_result_values():
     assert discord["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
 
 
+
+def test_discord_classic_v1_xo_uses_compact_operator_contract():
+    item = _notification("xo")
+    item.status = "failure"
+    item.job_name = "[CRITICAL - 02] Operation Critical"
+    item.subject = "Backup report for [CRITICAL - 02] Operation Critical"
+    item.sender = "Xen Orchestra <xo@example.invalid>"
+    item.metadata["to"] = "nowlert@example.invalid"
+    item.repository = "UNAS-01 | NFS | Critical Backups"
+    item.mode = "full"
+    item.duration = "44 minutes"
+    item.transfer_size = "49.22 GiB"
+    item.transfer_speed = "27.95 MiB/s"
+    item.start_time = "2026-09-20 03:36:31 UTC"
+    item.end_time = "2026-09-20 04:20:31 UTC"
+    item.job_id = "job-id-123"
+    item.run_id = "run-id-456"
+    item.vm_success = 1
+    item.vm_failed = 1
+    item.vm_skipped = 1
+    item.vm_total = 3
+    item.successful_vms = ["VM-04 | Docker"]
+    item.failed_vms = ["VM-14 | Windows Server"]
+    item.skipped_vms = ["VM-12 | Maintenance Window"]
+    item.vm_details = {
+        "VM-04 | Docker": {
+            "size": "18.33 GiB",
+            "speed": "19.10 MiB/s",
+        },
+        "VM-14 | Windows Server": {
+            "size": "23.66 GiB",
+            "speed": "34.25 MiB/s",
+            "error": "Body Timeout Error",
+        },
+        "VM-12 | Maintenance Window": {
+            "size": "5.50 GiB",
+            "speed": "11.11 MiB/s",
+            "error": "Backup policy excluded this VM during its maintenance window",
+        },
+    }
+
+    embed = DiscordOutput().source_formatters["xo"].format(item)["embeds"][0]
+    fields = {field["name"]: field["value"] for field in embed["fields"]}
+
+    assert list(fields) == [
+        "⏱️ Duration",
+        "📦 Transfer Size",
+        "🚀 Transfer Speed",
+        "📁 Storage",
+        "✅ Successful VMs · 1",
+        "❌ Failed VMs · 1",
+        "⏭️ Skipped VMs · 1",
+        "🆔 Job ID",
+    ]
+    assert fields["📁 Storage"] == (
+        "`Critical Backups · UNAS-01 · NFS · Full`"
+    )
+    assert fields["✅ Successful VMs · 1"] == (
+        "**VM-04 | Docker** · `18.33 GiB`"
+    )
+    assert "Body Timeout Error" in fields["❌ Failed VMs · 1"]
+    assert "maintenance window" in fields["⏭️ Skipped VMs · 1"]
+
+    rendered = json.dumps(embed, ensure_ascii=False)
+    assert "19.10 MiB/s" not in rendered
+    assert "34.25 MiB/s" not in rendered
+    assert "11.11 MiB/s" not in rendered
+    assert "run-id-456" not in rendered
+    assert "job-id-123" in rendered
+    assert "📧 Email" not in rendered
+    assert "✉️ Subject" not in rendered
+    assert "⏱️ Timing" not in rendered
+    assert "🔢 Job Details" not in rendered
+    assert "Xen Orchestra <xo@example.invalid>" not in rendered
+    assert "nowlert@example.invalid" not in rendered
+
 def test_xo_result_explains_failed_and_skipped_counts():
     item = _notification("xo")
     item.vm_total = 4
