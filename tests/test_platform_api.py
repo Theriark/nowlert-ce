@@ -312,10 +312,9 @@ def test_secure_cookie_defaults_use_host_prefix_and_strict_attributes(platform_a
     )
     cookies = [value for name, value in response.headers if name == "Set-Cookie"]
 
-    prefix = "__Host-" if secure else ""
     assert len(cookies) == 1
-    assert cookies[0].startswith(f"{prefix}nowlert_session=")
-    assert ("; Secure" in cookies[0]) is secure
+    assert cookies[0].startswith("__Host-nowlert_session=")
+    assert "; Secure" in cookies[0]
     assert "SameSite=Strict" in cookies[0]
     assert ("Cache-Control", "no-store") in response.headers
     assert "HttpOnly" in next(item for item in cookies if "session=" in item)
@@ -1330,7 +1329,7 @@ def test_first_run_bootstrap_creates_admin_session_and_consumes_token(
     cookies = [value for name, value in created.headers if name == "Set-Cookie"]
     assert len(cookies) == 1
     assert "HttpOnly" in cookies[0] and "SameSite=Strict" in cookies[0]
-    assert ("; Secure" in cookies[0]) is secure
+    assert "; Secure" in cookies[0]
     assert ("Cache-Control", "no-store") in created.headers
     assert created.payload["csrf_token"].encode() not in database.path.read_bytes()
     logout = service.handle_http(

@@ -462,7 +462,7 @@ class PlatformAPI:
     def _session_response(self, user, credentials=None) -> APIResponse:
         credentials = credentials or self.sessions.create(user.id)
         headers = (
-            ("Set-Cookie", credentials.cookie(secure=self.secure_cookies)),
+            ("Set-Cookie", credentials.cookie(secure=True)),
             ("Cache-Control", "no-store"),
         )
         return APIResponse(
