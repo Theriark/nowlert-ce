@@ -12,11 +12,6 @@ from outputs.platform_common import safe_action_url
 
 CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
 _MARKDOWN_LINK = re.compile(r"\[([^\]\n]{1,120})\]\((https://[^)\s]+)\)")
-_COMPACT_FIRST_BATCH = frozenset(
-    {"zabbix", "grafana", "portainer", "proxmox", "qnap", "synology"}
-)
-
-
 class SlackFormatter(PresentationMixin):
     """Render source-specific classic cards with a generic Block Kit fallback."""
 
@@ -95,7 +90,6 @@ class SlackFormatter(PresentationMixin):
                 description,
                 fields,
                 icon_url,
-                source=source,
                 title_link=title_link,
                 footer=footer,
             ),
@@ -114,7 +108,6 @@ class SlackFormatter(PresentationMixin):
         fields,
         icon_url,
         *,
-        source="",
         title_link="",
         footer=CLASSIC_FOOTER,
     ):
@@ -145,10 +138,6 @@ class SlackFormatter(PresentationMixin):
         blocks = [header]
         header_fields = []
         body_parts = []
-        compact_source = (
-            str(source or "").strip().casefold()
-            in _COMPACT_FIRST_BATCH
-        )
 
         for field in fields:
             field_title = str(field.get("title") or "")
@@ -165,27 +154,15 @@ class SlackFormatter(PresentationMixin):
             }
             if (
                 field.get("short")
-                or (
-                    compact_source
-                    and self._slack_classic_header_field(
-                        field_title,
-                        field_value,
-                    )
+                or self._slack_classic_header_field(
+                    field_title,
+                    field_value,
                 )
             ):
                 header_fields.append(block_text)
                 continue
 
-            if compact_source:
-                body_parts.append(block_text["text"])
-                continue
-
-            blocks.append(
-                {
-                    "type": "section",
-                    "text": block_text,
-                }
-            )
+            body_parts.append(block_text["text"])
 
         if header_fields:
             header["fields"] = header_fields[:10]
@@ -239,7 +216,7 @@ class SlackFormatter(PresentationMixin):
 
     @staticmethod
     def _slack_classic_header_field(title, value):
-        """Keep compact first-batch fields inside the shared header block."""
+        """Keep normal-sized Classic fields inside the shared header block."""
 
         rendered = str(value or "").strip()
         if not rendered:
