@@ -193,3 +193,56 @@ def test_xo_slack_classic_card_contract_is_unchanged():
     assert attachment["footer"] == CLASSIC_FOOTER
     assert attachment["thumb_url"].endswith("/xen-orchestra.png")
     assert "Body Timeout Error" in str(attachment)
+
+def test_grafana_slack_classic_links_use_native_slack_mrkdwn():
+    formatter = SlackFormatter()
+    item = notification("grafana")
+    item.metadata.update(
+        {
+            "dashboard_url": "https://grafana.example.invalid/d/service",
+            "panel_url": "https://grafana.example.invalid/d/service?viewPanel=7",
+            "rule_url": "https://grafana.example.invalid/alerting/rules/api-latency",
+            "silence_url": "https://grafana.example.invalid/alerting/silence/new",
+        }
+    )
+
+    attachment = formatter.format(item)["attachments"][0]
+    links = next(
+        field["value"]
+        for field in attachment["fields"]
+        if field["title"] == "🔗 Links"
+    )
+
+    assert (
+        "<https://grafana.example.invalid/d/service|Dashboard>"
+        in links
+    )
+    assert (
+        "<https://grafana.example.invalid/d/service?viewPanel=7|Panel>"
+        in links
+    )
+    assert (
+        "<https://grafana.example.invalid/alerting/rules/api-latency|Rule>"
+        in links
+    )
+    assert (
+        "<https://grafana.example.invalid/alerting/silence/new|Silence>"
+        in links
+    )
+    assert "[Dashboard](" not in links
+    assert "[Panel](" not in links
+    assert "[Rule](" not in links
+    assert "[Silence](" not in links
+
+
+def test_slack_classic_link_translation_keeps_unsafe_urls_literal():
+    formatter = SlackFormatter()
+
+    rendered = formatter._slack_classic_mrkdwn(
+        "[Safe](https://example.invalid/view) · "
+        "[Unsafe](javascript:alert(1))"
+    )
+
+    assert "<https://example.invalid/view|Safe>" in rendered
+    assert "[Unsafe](javascript:alert(1))" in rendered
+
