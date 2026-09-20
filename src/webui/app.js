@@ -212,6 +212,7 @@ const state = {
   backupSettings: null,
   backupLastRun: null,
   workspaceErrors: [],
+  workspaceLoadedAt: 0,
   historyRange: "1h",
   auditPageSize: 25,
   avatarEditor: { image: null, scale: 1, x: 0, y: 0, dragging: false, pointerX: 0, pointerY: 0 },
@@ -227,7 +228,7 @@ const state = {
 const SESSION_IDLE_WARNING_MS = 5 * 60 * 1000;
 const SESSION_KEEPALIVE_MIN_INTERVAL_MS = 5 * 60 * 1000;
 const SESSION_ACTIVITY_DEBOUNCE_MS = 750;
-const DESTINATION_STATE_SYNC_INTERVAL_MS = 2 * 1000;
+const DESTINATION_STATE_SYNC_INTERVAL_MS = 5 * 1000;
 let sessionActivityTimer = null;
 let reauthPromise = null;
 let reauthResolve = null;
@@ -758,6 +759,7 @@ function expireSession(options = {}) {
   state.sessionExpiresAt = null;
   state.sessionIdleExpiresAt = null;
   state.lastSessionKeepaliveAt = 0;
+  state.workspaceLoadedAt = 0;
   window.clearTimeout(sessionActivityTimer);
   sessionActivityTimer = null;
   const warning = byId("session-warning");
@@ -858,8 +860,17 @@ async function restoreSession(prefetchedSession = null) {
     if (prefetchedSession) session = await prefetchedSession;
     else session = await request("/session");
   } catch (error) {
-    expireSession({ preserveCache: error instanceof APIError && error.status === 401 });
-    if (!(error instanceof APIError) || ![401, 404].includes(error.status)) {
+    if (error instanceof APIError && error.status === 401) {
+      expireSession({ preserveCache: true });
+      return;
+    }
+    if (error instanceof APIError && error.status === 429) {
+      byId("login-error").textContent = "Nowlert is temporarily rate limited. Retrying…";
+      byId("login-error").hidden = false;
+      window.setTimeout(() => restoreSession(), 1500);
+      return;
+    }
+    if (!(error instanceof APIError) || error.status !== 404) {
       byId("login-error").textContent = error.message || "Nowlert is not reachable.";
       byId("login-error").hidden = false;
     }
@@ -1206,6 +1217,9 @@ async function loadWorkspace() {
       state.routes = value.routes || [];
       state.routeErrors = value.errors || [];
     }],
+    filters: ["Filtering", request("/filters"), (value) => {
+      state.filteringOverview = value;
+    }],
     tokens: ["Event API tokens", request("/tokens"), (value) => { state.tokens = value.tokens; }],
     deliveries: ["Delivery history", initialDeliveryRequest, (value) => { state.deliveries = value.deliveries || []; }],
     audit: ["Audit log", initialAuditRequest, (value) => { state.audit = value.audit_events || []; }],
@@ -1261,6 +1275,13 @@ async function loadWorkspace() {
     state.externalBackups = [];
     state.externalBackupErrors = [];
   }
+  state.workspaceLoadedAt = Date.now();
+  document.dispatchEvent(new CustomEvent("nowlert:workspace-loaded", {
+    detail: {
+      loadedAt: state.workspaceLoadedAt,
+      failures: state.workspaceErrors.map((item) => item.component),
+    },
+  }));
   renderAll();
   const requestedView = requestedAppView();
   if (state.currentView !== requestedView) {
@@ -1357,7 +1378,7 @@ function navigate(view, historyMode = "push") {
       });
     });
   }
-  if (state.user) {
+  if (state.user && view === "destinations") {
     queueMicrotask(() => {
       refreshDestinationState().catch(() => {});
     });
@@ -4754,15 +4775,23 @@ function setSidebarCollapsed(collapsed) {
 function bindEvents() {
   ensureSessionResilienceUi();
   window.setInterval(() => {
-    if (!state.user || document.visibilityState === "hidden") return;
+    if (
+      !state.user
+      || state.currentView !== "destinations"
+      || document.visibilityState === "hidden"
+    ) return;
     refreshDestinationState().catch(() => {});
   }, DESTINATION_STATE_SYNC_INTERVAL_MS);
   window.addEventListener("focus", () => {
-    if (!state.user) return;
+    if (!state.user || state.currentView !== "destinations") return;
     refreshDestinationState().catch(() => {});
   });
   document.addEventListener("visibilitychange", () => {
-    if (!state.user || document.visibilityState !== "visible") return;
+    if (
+      !state.user
+      || state.currentView !== "destinations"
+      || document.visibilityState !== "visible"
+    ) return;
     refreshDestinationState().catch(() => {});
   });
   byId("bootstrap-form").addEventListener("submit", bootstrapAdministrator);

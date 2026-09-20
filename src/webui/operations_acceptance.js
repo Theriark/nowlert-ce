@@ -75,6 +75,36 @@
     }
   }
 
+  function cachedDashboardTimestamp() {
+    const user = authenticatedUserKey();
+    const range = Object.hasOwn(
+      { "10m": true, "1h": true, "1d": true, "1m": true, "1y": true },
+      state.historyRange,
+    ) ? state.historyRange : "1h";
+    if (!user) return 0;
+    try {
+      const key = `nowlert.dashboard-first-paint:v1:${user}:${range}`;
+      const snapshot = JSON.parse(window.sessionStorage.getItem(key) || "null");
+      const savedAt = Number(snapshot?.saved_at || 0);
+      return Number.isFinite(savedAt) && savedAt > 0 ? savedAt : 0;
+    } catch (_error) {
+      return 0;
+    }
+  }
+
+  function workspaceDashboardTimestamp() {
+    const loadedAt = Number(state.workspaceLoadedAt || 0);
+    if (!loadedAt || !state.metrics || !state.filteringOverview) return 0;
+    const failures = new Set((state.workspaceErrors || []).map(item => item.component));
+    if (
+      failures.has("Overview metrics")
+      || failures.has("Delivery history")
+      || failures.has("Filtering")
+      || failures.has("Audit log")
+    ) return 0;
+    return loadedAt;
+  }
+
   function writeStoredRange(scope, value) {
     const key = storageKey(scope);
     if (!key) return;
@@ -155,6 +185,16 @@
     const states = DASHBOARD_FEED_KEYS.map(key => dashboardFeeds[key]);
     const attempted = states.filter(item => item.lastAttempt);
     if (!attempted.length) {
+      const readyAt = Math.max(
+        workspaceDashboardTimestamp(),
+        cachedDashboardTimestamp(),
+      );
+      if (readyAt && now - readyAt <= DASHBOARD_LIVE_MS) {
+        return { name: "Live", kind: "live", detail: `Data updated ${ageText(readyAt, now)}` };
+      }
+      if (readyAt && now - readyAt <= DASHBOARD_STALE_MS) {
+        return { name: "Stale", kind: "stale", detail: `Last good data ${ageText(readyAt, now)}` };
+      }
       return { name: "Connecting", kind: "connecting", detail: "Waiting for dashboard data" };
     }
 
@@ -527,6 +567,10 @@
   polishAdministrationTabs();
   ensureRoutingFlowStatus();
   bindRangePersistence();
+
+  document.addEventListener("nowlert:workspace-loaded", () => {
+    updateDashboardStatus();
+  });
 
   const dashboard = byId("view-dashboard");
   if (dashboard) {

@@ -195,6 +195,11 @@ class PlatformAPI:
             return self._unexpected(path, error)
         if principal is None:
             return APIResponse(401, {"error": "authentication required"})
+        # A valid session refresh is the browser's authentication liveness
+        # check. Do not consume the workspace request budget for it, otherwise
+        # a burst of safe GETs can make a valid session look signed out.
+        if path == "/api/v2/session" and method == "GET":
+            return self._session_endpoint(method, principal)
         session_rate = Principal(
             name=f"platform-session:{principal.session_id}",
             role=principal.role,

@@ -725,8 +725,8 @@
   navigate = function operationsDashboardNavigate(view, historyMode = "push") {
     const result = previousNavigate(view, historyMode);
     syncDashboardChrome();
-    if (view === DASHBOARD_VIEW) {
-        refreshDashboardData(false);
+    if (view === DASHBOARD_VIEW && Number(state.workspaceLoadedAt || 0) > 0) {
+      refreshDashboardData(false);
     }
     return result;
   };
@@ -737,6 +737,19 @@
     renderOperationsDashboard();
     return previousShowApp(session);
   };
+
+  document.addEventListener("nowlert:workspace-loaded", (event) => {
+    if (!state.user) return;
+    dashboardDeliveries = Array.isArray(state.deliveries) ? state.deliveries : [];
+    filterSnapshot = state.filteringOverview && typeof state.filteringOverview === "object"
+      ? state.filteringOverview
+      : null;
+    lastUpdatedAt = Number(event.detail?.loadedAt || state.workspaceLoadedAt || Date.now());
+    if (state.metrics && typeof state.metrics === "object") {
+      saveDashboardSnapshot(state.historyRange);
+    }
+    if (state.currentView === DASHBOARD_VIEW) renderOperationsDashboard();
+  });
 
   const previousExpireSession = expireSession;
   expireSession = function operationsDashboardExpireSession(options = {}) {

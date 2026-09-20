@@ -216,6 +216,24 @@ def test_session_api_exposes_absolute_and_idle_expiry(platform_api):
     assert current.payload["idle_expires_at"] >= response.payload["idle_expires_at"]
 
 
+def test_session_refresh_is_not_consumed_by_workspace_rate_limit(platform_api):
+    headers = login(platform_api)
+
+    class DenyAll:
+        def allow(self, _principal, _client):
+            return False
+
+    platform_api["service"].platform.session_limiter = DenyAll()
+
+    current = call(platform_api, "GET", "/api/v2/session", headers=headers)
+    limited = call(platform_api, "GET", "/api/v2/users", headers=headers)
+
+    assert current.status == 200
+    assert current.payload["user"]["role"] == "admin"
+    assert limited.status == 429
+    assert limited.payload == {"error": "rate limit exceeded"}
+
+
 def test_login_session_cookie_and_csrf_boundary(platform_api):
     denied = call(
         platform_api,

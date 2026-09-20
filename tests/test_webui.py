@@ -949,10 +949,12 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
 def test_destination_state_refreshes_across_signed_in_sessions():
     script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
 
-    assert "DESTINATION_STATE_SYNC_INTERVAL_MS = 2 * 1000" in script
+    assert "DESTINATION_STATE_SYNC_INTERVAL_MS = 5 * 1000" in script
     assert "async function refreshDestinationState()" in script
     assert 'request("/destinations", {' in script
     assert "reauthenticate: false" in script
+    assert 'state.currentView !== "destinations"' in script
+    assert 'if (state.user && view === "destinations") {' in script
     assert 'document.visibilityState === "hidden"' in script
     assert 'window.addEventListener("focus"' in script
     assert 'document.addEventListener("visibilitychange"' in script
@@ -1003,3 +1005,41 @@ def test_private_destination_admin_card_tracks_owner_state_and_matches_read_only
     assert "@media (max-width: 620px)" in destination_css
     assert "grid-template-columns: repeat(2, minmax(0, 1fr)) !important;" in destination_css
 
+def test_refresh_request_budget_and_dashboard_first_paint_regressions():
+    app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
+    dashboard = (ROOT / "src" / "webui" / "operations_dashboard.js").read_text(encoding="utf-8")
+    acceptance = (ROOT / "src" / "webui" / "operations_acceptance.js").read_text(encoding="utf-8")
+
+    # Cross-session destination state stays current without polling every page.
+    assert "const DESTINATION_STATE_SYNC_INTERVAL_MS = 5 * 1000;" in app
+    assert 'state.currentView !== "destinations"' in app
+    assert 'if (state.user && view === "destinations") {' in app
+
+    # The base workspace owns the initial Dashboard data request set, including
+    # filtering, and publishes one readiness event for layered presentation.
+    assert 'filters: ["Filtering", request("/filters"), (value) => {' in app
+    assert "state.workspaceLoadedAt = Date.now();" in app
+    assert 'new CustomEvent("nowlert:workspace-loaded"' in app
+
+    # A temporary 429 must not be interpreted as an expired login.
+    restore_start = app.index("async function restoreSession")
+    restore_end = app.index("function toggleLoginPasswordVisibility", restore_start)
+    restore = app[restore_start:restore_end]
+    assert "error.status === 401" in restore
+    assert "error.status === 429" in restore
+    assert 'window.setTimeout(() => restoreSession(), 1500);' in restore
+    assert "expireSession({ preserveCache: error instanceof APIError" not in restore
+
+    # F5 does not launch the Dashboard's second four-request batch before the
+    # workspace has loaded. The loaded workspace feeds the dashboard directly.
+    assert 'view === DASHBOARD_VIEW && Number(state.workspaceLoadedAt || 0) > 0' in dashboard
+    assert 'document.addEventListener("nowlert:workspace-loaded"' in dashboard
+    assert "dashboardDeliveries = Array.isArray(state.deliveries)" in dashboard
+    assert "filterSnapshot = state.filteringOverview" in dashboard
+
+    # A valid cached/just-loaded dashboard may present Live immediately while
+    # the 30-second refresh loop remains authoritative for subsequent updates.
+    assert "function cachedDashboardTimestamp()" in acceptance
+    assert "function workspaceDashboardTimestamp()" in acceptance
+    assert "Math.max(" in acceptance
+    assert 'document.addEventListener("nowlert:workspace-loaded"' in acceptance
