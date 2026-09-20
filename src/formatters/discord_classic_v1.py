@@ -2098,13 +2098,108 @@ def _render_home_assistant(notification, payload, normalized, metadata):
     )
 
 
-def _render_generic(notification, payload, normalized, metadata):
-    """Render the compact CE Generic fallback Classic card."""
+def _render_redfish(notification, payload, normalized, metadata):
+    """Render an unmatched standard Redfish event as a useful fallback card."""
 
     status = str(normalized.get("status") or "").strip()
     severity = str(
         _metadata_value(metadata, "severity")
         or status
+    ).strip()
+    category = str(
+        normalized.get("category")
+        or "hardware"
+    ).strip()
+    title_text = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or "Redfish event"
+    ).strip()
+    description = str(
+        normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+    provider = str(
+        _metadata_value(metadata, "provider", "vendor")
+        or "Redfish"
+    ).strip()
+    input_type = str(
+        _metadata_value(metadata, "_input_type", "input_type")
+        or "Redfish"
+    ).strip()
+
+    color, icon, lifecycle = _lifecycle(
+        status,
+        severity,
+        state=_metadata_value(metadata, "event_state"),
+    )
+
+    fields: list[dict[str, Any]] = []
+    for field in (
+        _rows_field(
+            f"{icon} Alert",
+            [
+                ("Severity", severity),
+                ("Category", category),
+            ],
+        ),
+        _rows_field(
+            "📍 Source",
+            [
+                ("Input", input_type),
+                ("Provider", provider),
+                ("System", _metadata_value(metadata, "system")),
+            ],
+        ),
+        _rows_field(
+            "🏷️ Event",
+            [
+                ("Registry", _metadata_value(metadata, "registry")),
+                ("Message ID", _metadata_value(metadata, "message_id")),
+                ("Event ID", _metadata_value(metadata, "event_id")),
+                ("Origin", _metadata_value(metadata, "origin")),
+            ],
+        ),
+        _rows_field(
+            "🛠️ Recommended Action",
+            [
+                (
+                    "Action",
+                    _metadata_value(metadata, "recommended_action"),
+                ),
+            ],
+        ),
+        _rows_field(
+            "⏱️ Timing",
+            [("Started", normalized.get("start_time"))],
+        ),
+    ):
+        if field is not None:
+            fields.append(field)
+
+    return _finish(
+        {
+            "title": f"{icon} {title_text} — {lifecycle}"[:256],
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
+        payload,
+    )
+
+
+def _render_generic(notification, payload, normalized, metadata):
+    """Render a useful transport-aware card for unmatched generic events."""
+
+    status = str(normalized.get("status") or "").strip()
+    severity = str(
+        _metadata_value(metadata, "severity")
+        or status
+        or "information"
+    ).strip()
+    category = str(
+        normalized.get("category")
+        or "event"
     ).strip()
     title_text = str(
         normalized.get("title")
@@ -2116,10 +2211,14 @@ def _render_generic(notification, payload, normalized, metadata):
         or title_text
     ).strip()[:4096]
 
-    source = str(
+    provider = str(
         _metadata_value(metadata, "provider")
         or normalized.get("source")
         or "generic"
+    ).strip()
+    input_type = str(
+        _metadata_value(metadata, "_input_type", "input_type")
+        or ""
     ).strip()
     device = str(
         _metadata_value(
@@ -2128,6 +2227,11 @@ def _render_generic(notification, payload, normalized, metadata):
             "device",
             "instance",
         )
+        or ""
+    ).strip()
+    sender = str(
+        _metadata_value(metadata, "sender")
+        or normalized.get("sender")
         or ""
     ).strip()
 
@@ -2145,6 +2249,7 @@ def _render_generic(notification, payload, normalized, metadata):
     color, icon, lifecycle = _lifecycle(
         status,
         severity,
+        state=_metadata_value(metadata, "event_state"),
     )
 
     fields: list[dict[str, Any]] = []
@@ -2156,18 +2261,37 @@ def _render_generic(notification, payload, normalized, metadata):
     append(
         _rows_field(
             f"{icon} Alert",
-            [("Severity", severity)],
+            [
+                ("Severity", severity),
+                ("Category", category),
+            ],
         )
     )
     append(
         _rows_field(
             "📍 Source",
             [
-                ("Source", source),
-                ("Device", device),
+                ("Input", input_type),
+                ("Provider", provider),
+                ("Host", device),
             ],
         )
     )
+    recipient = str(
+        _metadata_value(metadata, "to")
+        or ""
+    ).strip()
+    if input_type.casefold() == "smtp" or sender or recipient:
+        append(
+            _rows_field(
+                "✉️ Email",
+                [
+                    ("Sender", sender),
+                    ("Recipient", recipient),
+                    ("Message ID", _metadata_value(metadata, "message_id")),
+                ],
+            )
+        )
     append(
         _rows_field(
             "🧩 Context",
@@ -2180,13 +2304,19 @@ def _render_generic(notification, payload, normalized, metadata):
                     "Component",
                     _metadata_value(metadata, "component"),
                 ),
+                ("Format", _metadata_value(metadata, "format")),
             ],
         )
     )
     append(
         _rows_field(
             "⏱️ Timing",
-            [("Started", formatted_time)],
+            [
+                (
+                    "Started",
+                    formatted_time or normalized.get("start_time"),
+                ),
+            ],
         )
     )
 
@@ -2214,6 +2344,7 @@ _RENDERERS = {
     "unifi_protect": _render_unifi_protect,
     "unifi_drive": _render_unifi_drive,
     "home_assistant": _render_home_assistant,
+    "redfish": _render_redfish,
 }
 
 
@@ -2244,8 +2375,6 @@ def render_classic_embed_v1(notification, payload):
 
     renderer = _RENDERERS.get(source)
     if renderer is None:
-        if source == "redfish":
-            return payload
         return _render_generic(
             notification,
             payload,

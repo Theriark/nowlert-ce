@@ -215,10 +215,11 @@ def test_generic_fallback_uses_ce_classic_footer_and_compact_sections():
         "🧩 Context",
         "⏱️ Timing",
     ]
-    assert values["⚠️ Alert"] == "**Severity:** `warning`"
+    assert "**Severity:** `warning`" in values["⚠️ Alert"]
+    assert "**Category:** `event`" in values["⚠️ Alert"]
+    assert "**Host:** `SYNTHETIC-HOST`" in values["📍 Source"]
     assert "**Environment:** `development`" in values["🧩 Context"]
     assert embed["url"] == "https://example.invalid/event/1"
 
     rendered = json.dumps(embed, ensure_ascii=False)
-    assert "Category" not in rendered
     assert "Theriark • Nowlert" not in rendered

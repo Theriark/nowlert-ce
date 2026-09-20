@@ -172,6 +172,10 @@ class APIService:
             parsed = self.dispatcher.parse_webhook("event_api", payload)
             if parsed is None or not principal.allows(parsed.source):
                 return 403, None
+            parsed.metadata = dict(
+                getattr(parsed, "metadata", None) or {}
+            )
+            parsed.metadata.setdefault("_input_type", "HTTP")
             delivered = self.router.route(parsed)
             return 202, {"accepted": True, "delivered": bool(delivered)}
         if path == "/api/config":
@@ -199,6 +203,10 @@ class APIService:
             parsed = self.dispatcher.parse_webhook("event_api", event)
             if parsed is None:
                 raise ValueError("invalid preview event")
+            parsed.metadata = dict(
+                getattr(parsed, "metadata", None) or {}
+            )
+            parsed.metadata.setdefault("_input_type", "HTTP")
             if path == "/api/test-send":
                 return 200, {"delivered": bool(self.router.route(parsed))}
             return 200, {"preview": self._preview(parsed, payload.get("output"))}
