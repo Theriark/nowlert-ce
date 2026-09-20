@@ -314,12 +314,9 @@ def test_home_assistant_discord_keeps_tags_internal_only():
     item = Parser().parse(fixture())
     item.metadata["tags"] = "office, temperature"
     embed = HomeAssistantDiscordFormatter().format(item)["embeds"][0]
-    details = next(
-        field
-        for field in embed["fields"]
-        if field["name"] == "🔎 Source Details"
-    )
 
-    assert "Tags" not in details["value"]
-    assert "office, temperature" not in details["value"]
+    assert "🔎 Source Details" not in {
+        field["name"] for field in embed["fields"]
+    }
+    assert "office, temperature" not in repr(embed)
     assert item.metadata["tags"] == "office, temperature"
