@@ -57,7 +57,13 @@ def test_timeout_preserves_display_cache_but_explicit_signout_purges_it():
     routing = read("src/webui/routing_flow.js")
     filtering = read("src/webui/filtering.js")
 
-    assert "expireSession({ preserveCache: error instanceof APIError && error.status === 401 });" in app
+    restore_start = app.index("async function restoreSession")
+    restore_end = app.index("function toggleLoginPasswordVisibility", restore_start)
+    restore = app[restore_start:restore_end]
+    assert "error.status === 401" in restore
+    assert "expireSession({ preserveCache: true });" in restore
+    assert "error.status === 429" in restore
+    assert "window.setTimeout(() => restoreSession(), 1500);" in restore
     assert "expireSession({ preserveCache: false });" in app
 
     assert "if (options.preserveCache !== true) qaClearWorkspaceCache();" in qa

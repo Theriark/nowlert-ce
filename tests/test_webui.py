@@ -213,16 +213,16 @@ def test_webui_markup_is_semantic_external_and_complete():
     for retired in ("notice-console", "notice-composer", "notice-form", "notice-panel", "notice-list"):
         assert retired not in inspector.ids
     assert inspector.scripts == [
-        "/ui/app.js?v=20260920-r53",
+        "/ui/app.js?v=20260920-r52",
         "/ui/enhancements.js",
-        "/ui/qa_patch.js?v=20260920-r53",
+        "/ui/qa_patch.js?v=20260920-r52",
         "/ui/i18n.js",
         "/ui/dashboard.js",
     ]
     assert inspector.stylesheets == [
         "/ui/styles.css",
         "/ui/enhancements.css",
-        "/ui/qa_patch.css?v=20260920-r53",
+        "/ui/qa_patch.css?v=20260920-r52",
         "/ui/professional.css",
     ]
     assert inspector.inline_handlers == []
@@ -924,9 +924,9 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
     assert response is not None and response.status == 200
     markup = response.body.decode("utf-8")
 
-    assert 'name="nowlert-ui-build" content="20260920-r53"' in markup
-    assert "/ui/app.js?v=20260920-r53" in markup
-    assert "/ui/qa_patch.css?v=20260920-r53" in markup
+    assert 'name="nowlert-ui-build" content="20260920-r52"' in markup
+    assert "/ui/app.js?v=20260920-r52" in markup
+    assert "/ui/qa_patch.css?v=20260920-r52" in markup
 
     # Every runtime extension receives the same build key so a newly deployed
     # WebUI cannot keep executing an older extension bundle.
@@ -949,10 +949,12 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
 def test_destination_state_refreshes_across_signed_in_sessions():
     script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
 
-    assert "DESTINATION_STATE_SYNC_INTERVAL_MS = 2 * 1000" in script
+    assert "DESTINATION_STATE_SYNC_INTERVAL_MS = 5 * 1000" in script
     assert "async function refreshDestinationState()" in script
     assert 'request("/destinations", {' in script
     assert "reauthenticate: false" in script
+    assert 'state.currentView !== "destinations"' in script
+    assert 'if (state.user && view === "destinations") {' in script
     assert 'document.visibilityState === "hidden"' in script
     assert 'window.addEventListener("focus"' in script
     assert 'document.addEventListener("visibilitychange"' in script
@@ -1041,4 +1043,3 @@ def test_refresh_request_budget_and_dashboard_first_paint_regressions():
     assert "function workspaceDashboardTimestamp()" in acceptance
     assert "Math.max(" in acceptance
     assert 'document.addEventListener("nowlert:workspace-loaded"' in acceptance
-
