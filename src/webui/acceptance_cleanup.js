@@ -247,6 +247,7 @@
       item.name || "",
       item.output_type || "",
       item.owner_username || "",
+      item.enabled === true,
     ]));
   }
 

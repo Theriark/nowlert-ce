@@ -126,6 +126,10 @@ def test_admin_gets_private_resource_metadata_without_private_configuration(tmp_
     assert "settings" not in destination_metadata[0]
     assert "route_ids" not in destination_metadata[0]
 
+    destinations.set_enabled(user.actor, private.id, False)
+    refreshed_metadata = access.private_destination_metadata(admin.actor)
+    assert refreshed_metadata[0]["enabled"] is False
+
     filter_metadata = access.private_filter_metadata(admin.actor)
     assert filter_metadata[0]["destination_id"] == private.id
     assert filter_metadata[0]["owner_username"] == "private-owner"
