@@ -194,6 +194,7 @@ def test_truenas_and_unifi_network_sections_do_not_need_show_more():
     formatter = SlackFormatter()
 
     unifi = notification("unifi_network")
+    unifi.duration = "5m 30s"
     unifi.metadata.update(
         {
             "controller": "synthetic-controller.example.invalid",
@@ -203,7 +204,6 @@ def test_truenas_and_unifi_network_sections_do_not_need_show_more():
             "last_device_name": "SYNTHETIC-AP",
             "last_device_model": "Synthetic AP",
             "wifi_rssi": "-60 dBm",
-            "duration": "5m 30s",
         }
     )
     unifi_blocks = formatter.format(unifi)["attachments"][0]["blocks"]
