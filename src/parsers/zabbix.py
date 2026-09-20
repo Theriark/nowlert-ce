@@ -22,7 +22,7 @@ from models import Notification
 
 class Parser:
     """
-    Parse Zabbix problem and recovery email notifications.
+    Parse Zabbix problem, update, and recovery email notifications.
     """
 
     def parse(
@@ -300,6 +300,25 @@ class Parser:
                 raw_event_time,
             )
 
+        elif event_type == "update":
+
+            raw_event_time = (
+                fields.get(
+                    "problem updated",
+                    "",
+                )
+                or fields.get(
+                    "event time",
+                    "",
+                )
+            )
+
+            notification.status = "failure"
+
+            notification.start_time = self._normalize_datetime(
+                raw_event_time,
+            )
+
         else:
 
             raw_event_time = fields.get(
@@ -351,6 +370,14 @@ class Parser:
 
             return "recovery"
 
+        if (
+            "problem updated" in fields
+            or subject_lower.startswith("problem update:")
+            or subject_lower.startswith("problem updated:")
+        ):
+
+            return "update"
+
         return "problem"
 
     def _problem_name_from_subject(
@@ -364,6 +391,13 @@ class Parser:
 
         subject = re.sub(
             r"^Problem:\s*",
+            "",
+            subject,
+            flags=re.IGNORECASE,
+        )
+
+        subject = re.sub(
+            r"^Problem update(?:d)?:\s*",
             "",
             subject,
             flags=re.IGNORECASE,

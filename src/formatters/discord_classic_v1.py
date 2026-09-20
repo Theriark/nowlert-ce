@@ -284,6 +284,7 @@ _ZABBIX_RECOGNIZED = {
     "problem name", "host", "severity", "operational data", "original problem id",
     "trigger expression", "event tags", "runbook", "problem duration", "update action",
     "update message", "current problem status", "acknowledged", "event time",
+    "problem started", "problem updated", "problem has been resolved",
 }
 
 
@@ -319,30 +320,21 @@ def _render_zabbix(notification, payload, normalized, metadata):
         problem_name = "🚨 Problem"
 
     fields: list[dict[str, Any]] = []
+
     def append(field):
         if field is not None:
             fields.append(field)
 
-    append(_rows_field(problem_name, [("Name", problem), ("Host", host), ("Severity", severity)]))
+    append(_rows_field(problem_name, [("Host", host), ("Severity", severity)]))
     append(_field("📈 Operational Data", _code(metadata.get("operational_data") or source_fields.get("operational data"))))
     append(_field("🧪 Trigger", _code(source_fields.get("trigger expression"))))
-    append(_field("🏷️ Event Tags", _code(source_fields.get("event tags"))))
     append(_field("🆔 Problem ID", _code(metadata.get("problem_id") or source_fields.get("original problem id"))))
-    if event_type == "update":
-        append(_rows_field("🔄 Update", [
-            ("Action", metadata.get("update_action") or source_fields.get("update action")),
-            ("Message", metadata.get("update_message") or source_fields.get("update message")),
-            ("Current Status", source_fields.get("current problem status")),
-            ("Acknowledged", source_fields.get("acknowledged")),
-        ]))
     time_label = {"problem": "Started", "update": "Updated", "recovery": "Resolved"}[event_type]
     append(_rows_field("⏱️ Timing", [
         (time_label, metadata.get("event_time") or normalized.get("end_time") or normalized.get("start_time")),
         ("Duration", normalized.get("duration") or source_fields.get("problem duration")),
     ]))
     append(_field("📘 Runbook", _code(source_fields.get("runbook"))))
-    append(_rows_field("📧 Email", [("From", normalized.get("sender")), ("To", _metadata_value(metadata, "to", "recipient"))]))
-    append(_field("✉️ Subject", _code(normalized.get("subject"))))
 
     for raw_label, raw_value in source_fields.items():
         label = _normal_words(raw_label)
@@ -355,6 +347,7 @@ def _render_zabbix(notification, payload, normalized, metadata):
         payload,
         preserve=("thumbnail", "url", "timestamp"),
     )
+
 
 
 _GRAFANA_RECOGNIZED = {
