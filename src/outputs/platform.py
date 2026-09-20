@@ -313,6 +313,7 @@ class WebhookPlatformAdapter(_HTTPAdapter):
             http_client=self.http_client,
             resolver=self.resolver,
         )
+        self.discord_preview = self.discord
 
     @staticmethod
     def _presentation(payload: dict, style: str) -> dict:
@@ -341,6 +342,62 @@ class WebhookPlatformAdapter(_HTTPAdapter):
         }
 
     @staticmethod
+    def _classic_card_from_discord_payload(payload: dict) -> dict:
+        embeds = payload.get("embeds") if isinstance(payload, dict) else None
+        if (
+            not isinstance(embeds, list)
+            or not embeds
+            or not isinstance(embeds[0], dict)
+        ):
+            raise ValueError(
+                "Discord Classic preview did not produce a Classic preview embed"
+            )
+
+        embed = embeds[0]
+        fields = embed.get("fields")
+        if not isinstance(fields, list):
+            fields = []
+
+        presentation = {
+            "style": "classic_card_v1",
+            "title": str(embed.get("title") or ""),
+            "description": str(embed.get("description") or ""),
+            "color": embed.get("color"),
+            "fields": [
+                {
+                    "title": str(field.get("name") or ""),
+                    "value": str(field.get("value") or ""),
+                    "inline": bool(field.get("inline", False)),
+                }
+                for field in fields
+                if isinstance(field, dict)
+            ],
+        }
+
+        footer = embed.get("footer")
+        if isinstance(footer, dict) and footer.get("text"):
+            presentation["footer"] = str(footer["text"])
+
+        for key in ("timestamp", "url"):
+            if embed.get(key):
+                presentation[key] = embed[key]
+
+        return presentation
+
+    def _classic_presentation(self, destination, notification) -> dict:
+        discord_destination = self._discord_destination(
+            destination,
+            "classic",
+        )
+        preview = self.discord_preview.preview(
+            discord_destination,
+            notification,
+        )
+        return self._classic_card_from_discord_payload(
+            preview.payload
+        )
+
+    @staticmethod
     def _is_discord_webhook(url: str) -> bool:
         host = str(urlsplit(url).hostname or "").casefold()
         return (
@@ -364,10 +421,16 @@ class WebhookPlatformAdapter(_HTTPAdapter):
             require_complete=True,
         )
         payload = safe_event_envelope(notification)
-        payload["presentation"] = self._presentation(
-            payload,
-            settings["message_style"],
-        )
+        if settings["message_style"] == "classic":
+            payload["presentation"] = self._classic_presentation(
+                destination,
+                notification,
+            )
+        else:
+            payload["presentation"] = self._presentation(
+                payload,
+                settings["message_style"],
+            )
         return OutputPreview(
             "webhook",
             "application/json",

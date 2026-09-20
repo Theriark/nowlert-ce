@@ -2,7 +2,12 @@
 
 ## Unreleased
 
-- No unreleased changes recorded after the v3.1.2 release candidate.
+### Changed
+
+- Generic Webhook Classic now reuses the approved source-specific Discord
+  Classic presentation and exposes it as destination-neutral
+  `classic_card_v1` metadata inside the existing `nowlert.event.v1`
+  envelope, without changing Generic Webhook Modern or transport behavior.
 
 ## 3.1.2 - 2026-08-20
 

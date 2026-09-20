@@ -94,6 +94,186 @@ def notification():
     )
 
 
+CLASSIC_PARITY_SOURCES = (
+    "xo",
+    "zabbix",
+    "grafana",
+    "portainer",
+    "proxmox",
+    "qnap",
+    "synology",
+    "truenas",
+    "unifi_network",
+    "unifi_protect",
+    "unifi_drive",
+    "redfish",
+    "supermicro",
+    "hpe_ilo",
+    "dell_idrac",
+    "home_assistant",
+    "unknown_product",
+)
+
+
+def notification_for_source(source: str) -> Notification:
+    item = notification()
+    item.source = source
+    item.category = {
+        "xo": "backup",
+        "zabbix": "monitoring",
+        "grafana": "monitoring",
+        "portainer": "containers",
+        "proxmox": "storage",
+        "qnap": "storage",
+        "synology": "storage",
+        "truenas": "storage",
+        "unifi_network": "network",
+        "unifi_protect": "security",
+        "unifi_drive": "backup",
+        "redfish": "hardware",
+        "supermicro": "hardware",
+        "hpe_ilo": "hardware",
+        "dell_idrac": "hardware",
+        "home_assistant": "automation",
+        "unknown_product": "event",
+    }[source]
+    item.status = "warning"
+    item.title = f"Synthetic {source} event"
+    item.subject = f"Synthetic {source} subject"
+    item.body = f"Synthetic {source} operational detail."
+    item.job_name = "Synthetic backup job"
+    item.job_id = "JOB-WEBHOOK"
+    item.run_id = "RUN-WEBHOOK"
+    item.mode = "full"
+    item.repository = "SYNTHETIC-REPOSITORY"
+    item.transfer_size = "52.06 GiB"
+    item.transfer_speed = "33.73 MiB/s"
+    item.end_time = "2026-07-21T22:05:00+00:00"
+    item.duration = "5 min"
+    item.vm_total = 3
+    item.vm_success = 2
+    item.vm_failed = 1
+    item.successful_vms = ["VM-OK-1", "VM-OK-2"]
+    item.failed_vms = ["VM-FAILED"]
+    item.errors = ["Synthetic failure"]
+    item.vm_details = {
+        "VM-OK-1": {"size": "18 GiB", "speed": "30 MiB/s"},
+        "VM-OK-2": {"size": "12 GiB", "speed": "29 MiB/s"},
+        "VM-FAILED": {"error": "Synthetic timeout"},
+    }
+    item.metadata.update(
+        {
+            "_input_type": "HTTP",
+            "provider": {
+                "supermicro": "Supermicro BMC",
+                "hpe_ilo": "HPE iLO",
+                "dell_idrac": "Dell iDRAC",
+                "home_assistant": "Home Assistant",
+                "unknown_product": "Synthetic Generic Provider",
+            }.get(source, source),
+            "hostname": "SYNTHETIC-HOST",
+            "system": "SYNTHETIC-SYSTEM",
+            "nas_name": "SYNTHETIC-NAS",
+            "model": "SYNTHETIC-MODEL",
+            "application": "Synthetic App",
+            "event_type": "storage warning",
+            "message": f"Synthetic {source} operational detail.",
+            "alert_name": "Synthetic alert",
+            "alert_rule": "Synthetic rule",
+            "rule_name": "Synthetic rule",
+            "alert_count": 1,
+            "folder": "Synthetic folder",
+            "organization": "Synthetic org",
+            "dashboard": "Synthetic dashboard",
+            "panel": "Synthetic panel",
+            "datasource": "Synthetic datasource",
+            "values": {"value": "42"},
+            "labels": {"environment": "development"},
+            "instance": "SYNTHETIC-INSTANCE",
+            "alert_source": "Synthetic area",
+            "authentication_method": "local",
+            "username": "synthetic",
+            "metric": "synthetic_metric",
+            "current_value": "42",
+            "threshold": "40",
+            "window": "5m",
+            "node": "PVE-01",
+            "guest": "VM-100",
+            "vmid": "100",
+            "storage": "local-zfs",
+            "used_percent": "71",
+            "storage_pool": "SYNTHETIC-POOL",
+            "controller": "SYNTHETIC-CONTROLLER",
+            "client_display_name": "SYNTHETIC-CLIENT",
+            "client_ip": "192.0.2.40",
+            "client_mac": "00:11:22:33:44:55",
+            "network_name": "SYNTHETIC-LAN",
+            "network_vlan": "20",
+            "wifi_name": "SYNTHETIC-WIFI",
+            "wifi_band": "5 GHz",
+            "wifi_channel": "44",
+            "wifi_rssi": "-51 dBm",
+            "last_device_name": "SYNTHETIC-AP",
+            "last_device_model": "Synthetic AP",
+            "trigger_key": "motion",
+            "trigger_label": "Motion",
+            "trigger_device": "SYNTHETIC-CAMERA",
+            "alarm_name": "Synthetic alarm",
+            "condition_source": "camera",
+            "condition_operator": "is",
+            "event_link": "https://example.test/event/webhook",
+            "backup_task": "Synthetic backup",
+            "area": "Synthetic area",
+            "service": "synthetic.service",
+            "entity_id": "sensor.synthetic",
+            "device": "Synthetic Device",
+            "component": "synthetic_component",
+            "endpoint": "/api/synthetic",
+            "error_code": "SYNTHETIC",
+            "retry_seconds": "30",
+            "tags": ["development", "synthetic"],
+            "sensor": "Synthetic sensor",
+            "registry": "Synthetic.Registry",
+            "message_id": "Synthetic.Message",
+            "origin": "/redfish/v1/Systems/1",
+            "problem_name": "Synthetic Zabbix problem",
+            "operational_data": "Synthetic operational state",
+            "problem_id": "4001",
+            "fields": {
+                "trigger expression": "last(/host/key)>40",
+                "event tags": "env:development",
+                "runbook": "https://example.test/runbook",
+                "original problem id": "4001",
+            },
+        }
+    )
+    return item
+
+
+def neutral_classic_from_embed(embed: dict) -> dict:
+    result = {
+        "style": "classic_card_v1",
+        "title": embed.get("title", ""),
+        "description": embed.get("description", ""),
+        "color": embed.get("color"),
+        "fields": [
+            {
+                "title": field.get("name", ""),
+                "value": field.get("value", ""),
+                "inline": bool(field.get("inline", False)),
+            }
+            for field in embed.get("fields", [])
+        ],
+    }
+    footer = embed.get("footer")
+    if isinstance(footer, dict) and footer.get("text"):
+        result["footer"] = footer["text"]
+    for key in ("timestamp", "url"):
+        if embed.get(key):
+            result[key] = embed[key]
+    return result
+
+
 def fast_hash(password: str) -> str:
     return hash_password(password, salt=b"\x05" * 16, iterations=1_000)
 
@@ -210,6 +390,154 @@ def test_webhook_preview_uses_stable_secret_safe_envelope_and_ignores_legacy_tem
     assert legacy.payload["metadata"]["api_key"] == "<redacted>"
     assert legacy.payload["presentation"]["style"] == "modern_card"
     assert "summary" not in legacy.payload
+
+
+@pytest.mark.parametrize("source", CLASSIC_PARITY_SOURCES)
+def test_webhook_classic_preview_matches_approved_discord_classic_geometry(source):
+    item = notification_for_source(source)
+    webhook_adapter = WebhookPlatformAdapter(resolver=public_resolver)
+    discord_adapter = DiscordPlatformAdapter(resolver=public_resolver)
+
+    webhook_preview = webhook_adapter.preview(
+        destination("webhook", {"message_style": "classic"}),
+        item,
+    )
+    discord_preview = discord_adapter.preview(
+        destination("discord", {"components_v2": False}),
+        item,
+    )
+
+    embed = discord_preview.payload["embeds"][0]
+    presentation = webhook_preview.payload["presentation"]
+
+    assert webhook_preview.payload["schema"] == "nowlert.event.v1"
+    assert presentation == neutral_classic_from_embed(embed), source
+    assert "embeds" not in webhook_preview.payload
+    assert "attachments" not in webhook_preview.payload
+
+
+def test_webhook_classic_grafana_contains_source_specific_sections():
+    preview = WebhookPlatformAdapter(resolver=public_resolver).preview(
+        destination("webhook", {"message_style": "classic"}),
+        notification_for_source("grafana"),
+    )
+    names = [
+        field["title"]
+        for field in preview.payload["presentation"]["fields"]
+    ]
+
+    assert preview.payload["presentation"]["style"] == "classic_card_v1"
+    assert "📣 Alert" in names
+    assert "📂 Rule" in names
+    assert "⏱️ Timing" in names
+    assert names != ["severity", "status", "source", "category"]
+
+
+@pytest.mark.parametrize(
+    ("source", "identity"),
+    (
+        ("supermicro", "🖥️ Supermicro BMC"),
+        ("hpe_ilo", "🖥️ HPE iLO"),
+        ("dell_idrac", "🖥️ Dell iDRAC"),
+    ),
+)
+def test_webhook_classic_hardware_reuses_discord_hardware_sections(
+    source,
+    identity,
+):
+    preview = WebhookPlatformAdapter(resolver=public_resolver).preview(
+        destination("webhook", {"message_style": "classic"}),
+        notification_for_source(source),
+    )
+    names = [
+        field["title"]
+        for field in preview.payload["presentation"]["fields"]
+    ]
+
+    assert identity in names
+    assert "🔎 Hardware Event" in names
+
+
+def test_webhook_modern_presentation_contract_is_unchanged():
+    preview = WebhookPlatformAdapter(resolver=public_resolver).preview(
+        destination("webhook", {"message_style": "modern"}),
+        notification(),
+    )
+
+    assert preview.payload["presentation"] == {
+        "style": "modern_card",
+        "title": "Database latency",
+        "message": "token=<redacted> latency is high",
+        "facts": [
+            {"label": "Severity", "value": "critical"},
+            {"label": "Status", "value": "firing"},
+            {"label": "Source", "value": "grafana"},
+            {"label": "Category", "value": "alert"},
+        ],
+    }
+
+
+def test_classic_card_conversion_rejects_missing_embed():
+    with pytest.raises(ValueError, match="Classic preview"):
+        WebhookPlatformAdapter._classic_card_from_discord_payload({})
+
+
+def test_classic_card_conversion_omits_missing_optional_members_and_defaults_inline():
+    converted = WebhookPlatformAdapter._classic_card_from_discord_payload(
+        {
+            "embeds": [
+                {
+                    "title": "Synthetic",
+                    "description": "Synthetic detail",
+                    "color": 123,
+                    "fields": [{"name": "Field", "value": "Value"}],
+                }
+            ]
+        }
+    )
+
+    assert converted == {
+        "style": "classic_card_v1",
+        "title": "Synthetic",
+        "description": "Synthetic detail",
+        "color": 123,
+        "fields": [
+            {"title": "Field", "value": "Value", "inline": False}
+        ],
+    }
+
+
+def test_webhook_classic_presentation_remains_secret_safe():
+    item = notification()
+    item.body = "Bearer private-token must be scrubbed"
+    item.metadata["api_key"] = "private-api-key"
+
+    preview = WebhookPlatformAdapter(resolver=public_resolver).preview(
+        destination("webhook", {"message_style": "classic"}),
+        item,
+    )
+    encoded = json.dumps(preview.payload, sort_keys=True)
+
+    assert "private-token" not in encoded
+    assert "private-api-key" not in encoded
+    assert "<redacted>" in encoded
+
+
+def test_webhook_classic_unknown_source_uses_generic_fallback():
+    preview = WebhookPlatformAdapter(resolver=public_resolver).preview(
+        destination("webhook", {"message_style": "classic"}),
+        notification_for_source("unknown_product"),
+    )
+    names = [
+        field["title"]
+        for field in preview.payload["presentation"]["fields"]
+    ]
+
+    assert "📍 Source" in names
+    assert preview.payload["presentation"]["footer"] == (
+        "🦉 Nowlert CE • Classic Card"
+    )
+
 
 
 def test_http_delivery_maps_retryable_and_terminal_status_without_response_body():

@@ -63,13 +63,49 @@ builder. Operators provide a webhook URL, a destination label, and select one of
 two Nowlert presentation models:
 
 - **Modern Card** (default) — structured card-style presentation metadata; or
-- **Classic Card** — compact embed-style presentation metadata.
+- **Classic Card** — the same approved source-specific Classic information
+  hierarchy used by Discord Classic, encoded as destination-neutral
+  `classic_card_v1` JSON.
 
 Both modes send the stable, versioned `nowlert.event.v1` envelope. Metadata is
 bounded recursively and credential-like keys are redacted. The selected
 presentation is included under the envelope's `presentation` object so a generic
 receiver can render the event without requiring operators to author JSON
 payloads in the WebUI.
+
+Classic mode does not send a Discord webhook payload. Nowlert renders the
+approved Discord Classic presentation first, then converts its title,
+description, color, ordered fields, footer, and optional URL/timestamp into the
+`presentation` object inside the stable event envelope. Discord-only `embeds`,
+attachments, webhook query parameters, and media-upload semantics are not
+exposed to generic receivers.
+
+For example:
+
+```json
+{
+  "schema": "nowlert.event.v1",
+  "source": "grafana",
+  "presentation": {
+    "style": "classic_card_v1",
+    "title": "🚨 Database latency — Firing",
+    "description": "Database latency is high.",
+    "color": 15158332,
+    "fields": [
+      {
+        "title": "🚨 Alert",
+        "value": "**Severity:** `critical`",
+        "inline": false
+      }
+    ],
+    "footer": "🦉 Nowlert CE • Classic Card"
+  }
+}
+```
+
+Automation consumers should use the stable event-envelope fields for routing and
+logic. The `presentation` object is rendering metadata for receivers that want
+to reproduce Nowlert's approved card presentation.
 
 Delivery uses a fixed HTTPS `POST` with JSON, a 15-second timeout, and the
 `X-Nowlert-Idempotency-Key` header. The WebUI does not expose request methods,
