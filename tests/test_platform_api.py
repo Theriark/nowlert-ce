@@ -312,13 +312,36 @@ def test_secure_cookie_defaults_use_host_prefix_and_strict_attributes(platform_a
     )
     cookies = [value for name, value in response.headers if name == "Set-Cookie"]
 
+    prefix = "__Host-" if secure else ""
     assert len(cookies) == 1
-    assert cookies[0].startswith("__Host-nowlert_session=")
-    assert "; Secure" in cookies[0]
+    assert cookies[0].startswith(f"{prefix}nowlert_session=")
+    assert ("; Secure" in cookies[0]) is secure
     assert "SameSite=Strict" in cookies[0]
+    assert "; Path=/;" in cookies[0]
+    assert "domain=" not in cookies[0].casefold()
     assert ("Cache-Control", "no-store") in response.headers
     assert "HttpOnly" in next(item for item in cookies if "session=" in item)
     assert not any("csrf=" in item for item in cookies)
+    mode = "secure" if secure else "standard"
+    assert response.payload["cookie_mode"] == mode
+
+    headers = {
+        "Cookie": cookies[0].split(";", 1)[0],
+        "X-CSRF-Token": response.payload["csrf_token"],
+    }
+    current = call(platform_api, "GET", "/api/v2/session", headers=headers)
+    assert current.status == 200
+    assert current.payload["cookie_mode"] == mode
+    assert current.payload["user"] == response.payload["user"]
+    logout = call(platform_api, "DELETE", "/api/v2/session", headers=headers)
+    assert logout.status == 204
+    cleared = next(
+        value for name, value in logout.headers
+        if name == "Set-Cookie" and value.startswith(f"{prefix}nowlert_session=")
+    )
+    assert "Max-Age=0" in cleared
+    assert ("; Secure" in cleared) is secure
+    assert call(platform_api, "GET", "/api/v2/session", headers=headers).status == 401
 
 
 def test_admin_portability_preview_apply_and_v1_secret_redaction(platform_api):
@@ -1329,7 +1352,7 @@ def test_first_run_bootstrap_creates_admin_session_and_consumes_token(
     cookies = [value for name, value in created.headers if name == "Set-Cookie"]
     assert len(cookies) == 1
     assert "HttpOnly" in cookies[0] and "SameSite=Strict" in cookies[0]
-    assert "; Secure" in cookies[0]
+    assert ("; Secure" in cookies[0]) is secure
     assert ("Cache-Control", "no-store") in created.headers
     assert created.payload["csrf_token"].encode() not in database.path.read_bytes()
     logout = service.handle_http(
