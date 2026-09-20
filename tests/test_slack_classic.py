@@ -164,6 +164,34 @@ def test_first_batch_slack_cards_stay_compact_without_show_more_layout():
         }
 
 
+def test_remaining_dedicated_slack_cards_stay_compact_without_show_more_layout():
+    formatter = SlackFormatter()
+
+    for source in (
+        "truenas",
+        "unifi_network",
+        "unifi_protect",
+        "unifi_drive",
+        "home_assistant",
+        "redfish",
+        "supermicro",
+        "hpe_ilo",
+        "dell_idrac",
+    ):
+        payload = formatter.format(notification(source))
+        attachment = payload["attachments"][0]
+        blocks = attachment["blocks"]
+
+        assert len(blocks) <= 3, source
+        assert blocks[0]["type"] == "section"
+        assert blocks[0]["accessory"]["type"] == "image"
+        assert blocks[0].get("fields"), source
+        assert blocks[-1] == {
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
+        }
+
+
 def test_slack_generic_fallback_uses_nowlert_classic_card():
     formatter = SlackFormatter()
     item = notification("home_lab")
@@ -182,6 +210,8 @@ def test_slack_generic_fallback_uses_nowlert_classic_card():
     assert "blocks" not in payload
     blocks = attachment["blocks"]
     header = blocks[0]
+    assert len(blocks) <= 3
+    assert header.get("fields")
     assert blocks[-1] == {
         "type": "context",
         "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
