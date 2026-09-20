@@ -58,7 +58,7 @@ def test_discord_payload_generation():
     assert "Storage Pool 1" in embed["title"]
     assert "Warning" in embed["title"]
     assert embed["color"] == 0xF39C12
-    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
     assert embed["fields"]
     assert all(
         field["name"] and field["value"]

@@ -213,7 +213,7 @@ def test_drive_alarm_rule_and_classic_v1_alarm_identity_are_formatted():
     assert "Drive settings alarm" in discord_embed["title"]
     assert payload["alarm_id"] in discord_alarm["value"]
     assert discord_embed["footer"] == {
-        "text": "🦉 Nowlert CE • Classic Embed"
+        "text": "🦉 Nowlert CE • Classic Card"
     }
 
     assert payload["alarm_id"] not in json.dumps(teams)

@@ -35,7 +35,7 @@ Credential-like values must not be placed in the public settings document.
 ## Discord
 
 Discord uses source-aware rich presentation and packaged image assets. Operators
-can choose **Modern Card** or **Classic Embed**. The adapter uploads/uses the
+can choose **Modern Card** or **Classic Card**. The adapter uploads/uses the
 selected packaged artwork rather than exposing an internal asset reference to
 Discord.
 
@@ -63,7 +63,7 @@ builder. Operators provide a webhook URL, a destination label, and select one of
 two Nowlert presentation models:
 
 - **Modern Card** (default) — structured card-style presentation metadata; or
-- **Classic Embed** — compact embed-style presentation metadata.
+- **Classic Card** — compact embed-style presentation metadata.
 
 Both modes send the stable, versioned `nowlert.event.v1` envelope. Metadata is
 bounded recursively and credential-like keys are redacted. The selected

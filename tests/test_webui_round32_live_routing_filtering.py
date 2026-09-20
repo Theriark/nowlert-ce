@@ -19,7 +19,7 @@ def test_served_html_versions_every_runtime_webui_extension():
     assert response is not None and response.status == 200
     markup = response.body.decode("utf-8")
 
-    assert UI_BUILD == "20260919-r51"
+    assert UI_BUILD == "20260920-r52"
     assert f'name="nowlert-ui-build" content="{UI_BUILD}"' in markup
     for asset in (
         "/ui/filtering.css",

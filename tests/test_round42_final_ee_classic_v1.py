@@ -1,10 +1,10 @@
-"""Round-42 regression for the final EE Classic Embed v1 templates."""
+"""Round-42 regression for the final EE Classic Card v1 templates."""
 
 from models import Notification
 from outputs.discord import DiscordOutput
 
 
-FOOTER = {"text": "🦉 Nowlert CE • Classic Embed"}
+FOOTER = {"text": "🦉 Nowlert CE • Classic Card"}
 
 
 def xo_success() -> Notification:

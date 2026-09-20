@@ -9,7 +9,7 @@ def test_webhook_uses_backend_owned_message_styles():
     assert 'const WEBHOOK_ADVANCED_FIELDS = new Set([' in SCRIPT
     assert 'select.dataset.field = "message_style"' in SCRIPT
     assert 'modern.textContent = "Modern Card"' in SCRIPT
-    assert 'classic.textContent = "Classic Embed"' in SCRIPT
+    assert 'classic.textContent = "Classic Card"' in SCRIPT
     assert 'settings.replaceChildren(channel, styleField)' in SCRIPT
     assert 'Advanced request options' not in SCRIPT
     assert 'PROGRESSIVE_DESTINATION_LAYOUTS' not in SCRIPT

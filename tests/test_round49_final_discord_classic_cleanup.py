@@ -207,7 +207,7 @@ def test_generic_fallback_uses_ce_classic_footer_and_compact_sections():
     values = fields(embed)
 
     assert embed["footer"] == {
-        "text": "🦉 Nowlert CE • Classic Embed"
+        "text": "🦉 Nowlert CE • Classic Card"
     }
     assert list(values) == [
         "⚠️ Alert",
