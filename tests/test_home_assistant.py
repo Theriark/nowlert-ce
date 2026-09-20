@@ -310,7 +310,7 @@ def test_home_assistant_formatters_present_structured_error_code():
     assert "control_child" not in rendered
 
 
-def test_home_assistant_discord_string_tags_are_not_split_into_characters():
+def test_home_assistant_discord_keeps_tags_internal_only():
     item = Parser().parse(fixture())
     item.metadata["tags"] = "office, temperature"
     embed = HomeAssistantDiscordFormatter().format(item)["embeds"][0]
@@ -320,5 +320,6 @@ def test_home_assistant_discord_string_tags_are_not_split_into_characters():
         if field["name"] == "🔎 Source Details"
     )
 
-    assert "**Tags:** `office, temperature`" in details["value"]
-    assert "o, f, f, i, c, e" not in details["value"]
+    assert "Tags" not in details["value"]
+    assert "office, temperature" not in details["value"]
+    assert item.metadata["tags"] == "office, temperature"

@@ -223,9 +223,9 @@ def test_discord_aggregate_payload_limits_retain_essential_fields():
     assert "50 TrueNAS alerts were reported in one notification." in serialized
     for essential in (
         "SYNTHETIC-TRUENAS",
-        "backup",
         "Failed",
         "critical",
         "50",
     ):
         assert essential in serialized
+    assert "**Category:**" not in serialized

@@ -138,7 +138,7 @@ def test_redfish_context_is_presented_as_host_and_scopes_deduplication():
     )
 
 
-def test_dell_ipmi_session_event_extracts_source_ip():
+def test_dell_ipmi_session_event_keeps_source_ip_internal():
     value = payload("dell_storage.json")
     value["Events"][0].update({
         "MessageId": "USR0030",
@@ -149,12 +149,13 @@ def test_dell_ipmi_session_event_extracts_source_ip():
     })
 
     item = RedfishParser().parse(value, "dell")[0]
-
-    assert item.metadata["source_ip"] == "192.0.2.164"
-    assert "**Source IP:** `192.0.2.164`" in json.dumps(
+    discord = json.dumps(
         DellIDRACDiscordFormatter().format(item),
         ensure_ascii=False,
     )
+
+    assert item.metadata["source_ip"] == "192.0.2.164"
+    assert "**Source IP:**" not in discord
 
 
 def test_dell_legacy_context_and_audit_title_are_readable():

@@ -39,5 +39,6 @@ class GenericDiscordFormatter(DiscordCardFormatter):
                     DiscordFact("📍", "Source", source),
                 ),
                 url=metadata.get("action_link") or "",
+                notification=notification,
             )
         )

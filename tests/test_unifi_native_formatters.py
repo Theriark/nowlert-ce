@@ -118,7 +118,7 @@ def test_network_classic_v1_keeps_mac_while_teams_keeps_compact_identity():
     assert teams.count("SYNTHETIC-CLIENT") == 1
 
 
-def test_protect_classic_v1_lists_configured_sources_as_operator_context():
+def test_protect_classic_v1_keeps_compact_operator_context():
     item = notification("unifi_protect")
     payload = UniFiProtectDiscordFormatter().format(item)
     embed = payload["embeds"][0]
@@ -126,11 +126,11 @@ def test_protect_classic_v1_lists_configured_sources_as_operator_context():
 
     assert "SYNTHETIC-CAMERA" in serialized
     assert "configured_source_count" not in serialized
-    assert "**Configured Sources:** `8`" in serialized
+    assert "Configured Sources" not in serialized
+    assert "**Triggers:**" not in serialized
     assert [field["name"] for field in embed["fields"]] == [
         "ℹ️ Alert",
         "🎯 Trigger",
-        "🚨 Alarm Rule",
         "🔎 Condition",
         "⏱️ Timing",
     ]
@@ -342,13 +342,11 @@ def test_unifi_discord_and_teams_labels_have_readable_icons(
         "unifi_protect": {
             "ℹ️ Alert",
             "🎯 Trigger",
-            "🚨 Alarm Rule",
             "🔎 Condition",
         },
         "unifi_drive": {
             "⚠️ Alert",
             "🗄️ UniFi Drive",
-            "🔔 Alarm",
         },
     }
     assert expected_v1_sections[source] <= discord_names
@@ -415,7 +413,9 @@ def test_missing_values_do_not_leave_icon_only_fields():
     facts = _teams_facts(teams)
 
     assert [field["name"] for field in discord["fields"]] == ["ℹ️ Alert"]
-    assert "**Status:** `Information`" in discord["fields"][0]["value"]
+    assert "**Severity:** `information`" in discord["fields"][0]["value"]
+    assert "**Status:**" not in discord["fields"][0]["value"]
+    assert "**Category:**" not in discord["fields"][0]["value"]
     assert "Event time" not in json.dumps(discord)
     assert "Event time" not in json.dumps(teams)
     assert discord["footer"] == {"text": "🦉 Nowlert CE • Classic Embed"}
