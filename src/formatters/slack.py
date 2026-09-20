@@ -78,6 +78,9 @@ class SlackFormatter(PresentationMixin):
             for field in embed.get("fields", [])[:10]
             if isinstance(field, dict)
         ]
+        if source == "unifi_network":
+            fields = self._slack_unifi_network_fields(fields)
+
         footer = str(
             (embed.get("footer") or {}).get("text")
             or CLASSIC_FOOTER
@@ -270,6 +273,43 @@ class SlackFormatter(PresentationMixin):
         if current:
             chunks.append("\n".join(current))
         return chunks
+
+    @staticmethod
+    def _slack_unifi_network_fields(fields):
+        """Split the tall UniFi radio field before Slack folds it."""
+
+        rendered = []
+        for field in fields:
+            title = str(field.get("title") or "")
+            if title != "📶 Network / Wi-Fi":
+                rendered.append(field)
+                continue
+
+            lines = [
+                line
+                for line in str(field.get("value") or "").splitlines()
+                if line.strip()
+            ]
+            if len(lines) <= 4:
+                rendered.append(field)
+                continue
+
+            rendered.append(
+                {
+                    **field,
+                    "value": "\n".join(lines[:4]),
+                    "short": True,
+                }
+            )
+            rendered.append(
+                {
+                    "title": "📡 Radio / Signal",
+                    "value": "\n".join(lines[4:]),
+                    "short": True,
+                }
+            )
+
+        return rendered
 
     def _slack_classic_icon_url(self, source):
         """Prefer padded artwork for Slack's fixed image-accessory slot."""
