@@ -161,6 +161,8 @@
     const statusLabel = enabled ? "Active" : "Disabled";
     const statusState = enabled ? "active" : "disabled";
 
+    const privateClass = "badge destination-sharing-control is-private destination-control-readonly";
+    const privateLabel = "Private destination. View only.";
     let privateBadge = [...meta.children].find((candidate) => (
       String(candidate.textContent || "").trim().toLowerCase() === "private"
     ));
@@ -170,16 +172,28 @@
         "destination-sharing-control is-private destination-control-readonly",
         shareIcon(),
       );
+      privateBadge.setAttribute("aria-label", privateLabel);
       meta.prepend(privateBadge);
     } else {
-      privateBadge.className = "badge destination-sharing-control is-private destination-control-readonly";
-      privateBadge.setAttribute("aria-label", "Private destination. View only.");
-      privateBadge.replaceChildren(
-        shareIcon(),
-        span("destination-sharing-label", "Private"),
+      const privateReady = (
+        privateBadge.className === privateClass
+        && privateBadge.getAttribute("aria-label") === privateLabel
+        && privateBadge.querySelector(".destination-share-icon")
+        && privateBadge.querySelector(".destination-sharing-label")?.textContent === "Private"
+        && privateBadge.children.length === 2
       );
+      if (!privateReady) {
+        privateBadge.className = privateClass;
+        privateBadge.setAttribute("aria-label", privateLabel);
+        privateBadge.replaceChildren(
+          shareIcon(),
+          span("destination-sharing-label", "Private"),
+        );
+      }
     }
 
+    const statusClass = `badge destination-status-control destination-private-status is-${statusState} destination-control-readonly`;
+    const statusAria = `${statusLabel} destination. View only.`;
     let status = meta.querySelector(".destination-private-status")
       || meta.querySelector(".destination-private-active");
     if (!status) {
@@ -187,14 +201,26 @@
         statusLabel,
         `destination-status-control destination-private-status is-${statusState} destination-control-readonly`,
       );
+      status.setAttribute("aria-label", statusAria);
+      status.prepend(span("destination-status-dot"));
       meta.prepend(status);
+    } else {
+      const statusReady = (
+        status.className === statusClass
+        && status.getAttribute("aria-label") === statusAria
+        && status.querySelector(".destination-status-dot")
+        && status.querySelector(".destination-readonly-label")?.textContent === statusLabel
+        && status.children.length === 2
+      );
+      if (!statusReady) {
+        status.className = statusClass;
+        status.setAttribute("aria-label", statusAria);
+        status.replaceChildren(
+          span("destination-status-dot"),
+          span("destination-readonly-label", statusLabel),
+        );
+      }
     }
-    status.className = `badge destination-status-control destination-private-status is-${statusState} destination-control-readonly`;
-    status.setAttribute("aria-label", `${statusLabel} destination. View only.`);
-    status.replaceChildren(
-      span("destination-status-dot"),
-      span("destination-readonly-label", statusLabel),
-    );
 
     const owner = meta.querySelector(".destination-owner-badge")
       || [...meta.children].find((candidate) => (
