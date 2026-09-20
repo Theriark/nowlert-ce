@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from formatters.discord_classic_v1 import render_classic_embed_v1
 from formatters.presentation import PresentationMixin
 from models import Notification
 from outputs.platform_common import safe_action_url
@@ -14,86 +15,114 @@ class SlackFormatter(PresentationMixin):
     """Render source-specific classic cards with a generic Block Kit fallback."""
 
     def format(self, notification: Notification, *, include_metadata: bool = True) -> dict:
-        if str(notification.source or "").strip().casefold() == "xo":
-            return self._format_xo_classic(notification)
+        """Render Slack Classic Cards using the Discord Classic v1 content contract."""
 
-        metadata = notification.metadata or {}
-        title = self._truncate(
-            notification.title or notification.subject or "Notification",
-            150,
+        source = str(notification.source or "").strip().casefold()
+        if source == "xo":
+            return self._format_xo_classic(notification)
+        return self._format_discord_classic(notification)
+
+    def _format_discord_classic(self, notification: Notification) -> dict:
+        """Translate the shared Discord Classic embed into Slack attachments."""
+
+        metadata = (
+            notification.metadata
+            if isinstance(notification.metadata, dict)
+            else {}
         )
-        source = self._truncate(
-            metadata.get("provider") or notification.source or "Nowlert",
-            100,
+        source = str(notification.source or "").strip().casefold()
+        icon_source = (
+            source
+            if source in self.PRODUCT_ICONS and source != "redfish"
+            else "nowlert"
         )
-        severity = self._truncate(
-            metadata.get("severity") or notification.status or "information",
-            64,
-        )
-        host = self._truncate(
-            metadata.get("host")
-            or metadata.get("hostname")
-            or metadata.get("device")
-            or metadata.get("node"),
-            128,
-        )
-        message = self._truncate(notification.body or title, 2800)
-        blocks = [
-            {
-                "type": "header",
-                "text": {"type": "plain_text", "text": title, "emoji": True},
-            },
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": self._escape(message)},
-            },
-        ]
-        fields = [
-            self._field("Source", source),
-            self._field("Severity", severity),
-        ]
-        if notification.status:
-            fields.append(self._field("Status", notification.status))
-        if host:
-            fields.append(self._field("Host", host))
-        if include_metadata and notification.category:
-            fields.append(self._field("Category", notification.category))
-        blocks.append({"type": "section", "fields": fields[:10]})
+
+        seed_embed = {}
+        action = safe_action_url(metadata.get("action_link"))
+        if action:
+            seed_embed["url"] = action
 
         event_time = metadata.get("event_time") or notification.start_time
-        context = f"Nowlert • {source}"
         if event_time:
-            formatted = self._format_datetime(event_time)
-            if formatted:
-                context += f" • {formatted}"
-        blocks.append(
+            formatted_time = self._format_datetime(event_time)
+            if formatted_time:
+                seed_embed["fields"] = [
+                    {
+                        "name": "⏱️ Event time",
+                        "value": formatted_time,
+                    }
+                ]
+
+        classic = render_classic_embed_v1(
+            notification,
+            {"embeds": [seed_embed]},
+        )
+        embed = classic["embeds"][0]
+
+        title = self._truncate(
+            embed.get("title")
+            or notification.title
+            or notification.subject
+            or "Notification",
+            200,
+        )
+        description = self._slack_classic_mrkdwn(
+            embed.get("description") or ""
+        )
+        attachment = {
+            "fallback": title,
+            "color": self._slack_classic_color(embed.get("color")),
+            "title": title,
+            "text": f"{description}\n\u200b" if description else "\u200b",
+            "fields": [
+                self._slack_classic_field(field)
+                for field in embed.get("fields", [])[:10]
+                if isinstance(field, dict)
+            ],
+            "footer": str(
+                (embed.get("footer") or {}).get("text")
+                or CLASSIC_FOOTER
+            )[:300],
+            "mrkdwn_in": ["text", "fields"],
+        }
+
+        title_link = safe_action_url(embed.get("url") or action)
+        if title_link:
+            attachment["title_link"] = title_link
+
+        icon_url = self._product_icon_url(icon_source)
+        if icon_url:
+            attachment["thumb_url"] = icon_url
+
+        return self._sanitize_payload(
             {
-                "type": "context",
-                "elements": [
-                    {"type": "mrkdwn", "text": self._escape(context)[:2000]}
-                ],
+                "attachments": [attachment],
             }
         )
 
-        action = safe_action_url(metadata.get("action_link"))
-        if action:
-            blocks.append(
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "Open event",
-                                "emoji": True,
-                            },
-                            "url": action,
-                        }
-                    ],
-                }
-            )
-        return self._sanitize_payload({"text": title, "blocks": blocks[:50]})
+    def _slack_classic_field(self, field):
+        return {
+            "title": self._truncate(field.get("name") or "", 200),
+            "value": self._slack_classic_mrkdwn(
+                field.get("value") or ""
+            )[:1800],
+            "short": bool(field.get("inline")),
+        }
+
+    def _slack_classic_mrkdwn(self, value):
+        rendered = self._escape(value)
+        return rendered.replace("**", "*")
+
+    @staticmethod
+    def _slack_classic_color(value):
+        if isinstance(value, int):
+            return f"#{value & 0xFFFFFF:06X}"
+        rendered = str(value or "").strip()
+        if not rendered:
+            return "#3498DB"
+        if rendered.startswith("#"):
+            return rendered[:7]
+        return f"#{rendered[:6]}"
 
     def _format_xo_classic(self, notification: Notification) -> dict:
         """Mirror the approved Discord Classic Xen Orchestra card in Slack."""

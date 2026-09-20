@@ -153,17 +153,24 @@ def test_discord_and_teams_previews_reuse_source_specific_formatters():
     assert "private-token" not in json.dumps(teams.payload)
 
 
-def test_slack_preview_is_bounded_sanitized_and_has_safe_action():
+def test_slack_preview_is_classic_sanitized_and_has_safe_action():
     preview = SlackPlatformAdapter(resolver=public_resolver).preview(
         destination("slack"),
         notification(),
     )
     encoded = json.dumps(preview.payload)
+    attachment = preview.payload["attachments"][0]
 
-    assert preview.payload["text"] == "Database latency"
-    assert len(preview.payload["blocks"]) <= 50
+    assert "blocks" not in preview.payload
+    assert attachment["title"]
+    assert attachment["title_link"] == (
+        "https://monitoring.example.com/alerts/42"
+    )
+    assert attachment["footer"] == "🦉 Nowlert CE • Classic Card"
+    assert attachment["color"].startswith("#")
+    assert len(attachment["fields"]) <= 10
+    assert attachment["thumb_url"].endswith("/grafana.png")
     assert "private-token" not in encoded
-    assert "https://monitoring.example.com/alerts/42" in encoded
 
 
 def test_webhook_preview_uses_stable_secret_safe_envelope_and_ignores_legacy_templates():
