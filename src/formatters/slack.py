@@ -261,7 +261,7 @@ class SlackFormatter(PresentationMixin):
             if field is not None:
                 fields.append(field)
 
-        icon_url = self._product_icon_url("xo")
+        icon_url = self._xo_slack_icon_url()
         attachment = {
             "fallback": title,
             "color": color,
@@ -345,9 +345,27 @@ class SlackFormatter(PresentationMixin):
 
         flush_short_fields()
 
-        footer_text = CLASSIC_FOOTER
         if job_id_value:
-            footer_text = f"🆔 {job_id_value}  •  {CLASSIC_FOOTER}"
+            job_line = f"*🆔 Job ID* {job_id_value}"
+            if (
+                len(blocks) > 1
+                and blocks[-1].get("type") == "section"
+                and isinstance(blocks[-1].get("text"), dict)
+            ):
+                current = str(blocks[-1]["text"].get("text") or "")
+                blocks[-1]["text"]["text"] = (
+                    f"{current}\n{job_line}"
+                )[:3000]
+            else:
+                blocks.append(
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": job_line,
+                        },
+                    }
+                )
 
         blocks.append(
             {
@@ -355,12 +373,21 @@ class SlackFormatter(PresentationMixin):
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": footer_text,
+                        "text": CLASSIC_FOOTER,
                     }
                 ],
             }
         )
         return blocks
+
+    def _xo_slack_icon_url(self):
+        """Use the padded XO artwork so Slack renders a smaller visible mark."""
+
+        icon_url = self._product_icon_url("xo")
+        suffix = "/xen-orchestra.png"
+        if not icon_url or not icon_url.endswith(suffix):
+            return icon_url
+        return f"{icon_url[:-len(suffix)]}/discord/xen-orchestra.png"
 
     def _classic_vm_field(
         self,
