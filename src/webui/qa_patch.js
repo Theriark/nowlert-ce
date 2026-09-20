@@ -505,8 +505,8 @@ async function qaLoadAuditPage(page) {
     qaOriginalRenderAudit();
     qaMountPager("view-audit", "audit-pagination", qaAuditPagination, qaLoadAuditPage);
     qaSaveWorkspaceCache();
-  } catch (error) {
-    toast(error.message || "Audit page could not be loaded.", "error");
+  } catch {
+    toast("Audit page could not be loaded.", "error");
   }
 }
 

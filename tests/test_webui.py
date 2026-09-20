@@ -559,6 +559,16 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     assert "@media (max-width: 720px)" in styles
 
 
+def test_audit_pagination_error_does_not_expose_request_details():
+    script = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
+    handler_start = script.index("async function qaLoadAuditPage")
+    handler_end = script.index("\n}\n", handler_start) + 3
+    handler = script[handler_start:handler_end]
+
+    assert 'toast("Audit page could not be loaded.", "error");' in handler
+    assert "error.message" not in handler
+    assert "error.stack" not in handler
+
 
 def test_nce28_nce29_audit_context_and_explicit_health_checks():
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
