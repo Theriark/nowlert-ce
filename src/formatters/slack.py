@@ -12,6 +12,9 @@ from outputs.platform_common import safe_action_url
 
 CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
 _MARKDOWN_LINK = re.compile(r"\[([^\]\n]{1,120})\]\((https://[^)\s]+)\)")
+_UNFOLDED_CLASSIC_SOURCES = frozenset({"truenas", "unifi_network"})
+
+
 class SlackFormatter(PresentationMixin):
     """Render source-specific classic cards with a generic Block Kit fallback."""
 
@@ -90,6 +93,7 @@ class SlackFormatter(PresentationMixin):
                 description,
                 fields,
                 icon_url,
+                source=source,
                 title_link=title_link,
                 footer=footer,
             ),
@@ -108,6 +112,7 @@ class SlackFormatter(PresentationMixin):
         fields,
         icon_url,
         *,
+        source="",
         title_link="",
         footer=CLASSIC_FOOTER,
     ):
@@ -137,7 +142,13 @@ class SlackFormatter(PresentationMixin):
 
         blocks = [header]
         header_fields = []
+        overflow_fields = []
         body_parts = []
+        unfolded_source = (
+            str(source or "").strip().casefold()
+            in _UNFOLDED_CLASSIC_SOURCES
+        )
+        header_field_limit = 2 if unfolded_source else 10
 
         for field in fields:
             field_title = str(field.get("title") or "")
@@ -159,26 +170,52 @@ class SlackFormatter(PresentationMixin):
                     field_value,
                 )
             ):
-                header_fields.append(block_text)
+                if len(header_fields) < header_field_limit:
+                    header_fields.append(block_text)
+                else:
+                    overflow_fields.append(block_text)
                 continue
 
-            body_parts.append(block_text["text"])
+            if unfolded_source:
+                body_parts.extend(
+                    self._slack_classic_unfolded_text_chunks(
+                        block_text["text"]
+                    )
+                )
+            else:
+                body_parts.append(block_text["text"])
 
         if header_fields:
-            header["fields"] = header_fields[:10]
+            header["fields"] = header_fields[:header_field_limit]
+
+        if overflow_fields:
+            for index in range(0, len(overflow_fields), 2):
+                blocks.append(
+                    {
+                        "type": "section",
+                        "fields": overflow_fields[index:index + 2],
+                    }
+                )
 
         if body_parts:
-            chunks = []
-            current = ""
-            for part in body_parts:
-                candidate = f"{current}\n\n{part}".strip() if current else part
-                if current and len(candidate) > 2800:
+            if unfolded_source:
+                chunks = body_parts
+            else:
+                chunks = []
+                current = ""
+                for part in body_parts:
+                    candidate = (
+                        f"{current}\n\n{part}".strip()
+                        if current
+                        else part
+                    )
+                    if current and len(candidate) > 2800:
+                        chunks.append(current)
+                        current = part
+                    else:
+                        current = candidate
+                if current:
                     chunks.append(current)
-                    current = part
-                else:
-                    current = candidate
-            if current:
-                chunks.append(current)
 
             for chunk in chunks:
                 blocks.append(
@@ -203,6 +240,36 @@ class SlackFormatter(PresentationMixin):
             }
         )
         return blocks
+
+    @staticmethod
+    def _slack_classic_unfolded_text_chunks(
+        text,
+        *,
+        max_lines=5,
+        max_chars=650,
+    ):
+        """Split tall Classic text sections before Slack folds them."""
+
+        lines = str(text or "").splitlines()
+        if not lines:
+            return []
+
+        chunks = []
+        current = []
+        for line in lines:
+            candidate = "\n".join([*current, line])
+            if current and (
+                len(current) >= max_lines
+                or len(candidate) > max_chars
+            ):
+                chunks.append("\n".join(current))
+                current = [line]
+            else:
+                current.append(line)
+
+        if current:
+            chunks.append("\n".join(current))
+        return chunks
 
     def _slack_classic_icon_url(self, source):
         """Prefer padded artwork for Slack's fixed image-accessory slot."""
