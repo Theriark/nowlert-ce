@@ -66,12 +66,8 @@ def test_xo_uses_compact_classic_slack_attachment_matching_discord_geometry():
     assert header["accessory"]["image_url"].endswith("/discord/xen-orchestra.png")
     assert header["accessory"]["alt_text"] == "Xen Orchestra"
 
-    assert len(blocks) == 5
-
-    first_metrics = blocks[1]["fields"]
-    second_metrics = blocks[2]["fields"]
-    assert len(first_metrics) == 2
-    assert len(second_metrics) == 2
+    assert len(blocks) == 3
+    assert len(header["fields"]) == 4
 
     rendered = str(blocks)
     assert "*⏱️ Duration*\\n`28 minutes`" in rendered
