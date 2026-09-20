@@ -524,50 +524,65 @@ def _render_grafana(notification, payload, normalized, metadata):
 
 
 def _render_portainer(notification, payload, normalized, metadata):
+    """Render the compact CE Portainer Classic Embed v1 geometry."""
+
     status = str(normalized.get("status") or "").strip()
     state = str(metadata.get("state") or status).strip()
     severity = str(metadata.get("severity") or status).strip()
-    title_text = str(normalized.get("title") or metadata.get("summary") or metadata.get("alert_name") or "Portainer alert").strip()
-    description = str(metadata.get("description") or normalized.get("body") or metadata.get("summary") or title_text).strip()[:4096]
+    title_text = str(
+        normalized.get("title")
+        or metadata.get("summary")
+        or metadata.get("alert_name")
+        or "Portainer alert"
+    ).strip()
+    description = str(
+        metadata.get("description")
+        or normalized.get("body")
+        or metadata.get("summary")
+        or title_text
+    ).strip()[:4096]
+
     color, icon, lifecycle = _lifecycle(status, severity, state=state)
     state_label = str(state or "").replace("_", " ").strip().title()
     title = f"{icon} {title_text}{f' — {state_label}' if state_label else ''}"[:256]
+
     try:
         count = max(1, int(metadata.get("alert_count") or 1))
     except (TypeError, ValueError):
         count = 1
-    try:
-        truncated = max(0, int(metadata.get("truncated_alerts") or 0))
-    except (TypeError, ValueError):
-        truncated = 0
 
     fields: list[dict[str, Any]] = []
+
     def append(field):
         if field is not None:
             fields.append(field)
 
-    append(_rows_field(f"{icon} Alert", [
-        ("Rule", metadata.get("alert_name")),
-        ("State", state),
-        ("Severity", severity),
-        ("Truncated", truncated if truncated else ""),
-    ]))
-    instance = str(metadata.get("instance") or "").strip()
-    host = str(metadata.get("host") or "").strip()
-    if _normal_words(host) == _normal_words(instance):
-        host = ""
-    append(_rows_field("📦 Portainer", [
-        ("Instance", instance), ("Host", host), ("Area", metadata.get("alert_source")),
-    ]))
-    append(_rows_field("🔐 Authentication", [
-        ("Method", metadata.get("authentication_method")), ("User", metadata.get("username")),
-    ]))
-    metric = str(metadata.get("metric") or "").strip()
-    current_label = "Failures" if "authentication failures" in _normal_words(metric) else "Current"
-    append(_rows_field("📈 Signal", [
-        ("Metric", metric), (current_label, metadata.get("current_value")),
-        ("Threshold", metadata.get("threshold")), ("Window", metadata.get("window")),
-    ]))
+    append(_rows_field(
+        f"{icon} Alert",
+        [("Severity", severity)],
+    ))
+
+    append(_rows_field(
+        "📦 Portainer",
+        [
+            ("Instance", metadata.get("instance")),
+            ("Area", metadata.get("alert_source")),
+        ],
+    ))
+
+    append(_rows_field(
+        "🔐 Authentication",
+        [
+            ("Method", metadata.get("authentication_method")),
+            ("User", metadata.get("username")),
+        ],
+    ))
+
+    append(_rows_field(
+        "📈 Signal",
+        [("Metric", metadata.get("metric"))],
+    ))
+
     if count > 1:
         rows: list[tuple[str, object]] = [("Count", f"{count} alerts")]
         members = metadata.get("group_members")
@@ -584,12 +599,22 @@ def _render_portainer(notification, payload, normalized, metadata):
                         detail += " — " + " · ".join(qualifiers)
                     rows.append((f"Alert {index}", detail))
         append(_rows_field("👥 Grouped Alerts", rows))
-    append(_rows_field("⏱️ Timing", [
-        ("Started", normalized.get("start_time")), ("Resolved", normalized.get("end_time")),
-    ]))
+
+    append(_rows_field(
+        "⏱️ Timing",
+        [
+            ("Started", normalized.get("start_time")),
+            ("Resolved", normalized.get("end_time")),
+        ],
+    ))
 
     return _finish(
-        {"title": title, "description": description, "color": color, "fields": fields},
+        {
+            "title": title,
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
         payload,
     )
 
