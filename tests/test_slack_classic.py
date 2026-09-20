@@ -139,6 +139,31 @@ def test_all_dedicated_slack_sources_use_classic_attachments():
         }
 
 
+def test_first_batch_slack_cards_stay_compact_without_show_more_layout():
+    formatter = SlackFormatter()
+
+    for source in (
+        "zabbix",
+        "grafana",
+        "portainer",
+        "proxmox",
+        "qnap",
+        "synology",
+    ):
+        payload = formatter.format(notification(source))
+        attachment = payload["attachments"][0]
+        blocks = attachment["blocks"]
+
+        assert len(blocks) <= 3, source
+        assert blocks[0]["type"] == "section"
+        assert blocks[0]["accessory"]["type"] == "image"
+        assert blocks[0].get("fields"), source
+        assert blocks[-1] == {
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
+        }
+
+
 def test_slack_generic_fallback_uses_nowlert_classic_card():
     formatter = SlackFormatter()
     item = notification("home_lab")
