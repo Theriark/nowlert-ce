@@ -251,6 +251,40 @@ def test_every_discord_integration_uses_approved_components_v2_contract():
         assert len(rendered) <= 4000, source
 
 
+def test_xo_modern_card_uses_final_source_specific_operator_sections():
+    output = DiscordOutput()
+    formatter = output.source_formatters["xo"]
+    item = integration_notification("xo")
+    item.mode = "delta"
+    item.repository = "SYNTHETIC-REPOSITORY"
+    item.transfer_size = "42 GiB"
+    item.transfer_speed = "125 MiB/s"
+    item.sender = "xo@example.invalid"
+    item.subject = "Synthetic XO backup report"
+    item.job_id = "job-synthetic"
+    item.run_id = "run-synthetic"
+
+    classic = formatter.format(item)["embeds"][0]
+    modern = formatter.format_components_v2(item)
+    rendered = text_content(modern)
+
+    classic_section_names = [
+        str(field.get("name") or "")
+        for field in classic.get("fields", [])
+        if str(field.get("name") or "")
+    ]
+    assert classic_section_names
+    for name in classic_section_names:
+        assert f"**{name}**" in rendered, name
+
+    assert "**📋 Event details**" not in rendered
+    assert "🦉 Nowlert CE • Classic Embed" not in rendered
+    assert f"Theriark • Nowlert v{VERSION}" in rendered
+    assert modern["flags"] == 32768
+    assert "components" in modern
+    assert "embeds" not in modern
+
+
 def test_dell_components_v2_delivery_enables_webhook_components(monkeypatch):
     captured = {}
 

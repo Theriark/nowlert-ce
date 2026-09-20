@@ -230,13 +230,11 @@ class DiscordCardFormatter(BaseFormatter):
             self._discord_v2_text("  •  ".join(metrics)),
         ]
 
-        details = self._discord_v2_details(data.details)
+        details = self._discord_v2_detail_content(data)
         if details:
             children.extend((
                 self._discord_v2_separator(),
-                self._discord_v2_text(
-                    f"**📋 Event details**\n{details}",
-                ),
+                self._discord_v2_text(details),
             ))
 
         children.extend((
@@ -256,6 +254,56 @@ class DiscordCardFormatter(BaseFormatter):
                 }
             ],
         }
+
+    def _discord_v2_detail_content(self, data: DiscordCardData) -> str:
+        """Return the approved detail geometry for one Modern Card.
+
+        Xen Orchestra is the first source migrated from the generic detail
+        list to the final source-specific operator sections already accepted
+        by Classic Embed v1. Other sources deliberately keep the current
+        Components V2 contract until their own migration round.
+        """
+
+        if data.source == "xo" and data.notification is not None:
+            sections = self._discord_v2_classic_sections(data.notification)
+            if sections:
+                return sections
+
+        details = self._discord_v2_details(data.details)
+        return f"**📋 Event details**\n{details}" if details else ""
+
+    def _discord_v2_classic_sections(self, notification: Any) -> str:
+        """Project final Classic v1 field sections into Components V2 text."""
+
+        from formatters.discord_classic_v1 import render_classic_embed_v1
+
+        payload = render_classic_embed_v1(
+            notification,
+            {"embeds": [{}]},
+        )
+        embeds = payload.get("embeds") if isinstance(payload, dict) else None
+        if (
+            not isinstance(embeds, list)
+            or not embeds
+            or not isinstance(embeds[0], dict)
+        ):
+            return ""
+
+        fields = embeds[0].get("fields")
+        if not isinstance(fields, list):
+            return ""
+
+        sections = []
+        for field in fields:
+            if not isinstance(field, dict):
+                continue
+            name = self._truncate(field.get("name") or "", 120).strip()
+            value = self._truncate(field.get("value") or "", 1200).strip()
+            if not name or not value:
+                continue
+            sections.append(f"**{name}**\n{value}")
+
+        return self._truncate("\n\n".join(sections), 1800)
 
     def _discord_v2_details(
         self,
