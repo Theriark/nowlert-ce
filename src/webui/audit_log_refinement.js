@@ -55,6 +55,7 @@
     "invalid",
   ]);
   const ANALYTICS_TTL_MS = 60_000;
+  const AUDIT_ANALYTICS_STORAGE_VERSION = "v1";
   const HEALTH_STORAGE_VERSION = "v1";
 
   const previousRenderAudit = renderAudit;
@@ -431,6 +432,73 @@
     return { text: "→ 0%", tone: "neutral" };
   }
 
+  function auditAnalyticsStorageKey() {
+    const identity = state?.user?.id || state?.user?.username || "";
+    return identity
+      ? `nowlert:audit-analytics:${AUDIT_ANALYTICS_STORAGE_VERSION}:${encodeURIComponent(String(identity))}`
+      : "";
+  }
+
+  function normalizedAuditAnalytics(value) {
+    if (!value || typeof value !== "object") return null;
+    const current = value.current;
+    const previous = value.previous;
+    if (!current || !previous) return null;
+    const number = (candidate) => {
+      const parsed = Number(candidate);
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    };
+    const loadedAt = Number(value.loadedAt || 0);
+    if (!Number.isFinite(loadedAt) || loadedAt <= 0) return null;
+    return {
+      loadedAt,
+      total: number(value.total),
+      current: {
+        success: number(current.success),
+        warning: number(current.warning),
+        failed: number(current.failed),
+        other: number(current.other),
+      },
+      previous: {
+        success: number(previous.success),
+        warning: number(previous.warning),
+        failed: number(previous.failed),
+        other: number(previous.other),
+      },
+    };
+  }
+
+  function readAuditAnalytics() {
+    const key = auditAnalyticsStorageKey();
+    if (!key) return null;
+    try {
+      return normalizedAuditAnalytics(
+        JSON.parse(window.sessionStorage.getItem(key) || "null"),
+      );
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function persistAuditAnalytics(value) {
+    const key = auditAnalyticsStorageKey();
+    const normalized = normalizedAuditAnalytics(value);
+    if (!key || !normalized) return;
+    try {
+      window.sessionStorage.setItem(key, JSON.stringify(normalized));
+    } catch (_error) {
+      // Analytics first-paint cache is optional.
+    }
+  }
+
+  function restoreAuditAnalytics() {
+    if (auditAnalytics) return auditAnalytics;
+    const cached = readAuditAnalytics();
+    if (!cached) return null;
+    auditAnalytics = cached;
+    return auditAnalytics;
+  }
+
   function applyAuditAnalytics() {
     ensureSummaryMetricChrome();
     if (!auditAnalytics) return;
@@ -502,6 +570,7 @@
         current: countEvents(all, currentStart, now + 1),
         previous: countEvents(all, cutoff, currentStart),
       };
+      persistAuditAnalytics(auditAnalytics);
       applyAuditAnalytics();
       return auditAnalytics;
     })().catch((_error) => {
@@ -750,6 +819,7 @@
     refineRunChecks();
     refineRows();
     refineDetailBody();
+    restoreAuditAnalytics();
     ensureSummaryMetricChrome();
     applyAuditAnalytics();
     renderHealthDashboard();
