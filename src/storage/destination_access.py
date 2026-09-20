@@ -509,11 +509,18 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
         with self.database.connect() as connection:
             rows = connection.execute(
                 """
-                SELECT * FROM routes
-                WHERE (source = ? OR source = '*')
-                ORDER BY priority, name_normalized
+                SELECT DISTINCT routes.*
+                FROM routes
+                JOIN route_destinations
+                  ON route_destinations.route_id = routes.id
+                JOIN destinations
+                  ON destinations.id = route_destinations.destination_id
+                WHERE (routes.source = ? OR routes.source = '*')
+                  AND destinations.owner_user_id = ?
+                  AND destinations.enabled = 1
+                ORDER BY routes.priority, routes.name_normalized
                 """,
-                (source,),
+                (source, actor.user_id),
             ).fetchall()
         routes = [self._for_actor(actor, row) for row in rows]
         matched = [route for route in routes if self.matches(route, notification)]
