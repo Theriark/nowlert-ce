@@ -1048,13 +1048,18 @@ def test_history_audit_and_backup_first_paint_cache_contract():
     patch = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
 
     # F5 restores the real current Delivery History and Audit Log page rows,
-    # not only their pagination totals.
+    # but keeps them out of the generic workspace fields so Dashboard cannot
+    # inherit range-bound history data.
     fields = patch[
         patch.index("const QA_WORKSPACE_CACHE_FIELDS = ["):
         patch.index("];", patch.index("const QA_WORKSPACE_CACHE_FIELDS = [")) + 2
     ]
-    assert '"deliveries",' in fields
-    assert '"audit",' in fields
+    assert '"deliveries",' not in fields
+    assert '"audit",' not in fields
+    assert "rows: state.deliveries," in patch
+    assert "rows: state.audit," in patch
+    assert 'requestedView === "deliveries"' in patch
+    assert 'requestedView === "audit"' in patch
 
     # Backup overview placeholders are replaced from the last resolved
     # authenticated admin snapshot before the authoritative refresh completes.
@@ -1065,4 +1070,3 @@ def test_history_audit_and_backup_first_paint_cache_contract():
     assert 'if (state.currentView === "backups") qaRestoreBackupOverviewCache(session);' in patch
     assert "Number(state.workspaceLoadedAt || 0) <= 0" in patch
     assert "renderBackupOverviewWithFirstPaintCache" in patch
-

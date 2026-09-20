@@ -131,8 +131,6 @@ const QA_WORKSPACE_CACHE_FIELDS = [
   "privateDestinations",
   "destinationErrors",
   "destinationTestResults",
-  "deliveries",
-  "audit",
   "routes",
   "routeErrors",
   "tokens",
@@ -244,11 +242,13 @@ function qaSaveWorkspaceCache() {
           page: qaDeliveryPage,
           page_size: qaDeliveryPageSize,
           pagination: qaDeliveryPagination,
+          rows: state.deliveries,
         },
         audit: {
           page: qaAuditPage,
           page_size: qaAuditPageSize,
           pagination: qaAuditPagination,
+          rows: state.audit,
         },
       }),
     );
@@ -285,11 +285,16 @@ function qaHydrateWorkspaceCache(session, { render = true } = {}) {
     if (Object.hasOwn(cached.state, field)) state[field] = cached.state[field];
   }
 
+  const requestedView = window.location.hash.slice(1);
+
   if (cached.delivery && typeof cached.delivery === "object") {
     const size = Number(cached.delivery.page_size || qaDeliveryPageSize);
     if (QA_DELIVERY_PAGE_SIZES.includes(size)) qaDeliveryPageSize = size;
     qaDeliveryPage = Math.max(1, Number(cached.delivery.page || 1));
     if (cached.delivery.pagination) qaDeliveryPagination = cached.delivery.pagination;
+    if (requestedView === "deliveries" && Array.isArray(cached.delivery.rows)) {
+      state.deliveries = cached.delivery.rows;
+    }
   }
 
   if (cached.audit && typeof cached.audit === "object") {
@@ -297,6 +302,9 @@ function qaHydrateWorkspaceCache(session, { render = true } = {}) {
     if (QA_AUDIT_PAGE_SIZES.includes(size)) qaAuditPageSize = size;
     qaAuditPage = Math.max(1, Number(cached.audit.page || 1));
     if (cached.audit.pagination) qaAuditPagination = cached.audit.pagination;
+    if (requestedView === "audit" && Array.isArray(cached.audit.rows)) {
+      state.audit = cached.audit.rows;
+    }
     if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
   }
 
