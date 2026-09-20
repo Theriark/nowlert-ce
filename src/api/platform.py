@@ -463,7 +463,6 @@ class PlatformAPI:
         credentials = credentials or self.sessions.create(user.id)
         headers = (
             ("Set-Cookie", credentials.cookie(secure=self.secure_cookies)),
-            ("Set-Cookie", self._csrf_cookie(credentials.csrf_token)),
             ("Cache-Control", "no-store"),
         )
         return APIResponse(
@@ -484,6 +483,7 @@ class PlatformAPI:
                 200,
                 {
                     "user": self._user(self.users.get(principal.user_id)),
+                    "csrf_token": principal.csrf_token,
                     "expires_at": principal.expires_at,
                     "idle_expires_at": principal.idle_expires_at,
                     "csrf_required": True,
@@ -2041,17 +2041,6 @@ class PlatformAPI:
         if parsed is None:
             raise ValueError("event is invalid")
         return parsed
-
-    def _csrf_cookie(self, token) -> str:
-        name = "__Host-nowlert_csrf" if self.secure_cookies else "nowlert_csrf"
-        attributes = [
-            f"{name}={token}",
-            "Path=/",
-            "SameSite=Strict",
-        ]
-        if self.secure_cookies:
-            attributes.append("Secure")
-        return "; ".join(attributes)
 
     def _clear_cookies(self):
         session_name = (

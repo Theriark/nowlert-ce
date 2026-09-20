@@ -352,17 +352,6 @@ function applyAvatar(id, user) {
   current.replaceWith(replacement);
 }
 
-function readCsrfCookie(mode = "") {
-  const names = mode === "secure"
-    ? ["__Host-nowlert_csrf", "nowlert_csrf"]
-    : ["nowlert_csrf", "__Host-nowlert_csrf"];
-  for (const pair of document.cookie.split(";")) {
-    const [rawName, ...rest] = pair.trim().split("=");
-    if (names.includes(rawName)) return decodeURIComponent(rest.join("="));
-  }
-  return "";
-}
-
 class APIError extends Error {
   constructor(status, message, path = "", code = "", reference = "") {
     const details = [];
@@ -386,7 +375,7 @@ async function request(path, options = {}) {
     body = JSON.stringify(options.body);
   }
   if (!SAFE_METHODS.has(method)) {
-    const csrf = state.csrf || readCsrfCookie();
+    const csrf = state.csrf;
     if (csrf) headers["X-CSRF-Token"] = csrf;
   }
   let response;
@@ -619,8 +608,6 @@ function applySessionMetadata(session) {
   state.sessionIdleExpiresAt = session.idle_expires_at || session.expires_at || state.sessionIdleExpiresAt;
   if (session.csrf_token) {
     state.csrf = session.csrf_token;
-  } else if (!state.csrf) {
-    state.csrf = readCsrfCookie(session.cookie_mode);
   }
   state.lastSessionKeepaliveAt = Date.now();
   renderSessionExpiryLabel();
