@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import secrets
 import time
@@ -13,6 +14,15 @@ from typing import Callable
 from api.security import hash_token
 from storage.database import Database
 from storage.ownership import Actor
+
+
+def _csrf_token(secret_hash: str, session_id: str) -> str:
+    """Derive the browser-facing token without exposing the stored secret."""
+    return hmac.new(
+        str(secret_hash).encode("ascii"),
+        f"nowlert.csrf:{session_id}".encode("ascii"),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -47,6 +57,7 @@ class SessionPrincipal:
     role: str
     expires_at: int
     idle_expires_at: int
+    csrf_token: str
 
     @property
     def actor(self) -> Actor:
@@ -71,7 +82,7 @@ class SessionStore:
         now = int(self.clock())
         session_id = uuid.uuid4().hex
         session_token = secrets.token_urlsafe(32)
-        csrf_token = secrets.token_urlsafe(32)
+        csrf_secret_hash = hash_token(secrets.token_urlsafe(32))
         expires_at = now + self.absolute_ttl_seconds
         idle_expires_at = min(expires_at, now + self.idle_ttl_seconds)
         with self.database.transaction() as connection:
@@ -94,7 +105,7 @@ class SessionStore:
                     session_id,
                     str(user_id),
                     hash_token(session_token),
-                    hash_token(csrf_token),
+                    csrf_secret_hash,
                     now,
                     now,
                     expires_at,
@@ -104,7 +115,7 @@ class SessionStore:
         return SessionCredentials(
             session_id=session_id,
             session_token=session_token,
-            csrf_token=csrf_token,
+            csrf_token=_csrf_token(csrf_secret_hash, session_id),
             expires_at=expires_at,
             idle_expires_at=idle_expires_at,
         )
@@ -144,10 +155,20 @@ class SessionStore:
             ):
                 return None
             if require_csrf:
-                supplied_hash = hash_token(str(csrf_token or ""))
-                if not csrf_token or not hmac.compare_digest(
-                    supplied_hash,
-                    str(row["csrf_hash"]),
+                supplied_token = str(csrf_token or "")
+                stored_hash = str(row["csrf_hash"])
+                derived_token = _csrf_token(stored_hash, str(row["id"]))
+                valid_current_token = hmac.compare_digest(
+                    supplied_token.encode("utf-8"),
+                    derived_token.encode("ascii"),
+                )
+                # Keep pre-deployment browser tokens valid until their sessions expire.
+                valid_legacy_token = hmac.compare_digest(
+                    hash_token(supplied_token),
+                    stored_hash,
+                )
+                if not supplied_token or not (
+                    valid_current_token or valid_legacy_token
                 ):
                     return None
             idle_expires_at = int(row["idle_expires_at"])
@@ -171,6 +192,7 @@ class SessionStore:
                 role=str(row["role"]),
                 expires_at=int(row["expires_at"]),
                 idle_expires_at=idle_expires_at,
+                csrf_token=_csrf_token(str(row["csrf_hash"]), str(row["id"])),
             )
 
     def revoke(self, session_id: str) -> bool:

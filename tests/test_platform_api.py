@@ -8,7 +8,7 @@ import pytest
 
 import api.platform as platform_module
 
-from api.security import hash_password
+from api.security import hash_password, hash_token
 from api.service import APIService
 from dispatcher import Dispatcher
 from outputs.platform import OutputPreview, PlatformOutputAdapter, PlatformOutputRegistry
@@ -239,14 +239,70 @@ def test_login_session_cookie_and_csrf_boundary(platform_api):
 
     assert current.status == 200
     assert current.payload["user"]["role"] == "admin"
+    assert current.payload["csrf_token"] == headers["X-CSRF-Token"]
     assert missing_csrf.status == 401
     assert logout.status == 204
     assert len([item for item in logout.headers if item[0] == "Set-Cookie"]) == 2
     assert call(platform_api, "GET", "/api/v2/session", headers=headers).status == 401
 
 
-def test_secure_cookie_defaults_use_host_prefix_and_strict_attributes(platform_api):
-    platform_api["service"].configuration.data["platform"]["secure_cookies"] = True
+@pytest.mark.parametrize("method", ["POST", "PUT", "PATCH", "DELETE"])
+@pytest.mark.parametrize("csrf", ["", "wrong", "non-ascii-\u00e9"])
+def test_unsafe_session_requests_require_valid_csrf(platform_api, method, csrf):
+    headers = login(platform_api)
+    headers["X-CSRF-Token"] = csrf
+    assert call(
+        platform_api, method, "/api/v2/tokens", {}, headers,
+    ).status == 401
+
+
+@pytest.mark.parametrize("secure", [False, True])
+def test_legacy_session_refresh_supplies_csrf_without_cookie(platform_api, secure):
+    service = platform_api["service"]
+    service.configuration.data["platform"]["secure_cookies"] = secure
+    sessions = service.platform.sessions
+    now = [1_800_000_000]
+    sessions.clock = lambda: now[0]
+    credentials = sessions.create(platform_api["admin"].id)
+    legacy_token = "pre-deployment-csrf-token"
+    with platform_api["database"].transaction() as connection:
+        connection.execute(
+            "UPDATE sessions SET csrf_hash = ? WHERE id = ?",
+            (hash_token(legacy_token), credentials.session_id),
+        )
+    # Reopening/migrating existing storage must not invalidate the session.
+    platform_api["database"].migrate()
+    headers = {"Cookie": credentials.cookie(secure=secure).split(";", 1)[0]}
+    now[0] += 300
+    assert call(platform_api, "GET", "/api/v2/users", headers=headers).status == 200
+    untouched = sessions.authenticate(credentials.session_token, touch=False)
+    assert untouched.idle_expires_at == credentials.idle_expires_at
+
+    refreshed = call(platform_api, "GET", "/api/v2/session", headers=headers)
+    assert refreshed.status == 200
+    assert ("Cache-Control", "no-store") in refreshed.headers
+    assert refreshed.payload["expires_at"] == credentials.expires_at
+    assert refreshed.payload["idle_expires_at"] == now[0] + sessions.idle_ttl_seconds
+    assert not any(name == "Set-Cookie" for name, _ in refreshed.headers)
+    for token in (legacy_token, refreshed.payload["csrf_token"]):
+        accepted = call(
+            platform_api, "POST", "/api/v2/events", event(),
+            {**headers, "X-CSRF-Token": token},
+        )
+        assert accepted.status == 202
+        assert token.encode() not in platform_api["database"].path.read_bytes()
+    assert call(platform_api, "DELETE", "/api/v2/session", headers=headers).status == 401
+    logout = call(
+        platform_api, "DELETE", "/api/v2/session",
+        headers={**headers, "X-CSRF-Token": refreshed.payload["csrf_token"]},
+    )
+    assert logout.status == 204
+    assert call(platform_api, "GET", "/api/v2/session", headers=headers).status == 401
+
+
+@pytest.mark.parametrize("secure", [False, True])
+def test_secure_cookie_defaults_use_host_prefix_and_strict_attributes(platform_api, secure):
+    platform_api["service"].configuration.data["platform"]["secure_cookies"] = secure
     response = call(
         platform_api,
         "POST",
@@ -256,11 +312,14 @@ def test_secure_cookie_defaults_use_host_prefix_and_strict_attributes(platform_a
     )
     cookies = [value for name, value in response.headers if name == "Set-Cookie"]
 
-    assert any(item.startswith("__Host-nowlert_session=") for item in cookies)
-    assert any(item.startswith("__Host-nowlert_csrf=") for item in cookies)
-    assert all("Secure" in item and "SameSite=Strict" in item for item in cookies)
+    prefix = "__Host-" if secure else ""
+    assert len(cookies) == 1
+    assert cookies[0].startswith(f"{prefix}nowlert_session=")
+    assert ("; Secure" in cookies[0]) is secure
+    assert "SameSite=Strict" in cookies[0]
+    assert ("Cache-Control", "no-store") in response.headers
     assert "HttpOnly" in next(item for item in cookies if "session=" in item)
-    assert "HttpOnly" not in next(item for item in cookies if "csrf=" in item)
+    assert not any("csrf=" in item for item in cookies)
 
 
 def test_admin_portability_preview_apply_and_v1_secret_redaction(platform_api):
@@ -1200,9 +1259,11 @@ def test_platform_api_is_absent_without_initialized_platform_database():
     ).status == 404
 
 
+@pytest.mark.parametrize("secure", [False, True])
 def test_first_run_bootstrap_creates_admin_session_and_consumes_token(
     tmp_path,
     monkeypatch,
+    secure,
 ):
     database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
@@ -1213,7 +1274,7 @@ def test_first_run_bootstrap_creates_admin_session_and_consumes_token(
     monkeypatch.setattr(platform_module, "UserStore", users)
     config = Configuration({
         "api": {"enabled": True},
-        "platform": {"enabled": True, "secure_cookies": False},
+        "platform": {"enabled": True, "secure_cookies": secure},
     })
     service = APIService(
         Dispatcher(),
@@ -1266,6 +1327,19 @@ def test_first_run_bootstrap_creates_admin_session_and_consumes_token(
     assert repeated.status == 409
     assert credential.token.encode() not in database.path.read_bytes()
     assert users(database).count() == 1
+    cookies = [value for name, value in created.headers if name == "Set-Cookie"]
+    assert len(cookies) == 1
+    assert "HttpOnly" in cookies[0] and "SameSite=Strict" in cookies[0]
+    assert ("; Secure" in cookies[0]) is secure
+    assert ("Cache-Control", "no-store") in created.headers
+    assert created.payload["csrf_token"].encode() not in database.path.read_bytes()
+    logout = service.handle_http(
+        "DELETE", "/api/v2/session", None,
+        {"Cookie": cookies[0].split(";", 1)[0],
+         "X-CSRF-Token": created.payload["csrf_token"]},
+        "127.0.0.1",
+    )
+    assert logout.status == 204
 
 
 def test_integrations_endpoint_is_complete_and_categories_are_database_backed(platform_api):

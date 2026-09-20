@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.security import hash_password
+from api.security import hash_password, hash_token
 from storage.database import Database
 from storage.sessions import SessionStore
 from storage.users import UserStore
@@ -225,3 +225,70 @@ def test_session_cookie_defaults_are_browser_safe(accounts):
     assert "; Secure" in cookie
     assert "; SameSite=Strict" in cookie
     assert "; Path=/" in cookie
+
+
+def test_authenticated_session_exposes_derived_csrf_token(accounts):
+    database, clock, users = accounts
+    user = users.bootstrap_admin("administrator", "correct horse battery staple")
+    sessions = SessionStore(database, clock=clock)
+    credentials = sessions.create(user.id)
+
+    principal = sessions.authenticate(credentials.session_token)
+
+    assert principal.csrf_token == credentials.csrf_token
+    assert sessions.authenticate(
+        credentials.session_token,
+        csrf_token=principal.csrf_token,
+        require_csrf=True,
+    ) is not None
+
+
+def test_existing_session_accepts_legacy_and_derived_csrf_tokens(accounts):
+    database, clock, users = accounts
+    user = users.bootstrap_admin("administrator", "correct horse battery staple")
+    sessions = SessionStore(database, clock=clock)
+    credentials = sessions.create(user.id)
+    legacy_token = "legacy-csrf-token"
+    with database.transaction() as connection:
+        connection.execute(
+            "UPDATE sessions SET csrf_hash = ? WHERE id = ?",
+            (hash_token(legacy_token), credentials.session_id),
+        )
+
+    principal = sessions.authenticate(credentials.session_token)
+
+    assert sessions.authenticate(
+        credentials.session_token,
+        csrf_token=legacy_token,
+        require_csrf=True,
+    ) is not None
+    assert sessions.authenticate(
+        credentials.session_token,
+        csrf_token=principal.csrf_token,
+        require_csrf=True,
+    ) is not None
+
+
+@pytest.mark.parametrize("invalid", ["", "wrong", "non-ascii-\u00e9"])
+def test_invalid_csrf_does_not_refresh_session(accounts, invalid):
+    database, clock, users = accounts
+    user = users.bootstrap_admin("administrator", "correct horse battery staple")
+    sessions = SessionStore(database, clock=clock)
+    credentials = sessions.create(user.id)
+    clock.value += 300
+    assert sessions.authenticate(
+        credentials.session_token, csrf_token=invalid, require_csrf=True,
+    ) is None
+    principal = sessions.authenticate(credentials.session_token, touch=False)
+    assert principal.idle_expires_at == credentials.idle_expires_at
+
+
+def test_csrf_token_is_bound_to_session(accounts):
+    database, clock, users = accounts
+    user = users.bootstrap_admin("administrator", "correct horse battery staple")
+    sessions = SessionStore(database, clock=clock)
+    first = sessions.create(user.id)
+    second = sessions.create(user.id)
+    assert sessions.authenticate(
+        first.session_token, csrf_token=second.csrf_token, require_csrf=True,
+    ) is None

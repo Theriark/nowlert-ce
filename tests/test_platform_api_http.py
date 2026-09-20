@@ -103,6 +103,16 @@ def test_platform_session_crud_patch_and_delete_over_native_http(monkeypatch, tm
             "Cookie": session_cookie,
             "X-CSRF-Token": login[1]["csrf_token"],
         }
+        refreshed = request(
+            server.server_port,
+            "GET",
+            "/api/v2/session",
+            headers={"Cookie": session_cookie},
+        )
+        assert refreshed[0] == 200
+        assert refreshed[1]["csrf_token"] == login[1]["csrf_token"]
+        assert ("Cache-Control", "no-store") in refreshed[2]
+        auth["X-CSRF-Token"] = refreshed[1]["csrf_token"]
         created = request(
             server.server_port,
             "POST",
@@ -141,7 +151,9 @@ def test_platform_session_crud_patch_and_delete_over_native_http(monkeypatch, tm
         thread.join(timeout=3)
 
     assert login[0] == 200
-    assert len(cookie_values) == 2
+    assert len(cookie_values) == 1
+    assert "HttpOnly" in cookie_values[0] and "SameSite=Strict" in cookie_values[0]
+    assert "csrf=" not in cookie_values[0]
     assert ("Cache-Control", "no-store") in login[2]
     assert ("X-Content-Type-Options", "nosniff") in login[2]
     assert ("Referrer-Policy", "no-referrer") in login[2]
