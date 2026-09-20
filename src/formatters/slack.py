@@ -12,6 +12,9 @@ from outputs.platform_common import safe_action_url
 
 CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
 _MARKDOWN_LINK = re.compile(r"\[([^\]\n]{1,120})\]\((https://[^)\s]+)\)")
+_COMPACT_FIRST_BATCH = frozenset(
+    {"zabbix", "grafana", "portainer", "proxmox", "qnap", "synology"}
+)
 
 
 class SlackFormatter(PresentationMixin):
@@ -92,6 +95,7 @@ class SlackFormatter(PresentationMixin):
                 description,
                 fields,
                 icon_url,
+                source=source,
                 title_link=title_link,
                 footer=footer,
             ),
@@ -110,6 +114,7 @@ class SlackFormatter(PresentationMixin):
         fields,
         icon_url,
         *,
+        source="",
         title_link="",
         footer=CLASSIC_FOOTER,
     ):
@@ -139,6 +144,11 @@ class SlackFormatter(PresentationMixin):
 
         blocks = [header]
         header_fields = []
+        body_parts = []
+        compact_source = (
+            str(source or "").strip().casefold()
+            in _COMPACT_FIRST_BATCH
+        )
 
         for field in fields:
             field_title = str(field.get("title") or "")
@@ -153,8 +163,21 @@ class SlackFormatter(PresentationMixin):
                     f"{field_value}"
                 )[:2000],
             }
-            if field.get("short"):
+            if (
+                field.get("short")
+                or (
+                    compact_source
+                    and self._slack_classic_header_field(
+                        field_title,
+                        field_value,
+                    )
+                )
+            ):
                 header_fields.append(block_text)
+                continue
+
+            if compact_source:
+                body_parts.append(block_text["text"])
                 continue
 
             blocks.append(
@@ -166,6 +189,30 @@ class SlackFormatter(PresentationMixin):
 
         if header_fields:
             header["fields"] = header_fields[:10]
+
+        if body_parts:
+            chunks = []
+            current = ""
+            for part in body_parts:
+                candidate = f"{current}\n\n{part}".strip() if current else part
+                if current and len(candidate) > 2800:
+                    chunks.append(current)
+                    current = part
+                else:
+                    current = candidate
+            if current:
+                chunks.append(current)
+
+            for chunk in chunks:
+                blocks.append(
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": chunk[:3000],
+                        },
+                    }
+                )
 
         blocks.append(
             {
@@ -189,6 +236,17 @@ class SlackFormatter(PresentationMixin):
         if not icon_url or not padded:
             return icon_url
         return f"{icon_url.rsplit('/', 1)[0]}/{padded}"
+
+    @staticmethod
+    def _slack_classic_header_field(title, value):
+        """Keep compact first-batch fields inside the shared header block."""
+
+        rendered = str(value or "").strip()
+        if not rendered:
+            return False
+        if "links" in str(title or "").casefold():
+            return False
+        return len(rendered) <= 500 and rendered.count("\n") <= 2
 
     def _slack_classic_field(self, field):
         return {
