@@ -602,28 +602,21 @@ def test_dedicated_discord_classic_cards_use_v1_contract(source):
     )
 
 
-@pytest.mark.parametrize("source", ["redfish"])
-def test_non_v1_discord_cards_keep_shared_information_hierarchy(source):
-    output = DiscordOutput()
-    formatter = (
-        output.default_formatter
-        if source == "generic"
-        else output.source_formatters[source]
-    )
-    embed = formatter.format(_notification(source))["embeds"][0]
+def test_redfish_classic_card_uses_fallback_information_hierarchy():
+    formatter = DiscordOutput().source_formatters["redfish"]
+    embed = formatter.format(_notification("redfish"))["embeds"][0]
+    fields = {field["name"]: field["value"] for field in embed["fields"]}
 
-    assert " • " in embed["title"]
-    assert not embed["description"].startswith("\u200b\n")
-    assert not embed["description"].startswith("\n")
-    assert embed["description"].count(" • ") == 2
-    assert [field["name"].split(" ", 1)[-1] for field in embed["fields"][:3]] == [
-        "Severity",
-        "Category",
-        "Event time",
-    ]
+    assert embed["title"] == "⚠️ Synthetic presentation warning — Warning"
+    assert embed["description"] == "Synthetic presentation event."
+    assert list(fields) == ["⚠️ Alert", "📍 Source", "⏱️ Timing"]
+    assert "**Severity:** `warning`" in fields["⚠️ Alert"]
+    assert "**Category:** `storage`" in fields["⚠️ Alert"]
+    assert "**Provider:** `Redfish`" in fields["📍 Source"]
+    assert "**System:** `synthetic-drive`" in fields["📍 Source"]
     assert len(embed["fields"]) <= 25
     assert formatter._embed_text_size(embed) <= formatter.EMBED_TEXT_BUDGET
-    assert embed["footer"]["text"] == f"Theriark • Nowlert v{VERSION}"
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
 
 
 def test_discord_classic_v1_groups_proxmox_details_by_section():

@@ -381,6 +381,7 @@ def test_generic_event_api_enforces_source_scope_and_returns_delivery_state():
     assert status == 202
     assert response == {"accepted": True, "delivered": True}
     assert [item.source for item in router.items] == ["home_lab"]
+    assert router.items[0].metadata["_input_type"] == "HTTP"
 
     denied = dict(event, source="other")
     status, _ = service.handle("POST", "/api/events", denied, headers, "127.0.0.2")
@@ -436,6 +437,7 @@ def test_generic_event_preview_and_test_send_use_bounded_event_payload():
     assert status == 200
     assert response == {"delivered": True}
     assert router.items[-1].source == "home_lab"
+    assert router.items[-1].metadata["_input_type"] == "HTTP"
 
 
 def test_health_is_public_only_when_api_is_enabled():
