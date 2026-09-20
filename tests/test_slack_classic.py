@@ -161,7 +161,7 @@ def test_slack_redfish_fallback_keeps_nowlert_branding():
     assert "Redfish" in str(attachment)
 
 
-def test_xo_slack_classic_card_contract_is_unchanged():
+def test_xo_slack_classic_card_uses_visible_block_icon():
     formatter = SlackFormatter()
     item = notification("xo")
     item.status = "failure"
@@ -185,14 +185,19 @@ def test_xo_slack_classic_card_contract_is_unchanged():
     item.job_id = "synthetic-job-id"
 
     attachment = formatter.format(item)["attachments"][0]
+    header = attachment["blocks"][0]
 
-    assert attachment["title"] == (
+    assert attachment["fallback"] == (
         "❌ Backup Failed — [CRITICAL - 02] Operation Critical"
     )
     assert attachment["color"] == "#ED4245"
-    assert attachment["footer"] == CLASSIC_FOOTER
-    assert attachment["thumb_url"].endswith("/xen-orchestra.png")
-    assert "Body Timeout Error" in str(attachment)
+    assert "thumb_url" not in attachment
+    assert header["accessory"]["type"] == "image"
+    assert header["accessory"]["image_url"].endswith("/xen-orchestra.png")
+    assert header["accessory"]["alt_text"] == "Xen Orchestra"
+    assert CLASSIC_FOOTER in str(attachment["blocks"])
+    assert "Body Timeout Error" in str(attachment["blocks"])
+
 
 def test_grafana_slack_classic_links_use_native_slack_mrkdwn():
     formatter = SlackFormatter()
@@ -245,4 +250,3 @@ def test_slack_classic_link_translation_keeps_unsafe_urls_literal():
 
     assert "<https://example.invalid/view|Safe>" in rendered
     assert "[Unsafe](javascript:alert(1))" in rendered
-
