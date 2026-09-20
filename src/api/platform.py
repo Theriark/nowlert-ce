@@ -466,7 +466,8 @@ class PlatformAPI:
             # explicit opt-in compatibility mode for trusted-LAN HTTP.
             # HTTPS mode uses __Host-nowlert_session with Secure, HttpOnly,
             # SameSite=Strict, Path=/, and no Domain; regression tests enforce both modes.
-            ("Set-Cookie", credentials.cookie(secure=self.secure_cookies)),  # no-dd-sa:datadog/python-insecurecookie
+            # no-dd-sa:datadog/python-insecurecookie
+            ("Set-Cookie", credentials.cookie(secure=self.secure_cookies)),
             ("Cache-Control", "no-store"),
         )
         return APIResponse(
