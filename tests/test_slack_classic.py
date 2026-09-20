@@ -195,6 +195,7 @@ def test_xo_slack_classic_card_uses_visible_block_icon():
     assert header["accessory"]["type"] == "image"
     assert header["accessory"]["image_url"].endswith("/discord/xen-orchestra.png")
     assert header["accessory"]["alt_text"] == "Xen Orchestra"
+    assert len(header["fields"]) == 4
     rendered = str(attachment["blocks"])
     assert attachment["blocks"][-1] == {
         "type": "context",

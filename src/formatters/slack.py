@@ -300,19 +300,8 @@ class SlackFormatter(PresentationMixin):
             }
 
         blocks = [header]
-        short_fields = []
+        header_fields = []
         job_id_value = ""
-
-        def flush_short_fields():
-            if not short_fields:
-                return
-            blocks.append(
-                {
-                    "type": "section",
-                    "fields": list(short_fields),
-                }
-            )
-            short_fields.clear()
 
         for field in fields:
             title = str(field.get("title") or "")
@@ -330,12 +319,9 @@ class SlackFormatter(PresentationMixin):
                 )[:2000],
             }
             if field.get("short"):
-                short_fields.append(block_text)
-                if len(short_fields) == 2:
-                    flush_short_fields()
+                header_fields.append(block_text)
                 continue
 
-            flush_short_fields()
             blocks.append(
                 {
                     "type": "section",
@@ -343,7 +329,8 @@ class SlackFormatter(PresentationMixin):
                 }
             )
 
-        flush_short_fields()
+        if header_fields:
+            header["fields"] = header_fields[:10]
 
         if job_id_value:
             job_line = f"*🆔 Job ID* {job_id_value}"
