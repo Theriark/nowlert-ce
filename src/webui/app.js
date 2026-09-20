@@ -424,9 +424,15 @@ async function request(path, options = {}) {
   return payload;
 }
 
-function showError(id, error) {
+function showError(id) {
   const item = byId(id);
-  item.textContent = error instanceof APIError ? error.message : "The request could not be completed.";
+  item.textContent = "The request could not be completed.";
+  item.hidden = false;
+}
+
+function showValidationError(id, message) {
+  const item = byId(id);
+  item.textContent = message;
   item.hidden = false;
 }
 
@@ -1059,7 +1065,7 @@ async function confirmMfaSetup(event) {
   clearError("mfa-enable-error");
   const code = syncMfaCodeDigits();
   if (!/^\d{6}$/.test(code)) {
-    showError("mfa-enable-error", new Error("Enter the complete six-digit authenticator code."));
+    showValidationError("mfa-enable-error", "Enter the complete six-digit authenticator code.");
     mfaDigitInputs().find((input) => !input.value)?.focus();
     return;
   }
@@ -1122,7 +1128,7 @@ async function bootstrapAdministrator(event) {
   const submit = event.submitter;
   const password = byId("bootstrap-password").value;
   if (password !== byId("bootstrap-confirm").value) {
-    showError("bootstrap-error", new APIError(400, "The passwords do not match."));
+    showValidationError("bootstrap-error", "The passwords do not match.");
     return;
   }
   if (submit) submit.disabled = true;
@@ -3991,7 +3997,7 @@ async function saveDestination(event) {
   const name = byId("destination-name").value.trim();
   const duplicate = state.destinations.find((item) => item.id !== id && item.name.trim().toLowerCase() === name.toLowerCase());
   if (duplicate) {
-    showError("destination-error", new APIError(409, `A destination named "${name}" already exists. Choose another name.`, id ? `/destinations/${id}` : "/destinations", "resource_conflict"));
+    showValidationError("destination-error", `A destination named "${name}" already exists. Choose another name.`);
     return;
   }
   submit.disabled = true;
@@ -4142,9 +4148,9 @@ async function saveRoute(event) {
         ? "severity"
         : "status";
 
-      showError(
+      showValidationError(
         "route-error",
-        new Error(`Select at least one included ${label}.`),
+        `Select at least one included ${label}.`,
       );
       return;
     }
@@ -4207,7 +4213,7 @@ async function saveToken(event) {
     ]),
   ];
   if (!sourceScopes.length) {
-    showError("token-error", new Error("Select at least one integration or enter a custom source identifier."));
+    showValidationError("token-error", "Select at least one integration or enter a custom source identifier.");
     return;
   }
   try {
