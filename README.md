@@ -312,7 +312,7 @@ used to receive the event.
 | Portainer | `portainer` | HTTP | Containers |
 | Proxmox | `proxmox` | HTTP | Virtualization |
 | QNAP | `qnap` | SMTP | Storage |
-| Synology | `synology` | HTTP | Storage |
+| Synology | `synology` | SMTP, HTTP | Storage |
 | TrueNAS | `truenas` | SMTP | Storage |
 | UniFi Network | `unifi_network` | HTTP | Networking |
 | UniFi Protect | `unifi_protect` | HTTP | Security |

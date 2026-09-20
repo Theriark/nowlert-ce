@@ -139,6 +139,88 @@ def test_smtp_fallback_matches_generic_smtp_only(tmp_path):
     ) == []
 
 
+
+def test_synology_transport_routes_suppress_matching_fallback_only(tmp_path):
+    database, actor = database_with_admin(tmp_path)
+    destinations = DestinationStore(database)
+    routes = RouteStore(database)
+
+    synology = destinations.create(
+        actor,
+        actor.user_id,
+        "Synology alerts",
+        "discord",
+        settings={},
+        enabled=True,
+    )
+    fallback = destinations.create(
+        actor,
+        actor.user_id,
+        "Default alerts",
+        "discord",
+        settings={},
+        enabled=True,
+    )
+
+    synology_smtp = routes.create(
+        actor,
+        actor.user_id,
+        "Synology SMTP",
+        "synology",
+        synology.id,
+        input_type="smtp",
+        priority=50,
+    )
+    synology_http = routes.create(
+        actor,
+        actor.user_id,
+        "Synology HTTP",
+        "synology",
+        synology.id,
+        input_type="http",
+        priority=50,
+    )
+    fallback_smtp = routes.create(
+        actor,
+        actor.user_id,
+        "Fallback SMTP",
+        "*",
+        fallback.id,
+        input_type="smtp",
+        priority=100,
+    )
+    routes.create(
+        actor,
+        actor.user_id,
+        "Fallback HTTP",
+        "*",
+        fallback.id,
+        input_type="http",
+        priority=100,
+    )
+
+    smtp = routes.matching(
+        actor,
+        actor.user_id,
+        notification(source="synology", input_type="smtp"),
+    )
+    assert [route.id for route in smtp] == [synology_smtp.id]
+
+    http = routes.matching(
+        actor,
+        actor.user_id,
+        notification(source="synology", input_type="http"),
+    )
+    assert [route.id for route in http] == [synology_http.id]
+
+    routes.set_enabled(actor, synology_smtp.id, False)
+    smtp_without_dedicated = routes.matching(
+        actor,
+        actor.user_id,
+        notification(source="synology", input_type="smtp"),
+    )
+    assert [route.id for route in smtp_without_dedicated] == [fallback_smtp.id]
+
 def test_matching_routes_deduplicate_at_destination_expansion(tmp_path):
     database, actor = database_with_admin(tmp_path)
     destinations = DestinationStore(database)
