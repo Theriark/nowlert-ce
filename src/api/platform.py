@@ -462,7 +462,11 @@ class PlatformAPI:
     def _session_response(self, user, credentials=None) -> APIResponse:
         credentials = credentials or self.sessions.create(user.id)
         headers = (
-            ("Set-Cookie", credentials.cookie(secure=self.secure_cookies)),
+            # Accepted CWE-614 exception: platform.secure_cookies: false is an
+            # explicit opt-in compatibility mode for trusted-LAN HTTP.
+            # HTTPS mode uses __Host-nowlert_session with Secure, HttpOnly,
+            # SameSite=Strict, Path=/, and no Domain; regression tests enforce both modes.
+            ("Set-Cookie", credentials.cookie(secure=self.secure_cookies)),  # no-dd-sa:datadog/python-insecurecookie
             ("Cache-Control", "no-store"),
         )
         return APIResponse(
