@@ -350,7 +350,11 @@ class TeamsClassicFormatter(BaseFormatter):
     def format(self, notification: Notification) -> dict[str, Any]:
         classic = render_classic_card_v1(notification)
         source = str(notification.source or "").strip().casefold()
-        icon_source = source if source in self.PRODUCT_ICONS else "nowlert"
+        icon_source = (
+            "nowlert"
+            if source == "redfish"
+            else source if source in self.PRODUCT_ICONS else "nowlert"
+        )
 
         body: list[dict[str, Any]] = [
             self._teams_header(
