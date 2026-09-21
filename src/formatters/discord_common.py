@@ -216,9 +216,10 @@ class DiscordCardFormatter(BaseFormatter):
                 notification.end_time or notification.start_time
             )
             title_text = "### 🗄️ Xen Orchestra"
-            context_text = (
-                f"-# {source_area}\n"
-                f"### {status_icon} {device} • {event}"
+            context_text = f"-# {source_area}"
+            xo_status_text = (
+                f"### {status_icon} {event}\n"
+                f"-# {device}"
             )
         else:
             title_text = (
@@ -233,10 +234,18 @@ class DiscordCardFormatter(BaseFormatter):
         if icon_url:
             header = {
                 "type": self.COMPONENT_TYPE_SECTION,
-                "components": [
-                    self._discord_v2_text(title_text),
-                    self._discord_v2_text(context_text),
-                ],
+                "components": (
+                    [
+                        self._discord_v2_text(title_text),
+                        self._discord_v2_text(context_text),
+                        self._discord_v2_text(xo_status_text),
+                    ]
+                    if is_xo
+                    else [
+                        self._discord_v2_text(title_text),
+                        self._discord_v2_text(context_text),
+                    ]
+                ),
                 "accessory": {
                     "type": self.COMPONENT_TYPE_THUMBNAIL,
                     "media": {"url": icon_url},
@@ -287,12 +296,12 @@ class DiscordCardFormatter(BaseFormatter):
             ))
 
         if is_xo:
-            children.extend(
-                self._discord_v2_text(section)
-                for section in self._discord_v2_xo_vm_sections(
-                    data.notification
-                )
-            )
+            vm_layout = self._discord_v2_xo_vm_layout(data.notification)
+            if vm_layout:
+                children.extend((
+                    self._discord_v2_separator(divider=False),
+                    self._discord_v2_text(vm_layout),
+                ))
 
         footer = f"-# Theriark • Nowlert v{VERSION}"
         if is_xo:
@@ -343,114 +352,275 @@ class DiscordCardFormatter(BaseFormatter):
         notification,
         details: tuple[DiscordFact, ...],
     ) -> str:
-        """Render the approved XO Event details block from existing card data."""
+        """Render the approved two-column XO operator panel."""
 
         facts = {
             str(fact.label): fact.value
             for fact in details
             if self._meaningful_fact(fact.value)
         }
-        rows = [
-            ("🧰", "Mode", getattr(notification, "mode", "")),
-            ("⏱️", "Duration", facts.get("Duration", "")),
-            ("📦", "Transfer size", getattr(notification, "transfer_size", "")),
-            ("💾", "Repository", getattr(notification, "repository", "")),
-            ("🚀", "Speed", getattr(notification, "transfer_speed", "")),
-            ("📊", "Result", facts.get("Result", "")),
+        left = (
+            ("🧰 Mode", getattr(notification, "mode", "")),
+            ("⏱ Duration", facts.get("Duration", "")),
+            ("📦 Transfer size", getattr(notification, "transfer_size", "")),
+            ("🚀 Speed", getattr(notification, "transfer_speed", "")),
+        )
+        right = (
+            ("💾 Repository", getattr(notification, "repository", "")),
             (
-                "▶️",
-                "Started",
+                "▶ Started",
                 self._discord_xo_time(getattr(notification, "start_time", "")),
             ),
             (
-                "🏁",
-                "Finished",
+                "🏁 Finished",
                 self._discord_xo_time(getattr(notification, "end_time", "")),
             ),
-            ("🆔", "Run ID", facts.get("Run ID", "")),
-            ("🆔", "Job ID", facts.get("Job ID", "")),
-        ]
-
-        lines = ["**📋 Event details**"]
-        for icon, label, value in rows:
-            if not self._meaningful_fact(value):
-                continue
-            lines.append(
-                f"{icon} **{label}:** {self._truncate(value, 700)}"
-            )
-        return self._truncate("\n".join(lines), 1800)
-
-    def _discord_v2_xo_vm_sections(self, notification) -> list[str]:
-        """Render the approved XO VM outcome groups without changing source data."""
-
-        sections = []
-        groups = (
-            (
-                getattr(notification, "successful_vms", []),
-                "✅",
-                "Successful VM",
-                "Successful VMs",
-                False,
-            ),
-            (
-                getattr(notification, "failed_vms", []),
-                "❌",
-                "Failed VM",
-                "Failed VMs",
-                True,
-            ),
-            (
-                getattr(notification, "skipped_vms", []),
-                "⚠️",
-                "Skipped VM",
-                "Skipped VMs",
-                True,
-            ),
+            ("📊 Result", facts.get("Result", "")),
         )
-        vm_details = getattr(notification, "vm_details", {}) or {}
 
-        for values, icon, singular, plural, include_reason in groups:
-            if not isinstance(values, list) or not values:
+        lines = []
+        for (left_label, left_value), (right_label, right_value) in zip(
+            left,
+            right,
+        ):
+            left_text = self._discord_xo_grid_fact(left_label, left_value)
+            right_text = self._discord_xo_grid_fact(right_label, right_value)
+            if left_text and right_text:
+                lines.append(f"{left_text:<34}{right_text}")
+            elif left_text:
+                lines.append(left_text)
+            elif right_text:
+                lines.append(right_text)
+
+        for label in ("Run ID", "Job ID"):
+            value = facts.get(label, "")
+            if self._meaningful_fact(value):
+                lines.append(
+                    self._discord_xo_grid_fact(f"🆔 {label}", value)
+                )
+
+        if not lines:
+            return ""
+        return (
+            "**📋 Event details**\n"
+            + self._discord_xo_code_panel(lines)
+        )
+
+    def _discord_v2_xo_vm_layout(self, notification) -> str:
+        """Render XO VM outcomes as compact grid panels matching the approved card."""
+
+        successful = self._discord_xo_vm_entries(
+            notification,
+            getattr(notification, "successful_vms", []),
+            include_reason=False,
+        )
+        failed = self._discord_xo_vm_entries(
+            notification,
+            getattr(notification, "failed_vms", []),
+            include_reason=True,
+        )
+        skipped = self._discord_xo_vm_entries(
+            notification,
+            getattr(notification, "skipped_vms", []),
+            include_reason=True,
+        )
+
+        blocks = []
+        if successful and failed:
+            blocks.append(
+                self._discord_xo_two_group_panel(
+                    "✅ SUCCESSFUL VMS",
+                    successful,
+                    "❌ FAILED VM" if len(failed) == 1 else "❌ FAILED VMS",
+                    failed,
+                )
+            )
+            successful = []
+            failed = []
+        elif successful and skipped:
+            blocks.append(
+                self._discord_xo_two_group_panel(
+                    "✅ SUCCESSFUL VMS",
+                    successful,
+                    "⚠ SKIPPED VM" if len(skipped) == 1 else "⚠ SKIPPED VMS",
+                    skipped,
+                )
+            )
+            successful = []
+            skipped = []
+
+        if successful:
+            blocks.append(self._discord_xo_success_grid(successful))
+        if failed:
+            blocks.append(
+                self._discord_xo_single_group_panel(
+                    "❌ FAILED VM" if len(failed) == 1 else "❌ FAILED VMS",
+                    failed,
+                )
+            )
+        if skipped:
+            blocks.append(
+                self._discord_xo_single_group_panel(
+                    "⚠ SKIPPED VM" if len(skipped) == 1 else "⚠ SKIPPED VMS",
+                    skipped,
+                )
+            )
+
+        return "\n".join(block for block in blocks if block)
+
+    def _discord_xo_vm_entries(
+        self,
+        notification,
+        values,
+        *,
+        include_reason: bool,
+    ) -> list[tuple[str, str, str]]:
+        """Return bounded VM name/transfer/reason rows without changing source data."""
+
+        if not isinstance(values, list):
+            return []
+
+        details = getattr(notification, "vm_details", {}) or {}
+        entries = []
+        for raw_name in values[:10]:
+            name = self._discord_xo_cell(raw_name, 90)
+            if not name:
                 continue
-            names = [
-                str(value or "").strip()
-                for value in values
-                if str(value or "").strip()
-            ]
-            if not names:
-                continue
+            detail = details.get(raw_name, {})
+            if not isinstance(detail, dict):
+                detail = {}
 
-            label = singular if len(names) == 1 else plural
-            lines = [f"{icon} **{label} ({len(names)})**"]
-            shown = names[:10]
-            for name in shown:
-                detail = vm_details.get(name, {})
-                if not isinstance(detail, dict):
-                    detail = {}
-                lines.append(f"{icon} **{self._truncate(name, 180)}**")
-                facts = []
-                if self._meaningful_fact(detail.get("size")):
-                    facts.append(
-                        f"📦 {self._truncate(detail.get('size'), 80)}"
-                    )
-                if self._meaningful_fact(detail.get("speed")):
-                    facts.append(
-                        f"🚀 {self._truncate(detail.get('speed'), 80)}"
-                    )
-                if facts:
-                    lines.append("-# " + " • ".join(facts))
-                if include_reason and self._meaningful_fact(detail.get("error")):
-                    lines.append(
-                        "-# 🚨 "
-                        + self._truncate(detail.get("error"), 420)
-                    )
+            transfer = []
+            if self._meaningful_fact(detail.get("size")):
+                transfer.append(
+                    f"📦 {self._discord_xo_cell(detail.get('size'), 60)}"
+                )
+            if self._meaningful_fact(detail.get("speed")):
+                transfer.append(
+                    f"🚀 {self._discord_xo_cell(detail.get('speed'), 60)}"
+                )
+            repository = detail.get("repository")
+            if (
+                self._meaningful_fact(repository)
+                and repository != getattr(notification, "repository", "")
+            ):
+                transfer.append(
+                    f"💾 {self._discord_xo_cell(repository, 90)}"
+                )
 
-            remaining = len(names) - len(shown)
-            if remaining:
-                lines.append(f"-# … and {remaining} more")
-            sections.append(self._truncate("\n".join(lines), 1800))
+            reason = ""
+            if include_reason and self._meaningful_fact(detail.get("error")):
+                reason = self._discord_xo_cell(detail.get("error"), 300)
 
-        return sections
+            entries.append((name, " • ".join(transfer), reason))
+        return entries
+
+    def _discord_xo_success_grid(
+        self,
+        entries: list[tuple[str, str, str]],
+    ) -> str:
+        """Render up to three successful VMs per row like the approved mockup."""
+
+        lines = [f"✅ SUCCESSFUL VMS ({len(entries)})"]
+        width = 27
+        for offset in range(0, len(entries), 3):
+            row = entries[offset : offset + 3]
+            names = [f"✅ {name}" for name, _facts, _reason in row]
+            facts = [facts or "—" for _name, facts, _reason in row]
+            lines.append(
+                "".join(f"{value:<{width}}" for value in names).rstrip()
+            )
+            lines.append(
+                "".join(f"{value:<{width}}" for value in facts).rstrip()
+            )
+        return self._discord_xo_code_panel(lines)
+
+    def _discord_xo_two_group_panel(
+        self,
+        left_title: str,
+        left_entries: list[tuple[str, str, str]],
+        right_title: str,
+        right_entries: list[tuple[str, str, str]],
+    ) -> str:
+        """Render success and failed/skipped groups as two visual columns."""
+
+        width = 39
+        left_heading = f"{left_title} ({len(left_entries)})"
+        right_heading = f"{right_title} ({len(right_entries)})"
+        lines = [f"{left_heading:<{width}}{right_heading}".rstrip()]
+        rows = max(len(left_entries), len(right_entries))
+        reasons = []
+        for index in range(rows):
+            left = (
+                left_entries[index]
+                if index < len(left_entries)
+                else ("", "", "")
+            )
+            right = (
+                right_entries[index]
+                if index < len(right_entries)
+                else ("", "", "")
+            )
+
+            left_name = f"✅ {left[0]}" if left[0] else ""
+            right_icon = "❌" if right_title.startswith("❌") else "⚠"
+            right_name = f"{right_icon} {right[0]}" if right[0] else ""
+            lines.append(f"{left_name:<{width}}{right_name}".rstrip())
+
+            left_facts = left[1] or ""
+            right_facts = right[1] or ""
+            if left_facts or right_facts:
+                lines.append(
+                    f"{left_facts:<{width}}{right_facts}".rstrip()
+                )
+            if right[2]:
+                reasons.append(f"↳ {right_icon} {right[2]}")
+
+        lines.extend(reasons)
+        return self._discord_xo_code_panel(lines)
+
+    def _discord_xo_single_group_panel(
+        self,
+        title: str,
+        entries: list[tuple[str, str, str]],
+    ) -> str:
+        """Render one failed/skipped group when no paired success group exists."""
+
+        icon = "❌" if title.startswith("❌") else "⚠"
+        lines = [f"{title} ({len(entries)})"]
+        for name, facts, reason in entries:
+            lines.append(f"{icon} {name}")
+            if facts:
+                lines.append(facts)
+            if reason:
+                lines.append(f"↳ {icon} {reason}")
+        return self._discord_xo_code_panel(lines)
+
+    def _discord_xo_grid_fact(self, label: str, value) -> str:
+        """Format one compact key/value item used by the XO details grid."""
+
+        if not self._meaningful_fact(value):
+            return ""
+        safe_label = self._discord_xo_cell(label, 32)
+        safe_value = self._discord_xo_cell(value, 340)
+        return f"{safe_label}: {safe_value}"
+
+    def _discord_xo_cell(self, value, limit: int) -> str:
+        """Flatten one value so source text cannot break the grid/code fence."""
+
+        text = self._sanitize_text(value).replace("\r", " ").replace("\n", " ")
+        text = " ".join(text.split()).replace(chr(96) * 3, "'''")
+        return self._truncate(text, limit)
+
+    def _discord_xo_code_panel(self, lines: list[str]) -> str:
+        """Wrap one visual panel while always retaining the closing code fence."""
+
+        content = "\n".join(line.rstrip() for line in lines if line).strip()
+        content = content.replace(chr(96) * 3, "'''")
+        if len(content) > 1740:
+            content = self._truncate(content, 1739).rstrip() + "…"
+        fence = chr(96) * 3
+        return f"{fence}text\n{content or '—'}\n{fence}"
 
     def _discord_v2_details(
         self,
