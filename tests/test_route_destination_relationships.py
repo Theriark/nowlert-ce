@@ -252,6 +252,9 @@ def test_expand_deduplicates_destination_by_route_order(platform):
     assert len(candidates) == 1
     assert candidates[0].route.id == first.id
     assert candidates[0].destination_id == destination.id
+    assert candidates[0].target is not None
+    assert candidates[0].target.destination.id == destination.id
+    assert candidates[0].target.destination.enabled is True
 
 
 def test_one_route_delivers_once_to_each_bound_destination(platform):

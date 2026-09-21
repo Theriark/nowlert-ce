@@ -592,9 +592,24 @@ class PlatformDeliveryService:
     ) -> tuple[bool, int]:
         route = candidate.route
         destination_id = candidate.destination_id
-        try:
-            target = self.destinations.for_delivery(actor, destination_id)
-        except (KeyError, PermissionError):
+        target = candidate.target
+        if target is None:
+            try:
+                target = self.destinations.for_delivery(actor, destination_id)
+            except (KeyError, PermissionError):
+                result = DeliveryResult(False, error_code="destination_unavailable")
+                self.history.record(
+                    actor.user_id,
+                    delivery_id,
+                    route,
+                    notification,
+                    1,
+                    "failed",
+                    result,
+                    destination_id=destination_id,
+                )
+                return False, 1
+        elif not target.destination.enabled:
             result = DeliveryResult(False, error_code="destination_unavailable")
             self.history.record(
                 actor.user_id,
