@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Resolve delivery routes and their assigned destination metadata in one joined
+  SQLite read, preserving Route.destination_ids, route filters, wildcard
+  fallback, destination de-duplication, and event-local delivery snapshots
+  while removing the separate matching and expansion reads from the hot path.
 - Resolve enabled destination metadata during route expansion and carry the
   event-local snapshot into delivery workers, avoiding a redundant SQLite
   destination lookup on the scheduler hot path while keeping secret values

@@ -500,8 +500,11 @@ class PlatformDeliveryService:
         actor: Actor,
         notification: Notification,
     ) -> DeliverySummary:
-        matching = self.routes.matching(actor, actor.user_id, notification)
-        candidates = self.relationships.expand(actor, matching)
+        candidates = self.relationships.resolve_matching(
+            actor,
+            actor.user_id,
+            notification,
+        )
         return self._deliver_candidates(actor, notification, candidates)
 
     def _deliver_candidates(
