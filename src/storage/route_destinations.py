@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import time
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Iterable
 
+from integrations.catalog import canonical_source
+from models import Notification
 from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.destinations import DeliveryDestination, DestinationStore
@@ -214,6 +217,140 @@ class RouteDestinationStore:
                 (str(route_id), str(destination_id), now),
             )
         return (str(destination_id),)
+
+    def resolve_matching(
+        self,
+        actor: Actor,
+        owner_user_id: str,
+        notification: Notification,
+    ) -> list[RouteDestinationCandidate]:
+        """Resolve matching Routes and delivery Destinations in one SQLite read."""
+
+        # Import lazily to keep the existing routes -> route_destinations
+        # dependency acyclic at module import time.
+        from storage.routes import Route, RouteStore
+
+        OwnershipPolicy.require_read(actor, str(owner_user_id))
+        source = canonical_source(notification.source)
+
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    routes.id AS route_id,
+                    routes.owner_user_id AS route_owner_user_id,
+                    routes.name AS route_name,
+                    routes.source AS route_source,
+                    routes.input_type AS route_input_type,
+                    routes.filters_json AS route_filters_json,
+                    routes.priority AS route_priority,
+                    routes.enabled AS route_enabled,
+                    routes.created_at AS route_created_at,
+                    routes.updated_at AS route_updated_at,
+                    destinations.*
+                FROM routes
+                JOIN users
+                  ON users.id = routes.owner_user_id
+                LEFT JOIN route_destinations
+                  ON route_destinations.route_id = routes.id
+                LEFT JOIN destinations
+                  ON destinations.id = route_destinations.destination_id
+                WHERE routes.owner_user_id = ?
+                  AND routes.enabled = 1
+                  AND users.enabled = 1
+                  AND (routes.source = ? OR routes.source = '*')
+                ORDER BY
+                    routes.priority,
+                    routes.name_normalized,
+                    destinations.name_normalized,
+                    destinations.id
+                """,
+                (str(owner_user_id), source),
+            ).fetchall()
+
+        grouped = {}
+        for row in rows:
+            route_id = str(row["route_id"])
+            group = grouped.setdefault(
+                route_id,
+                {
+                    "route_row": row,
+                    "destination_rows": [],
+                },
+            )
+            if row["id"] is not None:
+                group["destination_rows"].append(row)
+
+        route_entries = []
+        for route_id, group in grouped.items():
+            row = group["route_row"]
+            destination_rows = group["destination_rows"]
+            decoded = json.loads(str(row["route_filters_json"]))
+            route = Route(
+                id=route_id,
+                owner_user_id=str(row["route_owner_user_id"]),
+                name=str(row["route_name"]),
+                source=str(row["route_source"]),
+                filters={
+                    key: tuple(values)
+                    for key, values in decoded.items()
+                },
+                priority=int(row["route_priority"]),
+                enabled=bool(row["route_enabled"]),
+                created_at=int(row["route_created_at"]),
+                updated_at=int(row["route_updated_at"]),
+                input_type=str(row["route_input_type"] or ""),
+                destination_ids=tuple(
+                    str(destination_row["id"])
+                    for destination_row in destination_rows
+                ),
+            )
+            route_entries.append((route, destination_rows))
+
+        matched = [
+            entry
+            for entry in route_entries
+            if RouteStore.matches(entry[0], notification)
+        ]
+
+        # Preserve RouteStore.matching() fallback semantics: source-specific
+        # routes suppress wildcard routes whenever at least one specific route
+        # matches the notification.
+        specific = [
+            entry
+            for entry in matched
+            if entry[0].source != "*"
+        ]
+        selected = (
+            specific
+            if specific
+            else [
+                entry
+                for entry in matched
+                if entry[0].source == "*"
+            ]
+        )
+
+        result: list[RouteDestinationCandidate] = []
+        seen_destinations: set[str] = set()
+        for route, destination_rows in selected:
+            if str(route.owner_user_id) != actor.user_id and not actor.is_admin:
+                continue
+            for row in destination_rows:
+                if not bool(row["enabled"]):
+                    continue
+                destination_id = str(row["id"])
+                if destination_id in seen_destinations:
+                    continue
+                seen_destinations.add(destination_id)
+                result.append(
+                    RouteDestinationCandidate(
+                        route,
+                        destination_id,
+                        DestinationStore._delivery_destination(row),
+                    )
+                )
+        return result
 
     def expand(
         self,
