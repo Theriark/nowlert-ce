@@ -384,6 +384,20 @@ def test_teams_classic_uses_classic_renderer_for_every_supported_source(source):
     )
 
 
+def test_teams_classic_non_xo_uses_approved_plain_text_style():
+    preview = TeamsPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("teams", {"message_style": "classic"}),
+        notification_for_source("grafana"),
+    )
+
+    encoded = json.dumps(preview.payload, ensure_ascii=False)
+    assert "`" not in encoded
+    assert "📣 Alert" in encoded
+    assert "📂 Rule" in encoded
+
+
 def test_teams_classic_xo_is_sanitized_and_bounded():
     item = notification_for_source("xo")
     item.failed_vms = ["VM-FAILED"]
@@ -1045,16 +1059,31 @@ def test_preview_message_style_override_is_temporary(
     assert platform["destinations"].get(admin.actor, target.id).settings == stored_settings
 
 
-def test_destination_card_send_test_is_canonicalized_server_side(platform):
+@pytest.mark.parametrize(
+    ("output_type", "settings", "label"),
+    (
+        ("discord", {"components_v2": False}, "Discord"),
+        ("teams", {"message_style": "classic"}, "Microsoft Teams"),
+        ("slack", {}, "Slack"),
+        ("webhook", {"message_style": "classic"}, "Generic webhook"),
+    ),
+)
+def test_destination_card_send_test_is_canonicalized_server_side(
+    platform,
+    output_type,
+    settings,
+    label,
+):
     admin = platform["admin"]
+    name = f"CE Development - {label}"
     target = platform["destinations"].create(
         admin.actor,
         admin.id,
-        "CE Development - Discord",
-        "discord",
-        settings={"components_v2": False},
+        name,
+        output_type,
+        settings=settings,
     )
-    adapter = StyleCaptureAdapter("discord")
+    adapter = StyleCaptureAdapter(output_type)
     service = PlatformOutputService(
         platform["destinations"],
         platform["secrets"],
@@ -1090,15 +1119,14 @@ def test_destination_card_send_test_is_canonicalized_server_side(platform):
     assert delivered.source == "nowlert"
     assert delivered.category == "event"
     assert delivered.status == "information"
-    assert delivered.title == "CE Development - Discord test delivery"
-    assert (
-        delivered.body
-        == 'This is a safe Nowlert test for the Discord destination '
-        '"CE Development - Discord".'
+    assert delivered.title == f"{name} test delivery"
+    assert delivered.body == (
+        f'This is a safe Nowlert test for the {label} destination "{name}".'
     )
     assert delivered.metadata["provider"] == "Nowlert"
     assert delivered.metadata["component"] == "Destination test"
-    assert delivered.metadata["host"] == "CE Development - Discord"
+    assert delivered.metadata["host"] == name
+    assert delivered.metadata["output"] == output_type
 
 
 def test_manual_preview_test_notification_is_not_canonicalized(platform):
