@@ -368,7 +368,12 @@ def test_teams_classic_uses_classic_renderer_for_every_supported_source(source):
 
     assert preview.metadata["message_style"] == "classic"
     assert preview.metadata["rendered_style"] == "classic"
-    assert preview.metadata["formatter"] == "TeamsClassicFormatter"
+    expected_formatter = (
+        "TeamsClassicXenOrchestraFormatter"
+        if source == "xo"
+        else "TeamsClassicFormatter"
+    )
+    assert preview.metadata["formatter"] == expected_formatter
     assert "🦉 Nowlert CE • Classic Card" in json.dumps(
         preview.payload,
         ensure_ascii=False,
@@ -975,6 +980,7 @@ class StyleCaptureAdapter(PlatformOutputAdapter):
         self.output_type = output_type
         self.preview_settings = []
         self.delivery_settings = []
+        self.delivery_notifications = []
 
     def preview(self, destination, notification):
         self.preview_settings.append(dict(destination.settings))
@@ -987,6 +993,7 @@ class StyleCaptureAdapter(PlatformOutputAdapter):
 
     def deliver(self, destination, secret_value, notification):
         self.delivery_settings.append(dict(destination.settings))
+        self.delivery_notifications.append(notification)
         return DeliveryResult(True, response_status=204)
 
 
@@ -1036,6 +1043,99 @@ def test_preview_message_style_override_is_temporary(
     assert adapter.preview_settings[-1] == expected_override
     assert adapter.delivery_settings[-1] == expected_override
     assert platform["destinations"].get(admin.actor, target.id).settings == stored_settings
+
+
+def test_destination_card_send_test_is_canonicalized_server_side(platform):
+    admin = platform["admin"]
+    target = platform["destinations"].create(
+        admin.actor,
+        admin.id,
+        "CE Development - Discord",
+        "discord",
+        settings={"components_v2": False},
+    )
+    adapter = StyleCaptureAdapter("discord")
+    service = PlatformOutputService(
+        platform["destinations"],
+        platform["secrets"],
+        PlatformOutputRegistry([adapter]),
+        audit=platform["audit"],
+    )
+    stale_route_sample = Notification(
+        source="dell_idrac",
+        category="hardware",
+        status="information",
+        title="Dell iDRAC test alert",
+        body=(
+            "Safe WebUI test: Dell iDRAC hardware monitoring is routed "
+            "to this destination."
+        ),
+        metadata={
+            "provider": "Dell iDRAC",
+            "host": target.name,
+            "component": "Destination test",
+            "severity": "information",
+            "synthetic": "true",
+        },
+    )
+
+    result = service.test_delivery(
+        admin.actor,
+        target.id,
+        stale_route_sample,
+    )
+
+    assert result.success is True
+    delivered = adapter.delivery_notifications[-1]
+    assert delivered.source == "nowlert"
+    assert delivered.category == "event"
+    assert delivered.status == "information"
+    assert delivered.title == "CE Development - Discord test delivery"
+    assert (
+        delivered.body
+        == 'This is a safe Nowlert test for the Discord destination '
+        '"CE Development - Discord".'
+    )
+    assert delivered.metadata["provider"] == "Nowlert"
+    assert delivered.metadata["component"] == "Destination test"
+    assert delivered.metadata["host"] == "CE Development - Discord"
+
+
+def test_manual_preview_test_notification_is_not_canonicalized(platform):
+    admin = platform["admin"]
+    target = platform["destinations"].create(
+        admin.actor,
+        admin.id,
+        "Discord preview",
+        "discord",
+        settings={"components_v2": False},
+    )
+    adapter = StyleCaptureAdapter("discord")
+    service = PlatformOutputService(
+        platform["destinations"],
+        platform["secrets"],
+        PlatformOutputRegistry([adapter]),
+        audit=platform["audit"],
+    )
+    custom = Notification(
+        source="grafana",
+        category="monitoring",
+        status="warning",
+        title="Manual preview",
+        body="Operator-selected preview content.",
+        metadata={"host": "webui-safe-preview"},
+    )
+
+    result = service.test_delivery(
+        admin.actor,
+        target.id,
+        custom,
+    )
+
+    assert result.success is True
+    delivered = adapter.delivery_notifications[-1]
+    assert delivered.source == "grafana"
+    assert delivered.title == "Manual preview"
 
 
 def test_preview_message_style_override_rejects_unknown_style(platform):
