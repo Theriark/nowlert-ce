@@ -36,6 +36,9 @@ class XenOrchestraDiscordImageRenderer:
     DETAIL_VALUE_OFFSET = 260
     DETAIL_LABEL_VALUE_GAP = 30
     STATUS_BADGE_WIDTH = 420
+    XO_HEADER_ICON_SIZE = 120
+    PAIRED_PANEL_LEFT_RATIO = 0.50
+    PAIRED_PANEL_LONG_OTHER_LEFT_RATIO = 0.48
 
     # Nowlert brand surfaces.
     PAGE_BG = (18, 24, 29)
@@ -64,13 +67,15 @@ class XenOrchestraDiscordImageRenderer:
         self.font_detail = self._font(False, 23)
         self.font_body = self._font(False, 24)
         self.font_label = self._font(True, 24)
+        self.font_vm_micro = self._font(True, 20)
         self.font_vm_compact = self._font(True, 22)
         self.font_vm = self._font(True, 25)
         self.font_vm_large = self._font(True, 28)
         self.font_vm_meta_compact = self._font(False, 18)
         self.font_vm_meta_large = self._font(False, 23)
-        self.font_reason_compact = self._font(False, 16)
-        self.font_reason_large = self._font(False, 19)
+        self.font_reason_compact = self._font(False, 18)
+        self.font_reason = self._font(False, 20)
+        self.font_reason_large = self._font(False, 21)
         self.font_bold = self._font(True, 29)
         self.font_title = self._font(True, 34)
         self.font_heading = self._font(True, 42)
@@ -144,7 +149,7 @@ class XenOrchestraDiscordImageRenderer:
 
         # Header.
         header_y = 75
-        xo_icon_size = 94
+        xo_icon_size = self.XO_HEADER_ICON_SIZE
         self._draw_xo_art(
             image,
             x0,
@@ -507,6 +512,7 @@ class XenOrchestraDiscordImageRenderer:
         if vm_count <= 6:
             return {
                 "name_font": self.font_vm_large,
+                "name_fallback_font": self.font_vm,
                 "meta_font": self.font_vm_meta_large,
                 "reason_font": self.font_reason_large,
                 "entry_height": self.VM_ENTRY_HEIGHT_LARGE,
@@ -523,8 +529,9 @@ class XenOrchestraDiscordImageRenderer:
         if vm_count <= 12:
             return {
                 "name_font": self.font_vm,
+                "name_fallback_font": self.font_vm_compact,
                 "meta_font": self.font_small,
-                "reason_font": self.font_tiny,
+                "reason_font": self.font_reason,
                 "entry_height": self.VM_ENTRY_HEIGHT,
                 "reason_height": self.VM_ENTRY_REASON_HEIGHT,
                 "row_height": self.SUCCESS_ROW_HEIGHT,
@@ -538,6 +545,7 @@ class XenOrchestraDiscordImageRenderer:
             }
         return {
             "name_font": self.font_vm_compact,
+            "name_fallback_font": self.font_vm_micro,
             "meta_font": self.font_vm_meta_compact,
             "reason_font": self.font_reason_compact,
             "entry_height": self.VM_ENTRY_HEIGHT_COMPACT,
@@ -666,6 +674,33 @@ class XenOrchestraDiscordImageRenderer:
                 vm_count=total_vm_count,
             )
 
+    def _paired_panel_left_ratio(
+        self,
+        successful,
+        other,
+        notification,
+    ) -> float:
+        """Give the exception panel extra width when its content needs it."""
+
+        other_pressure = 0
+        for name in other:
+            detail = (notification.vm_details or {}).get(name, {}) or {}
+            reason = self._clean(detail.get("error") or "")
+            other_pressure = max(
+                other_pressure,
+                len(self._clean(name)),
+                min(60, len(reason)),
+            )
+
+        success_pressure = max(
+            (len(self._clean(name)) for name in successful),
+            default=0,
+        )
+
+        if other_pressure >= 22 or other_pressure > success_pressure + 4:
+            return self.PAIRED_PANEL_LONG_OTHER_LEFT_RATIO
+        return self.PAIRED_PANEL_LEFT_RATIO
+
     def _paired_vm_panels(
         self,
         image,
@@ -680,7 +715,12 @@ class XenOrchestraDiscordImageRenderer:
     ):
         x1, y1, x2, y2 = box
         gap = 18
-        left_w = int((x2 - x1 - gap) * 0.55)
+        left_ratio = self._paired_panel_left_ratio(
+            successful,
+            other,
+            notification,
+        )
+        left_w = int((x2 - x1 - gap) * left_ratio)
         left = (x1, y1, x1 + left_w, y2)
         right = (x1 + left_w + gap, y1, x2, y2)
 
@@ -809,13 +849,16 @@ class XenOrchestraDiscordImageRenderer:
         meta_offset = style["meta_offset"]
 
         self._draw_field_icon(draw, x, y - 2, main_icon, "cube")
-        self._fit_text(
+        self._fit_text_adaptive(
             draw,
             self._clean(name),
             x + name_offset,
             y,
             width - name_offset,
-            style["name_font"],
+            (
+                style["name_font"],
+                style["name_fallback_font"],
+            ),
             self.TEXT,
         )
 
@@ -915,7 +958,22 @@ class XenOrchestraDiscordImageRenderer:
         if path.is_file():
             try:
                 icon = Image.open(path).convert("RGBA")
-                icon.thumbnail((size, size), Image.Resampling.LANCZOS)
+                alpha = icon.getchannel("A")
+                bbox = alpha.getbbox()
+                if bbox:
+                    icon = icon.crop(bbox)
+                if icon.width and icon.height:
+                    scale = min(
+                        size / icon.width,
+                        size / icon.height,
+                    )
+                    icon = icon.resize(
+                        (
+                            max(1, int(round(icon.width * scale))),
+                            max(1, int(round(icon.height * scale))),
+                        ),
+                        Image.Resampling.LANCZOS,
+                    )
                 px = int(x + (size - icon.width) / 2)
                 py = int(y + (size - icon.height) / 2)
                 image.alpha_composite(icon, (px, py))

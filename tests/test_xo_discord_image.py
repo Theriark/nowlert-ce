@@ -464,6 +464,89 @@ def test_xo_detail_values_fit_repository_and_skipped_result(tmp_path):
     assert draw.textlength(result, font=result_font) <= result_available
 
 
+def test_xo_header_icon_is_large_and_trims_transparent_padding(tmp_path):
+    discord_dir = tmp_path / "discord"
+    discord_dir.mkdir()
+
+    icon = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(icon)
+    draw.rectangle((80, 80, 120, 120), fill=(255, 0, 255, 255))
+    icon.save(discord_dir / "xen-orchestra.png")
+
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    data = renderer.render(xo_notification("success"))
+
+    assert renderer.XO_HEADER_ICON_SIZE >= 120
+
+    with Image.open(BytesIO(data)).convert("RGB") as image:
+        crop = image.crop((65, 65, 205, 205))
+        magenta = sum(
+            1
+            for red, green, blue in crop.getdata()
+            if red > 220 and green < 60 and blue > 220
+        )
+        # Transparent padding is cropped before fitting, so the visible logo
+        # occupies a substantial part of the header slot.
+        assert magenta > 7000
+
+
+def test_xo_exception_panel_gets_extra_width_for_long_vm_content(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    item = xo_notification("skipped")
+
+    ratio = renderer._paired_panel_left_ratio(
+        item.successful_vms,
+        item.skipped_vms,
+        item,
+    )
+
+    assert ratio == renderer.PAIRED_PANEL_LONG_OTHER_LEFT_RATIO
+    assert ratio < 0.50
+
+
+def test_xo_vm_name_uses_smaller_font_before_ellipsis(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    image = Image.new("RGB", (renderer.WIDTH, renderer.BASE_HEIGHT))
+    draw = ImageDraw.Draw(image)
+    style = renderer._vm_style(3)
+
+    name = "VM-12 | Maintenance Window"
+    normal_width = draw.textlength(name, font=style["name_font"])
+    fallback_width = draw.textlength(
+        name,
+        font=style["name_fallback_font"],
+    )
+    available = int((normal_width + fallback_width) / 2)
+
+    selected = renderer._fit_text_adaptive(
+        draw,
+        name,
+        0,
+        0,
+        available,
+        (
+            style["name_font"],
+            style["name_fallback_font"],
+        ),
+        renderer.TEXT,
+    )
+
+    assert selected == style["name_fallback_font"]
+    assert draw.textlength(name, font=selected) <= available
+
+
+def test_xo_exception_reason_type_is_more_readable(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    comfortable = renderer._vm_style(3)
+    standard = renderer._vm_style(9)
+    compact = renderer._vm_style(20)
+
+    assert comfortable["reason_font"].size >= 21
+    assert standard["reason_font"].size >= 20
+    assert compact["reason_font"].size >= 18
+
+
 def test_xo_vm_typography_is_responsive_to_job_size(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
 
