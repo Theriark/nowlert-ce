@@ -18,7 +18,7 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
     """Render Classic Card v1 content in the approved Nowlert visual system."""
 
     WIDTH = 1448
-    MIN_HEIGHT = 930
+    MIN_HEIGHT = 760
     HEADER_Y = 70
     TITLE_Y = 214
     SUMMARY_Y = 316
@@ -30,6 +30,17 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
     HEADER_ICON_WIDTH = 150
     HEADER_ICON_HEIGHT = 112
     STATUS_BADGE_WIDTH = 420
+    HEADER_LOGO_WIDTHS = {
+        "qnap": 230,
+        "synology": 220,
+        "unifi_network": 240,
+        "unifi_protect": 220,
+        "unifi_drive": 220,
+        "dell_idrac": 190,
+        "supermicro": 190,
+        "hpe_ilo": 180,
+        "redfish": 180,
+    }
 
     INTEGRATION_NAMES = {
         "xo": "Xen Orchestra",
@@ -197,14 +208,14 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
 
     def __init__(self, icon_dir: Path | str = "/nowlert/assets/icons"):
         super().__init__(icon_dir)
-        self.font_section = self._font(True, 29)
-        self.font_message = self._font(False, 26)
-        self.font_message_small = self._font(False, 23)
-        self.font_field = self._font(True, 23)
-        self.font_value = self._font(False, 24)
-        self.font_value_small = self._font(False, 21)
-        self.font_header_context = self._font(False, 24)
-        self.font_summary = self._font(False, 23)
+        self.font_section = self._font(True, 31)
+        self.font_message = self._font(False, 28)
+        self.font_message_small = self._font(False, 25)
+        self.font_field = self._font(True, 25)
+        self.font_value = self._font(False, 26)
+        self.font_value_small = self._font(False, 23)
+        self.font_header_context = self._font(False, 25)
+        self.font_summary = self._font(False, 24)
 
     def render(
         self,
@@ -374,15 +385,28 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         x0,
         right,
     ):
+        logo_width = self.HEADER_LOGO_WIDTHS.get(
+            source,
+            self.HEADER_ICON_WIDTH,
+        )
         self._draw_product_icon(
             image,
             source,
             x0,
             self.HEADER_Y - 8,
-            self.HEADER_ICON_WIDTH,
+            logo_width,
             self.HEADER_ICON_HEIGHT,
         )
-        title_x = x0 + self.HEADER_ICON_WIDTH + 18
+        title_x = x0 + logo_width + 18
+        header_text_width = max(
+            340,
+            (
+                right
+                - self.STATUS_BADGE_WIDTH
+                - 24
+                - title_x
+            ),
+        )
         draw.text(
             (title_x, self.HEADER_Y + 1),
             integration,
@@ -394,7 +418,7 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             context,
             title_x,
             self.HEADER_Y + 62,
-            650,
+            header_text_width,
             (
                 self.font_header_context,
                 self.font_body,
@@ -647,6 +671,8 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             if not value:
                 continue
             normalized = self._normalize_field_name(name)
+            if normalized in {"timing", "time"}:
+                value = self._normalize_timing_block(value)
             if normalized == "alert":
                 # The Alert field repeats severity already shown in the summary.
                 continue
@@ -688,9 +714,16 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
                 )
                 for field in matched
             )
+            section_title = title
+            if (
+                title == "Event details"
+                and len(matched) == 1
+            ):
+                section_title = matched[0]["name"]
+
             sections.append(
                 {
-                    "title": title,
+                    "title": section_title,
                     "fields": matched,
                     "full_width": force_full,
                 }
@@ -1378,6 +1411,29 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         except ValueError:
             return text
 
+    def _normalize_timing_block(self, value):
+        lines = []
+        for raw_line in self._plain(
+            value,
+            preserve_lines=True,
+        ).split("\n"):
+            line = raw_line.strip()
+            if not line:
+                continue
+            key, candidate = self._split_key_value(
+                line
+            )
+            if not key:
+                lines.append(line)
+                continue
+            formatted = self._format_time(
+                candidate
+            )
+            lines.append(
+                f"{key}: {formatted or candidate}"
+            )
+        return "\n".join(lines)
+
     def _context(
         self,
         notification,
@@ -1510,7 +1566,6 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
                 "fail",
                 "critical",
                 "error",
-                "firing",
             )
         ):
             return "failure"
@@ -1542,42 +1597,63 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         normalized = str(
             line or ""
         ).casefold()
-        if any(
-            token in normalized
-            for token in (
+        if self._contains_status_word(
+            normalized,
+            (
                 "failed",
                 "failure",
                 "critical",
                 "error",
                 "unrecoverable",
-            )
+            ),
         ):
             return self.FAILURE
-        if any(
-            token in normalized
-            for token in (
+        if self._contains_status_word(
+            normalized,
+            (
                 "warning",
                 "warn",
                 "degraded",
                 "predictive",
                 "pending",
                 "updated",
-            )
+            ),
         ):
             return self.BRAND_GOLD
-        if any(
-            token in normalized
-            for token in (
+        if self._contains_status_word(
+            normalized,
+            (
                 "success",
                 "resolved",
                 "healthy",
                 "normal",
                 "recovered",
                 "cleared",
-            )
+            ),
         ):
             return self.SUCCESS
         return self.TEXT
+
+    @staticmethod
+    def _contains_status_word(
+        value,
+        words,
+    ):
+        if not value:
+            return False
+        pattern = (
+            r"(?<![A-Za-z0-9_])(?:"
+            + "|".join(
+                re.escape(word)
+                for word in words
+            )
+            + r")(?![A-Za-z0-9_])"
+        )
+        return re.search(
+            pattern,
+            value,
+            re.IGNORECASE,
+        ) is not None
 
     @staticmethod
     def _split_key_value(line):

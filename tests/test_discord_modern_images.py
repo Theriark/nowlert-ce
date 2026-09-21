@@ -132,7 +132,7 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     assert image.startswith(b"\x89PNG\r\n\x1a\n")
     with Image.open(BytesIO(image)) as rendered:
         assert rendered.width == 1448
-        assert rendered.height >= 930
+        assert rendered.height >= output.modern_image_renderer.MIN_HEIGHT
     assert len(image) < 8 * 1024 * 1024
 
 
@@ -167,13 +167,17 @@ def test_modern_renderer_uses_classic_embed_as_source_of_truth(tmp_path):
 def test_modern_readability_baseline_matches_xo_quality(tmp_path):
     renderer = DiscordModernImageRenderer(tmp_path)
 
-    assert renderer.font_section.size >= 29
-    assert renderer.font_message.size >= 26
-    assert renderer.font_field.size >= 23
-    assert renderer.font_value.size >= 24
-    assert renderer.font_header_context.size >= 24
+    assert renderer.font_section.size >= 31
+    assert renderer.font_message.size >= 28
+    assert renderer.font_field.size >= 25
+    assert renderer.font_value.size >= 26
+    assert renderer.font_header_context.size >= 25
     assert renderer.HEADER_ICON_WIDTH >= 150
     assert renderer.HEADER_ICON_HEIGHT >= 112
+    assert renderer.MIN_HEIGHT <= 760
+    assert renderer.HEADER_LOGO_WIDTHS["qnap"] >= 230
+    assert renderer.HEADER_LOGO_WIDTHS["synology"] >= 220
+    assert renderer.HEADER_LOGO_WIDTHS["unifi_network"] >= 240
 
 
 def test_zabbix_profile_groups_fields_and_removes_redundant_alert(tmp_path):
@@ -286,6 +290,81 @@ def test_summary_time_falls_back_to_classic_timing_field(tmp_path):
     value = renderer._summary_time(item, fields)
 
     assert value == "2026-07-12 10:09:00 UTC"
+
+
+def test_semantic_event_detail_title_uses_actual_qnap_domain(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+    fields = [
+        {"name": "QNAP NAS", "value": "NAS: LAB-QNAP"},
+        {
+            "name": "Power",
+            "value": "UPS: LAB-UPS\nCause: Utility power loss",
+        },
+    ]
+
+    sections = renderer._build_sections("qnap", fields)
+
+    assert [section["title"] for section in sections] == [
+        "QNAP NAS",
+        "Power",
+    ]
+
+
+def test_timing_values_are_normalized_for_section_rendering(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+
+    value = renderer._normalize_timing_block(
+        "Started: 2026-07-15T01:30:00Z\n"
+        "Resolved: 2026-07-15T01:45:00+00:00\n"
+        "Duration: 15 min"
+    )
+
+    assert value == (
+        "Started: 2026-07-15 01:30:00 UTC\n"
+        "Resolved: 2026-07-15 01:45:00 UTC\n"
+        "Duration: 15 min"
+    )
+
+
+def test_warning_firing_uses_non_failure_status_icon(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+
+    status_kind = renderer._status_kind(
+        "Firing",
+        (244, 193, 49),
+    )
+
+    assert status_kind == "skipped"
+
+
+def test_critical_firing_still_uses_failure_status_icon(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+
+    status_kind = renderer._status_kind(
+        "Firing",
+        (255, 64, 72),
+    )
+
+    assert status_kind == "failure"
+
+
+def test_metric_names_do_not_trigger_failure_coloring(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+
+    assert (
+        renderer._line_color(
+            "Metric: authentication_failures_total",
+            renderer.BRAND_GOLD,
+        )
+        == renderer.TEXT
+    )
+    assert (
+        renderer._line_color(
+            "Error: synthetic checksum error",
+            renderer.FAILURE,
+        )
+        == renderer.FAILURE
+    )
 
 
 def test_event_title_removes_status_emoji_and_suffix(tmp_path):
