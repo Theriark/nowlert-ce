@@ -14,6 +14,15 @@ from storage.secrets import SecretStore
 
 
 class PlatformOutputService:
+    _TEST_OUTPUT_NAMES = {
+        "discord": "Discord",
+        "teams": "Microsoft Teams",
+        "slack": "Slack",
+        "webhook": "Generic webhook",
+        "mqtt": "MQTT",
+        "ntfy": "ntfy",
+    }
+
     def __init__(
         self,
         destinations: DestinationStore,
@@ -74,6 +83,46 @@ class PlatformOutputService:
         )
         return preview
 
+    @classmethod
+    def _canonical_destination_test(
+        cls,
+        destination: Destination,
+        notification: Notification,
+    ) -> Notification:
+        metadata = (
+            notification.metadata
+            if isinstance(notification.metadata, dict)
+            else {}
+        )
+        component = str(metadata.get("component") or "").strip().casefold()
+        if component != "destination test":
+            return notification
+
+        name = str(destination.name or "Destination").strip()
+        output_name = cls._TEST_OUTPUT_NAMES.get(
+            destination.output_type,
+            destination.output_type.replace("_", " ").title(),
+        )
+        return Notification(
+            source="nowlert",
+            category="event",
+            status="information",
+            title=f"{name} test delivery",
+            body=(
+                "This is a safe Nowlert test for the "
+                f'{output_name} destination "{name}".'
+            ),
+            metadata={
+                "provider": "Nowlert",
+                "severity": "information",
+                "host": name,
+                "component": "Destination test",
+                "format": "event-api-v1",
+                "output": destination.output_type,
+                "synthetic": True,
+            },
+        )
+
     def test_delivery(
         self,
         actor: Actor,
@@ -94,6 +143,10 @@ class PlatformOutputService:
                 message_style,
             )
             adapter = self.registry.get(destination.output_type)
+            notification = self._canonical_destination_test(
+                destination,
+                notification,
+            )
         except (KeyError, ValueError):
             result = DeliveryResult(False, error_code="adapter_unavailable")
             self._audit_result(actor, destination_id, result)

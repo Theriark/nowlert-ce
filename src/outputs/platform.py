@@ -251,7 +251,10 @@ class TeamsPlatformAdapter(_HTTPAdapter):
         rendered_style = "modern"
 
         if requested_style == "classic":
-            formatter = self.output.classic_formatter
+            formatter = self.output.classic_source_formatters.get(
+                source,
+                self.output.classic_formatter,
+            )
             rendered_style = "classic"
 
         payload = formatter._sanitize_payload(
