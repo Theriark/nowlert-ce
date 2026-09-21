@@ -163,7 +163,7 @@ def test_xo_card_grows_to_keep_all_vm_content_inside(tmp_path):
     crowded = xo_notification("success")
     crowded.successful_vms = [
         f"VM-{index:02d} | Workload {index}"
-        for index in range(1, 10)
+        for index in range(1, 21)
     ]
     crowded.vm_success = len(crowded.successful_vms)
     crowded.vm_total = len(crowded.successful_vms)
@@ -191,6 +191,91 @@ def test_xo_card_grows_to_keep_all_vm_content_inside(tmp_path):
             [],
         )
         assert available_vm_height >= required_vm_height
+
+
+def test_xo_success_panel_uses_three_columns_and_grows_past_ten_vms(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    item = xo_notification("success")
+    item.successful_vms = [
+        f"VM-{index:02d} | Workload {index}"
+        for index in range(1, 21)
+    ]
+    item.vm_success = 20
+    item.vm_total = 20
+    item.vm_details = {
+        name: {
+            "size": f"{index}.00 GiB",
+            "speed": f"{20 + index}.00 MiB/s",
+        }
+        for index, name in enumerate(item.successful_vms, start=1)
+    }
+
+    data = renderer.render(item)
+    with Image.open(BytesIO(data)) as image:
+        expected_rows = 7
+        expected_height = max(
+            renderer.BASE_HEIGHT,
+            (
+                renderer.VM_PANEL_TOP
+                + renderer.VM_HEADER_HEIGHT
+                + expected_rows * renderer.SUCCESS_ROW_HEIGHT
+                + renderer.VM_PANEL_BOTTOM_PADDING
+                + renderer.FOOTER_GAP
+                + renderer.FOOTER_RESERVE
+            ),
+        )
+        assert image.height == expected_height
+
+    assert len(item.successful_vms) == 20
+
+
+def test_xo_paired_panels_keep_all_reported_vms_in_vertical_lists(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    item = xo_notification("failure")
+    item.successful_vms = [
+        f"VM-S{index:02d} | Success {index}"
+        for index in range(1, 13)
+    ]
+    item.failed_vms = [
+        f"VM-F{index:02d} | Failed {index}"
+        for index in range(1, 9)
+    ]
+    item.vm_success = len(item.successful_vms)
+    item.vm_failed = len(item.failed_vms)
+    item.vm_total = item.vm_success + item.vm_failed
+    item.vm_details = {
+        **{
+            name: {"size": "10.00 GiB", "speed": "20.00 MiB/s"}
+            for name in item.successful_vms
+        },
+        **{
+            name: {
+                "size": "10.00 GiB",
+                "speed": "20.00 MiB/s",
+                "error": "Synthetic failure",
+            }
+            for name in item.failed_vms
+        },
+    }
+
+    data = renderer.render(item)
+    with Image.open(BytesIO(data)) as image:
+        footer_y = image.height - renderer.FOOTER_RESERVE
+        available_vm_height = (
+            footer_y
+            - renderer.FOOTER_GAP
+            - renderer.VM_PANEL_TOP
+        )
+        required_vm_height = renderer._vm_panel_height(
+            item,
+            item.successful_vms,
+            item.failed_vms,
+            [],
+        )
+        assert available_vm_height >= required_vm_height
+
+    assert len(item.successful_vms) == 12
+    assert len(item.failed_vms) == 8
 
 
 def test_xo_paired_card_grows_for_success_rows_and_long_reason(tmp_path):
@@ -230,10 +315,10 @@ def test_xo_footer_uses_packaged_nowlert_icon(tmp_path):
     with Image.open(BytesIO(data)).convert("RGB") as image:
         footer_crop = image.crop(
             (
-                image.width - 135,
-                image.height - 135,
-                image.width - 35,
-                image.height - 35,
+                65,
+                image.height - renderer.FOOTER_RESERVE,
+                175,
+                image.height - 38,
             )
         )
         pixels = list(footer_crop.getdata())
@@ -275,6 +360,62 @@ def test_xo_footer_identity_is_nowlert_ce_modern_card():
     )
 
 
+def test_xo_transfer_size_has_clear_label_value_spacing(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    image = Image.new("RGB", (renderer.WIDTH, renderer.BASE_HEIGHT))
+    draw = ImageDraw.Draw(image)
+
+    x1 = 70
+    label_x = x1 + renderer.DETAIL_LABEL_OFFSET
+    label_end = label_x + draw.textlength(
+        "Transfer size",
+        font=renderer.font_label,
+    )
+    value_x = renderer._detail_value_x(draw, x1, "Transfer size")
+
+    assert value_x - label_end >= renderer.DETAIL_LABEL_VALUE_GAP
+
+
+def test_xo_footer_is_left_aligned_with_bottom_breathing_room(tmp_path):
+    logo = Image.new("RGBA", (80, 80), (255, 0, 255, 255))
+    logo.save(tmp_path / "nowlert.png")
+
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    data = renderer.render(xo_notification("success"))
+
+    with Image.open(BytesIO(data)).convert("RGB") as image:
+        left_footer = list(
+            image.crop(
+                (
+                    65,
+                    image.height - renderer.FOOTER_RESERVE,
+                    175,
+                    image.height - 38,
+                )
+            ).getdata()
+        )
+        right_footer = list(
+            image.crop(
+                (
+                    image.width - 175,
+                    image.height - renderer.FOOTER_RESERVE,
+                    image.width - 65,
+                    image.height - 38,
+                )
+            ).getdata()
+        )
+        assert any(
+            red > 220 and green < 60 and blue > 220
+            for red, green, blue in left_footer
+        )
+        assert not any(
+            red > 220 and green < 60 and blue > 220
+            for red, green, blue in right_footer
+        )
+
+    assert renderer.FOOTER_RESERVE >= 110
+
+
 def test_xo_detail_values_fit_repository_and_skipped_result(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
     image = Image.new("RGB", (renderer.WIDTH, renderer.BASE_HEIGHT))
@@ -286,10 +427,9 @@ def test_xo_detail_values_fit_repository_and_skipped_result(tmp_path):
     detail_width = right - x0 - gap
     left_width = int(detail_width * renderer.DETAIL_SPLIT_RATIO)
     right_x1 = x0 + left_width + gap
-    value_x = right_x1 + renderer.DETAIL_VALUE_OFFSET
-    available = right - value_x - 22
-
     repository = "UNAS-01 | NFS | Non-Critical Backups"
+    value_x = renderer._detail_value_x(draw, right_x1, "Repository")
+    available = right - value_x - 22
     repository_font = renderer._fit_text_adaptive(
         draw,
         repository,
@@ -306,11 +446,12 @@ def test_xo_detail_values_fit_repository_and_skipped_result(tmp_path):
     assert draw.textlength(repository, font=repository_font) <= available
 
     result = "2 of 3 VMs successful | 1 skipped"
-    result_available = available - 34 - 10
+    result_value_x = renderer._detail_value_x(draw, right_x1, "Result")
+    result_available = right - result_value_x - 22 - 34 - 10
     result_font = renderer._fit_text_adaptive(
         draw,
         result,
-        value_x + 44,
+        result_value_x + 44,
         0,
         result_available,
         (

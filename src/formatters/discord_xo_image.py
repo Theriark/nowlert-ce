@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from math import ceil
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -15,8 +16,6 @@ class XenOrchestraDiscordImageRenderer:
 
     WIDTH = 1448
     BASE_HEIGHT = 1086
-    MAX_VMS = 10
-
     VM_PANEL_TOP = 682
     VM_HEADER_HEIGHT = 92
     VM_PANEL_BOTTOM_PADDING = 28
@@ -24,11 +23,12 @@ class XenOrchestraDiscordImageRenderer:
     VM_ENTRY_REASON_HEIGHT = 166
     SUCCESS_ROW_HEIGHT = 122
     FOOTER_GAP = 26
-    FOOTER_RESERVE = 88
+    FOOTER_RESERVE = 112
     FOOTER_TEXT = "Nowlert CE • Modern Card"
     DETAIL_SPLIT_RATIO = 0.43
     DETAIL_LABEL_OFFSET = 84
     DETAIL_VALUE_OFFSET = 260
+    DETAIL_LABEL_VALUE_GAP = 30
     STATUS_BADGE_WIDTH = 420
 
     # Nowlert brand surfaces.
@@ -85,9 +85,12 @@ class XenOrchestraDiscordImageRenderer:
 
     def render(self, notification: Notification) -> bytes:
         status, accent, status_label = self._status(notification)
-        successful = list(notification.successful_vms or [])[: self.MAX_VMS]
-        failed = list(notification.failed_vms or [])[: self.MAX_VMS]
-        skipped = list(notification.skipped_vms or [])[: self.MAX_VMS]
+        # Keep every VM reported by Xen Orchestra. The card grows vertically
+        # to preserve all success/failure/skipped entries instead of silently
+        # truncating larger backup jobs.
+        successful = list(notification.successful_vms or [])
+        failed = list(notification.failed_vms or [])
+        skipped = list(notification.skipped_vms or [])
 
         vm_panel_height = self._vm_panel_height(
             notification,
@@ -366,27 +369,27 @@ class XenOrchestraDiscordImageRenderer:
                 notification,
             )
 
-        # Footer: Nowlert product identity only; the integration is already
-        # identified in the card header and does not need to be repeated here.
+        # Footer: keep the Nowlert identity left-aligned and give it enough
+        # breathing room above the lower frame.
         draw.line(
             (x0, footer_y - 8, right, footer_y - 8),
             fill=(81, 89, 95, 150),
             width=1,
         )
-        icon_size = 48
-        icon_x = right - icon_size
-        footer_w = draw.textlength(self.FOOTER_TEXT, font=self.font_small)
-        draw.text(
-            (icon_x - footer_w - 18, footer_y + 12),
-            self.FOOTER_TEXT,
-            font=self.font_small,
-            fill=self.MUTED,
-        )
+        icon_size = 36
+        icon_x = x0 + 18
+        icon_y = footer_y + 8
         self._draw_nowlert_icon(
             image,
             icon_x,
-            footer_y - 1,
+            icon_y,
             icon_size,
+        )
+        draw.text(
+            (icon_x + icon_size + 12, footer_y + 13),
+            self.FOOTER_TEXT,
+            font=self.font_small,
+            fill=self.MUTED,
         )
 
         output = BytesIO()
@@ -475,7 +478,6 @@ class XenOrchestraDiscordImageRenderer:
         x1, y1, x2, _ = box
         y = y1 + 28
         label_x = x1 + self.DETAIL_LABEL_OFFSET
-        value_x = x1 + self.DETAIL_VALUE_OFFSET
         for _index, (icon, label, value) in enumerate(rows):
             if value is None or str(value).strip() == "":
                 y += 55
@@ -487,6 +489,7 @@ class XenOrchestraDiscordImageRenderer:
                 font=self.font_label,
                 fill=self.LABEL,
             )
+            value_x = self._detail_value_x(draw, x1, label)
             available = x2 - value_x - 22
             if label == "Result" and result_status:
                 result_color = {
@@ -1335,6 +1338,19 @@ class XenOrchestraDiscordImageRenderer:
             fill=fill,
             outline=outline,
             width=width,
+        )
+
+    def _detail_value_x(self, draw, x1, label):
+        """Keep field values visibly separated from variable-width labels."""
+
+        label_x = x1 + self.DETAIL_LABEL_OFFSET
+        label_end = label_x + draw.textlength(
+            self._clean(label),
+            font=self.font_label,
+        )
+        return max(
+            x1 + self.DETAIL_VALUE_OFFSET,
+            ceil(label_end + self.DETAIL_LABEL_VALUE_GAP),
         )
 
     def _fit_text_adaptive(
