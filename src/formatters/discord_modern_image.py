@@ -1,7 +1,8 @@
-"""Image renderer for Discord Modern cards outside Xen Orchestra."""
+"""High-readability Discord Modern cards for Nowlert integrations."""
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 import re
@@ -14,17 +15,21 @@ from models import Notification
 
 
 class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
-    """Render Classic Card v1 information in the approved XO visual system."""
+    """Render Classic Card v1 content in the approved Nowlert visual system."""
 
     WIDTH = 1448
-    HEADER_Y = 72
-    TITLE_Y = 208
-    SUMMARY_Y = 304
-    CONTENT_TOP = 398
-    FOOTER_RESERVE = 116
-    SECTION_GAP = 18
-    COLUMN_GAP = 18
+    MIN_HEIGHT = 930
+    HEADER_Y = 70
+    TITLE_Y = 214
+    SUMMARY_Y = 316
+    CONTENT_TOP = 412
+    FOOTER_RESERVE = 120
+    SECTION_GAP = 20
+    COLUMN_GAP = 20
     CARD_PADDING = 70
+    HEADER_ICON_WIDTH = 150
+    HEADER_ICON_HEIGHT = 112
+    STATUS_BADGE_WIDTH = 420
 
     INTEGRATION_NAMES = {
         "xo": "Xen Orchestra",
@@ -67,22 +72,139 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         "generic": ("host", "device", "provider"),
     }
 
+    SECTION_PROFILES = {
+        "zabbix": (
+            ("Problem", ("problem", "operational data"), False),
+            ("Trigger", ("trigger", "problem id"), False),
+            ("Response", ("runbook", "timing"), False),
+        ),
+        "grafana": (
+            ("Rule & Location", ("rule", "location"), False),
+            ("Data", ("datasource", "labels", "values"), False),
+            ("Alert details", ("alerts", "evaluation error"), True),
+            ("Timing & Links", ("timing", "links"), False),
+        ),
+        "portainer": (
+            ("Environment", ("portainer", "authentication"), False),
+            ("Signal", ("signal", "grouped alerts"), False),
+            ("Timing", ("timing",), False),
+        ),
+        "proxmox": (
+            ("Proxmox VE", ("proxmox ve",), False),
+            ("Job & Storage", ("backup", "storage"), False),
+            ("Timing", ("timing",), False),
+        ),
+        "qnap": (
+            ("QNAP NAS", ("qnap nas",), False),
+            (
+                "Event details",
+                ("storage", "security", "system", "backup", "power"),
+                False,
+            ),
+            ("Timing", ("timing",), False),
+        ),
+        "synology": (
+            ("Synology NAS", ("synology nas",), False),
+            ("Event details", ("storage", "backup", "power"), False),
+            ("Timing", ("timing",), False),
+        ),
+        "truenas": (
+            ("TrueNAS System", ("truenas system",), False),
+            (
+                "Event details",
+                (
+                    "disk",
+                    "power",
+                    "storage",
+                    "notification test",
+                    "scrub",
+                    "replication",
+                ),
+                False,
+            ),
+            ("Grouped Alerts", ("grouped alerts",), True),
+            ("Timing", ("timing",), False),
+        ),
+        "unifi_network": (
+            (
+                "Controller & Network",
+                ("unifi controller", "network / wi-fi"),
+                False,
+            ),
+            (
+                "Client / Access Point",
+                ("client", "last access point"),
+                False,
+            ),
+            ("Timing", ("timing",), False),
+        ),
+        "unifi_protect": (
+            ("Trigger", ("trigger",), False),
+            ("Alarm Rule", ("alarm rule",), False),
+            ("Timing", ("timing",), False),
+        ),
+        "unifi_drive": (
+            ("Drive Event", ("alarm",), True),
+            ("Timing", ("timing",), False),
+        ),
+        "supermicro": (
+            ("System", ("supermicro bmc",), False),
+            ("Hardware Event", ("hardware event",), False),
+            ("Timing", ("timing",), False),
+        ),
+        "hpe_ilo": (
+            ("System", ("hpe ilo",), False),
+            ("Hardware Event", ("hardware event",), False),
+            ("Timing", ("timing",), False),
+        ),
+        "dell_idrac": (
+            ("System", ("dell idrac",), False),
+            ("Hardware Event", ("hardware event",), False),
+            ("Timing", ("timing",), False),
+        ),
+        "home_assistant": (
+            (
+                "Home Assistant",
+                ("home assistant", "entity / device"),
+                False,
+            ),
+            ("Source Details", ("source details",), True),
+            ("Timing", ("timing",), False),
+        ),
+        "redfish": (
+            ("Source & Event", ("source", "hardware event"), False),
+            ("Recommended Action", ("recommended action",), True),
+            ("Timing", ("timing",), False),
+        ),
+        "generic": (
+            ("Source & Context", ("source", "email", "context"), False),
+            ("Timing", ("timing",), False),
+        ),
+        "nowlert": (
+            ("Source & Context", ("source", "context"), False),
+            ("Timing", ("timing",), False),
+        ),
+    }
+
     MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\([^)]+\)")
     MARKDOWN_MARKS = re.compile(r"(\*\*|__|~~|\x60)")
     LEADING_SYMBOLS = re.compile(r"^[^A-Za-z0-9]+")
     STATUS_SUFFIX = re.compile(
         r"\s+[—-]\s+(Success|Successful|Failed|Failure|Warning|"
-        r"Information|Resolved|Recovered|Firing|Pending|Skipped)\s*$",
+        r"Information|Resolved|Recovered|Firing|Pending|Skipped|Updated)\s*$",
         re.IGNORECASE,
     )
 
     def __init__(self, icon_dir: Path | str = "/nowlert/assets/icons"):
         super().__init__(icon_dir)
-        self.font_section = self._font(True, 25)
-        self.font_message = self._font(False, 23)
-        self.font_value = self._font(False, 21)
-        self.font_value_small = self._font(False, 18)
-        self.font_header_context = self._font(False, 22)
+        self.font_section = self._font(True, 29)
+        self.font_message = self._font(False, 26)
+        self.font_message_small = self._font(False, 23)
+        self.font_field = self._font(True, 23)
+        self.font_value = self._font(False, 24)
+        self.font_value_small = self._font(False, 21)
+        self.font_header_context = self._font(False, 24)
+        self.font_summary = self._font(False, 23)
 
     def render(
         self,
@@ -90,52 +212,59 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         classic_payload: dict,
     ) -> bytes:
         embed = self._embed(classic_payload)
-        source = str(notification.source or "generic").strip().casefold() or "generic"
+        source = (
+            str(notification.source or "generic").strip().casefold()
+            or "generic"
+        )
         integration = self.INTEGRATION_NAMES.get(
             source,
             self._label(source) or "Nowlert",
         )
         accent = self._embed_accent(embed)
         lifecycle = self._lifecycle(embed, notification)
+        status_kind = self._status_kind(lifecycle, accent)
         title = self._event_title(embed, notification, lifecycle)
         description = self._description(embed, title)
+        raw_fields = self._fields(embed)
+        sections = self._build_sections(source, raw_fields)
         severity = self._summary_severity(notification, lifecycle)
         category = self._summary_category(notification)
-        event_time = self._summary_time(notification)
+        event_time = self._summary_time(notification, raw_fields)
         context = self._context(notification, integration)
-        fields = self._fields(embed)
 
         dummy = Image.new("RGB", (self.WIDTH, 1))
         measure = ImageDraw.Draw(dummy)
         content_width = self.WIDTH - self.CARD_PADDING * 2
 
-        message_height = 0
         message_lines = []
+        message_height = 0
         if description:
             message_lines = self._wrapped_lines(
                 measure,
                 description,
-                content_width - 54,
+                content_width - 58,
                 self.font_message,
             )
-            message_height = max(82, 50 + len(message_lines) * 31)
+            message_height = max(
+                104,
+                62 + len(message_lines) * 35,
+            )
 
-        details_top = self.CONTENT_TOP
+        current_y = self.CONTENT_TOP
         if message_height:
-            details_top += message_height + self.SECTION_GAP
+            current_y += message_height + self.SECTION_GAP
 
-        layout, details_height = self._field_layout(
+        layout, details_height = self._section_layout(
             measure,
-            fields,
+            sections,
             content_width,
         )
+        if not sections and not description:
+            details_height = 118
 
-        if not fields and not description:
-            details_height = 94
-
-        footer_y = details_top + details_height + 24
+        footer_y = current_y + details_height + 28
         height = max(
-            900,
+            self.MIN_HEIGHT,
             footer_y + self.FOOTER_RESERVE,
         )
 
@@ -158,16 +287,104 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         x0 = self.CARD_PADDING
         right = self.WIDTH - self.CARD_PADDING
 
+        self._draw_header(
+            image,
+            draw,
+            source,
+            integration,
+            context,
+            lifecycle,
+            accent,
+            status_kind,
+            x0,
+            right,
+        )
+        self._draw_event_title(
+            draw,
+            title,
+            x0,
+            right,
+        )
+        self._draw_summary(
+            draw,
+            x0,
+            right,
+            severity,
+            category,
+            event_time,
+            accent,
+            status_kind,
+        )
+
+        content_y = self.CONTENT_TOP
+        if message_height:
+            self._draw_message(
+                draw,
+                x0,
+                right,
+                content_y,
+                message_height,
+                message_lines,
+            )
+            content_y += message_height + self.SECTION_GAP
+
+        if sections:
+            self._draw_sections(
+                draw,
+                x0,
+                content_y,
+                layout,
+                accent,
+            )
+        else:
+            self._draw_empty_details(
+                draw,
+                x0,
+                right,
+                content_y,
+            )
+
+        self._draw_footer(
+            image,
+            draw,
+            x0,
+            right,
+            footer_y,
+        )
+
+        output = BytesIO()
+        image.convert("RGB").save(
+            output,
+            format="PNG",
+            optimize=True,
+            compress_level=7,
+        )
+        return output.getvalue()
+
+    def _draw_header(
+        self,
+        image,
+        draw,
+        source,
+        integration,
+        context,
+        lifecycle,
+        accent,
+        status_kind,
+        x0,
+        right,
+    ):
         self._draw_product_icon(
             image,
             source,
             x0,
-            self.HEADER_Y - 7,
-            104,
+            self.HEADER_Y - 8,
+            self.HEADER_ICON_WIDTH,
+            self.HEADER_ICON_HEIGHT,
         )
-        title_x = x0 + 120
+        title_x = x0 + self.HEADER_ICON_WIDTH + 18
         draw.text(
-            (title_x, self.HEADER_Y + 2),
+            (title_x, self.HEADER_Y + 1),
             integration,
             font=self.font_heading,
             fill=self.TEXT,
@@ -176,50 +393,55 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             draw,
             context,
             title_x,
-            self.HEADER_Y + 60,
-            610,
+            self.HEADER_Y + 62,
+            650,
             (
-                self.font_body,
                 self.font_header_context,
+                self.font_body,
                 self.font_small,
             ),
             self.HEADER_MUTED,
         )
 
-        badge_w = 405
-        badge_h = 80
+        badge_w = self.STATUS_BADGE_WIDTH
+        badge_h = 82
         badge_x = right - badge_w
         badge = (
             badge_x,
-            self.HEADER_Y + 3,
+            self.HEADER_Y + 2,
             right,
-            self.HEADER_Y + 3 + badge_h,
+            self.HEADER_Y + 2 + badge_h,
         )
-        self._glow_box(image, badge, accent, 17, alpha=76)
+        self._glow_box(
+            image,
+            badge,
+            accent,
+            17,
+            alpha=82,
+        )
         draw = ImageDraw.Draw(image, "RGBA")
         self._rounded(
             draw,
             badge,
-            fill=(*self._tint(accent, self.CARD_BG, 0.15), 245),
+            fill=(*self._tint(accent, self.CARD_BG, 0.16), 245),
             outline=(*accent, 230),
             radius=17,
             width=2,
         )
-        status_kind = self._status_kind(lifecycle, accent)
         self._status_icon(
             draw,
             badge_x + 22,
             self.HEADER_Y + 20,
-            46,
+            48,
             status_kind,
             accent,
         )
         self._fit_text_adaptive(
             draw,
             lifecycle,
-            badge_x + 84,
+            badge_x + 88,
             self.HEADER_Y + 22,
-            badge_w - 108,
+            badge_w - 114,
             (
                 self.font_bold,
                 self.font_label,
@@ -228,12 +450,18 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             accent,
         )
 
-        title_box = (x0, self.TITLE_Y, right, self.TITLE_Y + 76)
+    def _draw_event_title(self, draw, title, x0, right):
+        box = (
+            x0,
+            self.TITLE_Y,
+            right,
+            self.TITLE_Y + 78,
+        )
         self._rounded(
             draw,
-            title_box,
+            box,
             fill=(*self.PANEL_2, 248),
-            outline=(93, 101, 108, 190),
+            outline=(93, 101, 108, 195),
             radius=14,
             width=2,
         )
@@ -251,99 +479,6 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             self.TEXT,
         )
 
-        self._draw_summary(
-            draw,
-            x0,
-            right,
-            severity,
-            category,
-            event_time,
-            accent,
-            status_kind,
-        )
-
-        current_y = self.CONTENT_TOP
-        if message_height:
-            box = (x0, current_y, right, current_y + message_height)
-            self._rounded(
-                draw,
-                box,
-                fill=(*self.PANEL, 248),
-                outline=(*self.PANEL_BORDER, 205),
-                radius=15,
-                width=2,
-            )
-            draw.text(
-                (x0 + 24, current_y + 16),
-                "Event message",
-                font=self.font_section,
-                fill=self.LABEL,
-            )
-            line_y = current_y + 51
-            for line in message_lines:
-                draw.text(
-                    (x0 + 26, line_y),
-                    line,
-                    font=self.font_message,
-                    fill=self.TEXT,
-                )
-                line_y += 31
-            current_y += message_height + self.SECTION_GAP
-
-        if fields:
-            self._draw_fields(
-                draw,
-                x0,
-                current_y,
-                layout,
-                accent,
-            )
-        else:
-            box = (x0, current_y, right, current_y + 94)
-            self._rounded(
-                draw,
-                box,
-                fill=(*self.PANEL_2, 248),
-                outline=(*self.PANEL_BORDER, 190),
-                radius=15,
-                width=2,
-            )
-            draw.text(
-                (x0 + 24, current_y + 31),
-                "No additional event details.",
-                font=self.font_message,
-                fill=self.MUTED,
-            )
-
-        footer_line_y = footer_y
-        draw.line(
-            (x0, footer_line_y - 8, right, footer_line_y - 8),
-            fill=(81, 89, 95, 150),
-            width=1,
-        )
-        icon_size = 40
-        self._draw_nowlert_icon(
-            image,
-            x0 + 18,
-            footer_line_y + 4,
-            icon_size,
-        )
-        draw.text(
-            (x0 + 18 + icon_size + 12, footer_line_y + 10),
-            "Nowlert CE • Modern Card",
-            font=self.font_small,
-            fill=self.MUTED,
-        )
-
-        output = BytesIO()
-        image.convert("RGB").save(
-            output,
-            format="PNG",
-            optimize=True,
-            compress_level=7,
-        )
-        return output.getvalue()
-
     def _draw_summary(
         self,
         draw,
@@ -356,12 +491,12 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         status_kind,
     ):
         y = self.SUMMARY_Y
-        height = 72
+        height = 74
         self._rounded(
             draw,
             (x0, y, right, y + height),
             fill=(*self.PANEL, 248),
-            outline=(*self.PANEL_BORDER, 200),
+            outline=(*self.PANEL_BORDER, 205),
             radius=14,
             width=1,
         )
@@ -370,7 +505,7 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             ("sync", "Category", category, self.ICON_BLUE, None),
             ("clock", "Event time", event_time or "—", (194, 226, 242), None),
         ]
-        widths = [350, 350, right - x0 - 700]
+        widths = [365, 365, right - x0 - 730]
         mx = x0 + 26
         for index, ((icon, label, value, color, status), width) in enumerate(
             zip(metrics, widths)
@@ -379,27 +514,31 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
                 draw,
                 mx,
                 y + 14,
-                44,
+                46,
                 icon,
                 color,
                 status=status,
             )
-            label_x = mx + 60
+            label_x = mx + 64
+            label_text = f"{label}:"
             draw.text(
-                (label_x, y + 20),
-                f"{label}:",
+                (label_x, y + 21),
+                label_text,
                 font=self.font_label,
                 fill=self.TEXT,
             )
-            label_w = draw.textlength(f"{label}:", font=self.font_label)
+            label_w = draw.textlength(
+                label_text,
+                font=self.font_label,
+            )
             self._fit_text_adaptive(
                 draw,
                 value,
-                label_x + label_w + 10,
-                y + 21,
-                width - 78 - label_w,
+                label_x + label_w + 12,
+                y + 22,
+                width - 84 - label_w,
                 (
-                    self.font_detail,
+                    self.font_summary,
                     self.font_small,
                     self.font_tiny,
                 ),
@@ -408,57 +547,243 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             if index < 2:
                 line_x = mx + width - 8
                 draw.line(
-                    (line_x, y + 18, line_x, y + height - 18),
+                    (
+                        line_x,
+                        y + 18,
+                        line_x,
+                        y + height - 18,
+                    ),
                     fill=(102, 112, 119, 160),
                     width=2,
                 )
             mx += width
 
-    def _field_layout(self, draw, fields, content_width):
-        col_gap = self.COLUMN_GAP
-        col_width = (content_width - col_gap) // 2
+    def _draw_message(
+        self,
+        draw,
+        x0,
+        right,
+        y,
+        height,
+        lines,
+    ):
+        box = (x0, y, right, y + height)
+        self._rounded(
+            draw,
+            box,
+            fill=(*self.PANEL, 248),
+            outline=(*self.PANEL_BORDER, 210),
+            radius=15,
+            width=2,
+        )
+        self._draw_field_icon(
+            draw,
+            x0 + 24,
+            y + 17,
+            36,
+            "list",
+        )
+        draw.text(
+            (x0 + 70, y + 18),
+            "Event message",
+            font=self.font_section,
+            fill=self.LABEL,
+        )
+        line_y = y + 62
+        for line in lines:
+            draw.text(
+                (x0 + 28, line_y),
+                line,
+                font=self.font_message,
+                fill=self.TEXT,
+            )
+            line_y += 35
+
+    def _draw_empty_details(self, draw, x0, right, y):
+        box = (x0, y, right, y + 118)
+        self._rounded(
+            draw,
+            box,
+            fill=(*self.PANEL_2, 248),
+            outline=(*self.PANEL_BORDER, 195),
+            radius=15,
+            width=2,
+        )
+        draw.text(
+            (x0 + 28, y + 40),
+            "No additional event details.",
+            font=self.font_message,
+            fill=self.MUTED,
+        )
+
+    def _draw_footer(self, image, draw, x0, right, y):
+        draw.line(
+            (x0, y - 8, right, y - 8),
+            fill=(81, 89, 95, 150),
+            width=1,
+        )
+        icon_size = 40
+        self._draw_nowlert_icon(
+            image,
+            x0 + 18,
+            y + 4,
+            icon_size,
+        )
+        draw.text(
+            (x0 + 18 + icon_size + 12, y + 10),
+            "Nowlert CE • Modern Card",
+            font=self.font_small,
+            fill=self.MUTED,
+        )
+
+    def _build_sections(self, source, fields):
+        prepared = []
+        for field in fields:
+            name = self._field_title(field.get("name"))
+            value = self._plain(
+                field.get("value"),
+                preserve_lines=True,
+            )
+            if not value:
+                continue
+            normalized = self._normalize_field_name(name)
+            if normalized == "alert":
+                # The Alert field repeats severity already shown in the summary.
+                continue
+            prepared.append(
+                {
+                    "name": name,
+                    "normalized": normalized,
+                    "value": value,
+                }
+            )
+
+        profile = self.SECTION_PROFILES.get(
+            source,
+            self.SECTION_PROFILES["generic"],
+        )
+        used = set()
+        sections = []
+
+        for title, patterns, full_width in profile:
+            matched = []
+            for index, field in enumerate(prepared):
+                if index in used:
+                    continue
+                if any(
+                    self._field_matches(
+                        field["normalized"],
+                        pattern,
+                    )
+                    for pattern in patterns
+                ):
+                    matched.append(field)
+                    used.add(index)
+            if not matched:
+                continue
+            force_full = full_width or any(
+                (
+                    field["normalized"].startswith("grouped alerts")
+                    or field["normalized"].startswith("alerts ")
+                )
+                for field in matched
+            )
+            sections.append(
+                {
+                    "title": title,
+                    "fields": matched,
+                    "full_width": force_full,
+                }
+            )
+
+        leftovers = [
+            field
+            for index, field in enumerate(prepared)
+            if index not in used
+        ]
+        if leftovers:
+            sections.append(
+                {
+                    "title": "Additional details",
+                    "fields": leftovers,
+                    "full_width": len(leftovers) > 2,
+                }
+            )
+        return sections
+
+    def _section_layout(self, draw, sections, content_width):
+        if not sections:
+            return [], 0
+
+        column_width = (
+            content_width - self.COLUMN_GAP
+        ) // 2
         layout = []
         y = 0
         index = 0
-        while index < len(fields):
-            field = fields[index]
-            inline = bool(field.get("inline"))
-            if (
-                inline
-                and index + 1 < len(fields)
-                and bool(fields[index + 1].get("inline"))
-            ):
-                left = self._measure_field(draw, field, col_width)
-                right = self._measure_field(
+
+        while index < len(sections):
+            current = sections[index]
+            if current["full_width"]:
+                measured = self._measure_section(
                     draw,
-                    fields[index + 1],
-                    col_width,
+                    current,
+                    content_width,
                 )
-                row_h = max(left["height"], right["height"])
+                measured.update(
+                    {
+                        "x": 0,
+                        "y": y,
+                        "width": content_width,
+                    }
+                )
+                layout.append(measured)
+                y += measured["height"] + self.SECTION_GAP
+                index += 1
+                continue
+
+            if (
+                index + 1 < len(sections)
+                and not sections[index + 1]["full_width"]
+            ):
+                left = self._measure_section(
+                    draw,
+                    current,
+                    column_width,
+                )
+                right = self._measure_section(
+                    draw,
+                    sections[index + 1],
+                    column_width,
+                )
+                row_height = max(
+                    left["height"],
+                    right["height"],
+                )
                 left.update(
                     {
                         "x": 0,
                         "y": y,
-                        "width": col_width,
-                        "height": row_h,
+                        "width": column_width,
+                        "height": row_height,
                     }
                 )
                 right.update(
                     {
-                        "x": col_width + col_gap,
+                        "x": column_width + self.COLUMN_GAP,
                         "y": y,
-                        "width": col_width,
-                        "height": row_h,
+                        "width": column_width,
+                        "height": row_height,
                     }
                 )
                 layout.extend((left, right))
-                y += row_h + self.SECTION_GAP
+                y += row_height + self.SECTION_GAP
                 index += 2
                 continue
 
-            measured = self._measure_field(
+            measured = self._measure_section(
                 draw,
-                field,
+                current,
                 content_width,
             )
             measured.update(
@@ -474,109 +799,206 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
 
         return layout, max(0, y - self.SECTION_GAP)
 
-    def _measure_field(self, draw, field, width):
-        title = self._field_title(field.get("name"))
-        value = self._plain(
-            field.get("value"),
-            preserve_lines=True,
+    def _measure_section(self, draw, section, width):
+        inner_width = width - 54
+        content = []
+        height = 64
+        hide_single_name = (
+            len(section["fields"]) == 1
+            and self._normalize_field_name(
+                section["title"]
+            )
+            == section["fields"][0]["normalized"]
         )
-        lines = self._wrapped_lines(
-            draw,
-            value,
-            width - 52,
-            self.font_value,
-        )
-        if not lines:
-            lines = ["—"]
-        height = max(94, 58 + len(lines) * 29)
+
+        for field_index, field in enumerate(section["fields"]):
+            show_name = not (
+                hide_single_name
+                and field_index == 0
+            )
+            field_content = {
+                "name": field["name"],
+                "show_name": show_name,
+                "lines": [],
+            }
+            if show_name:
+                height += 31
+
+            for raw_line in field["value"].split("\n"):
+                raw_line = raw_line.strip()
+                if not raw_line:
+                    continue
+                wrapped = self._wrapped_lines(
+                    draw,
+                    raw_line,
+                    inner_width,
+                    self.font_value,
+                )
+                if not wrapped:
+                    wrapped = ["—"]
+                field_content["lines"].extend(
+                    wrapped
+                )
+                height += len(wrapped) * 32
+
+            if field_index + 1 < len(section["fields"]):
+                height += 14
+            content.append(field_content)
+
         return {
-            "title": title,
-            "lines": lines,
-            "height": height,
+            "title": section["title"],
+            "content": content,
+            "height": max(122, height + 18),
         }
 
-    def _draw_fields(self, draw, x0, y0, layout, accent):
-        for item in layout:
-            x1 = x0 + item["x"]
-            y1 = y0 + item["y"]
-            x2 = x1 + item["width"]
-            y2 = y1 + item["height"]
+    def _draw_sections(
+        self,
+        draw,
+        x0,
+        y0,
+        layout,
+        accent,
+    ):
+        for section in layout:
+            x1 = x0 + section["x"]
+            y1 = y0 + section["y"]
+            x2 = x1 + section["width"]
+            y2 = y1 + section["height"]
             self._rounded(
                 draw,
                 (x1, y1, x2, y2),
                 fill=(*self.PANEL_2, 248),
-                outline=(*self.PANEL_BORDER, 205),
+                outline=(*self.PANEL_BORDER, 210),
                 radius=15,
                 width=2,
             )
             self._draw_field_icon(
                 draw,
                 x1 + 22,
-                y1 + 18,
-                34,
-                self._section_icon(item["title"]),
+                y1 + 17,
+                36,
+                self._section_icon(section["title"]),
             )
             draw.text(
-                (x1 + 68, y1 + 20),
-                item["title"],
+                (x1 + 70, y1 + 18),
+                section["title"],
                 font=self.font_section,
                 fill=self.LABEL,
             )
-            line_y = y1 + 57
-            for line in item["lines"]:
-                color = self.TEXT
-                normalized = line.casefold()
-                if any(
-                    token in normalized
-                    for token in (
-                        "failed",
-                        "failure",
-                        "critical",
-                        "error",
-                    )
-                ):
-                    color = self.FAILURE
-                elif any(
-                    token in normalized
-                    for token in ("skipped", "warning", "warn")
-                ):
-                    color = (
-                        self.SKIPPED
-                        if "skipped" in normalized
-                        else self.BRAND_GOLD
-                    )
-                elif any(
-                    token in normalized
-                    for token in (
-                        "success",
-                        "resolved",
-                        "healthy",
-                        "normal",
-                    )
-                ):
-                    color = self.SUCCESS
-                self._fit_text_adaptive(
-                    draw,
-                    line,
-                    x1 + 26,
-                    line_y,
-                    item["width"] - 52,
-                    (
-                        self.font_value,
-                        self.font_value_small,
-                        self.font_micro,
-                    ),
-                    color,
-                )
-                line_y += 29
 
-    def _draw_product_icon(self, image, source, x, y, size):
+            line_y = y1 + 62
+            for field_index, field in enumerate(
+                section["content"]
+            ):
+                if field["show_name"]:
+                    draw.text(
+                        (x1 + 28, line_y),
+                        field["name"],
+                        font=self.font_field,
+                        fill=self.HEADER_MUTED,
+                    )
+                    line_y += 31
+
+                for line in field["lines"]:
+                    self._draw_detail_line(
+                        draw,
+                        line,
+                        x1 + 28,
+                        line_y,
+                        section["width"] - 56,
+                        accent,
+                    )
+                    line_y += 32
+
+                if field_index + 1 < len(
+                    section["content"]
+                ):
+                    line_y += 14
+
+    def _draw_detail_line(
+        self,
+        draw,
+        line,
+        x,
+        y,
+        width,
+        accent,
+    ):
+        color = self._line_color(
+            line,
+            accent,
+        )
+        key, value = self._split_key_value(line)
+        if not key:
+            self._fit_text_adaptive(
+                draw,
+                line,
+                x,
+                y,
+                width,
+                (
+                    self.font_value,
+                    self.font_value_small,
+                    self.font_tiny,
+                ),
+                color,
+            )
+            return
+
+        key_text = f"{key}:"
+        draw.text(
+            (x, y),
+            key_text,
+            font=self.font_field,
+            fill=self.LABEL,
+        )
+        key_width = draw.textlength(
+            key_text,
+            font=self.font_field,
+        )
+        value_x = x + key_width + 12
+        available = width - key_width - 12
+        if available < 150:
+            value_x = x
+            available = width
+        self._fit_text_adaptive(
+            draw,
+            value,
+            value_x,
+            y + 1,
+            available,
+            (
+                self.font_value,
+                self.font_value_small,
+                self.font_tiny,
+            ),
+            color,
+        )
+
+    def _draw_product_icon(
+        self,
+        image,
+        source,
+        x,
+        y,
+        box_width,
+        box_height,
+    ):
         candidates = []
-        discord_icon = PresentationMixin.DISCORD_PRODUCT_ICONS.get(source)
-        product_icon = PresentationMixin.PRODUCT_ICONS.get(source)
+        discord_icon = (
+            PresentationMixin.DISCORD_PRODUCT_ICONS.get(
+                source
+            )
+        )
+        product_icon = PresentationMixin.PRODUCT_ICONS.get(
+            source
+        )
         if discord_icon:
             candidates.append(discord_icon)
-        if product_icon and product_icon not in candidates:
+        if (
+            product_icon
+            and product_icon not in candidates
+        ):
             candidates.append(product_icon)
         if source not in PresentationMixin.PRODUCT_ICONS:
             candidates.append(
@@ -595,17 +1017,41 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
                     icon = icon.crop(bbox)
                 if not icon.width or not icon.height:
                     continue
-                scale = min(size / icon.width, size / icon.height)
+                scale = min(
+                    box_width / icon.width,
+                    box_height / icon.height,
+                )
                 icon = icon.resize(
                     (
-                        max(1, int(round(icon.width * scale))),
-                        max(1, int(round(icon.height * scale))),
+                        max(
+                            1,
+                            int(
+                                round(
+                                    icon.width * scale
+                                )
+                            ),
+                        ),
+                        max(
+                            1,
+                            int(
+                                round(
+                                    icon.height * scale
+                                )
+                            ),
+                        ),
                     ),
                     Image.Resampling.LANCZOS,
                 )
-                px = int(x + (size - icon.width) / 2)
-                py = int(y + (size - icon.height) / 2)
-                image.alpha_composite(icon, (px, py))
+                px = int(
+                    x + (box_width - icon.width) / 2
+                )
+                py = int(
+                    y + (box_height - icon.height) / 2
+                )
+                image.alpha_composite(
+                    icon,
+                    (px, py),
+                )
                 return
             except OSError:
                 continue
@@ -613,7 +1059,12 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         draw = ImageDraw.Draw(image, "RGBA")
         self._rounded(
             draw,
-            (x + 8, y + 8, x + size - 8, y + size - 8),
+            (
+                x + 8,
+                y + 8,
+                x + box_height - 8,
+                y + box_height - 8,
+            ),
             fill=(37, 40, 42, 245),
             outline=(*self.BRAND_GOLD, 190),
             radius=18,
@@ -623,12 +1074,30 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             self.INTEGRATION_NAMES.get(source)
             or "N"
         )[:1].upper()
-        font = self._font(True, int(size * 0.44))
-        bbox = draw.textbbox((0, 0), initial, font=font)
+        font = self._font(
+            True,
+            int(box_height * 0.44),
+        )
+        bbox = draw.textbbox(
+            (0, 0),
+            initial,
+            font=font,
+        )
         draw.text(
             (
-                x + (size - (bbox[2] - bbox[0])) / 2,
-                y + (size - (bbox[3] - bbox[1])) / 2 - 4,
+                x
+                + (
+                    box_height
+                    - (bbox[2] - bbox[0])
+                )
+                / 2,
+                y
+                + (
+                    box_height
+                    - (bbox[3] - bbox[1])
+                )
+                / 2
+                - 4,
             ),
             initial,
             font=font,
@@ -640,10 +1109,17 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         if not isinstance(payload, dict):
             return {}
         embeds = payload.get("embeds")
-        if not isinstance(embeds, list) or not embeds:
+        if (
+            not isinstance(embeds, list)
+            or not embeds
+        ):
             return {}
         embed = embeds[0]
-        return embed if isinstance(embed, dict) else {}
+        return (
+            embed
+            if isinstance(embed, dict)
+            else {}
+        )
 
     @staticmethod
     def _fields(embed):
@@ -659,8 +1135,15 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         ]
 
     def _embed_accent(self, embed):
-        value = embed.get("color") if isinstance(embed, dict) else None
-        if isinstance(value, int) and 0 <= value <= 0xFFFFFF:
+        value = (
+            embed.get("color")
+            if isinstance(embed, dict)
+            else None
+        )
+        if (
+            isinstance(value, int)
+            and 0 <= value <= 0xFFFFFF
+        ):
             return (
                 (value >> 16) & 0xFF,
                 (value >> 8) & 0xFF,
@@ -683,12 +1166,20 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
                 "successful": "Success",
                 "failure": "Failed",
                 "recovered": "Resolved",
-            }.get(value.casefold(), value.title())
+            }.get(
+                value.casefold(),
+                value.title(),
+            )
 
-        status = str(notification.status or "").strip()
+        status = str(
+            notification.status or ""
+        ).strip()
         metadata = notification.metadata or {}
-        severity = str(metadata.get("severity") or "").strip()
+        severity = str(
+            metadata.get("severity") or ""
+        ).strip()
         words = f"{status} {severity}".casefold()
+
         if any(
             token in words
             for token in (
@@ -725,12 +1216,28 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             return "Success"
         return "Information"
 
-    def _event_title(self, embed, notification, lifecycle):
-        title = self._plain(embed.get("title") or "")
-        title = self.STATUS_SUFFIX.sub("", title).strip()
+    def _event_title(
+        self,
+        embed,
+        notification,
+        lifecycle,
+    ):
+        title = self._plain(
+            embed.get("title") or ""
+        )
+        title = self.STATUS_SUFFIX.sub(
+            "",
+            title,
+        ).strip()
+        title = self.LEADING_SYMBOLS.sub(
+            "",
+            title,
+        ).strip()
         if title:
             return title
-        source = str(notification.source or "").casefold()
+        source = str(
+            notification.source or ""
+        ).casefold()
         return self._plain(
             notification.title
             or notification.subject
@@ -745,11 +1252,18 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             embed.get("description") or "",
             preserve_lines=True,
         )
-        if self._normalize(value) == self._normalize(title):
+        if (
+            self._normalize(value)
+            == self._normalize(title)
+        ):
             return ""
         return value
 
-    def _summary_severity(self, notification, lifecycle):
+    def _summary_severity(
+        self,
+        notification,
+        lifecycle,
+    ):
         metadata = notification.metadata or {}
         return (
             self._plain(
@@ -768,23 +1282,124 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             or "event"
         )
 
-    def _summary_time(self, notification):
+    def _summary_time(
+        self,
+        notification,
+        fields,
+    ):
         metadata = notification.metadata or {}
-        return self._plain(
-            metadata.get("event_time")
-            or notification.end_time
-            or notification.start_time
-            or ""
+        candidates = (
+            metadata.get("event_time"),
+            notification.end_time,
+            notification.start_time,
         )
+        for candidate in candidates:
+            formatted = self._format_time(
+                candidate
+            )
+            if formatted:
+                return formatted
 
-    def _context(self, notification, integration):
+        for field in fields:
+            name = self._normalize_field_name(
+                self._field_title(
+                    field.get("name")
+                )
+            )
+            if name not in {
+                "timing",
+                "time",
+                "event",
+            }:
+                continue
+            value = self._plain(
+                field.get("value"),
+                preserve_lines=True,
+            )
+            for line in value.split("\n"):
+                _key, candidate = (
+                    self._split_key_value(line)
+                )
+                formatted = self._format_time(
+                    candidate
+                )
+                if formatted:
+                    return formatted
+        return ""
+
+    def _format_time(self, value):
+        text = self._plain(value)
+        if (
+            not text
+            or text in {"—", "-"}
+        ):
+            return ""
+
+        numeric = text.replace(".", "", 1)
+        if numeric.isdigit():
+            try:
+                number = float(text)
+                if number > 100000000000:
+                    number /= 1000.0
+                if number > 100000000:
+                    parsed = datetime.fromtimestamp(
+                        number,
+                        tz=timezone.utc,
+                    )
+                    return parsed.strftime(
+                        "%Y-%m-%d %H:%M:%S UTC"
+                    )
+            except (
+                OverflowError,
+                OSError,
+                ValueError,
+            ):
+                pass
+
+        iso_candidate = text
+        if iso_candidate.endswith("Z"):
+            iso_candidate = (
+                iso_candidate[:-1] + "+00:00"
+            )
+        try:
+            parsed = datetime.fromisoformat(
+                iso_candidate
+            )
+            if parsed.tzinfo is None:
+                return parsed.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            parsed = parsed.astimezone(
+                timezone.utc
+            )
+            return parsed.strftime(
+                "%Y-%m-%d %H:%M:%S UTC"
+            )
+        except ValueError:
+            return text
+
+    def _context(
+        self,
+        notification,
+        integration,
+    ):
         metadata = notification.metadata or {}
         source = (
-            str(notification.source or "generic").strip().casefold()
+            str(
+                notification.source
+                or "generic"
+            )
+            .strip()
+            .casefold()
             or "generic"
         )
-        for key in self.CONTEXT_KEYS.get(source, ()):
-            text = self._plain(metadata.get(key))
+        for key in self.CONTEXT_KEYS.get(
+            source,
+            (),
+        ):
+            text = self._plain(
+                metadata.get(key)
+            )
             if text:
                 return text
         for key in (
@@ -795,56 +1410,108 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             "provider",
             "source",
         ):
-            text = self._plain(metadata.get(key))
+            text = self._plain(
+                metadata.get(key)
+            )
             if text:
                 return text
-        category = self._label(notification.category)
-        if category and category != "Generic":
+        category = self._label(
+            notification.category
+        )
+        if (
+            category
+            and category != "Generic"
+        ):
             return category
         return integration
 
     def _field_title(self, value):
         text = self._plain(value)
-        text = self.LEADING_SYMBOLS.sub("", text).strip()
-        return text or "Event details"
+        text = self.LEADING_SYMBOLS.sub(
+            "",
+            text,
+        ).strip()
+        return (
+            text
+            or "Event details"
+        )
+
+    @staticmethod
+    def _normalize_field_name(value):
+        return " ".join(
+            str(value or "")
+            .casefold()
+            .replace("•", " ")
+            .split()
+        )
+
+    @staticmethod
+    def _field_matches(name, pattern):
+        normalized = str(name or "")
+        pattern = str(pattern or "")
+        return (
+            normalized == pattern
+            or normalized.startswith(
+                pattern + " "
+            )
+            or normalized.startswith(
+                pattern + " ("
+            )
+        )
 
     @staticmethod
     def _section_icon(title):
-        value = str(title or "").casefold()
+        value = str(
+            title or ""
+        ).casefold()
         if any(
             token in value
-            for token in ("timing", "time", "duration")
+            for token in (
+                "timing",
+                "time",
+                "response",
+            )
         ):
             return "clock"
         if any(
             token in value
             for token in (
                 "storage",
-                "volume",
                 "disk",
+                "data",
                 "repository",
-                "datasource",
             )
         ):
             return "repository"
         if any(
             token in value
             for token in (
-                "result",
-                "status",
                 "alert",
                 "problem",
+                "signal",
+                "event",
+                "trigger",
             )
         ):
             return "chart"
         return "list"
 
     @staticmethod
-    def _status_kind(lifecycle, accent):
-        value = str(lifecycle or "").casefold()
+    def _status_kind(
+        lifecycle,
+        accent,
+    ):
+        value = str(
+            lifecycle or ""
+        ).casefold()
         if any(
             token in value
-            for token in ("fail", "critical", "error")
+            for token in (
+                "fail",
+                "critical",
+                "error",
+                "firing",
+            )
         ):
             return "failure"
         if "skip" in value:
@@ -860,31 +1527,126 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             )
         ):
             return "success"
-        if accent[0] > 200 and accent[1] < 150:
+        if (
+            accent[0] > 200
+            and accent[1] < 150
+        ):
             return "failure"
         return "skipped"
 
-    def _plain(self, value, preserve_lines=False):
+    def _line_color(
+        self,
+        line,
+        accent,
+    ):
+        normalized = str(
+            line or ""
+        ).casefold()
+        if any(
+            token in normalized
+            for token in (
+                "failed",
+                "failure",
+                "critical",
+                "error",
+                "unrecoverable",
+            )
+        ):
+            return self.FAILURE
+        if any(
+            token in normalized
+            for token in (
+                "warning",
+                "warn",
+                "degraded",
+                "predictive",
+                "pending",
+                "updated",
+            )
+        ):
+            return self.BRAND_GOLD
+        if any(
+            token in normalized
+            for token in (
+                "success",
+                "resolved",
+                "healthy",
+                "normal",
+                "recovered",
+                "cleared",
+            )
+        ):
+            return self.SUCCESS
+        return self.TEXT
+
+    @staticmethod
+    def _split_key_value(line):
+        text = str(
+            line or ""
+        ).strip()
+        if ":" not in text:
+            return "", text
+        key, value = text.split(
+            ":",
+            1,
+        )
+        key = key.strip()
+        value = value.strip()
+        if (
+            not key
+            or not value
+            or len(key) > 30
+        ):
+            return "", text
+        return key, value
+
+    def _plain(
+        self,
+        value,
+        preserve_lines=False,
+    ):
         if value is None:
             return ""
-        text = str(value).replace("\r", "")
-        text = self.MARKDOWN_LINK.sub(r"\1", text)
-        text = self.MARKDOWN_MARKS.sub("", text)
-        text = text.replace("\\n", "\n")
+        text = str(value).replace(
+            "\r",
+            "",
+        )
+        text = self.MARKDOWN_LINK.sub(
+            r"\1",
+            text,
+        )
+        text = self.MARKDOWN_MARKS.sub(
+            "",
+            text,
+        )
+        text = text.replace(
+            "\\n",
+            "\n",
+        )
         if preserve_lines:
             lines = [
-                " ".join(line.split())
+                " ".join(
+                    line.split()
+                )
                 for line in text.split("\n")
             ]
             return "\n".join(
-                line for line in lines if line
+                line
+                for line in lines
+                if line
             ).strip()
-        return " ".join(text.split()).strip()
+        return " ".join(
+            text.split()
+        ).strip()
 
     @staticmethod
     def _normalize(value):
         return " ".join(
-            str(value or "").casefold().split()
+            str(
+                value or ""
+            )
+            .casefold()
+            .split()
         )
 
     @staticmethod
@@ -892,26 +1654,41 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         words = re.sub(
             r"[_-]+",
             " ",
-            str(value or "").strip(),
+            str(
+                value or ""
+            ).strip(),
         ).split()
-        acronyms = {"qnap", "ups", "ip", "id"}
+        acronyms = {
+            "qnap",
+            "ups",
+            "ip",
+            "id",
+        }
         return (
             " ".join(
                 word.upper()
-                if word.casefold() in acronyms
+                if word.casefold()
+                in acronyms
                 else word.capitalize()
                 for word in words
             )
             or "Generic"
         )
 
-    def _wrapped_lines(self, draw, value, width, font):
+    def _wrapped_lines(
+        self,
+        draw,
+        value,
+        width,
+        font,
+    ):
         text = self._plain(
             value,
             preserve_lines=True,
         )
         if not text:
             return []
+
         lines = []
         for raw in text.split("\n"):
             words = raw.split()
@@ -919,10 +1696,17 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
                 continue
             current = ""
             for word in words:
-                candidate = f"{current} {word}".strip()
+                candidate = (
+                    f"{current} {word}"
+                    .strip()
+                )
                 if (
                     not current
-                    or draw.textlength(candidate, font=font) <= width
+                    or draw.textlength(
+                        candidate,
+                        font=font,
+                    )
+                    <= width
                 ):
                     current = candidate
                     continue
