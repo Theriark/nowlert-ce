@@ -8,6 +8,7 @@ aiosmtpd==1.4.6
 tzdata==2026.3
 tzlocal==5.4.4
 qrcode==8.2
+Pillow==12.3.0
 ddtrace==4.15.1
 
 # Runtime transitive dependencies are pinned for reproducible container builds.

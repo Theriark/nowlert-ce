@@ -246,20 +246,23 @@ def test_platform_discord_uploads_exact_padded_icon_and_waits():
     assert len(client.calls) == 1
     url, kwargs = client.calls[0]
     query = parse_qs(urlsplit(url).query)
-    assert query["with_components"] == ["true"]
+    assert "with_components" not in query
     assert query["wait"] == ["true"]
 
-    filename, stream, content_type = kwargs["files"]["files[0]"]
-    assert filename == "xen-orchestra.png"
+    filename, content, content_type = kwargs["files"]["files[0]"]
+    assert filename == "nowlert-xen-orchestra.png"
     assert content_type == "image/png"
-    assert stream.name.endswith("assets/icons/discord/xen-orchestra.png")
+    assert content.startswith(b"\x89PNG\r\n\x1a\n")
 
     payload = json.loads(kwargs["data"]["payload_json"])
     assert payload["attachments"] == [
-        {"id": 0, "filename": "xen-orchestra.png"}
+        {
+            "id": 0,
+            "filename": "nowlert-xen-orchestra.png",
+            "description": "Xen Orchestra notification",
+        }
     ]
-    media = adapter.output._thumbnail_media(payload)
-    assert media["url"] == "attachment://xen-orchestra.png"
+    assert payload["allowed_mentions"] == {"parse": []}
 
 
 def test_platform_discord_rejects_unverified_attachment():

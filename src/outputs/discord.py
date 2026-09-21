@@ -43,6 +43,7 @@ from formatters.discord_unifi import (
     UniFiProtectDiscordFormatter,
 )
 from formatters.discord_zabbix import ZabbixDiscordFormatter
+from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
 from logger import log
 from models import Notification
 
@@ -59,6 +60,7 @@ class DiscordOutput:
     def __init__(self):
 
         self.default_formatter = GenericDiscordFormatter()
+        self.xo_image_renderer = XenOrchestraDiscordImageRenderer(self.ICON_DIR)
 
         self.source_formatters = {
             "xo": DiscordFormatter(),
@@ -110,6 +112,50 @@ class DiscordOutput:
             source,
             self.default_formatter,
         )
+
+        if source == "xo":
+            image = self.render_xo_modern_image(notification)
+            if image is not None:
+                try:
+                    delivery_webhook = self._delivery_webhook(
+                        webhook,
+                        {},
+                        wait=True,
+                    )
+                    response = requests.post(
+                        delivery_webhook,
+                        data={
+                            "payload_json": json.dumps(
+                                self.xo_image_payload(),
+                                separators=(",", ":"),
+                            ),
+                        },
+                        files={
+                            "files[0]": (
+                                self.XO_IMAGE_FILENAME,
+                                image,
+                                "image/png",
+                            )
+                        },
+                        timeout=15,
+                    )
+                except Exception:
+                    log.exception("Failed to send Xen Orchestra Discord image card.")
+                    return False
+                if response.status_code >= 400:
+                    log.error("Discord returned %s", response.status_code)
+                    return False
+                if not self._image_attachment_verified(
+                    response,
+                    self.XO_IMAGE_FILENAME,
+                ):
+                    log.error(
+                        "Discord accepted the Xen Orchestra image card "
+                        "but did not retain the attachment."
+                    )
+                    return False
+                log.info("Discord Xen Orchestra image card sent successfully.")
+                return True
 
         try:
 
@@ -213,6 +259,35 @@ class DiscordOutput:
             )
 
             return False
+
+    XO_IMAGE_FILENAME = "nowlert-xen-orchestra.png"
+
+    def render_xo_modern_image(self, notification: Notification) -> bytes | None:
+        """Render XO Modern as an image; fail open to native Modern."""
+
+        try:
+            return self.xo_image_renderer.render(notification)
+        except Exception:
+            log.exception(
+                "Failed to render Xen Orchestra Discord image card; "
+                "falling back to native Modern."
+            )
+            return None
+
+    @classmethod
+    def xo_image_payload(cls) -> dict:
+        """Discord multipart payload for the image-only XO Modern card."""
+
+        return {
+            "attachments": [
+                {
+                    "id": 0,
+                    "filename": cls.XO_IMAGE_FILENAME,
+                    "description": "Xen Orchestra notification",
+                }
+            ],
+            "allowed_mentions": {"parse": []},
+        }
 
     @staticmethod
     def _delivery_webhook(webhook, payload, *, wait=False):
@@ -488,6 +563,33 @@ class DiscordOutput:
             )
         )
         return linked, diagnostics
+
+    @classmethod
+    def _image_attachment_verified(cls, response, filename):
+        """Confirm Discord retained an image-only attachment."""
+
+        message = cls._returned_message(response)
+        attachments = (
+            message.get("attachments", [])
+            if isinstance(message, dict)
+            else []
+        )
+        if not isinstance(attachments, list):
+            return False
+        for item in attachments:
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("filename") or "") != str(filename):
+                continue
+            if str(item.get("content_type") or "").casefold() != "image/png":
+                continue
+            urls = (item.get("url"), item.get("proxy_url"))
+            if any(
+                cls._discord_media_url_kind(url) == "discord_cdn"
+                for url in urls
+            ):
+                return True
+        return False
 
     @classmethod
     def _attachment_verified(cls, response, filename):

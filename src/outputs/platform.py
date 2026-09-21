@@ -114,6 +114,64 @@ class DiscordPlatformAdapter(_HTTPAdapter):
     def deliver(self, destination, secret_value, notification):
         try:
             settings = normalize_output_settings("discord", destination.settings)
+            source = str(notification.source or "").casefold()
+            url = self._url(
+                secret_url(secret_value),
+                destination.settings,
+            )
+
+            if settings["components_v2"] and source == "xo":
+                image = self.output.render_xo_modern_image(notification)
+                if image is not None:
+                    url = self.output._delivery_webhook(
+                        url,
+                        {},
+                        wait=True,
+                    )
+                    try:
+                        response = self.http_client.post(
+                            url,
+                            data={
+                                "payload_json": json.dumps(
+                                    self.output.xo_image_payload(),
+                                    separators=(",", ":"),
+                                    ensure_ascii=False,
+                                ),
+                            },
+                            files={
+                                "files[0]": (
+                                    self.output.XO_IMAGE_FILENAME,
+                                    image,
+                                    "image/png",
+                                )
+                            },
+                            timeout=15,
+                        )
+                    except requests.RequestException as error:
+                        return request_failure(error)
+                    except Exception:
+                        return DeliveryResult(
+                            False,
+                            error_code="transport_error",
+                        )
+                    result = http_delivery_result(response)
+                    if not result.success:
+                        return result
+                    if not self.output._image_attachment_verified(
+                        response,
+                        self.output.XO_IMAGE_FILENAME,
+                    ):
+                        return DeliveryResult(
+                            False,
+                            response_status=int(response.status_code),
+                            error_code="discord_attachment_unverified",
+                            safe_error=(
+                                "Discord accepted the message but did not "
+                                "retain the rendered image attachment."
+                            ),
+                        )
+                    return result
+
             preview = self.preview(destination, notification)
             url = self._url(
                 secret_url(secret_value),
