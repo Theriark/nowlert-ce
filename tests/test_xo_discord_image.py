@@ -6,7 +6,7 @@ import json
 import socket
 from io import BytesIO
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
 from models import Notification
@@ -220,7 +220,7 @@ def test_xo_paired_card_grows_for_success_rows_and_long_reason(tmp_path):
         assert available_vm_height >= required_vm_height
 
 
-def test_xo_footer_uses_packaged_nowlert_owl(tmp_path):
+def test_xo_footer_uses_packaged_nowlert_icon(tmp_path):
     logo = Image.new("RGBA", (80, 80), (255, 0, 255, 255))
     logo.save(tmp_path / "nowlert.png")
 
@@ -241,6 +241,86 @@ def test_xo_footer_uses_packaged_nowlert_owl(tmp_path):
             red > 220 and green < 60 and blue > 220
             for red, green, blue in pixels
         )
+
+
+def test_xo_header_uses_xo_icon_on_left_and_status_badge_at_right(tmp_path):
+    discord_dir = tmp_path / "discord"
+    discord_dir.mkdir()
+    xo = Image.new("RGBA", (80, 80), (255, 0, 255, 255))
+    xo.save(discord_dir / "xen-orchestra.png")
+
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    data = renderer.render(xo_notification("success"))
+
+    with Image.open(BytesIO(data)).convert("RGB") as image:
+        left = list(image.crop((60, 65, 175, 175)).getdata())
+        right_icon_area = list(
+            image.crop((image.width - 190, 65, image.width - 65, 175)).getdata()
+        )
+        assert any(
+            red > 220 and green < 60 and blue > 220
+            for red, green, blue in left
+        )
+        assert not any(
+            red > 220 and green < 60 and blue > 220
+            for red, green, blue in right_icon_area
+        )
+
+    assert renderer.STATUS_BADGE_WIDTH == 420
+
+
+def test_xo_footer_identity_is_nowlert_ce_modern_card():
+    assert XenOrchestraDiscordImageRenderer.FOOTER_TEXT == (
+        "Nowlert CE • Modern Card"
+    )
+
+
+def test_xo_detail_values_fit_repository_and_skipped_result(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    image = Image.new("RGB", (renderer.WIDTH, renderer.BASE_HEIGHT))
+    draw = ImageDraw.Draw(image)
+
+    x0 = 70
+    right = renderer.WIDTH - 70
+    gap = 22
+    detail_width = right - x0 - gap
+    left_width = int(detail_width * renderer.DETAIL_SPLIT_RATIO)
+    right_x1 = x0 + left_width + gap
+    value_x = right_x1 + renderer.DETAIL_VALUE_OFFSET
+    available = right - value_x - 22
+
+    repository = "UNAS-01 | NFS | Non-Critical Backups"
+    repository_font = renderer._fit_text_adaptive(
+        draw,
+        repository,
+        value_x,
+        0,
+        available,
+        (
+            renderer.font_small,
+            renderer.font_tiny,
+            renderer.font_micro,
+        ),
+        renderer.TEXT,
+    )
+    assert draw.textlength(repository, font=repository_font) <= available
+
+    result = "2 of 3 VMs successful | 1 skipped"
+    result_available = available - 34 - 10
+    result_font = renderer._fit_text_adaptive(
+        draw,
+        result,
+        value_x + 44,
+        0,
+        result_available,
+        (
+            renderer.font_small,
+            renderer.font_tiny,
+            renderer.font_micro,
+        ),
+        renderer.TEXT,
+    )
+    assert draw.textlength(result, font=result_font) <= result_available
 
 
 def test_xo_skipped_card_uses_blue_not_warning_yellow(tmp_path):
