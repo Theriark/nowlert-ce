@@ -10,6 +10,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from formatters.discord_modern_image import DiscordModernImageRenderer
+from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
 from models import Notification
 from outputs.discord import DiscordOutput
 from outputs.platform import DiscordPlatformAdapter
@@ -132,7 +133,7 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     assert image.startswith(b"\x89PNG\r\n\x1a\n")
     with Image.open(BytesIO(image)) as rendered:
         assert rendered.width == 1448
-        assert rendered.height >= 930
+        assert rendered.height >= output.modern_image_renderer.MIN_HEIGHT
     assert len(image) < 8 * 1024 * 1024
 
 
@@ -167,13 +168,18 @@ def test_modern_renderer_uses_classic_embed_as_source_of_truth(tmp_path):
 def test_modern_readability_baseline_matches_xo_quality(tmp_path):
     renderer = DiscordModernImageRenderer(tmp_path)
 
-    assert renderer.font_section.size >= 29
-    assert renderer.font_message.size >= 26
-    assert renderer.font_field.size >= 23
-    assert renderer.font_value.size >= 24
-    assert renderer.font_header_context.size >= 24
+    assert renderer.font_section.size >= 35
+    assert renderer.font_message.size >= 31
+    assert renderer.font_field.size >= 28
+    assert renderer.font_value.size >= 30
+    assert renderer.font_header_context.size >= 28
+    assert renderer.font_summary.size >= 27
     assert renderer.HEADER_ICON_WIDTH >= 150
     assert renderer.HEADER_ICON_HEIGHT >= 112
+    assert renderer.MIN_HEIGHT <= 760
+    assert renderer.HEADER_LOGO_WIDTHS["qnap"] >= 230
+    assert renderer.HEADER_LOGO_WIDTHS["synology"] >= 220
+    assert renderer.HEADER_LOGO_WIDTHS["unifi_network"] >= 240
 
 
 def test_zabbix_profile_groups_fields_and_removes_redundant_alert(tmp_path):
@@ -286,6 +292,81 @@ def test_summary_time_falls_back_to_classic_timing_field(tmp_path):
     value = renderer._summary_time(item, fields)
 
     assert value == "2026-07-12 10:09:00 UTC"
+
+
+def test_semantic_event_detail_title_uses_actual_qnap_domain(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+    fields = [
+        {"name": "QNAP NAS", "value": "NAS: LAB-QNAP"},
+        {
+            "name": "Power",
+            "value": "UPS: LAB-UPS\nCause: Utility power loss",
+        },
+    ]
+
+    sections = renderer._build_sections("qnap", fields)
+
+    assert [section["title"] for section in sections] == [
+        "QNAP NAS",
+        "Power",
+    ]
+
+
+def test_timing_values_are_normalized_for_section_rendering(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+
+    value = renderer._normalize_timing_block(
+        "Started: 2026-07-15T01:30:00Z\n"
+        "Resolved: 2026-07-15T01:45:00+00:00\n"
+        "Duration: 15 min"
+    )
+
+    assert value == (
+        "Started: 2026-07-15 01:30:00 UTC\n"
+        "Resolved: 2026-07-15 01:45:00 UTC\n"
+        "Duration: 15 min"
+    )
+
+
+def test_warning_firing_uses_non_failure_status_icon(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+
+    status_kind = renderer._status_kind(
+        "Firing",
+        (244, 193, 49),
+    )
+
+    assert status_kind == "skipped"
+
+
+def test_critical_firing_still_uses_failure_status_icon(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+
+    status_kind = renderer._status_kind(
+        "Firing",
+        (255, 64, 72),
+    )
+
+    assert status_kind == "failure"
+
+
+def test_metric_names_do_not_trigger_failure_coloring(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+
+    assert (
+        renderer._line_color(
+            "Metric: authentication_failures_total",
+            renderer.BRAND_GOLD,
+        )
+        == renderer.TEXT
+    )
+    assert (
+        renderer._line_color(
+            "Error: synthetic checksum error",
+            renderer.FAILURE,
+        )
+        == renderer.FAILURE
+    )
 
 
 def test_event_title_removes_status_emoji_and_suffix(tmp_path):
@@ -441,3 +522,191 @@ def test_modern_payload_uses_integration_identity():
             ),
         }
     ]
+
+
+
+def test_xo_readability_baseline_is_immediately_legible(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    assert renderer.font_detail.size >= 29
+    assert renderer.font_body.size >= 30
+    assert renderer.font_label.size >= 29
+    assert renderer.font_small.size >= 25
+    assert renderer.font_vm.size >= 30
+    assert renderer.font_heading.size >= 48
+    assert renderer.OUTER_GLOW_GOLD_ALPHA >= 130
+    assert renderer.OUTER_GLOW_ACCENT_ALPHA >= 115
+    assert renderer.STATUS_GLOW_ALPHA >= 110
+
+
+def test_footer_position_is_fixed_from_bottom_for_all_modern_cards(tmp_path):
+    xo = XenOrchestraDiscordImageRenderer(tmp_path)
+    modern = DiscordModernImageRenderer(tmp_path)
+
+    assert xo._footer_y(1400) == 1400 - xo.FOOTER_RESERVE
+    assert modern._footer_y(1400) == 1400 - modern.FOOTER_RESERVE
+
+
+def test_dense_sections_promote_to_full_width_instead_of_shrinking(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+    dense_value = "\n".join(
+        f"Field {index}: synthetic operational value {index}"
+        for index in range(1, 8)
+    )
+    sections = [
+        {
+            "title": "Dense A",
+            "fields": [
+                {
+                    "name": "Dense A",
+                    "normalized": "dense a",
+                    "value": dense_value,
+                }
+            ],
+            "full_width": False,
+        },
+        {
+            "title": "Dense B",
+            "fields": [
+                {
+                    "name": "Dense B",
+                    "normalized": "dense b",
+                    "value": dense_value,
+                }
+            ],
+            "full_width": False,
+        },
+    ]
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    content_width = renderer.WIDTH - renderer.CARD_PADDING * 2
+
+    layout, _height = renderer._section_layout(
+        draw,
+        sections,
+        content_width,
+    )
+
+    assert len(layout) == 2
+    assert layout[0]["width"] == content_width
+    assert layout[1]["width"] == content_width
+    assert layout[1]["y"] > layout[0]["y"]
+
+
+def test_short_sections_can_still_share_a_row(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+    sections = [
+        {
+            "title": "System",
+            "fields": [
+                {
+                    "name": "System",
+                    "normalized": "system",
+                    "value": "Host: SRV-01\nState: Healthy",
+                }
+            ],
+            "full_width": False,
+        },
+        {
+            "title": "Hardware Event",
+            "fields": [
+                {
+                    "name": "Hardware Event",
+                    "normalized": "hardware event",
+                    "value": "Registry: SMC\nMessage ID: Normal",
+                }
+            ],
+            "full_width": False,
+        },
+    ]
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    content_width = renderer.WIDTH - renderer.CARD_PADDING * 2
+
+    layout, _height = renderer._section_layout(
+        draw,
+        sections,
+        content_width,
+    )
+
+    assert len(layout) == 2
+    assert layout[0]["y"] == layout[1]["y"]
+    assert layout[0]["width"] < content_width
+    assert layout[1]["width"] < content_width
+
+
+def test_long_unbroken_values_wrap_without_truncating(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    token = (
+        "https://synthetic.example.invalid/redfish/v1/Systems/"
+        + "GENERIC-SENSOR-" * 16
+    )
+
+    lines = renderer._wrapped_lines(
+        draw,
+        token,
+        320,
+        renderer.font_value,
+    )
+
+    assert len(lines) > 2
+    assert "".join(lines) == token
+    assert all(
+        draw.textlength(line, font=renderer.font_value) <= 320
+        for line in lines
+    )
+
+
+def test_rfc2822_event_time_is_normalized_for_readable_summary(tmp_path):
+    renderer = DiscordModernImageRenderer(tmp_path)
+
+    assert renderer._format_time(
+        "Fri, 04 Sep 2026 00:20:00 +0100"
+    ) == "2026-09-03 23:20:00 UTC"
+
+
+def test_xo_failure_reason_wraps_beyond_two_lines(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    reason = (
+        "Synthetic backup failure reason with operational context "
+        * 14
+    )
+
+    lines = renderer._wrapped_text_lines(
+        draw,
+        reason,
+        360,
+        renderer.font_reason,
+    )
+
+    assert len(lines) > 2
+    assert all(
+        draw.textlength(line, font=renderer.font_reason) <= 360
+        for line in lines
+    )
+
+
+def test_xo_failure_panel_height_grows_for_long_reason(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    item = Notification(
+        source="xo",
+        vm_details={
+            "VM-01": {
+                "error": (
+                    "Synthetic backup failure reason with detailed "
+                    "operational context " * 16
+                )
+            }
+        },
+    )
+    style = renderer._vm_style(1)
+
+    height = renderer._vm_entry_height(
+        item,
+        "VM-01",
+        include_reason=True,
+        vm_count=1,
+        entry_width=480,
+    )
+
+    assert height > style["reason_height"]
