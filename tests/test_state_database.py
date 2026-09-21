@@ -6,6 +6,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+import threading
 
 from pathlib import Path
 
@@ -71,6 +72,53 @@ def test_database_migration_is_idempotent_and_records_all_foundation_tables(tmp_
         "platform foundation",
     )
     assert foreign_keys == 1
+
+
+def test_database_allows_two_normal_connections_to_overlap(tmp_path):
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    first_open = threading.Event()
+    second_open = threading.Event()
+    release_first = threading.Event()
+
+    def first():
+        with database.connect() as connection:
+            connection.execute("SELECT 1").fetchone()
+            first_open.set()
+            release_first.wait(2)
+
+    def second():
+        assert first_open.wait(1)
+        with database.connect() as connection:
+            connection.execute("SELECT 1").fetchone()
+            second_open.set()
+
+    one = threading.Thread(target=first)
+    two = threading.Thread(target=second)
+    one.start()
+    two.start()
+    assert first_open.wait(1)
+    try:
+        assert second_open.wait(0.25)
+    finally:
+        release_first.set()
+        one.join(timeout=3)
+        two.join(timeout=3)
+
+    assert not one.is_alive()
+    assert not two.is_alive()
+
+
+def test_database_maintenance_owner_allows_nested_connections_and_maintenance(tmp_path):
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+
+    with database.maintenance():
+        with database.connect() as connection:
+            assert connection.execute("SELECT 1").fetchone()[0] == 1
+        with database.maintenance():
+            with database.connect() as connection:
+                assert connection.execute("SELECT 2").fetchone()[0] == 2
 
 
 def test_database_and_parent_are_owner_only(tmp_path):
