@@ -34,8 +34,8 @@ def test_delivery_concurrency_uses_tuned_defaults():
 
     controller = DeliveryConcurrencyController()
     try:
-        assert controller.global_limit == 40
-        assert controller.per_destination_limit == 8
+        assert controller.global_limit == 50
+        assert controller.per_destination_limit == 10
     finally:
         controller.shutdown()
 
@@ -51,8 +51,8 @@ def test_delivery_benchmark_uses_tuned_defaults():
         retry_delay_ms=0,
     )
 
-    assert result["global_limit"] == 40
-    assert result["per_destination_limit"] == 8
+    assert result["global_limit"] == 50
+    assert result["per_destination_limit"] == 10
 
 
 def test_teams_render_benchmark_measures_modern_and_classic():
