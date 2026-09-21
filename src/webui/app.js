@@ -515,9 +515,21 @@ function ensureSessionResilienceUi() {
     }),
   ]);
 
-  const dialog = element("dialog", {
+  // Keep the password field out of the browser top layer. Password-manager
+  // inline menus use their own popover/top-layer UI and Chromium can disable
+  // them when they are nested inside a native <dialog>.
+  const dialog = element("div", {
+    className: "session-reauth-overlay",
+    attributes: {
+      id: "reauth-dialog",
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-labelledby": "reauth-title",
+    },
+    hidden: true,
+  });
+  const panel = element("div", {
     className: "modal small-modal session-reauth-modal",
-    attributes: { id: "reauth-dialog", "aria-labelledby": "reauth-title" },
   });
   const form = element("form", { attributes: { id: "reauth-form" } }, [
     element("div", { className: "modal-heading" }, [
@@ -584,7 +596,8 @@ function ensureSessionResilienceUi() {
       }),
     ]),
   ]);
-  dialog.append(form);
+  panel.append(form);
+  dialog.append(panel);
   document.body.append(warning, dialog);
 }
 
@@ -625,7 +638,9 @@ function applySessionMetadata(session) {
 
 function finishReauthentication(result) {
   const dialog = byId("reauth-dialog");
-  if (dialog?.open) dialog.close();
+  if (dialog) dialog.hidden = true;
+  byId("app-shell")?.removeAttribute("inert");
+  document.body.classList.remove("session-reauth-open");
   const resolve = reauthResolve;
   reauthResolve = null;
   reauthPromise = null;
@@ -697,7 +712,9 @@ function requireReauthentication(message = "Your session expired. Sign in again 
     reauthResolve = resolve;
   });
   const dialog = byId("reauth-dialog");
-  if (!dialog.open) dialog.showModal();
+  dialog.hidden = false;
+  byId("app-shell")?.setAttribute("inert", "");
+  document.body.classList.add("session-reauth-open");
   window.setTimeout(() => byId("reauth-password")?.focus(), 0);
   return reauthPromise;
 }
@@ -4906,8 +4923,10 @@ function bindEvents() {
     finishReauthentication(false);
     void logout();
   });
-  byId("reauth-dialog")?.addEventListener("cancel", (event) => {
+  byId("reauth-dialog")?.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
     event.preventDefault();
+    byId("reauth-password")?.focus();
   });
   for (const eventName of ["pointerdown", "keydown", "input"]) {
     document.addEventListener(eventName, noteSessionActivity, true);
