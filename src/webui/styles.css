@@ -2000,7 +2000,29 @@ dialog::backdrop {
   flex: 0 0 auto;
 }
 
+.session-reauth-overlay {
+  align-items: center;
+  backdrop-filter: blur(8px);
+  background: rgba(1, 7, 14, 0.72);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 1000;
+}
+
+.session-reauth-overlay[hidden] {
+  display: none;
+}
+
+body.session-reauth-open {
+  overflow: hidden;
+}
+
 .session-reauth-modal {
+  margin: 0;
+  max-height: calc(100vh - 2rem);
   max-width: 470px;
 }
 

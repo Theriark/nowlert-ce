@@ -963,6 +963,31 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
     assert b"backupsNav.hidden = !admin;" in retirement.body
     assert b"usersNav.hidden = !admin;" in retirement.body
 
+def test_session_reauthentication_avoids_native_dialog_top_layer():
+    script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "styles.css").read_text(encoding="utf-8")
+
+    start = script.index("function ensureSessionResilienceUi()")
+    end = script.index("function effectiveSessionExpiry()", start)
+    reauth_ui = script[start:end]
+    show_start = script.index("function requireReauthentication(")
+    show_end = script.index("async function refreshSession(", show_start)
+    show_reauth = script[show_start:show_end]
+
+    assert 'element("dialog"' not in reauth_ui
+    assert 'className: "session-reauth-overlay"' in reauth_ui
+    assert 'role: "dialog"' in reauth_ui
+    assert '"aria-modal": "true"' in reauth_ui
+    assert 'autocomplete: "current-password"' in reauth_ui
+    assert ".showModal()" not in show_reauth
+    assert 'dialog.hidden = false;' in show_reauth
+    assert 'setAttribute("inert", "")' in show_reauth
+    assert 'document.body.classList.add("session-reauth-open")' in show_reauth
+    assert ".session-reauth-overlay[hidden]" in styles
+    assert "position: fixed;" in styles
+    assert "backdrop-filter: blur(8px);" in styles
+
+
 def test_destination_state_refreshes_across_signed_in_sessions():
     script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
 
