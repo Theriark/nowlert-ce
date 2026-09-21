@@ -18,6 +18,15 @@ class XenOrchestraDiscordImageRenderer:
     BASE_HEIGHT = 1086
     MAX_VMS = 10
 
+    VM_PANEL_TOP = 682
+    VM_HEADER_HEIGHT = 92
+    VM_PANEL_BOTTOM_PADDING = 28
+    VM_ENTRY_HEIGHT = 122
+    VM_ENTRY_REASON_HEIGHT = 166
+    SUCCESS_ROW_HEIGHT = 122
+    FOOTER_GAP = 26
+    FOOTER_RESERVE = 88
+
     # Nowlert brand surfaces.
     PAGE_BG = (18, 24, 29)
     CARD_BG = (8, 12, 15)
@@ -75,13 +84,22 @@ class XenOrchestraDiscordImageRenderer:
         failed = list(notification.failed_vms or [])[: self.MAX_VMS]
         skipped = list(notification.skipped_vms or [])[: self.MAX_VMS]
 
-        extra_rows = max(
-            0,
-            ((len(successful) + 2) // 3) - 1
-            if not (failed or skipped)
-            else max(len(successful), len(failed), len(skipped)) - 2,
+        vm_panel_height = self._vm_panel_height(
+            notification,
+            successful,
+            failed,
+            skipped,
         )
-        height = self.BASE_HEIGHT + extra_rows * 92
+        height = max(
+            self.BASE_HEIGHT,
+            (
+                self.VM_PANEL_TOP
+                + vm_panel_height
+                + self.FOOTER_GAP
+                + self.FOOTER_RESERVE
+            ),
+        )
+        footer_y = height - self.FOOTER_RESERVE
 
         image = self._background(self.WIDTH, height)
         self._outer_glows(image, accent, height)
@@ -300,9 +318,11 @@ class XenOrchestraDiscordImageRenderer:
             result_status=status,
         )
 
-        # VM outcome panels.
-        vm_y = 682
-        vm_bottom = height - 124
+        # VM outcome panels. The footer follows the content instead of
+        # imposing a fixed card height, so additional VMs and reasons never
+        # escape the card.
+        vm_y = self.VM_PANEL_TOP
+        vm_bottom = footer_y - self.FOOTER_GAP
         if failed:
             self._paired_vm_panels(
                 image,
@@ -337,7 +357,6 @@ class XenOrchestraDiscordImageRenderer:
             )
 
         # Footer.
-        footer_y = height - 100
         draw.line(
             (x0, footer_y - 8, right, footer_y - 8),
             fill=(81, 89, 95, 150),
@@ -351,14 +370,20 @@ class XenOrchestraDiscordImageRenderer:
         )
         footer = "Xen Orchestra Notification"
         footer_w = draw.textlength(footer, font=self.font_small)
-        share_x = right - 54
+        owl_size = 48
+        owl_x = right - owl_size
         draw.text(
-            (share_x - footer_w - 28, footer_y + 12),
+            (owl_x - footer_w - 20, footer_y + 12),
             footer,
             font=self.font_small,
             fill=self.MUTED,
         )
-        self._draw_share_icon(draw, share_x, footer_y + 5)
+        self._draw_nowlert_owl(
+            image,
+            owl_x,
+            footer_y - 1,
+            owl_size,
+        )
 
         output = BytesIO()
         image.convert("RGB").save(
@@ -368,6 +393,79 @@ class XenOrchestraDiscordImageRenderer:
             compress_level=7,
         )
         return output.getvalue()
+
+    def _vm_panel_height(
+        self,
+        notification,
+        successful,
+        failed,
+        skipped,
+    ) -> int:
+        """Return the minimum VM panel height required by its real content."""
+
+        if failed or skipped:
+            other = failed or skipped
+            successful_height = self._vm_column_height(
+                notification,
+                successful,
+                include_reason=False,
+            )
+            other_height = self._vm_column_height(
+                notification,
+                other,
+                include_reason=True,
+            )
+            content_height = max(successful_height, other_height)
+            return max(
+                250,
+                (
+                    self.VM_HEADER_HEIGHT
+                    + content_height
+                    + self.VM_PANEL_BOTTOM_PADDING
+                ),
+            )
+
+        rows = max(1, (len(successful) + 2) // 3)
+        return max(
+            250,
+            (
+                self.VM_HEADER_HEIGHT
+                + rows * self.SUCCESS_ROW_HEIGHT
+                + self.VM_PANEL_BOTTOM_PADDING
+            ),
+        )
+
+    def _vm_column_height(
+        self,
+        notification,
+        names,
+        *,
+        include_reason: bool,
+    ) -> int:
+        """Measure a vertical VM column before allocating the image canvas."""
+
+        if not names:
+            return 80
+        return sum(
+            self._vm_entry_height(
+                notification,
+                name,
+                include_reason=include_reason,
+            )
+            for name in names
+        )
+
+    def _vm_entry_height(
+        self,
+        notification,
+        name,
+        *,
+        include_reason: bool,
+    ) -> int:
+        detail = (notification.vm_details or {}).get(name, {}) or {}
+        if include_reason and self._clean(detail.get("error") or ""):
+            return self.VM_ENTRY_REASON_HEIGHT
+        return self.VM_ENTRY_HEIGHT
 
     def _detail_rows(self, draw, box, rows, *, result_status):
         x1, y1, x2, _ = box
@@ -456,7 +554,7 @@ class XenOrchestraDiscordImageRenderer:
             row = index // columns
             col = index % columns
             cx = x1 + 26 + col * col_w
-            cy = y1 + 93 + row * 118
+            cy = y1 + 93 + row * self.SUCCESS_ROW_HEIGHT
             if col:
                 divider_x = cx - 16
                 draw.line(
@@ -553,29 +651,41 @@ class XenOrchestraDiscordImageRenderer:
             ),
         )
 
-        for index, name in enumerate(successful):
+        success_y = y1 + self.VM_HEADER_HEIGHT
+        for name in successful:
             self._vm_entry(
                 draw,
                 left[0] + 28,
-                y1 + 92 + index * 104,
+                success_y,
                 left[2] - left[0] - 56,
                 name,
                 notification,
                 self.SUCCESS,
                 include_reason=False,
             )
+            success_y += self._vm_entry_height(
+                notification,
+                name,
+                include_reason=False,
+            )
 
-        for index, name in enumerate(other):
+        other_y = y1 + self.VM_HEADER_HEIGHT
+        for name in other:
             self._vm_entry(
                 draw,
                 right[0] + 28,
-                y1 + 92 + index * 126,
+                other_y,
                 right[2] - right[0] - 56,
                 name,
                 notification,
                 other_color,
                 include_reason=True,
                 reason_status=other_status,
+            )
+            other_y += self._vm_entry_height(
+                notification,
+                name,
+                include_reason=True,
             )
 
     def _vm_entry(
@@ -1058,29 +1168,65 @@ class XenOrchestraDiscordImageRenderer:
             fill=(*fg, 255),
         )
 
-    def _draw_share_icon(self, draw, x, y):
-        size = 42
-        draw.rounded_rectangle(
-            (x, y + 10, x + size, y + 42),
-            radius=7,
-            outline=(226, 230, 232, 255),
-            width=3,
-        )
+    def _draw_nowlert_owl(self, image, x, y, size):
+        """Draw the packaged, approved Nowlert owl in the footer."""
+
+        path = self.icon_dir / "nowlert.png"
+        if path.is_file():
+            try:
+                icon = Image.open(path).convert("RGBA")
+                icon.thumbnail(
+                    (size, size),
+                    Image.Resampling.LANCZOS,
+                )
+                px = int(x + (size - icon.width) / 2)
+                py = int(y + (size - icon.height) / 2)
+                image.alpha_composite(icon, (px, py))
+                return
+            except OSError:
+                pass
+
+        # Rendering must remain resilient if a custom package omits the asset.
+        draw = ImageDraw.Draw(image, "RGBA")
         cx = x + size / 2
-        draw.line(
-            (cx, y + 30, cx, y),
-            fill=(240, 242, 244, 255),
-            width=4,
+        cy = y + size / 2
+        draw.polygon(
+            [
+                (x + size * 0.12, y + size * 0.18),
+                (cx, y + size * 0.38),
+                (x + size * 0.88, y + size * 0.18),
+                (x + size * 0.76, y + size * 0.72),
+                (cx, y + size * 0.92),
+                (x + size * 0.24, y + size * 0.72),
+            ],
+            fill=(54, 57, 58, 255),
+            outline=(*self.BRAND_GOLD, 230),
         )
-        draw.line(
-            (cx, y, cx - 10, y + 11),
-            fill=(240, 242, 244, 255),
-            width=4,
+        draw.ellipse(
+            (
+                x + size * 0.25,
+                y + size * 0.40,
+                x + size * 0.43,
+                y + size * 0.58,
+            ),
+            fill=(*self.BRAND_GOLD, 255),
         )
-        draw.line(
-            (cx, y, cx + 10, y + 11),
-            fill=(240, 242, 244, 255),
-            width=4,
+        draw.ellipse(
+            (
+                x + size * 0.57,
+                y + size * 0.40,
+                x + size * 0.75,
+                y + size * 0.58,
+            ),
+            fill=(*self.BRAND_GOLD, 255),
+        )
+        draw.polygon(
+            [
+                (cx, cy),
+                (x + size * 0.43, y + size * 0.68),
+                (x + size * 0.57, y + size * 0.68),
+            ],
+            fill=(229, 220, 199, 255),
         )
 
     def _draw_status_rail(self, draw, accent, height):

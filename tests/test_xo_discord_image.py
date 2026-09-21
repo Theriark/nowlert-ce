@@ -152,6 +152,97 @@ def test_xo_image_renderer_uses_nowlert_brand_and_state_accents(tmp_path):
             assert max(panel) < 80
 
 
+def test_xo_card_grows_to_keep_all_vm_content_inside(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    success = xo_notification("success")
+    success_data = renderer.render(success)
+    with Image.open(BytesIO(success_data)) as image:
+        baseline_height = image.height
+
+    crowded = xo_notification("success")
+    crowded.successful_vms = [
+        f"VM-{index:02d} | Workload {index}"
+        for index in range(1, 10)
+    ]
+    crowded.vm_success = len(crowded.successful_vms)
+    crowded.vm_total = len(crowded.successful_vms)
+    crowded.vm_details = {
+        name: {
+            "size": f"{index}.00 GiB",
+            "speed": f"{20 + index}.00 MiB/s",
+        }
+        for index, name in enumerate(crowded.successful_vms, start=1)
+    }
+
+    crowded_data = renderer.render(crowded)
+    with Image.open(BytesIO(crowded_data)) as image:
+        assert image.height > baseline_height
+        footer_y = image.height - renderer.FOOTER_RESERVE
+        available_vm_height = (
+            footer_y
+            - renderer.FOOTER_GAP
+            - renderer.VM_PANEL_TOP
+        )
+        required_vm_height = renderer._vm_panel_height(
+            crowded,
+            crowded.successful_vms,
+            [],
+            [],
+        )
+        assert available_vm_height >= required_vm_height
+
+
+def test_xo_paired_card_grows_for_success_rows_and_long_reason(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    item = xo_notification("skipped")
+    item.vm_details["VM-12 | Maintenance Window"]["error"] = (
+        "Backup policy excluded this VM during its maintenance window "
+        "because the protected workload remained inside a scheduled "
+        "maintenance period."
+    )
+
+    data = renderer.render(item)
+    with Image.open(BytesIO(data)) as image:
+        assert image.height > renderer.BASE_HEIGHT
+        footer_y = image.height - renderer.FOOTER_RESERVE
+        available_vm_height = (
+            footer_y
+            - renderer.FOOTER_GAP
+            - renderer.VM_PANEL_TOP
+        )
+        required_vm_height = renderer._vm_panel_height(
+            item,
+            item.successful_vms,
+            [],
+            item.skipped_vms,
+        )
+        assert available_vm_height >= required_vm_height
+
+
+def test_xo_footer_uses_packaged_nowlert_owl(tmp_path):
+    logo = Image.new("RGBA", (80, 80), (255, 0, 255, 255))
+    logo.save(tmp_path / "nowlert.png")
+
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    data = renderer.render(xo_notification("success"))
+
+    with Image.open(BytesIO(data)).convert("RGB") as image:
+        footer_crop = image.crop(
+            (
+                image.width - 135,
+                image.height - 135,
+                image.width - 35,
+                image.height - 35,
+            )
+        )
+        pixels = list(footer_crop.getdata())
+        assert any(
+            red > 220 and green < 60 and blue > 220
+            for red, green, blue in pixels
+        )
+
+
 def test_xo_skipped_card_uses_blue_not_warning_yellow(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
     data = renderer.render(xo_notification("skipped"))
