@@ -432,11 +432,6 @@
     return state.routes.some((route) => route.enabled && route.source === source);
   };
 
-  cardSampleEvent = function sourceAwareCardSampleEvent(destination) {
-    const route = routeForDestination(destination.id);
-    return sourceTestSample(route ? route.source : "nowlert", destination);
-  };
-
   window.addEventListener("pageshow", () => {
     window.setTimeout(() => ensureRequestedView(), 0);
   });

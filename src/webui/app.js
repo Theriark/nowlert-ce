@@ -4386,15 +4386,24 @@ function sampleEvent() {
 }
 
 function cardSampleEvent(destination) {
+  const outputName =
+    OUTPUT_NAMES[destination.output_type]
+    || friendlyName(destination.output_type);
   return {
     schema: "nowlert.event.v1",
     source: "nowlert",
     title: `${destination.name} test delivery`,
-    message: `This is a safe Nowlert test for the ${OUTPUT_NAMES[destination.output_type] || friendlyName(destination.output_type)} destination "${destination.name}".`,
+    message: `This is a safe Nowlert test for the ${outputName} destination "${destination.name}".`,
     severity: "information",
     status: "active",
+    category: "event",
     provider: "Nowlert",
-    metadata: { host: destination.name, component: "Destination test" },
+    host: destination.name,
+    metadata: {
+      component: "Destination test",
+      destination: destination.name,
+      output: destination.output_type,
+    },
   };
 }
 

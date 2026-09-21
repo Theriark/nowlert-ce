@@ -220,6 +220,9 @@ def test_v232_webui_uses_vendor_icons_safe_removal_and_header_restart():
     assert 'route.source === source || route.source === "*"' in script
     assert 'source: "nowlert"' in script
     assert 'schema: "nowlert.event.v1"' in script
+    assert 'provider: "Nowlert"' in script
+    assert 'component: "Destination test"' in script
+    assert 'output: destination.output_type' in script
     assert 'source: "home_assistant"' not in script[
         script.index("function cardSampleEvent"):
         script.index("async function runPreview")

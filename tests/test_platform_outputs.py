@@ -356,8 +356,9 @@ def test_teams_default_and_explicit_modern_xo_use_existing_formatter():
     assert explicit_preview.payload == default_preview.payload
 
 
-def test_teams_classic_xo_uses_isolated_classic_formatter():
-    item = notification_for_source("xo")
+@pytest.mark.parametrize("source", CLASSIC_PARITY_SOURCES)
+def test_teams_classic_uses_classic_renderer_for_every_supported_source(source):
+    item = notification_for_source(source)
     preview = TeamsPlatformAdapter(
         resolver=public_resolver
     ).preview(
@@ -367,33 +368,15 @@ def test_teams_classic_xo_uses_isolated_classic_formatter():
 
     assert preview.metadata["message_style"] == "classic"
     assert preview.metadata["rendered_style"] == "classic"
-    assert (
-        preview.metadata["formatter"]
-        == "TeamsClassicXenOrchestraFormatter"
-    )
+    assert preview.metadata["formatter"] == "TeamsClassicFormatter"
     assert "🦉 Nowlert CE • Classic Card" in json.dumps(
         preview.payload,
         ensure_ascii=False,
     )
-
-
-def test_teams_classic_unimplemented_source_temporarily_falls_back_to_modern():
-    item = notification_for_source("grafana")
-    adapter = TeamsPlatformAdapter(resolver=public_resolver)
-
-    requested_classic = adapter.preview(
-        destination("teams", {"message_style": "classic"}),
-        item,
+    assert (
+        preview.metadata["payload_bytes"]
+        <= preview.metadata["payload_limit_bytes"]
     )
-    modern = adapter.preview(
-        destination("teams", {"message_style": "modern"}),
-        item,
-    )
-
-    assert requested_classic.metadata["message_style"] == "classic"
-    assert requested_classic.metadata["rendered_style"] == "modern"
-    assert requested_classic.metadata["formatter"] == "GrafanaTeamsFormatter"
-    assert requested_classic.payload == modern.payload
 
 
 def test_teams_classic_xo_is_sanitized_and_bounded():
@@ -423,6 +406,115 @@ def test_teams_classic_xo_is_sanitized_and_bounded():
         <= preview.metadata["payload_limit_bytes"]
     )
 
+
+
+
+def destination_test_notification(output_type: str) -> Notification:
+    name = f"CE Development - {output_type.title()}"
+    return Notification(
+        source="nowlert",
+        category="event",
+        status="information",
+        title=f"{name} test delivery",
+        body=(
+            "This is a safe Nowlert test for the "
+            f"{output_type} destination \"{name}\"."
+        ),
+        metadata={
+            "provider": "Nowlert",
+            "severity": "information",
+            "host": name,
+            "component": "Destination test",
+            "format": "event-api-v1",
+        },
+    )
+
+
+def test_send_test_discord_modern_and_classic_use_nowlert_identity():
+    item = destination_test_notification("discord")
+    adapter = DiscordPlatformAdapter(resolver=public_resolver)
+
+    modern = adapter.preview(
+        destination("discord", {"components_v2": True}),
+        item,
+    )
+    classic = adapter.preview(
+        destination("discord", {"components_v2": False}),
+        item,
+    )
+
+    assert "nowlert-owl" in json.dumps(modern.payload).casefold()
+    assert classic.payload["embeds"][0]["thumbnail"]["url"].endswith(
+        "discord/nowlert-owl-v3.1.0.png"
+    )
+    assert "CE Development - Discord test delivery" in json.dumps(
+        classic.payload
+    )
+
+
+def test_send_test_teams_modern_and_classic_use_nowlert_identity():
+    item = destination_test_notification("teams")
+    adapter = TeamsPlatformAdapter(resolver=public_resolver)
+
+    modern = adapter.preview(
+        destination("teams", {"message_style": "modern"}),
+        item,
+    )
+    classic = adapter.preview(
+        destination("teams", {"message_style": "classic"}),
+        item,
+    )
+
+    assert "/nowlert.png" in json.dumps(modern.payload)
+    assert "/nowlert.png" in json.dumps(classic.payload)
+    assert "xen-orchestra.png" not in json.dumps(classic.payload)
+    assert "Destination test" in json.dumps(classic.payload)
+
+
+def test_send_test_slack_uses_nowlert_identity():
+    item = destination_test_notification("slack")
+    preview = SlackPlatformAdapter(resolver=public_resolver).preview(
+        destination("slack"),
+        item,
+    )
+
+    encoded = json.dumps(preview.payload)
+    assert "nowlert" in encoded.casefold()
+    assert "CE Development - Slack test delivery" in encoded
+
+
+def test_send_test_generic_webhook_respects_modern_and_classic():
+    item = destination_test_notification("webhook")
+    adapter = WebhookPlatformAdapter(resolver=public_resolver)
+
+    modern = adapter.preview(
+        destination("webhook", {"message_style": "modern"}),
+        item,
+    )
+    classic = adapter.preview(
+        destination("webhook", {"message_style": "classic"}),
+        item,
+    )
+
+    assert modern.payload["presentation"]["style"] == "modern_card"
+    assert classic.payload["presentation"]["style"] == "classic_card_v1"
+    assert modern.payload["presentation"]["title"] == item.title
+    assert item.title in classic.payload["presentation"]["title"]
+    assert item.body in classic.payload["presentation"]["description"]
+
+
+def test_message_style_override_supports_teams_without_mutating_destination():
+    original = destination(
+        "teams",
+        {"message_style": "modern"},
+    )
+    styled = PlatformOutputService._with_message_style(
+        original,
+        "classic",
+    )
+
+    assert original.settings == {"message_style": "modern"}
+    assert styled.settings == {"message_style": "classic"}
 
 
 def test_discord_and_teams_previews_reuse_source_specific_formatters():

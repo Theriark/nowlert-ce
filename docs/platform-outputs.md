@@ -52,14 +52,12 @@ layout. Existing destinations that do not yet store `message_style` normalize
 to Modern automatically.
 
 Classic uses a separate Teams-native renderer so Classic layout changes do not
-modify Modern cards. The first Classic implementation is Xen Orchestra and
-preserves the approved Nowlert Classic backup lifecycle, field ordering, VM
-sections, and omission rules.
-
-During the Xen Orchestra pilot, a Teams destination set to Classic temporarily
-falls back to the existing Modern Teams renderer when the event source does not
-yet have a Teams Classic renderer. Classic coverage will be expanded
-integration-by-integration after live Teams acceptance.
+modify Modern cards. It consumes the approved Classic Card v1 information
+contract used by Discord Classic and renders that content as Adaptive Card
+elements. Xen Orchestra, Zabbix, Grafana, Portainer, Proxmox, QNAP, Synology,
+TrueNAS, UniFi Network/Protect/Drive, Home Assistant, Redfish, Supermicro,
+HPE iLO, Dell iDRAC, and generic/Nowlert fallback events all use the Classic
+renderer when the destination selects Classic.
 
 Serialized Teams payloads remain bounded to 28 KiB before transport. HTTP 202
 means the Teams workflow accepted the request; the UI does not claim that the
@@ -141,6 +139,12 @@ Webhook does not expose a private-network override in the simplified editor.
 Preview is credential-free. Test delivery resolves the real destination secret
 internally and returns only safe outcome metadata such as success, retryability,
 HTTP-like status, and bounded error code/text.
+
+The destination-card **Send test** is a Nowlert-owned synthetic event. It always
+uses the Nowlert source/icon and the destination name instead of inheriting an
+integration from an attached route. Discord, Teams, and Generic Webhook render
+that event using the destination's selected Modern/Classic presentation; Slack
+renders it through its current Classic-only presentation.
 
 Test outcome can be stored as destination health state and surfaced in the
 WebUI/routing flow without storing response bodies or credentials.

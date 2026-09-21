@@ -4,10 +4,14 @@
 
 ### Changed
 
-- Add per-destination Modern/Classic selection for Microsoft Teams, keeping
-  Modern as the backward-compatible default, and introduce the first
-  Teams-native Classic Card for Xen Orchestra with temporary Modern fallback
-  for integrations whose Teams Classic renderer has not yet been added.
+- Complete Microsoft Teams Classic Card coverage for Xen Orchestra, Zabbix,
+  Grafana, Portainer, Proxmox, QNAP, Synology, TrueNAS, UniFi
+  Network/Protect/Drive, Home Assistant, Redfish, Supermicro, HPE iLO,
+  Dell iDRAC, and generic/Nowlert fallback while keeping Modern unchanged.
+- Make destination-card Send test a Nowlert-owned notification with the
+  Nowlert icon across Discord, Teams, Slack, and Generic Webhook, rendered in
+  each destination's selected presentation instead of inheriting route-source
+  branding.
 - Generic Webhook Classic now reuses the approved source-specific Discord
   Classic presentation and exposes it as destination-neutral
   `classic_card_v1` metadata inside the existing `nowlert.event.v1`
