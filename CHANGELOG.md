@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Run SMTP notification routing off the aiosmtpd event loop while still waiting
+  for each message's routing result before returning SMTP 250, allowing multiple
+  SMTP transactions to progress concurrently without weakening acceptance
+  durability semantics.
 - Resolve delivery routes and their assigned destination metadata in one joined
   SQLite read, preserving Route.destination_ids, route filters, wildcard
   fallback, destination de-duplication, and event-local delivery snapshots

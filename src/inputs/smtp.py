@@ -8,6 +8,8 @@ SMTP input server.
 
 from __future__ import annotations
 
+import asyncio
+
 from datetime import datetime
 from email import message_from_bytes
 from email.policy import default
@@ -106,7 +108,8 @@ class Handler:
             if recipients:
                 notification.metadata.setdefault("to", ", ".join(recipients))
 
-            self.router.route(
+            await asyncio.to_thread(
+                self.router.route,
                 notification,
             )
 
