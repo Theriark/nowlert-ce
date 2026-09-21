@@ -120,10 +120,46 @@ def test_xo_image_renderer_produces_png_for_all_outcomes(tmp_path):
     assert len({data for data in images}) == 3
     for data in images:
         with Image.open(BytesIO(data)) as image:
-            assert image.width == 1400
-            assert image.height >= 1000
+            assert image.width == 1448
+            assert image.height >= 1086
             assert image.mode in {"RGB", "RGBA"}
         assert len(data) < 5 * 1024 * 1024
+
+
+def test_xo_image_renderer_uses_nowlert_brand_and_state_accents(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    expected = {
+        "success": renderer.SUCCESS,
+        "failure": renderer.FAILURE,
+        "skipped": renderer.SKIPPED,
+    }
+
+    for kind, accent in expected.items():
+        data = renderer.render(xo_notification(kind))
+        with Image.open(BytesIO(data)).convert("RGB") as image:
+            # The approved template keeps Nowlert's dark graphite background.
+            page = image.getpixel((8, 8))
+            assert max(page) < 45
+
+            # The left lifecycle rail is the state colour.
+            rail = image.getpixel((39, 500))
+            assert all(abs(rail[i] - accent[i]) <= 8 for i in range(3))
+
+            # The main information panel remains dark/neutral rather than
+            # inheriting a blue Discord background.
+            panel = image.getpixel((500, 430))
+            assert max(panel) < 80
+
+
+def test_xo_skipped_card_uses_blue_not_warning_yellow(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    data = renderer.render(xo_notification("skipped"))
+
+    with Image.open(BytesIO(data)).convert("RGB") as image:
+        rail = image.getpixel((39, 500))
+        assert rail[2] > rail[0]
+        assert rail[2] > rail[1]
 
 
 class Response:
