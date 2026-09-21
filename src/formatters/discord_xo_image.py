@@ -37,6 +37,10 @@ class XenOrchestraDiscordImageRenderer:
     DETAIL_LABEL_VALUE_GAP = 30
     STATUS_BADGE_WIDTH = 420
     XO_HEADER_ICON_SIZE = 120
+    OUTER_GLOW_GOLD_ALPHA = 138
+    OUTER_GLOW_ACCENT_ALPHA = 124
+    OUTER_GLOW_BLUR = 21
+    STATUS_GLOW_ALPHA = 116
     PAIRED_PANEL_LEFT_RATIO = 0.50
     PAIRED_PANEL_LONG_OTHER_LEFT_RATIO = 0.48
 
@@ -61,24 +65,24 @@ class XenOrchestraDiscordImageRenderer:
 
     def __init__(self, icon_dir: Path | str = "/nowlert/assets/icons"):
         self.icon_dir = Path(icon_dir)
-        self.font_micro = self._font(False, 16)
-        self.font_tiny = self._font(False, 18)
-        self.font_small = self._font(False, 21)
-        self.font_detail = self._font(False, 23)
-        self.font_body = self._font(False, 24)
-        self.font_label = self._font(True, 24)
-        self.font_vm_micro = self._font(True, 20)
-        self.font_vm_compact = self._font(True, 22)
-        self.font_vm = self._font(True, 25)
-        self.font_vm_large = self._font(True, 28)
-        self.font_vm_meta_compact = self._font(False, 18)
-        self.font_vm_meta_large = self._font(False, 23)
-        self.font_reason_compact = self._font(False, 18)
-        self.font_reason = self._font(False, 20)
-        self.font_reason_large = self._font(False, 21)
-        self.font_bold = self._font(True, 29)
-        self.font_title = self._font(True, 34)
-        self.font_heading = self._font(True, 42)
+        self.font_micro = self._font(False, 20)
+        self.font_tiny = self._font(False, 22)
+        self.font_small = self._font(False, 25)
+        self.font_detail = self._font(False, 29)
+        self.font_body = self._font(False, 30)
+        self.font_label = self._font(True, 29)
+        self.font_vm_micro = self._font(True, 23)
+        self.font_vm_compact = self._font(True, 26)
+        self.font_vm = self._font(True, 30)
+        self.font_vm_large = self._font(True, 33)
+        self.font_vm_meta_compact = self._font(False, 22)
+        self.font_vm_meta_large = self._font(False, 26)
+        self.font_reason_compact = self._font(False, 22)
+        self.font_reason = self._font(False, 24)
+        self.font_reason_large = self._font(False, 25)
+        self.font_bold = self._font(True, 34)
+        self.font_title = self._font(True, 40)
+        self.font_heading = self._font(True, 48)
 
     @staticmethod
     def _font(bold: bool, size: int):
@@ -126,7 +130,7 @@ class XenOrchestraDiscordImageRenderer:
                 + self.FOOTER_RESERVE
             ),
         )
-        footer_y = height - self.FOOTER_RESERVE
+        footer_y = self._footer_y(height)
 
         image = self._background(self.WIDTH, height)
         self._outer_glows(image, accent, height)
@@ -183,7 +187,7 @@ class XenOrchestraDiscordImageRenderer:
             right,
             header_y + 3 + badge_h,
         )
-        self._glow_box(image, badge, accent, 17, alpha=86)
+        self._glow_box(image, badge, accent, 17, alpha=self.STATUS_GLOW_ALPHA)
         draw = ImageDraw.Draw(image, "RGBA")
         self._rounded(
             draw,
@@ -438,17 +442,38 @@ class XenOrchestraDiscordImageRenderer:
 
         if failed or skipped:
             other = failed or skipped
+            gap = 18
+            entry_padding = 34
+            panel_width = self.WIDTH - 140
+            left_ratio = self._paired_panel_left_ratio(
+                successful,
+                other,
+                notification,
+            )
+            left_width = int(
+                (panel_width - gap) * left_ratio
+            )
+            right_width = panel_width - left_width - gap
+
             successful_height = self._vm_column_height(
                 notification,
                 successful,
                 include_reason=False,
                 vm_count=total_vm_count,
+                entry_width=max(
+                    180,
+                    left_width - entry_padding * 2,
+                ),
             )
             other_height = self._vm_column_height(
                 notification,
                 other,
                 include_reason=True,
                 vm_count=total_vm_count,
+                entry_width=max(
+                    180,
+                    right_width - entry_padding * 2,
+                ),
             )
             content_height = max(successful_height, other_height)
             return max(
@@ -477,6 +502,7 @@ class XenOrchestraDiscordImageRenderer:
         *,
         include_reason: bool,
         vm_count: int,
+        entry_width: int | None = None,
     ) -> int:
         """Measure a vertical VM column before allocating the image canvas."""
 
@@ -488,6 +514,7 @@ class XenOrchestraDiscordImageRenderer:
                 name,
                 include_reason=include_reason,
                 vm_count=vm_count,
+                entry_width=entry_width,
             )
             for name in names
         )
@@ -499,12 +526,42 @@ class XenOrchestraDiscordImageRenderer:
         *,
         include_reason: bool,
         vm_count: int,
+        entry_width: int | None = None,
     ) -> int:
         detail = (notification.vm_details or {}).get(name, {}) or {}
         style = self._vm_style(vm_count)
-        if include_reason and self._clean(detail.get("error") or ""):
+        reason = self._clean(detail.get("error") or "")
+        if not include_reason or not reason:
+            return style["entry_height"]
+
+        if not entry_width:
             return style["reason_height"]
-        return style["entry_height"]
+
+        reason_width = max(
+            160,
+            entry_width - style["meta_offset"],
+        )
+        measure_image = Image.new("RGB", (1, 1))
+        measure = ImageDraw.Draw(measure_image)
+        lines = self._wrapped_text_lines(
+            measure,
+            reason,
+            reason_width,
+            style["reason_font"],
+        )
+        line_h = (
+            style["reason_font"].getbbox("Ag")[3]
+            - style["reason_font"].getbbox("Ag")[1]
+        )
+        required = (
+            style["reason_y"]
+            + max(1, len(lines)) * (line_h + 4)
+            + 16
+        )
+        return max(
+            style["reason_height"],
+            required,
+        )
 
     def _vm_style(self, vm_count: int) -> dict:
         """Scale VM typography for normal, busy, and unusually large jobs."""
@@ -786,13 +843,20 @@ class XenOrchestraDiscordImageRenderer:
 
         total_vm_count = len(successful) + len(other)
         entry_padding = 34
+        success_width = (
+            left[2] - left[0] - entry_padding * 2
+        )
+        other_width = (
+            right[2] - right[0] - entry_padding * 2
+        )
+
         success_y = y1 + self.VM_HEADER_HEIGHT
         for name in successful:
             self._vm_entry(
                 draw,
                 left[0] + entry_padding,
                 success_y,
-                left[2] - left[0] - entry_padding * 2,
+                success_width,
                 name,
                 notification,
                 self.SUCCESS,
@@ -804,6 +868,7 @@ class XenOrchestraDiscordImageRenderer:
                 name,
                 include_reason=False,
                 vm_count=total_vm_count,
+                entry_width=success_width,
             )
 
         other_y = y1 + self.VM_HEADER_HEIGHT
@@ -812,7 +877,7 @@ class XenOrchestraDiscordImageRenderer:
                 draw,
                 right[0] + entry_padding,
                 other_y,
-                right[2] - right[0] - entry_padding * 2,
+                other_width,
                 name,
                 notification,
                 other_color,
@@ -825,6 +890,7 @@ class XenOrchestraDiscordImageRenderer:
                 name,
                 include_reason=True,
                 vm_count=total_vm_count,
+                entry_width=other_width,
             )
 
     def _vm_entry(
@@ -920,7 +986,7 @@ class XenOrchestraDiscordImageRenderer:
                 width - meta_offset,
                 style["reason_font"],
                 reason_color,
-                max_lines=2,
+                max_lines=None,
                 line_gap=4,
             )
 
@@ -1465,16 +1531,20 @@ class XenOrchestraDiscordImageRenderer:
         draw.rounded_rectangle(
             (28, 36, self.WIDTH - 28, height - 36),
             radius=31,
-            outline=(*self.BRAND_GOLD, 86),
-            width=6,
+            outline=(*self.BRAND_GOLD, self.OUTER_GLOW_GOLD_ALPHA),
+            width=8,
         )
         draw.rounded_rectangle(
             (31, 39, self.WIDTH - 31, height - 39),
             radius=29,
-            outline=(*accent, 82),
-            width=5,
+            outline=(*accent, self.OUTER_GLOW_ACCENT_ALPHA),
+            width=7,
         )
-        glow = glow.filter(ImageFilter.GaussianBlur(19))
+        glow = glow.filter(
+            ImageFilter.GaussianBlur(
+                self.OUTER_GLOW_BLUR
+            )
+        )
         image.alpha_composite(glow)
 
     @staticmethod
@@ -1485,10 +1555,13 @@ class XenOrchestraDiscordImageRenderer:
             box,
             radius=radius,
             outline=(*color, alpha),
-            width=8,
+            width=10,
         )
-        glow = glow.filter(ImageFilter.GaussianBlur(13))
+        glow = glow.filter(ImageFilter.GaussianBlur(15))
         image.alpha_composite(glow)
+
+    def _footer_y(self, height):
+        return height - self.FOOTER_RESERVE
 
     @staticmethod
     def _rounded(draw, box, *, fill, outline, radius, width):
@@ -1624,6 +1697,59 @@ class XenOrchestraDiscordImageRenderer:
             fill=fill,
         )
 
+    @staticmethod
+    def _wrapped_text_lines(
+        draw,
+        text,
+        width,
+        font,
+    ):
+        words = str(text or "").split()
+        lines = []
+        current = ""
+
+        def split_token(token):
+            if draw.textlength(token, font=font) <= width:
+                return [token]
+            parts = []
+            chunk = ""
+            for character in token:
+                candidate = chunk + character
+                if (
+                    chunk
+                    and draw.textlength(
+                        candidate,
+                        font=font,
+                    )
+                    > width
+                ):
+                    parts.append(chunk)
+                    chunk = character
+                else:
+                    chunk = candidate
+            if chunk:
+                parts.append(chunk)
+            return parts
+
+        for word in words:
+            for part in split_token(word):
+                candidate = f"{current} {part}".strip()
+                if (
+                    not current
+                    or draw.textlength(
+                        candidate,
+                        font=font,
+                    )
+                    <= width
+                ):
+                    current = candidate
+                    continue
+                lines.append(current)
+                current = part
+        if current:
+            lines.append(current)
+        return lines
+
     def _wrap_text(
         self,
         draw,
@@ -1634,37 +1760,44 @@ class XenOrchestraDiscordImageRenderer:
         font,
         fill,
         *,
-        max_lines,
+        max_lines=None,
         line_gap,
     ):
-        words = self._clean(text).split()
-        lines = []
-        current = ""
-        for word in words:
-            candidate = f"{current} {word}".strip()
-            if draw.textlength(candidate, font=font) <= width:
-                current = candidate
-                continue
-            if current:
-                lines.append(current)
-            current = word
-            if len(lines) >= max_lines - 1:
-                break
-        if current and len(lines) < max_lines:
-            lines.append(current)
-        if len(lines) == max_lines and len(" ".join(lines).split()) < len(words):
+        lines = self._wrapped_text_lines(
+            draw,
+            self._clean(text),
+            width,
+            font,
+        )
+        if max_lines is not None and len(lines) > max_lines:
+            lines = lines[:max_lines]
             last = lines[-1]
-            while last and draw.textlength(last + "…", font=font) > width:
+            while (
+                last
+                and draw.textlength(
+                    last + "…",
+                    font=font,
+                )
+                > width
+            ):
                 last = last[:-1]
             lines[-1] = last.rstrip() + "…"
-        line_h = font.getbbox("Ag")[3] - font.getbbox("Ag")[1]
+
+        line_h = (
+            font.getbbox("Ag")[3]
+            - font.getbbox("Ag")[1]
+        )
         for index, line in enumerate(lines):
             draw.text(
-                (x, y + index * (line_h + line_gap)),
+                (
+                    x,
+                    y + index * (line_h + line_gap),
+                ),
                 line,
                 font=font,
                 fill=fill,
             )
+        return len(lines)
 
     @classmethod
     def _status(cls, notification):
