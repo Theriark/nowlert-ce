@@ -145,6 +145,21 @@ def test_xo_classic_preserves_approved_field_order():
     assert "JOB-123" in text
 
 
+def test_xo_classic_keeps_approved_plain_text_geometry():
+    payload = TeamsClassicXenOrchestraFormatter().format(
+        xo_notification("success")
+    )
+    text = flattened_text(payload)
+
+    assert "`" not in text
+    assert "5 min" in text
+    assert "52.06 GiB" in text
+    assert "33.73 MiB/s" in text
+    assert "Repository-01 · NFS · Backup Repository · Full" in text
+    assert "**VM-01** · 18 GiB" in text
+    assert "JOB-123" in text
+
+
 def test_xo_classic_omits_empty_optional_sections():
     item = xo_notification("success")
     item.transfer_speed = ""
