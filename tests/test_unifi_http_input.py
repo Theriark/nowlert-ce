@@ -8,6 +8,7 @@ import json
 import smtplib
 import socket
 import threading
+import time
 
 from pathlib import Path
 
@@ -316,6 +317,115 @@ def test_existing_smtp_handler_still_dispatches_email(monkeypatch, tmp_path):
     assert router.notifications[0].metadata["_input_type"] == "SMTP"
     assert router.notifications[0].metadata["to"] == "receiver@example.invalid"
     assert list(tmp_path.glob("*.eml"))
+
+
+
+def test_smtp_routing_does_not_block_other_smtp_transactions(
+    monkeypatch,
+    tmp_path,
+):
+    class DispatcherStub:
+        def parse(self, message):
+            return type(
+                "Notification",
+                (),
+                {
+                    "source": "generic",
+                    "metadata": {},
+                },
+            )()
+
+    class ConcurrentRouter:
+        def __init__(self):
+            self.barrier = threading.Barrier(
+                2,
+                timeout=2,
+            )
+            self.lock = threading.Lock()
+            self.active = 0
+            self.max_active = 0
+            self.completed = 0
+
+        def route(self, notification):
+            del notification
+
+            with self.lock:
+                self.active += 1
+                self.max_active = max(
+                    self.max_active,
+                    self.active,
+                )
+
+            try:
+                self.barrier.wait()
+                time.sleep(0.05)
+                return True
+
+            finally:
+                with self.lock:
+                    self.active -= 1
+                    self.completed += 1
+
+    def envelope(index):
+        return type(
+            "Envelope",
+            (),
+            {
+                "mail_from": (
+                    f"sender-{index}@example.invalid"
+                ),
+                "rcpt_tos": [
+                    "receiver@example.invalid",
+                ],
+                "original_content": (
+                    (
+                        "From: sender@example.invalid\\r\\n"
+                        "To: receiver@example.invalid\\r\\n"
+                        f"Subject: Concurrent {index}\\r\\n"
+                        "\\r\\nBody"
+                    ).encode()
+                ),
+            },
+        )()
+
+    router = ConcurrentRouter()
+
+    handler = SMTPHandler(
+        DispatcherStub(),
+        router,
+    )
+
+    monkeypatch.setattr(
+        smtp_input_module,
+        "Path",
+        lambda _value: tmp_path,
+    )
+
+    async def run_concurrently():
+        return await asyncio.gather(
+            handler.handle_DATA(
+                None,
+                None,
+                envelope(1),
+            ),
+            handler.handle_DATA(
+                None,
+                None,
+                envelope(2),
+            ),
+        )
+
+    results = asyncio.run(
+        run_concurrently()
+    )
+
+    assert results == [
+        "250 Message accepted",
+        "250 Message accepted",
+    ]
+
+    assert router.completed == 2
+    assert router.max_active == 2
 
 
 def test_application_lifecycle_starts_and_stops_smtp_and_http(monkeypatch):
