@@ -120,9 +120,21 @@ class DiscordPlatformAdapter(_HTTPAdapter):
                 destination.settings,
             )
 
-            if settings["components_v2"] and source == "xo":
-                image = self.output.render_xo_modern_image(notification)
+            if settings["components_v2"]:
+                formatter = self.output.source_formatters.get(
+                    source,
+                    self.output.default_formatter,
+                )
+                image = self.output.render_modern_image(
+                    notification,
+                    formatter,
+                )
                 if image is not None:
+                    filename = (
+                        self.output.modern_image_filename(
+                            source
+                        )
+                    )
                     url = self.output._delivery_webhook(
                         url,
                         {},
@@ -133,14 +145,17 @@ class DiscordPlatformAdapter(_HTTPAdapter):
                             url,
                             data={
                                 "payload_json": json.dumps(
-                                    self.output.xo_image_payload(),
+                                    self.output.modern_image_payload(
+                                        source,
+                                        filename,
+                                    ),
                                     separators=(",", ":"),
                                     ensure_ascii=False,
                                 ),
                             },
                             files={
                                 "files[0]": (
-                                    self.output.XO_IMAGE_FILENAME,
+                                    filename,
                                     image,
                                     "image/png",
                                 )
@@ -159,15 +174,20 @@ class DiscordPlatformAdapter(_HTTPAdapter):
                         return result
                     if not self.output._image_attachment_verified(
                         response,
-                        self.output.XO_IMAGE_FILENAME,
+                        filename,
                     ):
                         return DeliveryResult(
                             False,
-                            response_status=int(response.status_code),
-                            error_code="discord_attachment_unverified",
+                            response_status=int(
+                                response.status_code
+                            ),
+                            error_code=(
+                                "discord_attachment_unverified"
+                            ),
                             safe_error=(
-                                "Discord accepted the message but did not "
-                                "retain the rendered image attachment."
+                                "Discord accepted the message "
+                                "but did not retain the "
+                                "rendered image attachment."
                             ),
                         )
                     return result

@@ -43,6 +43,7 @@ from formatters.discord_unifi import (
     UniFiProtectDiscordFormatter,
 )
 from formatters.discord_zabbix import ZabbixDiscordFormatter
+from formatters.discord_modern_image import DiscordModernImageRenderer
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
 from logger import log
 from models import Notification
@@ -61,6 +62,7 @@ class DiscordOutput:
 
         self.default_formatter = GenericDiscordFormatter()
         self.xo_image_renderer = XenOrchestraDiscordImageRenderer(self.ICON_DIR)
+        self.modern_image_renderer = DiscordModernImageRenderer(self.ICON_DIR)
 
         self.source_formatters = {
             "xo": DiscordFormatter(),
@@ -262,6 +264,95 @@ class DiscordOutput:
 
     XO_IMAGE_FILENAME = "nowlert-xen-orchestra.png"
 
+    def render_modern_image(
+        self,
+        notification: Notification,
+        formatter=None,
+    ) -> bytes | None:
+        """Render a Discord Modern source as a Nowlert image card."""
+
+        source = str(
+            notification.source or ""
+        ).strip().casefold()
+        if source == "xo":
+            return self.render_xo_modern_image(
+                notification
+            )
+
+        formatter = (
+            formatter
+            or self.source_formatters.get(
+                source,
+                self.default_formatter,
+            )
+        )
+        try:
+            classic_payload = formatter._sanitize_payload(
+                formatter.format(notification)
+            )
+            return self.modern_image_renderer.render(
+                notification,
+                classic_payload,
+            )
+        except Exception:
+            log.exception(
+                "Failed to render Discord Modern image card "
+                "for %s; falling back to native Modern.",
+                source or "generic",
+            )
+            return None
+
+    @classmethod
+    def modern_image_filename(
+        cls,
+        source: str,
+    ) -> str:
+        normalized = "".join(
+            character
+            if character.isalnum()
+            or character in {"-", "_"}
+            else "-"
+            for character in str(
+                source or "generic"
+            ).casefold()
+        ).strip("-") or "generic"
+        if normalized == "xo":
+            return cls.XO_IMAGE_FILENAME
+        return f"nowlert-{normalized}-modern.png"
+
+    @classmethod
+    def modern_image_payload(
+        cls,
+        source: str,
+        filename: str | None = None,
+    ) -> dict:
+        filename = (
+            filename
+            or cls.modern_image_filename(source)
+        )
+        label = (
+            DiscordModernImageRenderer
+            .INTEGRATION_NAMES
+            .get(
+                str(source or "").casefold(),
+                "Nowlert",
+            )
+        )
+        return {
+            "attachments": [
+                {
+                    "id": 0,
+                    "filename": filename,
+                    "description": (
+                        f"{label} notification"
+                    ),
+                }
+            ],
+            "allowed_mentions": {
+                "parse": [],
+            },
+        }
+
     def render_xo_modern_image(self, notification: Notification) -> bytes | None:
         """Render XO Modern as an image; fail open to native Modern."""
 
@@ -276,18 +367,12 @@ class DiscordOutput:
 
     @classmethod
     def xo_image_payload(cls) -> dict:
-        """Discord multipart payload for the image-only XO Modern card."""
+        """Compatibility wrapper for the Xen Orchestra image payload."""
 
-        return {
-            "attachments": [
-                {
-                    "id": 0,
-                    "filename": cls.XO_IMAGE_FILENAME,
-                    "description": "Xen Orchestra notification",
-                }
-            ],
-            "allowed_mentions": {"parse": []},
-        }
+        return cls.modern_image_payload(
+            "xo",
+            cls.XO_IMAGE_FILENAME,
+        )
 
     @staticmethod
     def _delivery_webhook(webhook, payload, *, wait=False):
