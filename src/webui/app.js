@@ -3956,20 +3956,19 @@ function destinationDefinition(type) {
       secrets: [{ key: "url", label: "Slack webhook URL", kind: "password", required: true, wide: true }],
     },
     webhook: {
-      help: "Bounded JSON delivery with optional headers, templating, and HMAC signing.",
+      help: "Bounded JSON delivery with backend-owned Modern or Classic presentation.",
       settings: [
         presentation,
-        { key: "method", label: "Method", kind: "select", choices: [["POST", "POST"], ["PUT", "PUT"], ["PATCH", "PATCH"]], default: "POST" },
-        { key: "timeout_seconds", label: "Timeout (seconds)", kind: "number", valueType: "number", default: 15, attributes: { min: 1, max: 30 } },
-        { key: "headers", label: "Public headers (JSON)", kind: "textarea", valueType: "json", default: "{}", wide: true },
-        { key: "body_template", label: "Optional body template (JSON)", kind: "textarea", valueType: "optional-json", wide: true },
-        { key: "sign_hmac", label: "Sign payload with HMAC", kind: "checkbox", default: false },
-        ...adminPrivate,
+        {
+          key: "message_style",
+          label: "Message style",
+          kind: "select",
+          choices: [["modern", "Modern Card"], ["classic", "Classic Card"]],
+          default: "modern",
+        },
       ],
       secrets: [
         { key: "url", label: "Destination URL", kind: "password", required: true, wide: true },
-        { key: "hmac_secret", label: "HMAC secret", kind: "password" },
-        { key: "headers", label: "Secret headers (JSON)", kind: "textarea", valueType: "optional-json", wide: true },
       ],
     },
     mqtt: {
