@@ -39,6 +39,24 @@ can choose **Modern Card** or **Classic Card**. The adapter uploads/uses the
 selected packaged artwork rather than exposing an internal asset reference to
 Discord.
 
+## Delivery concurrency
+
+Nowlert dispatches matched destinations through one bounded delivery scheduler
+shared by Modern and Classic presentations. The default limits are 32 active
+deliveries process-wide and 4 active deliveries for the same destination.
+Excess work is queued fairly by destination so one slow or retrying webhook
+cannot occupy the worker pool and block unrelated destinations.
+
+Delivery ordering is intentionally not guaranteed: a later fast notification
+may complete before an earlier slow notification. Retry delays and destination
+HTTP timeouts are unchanged. In this phase ingress remains synchronous with
+its own delivery summary; a durable immediate-ack queue is a separate future
+change.
+
+Normal SQLite connections may overlap. Backup/restore and other maintenance
+operations retain exclusive database access and block new connections while
+maintenance is waiting.
+
 ## Microsoft Teams
 
 Microsoft Teams uses native Adaptive Card 1.4 payloads and public HTTPS

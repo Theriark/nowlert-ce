@@ -10,6 +10,10 @@ from typing import Callable
 
 from models import Notification
 from storage.database import Database
+from storage.delivery_concurrency import (
+    DeliveryConcurrencyController,
+    default_delivery_concurrency,
+)
 from storage.destinations import DeliveryDestination, DestinationStore
 from storage.ownership import Actor, OwnershipPolicy
 from storage.route_destinations import (
@@ -314,6 +318,7 @@ class PlatformDeliveryService:
         maximum_attempts: int = 3,
         retry_delays: tuple[float, ...] = (0, 1, 5),
         sleeper: Callable[[float], None] = time.sleep,
+        concurrency: DeliveryConcurrencyController | None = None,
     ):
         self.routes = routes
         self.destinations = destinations
@@ -324,6 +329,7 @@ class PlatformDeliveryService:
         self.maximum_attempts = max(1, min(int(maximum_attempts), 5))
         self.retry_delays = tuple(max(0.0, float(value)) for value in retry_delays)
         self.sleeper = sleeper
+        self.concurrency = concurrency or default_delivery_concurrency()
 
     def deliver(
         self,
@@ -343,20 +349,75 @@ class PlatformDeliveryService:
         delivered = 0
         failed = 0
         attempts = 0
+        jobs = []
+
         for candidate in candidates:
             delivery_id = uuid.uuid4().hex
-            outcome, count = self._deliver_candidate(
-                actor,
-                candidate,
-                notification,
-                delivery_id,
-            )
+            try:
+                future = self.concurrency.submit(
+                    candidate.destination_id,
+                    self._deliver_candidate,
+                    actor,
+                    candidate,
+                    notification,
+                    delivery_id,
+                )
+            except Exception:
+                future = None
+            jobs.append((candidate, delivery_id, future))
+
+        for candidate, delivery_id, future in jobs:
+            if future is None:
+                outcome, count = self._record_unexpected_delivery_failure(
+                    actor,
+                    candidate,
+                    notification,
+                    delivery_id,
+                )
+            else:
+                try:
+                    outcome, count = future.result()
+                except Exception:
+                    outcome, count = self._record_unexpected_delivery_failure(
+                        actor,
+                        candidate,
+                        notification,
+                        delivery_id,
+                    )
             attempts += count
             if outcome:
                 delivered += 1
             else:
                 failed += 1
+
         return DeliverySummary(len(candidates), delivered, failed, attempts)
+
+    def _record_unexpected_delivery_failure(
+        self,
+        actor: Actor,
+        candidate: RouteDestinationCandidate,
+        notification: Notification,
+        delivery_id: str,
+    ) -> tuple[bool, int]:
+        result = DeliveryResult(
+            False,
+            retryable=False,
+            error_code="delivery_exception",
+        )
+        try:
+            self.history.record(
+                actor.user_id,
+                delivery_id,
+                candidate.route,
+                notification,
+                1,
+                "failed",
+                result,
+                destination_id=candidate.destination_id,
+            )
+        except Exception:
+            pass
+        return False, 1
 
     def _deliver_candidate(
         self,

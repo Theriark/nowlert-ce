@@ -477,6 +477,56 @@ def test_database_maintenance_blocks_concurrent_connections(platform_state):
 
     assert entered.is_set()
 
+
+def test_database_waiting_maintenance_is_not_overtaken_by_new_connection(
+    platform_state,
+):
+    database = platform_state["database"]
+    first_open = threading.Event()
+    release_first = threading.Event()
+    maintenance_waiting = threading.Event()
+    maintenance_entered = threading.Event()
+    release_maintenance = threading.Event()
+    late_connection_entered = threading.Event()
+
+    def first_connection():
+        with database.connect():
+            first_open.set()
+            release_first.wait(2)
+
+    def maintenance():
+        assert first_open.wait(1)
+        maintenance_waiting.set()
+        with database.maintenance():
+            maintenance_entered.set()
+            release_maintenance.wait(2)
+
+    def late_connection():
+        assert maintenance_waiting.wait(1)
+        with database.connect():
+            late_connection_entered.set()
+
+    first = threading.Thread(target=first_connection)
+    waiting = threading.Thread(target=maintenance)
+    late = threading.Thread(target=late_connection)
+    first.start()
+    waiting.start()
+    assert maintenance_waiting.wait(1)
+    late.start()
+    try:
+        assert late_connection_entered.wait(0.05) is False
+        release_first.set()
+        assert maintenance_entered.wait(1)
+        assert late_connection_entered.wait(0.05) is False
+    finally:
+        release_maintenance.set()
+        release_first.set()
+        first.join(timeout=3)
+        waiting.join(timeout=3)
+        late.join(timeout=3)
+
+    assert late_connection_entered.is_set()
+
 def test_portable_v2_round_trips_destination_filters_without_route_filter_backup(
     platform_state,
 ):
