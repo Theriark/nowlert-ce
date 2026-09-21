@@ -219,7 +219,7 @@ def test_every_discord_integration_uses_approved_components_v2_contract():
         children = container["components"]
         header = children[0]
         assert header["type"] == 9, source
-        assert len(header["components"]) == 2, source
+        assert len(header["components"]) == (3 if source == "xo" else 2), source
         assert header["accessory"]["type"] == 11, source
         assert header["accessory"]["media"]["url"].endswith(".png"), source
         assert children[1] == {
@@ -347,103 +347,141 @@ def _approved_xo_notification(kind: str) -> Notification:
     return item
 
 
-def test_xo_modern_card_matches_approved_success_template():
+def _xo_text_components(payload: dict) -> list[str]:
+    return [
+        component["content"]
+        for component in flattened_components(payload)
+        if component.get("type") == 10
+    ]
+
+
+def test_xo_modern_card_matches_approved_success_geometry():
     payload = DiscordOutput().source_formatters["xo"].format_components_v2(
         _approved_xo_notification("success")
     )
     rendered = text_content(payload)
+    children = child_components(payload)
+    texts = _xo_text_components(payload)
+    fence = chr(96) * 3
 
     assert payload["components"][0]["accent_color"] == 0x57F287
-    assert "### 🗄️ Xen Orchestra" in rendered
+    assert len(children[0]["components"]) == 3
+    assert children[0]["components"][0]["content"] == "### 🗄️ Xen Orchestra"
     assert (
-        "### ✅ [NON-CRITICAL - 01] Administration • Backup Successful"
-        in rendered
+        children[0]["components"][1]["content"]
+        == "-# UNAS-01 | NFS | Non-Critical Backups"
     )
-    assert "UNAS-01 | NFS | Non-Critical Backups" in rendered
-    assert "Backup report for [NON-CRITICAL - 01] Administration" in rendered
-    assert "✅ **Severity:** Success" in rendered
-    assert "🔄 **Category:** Backup" in rendered
-    assert "🕒 **Event time:** 2026-09-21 16:58:22 UTC" in rendered
-    assert "🧰 **Mode:** full" in rendered
-    assert "⏱️ **Duration:** 28 min" in rendered
-    assert "📦 **Transfer size:** 52.06 GiB" in rendered
-    assert "🚀 **Speed:** 33.73 MiB/s" in rendered
-    assert "📊 **Result:** ✅ 3 of 3 VMs successful" in rendered
-    assert "▶️ **Started:** 2026-09-21 16:30:22 UTC" in rendered
-    assert "🏁 **Finished:** 2026-09-21 16:58:22 UTC" in rendered
-    assert "✅ **Successful VMs (3)**" in rendered
-    for value in (
-        "VM-01 | Admin",
-        "45.01 GiB",
-        "VM-06 | XO-02",
-        "3.42 GiB",
-        "VM-02 | XO-01",
-        "3.62 GiB",
-    ):
-        assert value in rendered
+    assert "### ✅ Backup Successful" in children[0]["components"][2]["content"]
+    assert (
+        "-# [NON-CRITICAL - 01] Administration"
+        in children[0]["components"][2]["content"]
+    )
+
+    detail_panel = next(
+        text for text in texts if text.startswith("**📋 Event details**")
+    )
+    assert f"{fence}text\n" in detail_panel
+    detail_lines = detail_panel.splitlines()
+    assert any(
+        "🧰 Mode: full" in line and "💾 Repository:" in line
+        for line in detail_lines
+    )
+    assert any(
+        "⏱ Duration: 28 min" in line and "▶ Started:" in line
+        for line in detail_lines
+    )
+    assert any(
+        "📦 Transfer size: 52.06 GiB" in line and "🏁 Finished:" in line
+        for line in detail_lines
+    )
+    assert any(
+        "🚀 Speed: 33.73 MiB/s" in line and "📊 Result:" in line
+        for line in detail_lines
+    )
+    assert "🧰 **Mode:**" not in rendered
+
+    vm_panel = next(text for text in texts if "SUCCESSFUL VMS (3)" in text)
+    assert vm_panel.startswith(f"{fence}text\n")
+    assert "✅ SUCCESSFUL VMS (3)" in vm_panel
+    assert any(
+        all(
+            value in line
+            for value in ("VM-01 | Admin", "VM-06 | XO-02", "VM-02 | XO-01")
+        )
+        for line in vm_panel.splitlines()
+    )
+    assert any(
+        all(
+            value in line
+            for value in ("45.01 GiB", "3.42 GiB", "3.62 GiB")
+        )
+        for line in vm_panel.splitlines()
+    )
     assert "Failed VM" not in rendered
     assert "Skipped VM" not in rendered
     assert f"Theriark - Nowlert v{VERSION}" in rendered
     assert "Xen Orchestra Notification" in rendered
 
 
-def test_xo_modern_card_matches_approved_failure_template():
+def test_xo_modern_card_matches_approved_failure_geometry():
     payload = DiscordOutput().source_formatters["xo"].format_components_v2(
         _approved_xo_notification("failure")
     )
     rendered = text_content(payload)
+    texts = _xo_text_components(payload)
+    fence = chr(96) * 3
 
     assert payload["components"][0]["accent_color"] == 0xED4245
-    assert (
-        "### 🚨 [CRITICAL - 02] Operation Critical • Backup Failure"
-        in rendered
+    header_status = child_components(payload)[0]["components"][2]["content"]
+    assert "### 🚨 Backup Failure" in header_status
+    assert "-# [CRITICAL - 02] Operation Critical" in header_status
+
+    vm_panel = next(text for text in texts if "FAILED VM (1)" in text)
+    assert vm_panel.startswith(f"{fence}text\n")
+    assert "✅ SUCCESSFUL VMS (2)" in vm_panel
+    assert "❌ FAILED VM (1)" in vm_panel
+    assert any(
+        "VM-04 | Docker" in line and "VM-14 | Windows Server" in line
+        for line in vm_panel.splitlines()
     )
-    assert "🚨 **Severity:** Failure" in rendered
-    assert "📊 **Result:** ✅ 2 of 3 VMs successful • ❌ 1 failed" in rendered
-    assert "✅ **Successful VMs (2)**" in rendered
-    assert "❌ **Failed VM (1)**" in rendered
-    for value in (
-        "VM-04 | Docker",
-        "18.33 GiB",
-        "VM-08 | Zabbix",
-        "7.23 GiB",
-        "VM-14 | Windows Server",
-        "23.66 GiB",
-        "34.25 MiB/s",
-        "Body Timeout Error",
-    ):
-        assert value in rendered
+    assert "18.33 GiB" in vm_panel
+    assert "23.66 GiB" in vm_panel
+    assert "Body Timeout Error" in vm_panel
+    assert "✅ **Successful VMs" not in rendered
+    assert "❌ **Failed VM" not in rendered
     assert "Skipped VM" not in rendered
 
 
-def test_xo_modern_card_matches_approved_skipped_template():
+def test_xo_modern_card_matches_approved_skipped_geometry():
     payload = DiscordOutput().source_formatters["xo"].format_components_v2(
         _approved_xo_notification("skipped")
     )
     rendered = text_content(payload)
+    texts = _xo_text_components(payload)
+    fence = chr(96) * 3
 
     assert payload["components"][0]["accent_color"] == 0x3498DB
-    assert (
-        "### ℹ️ [WEEKLY - 03] Archive Rotation • Backup Skipped"
-        in rendered
+    header_status = child_components(payload)[0]["components"][2]["content"]
+    assert "### ℹ️ Backup Skipped" in header_status
+    assert "-# [WEEKLY - 03] Archive Rotation" in header_status
+
+    vm_panel = next(text for text in texts if "SKIPPED VM (1)" in text)
+    assert vm_panel.startswith(f"{fence}text\n")
+    assert "✅ SUCCESSFUL VMS (2)" in vm_panel
+    assert "⚠ SKIPPED VM (1)" in vm_panel
+    assert any(
+        "VM-03 | Home Assistant" in line
+        and "VM-12 | Maintenance Window" in line
+        for line in vm_panel.splitlines()
     )
-    assert "ℹ️ **Severity:** Skipped" in rendered
+    assert "12.40 GiB" in vm_panel
+    assert "5.50 GiB" in vm_panel
     assert (
-        "📊 **Result:** ✅ 2 of 3 VMs successful • ⚠️ 1 skipped"
-        in rendered
+        "Backup policy excluded this VM during its maintenance window"
+        in vm_panel
     )
-    assert "✅ **Successful VMs (2)**" in rendered
-    assert "⚠️ **Skipped VM (1)**" in rendered
-    for value in (
-        "VM-03 | Home Assistant",
-        "12.40 GiB",
-        "VM-09 | Management",
-        "13.90 GiB",
-        "VM-12 | Maintenance Window",
-        "5.50 GiB",
-        "Backup policy excluded this VM during its maintenance window",
-    ):
-        assert value in rendered
+    assert "✅ **Successful VMs" not in rendered
+    assert "⚠️ **Skipped VM" not in rendered
     assert "Failed VM" not in rendered
 
 
