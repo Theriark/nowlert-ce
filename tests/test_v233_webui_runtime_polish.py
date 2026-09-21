@@ -19,7 +19,7 @@ def test_webui_service_serves_v233_runtime_assets():
     script = service.response("/ui/enhancements.js")
     assert script is not None and script.status == 200
     assert b"nowlert.active-view" in script.body
-    assert b"sourceAwareCardSampleEvent" in script.body
+    assert b"sourceAwareCardSampleEvent" not in script.body
     assert b"Check for updates" in script.body
     assert b"innerHTML" not in script.body
 
@@ -50,7 +50,7 @@ def test_v233_runtime_polish_keeps_reload_source_tests_and_clock_source_aware():
     assert "window.sessionStorage" in script
     assert "route.enabled && route.source === source" in script
     assert 'route.source !== "*"' in script
-    assert 'sourceTestSample(route ? route.source : "nowlert"' in script
+    assert 'sourceTestSample(route ? route.source : "nowlert"' not in script
     assert 'provider: "Supermicro BMC"' in script
     assert "parseCanonicalTime" in script
     assert "displayClockTime" in script

@@ -40,7 +40,7 @@ class PlatformOutputService:
         settings = dict(destination.settings or {})
         if destination.output_type == "discord":
             settings["components_v2"] = style == "modern"
-        elif destination.output_type == "webhook":
+        elif destination.output_type in {"teams", "webhook"}:
             settings["message_style"] = style
         else:
             return destination

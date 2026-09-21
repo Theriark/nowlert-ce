@@ -53,4 +53,7 @@ def test_webui_uses_nowlert_source_and_schema():
     assert 'GENERIC_SOURCE_ICON = "/ui/brand/nowlert-owl-v3.1.0.png"' in app
     assert 'source: "nowlert"' in app
     assert 'schema: "nowlert.event.v1"' in app
-    assert 'route.source : "nowlert"' in enhancements
+    assert 'provider: "Nowlert"' in app
+    assert 'component: "Destination test"' in app
+    assert 'route.source : "nowlert"' not in enhancements
+    assert "sourceAwareCardSampleEvent" not in enhancements
