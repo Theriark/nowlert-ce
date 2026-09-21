@@ -8,7 +8,6 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from models import Notification
-from version import VERSION
 
 
 class XenOrchestraDiscordImageRenderer:
@@ -26,6 +25,11 @@ class XenOrchestraDiscordImageRenderer:
     SUCCESS_ROW_HEIGHT = 122
     FOOTER_GAP = 26
     FOOTER_RESERVE = 88
+    FOOTER_TEXT = "Nowlert CE • Modern Card"
+    DETAIL_SPLIT_RATIO = 0.43
+    DETAIL_LABEL_OFFSET = 84
+    DETAIL_VALUE_OFFSET = 260
+    STATUS_BADGE_WIDTH = 420
 
     # Nowlert brand surfaces.
     PAGE_BG = (18, 24, 29)
@@ -47,6 +51,7 @@ class XenOrchestraDiscordImageRenderer:
 
     def __init__(self, icon_dir: Path | str = "/nowlert/assets/icons"):
         self.icon_dir = Path(icon_dir)
+        self.font_micro = self._font(False, 16)
         self.font_tiny = self._font(False, 18)
         self.font_small = self._font(False, 21)
         self.font_body = self._font(False, 24)
@@ -122,34 +127,39 @@ class XenOrchestraDiscordImageRenderer:
 
         # Header.
         header_y = 75
-        self._draw_server_rack(draw, x0, header_y + 2)
+        xo_icon_size = 86
+        self._draw_xo_art(
+            image,
+            x0,
+            header_y + 1,
+            size=xo_icon_size,
+        )
+        title_x = x0 + xo_icon_size + 18
         draw.text(
-            (x0 + 105, header_y + 4),
+            (title_x, header_y + 4),
             "Xen Orchestra",
             font=self.font_heading,
             fill=self.TEXT,
         )
         repository = self._clean(notification.repository or "Backup")
-        self._fit_text(
+        self._fit_text_adaptive(
             draw,
             repository,
-            x0 + 105,
+            title_x,
             header_y + 58,
-            540,
-            self.font_body,
+            610,
+            (self.font_body, self.font_small, self.font_tiny),
             self.MUTED,
         )
 
-        self._draw_xo_art(image, right - 100, header_y + 4)
-
-        badge_w = 466
-        badge_h = 108
-        badge_x = right - badge_w - 154
+        badge_w = self.STATUS_BADGE_WIDTH
+        badge_h = 82
+        badge_x = right - badge_w
         badge = (
             badge_x,
-            header_y - 4,
-            badge_x + badge_w,
-            header_y - 4 + badge_h,
+            header_y + 3,
+            right,
+            header_y + 3 + badge_h,
         )
         self._glow_box(image, badge, accent, 17, alpha=86)
         draw = ImageDraw.Draw(image, "RGBA")
@@ -165,30 +175,24 @@ class XenOrchestraDiscordImageRenderer:
             draw,
             badge_x + 22,
             header_y + 20,
-            52,
+            48,
             status,
             accent,
         )
-        draw.text(
-            (badge_x + 91, header_y + 16),
+        self._fit_text_adaptive(
+            draw,
             status_label,
-            font=self.font_bold,
-            fill=accent if status != "success" else (103, 239, 174),
+            badge_x + 88,
+            header_y + 23,
+            badge_w - 112,
+            (self.font_bold, self.font_label, self.font_small),
+            accent if status != "success" else (103, 239, 174),
         )
         job = self._clean(
             notification.job_name
             or notification.title
             or notification.subject
             or "Xen Orchestra backup"
-        )
-        self._fit_text(
-            draw,
-            job,
-            badge_x + 91,
-            header_y + 60,
-            badge_w - 112,
-            self.font_small,
-            self.TEXT,
         )
 
         # Report title bar.
@@ -280,9 +284,15 @@ class XenOrchestraDiscordImageRenderer:
         detail_y = 400
         detail_h = 262
         gap = 22
-        half = (right - x0 - gap) // 2
-        left_box = (x0, detail_y, x0 + half, detail_y + detail_h)
-        right_box = (x0 + half + gap, detail_y, right, detail_y + detail_h)
+        detail_width = right - x0 - gap
+        left_width = int(detail_width * self.DETAIL_SPLIT_RATIO)
+        left_box = (x0, detail_y, x0 + left_width, detail_y + detail_h)
+        right_box = (
+            x0 + left_width + gap,
+            detail_y,
+            right,
+            detail_y + detail_h,
+        )
         for box in (left_box, right_box):
             self._rounded(
                 draw,
@@ -356,33 +366,27 @@ class XenOrchestraDiscordImageRenderer:
                 notification,
             )
 
-        # Footer.
+        # Footer: Nowlert product identity only; the integration is already
+        # identified in the card header and does not need to be repeated here.
         draw.line(
             (x0, footer_y - 8, right, footer_y - 8),
             fill=(81, 89, 95, 150),
             width=1,
         )
+        icon_size = 48
+        icon_x = right - icon_size
+        footer_w = draw.textlength(self.FOOTER_TEXT, font=self.font_small)
         draw.text(
-            (x0 + 22, footer_y + 12),
-            f"Nowlert v{VERSION}",
+            (icon_x - footer_w - 18, footer_y + 12),
+            self.FOOTER_TEXT,
             font=self.font_small,
             fill=self.MUTED,
         )
-        footer = "Xen Orchestra Notification"
-        footer_w = draw.textlength(footer, font=self.font_small)
-        owl_size = 48
-        owl_x = right - owl_size
-        draw.text(
-            (owl_x - footer_w - 20, footer_y + 12),
-            footer,
-            font=self.font_small,
-            fill=self.MUTED,
-        )
-        self._draw_nowlert_owl(
+        self._draw_nowlert_icon(
             image,
-            owl_x,
+            icon_x,
             footer_y - 1,
-            owl_size,
+            icon_size,
         )
 
         output = BytesIO()
@@ -470,52 +474,61 @@ class XenOrchestraDiscordImageRenderer:
     def _detail_rows(self, draw, box, rows, *, result_status):
         x1, y1, x2, _ = box
         y = y1 + 28
-        label_x = x1 + 96
-        value_x = x1 + 290
-        for index, (icon, label, value) in enumerate(rows):
+        label_x = x1 + self.DETAIL_LABEL_OFFSET
+        value_x = x1 + self.DETAIL_VALUE_OFFSET
+        for _index, (icon, label, value) in enumerate(rows):
             if value is None or str(value).strip() == "":
                 y += 55
                 continue
-            self._draw_field_icon(draw, x1 + 30, y - 3, 40, icon)
+            self._draw_field_icon(draw, x1 + 24, y - 3, 40, icon)
             draw.text(
                 (label_x, y + 1),
                 label,
                 font=self.font_label,
                 fill=self.LABEL,
             )
-            available = x2 - value_x - 26
+            available = x2 - value_x - 22
             if label == "Result" and result_status:
                 result_color = {
                     "success": self.SUCCESS,
                     "failure": self.FAILURE,
                     "skipped": self.SKIPPED,
                 }.get(result_status, self.SUCCESS)
+                status_size = 34
                 self._draw_icon_badge(
                     draw,
                     value_x,
-                    y - 5,
-                    40,
+                    y - 2,
+                    status_size,
                     "status",
                     result_color,
                     status=result_status,
                 )
-                self._fit_text(
+                self._fit_text_adaptive(
                     draw,
                     self._clean(value),
-                    value_x + 55,
+                    value_x + status_size + 10,
                     y + 3,
-                    available - 55,
-                    self.font_small,
+                    available - status_size - 10,
+                    (
+                        self.font_small,
+                        self.font_tiny,
+                        self.font_micro,
+                    ),
                     self.TEXT,
                 )
             else:
-                self._fit_text(
+                self._fit_text_adaptive(
                     draw,
                     self._clean(value),
                     value_x,
                     y + 3,
                     available,
-                    self.font_small,
+                    (
+                        self.font_small,
+                        self.font_tiny,
+                        self.font_micro,
+                    ),
                     self.TEXT,
                 )
             y += 55
@@ -792,27 +805,45 @@ class XenOrchestraDiscordImageRenderer:
                 fill=(*self.BRAND_GOLD, 255),
             )
 
-    def _draw_xo_art(self, image, x, y):
+    def _draw_xo_art(self, image, x, y, *, size=92):
         path = self.icon_dir / "discord" / "xen-orchestra.png"
         if path.is_file():
             try:
                 icon = Image.open(path).convert("RGBA")
-                icon.thumbnail((92, 92), Image.Resampling.LANCZOS)
-                image.alpha_composite(icon, (int(x), int(y)))
+                icon.thumbnail((size, size), Image.Resampling.LANCZOS)
+                px = int(x + (size - icon.width) / 2)
+                py = int(y + (size - icon.height) / 2)
+                image.alpha_composite(icon, (px, py))
                 return
             except OSError:
                 pass
         draw = ImageDraw.Draw(image, "RGBA")
+        scale = size / 92
         draw.polygon(
-            [(x + 44, y), (x + 70, y + 31), (x + 44, y + 62), (x + 18, y + 31)],
+            [
+                (x + 44 * scale, y),
+                (x + 70 * scale, y + 31 * scale),
+                (x + 44 * scale, y + 62 * scale),
+                (x + 18 * scale, y + 31 * scale),
+            ],
             fill=(105, 84, 255, 245),
         )
         draw.rectangle(
-            (x, y + 24, x + 26, y + 38),
+            (
+                x,
+                y + 24 * scale,
+                x + 26 * scale,
+                y + 38 * scale,
+            ),
             fill=(248, 219, 76, 245),
         )
         draw.rectangle(
-            (x + 62, y + 24, x + 88, y + 38),
+            (
+                x + 62 * scale,
+                y + 24 * scale,
+                x + 88 * scale,
+                y + 38 * scale,
+            ),
             fill=(248, 219, 76, 245),
         )
 
@@ -1168,8 +1199,8 @@ class XenOrchestraDiscordImageRenderer:
             fill=(*fg, 255),
         )
 
-    def _draw_nowlert_owl(self, image, x, y, size):
-        """Draw the packaged, approved Nowlert owl in the footer."""
+    def _draw_nowlert_icon(self, image, x, y, size):
+        """Draw the packaged Nowlert product icon in the footer."""
 
         path = self.icon_dir / "nowlert.png"
         if path.is_file():
@@ -1305,6 +1336,35 @@ class XenOrchestraDiscordImageRenderer:
             outline=outline,
             width=width,
         )
+
+    def _fit_text_adaptive(
+        self,
+        draw,
+        value,
+        x,
+        y,
+        width,
+        fonts,
+        fill,
+    ):
+        """Prefer a smaller readable font before truncating operational data."""
+
+        text = self._clean(value)
+        selected = fonts[-1]
+        for font in fonts:
+            if draw.textlength(text, font=font) <= width:
+                selected = font
+                break
+        self._fit_text(
+            draw,
+            text,
+            x,
+            y,
+            width,
+            selected,
+            fill,
+        )
+        return selected
 
     def _fit_text(self, draw, value, x, y, width, font, fill):
         text = self._clean(value)
