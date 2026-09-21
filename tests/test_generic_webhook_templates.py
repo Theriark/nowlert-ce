@@ -1,6 +1,7 @@
 """Generic webhook backend-owned presentation and transport contract."""
 
 import socket
+from pathlib import Path
 
 import pytest
 
@@ -11,6 +12,7 @@ from storage.delivery import DeliveryResult
 from storage.destinations import Destination
 
 
+ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_ADDRESS = "93.184.216.34"
 
 
@@ -64,6 +66,26 @@ def notification():
         body="The scheduled backup completed successfully.",
         metadata={"event_id": "xo-42", "severity": "information"},
     )
+
+
+def test_webhook_editor_exposes_message_style_instead_of_legacy_http_controls():
+    script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
+    start = script.index("    webhook: {")
+    end = script.index("    mqtt: {", start)
+    block = script[start:end]
+
+    assert 'key: "message_style"' in block
+    assert '["modern", "Modern Card"]' in block
+    assert '["classic", "Classic Card"]' in block
+    for legacy_key in (
+        "method",
+        "timeout_seconds",
+        "headers",
+        "body_template",
+        "sign_hmac",
+        "allow_private_network",
+    ):
+        assert f'key: "{legacy_key}"' not in block
 
 
 def test_webhook_settings_expose_only_message_style_for_new_destinations():

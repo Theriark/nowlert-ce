@@ -384,6 +384,20 @@ def test_teams_classic_uses_classic_renderer_for_every_supported_source(source):
     )
 
 
+def test_teams_classic_redfish_fallback_uses_nowlert_icon():
+    item = notification_for_source("redfish")
+    preview = TeamsPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("teams", {"message_style": "classic"}),
+        item,
+    )
+
+    encoded = json.dumps(preview.payload)
+    assert "/nowlert.png" in encoded
+    assert "/redfish.png" not in encoded
+
+
 def test_teams_classic_non_xo_uses_approved_plain_text_style():
     preview = TeamsPlatformAdapter(
         resolver=public_resolver
