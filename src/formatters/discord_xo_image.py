@@ -22,8 +22,14 @@ class XenOrchestraDiscordImageRenderer:
     VM_ENTRY_HEIGHT = 122
     VM_ENTRY_REASON_HEIGHT = 166
     SUCCESS_ROW_HEIGHT = 122
+    VM_ENTRY_HEIGHT_LARGE = 136
+    VM_ENTRY_REASON_HEIGHT_LARGE = 184
+    SUCCESS_ROW_HEIGHT_LARGE = 136
+    VM_ENTRY_HEIGHT_COMPACT = 108
+    VM_ENTRY_REASON_HEIGHT_COMPACT = 150
+    SUCCESS_ROW_HEIGHT_COMPACT = 108
     FOOTER_GAP = 26
-    FOOTER_RESERVE = 112
+    FOOTER_RESERVE = 118
     FOOTER_TEXT = "Nowlert CE • Modern Card"
     DETAIL_SPLIT_RATIO = 0.43
     DETAIL_LABEL_OFFSET = 84
@@ -41,6 +47,7 @@ class XenOrchestraDiscordImageRenderer:
     BRAND_GOLD = (244, 193, 49)
     TEXT = (246, 241, 232)
     MUTED = (183, 194, 202)
+    HEADER_MUTED = (207, 212, 214)
     LABEL = (166, 196, 224)
 
     SUCCESS = (22, 214, 115)
@@ -54,9 +61,16 @@ class XenOrchestraDiscordImageRenderer:
         self.font_micro = self._font(False, 16)
         self.font_tiny = self._font(False, 18)
         self.font_small = self._font(False, 21)
+        self.font_detail = self._font(False, 23)
         self.font_body = self._font(False, 24)
         self.font_label = self._font(True, 24)
+        self.font_vm_compact = self._font(True, 22)
         self.font_vm = self._font(True, 25)
+        self.font_vm_large = self._font(True, 28)
+        self.font_vm_meta_compact = self._font(False, 18)
+        self.font_vm_meta_large = self._font(False, 23)
+        self.font_reason_compact = self._font(False, 16)
+        self.font_reason_large = self._font(False, 19)
         self.font_bold = self._font(True, 29)
         self.font_title = self._font(True, 34)
         self.font_heading = self._font(True, 42)
@@ -130,11 +144,11 @@ class XenOrchestraDiscordImageRenderer:
 
         # Header.
         header_y = 75
-        xo_icon_size = 86
+        xo_icon_size = 94
         self._draw_xo_art(
             image,
             x0,
-            header_y + 1,
+            header_y - 3,
             size=xo_icon_size,
         )
         title_x = x0 + xo_icon_size + 18
@@ -151,8 +165,8 @@ class XenOrchestraDiscordImageRenderer:
             title_x,
             header_y + 58,
             610,
-            (self.font_body, self.font_small, self.font_tiny),
-            self.MUTED,
+            (self.font_body, self.font_detail, self.font_small),
+            self.HEADER_MUTED,
         )
 
         badge_w = self.STATUS_BADGE_WIDTH
@@ -265,13 +279,17 @@ class XenOrchestraDiscordImageRenderer:
                 fill=self.TEXT,
             )
             label_w = draw.textlength(f"{label}:", font=self.font_label)
-            self._fit_text(
+            self._fit_text_adaptive(
                 draw,
                 value,
                 label_x + label_w + 10,
-                metric_y + 22,
+                metric_y + 21,
                 width - 78 - label_w,
-                self.font_small,
+                (
+                    self.font_detail,
+                    self.font_small,
+                    self.font_tiny,
+                ),
                 self.TEXT,
             )
             if index < 2:
@@ -376,9 +394,9 @@ class XenOrchestraDiscordImageRenderer:
             fill=(81, 89, 95, 150),
             width=1,
         )
-        icon_size = 36
+        icon_size = 40
         icon_x = x0 + 18
-        icon_y = footer_y + 8
+        icon_y = footer_y + 4
         self._draw_nowlert_icon(
             image,
             icon_x,
@@ -386,7 +404,7 @@ class XenOrchestraDiscordImageRenderer:
             icon_size,
         )
         draw.text(
-            (icon_x + icon_size + 12, footer_y + 13),
+            (icon_x + icon_size + 12, footer_y + 10),
             self.FOOTER_TEXT,
             font=self.font_small,
             fill=self.MUTED,
@@ -410,17 +428,22 @@ class XenOrchestraDiscordImageRenderer:
     ) -> int:
         """Return the minimum VM panel height required by its real content."""
 
+        total_vm_count = len(successful) + len(failed) + len(skipped)
+        style = self._vm_style(total_vm_count)
+
         if failed or skipped:
             other = failed or skipped
             successful_height = self._vm_column_height(
                 notification,
                 successful,
                 include_reason=False,
+                vm_count=total_vm_count,
             )
             other_height = self._vm_column_height(
                 notification,
                 other,
                 include_reason=True,
+                vm_count=total_vm_count,
             )
             content_height = max(successful_height, other_height)
             return max(
@@ -437,7 +460,7 @@ class XenOrchestraDiscordImageRenderer:
             250,
             (
                 self.VM_HEADER_HEIGHT
-                + rows * self.SUCCESS_ROW_HEIGHT
+                + rows * style["row_height"]
                 + self.VM_PANEL_BOTTOM_PADDING
             ),
         )
@@ -448,6 +471,7 @@ class XenOrchestraDiscordImageRenderer:
         names,
         *,
         include_reason: bool,
+        vm_count: int,
     ) -> int:
         """Measure a vertical VM column before allocating the image canvas."""
 
@@ -458,6 +482,7 @@ class XenOrchestraDiscordImageRenderer:
                 notification,
                 name,
                 include_reason=include_reason,
+                vm_count=vm_count,
             )
             for name in names
         )
@@ -468,11 +493,64 @@ class XenOrchestraDiscordImageRenderer:
         name,
         *,
         include_reason: bool,
+        vm_count: int,
     ) -> int:
         detail = (notification.vm_details or {}).get(name, {}) or {}
+        style = self._vm_style(vm_count)
         if include_reason and self._clean(detail.get("error") or ""):
-            return self.VM_ENTRY_REASON_HEIGHT
-        return self.VM_ENTRY_HEIGHT
+            return style["reason_height"]
+        return style["entry_height"]
+
+    def _vm_style(self, vm_count: int) -> dict:
+        """Scale VM typography for normal, busy, and unusually large jobs."""
+
+        if vm_count <= 6:
+            return {
+                "name_font": self.font_vm_large,
+                "meta_font": self.font_vm_meta_large,
+                "reason_font": self.font_reason_large,
+                "entry_height": self.VM_ENTRY_HEIGHT_LARGE,
+                "reason_height": self.VM_ENTRY_REASON_HEIGHT_LARGE,
+                "row_height": self.SUCCESS_ROW_HEIGHT_LARGE,
+                "main_icon": 44,
+                "meta_icon": 31,
+                "name_offset": 60,
+                "meta_offset": 102,
+                "size_y": 47,
+                "speed_y": 82,
+                "reason_y": 118,
+            }
+        if vm_count <= 12:
+            return {
+                "name_font": self.font_vm,
+                "meta_font": self.font_small,
+                "reason_font": self.font_tiny,
+                "entry_height": self.VM_ENTRY_HEIGHT,
+                "reason_height": self.VM_ENTRY_REASON_HEIGHT,
+                "row_height": self.SUCCESS_ROW_HEIGHT,
+                "main_icon": 42,
+                "meta_icon": 30,
+                "name_offset": 58,
+                "meta_offset": 98,
+                "size_y": 43,
+                "speed_y": 76,
+                "reason_y": 109,
+            }
+        return {
+            "name_font": self.font_vm_compact,
+            "meta_font": self.font_vm_meta_compact,
+            "reason_font": self.font_reason_compact,
+            "entry_height": self.VM_ENTRY_HEIGHT_COMPACT,
+            "reason_height": self.VM_ENTRY_REASON_HEIGHT_COMPACT,
+            "row_height": self.SUCCESS_ROW_HEIGHT_COMPACT,
+            "main_icon": 38,
+            "meta_icon": 26,
+            "name_offset": 52,
+            "meta_offset": 88,
+            "size_y": 37,
+            "speed_y": 65,
+            "reason_y": 94,
+        }
 
     def _detail_rows(self, draw, box, rows, *, result_status):
         x1, y1, x2, _ = box
@@ -507,30 +585,25 @@ class XenOrchestraDiscordImageRenderer:
                     result_color,
                     status=result_status,
                 )
-                self._fit_text_adaptive(
+                self._draw_result_value(
                     draw,
                     self._clean(value),
                     value_x + status_size + 10,
-                    y + 3,
+                    y + 2,
                     available - status_size - 10,
-                    (
-                        self.font_small,
-                        self.font_tiny,
-                        self.font_micro,
-                    ),
-                    self.TEXT,
+                    result_color,
                 )
             else:
                 self._fit_text_adaptive(
                     draw,
                     self._clean(value),
                     value_x,
-                    y + 3,
+                    y + 2,
                     available,
                     (
+                        self.font_detail,
                         self.font_small,
                         self.font_tiny,
-                        self.font_micro,
                     ),
                     self.TEXT,
                 )
@@ -565,14 +638,17 @@ class XenOrchestraDiscordImageRenderer:
             return
 
         columns = 3
-        col_w = (x2 - x1 - 50) // columns
+        total_vm_count = len(names)
+        style = self._vm_style(total_vm_count)
+        horizontal_padding = 34
+        col_w = (x2 - x1 - horizontal_padding * 2) // columns
         for index, name in enumerate(names):
             row = index // columns
             col = index % columns
-            cx = x1 + 26 + col * col_w
-            cy = y1 + 93 + row * self.SUCCESS_ROW_HEIGHT
+            cx = x1 + horizontal_padding + col * col_w
+            cy = y1 + 93 + row * style["row_height"]
             if col:
-                divider_x = cx - 16
+                divider_x = cx - 17
                 draw.line(
                     (divider_x, cy - 4, divider_x, cy + 92),
                     fill=(42, 183, 132, 150),
@@ -582,11 +658,12 @@ class XenOrchestraDiscordImageRenderer:
                 draw,
                 cx,
                 cy,
-                col_w - 30,
+                col_w - 34,
                 name,
                 notification,
                 self.SUCCESS,
                 include_reason=False,
+                vm_count=total_vm_count,
             )
 
     def _paired_vm_panels(
@@ -667,41 +744,47 @@ class XenOrchestraDiscordImageRenderer:
             ),
         )
 
+        total_vm_count = len(successful) + len(other)
+        entry_padding = 34
         success_y = y1 + self.VM_HEADER_HEIGHT
         for name in successful:
             self._vm_entry(
                 draw,
-                left[0] + 28,
+                left[0] + entry_padding,
                 success_y,
-                left[2] - left[0] - 56,
+                left[2] - left[0] - entry_padding * 2,
                 name,
                 notification,
                 self.SUCCESS,
                 include_reason=False,
+                vm_count=total_vm_count,
             )
             success_y += self._vm_entry_height(
                 notification,
                 name,
                 include_reason=False,
+                vm_count=total_vm_count,
             )
 
         other_y = y1 + self.VM_HEADER_HEIGHT
         for name in other:
             self._vm_entry(
                 draw,
-                right[0] + 28,
+                right[0] + entry_padding,
                 other_y,
-                right[2] - right[0] - 56,
+                right[2] - right[0] - entry_padding * 2,
                 name,
                 notification,
                 other_color,
                 include_reason=True,
                 reason_status=other_status,
+                vm_count=total_vm_count,
             )
             other_y += self._vm_entry_height(
                 notification,
                 name,
                 include_reason=True,
+                vm_count=total_vm_count,
             )
 
     def _vm_entry(
@@ -715,42 +798,61 @@ class XenOrchestraDiscordImageRenderer:
         color,
         *,
         include_reason,
+        vm_count,
         reason_status=None,
     ):
         detail = (notification.vm_details or {}).get(name, {}) or {}
-        self._draw_field_icon(draw, x, y - 2, 42, "cube")
+        style = self._vm_style(vm_count)
+        main_icon = style["main_icon"]
+        meta_icon = style["meta_icon"]
+        name_offset = style["name_offset"]
+        meta_offset = style["meta_offset"]
+
+        self._draw_field_icon(draw, x, y - 2, main_icon, "cube")
         self._fit_text(
             draw,
             self._clean(name),
-            x + 58,
+            x + name_offset,
             y,
-            width - 58,
-            self.font_vm,
+            width - name_offset,
+            style["name_font"],
             self.TEXT,
         )
 
         size = self._clean(detail.get("size") or "")
         speed = self._clean(detail.get("speed") or "")
         if size:
-            self._draw_field_icon(draw, x + 58, y + 43, 30, "disk")
+            self._draw_field_icon(
+                draw,
+                x + name_offset,
+                y + style["size_y"],
+                meta_icon,
+                "disk",
+            )
             self._fit_text(
                 draw,
                 size,
-                x + 98,
-                y + 44,
-                width - 98,
-                self.font_small,
+                x + meta_offset,
+                y + style["size_y"] + 1,
+                width - meta_offset,
+                style["meta_font"],
                 self.MUTED,
             )
         if speed:
-            self._draw_field_icon(draw, x + 58, y + 76, 30, "rocket")
+            self._draw_field_icon(
+                draw,
+                x + name_offset,
+                y + style["speed_y"],
+                meta_icon,
+                "rocket",
+            )
             self._fit_text(
                 draw,
                 speed,
-                x + 98,
-                y + 77,
-                width - 98,
-                self.font_small,
+                x + meta_offset,
+                y + style["speed_y"] + 1,
+                width - meta_offset,
+                style["meta_font"],
                 self.MUTED,
             )
 
@@ -762,21 +864,21 @@ class XenOrchestraDiscordImageRenderer:
             )
             self._draw_field_icon(
                 draw,
-                x + 58,
-                y + 109,
-                30,
+                x + name_offset,
+                y + style["reason_y"],
+                meta_icon,
                 "alert" if reason_status == "failure" else "info",
             )
             self._wrap_text(
                 draw,
                 self._clean(detail["error"]),
-                x + 98,
-                y + 108,
-                width - 98,
-                self.font_tiny,
+                x + meta_offset,
+                y + style["reason_y"],
+                width - meta_offset,
+                style["reason_font"],
                 reason_color,
                 max_lines=2,
-                line_gap=3,
+                line_gap=4,
             )
 
     def _draw_server_rack(self, draw, x, y):
@@ -1352,6 +1454,73 @@ class XenOrchestraDiscordImageRenderer:
             x1 + self.DETAIL_VALUE_OFFSET,
             ceil(label_end + self.DETAIL_LABEL_VALUE_GAP),
         )
+
+    def _draw_result_value(
+        self,
+        draw,
+        value,
+        x,
+        y,
+        width,
+        accent,
+    ):
+        """Draw the result summary with the exceptional outcome accented."""
+
+        segments = self._result_segments(value, accent)
+        plain = "".join(text for text, _color in segments)
+        font = self._select_font(
+            draw,
+            plain,
+            width,
+            (
+                self.font_detail,
+                self.font_small,
+                self.font_tiny,
+            ),
+        )
+        if draw.textlength(plain, font=font) > width:
+            self._fit_text(
+                draw,
+                plain,
+                x,
+                y,
+                width,
+                font,
+                self.TEXT,
+            )
+            return
+
+        cursor = x
+        for text_value, color in segments:
+            draw.text(
+                (cursor, y),
+                text_value,
+                font=font,
+                fill=color,
+            )
+            cursor += draw.textlength(text_value, font=font)
+
+    def _result_segments(self, value, accent):
+        """Split result text so failed/skipped counts carry lifecycle colour."""
+
+        text = self._clean(value)
+        if " | " not in text:
+            return [(text, self.TEXT)]
+        primary, exceptional = text.split(" | ", 1)
+        return [
+            (primary, self.TEXT),
+            (" | ", self.MUTED),
+            (exceptional, accent),
+        ]
+
+    @staticmethod
+    def _select_font(draw, text, width, fonts):
+        selected = fonts[-1]
+        for font in fonts:
+            if draw.textlength(text, font=font) <= width:
+                return font
+            selected = font
+        return selected
 
     def _fit_text_adaptive(
         self,
