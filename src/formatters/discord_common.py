@@ -164,15 +164,20 @@ class DiscordCardFormatter(BaseFormatter):
     ) -> dict[str, Any]:
         """Render one responsive Discord Components V2 card.
 
-        This is intentionally opt-in while the layout is validated against a
-        real webhook on desktop and mobile. Legacy embed formatters continue
-        to use :meth:`_render_discord_card`.
+        Xen Orchestra keeps the same shared Components V2 shell as the other
+        integrations, but uses the approved source-specific backup geometry.
         """
 
+        is_xo = data.source == "xo" and data.notification is not None
         status_icon, color, default_state = self._discord_status(
             data.status,
             data.severity,
         )
+        if is_xo:
+            status_icon, color, default_state = self._discord_xo_status(
+                data.notification
+            )
+
         state = self._label(data.state) or default_state
         severity = self._label(data.severity) or default_state
         category = self._label(data.category) or "Event"
@@ -185,13 +190,45 @@ class DiscordCardFormatter(BaseFormatter):
         message = self._truncate(data.message or event, 1000)
         event_time = self._format_datetime(data.event_time)
 
-        title_text = (
-            f"### {data.device_icon} {status_icon} {device} • {event}"
-        )
-        context_text = (
-            f"-# {data.integration} • {status_icon} **{state}** • "
-            f"{data.source_area_icon} {source_area}"
-        )
+        if is_xo:
+            notification = data.notification
+            source_area = self._truncate(
+                str(notification.repository or data.source_area or "Backup").strip(),
+                280,
+            )
+            device = self._truncate(
+                notification.job_name
+                or notification.title
+                or notification.subject
+                or data.device
+                or "Xen Orchestra backup",
+                180,
+            )
+            event = self._truncate(data.event or default_state, 180)
+            message = self._truncate(
+                notification.subject
+                or notification.body
+                or data.message
+                or f"Backup report for {device}",
+                1000,
+            )
+            event_time = self._discord_xo_time(
+                notification.end_time or notification.start_time
+            )
+            title_text = "### 🗄️ Xen Orchestra"
+            context_text = (
+                f"-# {source_area}\n"
+                f"### {status_icon} {device} • {event}"
+            )
+        else:
+            title_text = (
+                f"### {data.device_icon} {status_icon} {device} • {event}"
+            )
+            context_text = (
+                f"-# {data.integration} • {status_icon} **{state}** • "
+                f"{data.source_area_icon} {source_area}"
+            )
+
         icon_url = self._discord_product_icon_url(data.source)
         if icon_url:
             header = {
@@ -230,20 +267,43 @@ class DiscordCardFormatter(BaseFormatter):
             self._discord_v2_text("  •  ".join(metrics)),
         ]
 
-        details = self._discord_v2_details(data.details)
+        if is_xo:
+            details = self._discord_v2_xo_details(
+                data.notification,
+                data.details,
+            )
+        else:
+            generic_details = self._discord_v2_details(data.details)
+            details = (
+                f"**📋 Event details**\n{generic_details}"
+                if generic_details
+                else ""
+            )
+
         if details:
             children.extend((
                 self._discord_v2_separator(),
-                self._discord_v2_text(
-                    f"**📋 Event details**\n{details}",
-                ),
+                self._discord_v2_text(details),
             ))
+
+        if is_xo:
+            children.extend(
+                self._discord_v2_text(section)
+                for section in self._discord_v2_xo_vm_sections(
+                    data.notification
+                )
+            )
+
+        footer = f"-# Theriark • Nowlert v{VERSION}"
+        if is_xo:
+            footer = (
+                f"-# Theriark - Nowlert v{VERSION}  ·  "
+                "Xen Orchestra Notification"
+            )
 
         children.extend((
             self._discord_v2_separator(),
-            self._discord_v2_text(
-                f"-# Theriark • Nowlert v{VERSION}",
-            ),
+            self._discord_v2_text(footer),
         ))
 
         return {
@@ -256,6 +316,141 @@ class DiscordCardFormatter(BaseFormatter):
                 }
             ],
         }
+
+    @staticmethod
+    def _discord_xo_status(notification) -> tuple[str, int, str]:
+        """Return the approved success/failure/skipped XO lifecycle."""
+
+        value = str(getattr(notification, "status", "") or "").strip().casefold()
+        failed = int(getattr(notification, "vm_failed", 0) or 0)
+        skipped = int(getattr(notification, "vm_skipped", 0) or 0)
+
+        if value in {"failure", "failed", "error", "critical"} or failed:
+            return "🚨", 0xED4245, "Failure"
+        if value in {"skipped", "warning"} or skipped:
+            return "ℹ️", 0x3498DB, "Skipped"
+        return "✅", 0x57F287, "Success"
+
+    def _discord_xo_time(self, value: Any) -> str:
+        """Keep XO's source UTC timestamp presentation used by the approved card."""
+
+        if not self._meaningful_fact(value):
+            return ""
+        return self._truncate(str(value).strip(), 120)
+
+    def _discord_v2_xo_details(
+        self,
+        notification,
+        details: tuple[DiscordFact, ...],
+    ) -> str:
+        """Render the approved XO Event details block from existing card data."""
+
+        facts = {
+            str(fact.label): fact.value
+            for fact in details
+            if self._meaningful_fact(fact.value)
+        }
+        rows = [
+            ("🧰", "Mode", getattr(notification, "mode", "")),
+            ("⏱️", "Duration", facts.get("Duration", "")),
+            ("📦", "Transfer size", getattr(notification, "transfer_size", "")),
+            ("💾", "Repository", getattr(notification, "repository", "")),
+            ("🚀", "Speed", getattr(notification, "transfer_speed", "")),
+            ("📊", "Result", facts.get("Result", "")),
+            (
+                "▶️",
+                "Started",
+                self._discord_xo_time(getattr(notification, "start_time", "")),
+            ),
+            (
+                "🏁",
+                "Finished",
+                self._discord_xo_time(getattr(notification, "end_time", "")),
+            ),
+            ("🆔", "Run ID", facts.get("Run ID", "")),
+            ("🆔", "Job ID", facts.get("Job ID", "")),
+        ]
+
+        lines = ["**📋 Event details**"]
+        for icon, label, value in rows:
+            if not self._meaningful_fact(value):
+                continue
+            lines.append(
+                f"{icon} **{label}:** {self._truncate(value, 700)}"
+            )
+        return self._truncate("\n".join(lines), 1800)
+
+    def _discord_v2_xo_vm_sections(self, notification) -> list[str]:
+        """Render the approved XO VM outcome groups without changing source data."""
+
+        sections = []
+        groups = (
+            (
+                getattr(notification, "successful_vms", []),
+                "✅",
+                "Successful VM",
+                "Successful VMs",
+                False,
+            ),
+            (
+                getattr(notification, "failed_vms", []),
+                "❌",
+                "Failed VM",
+                "Failed VMs",
+                True,
+            ),
+            (
+                getattr(notification, "skipped_vms", []),
+                "⚠️",
+                "Skipped VM",
+                "Skipped VMs",
+                True,
+            ),
+        )
+        vm_details = getattr(notification, "vm_details", {}) or {}
+
+        for values, icon, singular, plural, include_reason in groups:
+            if not isinstance(values, list) or not values:
+                continue
+            names = [
+                str(value or "").strip()
+                for value in values
+                if str(value or "").strip()
+            ]
+            if not names:
+                continue
+
+            label = singular if len(names) == 1 else plural
+            lines = [f"{icon} **{label} ({len(names)})**"]
+            shown = names[:10]
+            for name in shown:
+                detail = vm_details.get(name, {})
+                if not isinstance(detail, dict):
+                    detail = {}
+                lines.append(f"{icon} **{self._truncate(name, 180)}**")
+                facts = []
+                if self._meaningful_fact(detail.get("size")):
+                    facts.append(
+                        f"📦 {self._truncate(detail.get('size'), 80)}"
+                    )
+                if self._meaningful_fact(detail.get("speed")):
+                    facts.append(
+                        f"🚀 {self._truncate(detail.get('speed'), 80)}"
+                    )
+                if facts:
+                    lines.append("-# " + " • ".join(facts))
+                if include_reason and self._meaningful_fact(detail.get("error")):
+                    lines.append(
+                        "-# 🚨 "
+                        + self._truncate(detail.get("error"), 420)
+                    )
+
+            remaining = len(names) - len(shown)
+            if remaining:
+                lines.append(f"-# … and {remaining} more")
+            sections.append(self._truncate("\n".join(lines), 1800))
+
+        return sections
 
     def _discord_v2_details(
         self,
