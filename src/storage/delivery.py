@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import threading
 import time
 import uuid
+
+from collections import deque
 
 from dataclasses import dataclass
 from typing import Callable
@@ -71,15 +74,163 @@ class DeliverySummary:
         return self.delivered > 0 and self.failed == 0
 
 
+DEFAULT_HISTORY_BATCH_SIZE = 32
+DEFAULT_HISTORY_BATCH_WAIT_SECONDS = 0.001
+
+_HISTORY_BATCHER_ATTRIBUTE = "_nowlert_delivery_history_batcher"
+_HISTORY_BATCHER_CREATION_LOCK = threading.Lock()
+
+
+@dataclass
+class _PendingHistoryWrite:
+    values: tuple[object, ...]
+    completed: bool = False
+    writer: bool = False
+    error: Exception | None = None
+
+
+class _DeliveryHistoryBatcher:
+    """Coalesce concurrent history inserts while preserving commit durability."""
+
+    INSERT_SQL = """
+        INSERT INTO delivery_attempts(
+            id, delivery_id, owner_user_id, route_id, destination_id,
+            source, title, severity, outcome, attempt_number,
+            retryable, response_status, error_code, safe_error,
+            created_at, completed_at, input_type, device_name,
+            event_name, event_description, event_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    def __init__(
+        self,
+        database: Database,
+        *,
+        batch_size: int = DEFAULT_HISTORY_BATCH_SIZE,
+        batch_wait_seconds: float = DEFAULT_HISTORY_BATCH_WAIT_SECONDS,
+    ):
+        self.database = database
+        self.batch_size = max(1, int(batch_size))
+        self.batch_wait_seconds = max(0.0, float(batch_wait_seconds))
+        self._condition = threading.Condition()
+        self._pending: deque[_PendingHistoryWrite] = deque()
+        self._writer_active = False
+
+    def write(self, values: tuple[object, ...]) -> None:
+        pending = _PendingHistoryWrite(values)
+        with self._condition:
+            self._pending.append(pending)
+            if not self._writer_active:
+                self._writer_active = True
+                pending.writer = True
+            self._condition.notify_all()
+
+        while True:
+            with self._condition:
+                if pending.completed:
+                    error = pending.error
+                    break
+                if not pending.writer:
+                    self._condition.wait()
+                    continue
+            self._write_next_batch()
+
+        if error is not None:
+            raise error
+
+    def _write_next_batch(self) -> None:
+        with self._condition:
+            if not self._pending or not self._pending[0].writer:
+                return
+
+            deadline = time.perf_counter() + self.batch_wait_seconds
+            while len(self._pending) < self.batch_size:
+                remaining = deadline - time.perf_counter()
+                if remaining <= 0:
+                    break
+                self._condition.wait(remaining)
+
+            batch = [
+                self._pending.popleft()
+                for _ in range(min(self.batch_size, len(self._pending)))
+            ]
+
+        errors = self._write_batch(batch)
+
+        with self._condition:
+            for item, error in zip(batch, errors):
+                item.error = error
+                item.completed = True
+                item.writer = False
+
+            if self._pending:
+                self._pending[0].writer = True
+            else:
+                self._writer_active = False
+
+            self._condition.notify_all()
+
+    def _write_batch(
+        self,
+        batch: list[_PendingHistoryWrite],
+    ) -> list[Exception | None]:
+        try:
+            with self.database.transaction() as connection:
+                connection.executemany(
+                    self.INSERT_SQL,
+                    [item.values for item in batch],
+                )
+        except Exception:
+            # Preserve the old per-record failure semantics. One malformed
+            # record must not roll back otherwise valid history entries that
+            # happened to share its batch.
+            errors: list[Exception | None] = []
+            for item in batch:
+                try:
+                    with self.database.transaction() as connection:
+                        connection.execute(self.INSERT_SQL, item.values)
+                except Exception as error:
+                    errors.append(error)
+                else:
+                    errors.append(None)
+            return errors
+        return [None] * len(batch)
+
+
+def _shared_history_batcher(
+    database: Database,
+    *,
+    batch_size: int,
+    batch_wait_seconds: float,
+) -> _DeliveryHistoryBatcher:
+    with _HISTORY_BATCHER_CREATION_LOCK:
+        batcher = getattr(database, _HISTORY_BATCHER_ATTRIBUTE, None)
+        if batcher is None:
+            batcher = _DeliveryHistoryBatcher(
+                database,
+                batch_size=batch_size,
+                batch_wait_seconds=batch_wait_seconds,
+            )
+            setattr(database, _HISTORY_BATCHER_ATTRIBUTE, batcher)
+        return batcher
+
+
 class DeliveryHistoryStore:
     def __init__(
         self,
         database: Database,
         *,
         clock: Callable[[], float] = time.time,
+        batch_size: int = DEFAULT_HISTORY_BATCH_SIZE,
+        batch_wait_seconds: float = DEFAULT_HISTORY_BATCH_WAIT_SECONDS,
     ):
         self.database = database
         self.clock = clock
+        self._batcher = _shared_history_batcher(
+            database,
+            batch_size=batch_size,
+            batch_wait_seconds=batch_wait_seconds,
+        )
 
     def record(
         self,
@@ -135,42 +286,55 @@ class DeliveryHistoryStore:
         response_status = (
             int(result.response_status) if result.response_status is not None else None
         )
-        with self.database.transaction() as connection:
-            connection.execute(
-                """
-                INSERT INTO delivery_attempts(
-                    id, delivery_id, owner_user_id, route_id, destination_id,
-                    source, title, severity, outcome, attempt_number,
-                    retryable, response_status, error_code, safe_error,
-                    created_at, completed_at, input_type, device_name,
-                    event_name, event_description, event_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    attempt_id,
-                    str(delivery_id),
-                    str(owner_user_id),
-                    route.id,
-                    str(resolved_destination),
-                    source,
-                    title,
-                    severity,
-                    outcome,
-                    int(attempt_number),
-                    1 if result.retryable else 0,
-                    response_status,
-                    error_code or None,
-                    safe_error or None,
-                    now,
-                    now,
-                    input_type,
-                    device_name,
-                    event_name,
-                    event_description,
-                    event_status,
-                ),
+        attempt = DeliveryAttempt(
+            id=attempt_id,
+            delivery_id=str(delivery_id),
+            owner_user_id=str(owner_user_id),
+            route_id=route.id,
+            destination_id=str(resolved_destination),
+            source=source,
+            title=title,
+            severity=severity,
+            outcome=outcome,
+            attempt_number=int(attempt_number),
+            retryable=bool(result.retryable),
+            response_status=response_status,
+            error_code=error_code,
+            safe_error=safe_error,
+            created_at=now,
+            completed_at=now,
+            input_type=input_type,
+            device_name=device_name,
+            event_name=event_name,
+            event_description=event_description,
+            event_status=event_status,
+        )
+        self._batcher.write(
+            (
+                attempt.id,
+                attempt.delivery_id,
+                attempt.owner_user_id,
+                attempt.route_id,
+                attempt.destination_id,
+                attempt.source,
+                attempt.title,
+                attempt.severity,
+                attempt.outcome,
+                attempt.attempt_number,
+                1 if attempt.retryable else 0,
+                attempt.response_status,
+                attempt.error_code or None,
+                attempt.safe_error or None,
+                attempt.created_at,
+                attempt.completed_at,
+                attempt.input_type,
+                attempt.device_name,
+                attempt.event_name,
+                attempt.event_description,
+                attempt.event_status,
             )
-        return self.get(Actor(str(owner_user_id), "user"), attempt_id)
+        )
+        return attempt
 
     def get(self, actor: Actor, attempt_id: str) -> DeliveryAttempt:
         with self.database.connect() as connection:
