@@ -42,8 +42,8 @@ Discord.
 ## Delivery concurrency
 
 Nowlert dispatches matched destinations through one bounded delivery scheduler
-shared by Modern and Classic presentations. The default limits are 40 active
-deliveries process-wide and 8 active deliveries for the same destination.
+shared by Modern and Classic presentations. The default limits are 50 active
+deliveries process-wide and 10 active deliveries for the same destination.
 Excess work is queued fairly by destination so one slow or retrying webhook
 cannot occupy the worker pool and block unrelated destinations.
 

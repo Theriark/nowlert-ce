@@ -53,8 +53,8 @@ def run_delivery_benchmark(
     *,
     events: int = 25,
     destinations: int = 3,
-    global_limit: int = 40,
-    per_destination_limit: int = 8,
+    global_limit: int = 50,
+    per_destination_limit: int = 10,
     delay_ms: float = 5,
     slow_delay_ms: float = 50,
     retry_delay_ms: float = 5,
@@ -344,8 +344,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--events", type=int, default=25)
     parser.add_argument("--destinations", type=int, default=3)
-    parser.add_argument("--global-limit", type=int, default=40)
-    parser.add_argument("--per-destination-limit", type=int, default=8)
+    parser.add_argument("--global-limit", type=int, default=50)
+    parser.add_argument("--per-destination-limit", type=int, default=10)
     parser.add_argument("--delay-ms", type=float, default=5)
     parser.add_argument("--slow-delay-ms", type=float, default=50)
     parser.add_argument("--retry-delay-ms", type=float, default=5)
