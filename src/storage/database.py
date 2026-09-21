@@ -20,7 +20,13 @@ class Database:
     def __init__(self, path: str | Path, timeout_seconds: float = 5.0):
         self.path = Path(path).expanduser().absolute()
         self.timeout_seconds = max(0.1, float(timeout_seconds))
-        self._maintenance_lock = threading.RLock()
+        self._gate = threading.Condition(threading.RLock())
+        self._active_connections = 0
+        self._connections_by_thread: dict[int, int] = {}
+        self._maintenance_owner: int | None = None
+        self._maintenance_depth = 0
+        self._maintenance_waiters = 0
+        self._path_lock = threading.RLock()
 
     def migrate(self) -> int:
         """Apply every pending schema migration transactionally and idempotently."""
@@ -87,10 +93,13 @@ class Database:
 
     @contextmanager
     def connect(self):
-        """Yield a configured connection and always close it."""
+        """Yield one normal connection without serializing peer connections."""
 
-        with self._maintenance_lock:
-            self._prepare_path()
+        thread_id = self._enter_connection()
+        connection = None
+        try:
+            with self._path_lock:
+                self._prepare_path()
             connection = sqlite3.connect(
                 self.path,
                 timeout=self.timeout_seconds,
@@ -102,18 +111,86 @@ class Database:
                 f"PRAGMA busy_timeout = {int(self.timeout_seconds * 1000)}"
             )
             connection.execute("PRAGMA secure_delete = ON")
-            try:
-                yield connection
-            finally:
+            yield connection
+        finally:
+            if connection is not None:
                 connection.close()
+            with self._path_lock:
                 self._enforce_file_mode()
+            self._leave_connection(thread_id)
 
     @contextmanager
     def maintenance(self):
-        """Block new connections while state files are snapshotted or swapped."""
+        """Block peer connections while state files are snapshotted or swapped."""
 
-        with self._maintenance_lock:
+        thread_id = self._enter_maintenance()
+        try:
             yield
+        finally:
+            self._leave_maintenance(thread_id)
+
+    def _enter_connection(self) -> int:
+        thread_id = threading.get_ident()
+        with self._gate:
+            while True:
+                own_connections = self._connections_by_thread.get(thread_id, 0)
+                maintenance_owner = self._maintenance_owner
+                owner_allows = maintenance_owner in {None, thread_id}
+                writer_allows = (
+                    self._maintenance_waiters == 0
+                    or own_connections > 0
+                    or maintenance_owner == thread_id
+                )
+                if owner_allows and writer_allows:
+                    break
+                self._gate.wait()
+            self._active_connections += 1
+            self._connections_by_thread[thread_id] = (
+                self._connections_by_thread.get(thread_id, 0) + 1
+            )
+        return thread_id
+
+    def _leave_connection(self, thread_id: int) -> None:
+        with self._gate:
+            count = self._connections_by_thread.get(thread_id, 0)
+            if count <= 1:
+                self._connections_by_thread.pop(thread_id, None)
+            else:
+                self._connections_by_thread[thread_id] = count - 1
+            self._active_connections = max(0, self._active_connections - 1)
+            self._gate.notify_all()
+
+    def _enter_maintenance(self) -> int:
+        thread_id = threading.get_ident()
+        with self._gate:
+            if self._maintenance_owner == thread_id:
+                self._maintenance_depth += 1
+                return thread_id
+
+            self._maintenance_waiters += 1
+            try:
+                while True:
+                    own_connections = self._connections_by_thread.get(thread_id, 0)
+                    if (
+                        self._maintenance_owner is None
+                        and self._active_connections <= own_connections
+                    ):
+                        break
+                    self._gate.wait()
+                self._maintenance_owner = thread_id
+                self._maintenance_depth = 1
+            finally:
+                self._maintenance_waiters -= 1
+            return thread_id
+
+    def _leave_maintenance(self, thread_id: int) -> None:
+        with self._gate:
+            if self._maintenance_owner != thread_id:
+                raise RuntimeError("database maintenance owner mismatch")
+            self._maintenance_depth -= 1
+            if self._maintenance_depth == 0:
+                self._maintenance_owner = None
+                self._gate.notify_all()
 
     @contextmanager
     def transaction(self):
