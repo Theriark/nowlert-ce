@@ -29,29 +29,30 @@ def test_delivery_concurrency_benchmark_smoke():
 
 
 
-def test_delivery_concurrency_uses_tuned_per_destination_default():
+def test_delivery_concurrency_uses_tuned_defaults():
     from storage.delivery_concurrency import DeliveryConcurrencyController
 
-    controller = DeliveryConcurrencyController(global_limit=32)
+    controller = DeliveryConcurrencyController()
     try:
-        assert controller.per_destination_limit == 6
+        assert controller.global_limit == 40
+        assert controller.per_destination_limit == 8
     finally:
         controller.shutdown()
 
 
-def test_delivery_benchmark_uses_tuned_per_destination_default():
+def test_delivery_benchmark_uses_tuned_defaults():
     from scripts.benchmark_delivery_concurrency import run_delivery_benchmark
 
     result = run_delivery_benchmark(
         events=1,
         destinations=1,
-        global_limit=8,
         delay_ms=0,
         slow_delay_ms=0,
         retry_delay_ms=0,
     )
 
-    assert result["per_destination_limit"] == 6
+    assert result["global_limit"] == 40
+    assert result["per_destination_limit"] == 8
 
 
 def test_teams_render_benchmark_measures_modern_and_classic():

@@ -8,7 +8,7 @@
   and return committed attempt metadata without a redundant post-insert read,
   reducing hot-path contention while preserving synchronous history durability.
 - Dispatch destination deliveries concurrently with bounded fair scheduling
-  (32 active globally, 6 per destination by default), allow independent
+  (40 active globally, 8 per destination by default), allow independent
   SQLite connections to overlap outside maintenance windows, and add a
   repeatable delivery/Teams-render benchmark harness.
 - Complete Microsoft Teams Classic Card coverage for Xen Orchestra, Zabbix,
