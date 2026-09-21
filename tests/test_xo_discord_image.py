@@ -218,7 +218,7 @@ def test_xo_success_panel_uses_three_columns_and_grows_past_ten_vms(tmp_path):
             (
                 renderer.VM_PANEL_TOP
                 + renderer.VM_HEADER_HEIGHT
-                + expected_rows * renderer.SUCCESS_ROW_HEIGHT
+                + expected_rows * renderer._vm_style(20)["row_height"]
                 + renderer.VM_PANEL_BOTTOM_PADDING
                 + renderer.FOOTER_GAP
                 + renderer.FOOTER_RESERVE
@@ -413,7 +413,7 @@ def test_xo_footer_is_left_aligned_with_bottom_breathing_room(tmp_path):
             for red, green, blue in right_footer
         )
 
-    assert renderer.FOOTER_RESERVE >= 110
+    assert renderer.FOOTER_RESERVE >= 118
 
 
 def test_xo_detail_values_fit_repository_and_skipped_result(tmp_path):
@@ -462,6 +462,51 @@ def test_xo_detail_values_fit_repository_and_skipped_result(tmp_path):
         renderer.TEXT,
     )
     assert draw.textlength(result, font=result_font) <= result_available
+
+
+def test_xo_vm_typography_is_responsive_to_job_size(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    comfortable = renderer._vm_style(3)
+    standard = renderer._vm_style(9)
+    compact = renderer._vm_style(20)
+
+    assert comfortable["name_font"].size > standard["name_font"].size
+    assert standard["name_font"].size > compact["name_font"].size
+    assert comfortable["meta_font"].size > standard["meta_font"].size
+    assert standard["meta_font"].size > compact["meta_font"].size
+    assert comfortable["row_height"] > standard["row_height"]
+    assert standard["row_height"] > compact["row_height"]
+
+
+def test_xo_result_exception_uses_lifecycle_accent(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    failure = renderer._result_segments(
+        "2 of 3 VMs successful | 1 failed",
+        renderer.FAILURE,
+    )
+    skipped = renderer._result_segments(
+        "2 of 3 VMs successful | 1 skipped",
+        renderer.SKIPPED,
+    )
+    success = renderer._result_segments(
+        "3 of 3 VMs successful",
+        renderer.SUCCESS,
+    )
+
+    assert failure[-1] == ("1 failed", renderer.FAILURE)
+    assert skipped[-1] == ("1 skipped", renderer.SKIPPED)
+    assert success == [("3 of 3 VMs successful", renderer.TEXT)]
+
+
+def test_xo_normal_vm_card_uses_larger_operational_type(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    style = renderer._vm_style(3)
+
+    assert style["name_font"].size >= 28
+    assert style["meta_font"].size >= 23
+    assert style["reason_font"].size >= 19
 
 
 def test_xo_skipped_card_uses_blue_not_warning_yellow(tmp_path):
