@@ -28,7 +28,7 @@ Credential-like values must not be placed in the public settings document.
 | Output | Public settings | Owner-scoped secret |
 |---|---|---|
 | Discord | message style and destination label | webhook URL |
-| Microsoft Teams | destination label | workflow webhook URL |
+| Microsoft Teams | message style and destination label | workflow webhook URL |
 | Slack | message-detail option and destination label | Slack webhook URL |
 | Webhook | message style and destination label | webhook URL |
 
@@ -41,14 +41,29 @@ Discord.
 
 ## Microsoft Teams
 
-Microsoft Teams uses Adaptive Card-style payloads and public HTTPS source-image
-URLs because Teams clients do not reliably render embedded data-URI artwork.
-Published release images pin the default source-image base to immutable release
-content.
+Microsoft Teams uses native Adaptive Card 1.4 payloads and public HTTPS
+source-image URLs because Teams clients do not reliably render embedded
+data-URI artwork. Published release images pin the default source-image base to
+immutable release content.
 
-Serialized Teams payloads are bounded to 28 KiB before transport. HTTP 202 means
-the Teams workflow accepted the request; the UI does not claim that the card
-was rendered in the destination channel without operator confirmation.
+Operators can choose **Modern Card** or **Classic Card** per destination.
+Modern remains the default and preserves the existing standardized Teams
+layout. Existing destinations that do not yet store `message_style` normalize
+to Modern automatically.
+
+Classic uses a separate Teams-native renderer so Classic layout changes do not
+modify Modern cards. The first Classic implementation is Xen Orchestra and
+preserves the approved Nowlert Classic backup lifecycle, field ordering, VM
+sections, and omission rules.
+
+During the Xen Orchestra pilot, a Teams destination set to Classic temporarily
+falls back to the existing Modern Teams renderer when the event source does not
+yet have a Teams Classic renderer. Classic coverage will be expanded
+integration-by-integration after live Teams acceptance.
+
+Serialized Teams payloads remain bounded to 28 KiB before transport. HTTP 202
+means the Teams workflow accepted the request; the UI does not claim that the
+card was rendered in the destination channel without operator confirmation.
 
 ## Slack
 

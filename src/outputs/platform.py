@@ -235,12 +235,31 @@ class TeamsPlatformAdapter(_HTTPAdapter):
         self.output = TeamsOutput()
 
     def preview(self, destination, notification):
-        normalize_output_settings("teams", destination.settings)
-        formatter = self.output.source_formatters.get(
-            str(notification.source or "").casefold(),
+        settings = normalize_output_settings(
+            "teams",
+            destination.settings,
+        )
+        source = str(notification.source or "").casefold()
+        modern_formatter = self.output.source_formatters.get(
+            source,
             self.output.default_formatter,
         )
-        payload = formatter._sanitize_payload(formatter.format(notification))
+
+        requested_style = settings["message_style"]
+        formatter = modern_formatter
+        rendered_style = "modern"
+
+        if requested_style == "classic":
+            classic_formatter = self.output.classic_source_formatters.get(
+                source
+            )
+            if classic_formatter is not None:
+                formatter = classic_formatter
+                rendered_style = "classic"
+
+        payload = formatter._sanitize_payload(
+            formatter.format(notification)
+        )
         payload_bytes = self.output.payload_size(payload)
         return OutputPreview(
             "teams",
@@ -248,6 +267,8 @@ class TeamsPlatformAdapter(_HTTPAdapter):
             payload,
             {
                 "formatter": formatter.__class__.__name__,
+                "message_style": requested_style,
+                "rendered_style": rendered_style,
                 "payload_bytes": payload_bytes,
                 "payload_limit_bytes": self.output.MAX_PAYLOAD_BYTES,
             },

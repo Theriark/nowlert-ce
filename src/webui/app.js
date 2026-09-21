@@ -3938,7 +3938,16 @@ function destinationDefinition(type) {
     },
     teams: {
       help: "Microsoft Teams workflow or incoming webhook delivery.",
-      settings: [presentation],
+      settings: [
+        presentation,
+        {
+          key: "message_style",
+          label: "Message style",
+          kind: "select",
+          choices: [["modern", "Modern Card"], ["classic", "Classic Card"]],
+          default: "modern",
+        },
+      ],
       secrets: [{ key: "url", label: "Webhook URL", kind: "password", required: true, wide: true }],
     },
     slack: {
