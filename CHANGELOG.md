@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Resolve enabled destination metadata during route expansion and carry the
+  event-local snapshot into delivery workers, avoiding a redundant SQLite
+  destination lookup on the scheduler hot path while keeping secret values
+  resolved only at delivery time.
 - Batch concurrent delivery-history inserts into durable SQLite transactions
   and return committed attempt metadata without a redundant post-insert read,
   reducing hot-path contention while preserving synchronous history durability.

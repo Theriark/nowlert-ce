@@ -218,10 +218,7 @@ class DestinationStore:
             str(row["owner_user_id"]),
             bool(row["shared"]),
         )
-        return DeliveryDestination(
-            self._destination(row),
-            str(row["secret_id"]) if row["secret_id"] is not None else None,
-        )
+        return self._delivery_destination(row)
 
     def record_test_result(
         self,
@@ -530,6 +527,13 @@ class DestinationStore:
         if row is None:
             raise KeyError("destination not found")
         return row
+
+    @classmethod
+    def _delivery_destination(cls, row) -> DeliveryDestination:
+        return DeliveryDestination(
+            cls._destination(row),
+            str(row["secret_id"]) if row["secret_id"] is not None else None,
+        )
 
     @staticmethod
     def _destination(row) -> Destination:

@@ -142,6 +142,49 @@ def test_delivery_uses_matching_owner_route_and_resolves_secret_internally(
     assert "private-value" not in repr(attempt)
 
 
+def test_delivery_uses_expanded_destination_snapshot_without_worker_lookup(
+    delivery_platform,
+):
+    owner, destination, _route = configured_route(delivery_platform)
+    observed = []
+
+    def unexpected_lookup(*_args, **_kwargs):
+        raise AssertionError("delivery worker must use the expanded destination snapshot")
+
+    delivery_platform["destinations"].for_delivery = unexpected_lookup
+
+    service = PlatformDeliveryService(
+        delivery_platform["routes"],
+        delivery_platform["destinations"],
+        delivery_platform["secrets"],
+        delivery_platform["history"],
+        {
+            "webhook": lambda target, secret, _notification: (
+                observed.append((target.id, secret))
+                or DeliveryResult(True, response_status=204)
+            )
+        },
+        sleeper=lambda _delay: None,
+    )
+
+    summary = service.deliver(
+        owner.actor,
+        Notification(
+            source="grafana",
+            title="Expanded destination snapshot",
+        ),
+    )
+
+    assert summary.delivered == 1
+    assert observed == [
+        (
+            destination.id,
+            f"private-value-for-{owner.username}".encode(),
+        )
+    ]
+
+
+
 def test_retryable_delivery_records_each_attempt_and_bounded_delays(delivery_platform):
     owner, _destination, _route = configured_route(delivery_platform)
     responses = [

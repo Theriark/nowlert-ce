@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Iterable
 
 from storage.audit_events import AuditEventStore
 from storage.database import Database
+from storage.destinations import DeliveryDestination, DestinationStore
 from storage.ownership import Actor, OwnershipPolicy
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ class RouteDestinationCandidate:
 
     route: "Route"
     destination_id: str
+    target: DeliveryDestination | None = None
 
 
 class RouteDestinationStore:
@@ -226,7 +228,7 @@ class RouteDestinationStore:
             with self.database.connect() as connection:
                 rows = connection.execute(
                     """
-                    SELECT destinations.id
+                    SELECT destinations.*
                     FROM route_destinations
                     JOIN destinations
                       ON destinations.id = route_destinations.destination_id
@@ -241,7 +243,14 @@ class RouteDestinationStore:
                 if destination_id in seen_destinations:
                     continue
                 seen_destinations.add(destination_id)
-                result.append(RouteDestinationCandidate(route, destination_id))
+                target = DestinationStore._delivery_destination(row)
+                result.append(
+                    RouteDestinationCandidate(
+                        route,
+                        destination_id,
+                        target,
+                    )
+                )
         return result
 
     def foreign_owner_route_ids(self, destination_id: str) -> tuple[str, ...]:
