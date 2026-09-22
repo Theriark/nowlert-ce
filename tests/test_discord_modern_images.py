@@ -2578,12 +2578,22 @@ def test_information_summary_uses_approved_spaced_geometry(
 
     if renderer_class is HardwareDiscordModernImageRenderer:
         assert (
+            cells[1][0]
+            == renderer.CARD_SIDE_PADDING
+            + renderer.FIRMWARE_CATEGORY_LEFT_OFFSET
+        )
+        assert (
+            cells[2][0]
+            == renderer.CARD_SIDE_PADDING
+            + renderer.FIRMWARE_EVENT_TIME_LEFT_OFFSET
+        )
+        assert (
             cells[1][0] - cells[0][1]
-            == renderer.FIRMWARE_SUMMARY_GROUP_GAP
+            == renderer.FIRMWARE_DIVIDER_INSET
         )
         assert (
             cells[2][0] - cells[1][1]
-            == renderer.FIRMWARE_SUMMARY_GROUP_GAP
+            == renderer.FIRMWARE_DIVIDER_INSET
         )
     else:
         assert (
@@ -2594,6 +2604,66 @@ def test_information_summary_uses_approved_spaced_geometry(
             cells[2][0] - cells[1][1]
             == renderer.SUMMARY_CELL_GAP
         )
+
+def test_hardware_firmware_columns_move_category_and_event_time_right(tmp_path):
+    renderer = HardwareDiscordModernImageRenderer(tmp_path)
+    metrics = [
+        ("status", "Severity", "information", renderer.ICON_BLUE),
+        ("sync", "Category", "Firmware", renderer.ICON_BLUE),
+        ("clock", "Event time", "18:09:11", renderer.TEXT),
+    ]
+
+    fixed = renderer._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        metrics,
+    )
+    inherited = super(
+        HardwareDiscordModernImageRenderer,
+        renderer,
+    )._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        metrics,
+    )
+
+    assert fixed[1][0] >= inherited[1][0] + 140
+    assert fixed[2][0] >= inherited[2][0] + 90
+
+
+def test_hardware_firmware_information_compacts_summary_time_only(tmp_path):
+    renderer = HardwareDiscordModernImageRenderer(tmp_path)
+    captured = {}
+
+    parent_renderer = HardwareDiscordModernImageRenderer.__mro__[1]
+    original = parent_renderer._render_standard_card
+
+    def capture(self, **kwargs):
+        captured.update(kwargs)
+        return b"captured"
+
+    parent_renderer._render_standard_card = capture
+    try:
+        result = renderer._render_standard_card(
+            source="hpe_ilo",
+            accent=renderer.SKIPPED,
+            status="skipped",
+            integration="HPE iLO",
+            context="HPE-SRV-01",
+            badge="Firmware Information",
+            title="iLO firmware inventory collection completed",
+            severity="information",
+            category="Firmware",
+            event_time="2026-09-22 18:09:09 UTC",
+            details=[],
+            outcomes=[],
+        )
+    finally:
+        parent_renderer._render_standard_card = original
+
+    assert result == b"captured"
+    assert captured["event_time"] == "18:09:09"
+
 
 def test_hardware_non_firmware_information_keeps_shared_summary_layout(tmp_path):
     renderer = HardwareDiscordModernImageRenderer(tmp_path)

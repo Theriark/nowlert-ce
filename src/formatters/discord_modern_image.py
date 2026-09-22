@@ -3883,7 +3883,52 @@ class HardwareDiscordModernImageRenderer(
         "additional details": "list",
         "event details": "alert",
     }
-    FIRMWARE_SUMMARY_GROUP_GAP = 128
+    # Fixed column anchors for the two Firmware Information cards.
+    # These deliberately move Category and Event time farther right so the
+    # long "information" severity has the same breathing room as approved
+    # cards without altering fonts, card size, or other hardware layouts.
+    FIRMWARE_CATEGORY_LEFT_OFFSET = 820
+    FIRMWARE_EVENT_TIME_LEFT_OFFSET = 1400
+    FIRMWARE_DIVIDER_INSET = 64
+
+    def _render_standard_card(
+        self,
+        *,
+        source,
+        accent,
+        status,
+        font_profile="default",
+        **content,
+    ):
+        """Keep Firmware Information summary time compact so columns can move right."""
+
+        severity = self._clean(
+            content.get("severity") or ""
+        ).casefold()
+        category = self._clean(
+            content.get("category") or ""
+        ).casefold()
+        if (
+            severity == "information"
+            and category == "firmware"
+        ):
+            event_time = self._clean(
+                content.get("event_time") or ""
+            )
+            match = re.search(
+                r"(?<!\d)(\d{1,2}:\d{2}:\d{2})",
+                event_time,
+            )
+            if match:
+                content["event_time"] = match.group(1)
+
+        return super()._render_standard_card(
+            source=source,
+            accent=accent,
+            status=status,
+            font_profile=font_profile,
+            **content,
+        )
 
     def _summary_cells_for_metrics(
         self,
@@ -3891,7 +3936,7 @@ class HardwareDiscordModernImageRenderer(
         right: int,
         metrics,
     ):
-        """Give firmware-information groups a fixed visual gap."""
+        """Use fixed firmware-information column anchors."""
 
         values = [
             self._clean(metric[2]).casefold()
@@ -3908,45 +3953,26 @@ class HardwareDiscordModernImageRenderer(
                 metrics,
             )
 
-        draw = ImageDraw.Draw(
-            Image.new("RGB", (self.WIDTH, 1))
-        )
-        required = []
-        for _icon, label, value, _color in metrics:
-            width = (
-                self.SUMMARY_LABEL_OFFSET
-                + draw.textlength(
-                    f"{label}:",
-                    font=self.font_label,
-                )
-                + self.SUMMARY_VALUE_GAP
-                + draw.textlength(
-                    self._clean(value),
-                    font=self.font_detail,
-                )
-            )
-            required.append(int(width) + 1)
-
         inner_left = left + 28
         inner_right = right - 28
-        gap = self.FIRMWARE_SUMMARY_GROUP_GAP
+        category_left = (
+            left + self.FIRMWARE_CATEGORY_LEFT_OFFSET
+        )
+        event_time_left = (
+            left + self.FIRMWARE_EVENT_TIME_LEFT_OFFSET
+        )
 
         first = (
             inner_left,
-            inner_left + required[0],
+            category_left - self.FIRMWARE_DIVIDER_INSET,
         )
-        second_left = first[1] + gap
         second = (
-            second_left,
-            second_left + required[1],
+            category_left,
+            event_time_left - self.FIRMWARE_DIVIDER_INSET,
         )
-        third_left = second[1] + gap
         third = (
-            third_left,
-            max(
-                third_left + required[2],
-                inner_right,
-            ),
+            event_time_left,
+            inner_right,
         )
         return [first, second, third]
 
