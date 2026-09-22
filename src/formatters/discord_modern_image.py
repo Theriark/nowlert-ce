@@ -3883,13 +3883,15 @@ class HardwareDiscordModernImageRenderer(
         "additional details": "list",
         "event details": "alert",
     }
+    FIRMWARE_SUMMARY_GROUP_GAP = 128
+
     def _summary_cells_for_metrics(
         self,
         left: int,
         right: int,
         metrics,
     ):
-        """Keep Information / Category / Event time evenly separated."""
+        """Give firmware-information groups a fixed visual gap."""
 
         values = [
             self._clean(metric[2]).casefold()
@@ -3906,29 +3908,47 @@ class HardwareDiscordModernImageRenderer(
                 metrics,
             )
 
+        draw = ImageDraw.Draw(
+            Image.new("RGB", (self.WIDTH, 1))
+        )
+        required = []
+        for _icon, label, value, _color in metrics:
+            width = (
+                self.SUMMARY_LABEL_OFFSET
+                + draw.textlength(
+                    f"{label}:",
+                    font=self.font_label,
+                )
+                + self.SUMMARY_VALUE_GAP
+                + draw.textlength(
+                    self._clean(value),
+                    font=self.font_detail,
+                )
+            )
+            required.append(int(width) + 1)
+
         inner_left = left + 28
         inner_right = right - 28
-        available = (
-            inner_right
-            - inner_left
-            - self.SUMMARY_CELL_GAP * 2
+        gap = self.FIRMWARE_SUMMARY_GROUP_GAP
+
+        first = (
+            inner_left,
+            inner_left + required[0],
         )
-        # Firmware information is the only hardware summary that needs
-        # additional breathing room: keep "information" clear of Category
-        # without changing Dell or any warning/failure/success layout.
-        first = int(available * 0.40)
-        second = int(available * 0.28)
-        third = available - first - second
-        cell_1 = (inner_left, inner_left + first)
-        cell_2 = (
-            cell_1[1] + self.SUMMARY_CELL_GAP,
-            cell_1[1] + self.SUMMARY_CELL_GAP + second,
+        second_left = first[1] + gap
+        second = (
+            second_left,
+            second_left + required[1],
         )
-        cell_3 = (
-            cell_2[1] + self.SUMMARY_CELL_GAP,
-            cell_2[1] + self.SUMMARY_CELL_GAP + third,
+        third_left = second[1] + gap
+        third = (
+            third_left,
+            max(
+                third_left + required[2],
+                inner_right,
+            ),
         )
-        return [cell_1, cell_2, cell_3]
+        return [first, second, third]
 
     HARDWARE_XO_FIELD_ICONS = {
         "system": "repository",

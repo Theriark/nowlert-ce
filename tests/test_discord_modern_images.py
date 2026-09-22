@@ -2573,22 +2573,27 @@ def test_information_summary_uses_approved_spaced_geometry(
         metrics,
     )
 
-    widths = [right - left for left, right in cells]
-    assert widths[0] > widths[1]
-    assert cells[1][0] - cells[0][1] == renderer.SUMMARY_CELL_GAP
-    assert cells[2][0] - cells[1][1] == renderer.SUMMARY_CELL_GAP
+    assert cells[1][0] > cells[0][1]
+    assert cells[2][0] > cells[1][1]
 
     if renderer_class is HardwareDiscordModernImageRenderer:
-        available = (
-            renderer.WIDTH
-            - renderer.CARD_SIDE_PADDING * 2
-            - 56
-            - renderer.SUMMARY_CELL_GAP * 2
+        assert (
+            cells[1][0] - cells[0][1]
+            == renderer.FIRMWARE_SUMMARY_GROUP_GAP
         )
-        assert widths[0] == int(available * 0.40)
-        assert widths[1] == int(available * 0.28)
-
-
+        assert (
+            cells[2][0] - cells[1][1]
+            == renderer.FIRMWARE_SUMMARY_GROUP_GAP
+        )
+    else:
+        assert (
+            cells[1][0] - cells[0][1]
+            == renderer.SUMMARY_CELL_GAP
+        )
+        assert (
+            cells[2][0] - cells[1][1]
+            == renderer.SUMMARY_CELL_GAP
+        )
 
 def test_hardware_non_firmware_information_keeps_shared_summary_layout(tmp_path):
     renderer = HardwareDiscordModernImageRenderer(tmp_path)
