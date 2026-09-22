@@ -14,6 +14,8 @@ from formatters.discord_modern_image import (
     GrafanaDiscordModernImageRenderer,
     PortainerDiscordModernImageRenderer,
     ProxmoxDiscordModernImageRenderer,
+    QNAPDiscordModernImageRenderer,
+    SynologyDiscordModernImageRenderer,
     ZabbixDiscordModernImageRenderer,
 )
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
@@ -128,6 +130,8 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     output.grafana_modern_image_renderer.icon_dir = tmp_path
     output.portainer_modern_image_renderer.icon_dir = tmp_path
     output.proxmox_modern_image_renderer.icon_dir = tmp_path
+    output.qnap_modern_image_renderer.icon_dir = tmp_path
+    output.synology_modern_image_renderer.icon_dir = tmp_path
     item = notification(source)
     formatter = output.source_formatters.get(
         source,
@@ -144,7 +148,14 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     with Image.open(BytesIO(image)) as rendered:
         expected_width = (
             2064
-            if source in {"zabbix", "grafana", "portainer", "proxmox"}
+            if source in {
+                "zabbix",
+                "grafana",
+                "portainer",
+                "proxmox",
+                "qnap",
+                "synology",
+            }
             else 1448
         )
         dedicated_renderers = {
@@ -152,6 +163,8 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
             "grafana": output.grafana_modern_image_renderer,
             "portainer": output.portainer_modern_image_renderer,
             "proxmox": output.proxmox_modern_image_renderer,
+            "qnap": output.qnap_modern_image_renderer,
+            "synology": output.synology_modern_image_renderer,
         }
         expected_min_height = (
             dedicated_renderers[source].MIN_HEIGHT
@@ -795,8 +808,17 @@ def test_discord_output_routes_standardized_sources_to_xo_scaled_renderers(tmp_p
     output.grafana_modern_image_renderer.icon_dir = tmp_path
     output.portainer_modern_image_renderer.icon_dir = tmp_path
     output.proxmox_modern_image_renderer.icon_dir = tmp_path
+    output.qnap_modern_image_renderer.icon_dir = tmp_path
+    output.synology_modern_image_renderer.icon_dir = tmp_path
 
-    for source in ("zabbix", "grafana", "portainer", "proxmox"):
+    for source in (
+        "zabbix",
+        "grafana",
+        "portainer",
+        "proxmox",
+        "qnap",
+        "synology",
+    ):
         item = notification(source)
         image_bytes = output.render_modern_image(
             item,
@@ -806,12 +828,12 @@ def test_discord_output_routes_standardized_sources_to_xo_scaled_renderers(tmp_p
             assert image.width == 2064
             assert image.height >= 1600
 
-    qnap = notification("qnap")
-    qnap_image = output.render_modern_image(
-        qnap,
-        output.source_formatters["qnap"],
+    truenas = notification("truenas")
+    truenas_image = output.render_modern_image(
+        truenas,
+        output.source_formatters["truenas"],
     )
-    with Image.open(BytesIO(qnap_image)) as image:
+    with Image.open(BytesIO(truenas_image)) as image:
         assert image.width == 1448
 
 
@@ -1777,3 +1799,215 @@ def test_portainer_summary_strip_allocates_more_space_to_category(tmp_path):
     # Keep the frozen Grafana strip untouched.
     assert grafana.SUMMARY_FIRST_CELL_RATIO == 0.28
     assert grafana.SUMMARY_SECOND_CELL_RATIO == 0.32
+
+
+
+@pytest.mark.parametrize(
+    ("source", "renderer_name"),
+    (
+        ("qnap", "qnap_modern_image_renderer"),
+        ("synology", "synology_modern_image_renderer"),
+    ),
+)
+def test_qnap_and_synology_use_standardized_xo_display_scale(
+    tmp_path,
+    source,
+    renderer_name,
+):
+    output = DiscordOutput()
+    output.ICON_DIR = tmp_path
+    renderer = getattr(output, renderer_name)
+    renderer.icon_dir = tmp_path
+    item = notification(source)
+    formatter = output.source_formatters[source]
+
+    image = output.render_modern_image(item, formatter)
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.size == (2064, 1600)
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    (
+        QNAPDiscordModernImageRenderer,
+        SynologyDiscordModernImageRenderer,
+    ),
+)
+def test_qnap_and_synology_use_frozen_grafana_metrics(
+    tmp_path,
+    renderer_class,
+):
+    renderer = renderer_class(tmp_path)
+    grafana = GrafanaDiscordModernImageRenderer(tmp_path)
+
+    assert renderer.WIDTH == grafana.WIDTH == 2064
+    assert renderer.BASE_HEIGHT == grafana.BASE_HEIGHT == 1600
+    assert renderer.STATUS_BADGE_WIDTH == grafana.STATUS_BADGE_WIDTH == 640
+    assert renderer.STATUS_BADGE_HEIGHT == grafana.STATUS_BADGE_HEIGHT
+    assert renderer.SUMMARY_ICON_SIZE == grafana.SUMMARY_ICON_SIZE == 54
+    assert renderer.FOOTER_ICON_SIZE == grafana.FOOTER_ICON_SIZE == 96
+    assert renderer.SUMMARY_CELL_GAP == grafana.SUMMARY_CELL_GAP
+    for name in (
+        "font_heading",
+        "font_title",
+        "font_bold",
+        "font_label",
+        "font_detail",
+        "font_body",
+        "font_small",
+    ):
+        assert getattr(renderer, name).size == getattr(grafana, name).size
+
+
+@pytest.mark.parametrize(
+    (
+        "renderer_class",
+        "source",
+        "integration",
+        "left_title",
+        "right_title",
+    ),
+    (
+        (
+            QNAPDiscordModernImageRenderer,
+            "qnap",
+            "QNAP",
+            "QNAP NAS",
+            "Event details",
+        ),
+        (
+            SynologyDiscordModernImageRenderer,
+            "synology",
+            "Synology",
+            "Synology NAS",
+            "Event details",
+        ),
+    ),
+)
+def test_qnap_and_synology_long_content_grows_card(
+    tmp_path,
+    renderer_class,
+    source,
+    integration,
+    left_title,
+    right_title,
+):
+    renderer = renderer_class(tmp_path)
+    details = [
+        {
+            "title": left_title,
+            "rows": [
+                {
+                    "label": "Storage pool:",
+                    "value": " ".join(["synthetic-storage-pool"] * 110),
+                    "icon": "disk",
+                }
+            ],
+        },
+        {
+            "title": right_title,
+            "rows": [
+                {
+                    "label": "Details:",
+                    "value": " ".join(["synthetic_event_detail"] * 100),
+                    "icon": "list",
+                }
+            ],
+        },
+        {
+            "title": "Timing",
+            "rows": [
+                {
+                    "label": "Started:",
+                    "value": "2026-07-15 12:30:00 UTC",
+                    "icon": "play",
+                }
+            ],
+        },
+    ]
+    outcomes = [
+        {
+            "title": "EVENT DETAILS",
+            "accent": renderer.FAILURE,
+            "status": "failure",
+            "rows": [
+                {
+                    "value": " ".join(["synthetic storage failure"] * 110),
+                    "icon": "alert",
+                }
+            ],
+        }
+    ]
+
+    image = renderer._render_standard_card(
+        source=source,
+        integration=integration,
+        context="SYNTHETIC-NAS",
+        badge="Failed",
+        title="Synthetic storage event",
+        severity="Critical",
+        category="Storage",
+        event_time="12:30:00 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.width == 2064
+        assert rendered.height > 1600
+
+
+def test_qnap_uses_xo_icon_vocabulary(tmp_path):
+    renderer = QNAPDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._zabbix_xo_section_icon("QNAP NAS") == "repository"
+    assert renderer._zabbix_xo_section_icon("Event details") == "list"
+    assert renderer._zabbix_xo_field_icon(
+        "QNAP NAS", "Storage pool:", "Storage Pool 1", "server"
+    ) == "disk"
+    assert renderer._zabbix_xo_field_icon(
+        "Event details", "UPS:", "SYNTHETIC-UPS", "list"
+    ) == "alert"
+
+
+def test_synology_uses_xo_icon_vocabulary(tmp_path):
+    renderer = SynologyDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._zabbix_xo_section_icon("Synology NAS") == "repository"
+    assert renderer._zabbix_xo_section_icon("Event details") == "list"
+    assert renderer._zabbix_xo_field_icon(
+        "Synology NAS", "Storage pool:", "Storage Pool 1", "server"
+    ) == "disk"
+    assert renderer._zabbix_xo_field_icon(
+        "Event details", "Package:", "Hyper Backup", "list"
+    ) == "list"
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    (
+        QNAPDiscordModernImageRenderer,
+        SynologyDiscordModernImageRenderer,
+    ),
+)
+def test_qnap_and_synology_started_timing_follows_lifecycle_color(
+    tmp_path,
+    renderer_class,
+):
+    renderer = renderer_class(tmp_path)
+
+    assert renderer._line_color(
+        "Started: 2026-07-15 12:30:00 UTC",
+        renderer.FAILURE,
+    ) == renderer.FAILURE
+    assert renderer._line_color(
+        "Started: 2026-07-15 12:30:00 UTC",
+        renderer.BRAND_GOLD,
+    ) == renderer.BRAND_GOLD
+    assert renderer._line_color(
+        "Started: 2026-07-15 12:30:00 UTC",
+        renderer.SKIPPED,
+    ) == renderer.SKIPPED
