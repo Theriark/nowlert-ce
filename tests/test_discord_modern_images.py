@@ -1247,3 +1247,17 @@ def test_zabbix_updated_and_resolved_timing_colors_stay_unchanged(tmp_path):
         "Resolved: 2026-09-22 11:00:29",
         renderer.SUCCESS,
     ) == renderer.SUCCESS
+
+
+
+def test_grafana_standard_card_uses_zabbix_xo_display_scale(tmp_path):
+    output = DiscordOutput()
+    output.ICON_DIR = tmp_path
+    output.modern_image_renderer.icon_dir = tmp_path
+
+    item = notification("grafana")
+    formatter = output.source_formatters["grafana"]
+    image = output.render_modern_image(item, formatter)
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.size == (2064, 1600)
