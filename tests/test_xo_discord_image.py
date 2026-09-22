@@ -868,3 +868,94 @@ def test_xo_readability_scale_increases_with_larger_card(tmp_path):
     assert renderer.font_label.size >= 40
     assert renderer.font_bold.size >= 46
     assert renderer.font_small.size >= 40
+
+
+
+def test_xo_reference_detail_values_fit_single_line_at_readable_size(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    image = Image.new("RGB", (renderer.WIDTH, renderer.BASE_HEIGHT))
+    draw = ImageDraw.Draw(image)
+
+    x0 = renderer.CARD_SIDE_PADDING
+    right = renderer.WIDTH - renderer.CARD_SIDE_PADDING
+    gap = 24
+    detail_width = right - x0 - gap
+    left_width = int(detail_width * renderer.DETAIL_SPLIT_RATIO)
+    right_x1 = x0 + left_width + gap
+
+    labels = ("Repository", "Started", "Finished", "Result")
+    value_x = max(
+        renderer._detail_value_x(draw, right_x1, label)
+        for label in labels
+    )
+    available = right - value_x - 24
+
+    for value in (
+        "UNAS-01 | NFS | Non-Critical Backups",
+        "2026-09-22 01:59:47 UTC",
+        "2026-09-22 02:27:47 UTC",
+    ):
+        assert draw.textlength(
+            value,
+            font=renderer.font_detail,
+        ) <= available
+
+    result_available = available - 50
+    assert draw.textlength(
+        "2 of 3 VMs successful | 1 failed",
+        font=renderer.font_detail,
+    ) <= result_available
+
+
+def test_xo_detail_result_uses_lifecycle_colored_renderer(tmp_path, monkeypatch):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    image = Image.new("RGB", (renderer.WIDTH, renderer.BASE_HEIGHT))
+    draw = ImageDraw.Draw(image)
+    calls = []
+
+    def capture(draw_arg, value, x, y, width, accent):
+        calls.append((value, accent, width))
+
+    monkeypatch.setattr(renderer, "_draw_result_value", capture)
+
+    renderer._detail_rows(
+        draw,
+        (900, 200, 1900, 520),
+        [("chart", "Result", "2 of 3 VMs successful | 1 failed")],
+        result_status="failure",
+    )
+
+    assert len(calls) == 1
+    value, accent, width = calls[0]
+    assert value == "2 of 3 VMs successful | 1 failed"
+    assert accent == renderer.FAILURE
+    assert width > 0
+
+
+def test_xo_footer_icon_is_large_and_trims_transparent_padding(tmp_path):
+    logo = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(logo)
+    draw.rectangle((80, 80, 120, 120), fill=(255, 0, 255, 255))
+    logo.save(tmp_path / "nowlert.png")
+
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    assert renderer.FOOTER_ICON_SIZE >= 96
+
+    image = Image.new(
+        "RGBA",
+        (renderer.FOOTER_ICON_SIZE, renderer.FOOTER_ICON_SIZE),
+        (0, 0, 0, 0),
+    )
+    renderer._draw_nowlert_icon(
+        image,
+        0,
+        0,
+        renderer.FOOTER_ICON_SIZE,
+    )
+
+    magenta = sum(
+        1
+        for red, green, blue, alpha in image.getdata()
+        if alpha > 0 and red > 220 and green < 60 and blue > 220
+    )
+    assert magenta > 6000

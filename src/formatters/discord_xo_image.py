@@ -33,10 +33,10 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     SUCCESS_ROW_HEIGHT_COMPACT = 144
     FOOTER_GAP = 32
     FOOTER_RESERVE = 180
-    FOOTER_ICON_SIZE = 68
+    FOOTER_ICON_SIZE = 96
     FOOTER_TEXT = "Nowlert CE • Modern Card"
-    DETAIL_SPLIT_RATIO = 0.43
-    DETAIL_LABEL_OFFSET = 92
+    DETAIL_SPLIT_RATIO = 0.355
+    DETAIL_LABEL_OFFSET = 84
     DETAIL_VALUE_OFFSET = 300
     DETAIL_LABEL_VALUE_GAP = 32
     STATUS_BADGE_WIDTH = 560
@@ -852,16 +852,13 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
                     120,
                     available - status_size - 12,
                 )
-                self._wrap_text(
+                self._draw_result_value(
                     draw,
                     self._clean(value),
                     text_x,
                     y + 2,
                     text_width,
-                    self.font_detail,
-                    self.TEXT,
-                    max_lines=None,
-                    line_gap=5,
+                    result_color,
                 )
                 lines = self._wrapped_text_lines(
                     draw,
@@ -1773,10 +1770,22 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         if path.is_file():
             try:
                 icon = Image.open(path).convert("RGBA")
-                icon.thumbnail(
-                    (size, size),
-                    Image.Resampling.LANCZOS,
-                )
+                alpha = icon.getchannel("A")
+                bbox = alpha.getbbox()
+                if bbox:
+                    icon = icon.crop(bbox)
+                if icon.width and icon.height:
+                    scale = min(
+                        size / icon.width,
+                        size / icon.height,
+                    )
+                    icon = icon.resize(
+                        (
+                            max(1, int(round(icon.width * scale))),
+                            max(1, int(round(icon.height * scale))),
+                        ),
+                        Image.Resampling.LANCZOS,
+                    )
                 px = int(x + (size - icon.width) / 2)
                 py = int(y + (size - icon.height) / 2)
                 image.alpha_composite(icon, (px, py))
@@ -1948,7 +1957,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             ),
         )
         if draw.textlength(plain, font=font) > width:
-            self._fit_text(
+            self._wrap_text(
                 draw,
                 plain,
                 x,
@@ -1956,6 +1965,8 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
                 width,
                 font,
                 self.TEXT,
+                max_lines=None,
+                line_gap=5,
             )
             return
 
