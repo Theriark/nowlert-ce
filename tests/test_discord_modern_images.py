@@ -163,7 +163,9 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     assert image.startswith(b"\x89PNG\r\n\x1a\n")
     with Image.open(BytesIO(image)) as rendered:
         expected_width = (
-            2064
+            2400
+            if source == "redfish"
+            else 2064
             if source in {
                 "zabbix",
                 "grafana",
@@ -885,7 +887,11 @@ def test_discord_output_routes_standardized_sources_to_xo_scaled_renderers(tmp_p
             ),
         )
         with Image.open(BytesIO(image_bytes)) as image:
-            assert image.width == 2064
+            assert image.width == (
+                2400
+                if source == "redfish"
+                else 2064
+            )
             assert image.height >= 1600
 
 
@@ -2437,21 +2443,22 @@ def test_final_modern_renderers_use_frozen_standard_metrics(
 
 
 @pytest.mark.parametrize(
-    ("source", "renderer_name"),
+    ("source", "renderer_name", "expected_width"),
     (
-        ("supermicro", "hardware_modern_image_renderer"),
-        ("hpe_ilo", "hardware_modern_image_renderer"),
-        ("dell_idrac", "hardware_modern_image_renderer"),
-        ("home_assistant", "home_assistant_modern_image_renderer"),
-        ("redfish", "redfish_modern_image_renderer"),
-        ("nowlert", "generic_fallback_modern_image_renderer"),
-        ("unknown_product", "generic_fallback_modern_image_renderer"),
+        ("supermicro", "hardware_modern_image_renderer", 2064),
+        ("hpe_ilo", "hardware_modern_image_renderer", 2064),
+        ("dell_idrac", "hardware_modern_image_renderer", 2064),
+        ("home_assistant", "home_assistant_modern_image_renderer", 2064),
+        ("redfish", "redfish_modern_image_renderer", 2400),
+        ("nowlert", "generic_fallback_modern_image_renderer", 2064),
+        ("unknown_product", "generic_fallback_modern_image_renderer", 2064),
     ),
 )
 def test_final_sources_render_on_standard_2064x1600_baseline(
     tmp_path,
     source,
     renderer_name,
+    expected_width,
 ):
     output = DiscordOutput()
     output.ICON_DIR = tmp_path
@@ -2466,7 +2473,7 @@ def test_final_sources_render_on_standard_2064x1600_baseline(
     image = output.render_modern_image(item, formatter)
 
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.width == 2064
+        assert rendered.width == expected_width
         assert rendered.height >= 1600
 
 
@@ -2538,3 +2545,56 @@ def test_final_source_xo_icon_vocabulary(tmp_path):
     assert fallback._zabbix_xo_field_icon(
         "Source & Context", "Provider:", "Synthetic HTTP Monitor", "list"
     ) == "repository"
+
+
+
+@pytest.mark.parametrize(
+    ("renderer_class", "category"),
+    (
+        (HardwareDiscordModernImageRenderer, "Firmware"),
+        (HomeAssistantDiscordModernImageRenderer, "Automation"),
+    ),
+)
+def test_information_summary_uses_approved_spaced_geometry(
+    tmp_path,
+    renderer_class,
+    category,
+):
+    renderer = renderer_class(tmp_path)
+    metrics = [
+        ("status", "Severity", "information", renderer.ICON_BLUE),
+        ("sync", "Category", category, renderer.ICON_BLUE),
+        ("clock", "Event time", "17:09:52 UTC", renderer.TEXT),
+    ]
+
+    cells = renderer._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        metrics,
+    )
+
+    widths = [right - left for left, right in cells]
+    assert widths[0] > widths[1]
+    assert cells[1][0] - cells[0][1] == renderer.SUMMARY_CELL_GAP
+    assert cells[2][0] - cells[1][1] == renderer.SUMMARY_CELL_GAP
+
+
+def test_generic_webhook_fallback_uses_larger_canvas_only_for_webhook(tmp_path):
+    renderer = GenericFallbackDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._standard_canvas_width(
+        {"integration": "Generic Webhook"}
+    ) == 2400
+    assert renderer._standard_canvas_width(
+        {"integration": "Generic Http"}
+    ) == 2064
+
+
+def test_redfish_fallback_uses_larger_canvas_and_nowlert_identity(tmp_path):
+    renderer = RedfishDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._standard_canvas_width({}) == 2400
+    assert renderer._standard_product_icon_source(
+        "redfish",
+        {},
+    ) == "nowlert"
