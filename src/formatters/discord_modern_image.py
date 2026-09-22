@@ -1801,8 +1801,10 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     STATUS_BADGE_HEIGHT = XenOrchestraDiscordImageRenderer.STATUS_BADGE_HEIGHT
     SUMMARY_CELL_GAP = (
         XenOrchestraDiscordImageRenderer.SUMMARY_CELL_GAP
-        + 8
+        + 24
     )
+    SUMMARY_FIRST_CELL_RATIO = 0.28
+    SUMMARY_SECOND_CELL_RATIO = 0.32
     SUMMARY_LABEL_OFFSET = 78
     SUMMARY_VALUE_GAP = 20
     HEADER_ICON_SIZE = XenOrchestraDiscordImageRenderer.XO_HEADER_ICON_SIZE
@@ -1850,6 +1852,55 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     @staticmethod
     def _zabbix_line_height(font) -> int:
         return max(font.size + 8, sum(font.getmetrics()))
+
+    def _summary_cells(self, left: int, right: int):
+        """Give Category/Event time more breathing room without resizing text."""
+
+        inner_left = left + 28
+        inner_right = right - 28
+        available = (
+            inner_right
+            - inner_left
+            - self.SUMMARY_CELL_GAP * 2
+        )
+        first = int(
+            available * self.SUMMARY_FIRST_CELL_RATIO
+        )
+        second = int(
+            available * self.SUMMARY_SECOND_CELL_RATIO
+        )
+        third = available - first - second
+
+        cell_1 = (
+            inner_left,
+            inner_left + first,
+        )
+        cell_2 = (
+            cell_1[1] + self.SUMMARY_CELL_GAP,
+            cell_1[1] + self.SUMMARY_CELL_GAP + second,
+        )
+        cell_3 = (
+            cell_2[1] + self.SUMMARY_CELL_GAP,
+            cell_2[1] + self.SUMMARY_CELL_GAP + third,
+        )
+        return [cell_1, cell_2, cell_3]
+
+    def _line_color(
+        self,
+        line,
+        accent,
+    ):
+        color = super()._line_color(line, accent)
+        if (
+            accent == self.FAILURE
+            and re.match(
+                r"^\s*Started:\s",
+                str(line or ""),
+                re.IGNORECASE,
+            )
+        ):
+            return self.FAILURE
+        return color
 
     def _zabbix_xo_section_icon(self, title: str) -> str:
         return self.ZABBIX_XO_SECTION_ICONS.get(

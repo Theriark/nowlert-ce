@@ -850,7 +850,9 @@ def test_zabbix_uses_exact_xo_visual_metrics(tmp_path):
     assert zabbix.STATUS_BADGE_WIDTH == xo.STATUS_BADGE_WIDTH == 560
     assert zabbix.STATUS_BADGE_HEIGHT == xo.STATUS_BADGE_HEIGHT == 128
     assert xo.SUMMARY_CELL_GAP == 48
-    assert zabbix.SUMMARY_CELL_GAP == 56
+    assert zabbix.SUMMARY_CELL_GAP == 72
+    assert zabbix.SUMMARY_FIRST_CELL_RATIO == 0.28
+    assert zabbix.SUMMARY_SECOND_CELL_RATIO == 0.32
     assert zabbix.SUMMARY_LABEL_OFFSET == 78
     assert zabbix.SUMMARY_VALUE_GAP == 20
     assert zabbix.HEADER_ICON_SIZE == xo.XO_HEADER_ICON_SIZE == 144
@@ -1139,8 +1141,9 @@ def test_zabbix_summary_cells_keep_xo_icons_with_more_breathing_room(tmp_path):
 
     # XO renders this summary icon at a hard-coded 54px.
     assert renderer.SUMMARY_ICON_SIZE == 54
-    assert cells[1][0] - cells[0][1] == 56
-    assert cells[2][0] - cells[1][1] == 56
+    assert cells[1][0] - cells[0][1] == 72
+    assert cells[2][0] - cells[1][1] == 72
+    assert cells[1][1] - cells[1][0] >= 540
     assert renderer.SUMMARY_LABEL_OFFSET == 78
     assert renderer.SUMMARY_VALUE_GAP == 20
 
@@ -1209,3 +1212,38 @@ def test_zabbix_four_standard_boxes_expand_for_long_information(tmp_path):
     with Image.open(BytesIO(image)) as rendered:
         assert rendered.width == 2064
         assert rendered.height > 1600
+
+
+
+def test_zabbix_summary_strip_has_more_breathing_room(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    cells = renderer._summary_cells(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+    )
+
+    assert cells[1][0] - cells[0][1] >= 72
+    assert cells[2][0] - cells[1][1] >= 72
+    assert cells[1][1] - cells[1][0] >= 540
+
+
+def test_zabbix_failed_started_timestamp_uses_failure_color(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._line_color(
+        "Started: 2026-09-22 11:00:29",
+        renderer.FAILURE,
+    ) == renderer.FAILURE
+
+
+def test_zabbix_updated_and_resolved_timing_colors_stay_unchanged(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._line_color(
+        "Updated: 2026-09-22 11:00:29",
+        renderer.BRAND_GOLD,
+    ) == renderer.BRAND_GOLD
+    assert renderer._line_color(
+        "Resolved: 2026-09-22 11:00:29",
+        renderer.SUCCESS,
+    ) == renderer.SUCCESS
