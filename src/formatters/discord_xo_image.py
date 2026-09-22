@@ -14,7 +14,7 @@ from formatters.discord_modern_layout import ModernCardLayoutMixin
 class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     """Render XO backup notifications with the approved Nowlert visual system."""
 
-    WIDTH = 1448
+    WIDTH = 2300
     BASE_HEIGHT = 1086
     VM_PANEL_TOP = 682
     VM_HEADER_HEIGHT = 92

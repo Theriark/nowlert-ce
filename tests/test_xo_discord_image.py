@@ -120,7 +120,7 @@ def test_xo_image_renderer_produces_png_for_all_outcomes(tmp_path):
     assert len({data for data in images}) == 3
     for data in images:
         with Image.open(BytesIO(data)) as image:
-            assert image.width == 1448
+            assert image.width == renderer.WIDTH
             assert image.height >= 1086
             assert image.mode in {"RGB", "RGBA"}
         assert len(data) < 5 * 1024 * 1024
@@ -790,3 +790,57 @@ def test_xo_modern_falls_back_to_native_card_if_rendering_fails(monkeypatch):
     assert "with_components=true" in url
     assert "json" in kwargs
     assert kwargs["json"]["flags"] == 32768
+
+
+def test_xo_modern_canvas_is_wide_enough_for_discord_preview(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    assert renderer.WIDTH >= 2200
+
+
+def test_xo_large_profile_keeps_detail_panels_side_by_side(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    item = xo_notification("success")
+    details = [
+        {"rows": [
+            {"icon": "list", "label": "Mode", "value": item.mode},
+            {"icon": "clock", "label": "Duration", "value": renderer._short_duration(item.duration)},
+            {"icon": "cube", "label": "Transfer size", "value": item.transfer_size},
+            {"icon": "rocket", "label": "Speed", "value": item.transfer_speed},
+        ]},
+        {"rows": [
+            {"icon": "repository", "label": "Repository", "value": item.repository},
+            {"icon": "play", "label": "Started", "value": item.start_time},
+            {"icon": "flag", "label": "Finished", "value": item.end_time},
+            {"icon": "chart", "label": "Result", "value": renderer._result_text(item)},
+        ]},
+    ]
+    plan = renderer._standard_card_plan(
+        integration="Xen Orchestra",
+        context=item.repository,
+        badge="Backup Successful",
+        title=item.subject,
+        severity="Successful",
+        category="Backup",
+        event_time=item.end_time,
+        details=details,
+        outcomes=[],
+        font_profile="xo_large",
+    )
+
+    assert len(plan["panels"]) == 2
+    assert plan["panels"][0]["y"] == plan["panels"][1]["y"]
+
+
+def test_xo_success_preview_keeps_landscape_readability_ratio(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    data = renderer.render(xo_notification("success"))
+
+    with Image.open(BytesIO(data)) as image:
+        assert image.width / image.height >= 1.45
+
+
+def test_non_xo_modern_width_remains_unchanged():
+    from formatters.discord_modern_image import DiscordModernImageRenderer
+
+    assert DiscordModernImageRenderer.WIDTH == 1448
