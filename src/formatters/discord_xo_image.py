@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from io import BytesIO
 from math import ceil
 from pathlib import Path
 
@@ -14,29 +15,31 @@ from formatters.discord_modern_layout import ModernCardLayoutMixin
 class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     """Render XO backup notifications with the approved Nowlert visual system."""
 
-    WIDTH = 2300
-    BASE_HEIGHT = 1086
-    VM_PANEL_TOP = 682
-    VM_HEADER_HEIGHT = 92
-    VM_PANEL_BOTTOM_PADDING = 28
-    VM_ENTRY_HEIGHT = 122
-    VM_ENTRY_REASON_HEIGHT = 166
-    SUCCESS_ROW_HEIGHT = 122
-    VM_ENTRY_HEIGHT_LARGE = 136
-    VM_ENTRY_REASON_HEIGHT_LARGE = 184
-    SUCCESS_ROW_HEIGHT_LARGE = 136
-    VM_ENTRY_HEIGHT_COMPACT = 108
-    VM_ENTRY_REASON_HEIGHT_COMPACT = 150
-    SUCCESS_ROW_HEIGHT_COMPACT = 108
-    FOOTER_GAP = 26
-    FOOTER_RESERVE = 118
+    WIDTH = 1700
+    BASE_HEIGHT = 1260
+    CARD_SIDE_PADDING = 78
+    VM_PANEL_TOP = 780
+    VM_HEADER_HEIGHT = 104
+    VM_PANEL_BOTTOM_PADDING = 34
+    VM_ENTRY_HEIGHT = 150
+    VM_ENTRY_REASON_HEIGHT = 230
+    SUCCESS_ROW_HEIGHT = 150
+    VM_ENTRY_HEIGHT_LARGE = 164
+    VM_ENTRY_REASON_HEIGHT_LARGE = 250
+    SUCCESS_ROW_HEIGHT_LARGE = 164
+    VM_ENTRY_HEIGHT_COMPACT = 144
+    VM_ENTRY_REASON_HEIGHT_COMPACT = 230
+    SUCCESS_ROW_HEIGHT_COMPACT = 144
+    FOOTER_GAP = 30
+    FOOTER_RESERVE = 150
     FOOTER_TEXT = "Nowlert CE • Modern Card"
     DETAIL_SPLIT_RATIO = 0.43
-    DETAIL_LABEL_OFFSET = 84
-    DETAIL_VALUE_OFFSET = 260
-    DETAIL_LABEL_VALUE_GAP = 30
-    STATUS_BADGE_WIDTH = 420
-    XO_HEADER_ICON_SIZE = 120
+    DETAIL_LABEL_OFFSET = 92
+    DETAIL_VALUE_OFFSET = 300
+    DETAIL_LABEL_VALUE_GAP = 32
+    STATUS_BADGE_WIDTH = 470
+    STATUS_BADGE_HEIGHT = 102
+    XO_HEADER_ICON_SIZE = 132
     OUTER_GLOW_GOLD_ALPHA = 138
     OUTER_GLOW_ACCENT_ALPHA = 124
     OUTER_GLOW_BLUR = 21
@@ -66,24 +69,24 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     def __init__(self, icon_dir: Path | str = "/nowlert/assets/icons"):
         self.icon_dir = Path(icon_dir)
         self._init_modern_fonts()
-        self.font_micro = self._font(False, 20)
-        self.font_tiny = self._font(False, 22)
-        self.font_small = self._font(False, 25)
-        self.font_detail = self._font(False, 29)
-        self.font_body = self._font(False, 30)
-        self.font_label = self._font(True, 29)
-        self.font_vm_micro = self._font(True, 23)
-        self.font_vm_compact = self._font(True, 26)
-        self.font_vm = self._font(True, 30)
-        self.font_vm_large = self._font(True, 33)
-        self.font_vm_meta_compact = self._font(False, 22)
-        self.font_vm_meta_large = self._font(False, 26)
-        self.font_reason_compact = self._font(False, 22)
-        self.font_reason = self._font(False, 24)
-        self.font_reason_large = self._font(False, 25)
-        self.font_bold = self._font(True, 34)
-        self.font_title = self._font(True, 40)
-        self.font_heading = self._font(True, 48)
+        self.font_micro = self._font(False, 36)
+        self.font_tiny = self._font(False, 36)
+        self.font_small = self._font(False, 36)
+        self.font_detail = self._font(False, 38)
+        self.font_body = self._font(False, 38)
+        self.font_label = self._font(True, 36)
+        self.font_vm_micro = self._font(True, 36)
+        self.font_vm_compact = self._font(True, 36)
+        self.font_vm = self._font(True, 38)
+        self.font_vm_large = self._font(True, 40)
+        self.font_vm_meta_compact = self._font(False, 36)
+        self.font_vm_meta_large = self._font(False, 36)
+        self.font_reason_compact = self._font(False, 36)
+        self.font_reason = self._font(False, 36)
+        self.font_reason_large = self._font(False, 36)
+        self.font_bold = self._font(True, 42)
+        self.font_title = self._font(True, 46)
+        self.font_heading = self._font(True, 56)
 
     @staticmethod
     def _font(bold: bool, size: int):
@@ -108,56 +111,265 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             return ImageFont.load_default()
 
     def render(self, notification: Notification) -> bytes:
-        status, accent, badge = self._status(notification)
-        details = [
-            {"rows": [
-                {"icon": "list", "label": "Mode", "value": notification.mode},
-                {"icon": "clock", "label": "Duration", "value": self._short_duration(notification.duration)},
-                {"icon": "cube", "label": "Transfer size", "value": notification.transfer_size},
-                {"icon": "rocket", "label": "Speed", "value": notification.transfer_speed},
-            ]},
-            {"rows": [
-                {"icon": "repository", "label": "Repository", "value": notification.repository},
-                {"icon": "play", "label": "Started", "value": notification.start_time},
-                {"icon": "flag", "label": "Finished", "value": notification.end_time},
-                {"icon": "chart", "label": "Result", "value": self._result_text(notification)},
-            ]},
-        ]
-        outcomes = []
-        for names, label, kind, color in (
-            (notification.successful_vms, "SUCCESSFUL VMS", "success", self.SUCCESS),
-            (notification.failed_vms, "FAILED VMS", "failure", self.FAILURE),
-            (notification.skipped_vms, "SKIPPED VMS", "skipped", self.SKIPPED),
-        ):
-            if not names:
-                continue
-            entries = []
-            for name in names:
-                rows = []
-                detail = (notification.vm_details or {}).get(name, {}) or {}
-                rows.append({"icon": "cube", "value": name, "role": "section"})
-                for key, icon in (("size", "disk"), ("speed", "rocket"), ("error", "alert")):
-                    if detail.get(key):
-                        rows.append({"icon": icon, "value": detail[key],
-                                     "color": color if key == "error" else self.MUTED})
-                entries.append(rows)
-            outcomes.append({"title": f"{label} ({len(names)})", "entries": entries,
-                             "columns": 3 if kind == "success" and not (
-                                 notification.failed_vms or notification.skipped_vms) else 1,
-                             "accent": color, "status": kind})
-        if not outcomes:
-            outcomes.append({"title": "BACKUP RESULT", "accent": accent, "status": status,
-                             "rows": [{"value": self._result_text(notification)}]})
-        return self._render_standard_card(
-            source="xo", integration="Xen Orchestra",
-            context=self._clean(notification.repository or "Backup"),
-            badge=badge, title=self._clean(notification.subject or notification.body
-                or f"Backup report for {notification.job_name or notification.title or 'Xen Orchestra backup'}"),
-            severity=badge.replace("Backup ", ""), category=self._label(notification.category or "backup"),
-            event_time=self._clean(notification.end_time or notification.start_time or ""),
-            details=details, outcomes=outcomes, accent=accent, status=status,
-            font_profile="xo_large",
+        """Render the approved Xen Orchestra card at the larger readable scale."""
+
+        status, accent, status_label = self._status(notification)
+        successful = list(notification.successful_vms or [])
+        failed = list(notification.failed_vms or [])
+        skipped = list(notification.skipped_vms or [])
+
+        measure = ImageDraw.Draw(Image.new("RGB", (self.WIDTH, 1)))
+        x0 = self.CARD_SIDE_PADDING
+        right = self.WIDTH - self.CARD_SIDE_PADDING
+        header_y = 82
+        xo_icon_size = self.XO_HEADER_ICON_SIZE
+        title_x = x0 + xo_icon_size + 20
+        badge_w = self.STATUS_BADGE_WIDTH
+        badge_h = self.STATUS_BADGE_HEIGHT
+        badge_x = right - badge_w
+
+        repository = self._clean(notification.repository or "Backup")
+        repository_width = max(320, badge_x - title_x - 34)
+        repository_lines = self._wrapped_text_lines(
+            measure, repository, repository_width, self.font_body
+        ) or ["Backup"]
+        body_line_h = self.font_body.getbbox("Ag")[3] - self.font_body.getbbox("Ag")[1]
+        header_height = max(
+            138,
+            70 + len(repository_lines) * (body_line_h + 5),
+            badge_h + 8,
         )
+
+        report = self._clean(
+            notification.subject
+            or notification.body
+            or (
+                "Backup report for "
+                + self._clean(
+                    notification.job_name
+                    or notification.title
+                    or "Xen Orchestra backup"
+                )
+            )
+        )
+        report_width = right - x0 - 60
+        report_lines = self._wrapped_text_lines(
+            measure, report, report_width, self.font_title
+        ) or ["Xen Orchestra backup"]
+        title_line_h = self.font_title.getbbox("Ag")[3] - self.font_title.getbbox("Ag")[1]
+        title_y = header_y + header_height + 24
+        title_h = max(88, 30 + len(report_lines) * (title_line_h + 5))
+
+        metric_y = title_y + title_h + 20
+        metric_h = 92
+        detail_y = metric_y + metric_h + 24
+        gap = 24
+        detail_width = right - x0 - gap
+        left_width = int(detail_width * self.DETAIL_SPLIT_RATIO)
+        right_width = detail_width - left_width
+
+        left_rows = [
+            ("list", "Mode", notification.mode),
+            ("clock", "Duration", self._short_duration(notification.duration)),
+            ("cube", "Transfer size", notification.transfer_size),
+            ("rocket", "Speed", notification.transfer_speed),
+        ]
+        right_rows = [
+            ("repository", "Repository", notification.repository),
+            ("play", "Started", notification.start_time),
+            ("flag", "Finished", notification.end_time),
+            ("chart", "Result", self._result_text(notification)),
+        ]
+        detail_h = max(
+            300,
+            self._detail_rows_height(
+                measure, left_width, left_rows, result_status=None
+            ),
+            self._detail_rows_height(
+                measure, right_width, right_rows, result_status=status
+            ),
+        )
+
+        vm_y = max(self.VM_PANEL_TOP, detail_y + detail_h + 24)
+        vm_panel_height = self._vm_panel_height(
+            notification, successful, failed, skipped
+        )
+        height = max(
+            self.BASE_HEIGHT,
+            vm_y + vm_panel_height + self.FOOTER_GAP + self.FOOTER_RESERVE,
+        )
+        footer_y = self._footer_y(height)
+
+        image = self._background(self.WIDTH, height)
+        self._outer_glows(image, accent, height)
+        draw = ImageDraw.Draw(image, "RGBA")
+
+        card = (30, 38, self.WIDTH - 30, height - 38)
+        self._rounded(
+            draw, card, fill=(*self.CARD_BG, 247),
+            outline=(*self.PANEL_BORDER, 220), radius=28, width=2,
+        )
+        self._draw_status_rail(draw, accent, height)
+        self._draw_gold_frame(draw, card)
+
+        self._draw_xo_art(
+            image, x0, header_y - 4, size=xo_icon_size
+        )
+        draw.text(
+            (title_x, header_y + 2),
+            "Xen Orchestra",
+            font=self.font_heading,
+            fill=self.TEXT,
+        )
+        self._wrap_text(
+            draw, repository, title_x, header_y + 68,
+            repository_width, self.font_body, self.HEADER_MUTED,
+            max_lines=None, line_gap=5,
+        )
+
+        badge = (badge_x, header_y, right, header_y + badge_h)
+        self._glow_box(
+            image, badge, accent, 18, alpha=self.STATUS_GLOW_ALPHA
+        )
+        draw = ImageDraw.Draw(image, "RGBA")
+        self._rounded(
+            draw, badge,
+            fill=(*self._tint(accent, self.CARD_BG, 0.16), 245),
+            outline=(*accent, 225), radius=18, width=2,
+        )
+        self._status_icon(
+            draw, badge_x + 24, header_y + 23, 56, status, accent
+        )
+        draw.text(
+            (badge_x + 96, header_y + 28),
+            status_label,
+            font=self.font_bold,
+            fill=accent if status != "success" else (103, 239, 174),
+        )
+
+        title_box = (x0, title_y, right, title_y + title_h)
+        self._rounded(
+            draw, title_box, fill=(*self.PANEL_2, 248),
+            outline=(93, 101, 108, 190), radius=14, width=2,
+        )
+        self._wrap_text(
+            draw, report, x0 + 30, title_y + 16,
+            report_width, self.font_title, self.TEXT,
+            max_lines=None, line_gap=5,
+        )
+
+        metric_box = (x0, metric_y, right, metric_y + metric_h)
+        self._rounded(
+            draw, metric_box, fill=(*self.PANEL, 248),
+            outline=(*self.PANEL_BORDER, 200), radius=14, width=1,
+        )
+        event_time = self._clean(
+            notification.end_time or notification.start_time or ""
+        )
+        category = self._label(notification.category or "backup")
+        metrics = [
+            ("status", "Severity", status_label.replace("Backup ", ""), accent),
+            ("sync", "Category", category, self.ICON_BLUE),
+            ("clock", "Event time", event_time, (194, 226, 242)),
+        ]
+        content_width = right - x0
+        widths = [int(content_width * 0.28), int(content_width * 0.27)]
+        widths.append(content_width - sum(widths))
+        mx = x0 + 28
+        for index, ((icon, label, value, color), width) in enumerate(
+            zip(metrics, widths)
+        ):
+            self._draw_icon_badge(
+                draw, mx, metric_y + 18, 48, icon, color, status=status
+            )
+            label_x = mx + 66
+            draw.text(
+                (label_x, metric_y + 23),
+                f"{label}:",
+                font=self.font_label,
+                fill=self.TEXT,
+            )
+            label_w = draw.textlength(f"{label}:", font=self.font_label)
+            value_x = label_x + label_w + 12
+            self._fit_text_adaptive(
+                draw, value, value_x, metric_y + 24,
+                max(80, width - 84 - label_w),
+                (self.font_detail, self.font_small, self.font_tiny),
+                self.TEXT,
+            )
+            if index < 2:
+                line_x = mx + width - 10
+                draw.line(
+                    (line_x, metric_y + 20, line_x, metric_y + metric_h - 20),
+                    fill=(102, 112, 119, 160), width=2,
+                )
+            mx += width
+
+        left_box = (
+            x0, detail_y, x0 + left_width, detail_y + detail_h
+        )
+        right_box = (
+            x0 + left_width + gap, detail_y, right, detail_y + detail_h
+        )
+        for box in (left_box, right_box):
+            self._rounded(
+                draw, box, fill=(*self.PANEL_2, 248),
+                outline=(*self.PANEL_BORDER, 205), radius=15, width=2,
+            )
+        self._detail_rows(draw, left_box, left_rows, result_status=None)
+        self._detail_rows(draw, right_box, right_rows, result_status=status)
+
+        vm_bottom = footer_y - self.FOOTER_GAP
+        if failed and skipped:
+            self._mixed_vm_panels(
+                image,
+                draw,
+                (x0, vm_y, right, vm_bottom),
+                successful,
+                failed,
+                skipped,
+                notification,
+            )
+        elif failed:
+            self._paired_vm_panels(
+                image, draw, (x0, vm_y, right, vm_bottom),
+                successful, failed,
+                "FAILED VM" if len(failed) == 1 else "FAILED VMS",
+                self.FAILURE, notification, "failure",
+            )
+        elif skipped:
+            self._paired_vm_panels(
+                image, draw, (x0, vm_y, right, vm_bottom),
+                successful, skipped,
+                "SKIPPED VM" if len(skipped) == 1 else "SKIPPED VMS",
+                self.SKIPPED, notification, "skipped",
+            )
+        else:
+            self._success_panel(
+                image, draw, (x0, vm_y, right, vm_bottom),
+                successful, notification,
+            )
+
+        draw.line(
+            (x0, footer_y - 10, right, footer_y - 10),
+            fill=(81, 89, 95, 170), width=2,
+        )
+        icon_size = 48
+        icon_x = x0 + 18
+        icon_y = footer_y + 8
+        self._draw_nowlert_icon(image, icon_x, icon_y, icon_size)
+        draw.text(
+            (icon_x + icon_size + 14, footer_y + 12),
+            self.FOOTER_TEXT,
+            font=self.font_small,
+            fill=self.MUTED,
+        )
+
+        output = BytesIO()
+        image.convert("RGB").save(
+            output, format="PNG", optimize=True, compress_level=7
+        )
+        return output.getvalue()
 
     def _vm_panel_height(
         self,
@@ -166,64 +378,114 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         failed,
         skipped,
     ) -> int:
-        """Return the minimum VM panel height required by its real content."""
+        """Return the VM panel height required by the approved dynamic layout."""
 
-        total_vm_count = len(successful) + len(failed) + len(skipped)
+        total_vm_count = (
+            len(successful) + len(failed) + len(skipped)
+        )
         style = self._vm_style(total_vm_count)
+        panel_width = self.WIDTH - self.CARD_SIDE_PADDING * 2
+
+        if failed and skipped:
+            gap = 18
+            entry_padding = 32
+            column_width = (
+                panel_width - gap * 2
+            ) // 3
+            entry_width = max(
+                180,
+                column_width - entry_padding * 2,
+            )
+            heights = [
+                self._vm_column_height(
+                    notification,
+                    successful,
+                    include_reason=False,
+                    vm_count=total_vm_count,
+                    entry_width=entry_width,
+                ),
+                self._vm_column_height(
+                    notification,
+                    failed,
+                    include_reason=True,
+                    vm_count=total_vm_count,
+                    entry_width=entry_width,
+                ),
+                self._vm_column_height(
+                    notification,
+                    skipped,
+                    include_reason=True,
+                    vm_count=total_vm_count,
+                    entry_width=entry_width,
+                ),
+            ]
+            return max(
+                330,
+                self.VM_HEADER_HEIGHT
+                + max(heights)
+                + self.VM_PANEL_BOTTOM_PADDING,
+            )
 
         if failed or skipped:
             other = failed or skipped
             gap = 18
-            entry_padding = 34
-            panel_width = self.WIDTH - 140
-            left_ratio = self._paired_panel_left_ratio(
-                successful,
-                other,
-                notification,
-            )
+            entry_padding = 36
             left_width = int(
-                (panel_width - gap) * left_ratio
+                (panel_width - gap) * self.PAIRED_PANEL_LEFT_RATIO
             )
             right_width = panel_width - left_width - gap
-
             successful_height = self._vm_column_height(
                 notification,
                 successful,
                 include_reason=False,
                 vm_count=total_vm_count,
-                entry_width=max(
-                    180,
-                    left_width - entry_padding * 2,
-                ),
+                entry_width=max(180, left_width - entry_padding * 2),
             )
             other_height = self._vm_column_height(
                 notification,
                 other,
                 include_reason=True,
                 vm_count=total_vm_count,
-                entry_width=max(
-                    180,
-                    right_width - entry_padding * 2,
-                ),
+                entry_width=max(180, right_width - entry_padding * 2),
             )
-            content_height = max(successful_height, other_height)
             return max(
-                250,
-                (
-                    self.VM_HEADER_HEIGHT
-                    + content_height
-                    + self.VM_PANEL_BOTTOM_PADDING
-                ),
+                330,
+                self.VM_HEADER_HEIGHT
+                + max(successful_height, other_height)
+                + self.VM_PANEL_BOTTOM_PADDING,
             )
 
-        rows = max(1, (len(successful) + 2) // 3)
+        if not successful:
+            return 330
+
+        columns = 3
+        horizontal_padding = 38
+        col_w = (
+            panel_width - horizontal_padding * 2
+        ) // columns
+        entry_width = max(180, col_w - 38)
+        content_height = 0
+        for start in range(0, len(successful), columns):
+            group = successful[start:start + columns]
+            content_height += max(
+                max(
+                    self._vm_entry_height(
+                        notification,
+                        name,
+                        include_reason=False,
+                        vm_count=total_vm_count,
+                        entry_width=entry_width,
+                    )
+                    for name in group
+                ),
+                style["row_height"],
+            )
+
         return max(
-            250,
-            (
-                self.VM_HEADER_HEIGHT
-                + rows * style["row_height"]
-                + self.VM_PANEL_BOTTOM_PADDING
-            ),
+            330,
+            self.VM_HEADER_HEIGHT
+            + content_height
+            + self.VM_PANEL_BOTTOM_PADDING,
         )
 
     def _vm_column_height(
@@ -261,19 +523,34 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     ) -> int:
         detail = (notification.vm_details or {}).get(name, {}) or {}
         style = self._vm_style(vm_count)
+
+        extra_name_height = 0
+        if entry_width:
+            measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+            name_width = max(140, entry_width - style["name_offset"])
+            name_lines = self._wrapped_text_lines(
+                measure,
+                self._clean(name),
+                name_width,
+                style["name_font"],
+            ) or [self._clean(name)]
+            name_line_h = (
+                style["name_font"].getbbox("Ag")[3]
+                - style["name_font"].getbbox("Ag")[1]
+            )
+            extra_name_height = max(0, len(name_lines) - 1) * (
+                name_line_h + 4
+            )
+
+        base_height = style["entry_height"] + extra_name_height
         reason = self._clean(detail.get("error") or "")
         if not include_reason or not reason:
-            return style["entry_height"]
-
+            return base_height
         if not entry_width:
-            return style["reason_height"]
+            return max(base_height, style["reason_height"])
 
-        reason_width = max(
-            160,
-            entry_width - style["meta_offset"],
-        )
-        measure_image = Image.new("RGB", (1, 1))
-        measure = ImageDraw.Draw(measure_image)
+        measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+        reason_width = max(160, entry_width - style["meta_offset"])
         lines = self._wrapped_text_lines(
             measure,
             reason,
@@ -286,13 +563,11 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         )
         required = (
             style["reason_y"]
+            + extra_name_height
             + max(1, len(lines)) * (line_h + 4)
-            + 16
+            + 20
         )
-        return max(
-            style["reason_height"],
-            required,
-        )
+        return max(base_height, style["reason_height"], required)
 
     def _vm_style(self, vm_count: int) -> dict:
         """Scale VM typography for normal, busy, and unusually large jobs."""
@@ -306,13 +581,13 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
                 "entry_height": self.VM_ENTRY_HEIGHT_LARGE,
                 "reason_height": self.VM_ENTRY_REASON_HEIGHT_LARGE,
                 "row_height": self.SUCCESS_ROW_HEIGHT_LARGE,
-                "main_icon": 44,
-                "meta_icon": 31,
-                "name_offset": 60,
-                "meta_offset": 102,
-                "size_y": 47,
-                "speed_y": 82,
-                "reason_y": 118,
+                "main_icon": 48,
+                "meta_icon": 34,
+                "name_offset": 66,
+                "meta_offset": 112,
+                "size_y": 54,
+                "speed_y": 96,
+                "reason_y": 138,
             }
         if vm_count <= 12:
             return {
@@ -323,13 +598,13 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
                 "entry_height": self.VM_ENTRY_HEIGHT,
                 "reason_height": self.VM_ENTRY_REASON_HEIGHT,
                 "row_height": self.SUCCESS_ROW_HEIGHT,
-                "main_icon": 42,
-                "meta_icon": 30,
-                "name_offset": 58,
-                "meta_offset": 98,
-                "size_y": 43,
-                "speed_y": 76,
-                "reason_y": 109,
+                "main_icon": 46,
+                "meta_icon": 32,
+                "name_offset": 64,
+                "meta_offset": 108,
+                "size_y": 52,
+                "speed_y": 92,
+                "reason_y": 132,
             }
         return {
             "name_font": self.font_vm_compact,
@@ -339,39 +614,94 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             "entry_height": self.VM_ENTRY_HEIGHT_COMPACT,
             "reason_height": self.VM_ENTRY_REASON_HEIGHT_COMPACT,
             "row_height": self.SUCCESS_ROW_HEIGHT_COMPACT,
-            "main_icon": 38,
-            "meta_icon": 26,
-            "name_offset": 52,
-            "meta_offset": 88,
-            "size_y": 37,
-            "speed_y": 65,
-            "reason_y": 94,
+            "main_icon": 44,
+            "meta_icon": 30,
+            "name_offset": 60,
+            "meta_offset": 102,
+            "size_y": 50,
+            "speed_y": 88,
+            "reason_y": 126,
         }
 
-    def _detail_rows(self, draw, box, rows, *, result_status):
+    def _detail_rows_height(
+        self,
+        draw,
+        width,
+        rows,
+        *,
+        result_status,
+    ):
+        """Measure the approved detail panel without shrinking or clipping."""
+
+        y = 30
+        line_h = (
+            self.font_detail.getbbox("Ag")[3]
+            - self.font_detail.getbbox("Ag")[1]
+        )
+        for _icon, label, value in rows:
+            if value is None or str(value).strip() == "":
+                y += 66
+                continue
+            label_end = (
+                self.DETAIL_LABEL_OFFSET
+                + draw.textlength(
+                    self._clean(label),
+                    font=self.font_label,
+                )
+            )
+            value_x = max(
+                self.DETAIL_VALUE_OFFSET,
+                ceil(label_end + self.DETAIL_LABEL_VALUE_GAP),
+            )
+            available = max(120, width - value_x - 24)
+            if label == "Result" and result_status:
+                available = max(120, available - 50)
+            lines = self._wrapped_text_lines(
+                draw,
+                self._clean(value),
+                available,
+                self.font_detail,
+            ) or [""]
+            y += max(66, len(lines) * (line_h + 5) + 12)
+        return y + 24
+
+    def _detail_rows(
+        self,
+        draw,
+        box,
+        rows,
+        *,
+        result_status,
+    ):
         x1, y1, x2, _ = box
-        y = y1 + 28
+        y = y1 + 30
+        line_h = (
+            self.font_detail.getbbox("Ag")[3]
+            - self.font_detail.getbbox("Ag")[1]
+        )
         label_x = x1 + self.DETAIL_LABEL_OFFSET
+
         for _index, (icon, label, value) in enumerate(rows):
             if value is None or str(value).strip() == "":
-                y += 55
+                y += 66
                 continue
-            self._draw_field_icon(draw, x1 + 24, y - 3, 40, icon)
+            self._draw_field_icon(draw, x1 + 24, y - 4, 44, icon)
             draw.text(
-                (label_x, y + 1),
+                (label_x, y + 2),
                 label,
                 font=self.font_label,
                 fill=self.LABEL,
             )
             value_x = self._detail_value_x(draw, x1, label)
-            available = x2 - value_x - 22
+            available = max(120, x2 - value_x - 24)
+
             if label == "Result" and result_status:
                 result_color = {
                     "success": self.SUCCESS,
                     "failure": self.FAILURE,
                     "skipped": self.SKIPPED,
                 }.get(result_status, self.SUCCESS)
-                status_size = 34
+                status_size = 38
                 self._draw_icon_badge(
                     draw,
                     value_x,
@@ -381,31 +711,56 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
                     result_color,
                     status=result_status,
                 )
-                self._draw_result_value(
+                text_x = value_x + status_size + 12
+                text_width = max(
+                    120,
+                    available - status_size - 12,
+                )
+                self._wrap_text(
                     draw,
                     self._clean(value),
-                    value_x + status_size + 10,
+                    text_x,
                     y + 2,
-                    available - status_size - 10,
-                    result_color,
+                    text_width,
+                    self.font_detail,
+                    self.TEXT,
+                    max_lines=None,
+                    line_gap=5,
                 )
+                lines = self._wrapped_text_lines(
+                    draw,
+                    self._clean(value),
+                    text_width,
+                    self.font_detail,
+                ) or [""]
             else:
-                self._fit_text_adaptive(
+                self._wrap_text(
                     draw,
                     self._clean(value),
                     value_x,
                     y + 2,
                     available,
-                    (
-                        self.font_detail,
-                        self.font_small,
-                        self.font_tiny,
-                    ),
+                    self.font_detail,
                     self.TEXT,
+                    max_lines=None,
+                    line_gap=5,
                 )
-            y += 55
+                lines = self._wrapped_text_lines(
+                    draw,
+                    self._clean(value),
+                    available,
+                    self.font_detail,
+                ) or [""]
+            y += max(66, len(lines) * (line_h + 5) + 12)
 
-    def _success_panel(self, image, draw, box, names, notification):
+    def _success_panel(
+        self,
+        image,
+        draw,
+        box,
+        names,
+        notification,
+    ):
         self._glow_box(image, box, self.SUCCESS, 18, alpha=58)
         draw = ImageDraw.Draw(image, "RGBA")
         self._rounded(
@@ -417,16 +772,18 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             width=2,
         )
         x1, y1, x2, _ = box
-        self._status_icon(draw, x1 + 26, y1 + 18, 48, "success", self.SUCCESS)
+        self._status_icon(
+            draw, x1 + 28, y1 + 22, 54, "success", self.SUCCESS
+        )
         draw.text(
-            (x1 + 88, y1 + 25),
+            (x1 + 98, y1 + 29),
             f"SUCCESSFUL VMS ({len(names)})",
             font=self.font_bold,
             fill=(92, 242, 190),
         )
         if not names:
             draw.text(
-                (x1 + 32, y1 + 98),
+                (x1 + 36, y1 + self.VM_HEADER_HEIGHT),
                 "No VM details reported.",
                 font=self.font_small,
                 fill=self.MUTED,
@@ -435,32 +792,150 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
 
         columns = 3
         total_vm_count = len(names)
-        style = self._vm_style(total_vm_count)
-        horizontal_padding = 34
-        col_w = (x2 - x1 - horizontal_padding * 2) // columns
-        for index, name in enumerate(names):
-            row = index // columns
-            col = index % columns
-            cx = x1 + horizontal_padding + col * col_w
-            cy = y1 + 93 + row * style["row_height"]
-            if col:
-                divider_x = cx - 17
-                draw.line(
-                    (divider_x, cy - 4, divider_x, cy + 92),
-                    fill=(42, 183, 132, 150),
-                    width=1,
+        horizontal_padding = 38
+        col_w = (
+            x2 - x1 - horizontal_padding * 2
+        ) // columns
+        entry_width = max(180, col_w - 38)
+        cy = y1 + self.VM_HEADER_HEIGHT
+
+        for start in range(0, len(names), columns):
+            group = names[start:start + columns]
+            row_height = max(
+                self._vm_entry_height(
+                    notification,
+                    name,
+                    include_reason=False,
+                    vm_count=total_vm_count,
+                    entry_width=entry_width,
                 )
-            self._vm_entry(
-                draw,
-                cx,
-                cy,
-                col_w - 34,
-                name,
-                notification,
-                self.SUCCESS,
-                include_reason=False,
-                vm_count=total_vm_count,
+                for name in group
             )
+            for col, name in enumerate(group):
+                cx = x1 + horizontal_padding + col * col_w
+                if col:
+                    divider_x = cx - 19
+                    draw.line(
+                        (
+                            divider_x,
+                            cy - 4,
+                            divider_x,
+                            cy + row_height - 20,
+                        ),
+                        fill=(42, 183, 132, 150),
+                        width=1,
+                    )
+                self._vm_entry(
+                    draw,
+                    cx,
+                    cy,
+                    entry_width,
+                    name,
+                    notification,
+                    self.SUCCESS,
+                    include_reason=False,
+                    vm_count=total_vm_count,
+                )
+            cy += row_height
+
+    def _mixed_vm_panels(
+        self,
+        image,
+        draw,
+        box,
+        successful,
+        failed,
+        skipped,
+        notification,
+    ):
+        """Render rare mixed success/failure/skipped results without hiding data."""
+
+        x1, y1, x2, y2 = box
+        gap = 18
+        panel_width = (x2 - x1 - gap * 2) // 3
+        specs = [
+            (
+                successful,
+                "SUCCESSFUL VMS",
+                self.SUCCESS,
+                "success",
+                (0, 61, 49, 226),
+                (92, 242, 190),
+            ),
+            (
+                failed,
+                "FAILED VMS",
+                self.FAILURE,
+                "failure",
+                (56, 17, 23, 232),
+                (255, 122, 134),
+            ),
+            (
+                skipped,
+                "SKIPPED VMS",
+                self.SKIPPED,
+                "skipped",
+                (11, 50, 75, 232),
+                (94, 202, 255),
+            ),
+        ]
+        total_vm_count = len(successful) + len(failed) + len(skipped)
+
+        for index, (names, title, color, status, fill, title_color) in enumerate(specs):
+            px1 = x1 + index * (panel_width + gap)
+            px2 = x2 if index == 2 else px1 + panel_width
+            panel = (px1, y1, px2, y2)
+            self._glow_box(image, panel, color, 17, alpha=56)
+            draw = ImageDraw.Draw(image, "RGBA")
+            self._rounded(
+                draw,
+                panel,
+                fill=fill,
+                outline=(*color, 230),
+                radius=17,
+                width=2,
+            )
+            self._status_icon(
+                draw,
+                px1 + 24,
+                y1 + 22,
+                50,
+                status,
+                color,
+            )
+            draw.text(
+                (px1 + 88, y1 + 30),
+                f"{title} ({len(names)})",
+                font=self.font_bold,
+                fill=title_color,
+            )
+
+            entry_padding = 32
+            entry_width = max(
+                180,
+                px2 - px1 - entry_padding * 2,
+            )
+            entry_y = y1 + self.VM_HEADER_HEIGHT
+            for name in names:
+                self._vm_entry(
+                    draw,
+                    px1 + entry_padding,
+                    entry_y,
+                    entry_width,
+                    name,
+                    notification,
+                    color,
+                    include_reason=status != "success",
+                    reason_status=status,
+                    vm_count=total_vm_count,
+                )
+                entry_y += self._vm_entry_height(
+                    notification,
+                    name,
+                    include_reason=status != "success",
+                    vm_count=total_vm_count,
+                    entry_width=entry_width,
+                )
 
     def _paired_panel_left_ratio(
         self,
@@ -468,25 +943,8 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         other,
         notification,
     ) -> float:
-        """Give the exception panel extra width when its content needs it."""
+        """Keep failure and skipped cards on the same approved split."""
 
-        other_pressure = 0
-        for name in other:
-            detail = (notification.vm_details or {}).get(name, {}) or {}
-            reason = self._clean(detail.get("error") or "")
-            other_pressure = max(
-                other_pressure,
-                len(self._clean(name)),
-                min(60, len(reason)),
-            )
-
-        success_pressure = max(
-            (len(self._clean(name)) for name in successful),
-            default=0,
-        )
-
-        if other_pressure >= 22 or other_pressure > success_pressure + 4:
-            return self.PAIRED_PANEL_LONG_OTHER_LEFT_RATIO
         return self.PAIRED_PANEL_LEFT_RATIO
 
     def _paired_vm_panels(
@@ -540,14 +998,14 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
 
         self._status_icon(
             draw,
-            left[0] + 26,
-            y1 + 18,
-            48,
+            left[0] + 28,
+            y1 + 22,
+            54,
             "success",
             self.SUCCESS,
         )
         draw.text(
-            (left[0] + 88, y1 + 25),
+            (left[0] + 98, y1 + 29),
             f"SUCCESSFUL VMS ({len(successful)})",
             font=self.font_bold,
             fill=(92, 242, 190),
@@ -555,14 +1013,14 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
 
         self._status_icon(
             draw,
-            right[0] + 26,
-            y1 + 18,
-            48,
+            right[0] + 28,
+            y1 + 22,
+            54,
             other_status,
             other_color,
         )
         draw.text(
-            (right[0] + 88, y1 + 25),
+            (right[0] + 98, y1 + 29),
             f"{other_title} ({len(other)})",
             font=self.font_bold,
             fill=(
@@ -573,7 +1031,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         )
 
         total_vm_count = len(successful) + len(other)
-        entry_padding = 34
+        entry_padding = 36
         success_width = (
             left[2] - left[0] - entry_padding * 2
         )
@@ -646,54 +1104,67 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         meta_offset = style["meta_offset"]
 
         self._draw_field_icon(draw, x, y - 2, main_icon, "cube")
-        self._fit_text_adaptive(
+        name_width = max(140, width - name_offset)
+        name_lines = self._wrapped_text_lines(
+            draw,
+            self._clean(name),
+            name_width,
+            style["name_font"],
+        ) or [self._clean(name)]
+        name_line_h = (
+            style["name_font"].getbbox("Ag")[3]
+            - style["name_font"].getbbox("Ag")[1]
+        )
+        self._wrap_text(
             draw,
             self._clean(name),
             x + name_offset,
             y,
-            width - name_offset,
-            (
-                style["name_font"],
-                style["name_fallback_font"],
-            ),
+            name_width,
+            style["name_font"],
             self.TEXT,
+            max_lines=None,
+            line_gap=4,
+        )
+        extra_name_height = max(0, len(name_lines) - 1) * (
+            name_line_h + 4
         )
 
         size = self._clean(detail.get("size") or "")
         speed = self._clean(detail.get("speed") or "")
+        size_y = y + style["size_y"] + extra_name_height
+        speed_y = y + style["speed_y"] + extra_name_height
+        reason_y = y + style["reason_y"] + extra_name_height
+
         if size:
             self._draw_field_icon(
-                draw,
-                x + name_offset,
-                y + style["size_y"],
-                meta_icon,
-                "disk",
+                draw, x + name_offset, size_y, meta_icon, "disk"
             )
-            self._fit_text(
+            self._wrap_text(
                 draw,
                 size,
                 x + meta_offset,
-                y + style["size_y"] + 1,
-                width - meta_offset,
+                size_y + 1,
+                max(100, width - meta_offset),
                 style["meta_font"],
                 self.MUTED,
+                max_lines=None,
+                line_gap=4,
             )
         if speed:
             self._draw_field_icon(
-                draw,
-                x + name_offset,
-                y + style["speed_y"],
-                meta_icon,
-                "rocket",
+                draw, x + name_offset, speed_y, meta_icon, "rocket"
             )
-            self._fit_text(
+            self._wrap_text(
                 draw,
                 speed,
                 x + meta_offset,
-                y + style["speed_y"] + 1,
-                width - meta_offset,
+                speed_y + 1,
+                max(100, width - meta_offset),
                 style["meta_font"],
                 self.MUTED,
+                max_lines=None,
+                line_gap=4,
             )
 
         if include_reason and detail.get("error"):
@@ -705,7 +1176,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             self._draw_field_icon(
                 draw,
                 x + name_offset,
-                y + style["reason_y"],
+                reason_y,
                 meta_icon,
                 "alert" if reason_status == "failure" else "info",
             )
@@ -713,8 +1184,8 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
                 draw,
                 self._clean(detail["error"]),
                 x + meta_offset,
-                y + style["reason_y"],
-                width - meta_offset,
+                reason_y,
+                max(120, width - meta_offset),
                 style["reason_font"],
                 reason_color,
                 max_lines=None,

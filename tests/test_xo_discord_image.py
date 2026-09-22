@@ -127,45 +127,6 @@ def test_xo_image_renderer_produces_png_for_all_outcomes(tmp_path):
 
 
 
-def test_xo_modern_uses_large_readability_profile_without_changing_default(tmp_path):
-    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
-
-    default = renderer.modern_fonts
-    large = renderer.modern_font_profiles["xo_large"]
-
-    assert default["heading"].size == 54
-    assert default["title"].size == 42
-    assert default["body"].size == 40
-    assert default["label"].size == 36
-
-    assert large["heading"].size >= 66
-    assert large["title"].size >= 60
-    assert large["badge"].size >= 48
-    assert large["section"].size >= 52
-    assert large["label"].size >= 50
-    assert large["body"].size >= 56
-    assert large["context"].size >= 46
-
-
-def test_xo_render_requests_large_modern_readability_profile(tmp_path, monkeypatch):
-    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
-    captured = {}
-
-    def capture(**kwargs):
-        captured.update(kwargs)
-        return b"synthetic"
-
-    monkeypatch.setattr(
-        renderer,
-        "_render_standard_card",
-        capture,
-    )
-
-    assert renderer.render(xo_notification("success")) == b"synthetic"
-    assert captured["source"] == "xo"
-    assert captured["font_profile"] == "xo_large"
-
-
 def test_xo_image_renderer_uses_nowlert_brand_and_state_accents(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
 
@@ -186,9 +147,14 @@ def test_xo_image_renderer_uses_nowlert_brand_and_state_accents(tmp_path):
             rail = image.getpixel((39, 500))
             assert all(abs(rail[i] - accent[i]) <= 8 for i in range(3))
 
-            # The main information panel remains dark/neutral rather than
-            # inheriting a blue Discord background.
-            panel = image.getpixel((500, 430))
+            # The approved detail panel remains dark/neutral rather than
+            # inheriting a lifecycle-colored background.
+            panel = image.getpixel(
+                (
+                    renderer.CARD_SIDE_PADDING + 10,
+                    renderer.VM_PANEL_TOP - 10,
+                )
+            )
             assert max(panel) < 80
 
 
@@ -381,7 +347,7 @@ def test_xo_header_uses_xo_icon_on_left_and_status_badge_at_right(tmp_path):
             for red, green, blue in right_icon_area
         )
 
-    assert renderer.STATUS_BADGE_WIDTH == 420
+    assert renderer.STATUS_BADGE_WIDTH == 470
 
 
 def test_xo_footer_identity_is_nowlert_ce_modern_card():
@@ -446,53 +412,39 @@ def test_xo_footer_is_left_aligned_with_bottom_breathing_room(tmp_path):
     assert renderer.FOOTER_RESERVE >= 118
 
 
-def test_xo_detail_values_fit_repository_and_skipped_result(tmp_path):
+def test_xo_detail_values_wrap_at_readable_size_without_truncation(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
     image = Image.new("RGB", (renderer.WIDTH, renderer.BASE_HEIGHT))
     draw = ImageDraw.Draw(image)
 
-    x0 = 70
-    right = renderer.WIDTH - 70
-    gap = 22
+    x0 = renderer.CARD_SIDE_PADDING
+    right = renderer.WIDTH - renderer.CARD_SIDE_PADDING
+    gap = 24
     detail_width = right - x0 - gap
     left_width = int(detail_width * renderer.DETAIL_SPLIT_RATIO)
     right_x1 = x0 + left_width + gap
-    repository = "UNAS-01 | NFS | Non-Critical Backups"
-    value_x = renderer._detail_value_x(draw, right_x1, "Repository")
-    available = right - value_x - 22
-    repository_font = renderer._fit_text_adaptive(
-        draw,
-        repository,
-        value_x,
-        0,
-        available,
-        (
-            renderer.font_small,
-            renderer.font_tiny,
-            renderer.font_micro,
-        ),
-        renderer.TEXT,
-    )
-    assert draw.textlength(repository, font=repository_font) <= available
+    right_width = right - right_x1
 
-    result = "2 of 3 VMs successful | 1 skipped"
-    result_value_x = renderer._detail_value_x(draw, right_x1, "Result")
-    result_available = right - result_value_x - 22 - 34 - 10
-    result_font = renderer._fit_text_adaptive(
-        draw,
-        result,
-        result_value_x + 44,
-        0,
-        result_available,
-        (
-            renderer.font_small,
-            renderer.font_tiny,
-            renderer.font_micro,
-        ),
-        renderer.TEXT,
-    )
-    assert draw.textlength(result, font=result_font) <= result_available
-
+    for label, value in (
+        ("Repository", "UNAS-01 | NFS | Non-Critical Backups"),
+        ("Result", "2 of 3 VMs successful | 1 skipped"),
+    ):
+        value_x = renderer._detail_value_x(draw, right_x1, label)
+        available = max(120, right - value_x - 24)
+        if label == "Result":
+            available = max(120, available - 50)
+        lines = renderer._wrapped_text_lines(
+            draw,
+            value,
+            available,
+            renderer.font_detail,
+        )
+        assert lines
+        assert " ".join(lines) == value
+        assert all(
+            draw.textlength(line, font=renderer.font_detail) <= available
+            for line in lines
+        )
 
 def test_xo_header_icon_is_large_and_trims_transparent_padding(tmp_path):
     discord_dir = tmp_path / "discord"
@@ -520,50 +472,51 @@ def test_xo_header_icon_is_large_and_trims_transparent_padding(tmp_path):
         assert magenta > 7000
 
 
-def test_xo_exception_panel_gets_extra_width_for_long_vm_content(tmp_path):
+def test_xo_failure_and_skipped_use_same_approved_panel_split(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
-    item = xo_notification("skipped")
+    failure = xo_notification("failure")
+    skipped = xo_notification("skipped")
 
-    ratio = renderer._paired_panel_left_ratio(
-        item.successful_vms,
-        item.skipped_vms,
-        item,
+    failure_ratio = renderer._paired_panel_left_ratio(
+        failure.successful_vms,
+        failure.failed_vms,
+        failure,
+    )
+    skipped_ratio = renderer._paired_panel_left_ratio(
+        skipped.successful_vms,
+        skipped.skipped_vms,
+        skipped,
     )
 
-    assert ratio == renderer.PAIRED_PANEL_LONG_OTHER_LEFT_RATIO
-    assert ratio < 0.50
+    assert failure_ratio == renderer.PAIRED_PANEL_LEFT_RATIO
+    assert skipped_ratio == renderer.PAIRED_PANEL_LEFT_RATIO
+    assert failure_ratio == skipped_ratio
 
-
-def test_xo_vm_name_uses_smaller_font_before_ellipsis(tmp_path):
+def test_xo_vm_name_wraps_instead_of_shrinking_or_ellipsizing(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
     image = Image.new("RGB", (renderer.WIDTH, renderer.BASE_HEIGHT))
     draw = ImageDraw.Draw(image)
     style = renderer._vm_style(3)
 
-    name = "VM-12 | Maintenance Window"
-    normal_width = draw.textlength(name, font=style["name_font"])
-    fallback_width = draw.textlength(
-        name,
-        font=style["name_fallback_font"],
+    name = (
+        "VM-12 | Maintenance Window With A Very Long Operational Name "
+        "That Must Remain Complete"
     )
-    available = int((normal_width + fallback_width) / 2)
-
-    selected = renderer._fit_text_adaptive(
+    available = 360
+    lines = renderer._wrapped_text_lines(
         draw,
         name,
-        0,
-        0,
         available,
-        (
-            style["name_font"],
-            style["name_fallback_font"],
-        ),
-        renderer.TEXT,
+        style["name_font"],
     )
 
-    assert selected == style["name_fallback_font"]
-    assert draw.textlength(name, font=selected) <= available
-
+    assert len(lines) > 1
+    assert " ".join(lines) == name
+    assert style["name_font"].size >= 36
+    assert all(
+        draw.textlength(line, font=style["name_font"]) <= available
+        for line in lines
+    )
 
 def test_xo_exception_reason_type_is_more_readable(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
@@ -577,20 +530,21 @@ def test_xo_exception_reason_type_is_more_readable(tmp_path):
     assert compact["reason_font"].size >= 18
 
 
-def test_xo_vm_typography_is_responsive_to_job_size(tmp_path):
+def test_xo_vm_typography_never_drops_below_readable_floor(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
 
     comfortable = renderer._vm_style(3)
     standard = renderer._vm_style(9)
     compact = renderer._vm_style(20)
 
-    assert comfortable["name_font"].size > standard["name_font"].size
-    assert standard["name_font"].size > compact["name_font"].size
-    assert comfortable["meta_font"].size > standard["meta_font"].size
-    assert standard["meta_font"].size > compact["meta_font"].size
+    for style in (comfortable, standard, compact):
+        assert style["name_font"].size >= 36
+        assert style["name_fallback_font"].size >= 36
+        assert style["meta_font"].size >= 36
+        assert style["reason_font"].size >= 36
+
     assert comfortable["row_height"] > standard["row_height"]
     assert standard["row_height"] > compact["row_height"]
-
 
 def test_xo_result_exception_uses_lifecycle_accent(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
@@ -792,52 +746,60 @@ def test_xo_modern_falls_back_to_native_card_if_rendering_fails(monkeypatch):
     assert kwargs["json"]["flags"] == 32768
 
 
-def test_xo_modern_canvas_is_wide_enough_for_discord_preview(tmp_path):
+
+def test_xo_uses_dedicated_approved_renderer_not_shared_standard_card(
+    tmp_path,
+    monkeypatch,
+):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
 
-    assert renderer.WIDTH >= 2200
+    def shared_layout_must_not_run(**_kwargs):
+        raise AssertionError(
+            "Xen Orchestra must keep its dedicated approved renderer"
+        )
 
-
-def test_xo_large_profile_keeps_detail_panels_side_by_side(tmp_path):
-    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
-    item = xo_notification("success")
-    details = [
-        {"rows": [
-            {"icon": "list", "label": "Mode", "value": item.mode},
-            {"icon": "clock", "label": "Duration", "value": renderer._short_duration(item.duration)},
-            {"icon": "cube", "label": "Transfer size", "value": item.transfer_size},
-            {"icon": "rocket", "label": "Speed", "value": item.transfer_speed},
-        ]},
-        {"rows": [
-            {"icon": "repository", "label": "Repository", "value": item.repository},
-            {"icon": "play", "label": "Started", "value": item.start_time},
-            {"icon": "flag", "label": "Finished", "value": item.end_time},
-            {"icon": "chart", "label": "Result", "value": renderer._result_text(item)},
-        ]},
-    ]
-    plan = renderer._standard_card_plan(
-        integration="Xen Orchestra",
-        context=item.repository,
-        badge="Backup Successful",
-        title=item.subject,
-        severity="Successful",
-        category="Backup",
-        event_time=item.end_time,
-        details=details,
-        outcomes=[],
-        font_profile="xo_large",
+    monkeypatch.setattr(
+        renderer,
+        "_render_standard_card",
+        shared_layout_must_not_run,
     )
 
-    assert len(plan["panels"]) == 2
-    assert plan["panels"][0]["y"] == plan["panels"][1]["y"]
-
-
-def test_xo_success_preview_keeps_landscape_readability_ratio(tmp_path):
-    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
     data = renderer.render(xo_notification("success"))
+    assert data.startswith(b"\x89PNG\r\n\x1a\n")
 
-    with Image.open(BytesIO(data)) as image:
-        assert image.width / image.height >= 1.45
+
+def test_xo_approved_layout_is_only_modestly_wider_than_original(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    assert renderer.WIDTH == 1700
+    assert renderer.STATUS_BADGE_WIDTH == 470
+    assert renderer.STATUS_BADGE_HEIGHT == 102
+
+
+def test_xo_readability_fonts_are_larger_than_approved_baseline(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    assert renderer.font_heading.size >= 54
+    assert renderer.font_title.size >= 46
+    assert renderer.font_body.size >= 38
+    assert renderer.font_detail.size >= 38
+    assert renderer.font_label.size >= 36
+    assert renderer.font_vm_large.size >= 40
+    assert renderer.font_small.size >= 36
+
+
+def test_xo_failure_and_skipped_share_same_card_dimensions(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    failure = renderer.render(xo_notification("failure"))
+    skipped = renderer.render(xo_notification("skipped"))
+
+    with Image.open(BytesIO(failure)) as failure_image:
+        failure_size = failure_image.size
+    with Image.open(BytesIO(skipped)) as skipped_image:
+        skipped_size = skipped_image.size
+
+    assert failure_size == skipped_size
 
 
 def test_non_xo_modern_width_remains_unchanged():
