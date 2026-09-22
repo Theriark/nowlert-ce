@@ -2564,7 +2564,7 @@ def test_problem_information_rows_match_accepted_qnap_geometry(
     qnap = QNAPDiscordModernImageRenderer(tmp_path)
 
     actual_metrics = [
-        ("status", "Severity", "information", renderer.ICON_BLUE),
+        ("status", "Severity", "informational", renderer.ICON_BLUE),
         ("sync", "Category", category, renderer.ICON_BLUE),
         ("clock", "Event time", "19:04:58 UTC", renderer.TEXT),
     ]
@@ -2590,6 +2590,32 @@ def test_problem_information_rows_match_accepted_qnap_geometry(
         renderer.font_label,
         renderer.font_detail,
     )
+
+
+def test_hardware_informational_firmware_uses_fixed_information_geometry(tmp_path):
+    renderer = HardwareDiscordModernImageRenderer(tmp_path)
+    metrics = [
+        ("status", "Severity", "informational", renderer.ICON_BLUE),
+        ("sync", "Category", "Firmware", renderer.ICON_BLUE),
+        ("clock", "Event time", "20:09:11 UTC", renderer.TEXT),
+    ]
+
+    actual = renderer._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        metrics,
+    )
+    shared = super(
+        HardwareDiscordModernImageRenderer,
+        renderer,
+    )._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        metrics,
+    )
+
+    assert actual != shared
+    assert actual[1][0] > shared[1][0]
 
 
 def test_hardware_non_firmware_information_keeps_shared_layout(tmp_path):

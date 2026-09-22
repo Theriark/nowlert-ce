@@ -3905,7 +3905,7 @@ class HardwareDiscordModernImageRenderer(
         ]
         if not (
             len(values) == 3
-            and values[0] == "information"
+            and values[0] in {"information", "informational", "info"}
             and values[1] == "firmware"
         ):
             return super()._summary_cells_for_metrics(
@@ -4078,7 +4078,7 @@ class HomeAssistantDiscordModernImageRenderer(
         ]
         if not (
             len(values) == 3
-            and values[0] == "information"
+            and values[0] in {"information", "informational", "info"}
         ):
             return super()._summary_cells_for_metrics(
                 left,
