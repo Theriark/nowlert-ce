@@ -27,20 +27,34 @@ configuration.
 
 ## Microsoft Teams hierarchy
 
-Every integration supplies normalized data to the shared Teams renderer:
+Every Modern integration supplies normalized data to the shared Teams renderer.
+The card mirrors the accepted Discord Modern information hierarchy using native
+Adaptive Card 1.4 components:
 
-1. Header: `device • event`, with device/status icons, severity-aware title
-   color, and the integration image at the top right.
+1. Header: integration identity, device/source context, report title, compact
+   lifecycle badge, and the official integration image at the top right.
 2. Context: `integration • state • source area`.
-3. Message: one emphasized event body.
-4. Metrics: Severity, Category, and Event time when available.
-5. Details: optional icon-labelled integration-specific facts.
+3. Message: one emphasized event body that expands vertically when text wraps.
+4. Summary strip: Severity, Category, and Event time when available, with
+   separated columns and bold values.
+5. Details: an emphasized, dynamically growing event-details panel containing
+   icon-labelled integration-specific facts.
 6. Optional integration-specific sections/actions.
-7. `Theriark • Nowlert v<version>` footer.
+7. Nowlert owl identity plus the exact `Nowlert CE • Modern Card` footer used
+   by Discord Modern, with the running Nowlert version retained as secondary
+   compatibility metadata.
+
+Teams does not expose CSS or custom drawing primitives, so the Discord glow,
+gold frame, and pixel-level image-card geometry cannot be reproduced natively.
+The Teams renderer uses the platform-supported `good`, `attention`,
+`warning`, and `accent` container styles for the lifecycle badge instead.
+Text blocks and detail containers remain wrapping and height-free so Teams grows
+the card for longer content rather than clipping it.
 
 The normalized model lives in `src/formatters/teams_common.py`. New Teams
 formatters inherit the shared formatter/model and keep source parsing outside
-the renderer.
+the renderer. Teams Classic is a separate renderer and is not changed by the
+Modern shell.
 
 Teams uses public HTTPS image URLs. The default asset root is the repository's
 `main/assets/icons` path. Controlled preview/mirrored installations may use the
