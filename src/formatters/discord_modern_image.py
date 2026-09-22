@@ -2734,6 +2734,8 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
 class GrafanaDiscordModernImageRenderer(ZabbixDiscordModernImageRenderer):
     """Render Grafana Modern cards with the frozen Zabbix/XO visual system."""
 
+    STATUS_BADGE_WIDTH = 640
+
     GRAFANA_XO_SECTION_ICONS = {
         "rule & location": "chart",
         "data": "repository",
@@ -2763,6 +2765,75 @@ class GrafanaDiscordModernImageRenderer(ZabbixDiscordModernImageRenderer):
         "alerts": "alert",
         "evaluation error": "alert",
     }
+
+    def _line_color(
+        self,
+        line,
+        accent,
+    ):
+        color = super()._line_color(line, accent)
+        if (
+            accent in {self.BRAND_GOLD, self.SKIPPED}
+            and re.match(
+                r"^\s*Started:\s",
+                str(line or ""),
+                re.IGNORECASE,
+            )
+        ):
+            return accent
+        return color
+
+    def _zabbix_content_plan(
+        self,
+        draw,
+        details,
+        outcomes,
+        x0,
+        right,
+        start_y,
+    ):
+        """Keep a normal grouped Grafana alert on the 1600px baseline."""
+
+        if not (len(details) == 3 and len(outcomes) == 2):
+            return super()._zabbix_content_plan(
+                draw,
+                details,
+                outcomes,
+                x0,
+                right,
+                start_y,
+            )
+
+        primary = outcomes[0]
+        extra = outcomes[1]
+        primary_title = self._clean(
+            primary.get("title") or "EVENT DETAILS"
+        )
+        extra_title = self._clean(
+            extra.get("title") or "Alert details"
+        )
+        combined_title = " · ".join(
+            title
+            for title in (primary_title, extra_title)
+            if title
+        )
+        combined_outcome = {
+            **primary,
+            "title": combined_title,
+            "rows": (
+                list(primary.get("rows", []))
+                + list(extra.get("rows", []))
+            ),
+        }
+
+        return super()._zabbix_content_plan(
+            draw,
+            details,
+            [combined_outcome],
+            x0,
+            right,
+            start_y,
+        )
 
     def _zabbix_xo_section_icon(self, title: str) -> str:
         return self.GRAFANA_XO_SECTION_ICONS.get(
