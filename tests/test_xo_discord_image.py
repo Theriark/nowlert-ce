@@ -193,40 +193,30 @@ def test_xo_card_grows_to_keep_all_vm_content_inside(tmp_path):
         assert available_vm_height >= required_vm_height
 
 
-def test_xo_success_panel_uses_three_columns_and_grows_past_ten_vms(tmp_path):
+def test_xo_success_panel_keeps_every_vm_at_readable_size(tmp_path, monkeypatch):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
     item = xo_notification("success")
-    item.successful_vms = [
-        f"VM-{index:02d} | Workload {index}"
-        for index in range(1, 21)
-    ]
-    item.vm_success = 20
-    item.vm_total = 20
-    item.vm_details = {
-        name: {
-            "size": f"{index}.00 GiB",
-            "speed": f"{20 + index}.00 MiB/s",
-        }
-        for index, name in enumerate(item.successful_vms, start=1)
-    }
+    item.successful_vms = [f"VM-{index:02d} | Workload {index}" for index in range(1, 21)]
+    item.vm_success = item.vm_total = 20
+    item.vm_details = {name: {"size": "10.00 GiB", "speed": "20.00 MiB/s"}
+                       for name in item.successful_vms}
+    drawn = []
+    original = ImageDraw.ImageDraw.text
 
+    def record(self, xy, text, *args, **kwargs):
+        drawn.append((str(text), kwargs.get("font")))
+        return original(self, xy, text, *args, **kwargs)
+
+    monkeypatch.setattr(ImageDraw.ImageDraw, "text", record)
     data = renderer.render(item)
     with Image.open(BytesIO(data)) as image:
-        expected_rows = 7
-        expected_height = max(
-            renderer.BASE_HEIGHT,
-            (
-                renderer.VM_PANEL_TOP
-                + renderer.VM_HEADER_HEIGHT
-                + expected_rows * renderer._vm_style(20)["row_height"]
-                + renderer.VM_PANEL_BOTTOM_PADDING
-                + renderer.FOOTER_GAP
-                + renderer.FOOTER_RESERVE
-            ),
-        )
-        assert image.height == expected_height
-
-    assert len(item.successful_vms) == 20
+        assert image.height > renderer.BASE_HEIGHT
+    # A larger job must add rows, never hide VMs or select a compact font.
+    painted = " ".join(text for text, _ in drawn)
+    for name in item.successful_vms:
+        assert name in painted
+    assert all(font.size >= 36 for text, font in drawn
+               if font is not None and "Nowlert CE" not in text)
 
 
 def test_xo_paired_panels_keep_all_reported_vms_in_vertical_lists(tmp_path):

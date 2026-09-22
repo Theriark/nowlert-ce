@@ -70,6 +70,29 @@ output adapter rather than depending on a runtime external image host. Internal
 asset references use the `nowlert-asset://` contract and are resolved before
 transport.
 
+### Discord Modern image cards
+
+Discord Modern images use the Xen Orchestra visual components across all
+integrations, including generic and internal notifications: a dark grid and
+gold frame, a status-colored rail and glow, packaged integration artwork,
+status badge, report title, metadata strip, neutral detail panels, colored
+outcome panels, and the `Nowlert CE • Modern Card` footer. Success is green,
+failure is red, warning is amber, and information/skipped is blue.
+
+The image layout measures content before drawing. Badges, titles, source
+context, field labels, values, VM names, and reasons wrap at readable font
+sizes; they are not reduced or ellipsized to fit a fixed box. Panels and card
+height grow for longer content and contract for shorter events. Compact panels
+can share a row, while dense content gets full width. Short Xen Orchestra
+success entries can use three columns; mixed outcomes retain every reported
+success, failure, and skipped VM.
+
+Non-Xen-Orchestra images reuse the sanitized Classic presentation content and
+preserve integration-specific labels and details. This layout is exclusive to
+Discord Modern: Classic cards and other destination formats are unaffected.
+Discord controls the displayed attachment dimensions; the larger type is part
+of the image itself, not merely a higher-resolution copy of small text.
+
 ## Missing and identifier values
 
 Optional facts whose source value is missing or represented by `-`, `—`, `N/A`,
