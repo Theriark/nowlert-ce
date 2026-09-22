@@ -3891,6 +3891,54 @@ class HardwareDiscordModernImageRenderer(
         "additional details": "list",
         "event details": "alert",
     }
+    def _summary_cells_for_metrics(
+        self,
+        left: int,
+        right: int,
+        metrics,
+    ):
+        """Use Dell iDRAC Storage Information column positions for firmware info."""
+
+        values = [
+            self._clean(metric[2]).casefold()
+            for metric in metrics
+        ]
+        if (
+            len(values) == 3
+            and values[0] == "information"
+            and values[1] == "firmware"
+        ):
+            reference_metrics = [
+                (
+                    metrics[0][0],
+                    metrics[0][1],
+                    "informational",
+                    metrics[0][3],
+                ),
+                (
+                    metrics[1][0],
+                    metrics[1][1],
+                    "Storage",
+                    metrics[1][3],
+                ),
+                metrics[2],
+            ]
+            return (
+                _StandardizedSourceDiscordModernImageRenderer
+                ._summary_cells_for_metrics(
+                    self,
+                    left,
+                    right,
+                    reference_metrics,
+                )
+            )
+
+        return super()._summary_cells_for_metrics(
+            left,
+            right,
+            metrics,
+        )
+
     HARDWARE_XO_FIELD_ICONS = {
         "system": "repository",
         "sensor": "chart",
@@ -4012,6 +4060,53 @@ class HomeAssistantDiscordModernImageRenderer(
     _StandardizedSourceDiscordModernImageRenderer
 ):
     """Render Home Assistant cards on the frozen standardized baseline."""
+
+    def _summary_cells_for_metrics(
+        self,
+        left: int,
+        right: int,
+        metrics,
+    ):
+        """Use Dell iDRAC Storage Information column positions for info rows."""
+
+        values = [
+            self._clean(metric[2]).casefold()
+            for metric in metrics
+        ]
+        if (
+            len(values) == 3
+            and values[0] == "information"
+        ):
+            reference_metrics = [
+                (
+                    metrics[0][0],
+                    metrics[0][1],
+                    "informational",
+                    metrics[0][3],
+                ),
+                (
+                    metrics[1][0],
+                    metrics[1][1],
+                    "Storage",
+                    metrics[1][3],
+                ),
+                metrics[2],
+            ]
+            return (
+                _StandardizedSourceDiscordModernImageRenderer
+                ._summary_cells_for_metrics(
+                    self,
+                    left,
+                    right,
+                    reference_metrics,
+                )
+            )
+
+        return super()._summary_cells_for_metrics(
+            left,
+            right,
+            metrics,
+        )
 
     HOME_ASSISTANT_XO_SECTION_ICONS = {
         "home assistant": "repository",
