@@ -42,7 +42,9 @@ class TeamsCardData:
 
 
 class TeamsCardFormatter(BaseFormatter):
-    """Render normalized integration data using one Teams card layout."""
+    """Render normalized integration data using one Teams Modern card layout."""
+
+    MODERN_FOOTER = "Nowlert CE • Modern Card"
 
     def _render_teams_card(self, data: TeamsCardData) -> dict[str, Any]:
         status_icon, color, default_state = self._teams_status(
@@ -70,13 +72,28 @@ class TeamsCardFormatter(BaseFormatter):
             metrics.append(
                 self._teams_metric("🕒", "Event time", event_time)
             )
+        for index, metric in enumerate(metrics):
+            metric["spacing"] = "Medium" if index else "None"
+            metric["separator"] = index > 0
+
+        # Keep the legacy top-level text/color metadata because a few external
+        # consumers inspect the Adaptive Card JSON before Teams renders it.
+        legacy_title = (
+            f"{data.device_icon} {status_icon} {device} • {event}"
+        )
+        header = self._teams_modern_header(
+            data=data,
+            legacy_title=legacy_title,
+            color=color,
+            status_icon=status_icon,
+            state=state,
+            device=device,
+            event=event,
+            source_area=source_area,
+        )
 
         body: list[dict[str, Any]] = [
-            self._teams_header(
-                f"{data.device_icon} {status_icon} {device} • {event}",
-                color,
-                data.source,
-            ),
+            header,
             {
                 "type": "TextBlock",
                 "text": (
@@ -84,6 +101,7 @@ class TeamsCardFormatter(BaseFormatter):
                     f"{data.source_area_icon} {source_area}"
                 ),
                 "isSubtle": True,
+                "size": "Small",
                 "spacing": "Small",
                 "wrap": True,
             },
@@ -108,6 +126,7 @@ class TeamsCardFormatter(BaseFormatter):
             {
                 "type": "ColumnSet",
                 "spacing": "Medium",
+                "separator": True,
                 "columns": metrics,
             },
         ]
@@ -124,6 +143,7 @@ class TeamsCardFormatter(BaseFormatter):
             body.append(
                 {
                     "type": "Container",
+                    "style": "emphasis",
                     "spacing": "Medium",
                     "separator": True,
                     "items": [
@@ -131,6 +151,7 @@ class TeamsCardFormatter(BaseFormatter):
                             "type": "TextBlock",
                             "text": "🧾 Event details",
                             "weight": "Bolder",
+                            "size": "Medium",
                             "wrap": True,
                         },
                         {
@@ -143,17 +164,7 @@ class TeamsCardFormatter(BaseFormatter):
             )
 
         body.extend(data.extra_body)
-        body.append(
-            {
-                "type": "TextBlock",
-                "text": f"Theriark • Nowlert v{VERSION}",
-                "isSubtle": True,
-                "size": "Small",
-                "spacing": "Medium",
-                "separator": True,
-                "wrap": True,
-            }
-        )
+        body.append(self._teams_modern_footer())
 
         card: dict[str, Any] = {
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -174,6 +185,180 @@ class TeamsCardFormatter(BaseFormatter):
             ],
         }
 
+    def _teams_modern_header(
+        self,
+        *,
+        data: TeamsCardData,
+        legacy_title: str,
+        color: str,
+        status_icon: str,
+        state: str,
+        device: str,
+        event: str,
+        source_area: str,
+    ) -> dict[str, Any]:
+        """Build the shared Teams Modern header and lifecycle badge."""
+
+        status_style = color.casefold()
+        heading_items: list[dict[str, Any]] = [
+            {
+                "type": "TextBlock",
+                "text": self._truncate(data.integration or "Nowlert", 160),
+                "weight": "Bolder",
+                "size": "Large",
+                "wrap": True,
+            },
+            {
+                "type": "TextBlock",
+                "text": (
+                    f"{data.device_icon} {device} • "
+                    f"{data.source_area_icon} {source_area}"
+                ),
+                "isSubtle": True,
+                "size": "Small",
+                "spacing": "Small",
+                "wrap": True,
+            },
+            {
+                "type": "TextBlock",
+                "text": event,
+                "weight": "Bolder",
+                "size": "Medium",
+                "spacing": "Medium",
+                "wrap": True,
+            },
+            {
+                "type": "ColumnSet",
+                "spacing": "Small",
+                "columns": [
+                    {
+                        "type": "Column",
+                        "width": "auto",
+                        "items": [
+                            {
+                                "type": "Container",
+                                "style": status_style,
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": f"{status_icon} {state}",
+                                        "weight": "Bolder",
+                                        "horizontalAlignment": "Center",
+                                        "wrap": True,
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            },
+        ]
+
+        columns: list[dict[str, Any]] = [
+            {
+                "type": "Column",
+                "width": "stretch",
+                "verticalContentAlignment": "Center",
+                "items": heading_items,
+            }
+        ]
+        icon_url = self._product_icon_url(data.source)
+        if icon_url:
+            normalized_source = str(data.source or "").strip().casefold()
+            icon_pixels = self.TEAMS_ICON_PIXELS.get(
+                normalized_source,
+                48,
+            )
+            icon_size = f"{icon_pixels}px"
+            columns.append(
+                {
+                    "type": "Column",
+                    "width": "auto",
+                    "verticalContentAlignment": "Center",
+                    "items": [
+                        {
+                            "type": "Image",
+                            "url": icon_url,
+                            "altText": f"{data.integration} icon",
+                            "size": "Small",
+                            "width": icon_size,
+                            "height": icon_size,
+                        }
+                    ],
+                }
+            )
+
+        return {
+            "type": "ColumnSet",
+            "text": self._truncate(legacy_title, 512),
+            "color": color,
+            "spacing": "None",
+            "columns": columns,
+        }
+
+    def _teams_modern_footer(self) -> dict[str, Any]:
+        """Render the same Nowlert Modern identity used by Discord cards."""
+
+        icon_url = self._product_icon_url("nowlert")
+        if not icon_url:
+            return {
+                "type": "TextBlock",
+                "text": (
+                    f"{self.MODERN_FOOTER}\n"
+                    f"Theriark • Nowlert v{VERSION}"
+                ),
+                "isSubtle": True,
+                "size": "Small",
+                "spacing": "Medium",
+                "separator": True,
+                "wrap": True,
+            }
+
+        return {
+            "type": "ColumnSet",
+            "text": self.MODERN_FOOTER,
+            "spacing": "Medium",
+            "separator": True,
+            "columns": [
+                {
+                    "type": "Column",
+                    "width": "auto",
+                    "verticalContentAlignment": "Center",
+                    "items": [
+                        {
+                            "type": "Image",
+                            "url": icon_url,
+                            "altText": "Nowlert icon",
+                            "width": "32px",
+                            "height": "32px",
+                        }
+                    ],
+                },
+                {
+                    "type": "Column",
+                    "width": "stretch",
+                    "verticalContentAlignment": "Center",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": self.MODERN_FOOTER,
+                            "isSubtle": True,
+                            "size": "Small",
+                            "wrap": True,
+                        },
+                        {
+                            "type": "TextBlock",
+                            "text": f"Theriark • Nowlert v{VERSION}",
+                            "isSubtle": True,
+                            "size": "Small",
+                            "spacing": "None",
+                            "wrap": True,
+                        }
+                    ],
+                },
+            ],
+        }
+
     @staticmethod
     def _teams_metric(icon: str, label: str, value: Any) -> dict[str, Any]:
         return {
@@ -185,11 +370,13 @@ class TeamsCardFormatter(BaseFormatter):
                     "text": f"{icon} {label}",
                     "weight": "Bolder",
                     "size": "Small",
+                    "isSubtle": True,
                     "wrap": True,
                 },
                 {
                     "type": "TextBlock",
                     "text": str(value),
+                    "weight": "Bolder",
                     "spacing": "Small",
                     "wrap": True,
                 },
