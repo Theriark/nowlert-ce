@@ -188,17 +188,18 @@ def test_teams_modern_media_uses_path_below_public_health_prefix(
             stream.getvalue(),
         )
         assert url is not None
-        path = urlsplit(url).path
+        parsed = urlsplit(url)
+        request_target = parsed.path + "?" + parsed.query
 
         card = raw_request(
             running.server.server_port,
             "GET",
-            path,
+            request_target,
         )
         missing = raw_request(
             running.server.server_port,
             "GET",
-            "/api/health/teams-modern-card/"
+            "/api/health?teams_modern_card="
             + ("0" * 48)
             + ".png",
         )

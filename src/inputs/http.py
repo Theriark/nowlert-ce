@@ -14,7 +14,8 @@ from config import config
 from api.service import APIService
 from logger import log
 from outputs.teams_modern_image import (
-    TEAMS_MODERN_CARD_PUBLIC_PREFIX,
+    TEAMS_MODERN_CARD_PUBLIC_PATH,
+    TEAMS_MODERN_CARD_QUERY_PREFIX,
     load_teams_modern_image,
 )
 from webui.service import SECURITY_HEADERS, WebUIService
@@ -219,7 +220,10 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         request_url = urlsplit(self.path)
-        if self._teams_modern_card_request(request_url.path):
+        if self._teams_modern_card_request(
+            request_url.path,
+            request_url.query,
+        ):
             return
         if request_url.path.startswith("/api/"):
             self._api_request("GET", request_url.path)
@@ -253,6 +257,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
         request_url = urlsplit(self.path)
         if self._teams_modern_card_request(
             request_url.path,
+            request_url.query,
             head=True,
         ):
             return
@@ -263,17 +268,22 @@ class HTTPHandler(BaseHTTPRequestHandler):
     def _teams_modern_card_request(
         self,
         path: str,
+        query: str,
         *,
         head: bool = False,
     ) -> bool:
-        if not str(path or "").startswith(
-            TEAMS_MODERN_CARD_PUBLIC_PREFIX
-        ):
+        if str(path or "") != TEAMS_MODERN_CARD_PUBLIC_PATH:
             return False
 
-        filename = str(path)[
-            len(TEAMS_MODERN_CARD_PUBLIC_PREFIX):
-        ]
+        raw_query = str(query or "")
+        if not raw_query.startswith(TEAMS_MODERN_CARD_QUERY_PREFIX):
+            return False
+
+        filename = raw_query[len(TEAMS_MODERN_CARD_QUERY_PREFIX):]
+        if not filename or "&" in filename:
+            self._respond(404)
+            return True
+
         body = load_teams_modern_image(
             config,
             filename,
@@ -426,8 +436,18 @@ class HTTPHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         if body:
             self.send_header("Content-Type", "application/json; charset=utf-8")
-        platform_response = urlsplit(self.path).path.startswith("/api/v2/")
-        if platform_response:
+        response_path = urlsplit(self.path).path
+        health_response = response_path == TEAMS_MODERN_CARD_PUBLIC_PATH
+        platform_response = response_path.startswith("/api/v2/")
+        if health_response:
+            # The exact health path is intentionally public through
+            # Cloudflare Access. Never let an edge cache collapse a tokenized
+            # Teams image request onto the plain health JSON response.
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Cloudflare-CDN-Cache-Control", "no-store")
+            self.send_header("CDN-Cache-Control", "no-store")
+            self.send_header("Vary", "*")
+        elif platform_response:
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Referrer-Policy", "no-referrer")
             if not any(

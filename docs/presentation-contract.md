@@ -41,9 +41,10 @@ its layout/content is not rebuilt with native Teams text containers.
 Because Teams workflow payloads are JSON-only and remain bounded to 28 KiB,
 Nowlert does not embed the full PNG as Base64. The rendered image is stored
 below `platform.state_dir/teams-modern-cards` under an unguessable immutable
-token and exposed through the public health-prefix path
-`/api/health/teams-modern-card/<token>.png`. Plain `/api/health` remains the
-normal health JSON endpoint. The cache retains images for 90 days and removes
+token and exposed through the exact public health path using
+`/api/health?teams_modern_card=<token>.png`. Plain `/api/health` remains the
+normal health JSON endpoint. Health JSON is explicitly marked `no-store` for
+browser and CDN caches so it cannot mask tokenized image requests. The cache retains images for 90 days and removes
 expired entries opportunistically as new cards are published.
 
 The public origin comes from `NOWLERT_TEAMS_PUBLIC_BASE_URL`, falling back to
