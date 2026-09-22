@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw
 
 from formatters.discord_modern_image import (
     DiscordModernImageRenderer,
+    GrafanaDiscordModernImageRenderer,
     ZabbixDiscordModernImageRenderer,
 )
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
@@ -122,6 +123,7 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     output.ICON_DIR = tmp_path
     output.modern_image_renderer.icon_dir = tmp_path
     output.zabbix_modern_image_renderer.icon_dir = tmp_path
+    output.grafana_modern_image_renderer.icon_dir = tmp_path
     item = notification(source)
     formatter = output.source_formatters.get(
         source,
@@ -136,10 +138,16 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     assert image is not None
     assert image.startswith(b"\x89PNG\r\n\x1a\n")
     with Image.open(BytesIO(image)) as rendered:
-        expected_width = 2064 if source == "zabbix" else 1448
+        expected_width = (
+            2064
+            if source in {"zabbix", "grafana"}
+            else 1448
+        )
         expected_min_height = (
             output.zabbix_modern_image_renderer.MIN_HEIGHT
             if source == "zabbix"
+            else output.grafana_modern_image_renderer.MIN_HEIGHT
+            if source == "grafana"
             else output.modern_image_renderer.MIN_HEIGHT
         )
         assert rendered.width == expected_width
@@ -151,6 +159,7 @@ def test_modern_renderer_uses_classic_embed_as_source_of_truth(tmp_path):
     output = DiscordOutput()
     output.ICON_DIR = tmp_path
     output.modern_image_renderer.icon_dir = tmp_path
+    output.grafana_modern_image_renderer.icon_dir = tmp_path
     item = notification("grafana")
     formatter = output.source_formatters["grafana"]
     classic = formatter.format(item)
@@ -161,7 +170,7 @@ def test_modern_renderer_uses_classic_embed_as_source_of_truth(tmp_path):
         captured["classic"] = classic_payload
         return b"\x89PNG\r\n\x1a\nsynthetic"
 
-    output.modern_image_renderer.render = render
+    output.grafana_modern_image_renderer.render = render
 
     image = output.render_modern_image(
         item,
@@ -770,11 +779,12 @@ def test_zabbix_uses_xo_icon_scale_without_changing_generic_renderer(tmp_path):
     assert generic.WIDTH == 1448
 
 
-def test_discord_output_routes_only_zabbix_to_xo_scaled_renderer(tmp_path):
+def test_discord_output_routes_zabbix_and_grafana_to_xo_scaled_renderers(tmp_path):
     output = DiscordOutput()
     output.ICON_DIR = tmp_path
     output.modern_image_renderer.icon_dir = tmp_path
     output.zabbix_modern_image_renderer.icon_dir = tmp_path
+    output.grafana_modern_image_renderer.icon_dir = tmp_path
 
     zabbix = notification("zabbix")
     zabbix_image = output.render_modern_image(
@@ -786,11 +796,19 @@ def test_discord_output_routes_only_zabbix_to_xo_scaled_renderer(tmp_path):
         grafana,
         output.source_formatters["grafana"],
     )
+    portainer = notification("portainer")
+    portainer_image = output.render_modern_image(
+        portainer,
+        output.source_formatters["portainer"],
+    )
 
     with Image.open(BytesIO(zabbix_image)) as image:
         assert image.width == 2064
         assert image.height >= 1600
     with Image.open(BytesIO(grafana_image)) as image:
+        assert image.width == 2064
+        assert image.height >= 1600
+    with Image.open(BytesIO(portainer_image)) as image:
         assert image.width == 1448
 
 
@@ -1247,3 +1265,211 @@ def test_zabbix_updated_and_resolved_timing_colors_stay_unchanged(tmp_path):
         "Resolved: 2026-09-22 11:00:29",
         renderer.SUCCESS,
     ) == renderer.SUCCESS
+
+
+
+def _grafana_reference_panels():
+    details = [
+        {
+            "title": "Rule & Location",
+            "rows": [
+                {"value": "Rule", "role": "label", "color": (166, 192, 208)},
+                {"label": "Rule:", "value": "Synthetic API Latency Rule", "icon": "chart"},
+                {"label": "Folder:", "value": "Synthetic Platform", "icon": "repository"},
+                {"value": "Location", "role": "label", "color": (166, 192, 208)},
+                {"label": "Dashboard:", "value": "Synthetic Service Overview", "icon": "chart"},
+                {"label": "Panel:", "value": "Synthetic Latency Panel", "icon": "chart"},
+            ],
+        },
+        {
+            "title": "Data",
+            "rows": [
+                {"label": "Datasource:", "value": "Synthetic Metrics Source", "icon": "repository"},
+                {"label": "Labels:", "value": "service=synthetic-api, environment=synthetic-lab", "icon": "list"},
+                {"label": "Values:", "value": "A=2.75, threshold=1.5", "icon": "chart"},
+            ],
+        },
+        {
+            "title": "Timing & Links",
+            "rows": [
+                {"value": "Timing", "role": "label", "color": (166, 192, 208)},
+                {"label": "Started:", "value": "2026-07-12 10:15:00", "icon": "play"},
+                {"value": "Links", "role": "label", "color": (166, 192, 208)},
+                {"value": "Dashboard · Panel · Rule · Silence", "icon": "list"},
+            ],
+        },
+    ]
+    outcomes = [
+        {
+            "title": "EVENT DETAILS",
+            "accent": (255, 64, 72),
+            "status": "failure",
+            "rows": [
+                {
+                    "value": "Synthetic API latency exceeded the test threshold.",
+                    "icon": "alert",
+                }
+            ],
+        }
+    ]
+    return details, outcomes
+
+
+def test_grafana_standard_card_uses_zabbix_xo_display_scale(tmp_path):
+    output = DiscordOutput()
+    output.ICON_DIR = tmp_path
+    output.modern_image_renderer.icon_dir = tmp_path
+    output.grafana_modern_image_renderer.icon_dir = tmp_path
+
+    item = notification("grafana")
+    formatter = output.source_formatters["grafana"]
+    image = output.render_modern_image(item, formatter)
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.size == (2064, 1600)
+
+
+def test_grafana_uses_frozen_zabbix_visual_metrics(tmp_path):
+    grafana = GrafanaDiscordModernImageRenderer(tmp_path)
+    zabbix = ZabbixDiscordModernImageRenderer(tmp_path)
+
+    assert grafana.WIDTH == zabbix.WIDTH == 2064
+    assert grafana.BASE_HEIGHT == zabbix.BASE_HEIGHT == 1600
+    assert grafana.CARD_SIDE_PADDING == zabbix.CARD_SIDE_PADDING
+    assert grafana.STATUS_BADGE_WIDTH == zabbix.STATUS_BADGE_WIDTH
+    assert grafana.STATUS_BADGE_HEIGHT == zabbix.STATUS_BADGE_HEIGHT
+    assert grafana.SUMMARY_ICON_SIZE == zabbix.SUMMARY_ICON_SIZE == 54
+    assert grafana.FOOTER_ICON_SIZE == zabbix.FOOTER_ICON_SIZE == 96
+    assert grafana.SUMMARY_CELL_GAP == zabbix.SUMMARY_CELL_GAP
+    assert grafana.SUMMARY_LABEL_OFFSET == zabbix.SUMMARY_LABEL_OFFSET
+    assert grafana.SUMMARY_VALUE_GAP == zabbix.SUMMARY_VALUE_GAP
+    for name in (
+        "font_heading",
+        "font_title",
+        "font_bold",
+        "font_label",
+        "font_detail",
+        "font_body",
+        "font_small",
+    ):
+        assert getattr(grafana, name).size == getattr(zabbix, name).size
+
+
+def test_grafana_standard_four_panels_fill_baseline(tmp_path):
+    renderer = GrafanaDiscordModernImageRenderer(tmp_path)
+    details, outcomes = _grafana_reference_panels()
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    content_y = 500
+
+    panels, _ = renderer._zabbix_content_plan(
+        draw,
+        details,
+        outcomes,
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        content_y,
+    )
+    target_bottom = (
+        renderer.BASE_HEIGHT
+        - renderer.FOOTER_RESERVE
+        - renderer.FOOTER_GAP
+    )
+    stretched, filled_bottom = renderer._zabbix_fill_standard_rows(
+        panels,
+        content_y,
+        target_bottom,
+    )
+
+    assert len(stretched) == 4
+    assert filled_bottom == target_bottom
+    assert max(
+        panel["y"] + panel["height"]
+        for panel in stretched
+    ) == target_bottom
+
+
+def test_grafana_long_content_expands_panels_and_card(tmp_path):
+    renderer = GrafanaDiscordModernImageRenderer(tmp_path)
+    details, outcomes = _grafana_reference_panels()
+
+    details[0]["rows"][1]["value"] = " ".join(["synthetic_rule"] * 90)
+    details[1]["rows"][1]["value"] = " ".join(["label=value"] * 100)
+    details[2]["rows"].append(
+        {
+            "label": "Links:",
+            "value": " ".join(["https://grafana.synthetic.invalid/panel"] * 70),
+            "icon": "list",
+        }
+    )
+    outcomes[0]["rows"][0]["value"] = " ".join(["alert_detail"] * 100)
+
+    image = renderer._render_standard_card(
+        source="grafana",
+        integration="Grafana",
+        context="Synthetic API Latency Rule",
+        badge="Alerting Firing",
+        title="Synthetic API Latency",
+        severity="Critical",
+        category="Alerting",
+        event_time="10:15:00 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.width == 2064
+        assert rendered.height > 1600
+
+
+def test_grafana_extra_alert_details_remain_dynamic(tmp_path):
+    renderer = GrafanaDiscordModernImageRenderer(tmp_path)
+    details, outcomes = _grafana_reference_panels()
+    outcomes.append(
+        {
+            "title": "Alert details",
+            "accent": renderer.FAILURE,
+            "status": "failure",
+            "rows": [
+                {
+                    "label": "Alerts:",
+                    "value": " ".join(["Synthetic Worker Failure"] * 80),
+                    "icon": "alert",
+                }
+            ],
+        }
+    )
+
+    image = renderer._render_standard_card(
+        source="grafana",
+        integration="Grafana",
+        context="Synthetic Grouped Rule",
+        badge="Alerting Firing",
+        title="Synthetic Grouped Alerts (2 alerts)",
+        severity="Critical",
+        category="Alerting",
+        event_time="11:30:00 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.width == 2064
+        assert rendered.height > 1600
+
+
+def test_grafana_uses_xo_icon_vocabulary(tmp_path):
+    renderer = GrafanaDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._zabbix_xo_section_icon("Rule & Location") == "chart"
+    assert renderer._zabbix_xo_section_icon("Data") == "repository"
+    assert renderer._zabbix_xo_section_icon("Timing & Links") == "clock"
+    assert renderer._zabbix_xo_field_icon(
+        "Data", "Datasource:", "Synthetic Metrics Source", "server"
+    ) == "repository"
+    assert renderer._zabbix_xo_field_icon(
+        "Timing & Links", "Started:", "2026-07-12 10:15:00", "clock"
+    ) == "play"
