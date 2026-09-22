@@ -2880,6 +2880,11 @@ class GrafanaDiscordModernImageRenderer(ZabbixDiscordModernImageRenderer):
 class PortainerDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
     """Render Portainer cards on the frozen Grafana/Zabbix/XO baseline."""
 
+    # Portainer's longer Environment category needs a little more horizontal
+    # room so Severity / Category / Event time remain visually aligned.
+    SUMMARY_FIRST_CELL_RATIO = 0.27
+    SUMMARY_SECOND_CELL_RATIO = 0.36
+
     PORTAINER_XO_SECTION_ICONS = {
         "environment": "repository",
         "signal": "chart",
