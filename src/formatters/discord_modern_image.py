@@ -2426,6 +2426,11 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
             status=status,
         )
 
+    def _standard_canvas_width(self, content) -> int:
+        """Return the frozen canvas width unless a source needs more room."""
+
+        return self.WIDTH
+
     def _render_standard_card(
         self,
         *,
@@ -2447,9 +2452,10 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
         details = content["details"]
         outcomes = content["outcomes"]
 
-        measure = ImageDraw.Draw(Image.new("RGB", (self.WIDTH, 1)))
+        canvas_width = self._standard_canvas_width(content)
+        measure = ImageDraw.Draw(Image.new("RGB", (canvas_width, 1)))
         x0 = self.CARD_SIDE_PADDING
-        right = self.WIDTH - self.CARD_SIDE_PADDING
+        right = canvas_width - self.CARD_SIDE_PADDING
         header_y = self.HEADER_Y
         title_x = x0 + self.HEADER_ICON_SIZE + 20
 
@@ -2523,10 +2529,10 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
             footer_y + self.FOOTER_RESERVE,
         )
 
-        image = self._background(self.WIDTH, height)
+        image = self._background(canvas_width, height)
         self._outer_glows(image, accent, height)
         draw = ImageDraw.Draw(image, "RGBA")
-        card = (30, 38, self.WIDTH - 30, height - 38)
+        card = (30, 38, canvas_width - 30, height - 38)
         self._rounded(
             draw,
             card,
@@ -3603,6 +3609,23 @@ class TrueNASDiscordModernImageRenderer(
     _StandardizedSourceDiscordModernImageRenderer
 ):
     """Render TrueNAS cards on the frozen Grafana/Zabbix/XO baseline."""
+
+    GROUPED_ALERT_WIDTH = 2400
+
+    def _standard_canvas_width(self, content) -> int:
+        """Keep dense grouped-alert cards readable at Discord display scale."""
+
+        panels = (
+            list(content.get("details", []))
+            + list(content.get("outcomes", []))
+        )
+        if any(
+            self._clean(panel.get("title") or "").casefold()
+            == "grouped alerts"
+            for panel in panels
+        ):
+            return self.GROUPED_ALERT_WIDTH
+        return super()._standard_canvas_width(content)
 
     TRUENAS_XO_SECTION_ICONS = {
         "truenas system": "repository",
