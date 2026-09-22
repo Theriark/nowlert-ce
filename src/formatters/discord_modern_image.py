@@ -3897,47 +3897,50 @@ class HardwareDiscordModernImageRenderer(
         right: int,
         metrics,
     ):
-        """Use Dell iDRAC Storage Information column positions for firmware info."""
+        """Use the accepted fixed Information-row geometry."""
 
         values = [
             self._clean(metric[2]).casefold()
             for metric in metrics
         ]
-        if (
+        if not (
             len(values) == 3
             and values[0] == "information"
             and values[1] == "firmware"
         ):
-            reference_metrics = [
-                (
-                    metrics[0][0],
-                    metrics[0][1],
-                    "informational",
-                    metrics[0][3],
-                ),
-                (
-                    metrics[1][0],
-                    metrics[1][1],
-                    "Storage",
-                    metrics[1][3],
-                ),
-                metrics[2],
-            ]
-            return (
-                _StandardizedSourceDiscordModernImageRenderer
-                ._summary_cells_for_metrics(
-                    self,
-                    left,
-                    right,
-                    reference_metrics,
-                )
+            return super()._summary_cells_for_metrics(
+                left,
+                right,
+                metrics,
             )
 
-        return super()._summary_cells_for_metrics(
-            left,
-            right,
-            metrics,
+        # Exact geometry copied from the accepted QNAP Information/System row:
+        # a wider Severity cell, Category moved right, and Event time moved
+        # right again. Fonts/icons/row height stay on the shared frozen system.
+        inner_left = left + 28
+        inner_right = right - 28
+        available = (
+            inner_right
+            - inner_left
+            - self.SUMMARY_CELL_GAP * 2
         )
+        first = int(available * 0.34)
+        second = int(available * 0.30)
+        third = available - first - second
+
+        cell_1 = (
+            inner_left,
+            inner_left + first,
+        )
+        cell_2 = (
+            cell_1[1] + self.SUMMARY_CELL_GAP,
+            cell_1[1] + self.SUMMARY_CELL_GAP + second,
+        )
+        cell_3 = (
+            cell_2[1] + self.SUMMARY_CELL_GAP,
+            cell_2[1] + self.SUMMARY_CELL_GAP + third,
+        )
+        return [cell_1, cell_2, cell_3]
 
     HARDWARE_XO_FIELD_ICONS = {
         "system": "repository",
@@ -4067,46 +4070,46 @@ class HomeAssistantDiscordModernImageRenderer(
         right: int,
         metrics,
     ):
-        """Use Dell iDRAC Storage Information column positions for info rows."""
+        """Use the accepted fixed Information-row geometry."""
 
         values = [
             self._clean(metric[2]).casefold()
             for metric in metrics
         ]
-        if (
+        if not (
             len(values) == 3
             and values[0] == "information"
         ):
-            reference_metrics = [
-                (
-                    metrics[0][0],
-                    metrics[0][1],
-                    "informational",
-                    metrics[0][3],
-                ),
-                (
-                    metrics[1][0],
-                    metrics[1][1],
-                    "Storage",
-                    metrics[1][3],
-                ),
-                metrics[2],
-            ]
-            return (
-                _StandardizedSourceDiscordModernImageRenderer
-                ._summary_cells_for_metrics(
-                    self,
-                    left,
-                    right,
-                    reference_metrics,
-                )
+            return super()._summary_cells_for_metrics(
+                left,
+                right,
+                metrics,
             )
 
-        return super()._summary_cells_for_metrics(
-            left,
-            right,
-            metrics,
+        inner_left = left + 28
+        inner_right = right - 28
+        available = (
+            inner_right
+            - inner_left
+            - self.SUMMARY_CELL_GAP * 2
         )
+        first = int(available * 0.34)
+        second = int(available * 0.30)
+        third = available - first - second
+
+        cell_1 = (
+            inner_left,
+            inner_left + first,
+        )
+        cell_2 = (
+            cell_1[1] + self.SUMMARY_CELL_GAP,
+            cell_1[1] + self.SUMMARY_CELL_GAP + second,
+        )
+        cell_3 = (
+            cell_2[1] + self.SUMMARY_CELL_GAP,
+            cell_2[1] + self.SUMMARY_CELL_GAP + third,
+        )
+        return [cell_1, cell_2, cell_3]
 
     HOME_ASSISTANT_XO_SECTION_ICONS = {
         "home assistant": "repository",

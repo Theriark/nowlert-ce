@@ -2555,21 +2555,23 @@ def test_final_source_xo_icon_vocabulary(tmp_path):
         (HomeAssistantDiscordModernImageRenderer, "Automation"),
     ),
 )
-def test_problem_information_rows_use_exact_idrac_storage_positions(
+def test_problem_information_rows_match_accepted_qnap_geometry(
     tmp_path,
     renderer_class,
     category,
 ):
     renderer = renderer_class(tmp_path)
+    qnap = QNAPDiscordModernImageRenderer(tmp_path)
+
     actual_metrics = [
         ("status", "Severity", "information", renderer.ICON_BLUE),
         ("sync", "Category", category, renderer.ICON_BLUE),
         ("clock", "Event time", "19:04:58 UTC", renderer.TEXT),
     ]
-    idrac_reference_metrics = [
-        ("status", "Severity", "informational", renderer.ICON_BLUE),
-        ("sync", "Category", "Storage", renderer.ICON_BLUE),
-        ("clock", "Event time", "19:04:58 UTC", renderer.TEXT),
+    qnap_metrics = [
+        ("status", "Severity", "information", qnap.ICON_BLUE),
+        ("sync", "Category", "System", qnap.ICON_BLUE),
+        ("clock", "Event time", "19:04:58 UTC", qnap.TEXT),
     ]
 
     actual_cells = renderer._summary_cells_for_metrics(
@@ -2577,13 +2579,10 @@ def test_problem_information_rows_use_exact_idrac_storage_positions(
         renderer.WIDTH - renderer.CARD_SIDE_PADDING,
         actual_metrics,
     )
-    expected_cells = super(
-        renderer_class,
-        renderer,
-    )._summary_cells_for_metrics(
-        renderer.CARD_SIDE_PADDING,
-        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        idrac_reference_metrics,
+    expected_cells = qnap._summary_cells_for_metrics(
+        qnap.CARD_SIDE_PADDING,
+        qnap.WIDTH - qnap.CARD_SIDE_PADDING,
+        qnap_metrics,
     )
 
     assert actual_cells == expected_cells
@@ -2593,7 +2592,7 @@ def test_problem_information_rows_use_exact_idrac_storage_positions(
     )
 
 
-def test_hardware_non_firmware_information_is_not_forced_to_idrac_reference(tmp_path):
+def test_hardware_non_firmware_information_keeps_shared_layout(tmp_path):
     renderer = HardwareDiscordModernImageRenderer(tmp_path)
     metrics = [
         ("status", "Severity", "information", renderer.ICON_BLUE),
