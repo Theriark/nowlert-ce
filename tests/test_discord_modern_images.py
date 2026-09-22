@@ -2224,3 +2224,143 @@ def test_truenas_and_unifi_summary_text_does_not_collide(
             + draw.textlength(value, font=renderer.font_detail)
         )
         assert cell_right - cell_left >= required
+
+
+
+def test_truenas_grouped_alert_card_uses_wider_readable_canvas(tmp_path):
+    renderer = TrueNASDiscordModernImageRenderer(tmp_path)
+    details = [
+        {
+            "title": "TrueNAS System",
+            "rows": [
+                {
+                    "label": "Host:",
+                    "value": "SYNTHETIC-TRUENAS",
+                    "icon": "repository",
+                }
+            ],
+        },
+        {
+            "title": "Additional details",
+            "rows": [
+                {
+                    "label": "Alerts:",
+                    "value": "4",
+                    "icon": "list",
+                }
+            ],
+        },
+    ]
+    outcomes = [
+        {
+            "title": "EVENT DETAILS",
+            "accent": renderer.FAILURE,
+            "status": "failure",
+            "rows": [
+                {
+                    "value": "4 TrueNAS alerts were reported in one notification.",
+                    "icon": "alert",
+                }
+            ],
+        },
+        {
+            "title": "Grouped Alerts",
+            "accent": renderer.FAILURE,
+            "status": "failure",
+            "rows": [
+                {
+                    "value": "Pool health alert — Warning",
+                    "icon": "alert",
+                },
+                {
+                    "value": "Replication alert — Failed",
+                    "icon": "alert",
+                },
+                {
+                    "value": "UPS power alert — Success",
+                    "icon": "alert",
+                },
+                {
+                    "value": "SMART alert — Warning",
+                    "icon": "alert",
+                },
+            ],
+        },
+    ]
+
+    image = renderer._render_standard_card(
+        source="truenas",
+        integration="TrueNAS",
+        context="SYNTHETIC-TRUENAS",
+        badge="Backup Failure",
+        title="TrueNAS alerts (4)",
+        severity="Critical",
+        category="Backup",
+        event_time="03:06:05 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.width == renderer.GROUPED_ALERT_WIDTH
+        assert rendered.height >= 1600
+
+
+def test_truenas_normal_card_keeps_frozen_canvas_width(tmp_path):
+    renderer = TrueNASDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._standard_canvas_width(
+        {
+            "details": [{"title": "TrueNAS System"}],
+            "outcomes": [{"title": "EVENT DETAILS"}],
+        }
+    ) == 2064
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    (
+        TrueNASDiscordModernImageRenderer,
+        UniFiNetworkDiscordModernImageRenderer,
+        UniFiProtectDiscordModernImageRenderer,
+        UniFiDriveDiscordModernImageRenderer,
+    ),
+)
+def test_standardized_source_panels_grow_vertically_with_content(
+    tmp_path,
+    renderer_class,
+):
+    renderer = renderer_class(tmp_path)
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    width = 900
+
+    short = renderer._zabbix_measure_panel(
+        draw,
+        {
+            "title": "EVENT DETAILS",
+            "rows": [
+                {
+                    "value": "Short event detail.",
+                    "icon": "alert",
+                }
+            ],
+        },
+        width,
+    )
+    long = renderer._zabbix_measure_panel(
+        draw,
+        {
+            "title": "EVENT DETAILS",
+            "rows": [
+                {
+                    "value": " ".join(["long-event-detail"] * 80),
+                    "icon": "alert",
+                }
+            ],
+        },
+        width,
+    )
+
+    assert long["height"] > short["height"]
