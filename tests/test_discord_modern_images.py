@@ -2555,75 +2555,63 @@ def test_final_source_xo_icon_vocabulary(tmp_path):
         (HomeAssistantDiscordModernImageRenderer, "Automation"),
     ),
 )
-def test_problem_information_rows_use_exact_shared_dell_layout(
+def test_problem_information_rows_use_exact_idrac_storage_positions(
     tmp_path,
     renderer_class,
     category,
 ):
     renderer = renderer_class(tmp_path)
-    metrics = [
+    actual_metrics = [
         ("status", "Severity", "information", renderer.ICON_BLUE),
         ("sync", "Category", category, renderer.ICON_BLUE),
+        ("clock", "Event time", "19:04:58 UTC", renderer.TEXT),
+    ]
+    idrac_reference_metrics = [
+        ("status", "Severity", "informational", renderer.ICON_BLUE),
+        ("sync", "Category", "Storage", renderer.ICON_BLUE),
         ("clock", "Event time", "19:04:58 UTC", renderer.TEXT),
     ]
 
     actual_cells = renderer._summary_cells_for_metrics(
         renderer.CARD_SIDE_PADDING,
         renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        metrics,
+        actual_metrics,
     )
-    inherited = super(renderer_class, renderer)
-    expected_cells = inherited._summary_cells_for_metrics(
+    expected_cells = super(
+        renderer_class,
+        renderer,
+    )._summary_cells_for_metrics(
         renderer.CARD_SIDE_PADDING,
         renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        metrics,
+        idrac_reference_metrics,
     )
 
     assert actual_cells == expected_cells
-    assert renderer._summary_fonts_for_metrics(metrics) == (
-        inherited._summary_fonts_for_metrics(metrics)
+    assert renderer._summary_fonts_for_metrics(actual_metrics) == (
+        renderer.font_label,
+        renderer.font_detail,
     )
 
 
-def test_hardware_firmware_row_matches_dell_storage_row_code_path(tmp_path):
+def test_hardware_non_firmware_information_is_not_forced_to_idrac_reference(tmp_path):
     renderer = HardwareDiscordModernImageRenderer(tmp_path)
-    firmware_metrics = [
-        ("status", "Severity", "information", renderer.ICON_BLUE),
-        ("sync", "Category", "Firmware", renderer.ICON_BLUE),
-        ("clock", "Event time", "19:04:58 UTC", renderer.TEXT),
-    ]
-    dell_storage_metrics = [
+    metrics = [
         ("status", "Severity", "information", renderer.ICON_BLUE),
         ("sync", "Category", "Storage", renderer.ICON_BLUE),
         ("clock", "Event time", "19:04:58 UTC", renderer.TEXT),
     ]
-    inherited = super(
-        HardwareDiscordModernImageRenderer,
-        renderer,
-    )
 
     assert renderer._summary_cells_for_metrics(
         renderer.CARD_SIDE_PADDING,
         renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        firmware_metrics,
-    ) == inherited._summary_cells_for_metrics(
+        metrics,
+    ) == super(
+        HardwareDiscordModernImageRenderer,
+        renderer,
+    )._summary_cells_for_metrics(
         renderer.CARD_SIDE_PADDING,
         renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        firmware_metrics,
-    )
-    assert renderer._summary_fonts_for_metrics(
-        firmware_metrics
-    ) == inherited._summary_fonts_for_metrics(
-        firmware_metrics
-    )
-    assert renderer._summary_cells_for_metrics(
-        renderer.CARD_SIDE_PADDING,
-        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        dell_storage_metrics,
-    ) == inherited._summary_cells_for_metrics(
-        renderer.CARD_SIDE_PADDING,
-        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        dell_storage_metrics,
+        metrics,
     )
 
 def test_generic_webhook_fallback_uses_larger_canvas_only_for_webhook(tmp_path):
