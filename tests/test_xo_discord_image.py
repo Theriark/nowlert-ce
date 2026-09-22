@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import socket
 from io import BytesIO
+from math import ceil
 
 from PIL import Image, ImageDraw
 
@@ -309,11 +310,14 @@ def test_xo_footer_uses_packaged_nowlert_icon(tmp_path):
     data = renderer.render(xo_notification("success"))
 
     with Image.open(BytesIO(data)).convert("RGB") as image:
+        draw = ImageDraw.Draw(image)
+        right = renderer.WIDTH - renderer.CARD_SIDE_PADDING
+        icon_x = renderer._footer_identity_x(draw, right)
         footer_crop = image.crop(
             (
-                65,
+                icon_x,
                 image.height - renderer.FOOTER_RESERVE,
-                175,
+                icon_x + renderer.FOOTER_ICON_SIZE,
                 image.height - 38,
             )
         )
@@ -372,7 +376,7 @@ def test_xo_transfer_size_has_clear_label_value_spacing(tmp_path):
     assert value_x - label_end >= renderer.DETAIL_LABEL_VALUE_GAP
 
 
-def test_xo_footer_is_left_aligned_with_bottom_breathing_room(tmp_path):
+def test_xo_footer_is_right_aligned_with_bottom_breathing_room(tmp_path):
     logo = Image.new("RGBA", (80, 80), (255, 0, 255, 255))
     logo.save(tmp_path / "nowlert.png")
 
@@ -380,6 +384,19 @@ def test_xo_footer_is_left_aligned_with_bottom_breathing_room(tmp_path):
     data = renderer.render(xo_notification("success"))
 
     with Image.open(BytesIO(data)).convert("RGB") as image:
+        draw = ImageDraw.Draw(image)
+        right = renderer.WIDTH - renderer.CARD_SIDE_PADDING
+        icon_x = renderer._footer_identity_x(draw, right)
+        footer_icon = list(
+            image.crop(
+                (
+                    icon_x,
+                    image.height - renderer.FOOTER_RESERVE,
+                    icon_x + renderer.FOOTER_ICON_SIZE,
+                    image.height - 38,
+                )
+            ).getdata()
+        )
         left_footer = list(
             image.crop(
                 (
@@ -390,23 +407,13 @@ def test_xo_footer_is_left_aligned_with_bottom_breathing_room(tmp_path):
                 )
             ).getdata()
         )
-        right_footer = list(
-            image.crop(
-                (
-                    image.width - 175,
-                    image.height - renderer.FOOTER_RESERVE,
-                    image.width - 65,
-                    image.height - 38,
-                )
-            ).getdata()
-        )
         assert any(
             red > 220 and green < 60 and blue > 220
-            for red, green, blue in left_footer
+            for red, green, blue in footer_icon
         )
         assert not any(
             red > 220 and green < 60 and blue > 220
-            for red, green, blue in right_footer
+            for red, green, blue in left_footer
         )
 
     assert renderer.FOOTER_RESERVE >= 118
@@ -959,3 +966,77 @@ def test_xo_footer_icon_is_large_and_trims_transparent_padding(tmp_path):
         if alpha > 0 and red > 220 and green < 60 and blue > 220
     )
     assert magenta > 6000
+
+
+
+def test_xo_success_badge_is_shifted_left_without_moving_other_badges(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    right = renderer.WIDTH - renderer.CARD_SIDE_PADDING
+    header_y = 82
+    header_height = 154
+
+    success = renderer._status_badge_box(
+        right,
+        header_y,
+        header_height,
+        status="success",
+    )
+    failure = renderer._status_badge_box(
+        right,
+        header_y,
+        header_height,
+        status="failure",
+    )
+
+    assert success[2] == right - renderer.SUCCESS_BADGE_LEFT_SHIFT
+    assert failure[2] == right
+    assert success[2] - success[0] == renderer.STATUS_BADGE_WIDTH
+    assert failure[2] - failure[0] == renderer.STATUS_BADGE_WIDTH
+
+
+def test_xo_failed_vm_reason_has_extra_space_after_speed(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    style = renderer._vm_style(3)
+    base_y = 500
+
+    failure_y = renderer._vm_reason_y(
+        base_y,
+        style,
+        0,
+        "failure",
+    )
+    skipped_y = renderer._vm_reason_y(
+        base_y,
+        style,
+        0,
+        "skipped",
+    )
+
+    assert failure_y - skipped_y == renderer.FAILED_REASON_TOP_GAP
+    assert renderer.FAILED_REASON_TOP_GAP >= 24
+
+
+def test_xo_footer_identity_is_right_aligned_without_changing_size(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    image = Image.new("RGB", (renderer.WIDTH, renderer.BASE_HEIGHT))
+    draw = ImageDraw.Draw(image)
+    right = renderer.WIDTH - renderer.CARD_SIDE_PADDING
+
+    icon_x = renderer._footer_identity_x(draw, right)
+    text_width = ceil(
+        draw.textlength(
+            renderer.FOOTER_TEXT,
+            font=renderer.font_small,
+        )
+    )
+    group_right = (
+        icon_x
+        + renderer.FOOTER_ICON_SIZE
+        + 18
+        + text_width
+    )
+
+    assert renderer.WIDTH == 2000
+    assert renderer.FOOTER_ICON_SIZE == 96
+    assert icon_x > renderer.WIDTH // 2
+    assert group_right == right - 18

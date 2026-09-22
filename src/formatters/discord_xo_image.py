@@ -41,6 +41,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     DETAIL_LABEL_VALUE_GAP = 32
     STATUS_BADGE_WIDTH = 560
     STATUS_BADGE_HEIGHT = 128
+    SUCCESS_BADGE_LEFT_SHIFT = 32
     SUMMARY_CELL_GAP = 48
     XO_HEADER_ICON_SIZE = 144
     OUTER_GLOW_GOLD_ALPHA = 138
@@ -51,6 +52,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     PAIRED_PANEL_LONG_OTHER_LEFT_RATIO = 0.48
     PAIRED_OUTCOME_MIN_HEIGHT = 370
     EXCEPTION_BASE_HEIGHT = 1600
+    FAILED_REASON_TOP_GAP = 24
 
     # Nowlert brand surfaces.
     PAGE_BG = (18, 24, 29)
@@ -124,15 +126,56 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         right: int,
         header_y: int,
         header_height: int,
+        *,
+        status: str | None = None,
     ):
-        """Use the full available header height for the lifecycle badge."""
+        """Use the full header height and nudge only the success badge left."""
 
         height = max(self.STATUS_BADGE_HEIGHT, header_height)
+        shift = (
+            self.SUCCESS_BADGE_LEFT_SHIFT
+            if status == "success"
+            else 0
+        )
         return (
-            right - self.STATUS_BADGE_WIDTH,
+            right - self.STATUS_BADGE_WIDTH - shift,
             header_y,
-            right,
+            right - shift,
             header_y + height,
+        )
+
+    def _vm_reason_y(
+        self,
+        y: int,
+        style: dict,
+        extra_name_height: int,
+        reason_status: str | None,
+    ) -> int:
+        gap = (
+            self.FAILED_REASON_TOP_GAP
+            if reason_status == "failure"
+            else 0
+        )
+        return (
+            y
+            + style["reason_y"]
+            + extra_name_height
+            + gap
+        )
+
+    def _footer_identity_x(self, draw, right: int) -> int:
+        text_width = ceil(
+            draw.textlength(
+                self.FOOTER_TEXT,
+                font=self.font_small,
+            )
+        )
+        return (
+            right
+            - self.FOOTER_ICON_SIZE
+            - 18
+            - text_width
+            - 18
         )
 
     def _summary_cells(self, left: int, right: int):
@@ -311,6 +354,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             right,
             header_y,
             header_height,
+            status=status,
         )
         badge_x = badge[0]
         self._glow_box(
@@ -482,7 +526,10 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             fill=(81, 89, 95, 170), width=2,
         )
         icon_size = self.FOOTER_ICON_SIZE
-        icon_x = x0 + 18
+        icon_x = self._footer_identity_x(
+            draw,
+            right,
+        )
         icon_y = footer_y + 18
         self._draw_nowlert_icon(
             image,
@@ -1267,7 +1314,12 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         speed = self._clean(detail.get("speed") or "")
         size_y = y + style["size_y"] + extra_name_height
         speed_y = y + style["speed_y"] + extra_name_height
-        reason_y = y + style["reason_y"] + extra_name_height
+        reason_y = self._vm_reason_y(
+            y,
+            style,
+            extra_name_height,
+            reason_status,
+        )
 
         if size:
             self._draw_field_icon(
