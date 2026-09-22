@@ -988,9 +988,13 @@ def test_xo_success_badge_is_shifted_left_without_moving_other_badges(tmp_path):
         status="failure",
     )
 
-    assert success[2] == right - renderer.SUCCESS_BADGE_LEFT_SHIFT
+    assert renderer.SUCCESS_BADGE_LEFT_SHIFT == 48
+    assert success[2] == right
     assert failure[2] == right
-    assert success[2] - success[0] == renderer.STATUS_BADGE_WIDTH
+    assert success[2] - success[0] == (
+        renderer.STATUS_BADGE_WIDTH
+        + renderer.SUCCESS_BADGE_LEFT_SHIFT
+    )
     assert failure[2] - failure[0] == renderer.STATUS_BADGE_WIDTH
 
 
@@ -1040,3 +1044,52 @@ def test_xo_footer_identity_is_right_aligned_without_changing_size(tmp_path):
     assert renderer.FOOTER_ICON_SIZE == 96
     assert icon_x > renderer.WIDTH // 2
     assert group_right == right - 18
+
+
+
+def test_xo_success_matches_frozen_failure_and_skipped_card_size(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    success = renderer.render(xo_notification("success"))
+    failure = renderer.render(xo_notification("failure"))
+    skipped = renderer.render(xo_notification("skipped"))
+
+    with Image.open(BytesIO(success)) as success_image:
+        success_size = success_image.size
+    with Image.open(BytesIO(failure)) as failure_image:
+        failure_size = failure_image.size
+    with Image.open(BytesIO(skipped)) as skipped_image:
+        skipped_size = skipped_image.size
+
+    assert renderer.WIDTH == 2000
+    assert renderer.SUCCESS_BASE_HEIGHT == renderer.EXCEPTION_BASE_HEIGHT
+    assert success_size == failure_size == skipped_size
+
+
+def test_xo_failure_and_skipped_badge_geometry_stays_frozen(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    right = renderer.WIDTH - renderer.CARD_SIDE_PADDING
+    header_y = 82
+    header_height = 154
+
+    failure = renderer._status_badge_box(
+        right,
+        header_y,
+        header_height,
+        status="failure",
+    )
+    skipped = renderer._status_badge_box(
+        right,
+        header_y,
+        header_height,
+        status="skipped",
+    )
+
+    expected = (
+        right - renderer.STATUS_BADGE_WIDTH,
+        header_y,
+        right,
+        header_y + header_height,
+    )
+    assert failure == expected
+    assert skipped == expected
