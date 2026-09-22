@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from io import BytesIO
 from pathlib import Path
 import re
 
@@ -1783,15 +1784,718 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
 
 
 class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
-    """Zabbix Modern cards at the frozen Xen Orchestra visual scale."""
+    """Render Zabbix with the exact frozen Xen Orchestra visual metrics."""
 
-    WIDTH = 2000
-    MIN_HEIGHT = 1600
-    FOOTER_RESERVE = 180
-    MODERN_PADDING = 78
-    MODERN_GAP = 24
+    WIDTH = XenOrchestraDiscordImageRenderer.WIDTH
+    MIN_HEIGHT = XenOrchestraDiscordImageRenderer.SUCCESS_BASE_HEIGHT
+    BASE_HEIGHT = XenOrchestraDiscordImageRenderer.SUCCESS_BASE_HEIGHT
+    CARD_SIDE_PADDING = XenOrchestraDiscordImageRenderer.CARD_SIDE_PADDING
+    FOOTER_GAP = XenOrchestraDiscordImageRenderer.FOOTER_GAP
+    FOOTER_RESERVE = XenOrchestraDiscordImageRenderer.FOOTER_RESERVE
+    FOOTER_ICON_SIZE = XenOrchestraDiscordImageRenderer.FOOTER_ICON_SIZE
+    STATUS_BADGE_WIDTH = XenOrchestraDiscordImageRenderer.STATUS_BADGE_WIDTH
+    STATUS_BADGE_HEIGHT = XenOrchestraDiscordImageRenderer.STATUS_BADGE_HEIGHT
+    SUMMARY_CELL_GAP = XenOrchestraDiscordImageRenderer.SUMMARY_CELL_GAP
+    HEADER_ICON_SIZE = XenOrchestraDiscordImageRenderer.XO_HEADER_ICON_SIZE
+
+    HEADER_Y = 82
+    HEADER_MIN_HEIGHT = 150
+    TITLE_MIN_HEIGHT = 88
+    SUMMARY_HEIGHT = 112
+    CONTENT_GAP = 24
+    DETAIL_ICON_SIZE = 44
+    SUMMARY_ICON_SIZE = 54
+    BADGE_ICON_SIZE = 64
+    PANEL_TITLE_STATUS_ICON_SIZE = 54
+
+    # Compatibility flags retained for the generic renderer API, but this
+    # class uses its own XO-exact drawing path below.
+    MODERN_PADDING = CARD_SIDE_PADDING
+    MODERN_GAP = CONTENT_GAP
     MODERN_FONT_PROFILE = "xo_match"
-    MODERN_MIN_HEIGHT = 1600
-    MODERN_BADGE_MIN_WIDTH = 560
+    MODERN_MIN_HEIGHT = BASE_HEIGHT
+    MODERN_BADGE_MIN_WIDTH = STATUS_BADGE_WIDTH
     MODERN_BADGE_FILL_HEADER = True
     MODERN_XO_ICON_STYLE = True
+
+    @staticmethod
+    def _zabbix_line_height(font) -> int:
+        return max(font.size + 8, sum(font.getmetrics()))
+
+    def _zabbix_measure_panel(self, draw, panel, width):
+        """Measure a Zabbix section using XO fonts without shrinking text."""
+
+        y = 20
+        paint = []
+        title = self._clean(panel.get("title") or "")
+        accent = panel.get("accent")
+        if title:
+            title_width = max(160, width - 118)
+            title_lines = (
+                self._wrapped_text_lines(
+                    draw,
+                    title,
+                    title_width,
+                    self.font_bold,
+                )
+                or [title]
+            )
+            title_line_height = self._zabbix_line_height(self.font_bold)
+            title_height = max(
+                self.PANEL_TITLE_STATUS_ICON_SIZE if accent else self.DETAIL_ICON_SIZE,
+                len(title_lines) * title_line_height,
+            )
+            paint.append(
+                {
+                    "kind": "title",
+                    "y": y,
+                    "lines": title_lines,
+                    "line_height": title_line_height,
+                }
+            )
+            y += title_height + 14
+
+        for row in panel.get("rows", []):
+            role = row.get("role")
+            label = self._clean(row.get("label") or "")
+            value = self._clean(row.get("value") or "") or "—"
+            color = row.get("color") or self.TEXT
+            icon = row.get("icon")
+
+            if role == "label" and not label:
+                lines = (
+                    self._wrapped_text_lines(
+                        draw,
+                        value,
+                        width - 48,
+                        self.font_label,
+                    )
+                    or [value]
+                )
+                line_height = self._zabbix_line_height(self.font_label)
+                paint.append(
+                    {
+                        "kind": "subheading",
+                        "y": y,
+                        "lines": lines,
+                        "line_height": line_height,
+                        "color": row.get("color") or self.HEADER_MUTED,
+                    }
+                )
+                y += len(lines) * line_height + 8
+                continue
+
+            icon_space = self.DETAIL_ICON_SIZE + 18 if icon else 0
+            text_x = 24 + icon_space
+            available = max(180, width - text_x - 24)
+            body_line_height = self._zabbix_line_height(self.font_detail)
+            label_line_height = self._zabbix_line_height(self.font_label)
+
+            if label:
+                label_width = draw.textlength(label, font=self.font_label)
+                value_width = available - label_width - 18
+                if value_width >= 220:
+                    value_lines = (
+                        self._wrapped_text_lines(
+                            draw,
+                            value,
+                            value_width,
+                            self.font_detail,
+                        )
+                        or [value]
+                    )
+                    row_height = max(
+                        self.DETAIL_ICON_SIZE if icon else 0,
+                        label_line_height,
+                        len(value_lines) * body_line_height,
+                    )
+                    paint.append(
+                        {
+                            "kind": "inline",
+                            "y": y,
+                            "icon": icon,
+                            "text_x": text_x,
+                            "label": label,
+                            "label_width": label_width,
+                            "value_lines": value_lines,
+                            "value_line_height": body_line_height,
+                            "color": color,
+                        }
+                    )
+                    y += row_height + 8
+                    continue
+
+                value_lines = (
+                    self._wrapped_text_lines(
+                        draw,
+                        value,
+                        available,
+                        self.font_detail,
+                    )
+                    or [value]
+                )
+                row_height = (
+                    label_line_height
+                    + 4
+                    + len(value_lines) * body_line_height
+                )
+                row_height = max(
+                    row_height,
+                    self.DETAIL_ICON_SIZE if icon else 0,
+                )
+                paint.append(
+                    {
+                        "kind": "stacked",
+                        "y": y,
+                        "icon": icon,
+                        "text_x": text_x,
+                        "label": label,
+                        "value_lines": value_lines,
+                        "value_line_height": body_line_height,
+                        "label_line_height": label_line_height,
+                        "color": color,
+                    }
+                )
+                y += row_height + 8
+                continue
+
+            value_lines = (
+                self._wrapped_text_lines(
+                    draw,
+                    value,
+                    available,
+                    self.font_detail,
+                )
+                or [value]
+            )
+            row_height = max(
+                self.DETAIL_ICON_SIZE if icon else 0,
+                len(value_lines) * body_line_height,
+            )
+            paint.append(
+                {
+                    "kind": "value",
+                    "y": y,
+                    "icon": icon,
+                    "text_x": text_x,
+                    "value_lines": value_lines,
+                    "value_line_height": body_line_height,
+                    "color": color,
+                }
+            )
+            y += row_height + 8
+
+        return {
+            **panel,
+            "width": width,
+            "height": max(120, y + 12),
+            "paint": paint,
+        }
+
+    def _zabbix_content_plan(self, draw, details, outcomes, x0, right, start_y):
+        """Keep the Zabbix information hierarchy while fitting the XO baseline."""
+
+        width = right - x0
+        gap = self.CONTENT_GAP
+        panels = []
+        y = start_y
+        detail_index = 0
+
+        if len(details) >= 2:
+            half = (width - gap) // 2
+            pair = [
+                self._zabbix_measure_panel(draw, details[0], half),
+                self._zabbix_measure_panel(draw, details[1], half),
+            ]
+            pair_height = max(item["height"] for item in pair)
+            for column, item in enumerate(pair):
+                panels.append(
+                    {
+                        **item,
+                        "x": x0 + column * (half + gap),
+                        "y": y,
+                        "height": pair_height,
+                    }
+                )
+            y += pair_height + gap
+            detail_index = 2
+
+        for panel in details[detail_index:]:
+            measured = self._zabbix_measure_panel(draw, panel, width)
+            panels.append({**measured, "x": x0, "y": y})
+            y += measured["height"] + gap
+
+        for panel in outcomes:
+            measured = self._zabbix_measure_panel(draw, panel, width)
+            panels.append({**measured, "x": x0, "y": y})
+            y += measured["height"] + gap
+
+        return panels, max(start_y, y - gap)
+
+    def _zabbix_draw_panel(self, image, draw, panel, accent, status):
+        x1 = panel["x"]
+        y1 = panel["y"]
+        x2 = x1 + panel["width"]
+        y2 = y1 + panel["height"]
+        panel_accent = panel.get("accent")
+
+        if panel_accent:
+            self._glow_box(
+                image,
+                (x1, y1, x2, y2),
+                panel_accent,
+                15,
+                alpha=110,
+            )
+            draw = ImageDraw.Draw(image, "RGBA")
+
+        self._rounded(
+            draw,
+            (x1, y1, x2, y2),
+            fill=(
+                *(
+                    self._tint(panel_accent, self.CARD_BG, 0.20)
+                    if panel_accent
+                    else self.PANEL_2
+                ),
+                248,
+            ),
+            outline=(*(panel_accent or self.PANEL_BORDER), 225),
+            radius=15,
+            width=2,
+        )
+
+        for item in panel["paint"]:
+            py = y1 + item["y"]
+            kind = item["kind"]
+
+            if kind == "title":
+                if panel_accent:
+                    self._status_icon(
+                        draw,
+                        x1 + 24,
+                        py,
+                        self.PANEL_TITLE_STATUS_ICON_SIZE,
+                        panel.get("status", status),
+                        panel_accent,
+                    )
+                    title_x = x1 + 98
+                    title_color = panel_accent
+                else:
+                    self._draw_field_icon(
+                        draw,
+                        x1 + 24,
+                        py + 3,
+                        self.DETAIL_ICON_SIZE,
+                        self._section_icon(panel.get("title") or ""),
+                    )
+                    title_x = x1 + 84
+                    title_color = self.LABEL
+                for index, line in enumerate(item["lines"]):
+                    draw.text(
+                        (
+                            title_x,
+                            py + index * item["line_height"],
+                        ),
+                        line,
+                        font=self.font_bold,
+                        fill=title_color,
+                    )
+                continue
+
+            if kind == "subheading":
+                for index, line in enumerate(item["lines"]):
+                    draw.text(
+                        (
+                            x1 + 24,
+                            py + index * item["line_height"],
+                        ),
+                        line,
+                        font=self.font_label,
+                        fill=item["color"],
+                    )
+                continue
+
+            icon = item.get("icon")
+            if icon:
+                self._draw_field_icon(
+                    draw,
+                    x1 + 24,
+                    py + 2,
+                    self.DETAIL_ICON_SIZE,
+                    icon,
+                )
+            text_x = x1 + item["text_x"]
+
+            if kind == "inline":
+                draw.text(
+                    (text_x, py),
+                    item["label"],
+                    font=self.font_label,
+                    fill=self.LABEL,
+                )
+                value_x = text_x + item["label_width"] + 18
+                for index, line in enumerate(item["value_lines"]):
+                    draw.text(
+                        (
+                            value_x,
+                            py + index * item["value_line_height"],
+                        ),
+                        line,
+                        font=self.font_detail,
+                        fill=item["color"],
+                    )
+                continue
+
+            if kind == "stacked":
+                draw.text(
+                    (text_x, py),
+                    item["label"],
+                    font=self.font_label,
+                    fill=self.LABEL,
+                )
+                value_y = py + item["label_line_height"] + 4
+                for index, line in enumerate(item["value_lines"]):
+                    draw.text(
+                        (
+                            text_x,
+                            value_y + index * item["value_line_height"],
+                        ),
+                        line,
+                        font=self.font_detail,
+                        fill=item["color"],
+                    )
+                continue
+
+            for index, line in enumerate(item["value_lines"]):
+                draw.text(
+                    (
+                        text_x,
+                        py + index * item["value_line_height"],
+                    ),
+                    line,
+                    font=self.font_detail,
+                    fill=item["color"],
+                )
+
+    def _render_standard_card(
+        self,
+        *,
+        source,
+        accent,
+        status,
+        font_profile="default",
+        **content,
+    ):
+        """Render Zabbix on the exact XO geometry, fonts, icons and footer."""
+
+        integration = content["integration"]
+        context = content["context"]
+        badge_label = content["badge"]
+        title = content["title"]
+        severity = content["severity"]
+        category = content["category"]
+        event_time = self._event_time_only(content["event_time"])
+        details = content["details"]
+        outcomes = content["outcomes"]
+
+        measure = ImageDraw.Draw(Image.new("RGB", (self.WIDTH, 1)))
+        x0 = self.CARD_SIDE_PADDING
+        right = self.WIDTH - self.CARD_SIDE_PADDING
+        header_y = self.HEADER_Y
+        title_x = x0 + self.HEADER_ICON_SIZE + 20
+
+        badge_probe = self._status_badge_box(
+            right,
+            header_y,
+            self.HEADER_MIN_HEIGHT,
+            status=status,
+        )
+        context_width = max(320, badge_probe[0] - title_x - 34)
+        context_lines = (
+            self._wrapped_text_lines(
+                measure,
+                context,
+                context_width,
+                self.font_body,
+            )
+            or [context]
+        )
+        body_line_height = self._zabbix_line_height(self.font_body)
+        header_height = max(
+            self.HEADER_MIN_HEIGHT,
+            76 + len(context_lines) * (body_line_height + 6),
+            self.STATUS_BADGE_HEIGHT,
+        )
+
+        title_width = right - x0 - 60
+        title_lines = (
+            self._wrapped_text_lines(
+                measure,
+                title,
+                title_width,
+                self.font_title,
+            )
+            or [title]
+        )
+        title_line_height = self._zabbix_line_height(self.font_title)
+        title_y = header_y + header_height + 24
+        title_height = max(
+            self.TITLE_MIN_HEIGHT,
+            30 + len(title_lines) * (title_line_height + 5),
+        )
+
+        summary_y = title_y + title_height + 20
+        content_y = summary_y + self.SUMMARY_HEIGHT + self.CONTENT_GAP
+        panels, content_bottom = self._zabbix_content_plan(
+            measure,
+            details,
+            outcomes,
+            x0,
+            right,
+            content_y,
+        )
+
+        baseline_footer_y = self.BASE_HEIGHT - self.FOOTER_RESERVE
+        required_footer_y = content_bottom + self.FOOTER_GAP
+        footer_y = max(baseline_footer_y, required_footer_y)
+        height = max(
+            self.BASE_HEIGHT,
+            footer_y + self.FOOTER_RESERVE,
+        )
+
+        image = self._background(self.WIDTH, height)
+        self._outer_glows(image, accent, height)
+        draw = ImageDraw.Draw(image, "RGBA")
+        card = (30, 38, self.WIDTH - 30, height - 38)
+        self._rounded(
+            draw,
+            card,
+            fill=(*self.CARD_BG, 247),
+            outline=(*self.PANEL_BORDER, 220),
+            radius=28,
+            width=2,
+        )
+        self._draw_status_rail(draw, accent, height)
+        self._draw_gold_frame(draw, card)
+
+        self._draw_product_icon(
+            image,
+            source,
+            x0,
+            header_y - 4,
+            self.HEADER_ICON_SIZE,
+            self.HEADER_ICON_SIZE,
+        )
+        draw.text(
+            (title_x, header_y + 2),
+            integration,
+            font=self.font_heading,
+            fill=self.TEXT,
+        )
+        self._wrap_text(
+            draw,
+            context,
+            title_x,
+            header_y + 68,
+            context_width,
+            self.font_body,
+            self.HEADER_MUTED,
+            max_lines=None,
+            line_gap=5,
+        )
+
+        badge = self._status_badge_box(
+            right,
+            header_y,
+            header_height,
+            status=status,
+        )
+        badge_x = badge[0]
+        self._glow_box(
+            image,
+            badge,
+            accent,
+            18,
+            alpha=self.STATUS_GLOW_ALPHA,
+        )
+        draw = ImageDraw.Draw(image, "RGBA")
+        self._rounded(
+            draw,
+            badge,
+            fill=(*self._tint(accent, self.CARD_BG, 0.16), 245),
+            outline=(*accent, 225),
+            radius=18,
+            width=2,
+        )
+        badge_icon_y = self._center_y(
+            badge[1],
+            badge[3],
+            self.BADGE_ICON_SIZE,
+        )
+        self._status_icon(
+            draw,
+            badge_x + 28,
+            badge_icon_y,
+            self.BADGE_ICON_SIZE,
+            status,
+            accent,
+        )
+        draw.text(
+            (
+                badge_x + 112,
+                (badge[1] + badge[3]) // 2,
+            ),
+            badge_label,
+            font=self.font_bold,
+            fill=accent if status != "success" else (103, 239, 174),
+            anchor="lm",
+        )
+
+        title_box = (
+            x0,
+            title_y,
+            right,
+            title_y + title_height,
+        )
+        self._rounded(
+            draw,
+            title_box,
+            fill=(*self.PANEL_2, 248),
+            outline=(93, 101, 108, 190),
+            radius=14,
+            width=2,
+        )
+        self._wrap_text(
+            draw,
+            title,
+            x0 + 30,
+            title_y + 16,
+            title_width,
+            self.font_title,
+            self.TEXT,
+            max_lines=None,
+            line_gap=5,
+        )
+
+        summary_box = (
+            x0,
+            summary_y,
+            right,
+            summary_y + self.SUMMARY_HEIGHT,
+        )
+        self._rounded(
+            draw,
+            summary_box,
+            fill=(*self.PANEL, 248),
+            outline=(*self.PANEL_BORDER, 200),
+            radius=14,
+            width=1,
+        )
+        metrics = [
+            ("status", "Severity", severity, accent),
+            ("sync", "Category", category, self.ICON_BLUE),
+            ("clock", "Event time", event_time, (194, 226, 242)),
+        ]
+        cells = self._summary_cells(x0, right)
+        summary_mid_y = summary_y + self.SUMMARY_HEIGHT // 2
+        for index, ((icon, label, value, color), cell) in enumerate(
+            zip(metrics, cells)
+        ):
+            cell_x1, cell_x2 = cell
+            icon_y = self._center_y(
+                summary_y,
+                summary_y + self.SUMMARY_HEIGHT,
+                self.SUMMARY_ICON_SIZE,
+            )
+            self._draw_icon_badge(
+                draw,
+                cell_x1,
+                icon_y,
+                self.SUMMARY_ICON_SIZE,
+                icon,
+                color,
+                status=status,
+            )
+            label_x = cell_x1 + 74
+            draw.text(
+                (label_x, summary_mid_y),
+                f"{label}:",
+                font=self.font_label,
+                fill=self.TEXT,
+                anchor="lm",
+            )
+            label_width = draw.textlength(
+                f"{label}:",
+                font=self.font_label,
+            )
+            draw.text(
+                (
+                    label_x + label_width + 18,
+                    summary_mid_y,
+                ),
+                value,
+                font=self.font_detail,
+                fill=self.TEXT,
+                anchor="lm",
+            )
+            if index < 2:
+                next_left = cells[index + 1][0]
+                divider_x = (cell_x2 + next_left) // 2
+                draw.line(
+                    (
+                        divider_x,
+                        summary_y + 22,
+                        divider_x,
+                        summary_y + self.SUMMARY_HEIGHT - 22,
+                    ),
+                    fill=(102, 112, 119, 160),
+                    width=2,
+                )
+
+        for panel in panels:
+            self._zabbix_draw_panel(
+                image,
+                draw,
+                panel,
+                accent,
+                status,
+            )
+
+        draw.line(
+            (
+                x0,
+                footer_y - 10,
+                right,
+                footer_y - 10,
+            ),
+            fill=(81, 89, 95, 170),
+            width=2,
+        )
+        footer_x = self._footer_identity_x(draw, right)
+        footer_icon_y = footer_y + 18
+        self._draw_nowlert_icon(
+            image,
+            footer_x,
+            footer_icon_y,
+            self.FOOTER_ICON_SIZE,
+        )
+        draw.text(
+            (
+                footer_x + self.FOOTER_ICON_SIZE + 18,
+                footer_icon_y + self.FOOTER_ICON_SIZE // 2,
+            ),
+            self.FOOTER_TEXT,
+            font=self.font_small,
+            fill=self.MUTED,
+            anchor="lm",
+        )
+
+        output = BytesIO()
+        image.convert("RGB").save(
+            output,
+            format="PNG",
+            optimize=True,
+            compress_level=7,
+        )
+        return output.getvalue()

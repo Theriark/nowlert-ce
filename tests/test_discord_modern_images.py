@@ -792,3 +792,113 @@ def test_discord_output_routes_only_zabbix_to_xo_scaled_renderer(tmp_path):
         assert image.height >= 1600
     with Image.open(BytesIO(grafana_image)) as image:
         assert image.width == 1448
+
+
+
+@pytest.mark.parametrize(
+    ("status", "event_type"),
+    (
+        ("error", "problem"),
+        ("warning", "problem"),
+        ("resolved", "recovery"),
+    ),
+)
+def test_zabbix_standard_cards_match_xo_canvas_size(
+    tmp_path,
+    status,
+    event_type,
+):
+    output = DiscordOutput()
+    output.ICON_DIR = tmp_path
+    output.zabbix_modern_image_renderer.icon_dir = tmp_path
+    item = notification("zabbix")
+    item.status = status
+    item.duration = "4m 37s"
+    item.metadata.update(
+        {
+            "event_type": event_type,
+            "host": "VM-08 | Zabbix Server",
+            "problem_name": "PostgreSQL replication lag exceeds 120 seconds",
+            "severity": "High",
+            "operational_data": (
+                "replication_lag=146s; "
+                "wal_receiver=connected; primary=DB-01"
+            ),
+            "problem_id": "3056974557",
+            "event_time": "2026-09-22 08:33:31 UTC",
+        }
+    )
+
+    formatter = output.source_formatters["zabbix"]
+    image = output.render_modern_image(item, formatter)
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.size == (2000, 1600)
+
+
+def test_zabbix_uses_exact_xo_visual_metrics(tmp_path):
+    zabbix = ZabbixDiscordModernImageRenderer(tmp_path)
+    xo = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    assert zabbix.WIDTH == xo.WIDTH == 2000
+    assert zabbix.BASE_HEIGHT == xo.SUCCESS_BASE_HEIGHT == 1600
+    assert zabbix.CARD_SIDE_PADDING == xo.CARD_SIDE_PADDING == 78
+    assert zabbix.FOOTER_RESERVE == xo.FOOTER_RESERVE == 180
+    assert zabbix.FOOTER_ICON_SIZE == xo.FOOTER_ICON_SIZE == 96
+    assert zabbix.STATUS_BADGE_WIDTH == xo.STATUS_BADGE_WIDTH == 560
+    assert zabbix.STATUS_BADGE_HEIGHT == xo.STATUS_BADGE_HEIGHT == 128
+    assert zabbix.SUMMARY_CELL_GAP == xo.SUMMARY_CELL_GAP == 48
+    assert zabbix.HEADER_ICON_SIZE == xo.XO_HEADER_ICON_SIZE == 144
+    assert zabbix.BADGE_ICON_SIZE == 64
+    assert zabbix.SUMMARY_ICON_SIZE == 54
+    assert zabbix.DETAIL_ICON_SIZE == 44
+
+
+def test_zabbix_uses_exact_xo_fonts(tmp_path):
+    zabbix = ZabbixDiscordModernImageRenderer(tmp_path)
+    xo = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    for name in (
+        "font_heading",
+        "font_title",
+        "font_bold",
+        "font_label",
+        "font_detail",
+        "font_body",
+        "font_small",
+    ):
+        assert getattr(zabbix, name).size == getattr(xo, name).size
+
+
+def test_zabbix_footer_uses_xo_right_alignment_and_size(tmp_path, monkeypatch):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    item = notification("zabbix")
+    output = DiscordOutput()
+    output.ICON_DIR = tmp_path
+    output.zabbix_modern_image_renderer = renderer
+    formatter = output.source_formatters["zabbix"]
+    classic = formatter._sanitize_payload(formatter.format(item))
+    captured = {}
+
+    def capture(_image, x, y, size):
+        captured.update({"x": x, "y": y, "size": size})
+
+    monkeypatch.setattr(renderer, "_draw_nowlert_icon", capture)
+
+    image = renderer.render(item, classic)
+    with Image.open(BytesIO(image)) as rendered:
+        draw = ImageDraw.Draw(rendered)
+        right = renderer.WIDTH - renderer.CARD_SIDE_PADDING
+        expected_x = renderer._footer_identity_x(draw, right)
+
+    assert captured["x"] == expected_x
+    assert captured["size"] == 96
+    assert captured["x"] > renderer.WIDTH // 2
+
+
+def test_zabbix_summary_uses_xo_time_only_format(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._event_time_only(
+        "2026-09-22 08:33:31 UTC"
+    ) == "08:33:31 UTC"
