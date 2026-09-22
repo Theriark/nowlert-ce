@@ -46,6 +46,8 @@ from formatters.discord_zabbix import ZabbixDiscordFormatter
 from formatters.discord_modern_image import (
     DiscordModernImageRenderer,
     GrafanaDiscordModernImageRenderer,
+    PortainerDiscordModernImageRenderer,
+    ProxmoxDiscordModernImageRenderer,
     ZabbixDiscordModernImageRenderer,
 )
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
@@ -71,6 +73,12 @@ class DiscordOutput:
             self.ICON_DIR
         )
         self.grafana_modern_image_renderer = GrafanaDiscordModernImageRenderer(
+            self.ICON_DIR
+        )
+        self.portainer_modern_image_renderer = PortainerDiscordModernImageRenderer(
+            self.ICON_DIR
+        )
+        self.proxmox_modern_image_renderer = ProxmoxDiscordModernImageRenderer(
             self.ICON_DIR
         )
 
@@ -305,6 +313,10 @@ class DiscordOutput:
                 if source == "zabbix"
                 else self.grafana_modern_image_renderer
                 if source == "grafana"
+                else self.portainer_modern_image_renderer
+                if source == "portainer"
+                else self.proxmox_modern_image_renderer
+                if source == "proxmox"
                 else self.modern_image_renderer
             )
             return renderer.render(

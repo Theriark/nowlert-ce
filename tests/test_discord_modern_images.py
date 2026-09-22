@@ -12,6 +12,8 @@ from PIL import Image, ImageDraw
 from formatters.discord_modern_image import (
     DiscordModernImageRenderer,
     GrafanaDiscordModernImageRenderer,
+    PortainerDiscordModernImageRenderer,
+    ProxmoxDiscordModernImageRenderer,
     ZabbixDiscordModernImageRenderer,
 )
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
@@ -124,6 +126,8 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     output.modern_image_renderer.icon_dir = tmp_path
     output.zabbix_modern_image_renderer.icon_dir = tmp_path
     output.grafana_modern_image_renderer.icon_dir = tmp_path
+    output.portainer_modern_image_renderer.icon_dir = tmp_path
+    output.proxmox_modern_image_renderer.icon_dir = tmp_path
     item = notification(source)
     formatter = output.source_formatters.get(
         source,
@@ -140,14 +144,18 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     with Image.open(BytesIO(image)) as rendered:
         expected_width = (
             2064
-            if source in {"zabbix", "grafana"}
+            if source in {"zabbix", "grafana", "portainer", "proxmox"}
             else 1448
         )
+        dedicated_renderers = {
+            "zabbix": output.zabbix_modern_image_renderer,
+            "grafana": output.grafana_modern_image_renderer,
+            "portainer": output.portainer_modern_image_renderer,
+            "proxmox": output.proxmox_modern_image_renderer,
+        }
         expected_min_height = (
-            output.zabbix_modern_image_renderer.MIN_HEIGHT
-            if source == "zabbix"
-            else output.grafana_modern_image_renderer.MIN_HEIGHT
-            if source == "grafana"
+            dedicated_renderers[source].MIN_HEIGHT
+            if source in dedicated_renderers
             else output.modern_image_renderer.MIN_HEIGHT
         )
         assert rendered.width == expected_width
@@ -779,36 +787,31 @@ def test_zabbix_uses_xo_icon_scale_without_changing_generic_renderer(tmp_path):
     assert generic.WIDTH == 1448
 
 
-def test_discord_output_routes_zabbix_and_grafana_to_xo_scaled_renderers(tmp_path):
+def test_discord_output_routes_standardized_sources_to_xo_scaled_renderers(tmp_path):
     output = DiscordOutput()
     output.ICON_DIR = tmp_path
     output.modern_image_renderer.icon_dir = tmp_path
     output.zabbix_modern_image_renderer.icon_dir = tmp_path
     output.grafana_modern_image_renderer.icon_dir = tmp_path
+    output.portainer_modern_image_renderer.icon_dir = tmp_path
+    output.proxmox_modern_image_renderer.icon_dir = tmp_path
 
-    zabbix = notification("zabbix")
-    zabbix_image = output.render_modern_image(
-        zabbix,
-        output.source_formatters["zabbix"],
-    )
-    grafana = notification("grafana")
-    grafana_image = output.render_modern_image(
-        grafana,
-        output.source_formatters["grafana"],
-    )
-    portainer = notification("portainer")
-    portainer_image = output.render_modern_image(
-        portainer,
-        output.source_formatters["portainer"],
-    )
+    for source in ("zabbix", "grafana", "portainer", "proxmox"):
+        item = notification(source)
+        image_bytes = output.render_modern_image(
+            item,
+            output.source_formatters[source],
+        )
+        with Image.open(BytesIO(image_bytes)) as image:
+            assert image.width == 2064
+            assert image.height >= 1600
 
-    with Image.open(BytesIO(zabbix_image)) as image:
-        assert image.width == 2064
-        assert image.height >= 1600
-    with Image.open(BytesIO(grafana_image)) as image:
-        assert image.width == 2064
-        assert image.height >= 1600
-    with Image.open(BytesIO(portainer_image)) as image:
+    qnap = notification("qnap")
+    qnap_image = output.render_modern_image(
+        qnap,
+        output.source_formatters["qnap"],
+    )
+    with Image.open(BytesIO(qnap_image)) as image:
         assert image.width == 1448
 
 
@@ -1551,3 +1554,205 @@ def test_grafana_short_grouped_alert_stays_at_standard_card_height(tmp_path):
 
     with Image.open(BytesIO(image)) as rendered:
         assert rendered.size == (2064, 1600)
+
+
+
+@pytest.mark.parametrize(
+    ("source", "renderer_name"),
+    (
+        ("portainer", "portainer_modern_image_renderer"),
+        ("proxmox", "proxmox_modern_image_renderer"),
+    ),
+)
+def test_portainer_and_proxmox_use_grafana_xo_display_scale(
+    tmp_path,
+    source,
+    renderer_name,
+):
+    output = DiscordOutput()
+    output.ICON_DIR = tmp_path
+    renderer = getattr(output, renderer_name)
+    renderer.icon_dir = tmp_path
+    item = notification(source)
+    formatter = output.source_formatters[source]
+
+    image = output.render_modern_image(item, formatter)
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.size == (2064, 1600)
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    (
+        PortainerDiscordModernImageRenderer,
+        ProxmoxDiscordModernImageRenderer,
+    ),
+)
+def test_portainer_and_proxmox_use_frozen_grafana_metrics(
+    tmp_path,
+    renderer_class,
+):
+    renderer = renderer_class(tmp_path)
+    grafana = GrafanaDiscordModernImageRenderer(tmp_path)
+
+    assert renderer.WIDTH == grafana.WIDTH == 2064
+    assert renderer.BASE_HEIGHT == grafana.BASE_HEIGHT == 1600
+    assert renderer.STATUS_BADGE_WIDTH == grafana.STATUS_BADGE_WIDTH == 640
+    assert renderer.STATUS_BADGE_HEIGHT == grafana.STATUS_BADGE_HEIGHT
+    assert renderer.SUMMARY_ICON_SIZE == grafana.SUMMARY_ICON_SIZE == 54
+    assert renderer.FOOTER_ICON_SIZE == grafana.FOOTER_ICON_SIZE == 96
+    assert renderer.SUMMARY_CELL_GAP == grafana.SUMMARY_CELL_GAP
+    for name in (
+        "font_heading",
+        "font_title",
+        "font_bold",
+        "font_label",
+        "font_detail",
+        "font_body",
+        "font_small",
+    ):
+        assert getattr(renderer, name).size == getattr(grafana, name).size
+
+
+@pytest.mark.parametrize(
+    ("renderer_class", "source", "integration", "left_title", "right_title"),
+    (
+        (
+            PortainerDiscordModernImageRenderer,
+            "portainer",
+            "Portainer",
+            "Environment",
+            "Signal",
+        ),
+        (
+            ProxmoxDiscordModernImageRenderer,
+            "proxmox",
+            "Proxmox",
+            "Proxmox VE",
+            "Job & Storage",
+        ),
+    ),
+)
+def test_portainer_and_proxmox_long_content_grows_card(
+    tmp_path,
+    renderer_class,
+    source,
+    integration,
+    left_title,
+    right_title,
+):
+    renderer = renderer_class(tmp_path)
+    details = [
+        {
+            "title": left_title,
+            "rows": [
+                {
+                    "label": "Instance:",
+                    "value": " ".join(["synthetic-platform-instance"] * 110),
+                    "icon": "repository",
+                }
+            ],
+        },
+        {
+            "title": right_title,
+            "rows": [
+                {
+                    "label": "Metric:",
+                    "value": " ".join(["synthetic_metric_value"] * 90),
+                    "icon": "chart",
+                }
+            ],
+        },
+        {
+            "title": "Timing",
+            "rows": [
+                {
+                    "label": "Started:",
+                    "value": "2026-07-15 01:15:00 UTC",
+                    "icon": "play",
+                }
+            ],
+        },
+    ]
+    outcomes = [
+        {
+            "title": "EVENT DETAILS",
+            "accent": renderer.FAILURE,
+            "status": "failure",
+            "rows": [
+                {
+                    "value": " ".join(["synthetic failure detail"] * 110),
+                    "icon": "alert",
+                }
+            ],
+        }
+    ]
+
+    image = renderer._render_standard_card(
+        source=source,
+        integration=integration,
+        context="Synthetic test platform",
+        badge="Environment Firing" if source == "portainer" else "Backup Failure",
+        title="Synthetic infrastructure event",
+        severity="Critical",
+        category="Environment" if source == "portainer" else "Backup",
+        event_time="01:15:00 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.width == 2064
+        assert rendered.height > 1600
+
+
+def test_portainer_uses_xo_icon_vocabulary(tmp_path):
+    renderer = PortainerDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._zabbix_xo_section_icon("Environment") == "repository"
+    assert renderer._zabbix_xo_section_icon("Signal") == "chart"
+    assert renderer._zabbix_xo_field_icon(
+        "Environment", "Instance:", "synthetic-portainer-edge", "server"
+    ) == "repository"
+    assert renderer._zabbix_xo_field_icon(
+        "Signal", "Metric:", "endpoint_health", "list"
+    ) == "chart"
+
+
+def test_proxmox_uses_xo_icon_vocabulary(tmp_path):
+    renderer = ProxmoxDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._zabbix_xo_section_icon("Proxmox VE") == "repository"
+    assert renderer._zabbix_xo_section_icon("Job & Storage") == "disk"
+    assert renderer._zabbix_xo_field_icon(
+        "Proxmox VE", "Guest:", "synthetic-db", "server"
+    ) == "cube"
+    assert renderer._zabbix_xo_field_icon(
+        "Job & Storage", "Storage:", "synthetic-backup-store", "list"
+    ) == "disk"
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    (
+        PortainerDiscordModernImageRenderer,
+        ProxmoxDiscordModernImageRenderer,
+    ),
+)
+def test_portainer_and_proxmox_started_timing_follows_lifecycle_color(
+    tmp_path,
+    renderer_class,
+):
+    renderer = renderer_class(tmp_path)
+
+    assert renderer._line_color(
+        "Started: 2026-07-15 01:15:00 UTC",
+        renderer.FAILURE,
+    ) == renderer.FAILURE
+    assert renderer._line_color(
+        "Started: 2026-07-15 01:15:00 UTC",
+        renderer.BRAND_GOLD,
+    ) == renderer.BRAND_GOLD

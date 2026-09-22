@@ -2874,3 +2874,162 @@ class GrafanaDiscordModernImageRenderer(ZabbixDiscordModernImageRenderer):
             value,
             fallback,
         )
+
+
+
+class PortainerDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
+    """Render Portainer cards on the frozen Grafana/Zabbix/XO baseline."""
+
+    PORTAINER_XO_SECTION_ICONS = {
+        "environment": "repository",
+        "signal": "chart",
+        "timing": "clock",
+    }
+    PORTAINER_XO_FIELD_ICONS = {
+        "portainer": "repository",
+        "instance": "repository",
+        "area": "list",
+        "authentication": "list",
+        "method": "list",
+        "user": "list",
+        "signal": "chart",
+        "metric": "chart",
+        "count": "list",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+    }
+
+    def _zabbix_content_plan(
+        self,
+        draw,
+        details,
+        outcomes,
+        x0,
+        right,
+        start_y,
+    ):
+        return ZabbixDiscordModernImageRenderer._zabbix_content_plan(
+            self,
+            draw,
+            details,
+            outcomes,
+            x0,
+            right,
+            start_y,
+        )
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        return self.PORTAINER_XO_SECTION_ICONS.get(
+            self._clean(title).casefold(),
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.PORTAINER_XO_FIELD_ICONS:
+            return self.PORTAINER_XO_FIELD_ICONS[key]
+
+        panel_key = self._clean(panel_title).casefold()
+        if panel_key == "environment":
+            return "repository"
+        if panel_key == "signal":
+            return "chart"
+        if panel_key == "timing":
+            return "clock"
+
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
+
+
+class ProxmoxDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
+    """Render Proxmox cards on the frozen Grafana/Zabbix/XO baseline."""
+
+    PROXMOX_XO_SECTION_ICONS = {
+        "proxmox ve": "repository",
+        "job & storage": "disk",
+        "timing": "clock",
+    }
+    PROXMOX_XO_FIELD_ICONS = {
+        "node": "repository",
+        "guest": "cube",
+        "vmid": "list",
+        "backup": "list",
+        "storage": "disk",
+        "job": "list",
+        "duration": "clock",
+        "guests ok": "status",
+        "guests failed": "alert",
+        "failed guests": "alert",
+        "error details": "alert",
+        "successful guests": "status",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+    }
+
+    def _zabbix_content_plan(
+        self,
+        draw,
+        details,
+        outcomes,
+        x0,
+        right,
+        start_y,
+    ):
+        return ZabbixDiscordModernImageRenderer._zabbix_content_plan(
+            self,
+            draw,
+            details,
+            outcomes,
+            x0,
+            right,
+            start_y,
+        )
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        return self.PROXMOX_XO_SECTION_ICONS.get(
+            self._clean(title).casefold(),
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.PROXMOX_XO_FIELD_ICONS:
+            return self.PROXMOX_XO_FIELD_ICONS[key]
+
+        panel_key = self._clean(panel_title).casefold()
+        if panel_key == "proxmox ve":
+            return "repository"
+        if panel_key == "job & storage":
+            return "disk"
+        if panel_key == "timing":
+            return "clock"
+
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
