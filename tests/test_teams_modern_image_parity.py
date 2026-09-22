@@ -5,7 +5,7 @@ from __future__ import annotations
 from io import BytesIO
 import json
 import socket
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import urlsplit
 
 from PIL import Image
 
@@ -15,8 +15,7 @@ from outputs.platform import TeamsPlatformAdapter
 from outputs.teams import TeamsOutput
 from outputs.teams_modern_image import (
     TEAMS_MODERN_CARD_MAX_DIMENSION,
-    TEAMS_MODERN_CARD_PUBLIC_PATH,
-    TEAMS_MODERN_CARD_QUERY_NAME,
+    TEAMS_MODERN_CARD_PUBLIC_PREFIX,
     TEAMS_MODERN_CARD_URL_PREFIX,
     load_teams_modern_image,
 )
@@ -124,12 +123,8 @@ def image_item(payload: dict) -> dict:
 
 def image_filename(url: str) -> str:
     parsed = urlsplit(url)
-    values = parse_qs(parsed.query).get(
-        TEAMS_MODERN_CARD_QUERY_NAME,
-        [],
-    )
-    assert len(values) == 1
-    return values[0]
+    assert parsed.path.startswith(TEAMS_MODERN_CARD_PUBLIC_PREFIX)
+    return parsed.path[len(TEAMS_MODERN_CARD_PUBLIC_PREFIX):]
 
 
 def test_teams_modern_uses_discord_renderer_and_public_health_path(
@@ -161,7 +156,8 @@ def test_teams_modern_uses_discord_renderer_and_public_health_path(
     assert image["size"] == "Stretch"
     assert parsed.scheme == "https"
     assert parsed.netloc == "nowlert.example.test"
-    assert parsed.path == TEAMS_MODERN_CARD_PUBLIC_PATH
+    assert parsed.path.startswith(TEAMS_MODERN_CARD_PUBLIC_PREFIX)
+    assert parsed.query == ""
     assert image["url"].startswith(
         "https://nowlert.example.test"
         + TEAMS_MODERN_CARD_URL_PREFIX
@@ -223,7 +219,7 @@ def test_teams_classic_never_invokes_modern_image_renderer(
     assert preview.metadata["message_style"] == "classic"
     assert preview.metadata["rendered_style"] == "classic"
     assert preview.metadata["modern_image"] is False
-    assert TEAMS_MODERN_CARD_QUERY_NAME not in encoded
+    assert TEAMS_MODERN_CARD_PUBLIC_PREFIX not in encoded
 
 
 def test_missing_public_origin_fails_closed_instead_of_native_card(

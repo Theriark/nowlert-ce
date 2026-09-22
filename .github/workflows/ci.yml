@@ -243,18 +243,20 @@ jobs:
             -H "User-Agent: Theriark-GitHub-Actions/1.0"
           )
 
-          MEDIA_TOKEN="$(printf '0%.0s' {1..48}).png"
+          MEDIA_TOKEN="${SOURCE_SHA}00000000.png"
           MEDIA_STATUS="$(
             curl --silent --show-error \
               --output /dev/null \
               --write-out '%{http_code}' \
-              "${BASE_URL}/api/health?teams_modern_card=${MEDIA_TOKEN}"
+              -H "Cache-Control: no-cache" \
+              -H "User-Agent: Theriark-GitHub-Actions/1.0" \
+              "${BASE_URL}/api/health/teams-modern-card/${MEDIA_TOKEN}"
           )"
           [[ "${MEDIA_STATUS}" == "404" ]] || {
-            echo "::error::Teams public media path is not reachable without Cloudflare Access headers (HTTP ${MEDIA_STATUS})"
+            echo "::error::Teams public media path did not reach Nowlert without Cloudflare Access headers (HTTP ${MEDIA_STATUS})"
             exit 1
           }
-          echo "PASS: tokenized Teams media path is public and unknown tokens fail closed"
+          echo "PASS: path-based Teams media endpoint is public and unknown tokens fail closed"
 
           require_contains() {
             local label="$1"

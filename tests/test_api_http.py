@@ -6,7 +6,12 @@ import http.client
 import json
 import threading
 
+from io import BytesIO
+
 from pathlib import Path
+from urllib.parse import urlsplit
+
+from PIL import Image
 
 import inputs.http as http_module
 
@@ -14,6 +19,7 @@ from api.audit import AuditLog
 from api.security import hash_token
 from dispatcher import Dispatcher
 from inputs.http import HTTPServer
+from outputs.teams_modern_image import publish_teams_modern_image
 
 
 class Configuration:
@@ -90,6 +96,22 @@ def request(port, method, path, payload=None, token=""):
     return status, json.loads(raw) if raw else None
 
 
+def raw_request(port, method, path):
+    connection = http.client.HTTPConnection(
+        "127.0.0.1",
+        port,
+        timeout=2,
+    )
+    connection.request(method, path)
+    response = connection.getresponse()
+    status = response.status
+    content_type = response.getheader("Content-Type")
+    cache_control = response.getheader("Cache-Control")
+    raw = response.read()
+    connection.close()
+    return status, content_type, cache_control, raw
+
+
 def event(source="home_lab"):
     return {
         "schema": "nowlert.event.v1",
@@ -139,6 +161,60 @@ def test_source_endpoint_uses_api_scope_without_global_secret(monkeypatch, tmp_p
 
     assert (missing[0], accepted[0]) == (401, 204)
     assert [item.source for item in running.router.items] == ["home_assistant"]
+
+
+def test_teams_modern_media_uses_path_below_public_health_prefix(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv(
+        "NOWLERT_STATE_DIR",
+        str(tmp_path / "state"),
+    )
+    monkeypatch.setenv(
+        "NOWLERT_TEAMS_PUBLIC_BASE_URL",
+        "https://nowlert.example.test",
+    )
+
+    stream = BytesIO()
+    Image.new("RGB", (32, 24), (8, 12, 15)).save(
+        stream,
+        format="PNG",
+    )
+
+    with RunningServer(monkeypatch, tmp_path) as running:
+        url = publish_teams_modern_image(
+            http_module.config,
+            stream.getvalue(),
+        )
+        assert url is not None
+        path = urlsplit(url).path
+
+        card = raw_request(
+            running.server.server_port,
+            "GET",
+            path,
+        )
+        missing = raw_request(
+            running.server.server_port,
+            "GET",
+            "/api/health/teams-modern-card/"
+            + ("0" * 48)
+            + ".png",
+        )
+        health = request(
+            running.server.server_port,
+            "GET",
+            "/api/health",
+        )
+
+    assert card[0] == 200
+    assert card[1] == "image/png"
+    assert card[2] == "public, max-age=86400, immutable"
+    assert card[3].startswith(b"\x89PNG")
+    assert missing[0] == 404
+    assert health[0] == 200
+    assert health[1]["version"] == "3.1.6"
 
 
 def test_api_rate_limit_returns_429(monkeypatch, tmp_path):

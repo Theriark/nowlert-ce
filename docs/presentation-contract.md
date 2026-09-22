@@ -39,20 +39,22 @@ The Teams transport wraps that rendered PNG in a minimal Adaptive Card 1.4
 its layout/content is not rebuilt with native Teams text containers.
 
 Because Teams workflow payloads are JSON-only and remain bounded to 28 KiB,
-Nowlert does not embed the full PNG as Base64. When `webui.public_url` is a
-credential-free public HTTPS address, the rendered image is stored below
-`platform.state_dir/teams-modern-cards` under an unguessable immutable token
-and exposed through `/ui/teams-modern-cards/<token>.png`. The cache retains
-images for 90 days and removes expired entries opportunistically as new cards
-are published.
+Nowlert does not embed the full PNG as Base64. The rendered image is stored
+below `platform.state_dir/teams-modern-cards` under an unguessable immutable
+token and exposed through the public health-prefix path
+`/api/health/teams-modern-card/<token>.png`. Plain `/api/health` remains the
+normal health JSON endpoint. The cache retains images for 90 days and removes
+expired entries opportunistically as new cards are published.
 
-If a public HTTPS WebUI address is not configured or the image cache is not
-writable, Modern delivery falls back to the native Teams renderer rather than
-dropping the notification. Teams Classic remains a separate renderer and is not
-changed by Modern image parity.
+The public origin comes from `NOWLERT_TEAMS_PUBLIC_BASE_URL`, falling back to
+`webui.public_url`. Modern delivery is fail-closed: if the image cannot be
+rendered or published, Nowlert returns `teams_modern_image_unavailable` and
+sends nothing to Teams. It never silently substitutes the native grey Teams
+card. Teams Classic remains a separate renderer and is not changed by Modern
+image parity.
 
-The native Teams formatters remain available for that compatibility fallback
-and for their existing presentation tests. Static product artwork still uses
+The native Teams formatters remain available for legacy YAML output
+compatibility and presentation tests. Static product artwork still uses
 the public HTTPS icon mapping and `NOWLERT_TEAMS_ICON_BASE_URL` compatibility
 override.
 
