@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from io import BytesIO
 from pathlib import Path
 import re
 
@@ -220,165 +219,60 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         self.font_header_context = self._font(False, 28)
         self.font_summary = self._font(False, 27)
 
-    def render(
-        self,
-        notification: Notification,
-        classic_payload: dict,
-    ) -> bytes:
+    def render(self, notification: Notification, classic_payload: dict) -> bytes:
         embed = self._embed(classic_payload)
-        source = (
-            str(notification.source or "generic").strip().casefold()
-            or "generic"
-        )
-        integration = self.INTEGRATION_NAMES.get(
-            source,
-            self._label(source) or "Nowlert",
-        )
-        accent = self._embed_accent(embed)
+        source = str(notification.source or "generic").strip().casefold() or "generic"
+        integration = self.INTEGRATION_NAMES.get(source, self._label(source) or "Nowlert")
         lifecycle = self._lifecycle(embed, notification)
-        status_kind = self._status_kind(lifecycle, accent)
+        status = self._status_kind(lifecycle, self._embed_accent(embed))
+        if lifecycle.casefold() in {"warning", "pending", "updated"} or (
+            status == "skipped" and self._embed_accent(embed)[0] > 200
+            and self._embed_accent(embed)[1] > 150 and self._embed_accent(embed)[2] < 180
+        ):
+            status = "warning"
+        accent = {"success": self.SUCCESS, "failure": self.FAILURE,
+                  "warning": self.BRAND_GOLD, "skipped": self.SKIPPED}[status]
         title = self._event_title(embed, notification, lifecycle)
         description = self._description(embed, title)
-        raw_fields = self._fields(embed)
-        sections = self._build_sections(source, raw_fields)
-        severity = self._summary_severity(notification, lifecycle)
+        fields = self._fields(embed)
+        sections = self._build_sections(source, fields)
+        details, outcomes = [], []
+        outcome_names = {"alert details", "grouped alerts", "recommended action", "drive event"}
+        for section in sections:
+            rows = []
+            for field in section["fields"]:
+                if field["normalized"] != self._normalize_field_name(section["title"]):
+                    rows.append({"value": field["name"], "role": "label", "color": self.LABEL})
+                for line in field["value"].splitlines():
+                    # Classic rows delimit labels with colon + whitespace.
+                    # URL schemes, timestamps and identifiers must stay intact.
+                    key, value = (self._split_key_value(line)
+                                  if re.match(r"^[^:]{1,30}:\s", line) else ("", line))
+                    rows.append({"label": f"{key}:" if key else "", "value": value,
+                                 "icon": self._section_icon(key or field["name"]),
+                                 "color": self._line_color(line, accent)})
+            panel = {"title": section["title"], "rows": rows,
+                     "full_width": section["full_width"]}
+            if section["title"].casefold() in outcome_names:
+                outcomes.append({**panel, "accent": accent, "status": status})
+            else:
+                details.append(panel)
         category = self._summary_category(notification)
-        event_time = self._summary_time(notification, raw_fields)
-        context = self._context(notification, integration)
-
-        dummy = Image.new("RGB", (self.WIDTH, 1))
-        measure = ImageDraw.Draw(dummy)
-        content_width = self.WIDTH - self.CARD_PADDING * 2
-
-        message_lines = []
-        message_height = 0
-        if description:
-            message_lines = self._wrapped_lines(
-                measure,
-                description,
-                content_width - 58,
-                self.font_message,
-            )
-            message_height = max(
-                116,
-                68 + len(message_lines) * 40,
-            )
-
-        current_y = self.CONTENT_TOP
-        if message_height:
-            current_y += message_height + self.SECTION_GAP
-
-        layout, details_height = self._section_layout(
-            measure,
-            sections,
-            content_width,
+        # A domain-qualified badge stays meaningful without guessing what event
+        # occurred from the integration alone (Portainer can report many events).
+        domain = category if category.casefold() not in {"event", "generic", "monitoring"} else ""
+        label = {"Success": "Successful", "Failed": "Failure"}.get(lifecycle, lifecycle)
+        badge = f"{domain} {label}".strip()
+        message = description or title
+        outcomes.insert(0, {"title": f"{domain.upper()} RESULT".strip() if status == "success"
+                            else "EVENT DETAILS", "accent": accent, "status": status,
+                            "rows": [{"icon": "cube", "value": message}], "full_width": True})
+        return self._render_standard_card(
+            source=source, integration=integration, context=self._context(notification, integration),
+            badge=badge, title=title, severity=self._summary_severity(notification, lifecycle),
+            category=category, event_time=self._summary_time(notification, fields),
+            details=details, outcomes=outcomes, accent=accent, status=status,
         )
-        if not sections and not description:
-            details_height = 118
-
-        height = max(
-            self.MIN_HEIGHT,
-            (
-                current_y
-                + details_height
-                + 34
-                + self.FOOTER_RESERVE
-            ),
-        )
-        footer_y = self._footer_y(height)
-
-        image = self._background(self.WIDTH, height)
-        self._outer_glows(image, accent, height)
-        draw = ImageDraw.Draw(image, "RGBA")
-
-        outer = (30, 38, self.WIDTH - 30, height - 38)
-        self._rounded(
-            draw,
-            outer,
-            fill=(*self.CARD_BG, 247),
-            outline=(*self.PANEL_BORDER, 220),
-            radius=28,
-            width=2,
-        )
-        self._draw_status_rail(draw, accent, height)
-        self._draw_gold_frame(draw, outer)
-
-        x0 = self.CARD_PADDING
-        right = self.WIDTH - self.CARD_PADDING
-
-        self._draw_header(
-            image,
-            draw,
-            source,
-            integration,
-            context,
-            lifecycle,
-            accent,
-            status_kind,
-            x0,
-            right,
-        )
-        self._draw_event_title(
-            draw,
-            title,
-            x0,
-            right,
-        )
-        self._draw_summary(
-            draw,
-            x0,
-            right,
-            severity,
-            category,
-            event_time,
-            accent,
-            status_kind,
-        )
-
-        content_y = self.CONTENT_TOP
-        if message_height:
-            self._draw_message(
-                draw,
-                x0,
-                right,
-                content_y,
-                message_height,
-                message_lines,
-            )
-            content_y += message_height + self.SECTION_GAP
-
-        if sections:
-            self._draw_sections(
-                draw,
-                x0,
-                content_y,
-                layout,
-                accent,
-            )
-        else:
-            self._draw_empty_details(
-                draw,
-                x0,
-                right,
-                content_y,
-            )
-
-        self._draw_footer(
-            image,
-            draw,
-            x0,
-            right,
-            footer_y,
-        )
-
-        output = BytesIO()
-        image.convert("RGB").save(
-            output,
-            format="PNG",
-            optimize=True,
-            compress_level=7,
-        )
-        return output.getvalue()
 
     def _draw_header(
         self,
@@ -681,8 +575,8 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             normalized = self._normalize_field_name(name)
             if normalized in {"timing", "time"}:
                 value = self._normalize_timing_block(value)
-            if normalized == "alert":
-                # The Alert field repeats severity already shown in the summary.
+            if normalized == "alert" and value.casefold().startswith("severity:") and "\n" not in value:
+                # Only omit the single severity row already in the summary.
                 continue
             prepared.append(
                 {
@@ -1208,6 +1102,8 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         return self.SKIPPED
 
     def _lifecycle(self, embed, notification):
+        if str(notification.status or "").strip().casefold() == "skipped":
+            return "Skipped"
         title = (
             str(embed.get("title") or "")
             if isinstance(embed, dict)
@@ -1235,6 +1131,11 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             metadata.get("severity") or ""
         ).strip()
         words = f"{status} {severity}".casefold()
+
+        if "skipped" in words:
+            return "Skipped"
+        if "pending" in words:
+            return "Pending"
 
         if any(
             token in words

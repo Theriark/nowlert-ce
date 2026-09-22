@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from io import BytesIO
 from math import ceil
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from models import Notification
+from formatters.discord_modern_layout import ModernCardLayoutMixin
 
 
-class XenOrchestraDiscordImageRenderer:
+class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     """Render XO backup notifications with the approved Nowlert visual system."""
 
     WIDTH = 1448
@@ -65,6 +65,7 @@ class XenOrchestraDiscordImageRenderer:
 
     def __init__(self, icon_dir: Path | str = "/nowlert/assets/icons"):
         self.icon_dir = Path(icon_dir)
+        self._init_modern_fonts()
         self.font_micro = self._font(False, 20)
         self.font_tiny = self._font(False, 22)
         self.font_small = self._font(False, 25)
@@ -107,326 +108,55 @@ class XenOrchestraDiscordImageRenderer:
             return ImageFont.load_default()
 
     def render(self, notification: Notification) -> bytes:
-        status, accent, status_label = self._status(notification)
-        # Keep every VM reported by Xen Orchestra. The card grows vertically
-        # to preserve all success/failure/skipped entries instead of silently
-        # truncating larger backup jobs.
-        successful = list(notification.successful_vms or [])
-        failed = list(notification.failed_vms or [])
-        skipped = list(notification.skipped_vms or [])
-
-        vm_panel_height = self._vm_panel_height(
-            notification,
-            successful,
-            failed,
-            skipped,
-        )
-        height = max(
-            self.BASE_HEIGHT,
-            (
-                self.VM_PANEL_TOP
-                + vm_panel_height
-                + self.FOOTER_GAP
-                + self.FOOTER_RESERVE
-            ),
-        )
-        footer_y = self._footer_y(height)
-
-        image = self._background(self.WIDTH, height)
-        self._outer_glows(image, accent, height)
-        draw = ImageDraw.Draw(image, "RGBA")
-
-        card = (30, 38, self.WIDTH - 30, height - 38)
-        self._rounded(
-            draw,
-            card,
-            fill=(*self.CARD_BG, 247),
-            outline=(*self.PANEL_BORDER, 220),
-            radius=28,
-            width=2,
-        )
-        self._draw_status_rail(draw, accent, height)
-        self._draw_gold_frame(draw, card)
-
-        x0 = 70
-        right = self.WIDTH - 70
-
-        # Header.
-        header_y = 75
-        xo_icon_size = self.XO_HEADER_ICON_SIZE
-        self._draw_xo_art(
-            image,
-            x0,
-            header_y - 3,
-            size=xo_icon_size,
-        )
-        title_x = x0 + xo_icon_size + 18
-        draw.text(
-            (title_x, header_y + 4),
-            "Xen Orchestra",
-            font=self.font_heading,
-            fill=self.TEXT,
-        )
-        repository = self._clean(notification.repository or "Backup")
-        self._fit_text_adaptive(
-            draw,
-            repository,
-            title_x,
-            header_y + 58,
-            610,
-            (self.font_body, self.font_detail, self.font_small),
-            self.HEADER_MUTED,
-        )
-
-        badge_w = self.STATUS_BADGE_WIDTH
-        badge_h = 82
-        badge_x = right - badge_w
-        badge = (
-            badge_x,
-            header_y + 3,
-            right,
-            header_y + 3 + badge_h,
-        )
-        self._glow_box(image, badge, accent, 17, alpha=self.STATUS_GLOW_ALPHA)
-        draw = ImageDraw.Draw(image, "RGBA")
-        self._rounded(
-            draw,
-            badge,
-            fill=(*self._tint(accent, self.CARD_BG, 0.16), 245),
-            outline=(*accent, 225),
-            radius=17,
-            width=2,
-        )
-        self._status_icon(
-            draw,
-            badge_x + 22,
-            header_y + 20,
-            48,
-            status,
-            accent,
-        )
-        self._fit_text_adaptive(
-            draw,
-            status_label,
-            badge_x + 88,
-            header_y + 23,
-            badge_w - 112,
-            (self.font_bold, self.font_label, self.font_small),
-            accent if status != "success" else (103, 239, 174),
-        )
-        job = self._clean(
-            notification.job_name
-            or notification.title
-            or notification.subject
-            or "Xen Orchestra backup"
-        )
-
-        # Report title bar.
-        title_y = 210
-        title_box = (x0, title_y, right, title_y + 76)
-        self._rounded(
-            draw,
-            title_box,
-            fill=(*self.PANEL_2, 248),
-            outline=(93, 101, 108, 190),
-            radius=14,
-            width=2,
-        )
-        report = self._clean(
-            notification.subject
-            or notification.body
-            or f"Backup report for {job}"
-        )
-        self._fit_text(
-            draw,
-            report,
-            x0 + 30,
-            title_y + 18,
-            right - x0 - 60,
-            self.font_title,
-            self.TEXT,
-        )
-
-        # Summary strip.
-        metric_y = 306
-        metric_h = 72
-        metric_box = (x0, metric_y, right, metric_y + metric_h)
-        self._rounded(
-            draw,
-            metric_box,
-            fill=(*self.PANEL, 248),
-            outline=(*self.PANEL_BORDER, 200),
-            radius=14,
-            width=1,
-        )
-        event_time = self._clean(notification.end_time or notification.start_time or "")
-        category = self._label(notification.category or "backup")
-        metrics = [
-            ("status", "Severity", status_label.replace("Backup ", ""), accent),
-            ("sync", "Category", category, self.ICON_BLUE),
-            ("clock", "Event time", event_time, (194, 226, 242)),
+        status, accent, badge = self._status(notification)
+        details = [
+            {"rows": [
+                {"icon": "list", "label": "Mode", "value": notification.mode},
+                {"icon": "clock", "label": "Duration", "value": self._short_duration(notification.duration)},
+                {"icon": "cube", "label": "Transfer size", "value": notification.transfer_size},
+                {"icon": "rocket", "label": "Speed", "value": notification.transfer_speed},
+            ]},
+            {"rows": [
+                {"icon": "repository", "label": "Repository", "value": notification.repository},
+                {"icon": "play", "label": "Started", "value": notification.start_time},
+                {"icon": "flag", "label": "Finished", "value": notification.end_time},
+                {"icon": "chart", "label": "Result", "value": self._result_text(notification)},
+            ]},
         ]
-        widths = [350, 350, right - x0 - 700]
-        mx = x0 + 26
-        for index, ((icon, label, value, color), width) in enumerate(
-            zip(metrics, widths)
+        outcomes = []
+        for names, label, kind, color in (
+            (notification.successful_vms, "SUCCESSFUL VMS", "success", self.SUCCESS),
+            (notification.failed_vms, "FAILED VMS", "failure", self.FAILURE),
+            (notification.skipped_vms, "SKIPPED VMS", "skipped", self.SKIPPED),
         ):
-            self._draw_icon_badge(
-                draw,
-                mx,
-                metric_y + 14,
-                44,
-                icon,
-                color,
-                status=status,
-            )
-            label_x = mx + 60
-            draw.text(
-                (label_x, metric_y + 20),
-                f"{label}:",
-                font=self.font_label,
-                fill=self.TEXT,
-            )
-            label_w = draw.textlength(f"{label}:", font=self.font_label)
-            self._fit_text_adaptive(
-                draw,
-                value,
-                label_x + label_w + 10,
-                metric_y + 21,
-                width - 78 - label_w,
-                (
-                    self.font_detail,
-                    self.font_small,
-                    self.font_tiny,
-                ),
-                self.TEXT,
-            )
-            if index < 2:
-                line_x = mx + width - 8
-                draw.line(
-                    (line_x, metric_y + 18, line_x, metric_y + metric_h - 18),
-                    fill=(102, 112, 119, 160),
-                    width=2,
-                )
-            mx += width
-
-        # Detail panels.
-        detail_y = 400
-        detail_h = 262
-        gap = 22
-        detail_width = right - x0 - gap
-        left_width = int(detail_width * self.DETAIL_SPLIT_RATIO)
-        left_box = (x0, detail_y, x0 + left_width, detail_y + detail_h)
-        right_box = (
-            x0 + left_width + gap,
-            detail_y,
-            right,
-            detail_y + detail_h,
+            if not names:
+                continue
+            entries = []
+            for name in names:
+                rows = []
+                detail = (notification.vm_details or {}).get(name, {}) or {}
+                rows.append({"icon": "cube", "value": name, "role": "section"})
+                for key, icon in (("size", "disk"), ("speed", "rocket"), ("error", "alert")):
+                    if detail.get(key):
+                        rows.append({"icon": icon, "value": detail[key],
+                                     "color": color if key == "error" else self.MUTED})
+                entries.append(rows)
+            outcomes.append({"title": f"{label} ({len(names)})", "entries": entries,
+                             "columns": 3 if kind == "success" and not (
+                                 notification.failed_vms or notification.skipped_vms) else 1,
+                             "accent": color, "status": kind})
+        if not outcomes:
+            outcomes.append({"title": "BACKUP RESULT", "accent": accent, "status": status,
+                             "rows": [{"value": self._result_text(notification)}]})
+        return self._render_standard_card(
+            source="xo", integration="Xen Orchestra",
+            context=self._clean(notification.repository or "Backup"),
+            badge=badge, title=self._clean(notification.subject or notification.body
+                or f"Backup report for {notification.job_name or notification.title or 'Xen Orchestra backup'}"),
+            severity=badge.replace("Backup ", ""), category=self._label(notification.category or "backup"),
+            event_time=self._clean(notification.end_time or notification.start_time or ""),
+            details=details, outcomes=outcomes, accent=accent, status=status,
         )
-        for box in (left_box, right_box):
-            self._rounded(
-                draw,
-                box,
-                fill=(*self.PANEL_2, 248),
-                outline=(*self.PANEL_BORDER, 205),
-                radius=15,
-                width=2,
-            )
-
-        left_rows = [
-            ("list", "Mode", notification.mode),
-            ("clock", "Duration", self._short_duration(notification.duration)),
-            ("cube", "Transfer size", notification.transfer_size),
-            ("rocket", "Speed", notification.transfer_speed),
-        ]
-        right_rows = [
-            ("repository", "Repository", notification.repository),
-            ("play", "Started", notification.start_time),
-            ("flag", "Finished", notification.end_time),
-            ("chart", "Result", self._result_text(notification)),
-        ]
-        self._detail_rows(
-            draw,
-            left_box,
-            left_rows,
-            result_status=None,
-        )
-        self._detail_rows(
-            draw,
-            right_box,
-            right_rows,
-            result_status=status,
-        )
-
-        # VM outcome panels. The footer follows the content instead of
-        # imposing a fixed card height, so additional VMs and reasons never
-        # escape the card.
-        vm_y = self.VM_PANEL_TOP
-        vm_bottom = footer_y - self.FOOTER_GAP
-        if failed:
-            self._paired_vm_panels(
-                image,
-                draw,
-                (x0, vm_y, right, vm_bottom),
-                successful,
-                failed,
-                "FAILED VM" if len(failed) == 1 else "FAILED VMS",
-                self.FAILURE,
-                notification,
-                "failure",
-            )
-        elif skipped:
-            self._paired_vm_panels(
-                image,
-                draw,
-                (x0, vm_y, right, vm_bottom),
-                successful,
-                skipped,
-                "SKIPPED VM" if len(skipped) == 1 else "SKIPPED VMS",
-                self.SKIPPED,
-                notification,
-                "skipped",
-            )
-        else:
-            self._success_panel(
-                image,
-                draw,
-                (x0, vm_y, right, vm_bottom),
-                successful,
-                notification,
-            )
-
-        # Footer: keep the Nowlert identity left-aligned and give it enough
-        # breathing room above the lower frame.
-        draw.line(
-            (x0, footer_y - 8, right, footer_y - 8),
-            fill=(81, 89, 95, 150),
-            width=1,
-        )
-        icon_size = 40
-        icon_x = x0 + 18
-        icon_y = footer_y + 4
-        self._draw_nowlert_icon(
-            image,
-            icon_x,
-            icon_y,
-            icon_size,
-        )
-        draw.text(
-            (icon_x + icon_size + 12, footer_y + 10),
-            self.FOOTER_TEXT,
-            font=self.font_small,
-            fill=self.MUTED,
-        )
-
-        output = BytesIO()
-        image.convert("RGB").save(
-            output,
-            format="PNG",
-            optimize=True,
-            compress_level=7,
-        )
-        return output.getvalue()
 
     def _vm_panel_height(
         self,
