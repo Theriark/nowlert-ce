@@ -30,6 +30,11 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
     HEADER_ICON_WIDTH = 150
     HEADER_ICON_HEIGHT = 112
     STATUS_BADGE_WIDTH = 420
+    MODERN_FONT_PROFILE = "default"
+    MODERN_MIN_HEIGHT = 0
+    MODERN_BADGE_MIN_WIDTH = 0
+    MODERN_BADGE_FILL_HEADER = False
+    MODERN_XO_ICON_STYLE = False
     PAIR_MAX_HEIGHT = 210
     PAIR_MAX_LINES = 5
     HEADER_LOGO_WIDTHS = {
@@ -271,7 +276,11 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             source=source, integration=integration, context=self._context(notification, integration),
             badge=badge, title=title, severity=self._summary_severity(notification, lifecycle),
             category=category, event_time=self._summary_time(notification, fields),
-            details=details, outcomes=outcomes, accent=accent, status=status,
+            details=details,
+            outcomes=outcomes,
+            accent=accent,
+            status=status,
+            font_profile=self.MODERN_FONT_PROFILE,
         )
 
     def _draw_header(
@@ -1770,3 +1779,19 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         if current:
             parts.append(current)
         return parts
+
+
+
+class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
+    """Zabbix Modern cards at the frozen Xen Orchestra visual scale."""
+
+    WIDTH = 2000
+    MIN_HEIGHT = 1600
+    FOOTER_RESERVE = 180
+    MODERN_PADDING = 78
+    MODERN_GAP = 24
+    MODERN_FONT_PROFILE = "xo_match"
+    MODERN_MIN_HEIGHT = 1600
+    MODERN_BADGE_MIN_WIDTH = 560
+    MODERN_BADGE_FILL_HEADER = True
+    MODERN_XO_ICON_STYLE = True
