@@ -1777,3 +1777,17 @@ def test_portainer_summary_strip_allocates_more_space_to_category(tmp_path):
     # Keep the frozen Grafana strip untouched.
     assert grafana.SUMMARY_FIRST_CELL_RATIO == 0.28
     assert grafana.SUMMARY_SECOND_CELL_RATIO == 0.32
+
+
+
+@pytest.mark.parametrize("source", ("qnap", "synology"))
+def test_qnap_and_synology_use_standardized_xo_display_scale(tmp_path, source):
+    output = DiscordOutput()
+    output.ICON_DIR = tmp_path
+    item = notification(source)
+    formatter = output.source_formatters[source]
+
+    image = output.render_modern_image(item, formatter)
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.size == (2064, 1600)
