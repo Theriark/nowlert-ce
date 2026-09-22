@@ -111,6 +111,15 @@ description, color, ordered fields, footer, and optional URL/timestamp into the
 attachments, webhook query parameters, and media-upload semantics are not
 exposed to generic receivers.
 
+When the configured Generic Webhook URL is a Discord webhook, delivery bypasses
+the destination-neutral JSON transport and is handed to the native Discord
+adapter. **Modern Card therefore uses the exact same source-specific Discord
+Modern image renderer, layout, typography, lifecycle colors, icons, spacing,
+and dynamic vertical sizing as a normal Discord destination.** Classic Card
+uses the same native Discord Classic path. Generic Webhook does not maintain a
+second Discord-specific card implementation, so later Discord presentation
+changes are inherited automatically.
+
 For example:
 
 ```json
