@@ -1040,3 +1040,85 @@ def test_zabbix_long_extra_content_can_still_expand(tmp_path):
     with Image.open(BytesIO(image)) as rendered:
         assert rendered.width == 2000
         assert rendered.height > 1600
+
+
+
+def test_zabbix_standard_panels_fill_xo_content_area(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    details, outcomes = _zabbix_live_reference_panels()
+    content_y = 500
+
+    panels, _content_bottom = renderer._zabbix_content_plan(
+        draw,
+        details,
+        outcomes,
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        content_y,
+    )
+    target_bottom = (
+        renderer.BASE_HEIGHT
+        - renderer.FOOTER_RESERVE
+        - renderer.FOOTER_GAP
+    )
+    stretched, filled_bottom = renderer._zabbix_fill_standard_rows(
+        panels,
+        content_y,
+        target_bottom,
+    )
+
+    row_ys = sorted({panel["y"] for panel in stretched})
+    assert filled_bottom == target_bottom
+    assert len(row_ys) == 2
+    assert max(
+        panel["y"] + panel["height"]
+        for panel in stretched
+    ) == target_bottom
+
+
+def test_zabbix_uses_only_xo_icon_vocabulary_for_reference_fields(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._zabbix_xo_section_icon("Problem") == "list"
+    assert renderer._zabbix_xo_section_icon("Trigger") == "chart"
+    assert renderer._zabbix_xo_section_icon("Response") == "clock"
+
+    assert renderer._zabbix_xo_field_icon(
+        "Problem", "Host:", "VM-08 | Zabbix Server", "server"
+    ) == "repository"
+    assert renderer._zabbix_xo_field_icon(
+        "Problem", "Severity:", "High", "status"
+    ) == "status"
+    assert renderer._zabbix_xo_field_icon(
+        "Response", "Started:", "2026-09-22 09:23:28", "clock"
+    ) == "play"
+    assert renderer._zabbix_xo_field_icon(
+        "Response", "Resolved:", "2026-09-22 09:23:28", "list"
+    ) == "flag"
+    assert renderer._zabbix_xo_field_icon(
+        "Response", "Duration:", "4m 37s", "clock"
+    ) == "clock"
+
+
+def test_zabbix_standard_live_card_still_matches_xo_outer_size_after_polish(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    details, outcomes = _zabbix_live_reference_panels()
+
+    image = renderer._render_standard_card(
+        source="zabbix",
+        integration="Zabbix",
+        context="VM-08 | Zabbix Server",
+        badge="Failure",
+        title="PostgreSQL replication lag exceeds 120 seconds",
+        severity="High",
+        category="Monitoring",
+        event_time="2026-09-22 09:23:28 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.size == (2000, 1600)
