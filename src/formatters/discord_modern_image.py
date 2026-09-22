@@ -2408,6 +2408,24 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
                     fill=item["color"],
                 )
 
+    def _standard_badge_box(
+        self,
+        draw,
+        right: int,
+        header_y: int,
+        header_height: int,
+        status: str,
+        label: str,
+    ):
+        """Return the frozen badge geometry unless a source overrides it."""
+
+        return self._status_badge_box(
+            right,
+            header_y,
+            header_height,
+            status=status,
+        )
+
     def _render_standard_card(
         self,
         *,
@@ -2435,11 +2453,13 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
         header_y = self.HEADER_Y
         title_x = x0 + self.HEADER_ICON_SIZE + 20
 
-        badge_probe = self._status_badge_box(
+        badge_probe = self._standard_badge_box(
+            measure,
             right,
             header_y,
             self.HEADER_MIN_HEIGHT,
-            status=status,
+            status,
+            badge_label,
         )
         context_width = max(320, badge_probe[0] - title_x - 34)
         context_lines = (
@@ -2544,11 +2564,13 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
             line_gap=5,
         )
 
-        badge = self._status_badge_box(
+        badge = self._standard_badge_box(
+            draw,
             right,
             header_y,
             header_height,
-            status=status,
+            status,
+            badge_label,
         )
         badge_x = badge[0]
         self._glow_box(
@@ -3347,6 +3369,467 @@ class SynologyDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
         if panel_key == "timing":
             return "clock"
 
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
+
+
+
+class _StandardizedSourceDiscordModernImageRenderer(
+    GrafanaDiscordModernImageRenderer
+):
+    """Shared frozen renderer for the next standardized integration batch."""
+
+    def _zabbix_content_plan(
+        self,
+        draw,
+        details,
+        outcomes,
+        x0,
+        right,
+        start_y,
+    ):
+        return ZabbixDiscordModernImageRenderer._zabbix_content_plan(
+            self,
+            draw,
+            details,
+            outcomes,
+            x0,
+            right,
+            start_y,
+        )
+
+    def _standard_badge_box(
+        self,
+        draw,
+        right: int,
+        header_y: int,
+        header_height: int,
+        status: str,
+        label: str,
+    ):
+        """Keep long lifecycle badges horizontal at the frozen font size."""
+
+        text_width = int(
+            draw.textlength(
+                self._clean(label),
+                font=self.font_bold,
+            )
+        )
+        badge_width = max(
+            self.STATUS_BADGE_WIDTH,
+            text_width + 146,
+        )
+        shift = (
+            self.SUCCESS_BADGE_LEFT_SHIFT
+            if status == "success"
+            else 0
+        )
+        height = max(
+            self.STATUS_BADGE_HEIGHT,
+            header_height,
+        )
+        return (
+            right - badge_width - shift,
+            header_y,
+            right,
+            header_y + height,
+        )
+
+    def _event_time_only(self, value) -> str:
+        """Use only the clock in the compact summary; Timing keeps the timezone."""
+
+        text = super()._event_time_only(value)
+        match = re.search(
+            r"(?<!\\d)(\\d{1,2}:\\d{2}:\\d{2})",
+            text,
+        )
+        return match.group(1) if match else text
+
+    def _summary_cells_for_metrics(
+        self,
+        left: int,
+        right: int,
+        metrics,
+    ):
+        """Allocate the summary from measured text so groups never collide."""
+
+        draw = ImageDraw.Draw(
+            Image.new("RGB", (self.WIDTH, 1))
+        )
+        required = []
+        for _icon, label, value, _color in metrics:
+            width = (
+                self.SUMMARY_LABEL_OFFSET
+                + draw.textlength(
+                    f"{label}:",
+                    font=self.font_label,
+                )
+                + self.SUMMARY_VALUE_GAP
+                + draw.textlength(
+                    self._clean(value),
+                    font=self.font_detail,
+                )
+            )
+            required.append(int(width) + 1)
+
+        # The new standardized sources keep the frozen 72px group gaps.
+        # A slightly tighter outer inset gives long values such as
+        # Information / Administration enough room without shrinking fonts.
+        inner_padding = 22
+        inner_left = left + inner_padding
+        inner_right = right - inner_padding
+        available = (
+            inner_right
+            - inner_left
+            - self.SUMMARY_CELL_GAP * 2
+        )
+
+        if sum(required) <= available:
+            widths = list(required)
+            extra = available - sum(widths)
+            first_extra = extra // 4
+            second_extra = extra // 4
+            widths[0] += first_extra
+            widths[1] += second_extra
+            widths[2] += extra - first_extra - second_extra
+        else:
+            # Extremely long/custom values still get the established fallback
+            # geometry; normal supported values fit the measured allocation.
+            cells = self._summary_cells(left, right)
+            widths = [
+                cell_right - cell_left
+                for cell_left, cell_right in cells
+            ]
+            inner_left = cells[0][0]
+
+        cell_1 = (
+            inner_left,
+            inner_left + widths[0],
+        )
+        cell_2 = (
+            cell_1[1] + self.SUMMARY_CELL_GAP,
+            cell_1[1] + self.SUMMARY_CELL_GAP + widths[1],
+        )
+        cell_3 = (
+            cell_2[1] + self.SUMMARY_CELL_GAP,
+            cell_2[1] + self.SUMMARY_CELL_GAP + widths[2],
+        )
+        return [cell_1, cell_2, cell_3]
+
+    def _zabbix_fill_standard_rows(
+        self,
+        panels,
+        content_y: int,
+        target_bottom: int,
+    ):
+        """Use the complete 1600px baseline for sparse one/two/three-panel cards."""
+
+        if not panels:
+            return panels, None
+
+        available = target_bottom - content_y
+        row_ys = sorted(
+            {panel["y"] for panel in panels}
+        )
+        rows = [
+            [
+                panel
+                for panel in panels
+                if panel["y"] == row_y
+            ]
+            for row_y in row_ys
+        ]
+        row_heights = [
+            max(panel["height"] for panel in row)
+            for row in rows
+        ]
+        natural_total = (
+            sum(row_heights)
+            + self.CONTENT_GAP * max(0, len(rows) - 1)
+        )
+        if natural_total > available:
+            return panels, None
+
+        # The frozen base already handles the canonical 2 x 2 layout.
+        if len(panels) == 4:
+            return ZabbixDiscordModernImageRenderer._zabbix_fill_standard_rows(
+                self,
+                panels,
+                content_y,
+                target_bottom,
+            )
+
+        valid_sparse = (
+            len(rows) <= 2
+            and all(len(row) <= 2 for row in rows)
+            and len(panels) <= 3
+        )
+        if not valid_sparse:
+            return panels, None
+
+        extra = available - natural_total
+        extras = [0] * len(rows)
+        if len(rows) == 1:
+            extras[0] = extra
+        elif len(rows) == 2:
+            extras[0] = extra // 2
+            extras[1] = extra - extras[0]
+
+        stretched = []
+        y = content_y
+        for row_index, row in enumerate(rows):
+            row_height = row_heights[row_index] + extras[row_index]
+            for panel in row:
+                stretched.append(
+                    {
+                        **panel,
+                        "y": y,
+                        "height": row_height,
+                    }
+                )
+            y += row_height
+            if row_index + 1 < len(rows):
+                y += self.CONTENT_GAP
+
+        return stretched, target_bottom
+
+
+class TrueNASDiscordModernImageRenderer(
+    _StandardizedSourceDiscordModernImageRenderer
+):
+    """Render TrueNAS cards on the frozen Grafana/Zabbix/XO baseline."""
+
+    TRUENAS_XO_SECTION_ICONS = {
+        "truenas system": "repository",
+        "disk": "disk",
+        "power": "alert",
+        "storage": "disk",
+        "notification test": "info",
+        "scrub": "disk",
+        "replication": "repository",
+        "grouped alerts": "alert",
+        "timing": "clock",
+        "additional details": "list",
+        "event details": "alert",
+    }
+    TRUENAS_XO_FIELD_ICONS = {
+        "host": "repository",
+        "pool": "disk",
+        "pool status": "status",
+        "device": "disk",
+        "disk": "disk",
+        "ups": "alert",
+        "cause": "alert",
+        "task": "list",
+        "destination": "repository",
+        "condition": "status",
+        "error": "alert",
+        "severity": "status",
+        "alerts": "alert",
+        "alert count": "list",
+        "result": "status",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+    }
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        key = self._clean(title).casefold()
+        if key.endswith(" result"):
+            return "status"
+        return self.TRUENAS_XO_SECTION_ICONS.get(
+            key,
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.TRUENAS_XO_FIELD_ICONS:
+            return self.TRUENAS_XO_FIELD_ICONS[key]
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
+
+
+class UniFiNetworkDiscordModernImageRenderer(
+    _StandardizedSourceDiscordModernImageRenderer
+):
+    """Render UniFi Network cards on the frozen standardized baseline."""
+
+    UNIFI_NETWORK_XO_SECTION_ICONS = {
+        "controller & network": "repository",
+        "client / access point": "cube",
+        "timing": "clock",
+        "additional details": "list",
+        "event details": "alert",
+    }
+    UNIFI_NETWORK_XO_FIELD_ICONS = {
+        "controller": "repository",
+        "network": "chart",
+        "network / wi-fi": "chart",
+        "wi-fi": "chart",
+        "vlan": "list",
+        "client": "cube",
+        "access point": "cube",
+        "last access point": "cube",
+        "model": "cube",
+        "mode": "list",
+        "ip": "repository",
+        "ip address": "repository",
+        "band": "chart",
+        "channel": "list",
+        "wireless": "chart",
+        "duration": "clock",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+    }
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        key = self._clean(title).casefold()
+        if key.endswith(" result"):
+            return "status"
+        return self.UNIFI_NETWORK_XO_SECTION_ICONS.get(
+            key,
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.UNIFI_NETWORK_XO_FIELD_ICONS:
+            return self.UNIFI_NETWORK_XO_FIELD_ICONS[key]
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
+
+
+class UniFiProtectDiscordModernImageRenderer(
+    _StandardizedSourceDiscordModernImageRenderer
+):
+    """Render UniFi Protect cards on the frozen standardized baseline."""
+
+    UNIFI_PROTECT_XO_SECTION_ICONS = {
+        "trigger": "chart",
+        "alarm rule": "alert",
+        "timing": "clock",
+        "additional details": "list",
+        "event details": "alert",
+    }
+    UNIFI_PROTECT_XO_FIELD_ICONS = {
+        "type": "chart",
+        "trigger type": "chart",
+        "device": "cube",
+        "trigger device": "cube",
+        "rule": "alert",
+        "alarm rule": "alert",
+        "condition": "list",
+        "event": "play",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+    }
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        key = self._clean(title).casefold()
+        if key.endswith(" result"):
+            return "status"
+        return self.UNIFI_PROTECT_XO_SECTION_ICONS.get(
+            key,
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.UNIFI_PROTECT_XO_FIELD_ICONS:
+            return self.UNIFI_PROTECT_XO_FIELD_ICONS[key]
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
+
+
+class UniFiDriveDiscordModernImageRenderer(
+    _StandardizedSourceDiscordModernImageRenderer
+):
+    """Render UniFi Drive cards on the frozen standardized baseline."""
+
+    UNIFI_DRIVE_XO_SECTION_ICONS = {
+        "drive event": "disk",
+        "timing": "clock",
+        "additional details": "list",
+        "event details": "alert",
+    }
+    UNIFI_DRIVE_XO_FIELD_ICONS = {
+        "system": "repository",
+        "backup task": "disk",
+        "alarm": "alert",
+        "alarm rule": "alert",
+        "alarm id": "list",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+    }
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        key = self._clean(title).casefold()
+        if key.endswith(" result"):
+            return "status"
+        return self.UNIFI_DRIVE_XO_SECTION_ICONS.get(
+            key,
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.UNIFI_DRIVE_XO_FIELD_ICONS:
+            return self.UNIFI_DRIVE_XO_FIELD_ICONS[key]
         return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
             self,
             panel_title,

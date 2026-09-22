@@ -50,6 +50,10 @@ from formatters.discord_modern_image import (
     ProxmoxDiscordModernImageRenderer,
     QNAPDiscordModernImageRenderer,
     SynologyDiscordModernImageRenderer,
+    TrueNASDiscordModernImageRenderer,
+    UniFiDriveDiscordModernImageRenderer,
+    UniFiNetworkDiscordModernImageRenderer,
+    UniFiProtectDiscordModernImageRenderer,
     ZabbixDiscordModernImageRenderer,
 )
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
@@ -87,6 +91,18 @@ class DiscordOutput:
             self.ICON_DIR
         )
         self.synology_modern_image_renderer = SynologyDiscordModernImageRenderer(
+            self.ICON_DIR
+        )
+        self.truenas_modern_image_renderer = TrueNASDiscordModernImageRenderer(
+            self.ICON_DIR
+        )
+        self.unifi_network_modern_image_renderer = (
+            UniFiNetworkDiscordModernImageRenderer(self.ICON_DIR)
+        )
+        self.unifi_protect_modern_image_renderer = (
+            UniFiProtectDiscordModernImageRenderer(self.ICON_DIR)
+        )
+        self.unifi_drive_modern_image_renderer = UniFiDriveDiscordModernImageRenderer(
             self.ICON_DIR
         )
 
@@ -329,6 +345,14 @@ class DiscordOutput:
                 if source == "qnap"
                 else self.synology_modern_image_renderer
                 if source == "synology"
+                else self.truenas_modern_image_renderer
+                if source == "truenas"
+                else self.unifi_network_modern_image_renderer
+                if source == "unifi_network"
+                else self.unifi_protect_modern_image_renderer
+                if source == "unifi_protect"
+                else self.unifi_drive_modern_image_renderer
+                if source == "unifi_drive"
                 else self.modern_image_renderer
             )
             return renderer.render(

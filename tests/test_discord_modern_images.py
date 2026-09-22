@@ -16,6 +16,10 @@ from formatters.discord_modern_image import (
     ProxmoxDiscordModernImageRenderer,
     QNAPDiscordModernImageRenderer,
     SynologyDiscordModernImageRenderer,
+    TrueNASDiscordModernImageRenderer,
+    UniFiDriveDiscordModernImageRenderer,
+    UniFiNetworkDiscordModernImageRenderer,
+    UniFiProtectDiscordModernImageRenderer,
     ZabbixDiscordModernImageRenderer,
 )
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
@@ -132,6 +136,10 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     output.proxmox_modern_image_renderer.icon_dir = tmp_path
     output.qnap_modern_image_renderer.icon_dir = tmp_path
     output.synology_modern_image_renderer.icon_dir = tmp_path
+    output.truenas_modern_image_renderer.icon_dir = tmp_path
+    output.unifi_network_modern_image_renderer.icon_dir = tmp_path
+    output.unifi_protect_modern_image_renderer.icon_dir = tmp_path
+    output.unifi_drive_modern_image_renderer.icon_dir = tmp_path
     item = notification(source)
     formatter = output.source_formatters.get(
         source,
@@ -155,6 +163,10 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
                 "proxmox",
                 "qnap",
                 "synology",
+                "truenas",
+                "unifi_network",
+                "unifi_protect",
+                "unifi_drive",
             }
             else 1448
         )
@@ -165,6 +177,10 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
             "proxmox": output.proxmox_modern_image_renderer,
             "qnap": output.qnap_modern_image_renderer,
             "synology": output.synology_modern_image_renderer,
+            "truenas": output.truenas_modern_image_renderer,
+            "unifi_network": output.unifi_network_modern_image_renderer,
+            "unifi_protect": output.unifi_protect_modern_image_renderer,
+            "unifi_drive": output.unifi_drive_modern_image_renderer,
         }
         expected_min_height = (
             dedicated_renderers[source].MIN_HEIGHT
@@ -810,6 +826,10 @@ def test_discord_output_routes_standardized_sources_to_xo_scaled_renderers(tmp_p
     output.proxmox_modern_image_renderer.icon_dir = tmp_path
     output.qnap_modern_image_renderer.icon_dir = tmp_path
     output.synology_modern_image_renderer.icon_dir = tmp_path
+    output.truenas_modern_image_renderer.icon_dir = tmp_path
+    output.unifi_network_modern_image_renderer.icon_dir = tmp_path
+    output.unifi_protect_modern_image_renderer.icon_dir = tmp_path
+    output.unifi_drive_modern_image_renderer.icon_dir = tmp_path
 
     for source in (
         "zabbix",
@@ -818,6 +838,10 @@ def test_discord_output_routes_standardized_sources_to_xo_scaled_renderers(tmp_p
         "proxmox",
         "qnap",
         "synology",
+        "truenas",
+        "unifi_network",
+        "unifi_protect",
+        "unifi_drive",
     ):
         item = notification(source)
         image_bytes = output.render_modern_image(
@@ -827,14 +851,6 @@ def test_discord_output_routes_standardized_sources_to_xo_scaled_renderers(tmp_p
         with Image.open(BytesIO(image_bytes)) as image:
             assert image.width == 2064
             assert image.height >= 1600
-
-    truenas = notification("truenas")
-    truenas_image = output.render_modern_image(
-        truenas,
-        output.source_formatters["truenas"],
-    )
-    with Image.open(BytesIO(truenas_image)) as image:
-        assert image.width == 1448
 
 
 
@@ -2011,3 +2027,200 @@ def test_qnap_and_synology_started_timing_follows_lifecycle_color(
         "Started: 2026-07-15 12:30:00 UTC",
         renderer.SKIPPED,
     ) == renderer.SKIPPED
+
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    (
+        TrueNASDiscordModernImageRenderer,
+        UniFiNetworkDiscordModernImageRenderer,
+        UniFiProtectDiscordModernImageRenderer,
+        UniFiDriveDiscordModernImageRenderer,
+    ),
+)
+def test_truenas_and_unifi_use_frozen_standard_metrics(
+    tmp_path,
+    renderer_class,
+):
+    renderer = renderer_class(tmp_path)
+    grafana = GrafanaDiscordModernImageRenderer(tmp_path)
+
+    assert renderer.WIDTH == grafana.WIDTH == 2064
+    assert renderer.BASE_HEIGHT == grafana.BASE_HEIGHT == 1600
+    assert renderer.STATUS_BADGE_WIDTH == grafana.STATUS_BADGE_WIDTH == 640
+    assert renderer.FOOTER_ICON_SIZE == grafana.FOOTER_ICON_SIZE == 96
+    assert renderer.SUMMARY_ICON_SIZE == grafana.SUMMARY_ICON_SIZE == 54
+    for name in (
+        "font_heading",
+        "font_title",
+        "font_bold",
+        "font_label",
+        "font_detail",
+        "font_body",
+        "font_small",
+    ):
+        assert getattr(renderer, name).size == getattr(grafana, name).size
+
+
+@pytest.mark.parametrize(
+    ("renderer_class", "source", "integration", "left_title", "right_title"),
+    (
+        (
+            TrueNASDiscordModernImageRenderer,
+            "truenas",
+            "TrueNAS",
+            "TrueNAS System",
+            "Storage",
+        ),
+        (
+            UniFiNetworkDiscordModernImageRenderer,
+            "unifi_network",
+            "UniFi Network",
+            "Controller & Network",
+            "Client / Access Point",
+        ),
+        (
+            UniFiProtectDiscordModernImageRenderer,
+            "unifi_protect",
+            "UniFi Protect",
+            "Trigger",
+            "Alarm Rule",
+        ),
+        (
+            UniFiDriveDiscordModernImageRenderer,
+            "unifi_drive",
+            "UniFi Drive",
+            "Drive Event",
+            "Timing",
+        ),
+    ),
+)
+def test_truenas_and_unifi_long_content_grows_card(
+    tmp_path,
+    renderer_class,
+    source,
+    integration,
+    left_title,
+    right_title,
+):
+    renderer = renderer_class(tmp_path)
+    details = [
+        {
+            "title": left_title,
+            "rows": [
+                {
+                    "label": "Host:",
+                    "value": " ".join(["synthetic-source"] * 110),
+                    "icon": "repository",
+                }
+            ],
+        },
+        {
+            "title": right_title,
+            "rows": [
+                {
+                    "label": "Details:",
+                    "value": " ".join(["synthetic-detail"] * 100),
+                    "icon": "list",
+                }
+            ],
+        },
+    ]
+    outcomes = [
+        {
+            "title": "EVENT DETAILS",
+            "accent": renderer.FAILURE,
+            "status": "failure",
+            "rows": [
+                {
+                    "value": " ".join(["synthetic failure detail"] * 110),
+                    "icon": "alert",
+                }
+            ],
+        }
+    ]
+
+    image = renderer._render_standard_card(
+        source=source,
+        integration=integration,
+        context="SYNTHETIC-SOURCE",
+        badge="Storage Failure",
+        title="Synthetic event",
+        severity="Critical",
+        category="Storage",
+        event_time="12:30:00 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.width == 2064
+        assert rendered.height > 1600
+
+
+def test_truenas_and_unifi_use_source_specific_xo_icons(tmp_path):
+    truenas = TrueNASDiscordModernImageRenderer(tmp_path)
+    network = UniFiNetworkDiscordModernImageRenderer(tmp_path)
+    protect = UniFiProtectDiscordModernImageRenderer(tmp_path)
+    drive = UniFiDriveDiscordModernImageRenderer(tmp_path)
+
+    assert truenas._zabbix_xo_section_icon("TrueNAS System") == "repository"
+    assert truenas._zabbix_xo_field_icon(
+        "Storage", "Pool:", "SYNTHETIC-POOL", "list"
+    ) == "disk"
+    assert network._zabbix_xo_section_icon("Client / Access Point") == "cube"
+    assert network._zabbix_xo_field_icon(
+        "Controller & Network", "VLAN:", "101", "list"
+    ) == "list"
+    assert protect._zabbix_xo_section_icon("Alarm Rule") == "alert"
+    assert protect._zabbix_xo_field_icon(
+        "Trigger", "Device:", "CAMERA-02", "list"
+    ) == "cube"
+    assert drive._zabbix_xo_section_icon("Drive Event") == "disk"
+    assert drive._zabbix_xo_field_icon(
+        "Drive Event", "Alarm ID:", "00000000", "list"
+    ) == "list"
+
+
+@pytest.mark.parametrize(
+    ("renderer_class", "severity", "category"),
+    (
+        (TrueNASDiscordModernImageRenderer, "information", "Generic"),
+        (UniFiNetworkDiscordModernImageRenderer, "information", "Device"),
+        (UniFiProtectDiscordModernImageRenderer, "information", "Security"),
+        (UniFiDriveDiscordModernImageRenderer, "information", "Administration"),
+    ),
+)
+def test_truenas_and_unifi_summary_text_does_not_collide(
+    tmp_path,
+    renderer_class,
+    severity,
+    category,
+):
+    renderer = renderer_class(tmp_path)
+    metrics = [
+        ("status", "Severity", severity, renderer.SKIPPED),
+        ("sync", "Category", category, renderer.ICON_BLUE),
+        ("clock", "Event time", "03:07:05", renderer.TEXT),
+    ]
+    cells = renderer._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        metrics,
+    )
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+
+    for (cell_left, cell_right), (_icon, label, value, _color) in zip(
+        cells,
+        metrics,
+    ):
+        required = (
+            renderer.SUMMARY_LABEL_OFFSET
+            + draw.textlength(f"{label}:", font=renderer.font_label)
+            + renderer.SUMMARY_VALUE_GAP
+            + draw.textlength(value, font=renderer.font_detail)
+        )
+        assert cell_right - cell_left >= required
