@@ -1551,3 +1551,18 @@ def test_grafana_short_grouped_alert_stays_at_standard_card_height(tmp_path):
 
     with Image.open(BytesIO(image)) as rendered:
         assert rendered.size == (2064, 1600)
+
+
+
+@pytest.mark.parametrize("source", ("portainer", "proxmox"))
+def test_portainer_and_proxmox_use_grafana_xo_display_scale(tmp_path, source):
+    output = DiscordOutput()
+    output.ICON_DIR = tmp_path
+    output.modern_image_renderer.icon_dir = tmp_path
+    item = notification(source)
+    formatter = output.source_formatters[source]
+
+    image = output.render_modern_image(item, formatter)
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.size == (2064, 1600)
