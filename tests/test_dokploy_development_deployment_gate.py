@@ -101,6 +101,11 @@ def test_deploy_waits_for_dokploy_record_before_health(monkeypatch):
         "wait_health",
         lambda *_args, **_kwargs: events.append("health"),
     )
+    monkeypatch.setattr(
+        module,
+        "verify_teams_public_media",
+        lambda *_args, **_kwargs: None,
+    )
 
     module.deploy(
         argparse.Namespace(
@@ -118,6 +123,26 @@ def test_deploy_waits_for_dokploy_record_before_health(monkeypatch):
     assert events == ["update", "deploy", "deployment-record", "health"]
 
 
+def test_teams_public_media_origin_is_derived_from_health_url():
+    module = load_module()
+    assert module.teams_public_media(
+        argparse.Namespace(
+            health_url="https://ce-dev-nowlert.theriark.dev/api/health"
+        )
+    ) == {
+        "NOWLERT_TEAMS_PUBLIC_BASE_URL": (
+            "https://ce-dev-nowlert.theriark.dev"
+        )
+    }
+
+    with pytest.raises(module.DokployError):
+        module.teams_public_media(
+            argparse.Namespace(
+                health_url="http://ce-dev-nowlert.theriark.dev/api/health"
+            )
+        )
+
+
 def test_development_workflow_verifies_tag_digest_and_deploys_sha_tag():
     workflow = DEVELOPMENT_WORKFLOW.read_text(encoding="utf-8")
 
@@ -131,4 +156,5 @@ def test_development_workflow_verifies_tag_digest_and_deploys_sha_tag():
     )[1].split("- name: Record immutable Development result", 1)[0]
     assert "dokploy_swarm_deploy.py" in deploy_block
     assert '--image "${IMAGE}:sha-${SOURCE_SHA}"' in deploy_block
+    assert "teams_modern_card=" in deploy_block
     assert '@${{ steps.build.outputs.digest }}' not in deploy_block

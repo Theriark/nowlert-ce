@@ -13,6 +13,11 @@ from urllib.parse import parse_qs, urlsplit
 from config import config
 from api.service import APIService
 from logger import log
+from outputs.teams_modern_image import (
+    TEAMS_MODERN_CARD_PUBLIC_PATH,
+    TEAMS_MODERN_CARD_QUERY_NAME,
+    load_teams_modern_image,
+)
 from webui.service import SECURITY_HEADERS, WebUIService
 
 
@@ -215,6 +220,11 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         request_url = urlsplit(self.path)
+        if (
+            request_url.path == TEAMS_MODERN_CARD_PUBLIC_PATH
+            and self._teams_modern_card_request(request_url.query)
+        ):
+            return
         if request_url.path.startswith("/api/"):
             self._api_request("GET", request_url.path)
             return
@@ -245,9 +255,56 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
     def do_HEAD(self) -> None:  # noqa: N802
         request_url = urlsplit(self.path)
+        if (
+            request_url.path == TEAMS_MODERN_CARD_PUBLIC_PATH
+            and self._teams_modern_card_request(
+                request_url.query,
+                head=True,
+            )
+        ):
+            return
         if self._webui_request(request_url.path, head=True):
             return
         self._unsupported_method()
+
+    def _teams_modern_card_request(
+        self,
+        query: str,
+        *,
+        head: bool = False,
+    ) -> bool:
+        values = parse_qs(
+            query,
+            keep_blank_values=True,
+            max_num_fields=8,
+        ).get(TEAMS_MODERN_CARD_QUERY_NAME, [])
+        if not values:
+            return False
+        if len(values) != 1:
+            self._respond(404)
+            return True
+
+        body = load_teams_modern_image(
+            config,
+            values[0],
+        )
+        if body is None:
+            self._respond(404)
+            return True
+
+        self.send_response(200)
+        self.send_header("Content-Type", "image/png")
+        self.send_header(
+            "Cache-Control",
+            "public, max-age=86400, immutable",
+        )
+        for name, value in SECURITY_HEADERS:
+            self.send_header(name, value)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if not head:
+            self.wfile.write(body)
+        return True
 
     def _webui_request(self, path: str, *, head: bool = False) -> bool:
         redirect = self.server.webui.redirect_location(path, self.headers)

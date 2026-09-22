@@ -329,6 +329,42 @@ def test_teams_message_style_defaults_to_modern_and_accepts_classic():
     ) == {"message_style": "classic"}
 
 
+def _teams_modern_image_payload():
+    return {
+        "type": "message",
+        "attachments": [
+            {
+                "contentType": (
+                    "application/vnd.microsoft.card.adaptive"
+                ),
+                "content": {
+                    "type": "AdaptiveCard",
+                    "version": "1.4",
+                    "body": [
+                        {
+                            "type": "Image",
+                            "url": (
+                                "https://nowlert.example.test/api/health"
+                                "?teams_modern_card="
+                                + ("a" * 48)
+                                + ".png"
+                            ),
+                        }
+                    ],
+                },
+            }
+        ],
+    }
+
+
+def _enable_teams_modern_image(monkeypatch, adapter):
+    monkeypatch.setattr(
+        adapter.output,
+        "modern_image_payload",
+        lambda _notification: _teams_modern_image_payload(),
+    )
+
+
 def test_teams_message_style_rejects_unknown_values():
     with pytest.raises(ValueError, match="teams message_style"):
         normalize_output_settings(
@@ -337,9 +373,12 @@ def test_teams_message_style_rejects_unknown_values():
         )
 
 
-def test_teams_default_and_explicit_modern_xo_use_existing_formatter():
+def test_teams_default_and_explicit_modern_xo_use_existing_formatter(
+    monkeypatch,
+):
     item = notification_for_source("xo")
     adapter = TeamsPlatformAdapter(resolver=public_resolver)
+    _enable_teams_modern_image(monkeypatch, adapter)
 
     default_preview = adapter.preview(
         destination("teams"),
@@ -352,7 +391,11 @@ def test_teams_default_and_explicit_modern_xo_use_existing_formatter():
 
     assert default_preview.metadata["message_style"] == "modern"
     assert default_preview.metadata["rendered_style"] == "modern"
-    assert default_preview.metadata["formatter"] == "TeamsFormatter"
+    assert default_preview.metadata["modern_image"] is True
+    assert default_preview.metadata["formatter"] == (
+        "DiscordModernImageRenderer"
+    )
+    assert "teams_modern_card=" in json.dumps(default_preview.payload)
     assert explicit_preview.payload == default_preview.payload
 
 
@@ -485,9 +528,12 @@ def test_send_test_discord_modern_and_classic_use_nowlert_identity():
     )
 
 
-def test_send_test_teams_modern_and_classic_use_nowlert_identity():
+def test_send_test_teams_modern_and_classic_use_nowlert_identity(
+    monkeypatch,
+):
     item = destination_test_notification("teams")
     adapter = TeamsPlatformAdapter(resolver=public_resolver)
+    _enable_teams_modern_image(monkeypatch, adapter)
 
     modern = adapter.preview(
         destination("teams", {"message_style": "modern"}),
@@ -498,7 +544,8 @@ def test_send_test_teams_modern_and_classic_use_nowlert_identity():
         item,
     )
 
-    assert "/nowlert.png" in json.dumps(modern.payload)
+    assert "teams_modern_card=" in json.dumps(modern.payload)
+    assert modern.metadata["formatter"] == "DiscordModernImageRenderer"
     assert "/nowlert.png" in json.dumps(classic.payload)
     assert "xen-orchestra.png" not in json.dumps(classic.payload)
     assert "Destination test" in json.dumps(classic.payload)
@@ -550,19 +597,24 @@ def test_message_style_override_supports_teams_without_mutating_destination():
     assert styled.settings == {"message_style": "classic"}
 
 
-def test_discord_and_teams_previews_reuse_source_specific_formatters():
+def test_discord_and_teams_previews_reuse_source_specific_formatters(
+    monkeypatch,
+):
     item = notification()
     discord = DiscordPlatformAdapter(resolver=public_resolver).preview(
         destination("discord", {"components_v2": False}),
         item,
     )
-    teams = TeamsPlatformAdapter(resolver=public_resolver).preview(
+    teams_adapter = TeamsPlatformAdapter(resolver=public_resolver)
+    _enable_teams_modern_image(monkeypatch, teams_adapter)
+    teams = teams_adapter.preview(
         destination("teams"),
         item,
     )
 
     assert discord.metadata["formatter"] == "GrafanaDiscordFormatter"
-    assert teams.metadata["formatter"] == "GrafanaTeamsFormatter"
+    assert teams.metadata["formatter"] == "DiscordModernImageRenderer"
+    assert teams.metadata["modern_image"] is True
     assert teams.metadata["payload_bytes"] <= teams.metadata["payload_limit_bytes"]
     assert "private-token" not in json.dumps(discord.payload)
     assert "private-token" not in json.dumps(teams.payload)

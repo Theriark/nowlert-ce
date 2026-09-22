@@ -71,13 +71,23 @@ and generic/Nowlert fallback therefore inherit the same Modern layout changes
 automatically.
 
 Teams workflow requests remain JSON-only and bounded to 28 KiB, so the rendered
-PNG is referenced through Nowlert's HTTPS WebUI rather than embedded in the
-webhook body. Exact Modern parity requires `webui.public_url` to be a reachable
-credential-free HTTPS address. Rendered images use unguessable immutable paths
-under `/ui/teams-modern-cards/`, are persisted below
-`platform.state_dir/teams-modern-cards`, and are retained for 90 days. If that
-public image path cannot be published, Nowlert falls back to the native Teams
-Modern card so delivery is not lost.
+PNG is referenced by HTTPS rather than embedded in the webhook body. Nowlert
+stores each image below `platform.state_dir/teams-modern-cards` and publishes
+it from the existing public health path as
+`/api/health?teams_modern_card=<unguessable-token>.png`. Plain
+`/api/health` continues to return normal health JSON. The public origin comes
+from `NOWLERT_TEAMS_PUBLIC_BASE_URL` or, when unset, `webui.public_url`.
+
+The token is 48 hexadecimal characters plus `.png`; unknown, expired,
+malformed, and traversal-like tokens return 404. Images are retained for
+90 days. This allows the Cloudflare-protected WebUI to remain private while
+Teams fetches only the unguessable image through the health path that is
+already public for health checks.
+
+Modern is fail-closed. If the exact Discord-rendered image cannot be rendered
+or published, delivery returns `teams_modern_image_unavailable` and sends no
+Teams request. Nowlert never silently replaces a requested Modern Card with the
+native grey Teams layout.
 
 Classic remains a separate Teams-native renderer. It consumes the approved
 Classic Card v1 information contract used by Discord Classic and renders that

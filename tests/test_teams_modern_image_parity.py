@@ -5,7 +5,7 @@ from __future__ import annotations
 from io import BytesIO
 import json
 import socket
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from PIL import Image
 
@@ -15,10 +15,12 @@ from outputs.platform import TeamsPlatformAdapter
 from outputs.teams import TeamsOutput
 from outputs.teams_modern_image import (
     TEAMS_MODERN_CARD_MAX_DIMENSION,
-    TEAMS_MODERN_CARD_ROUTE_PREFIX,
+    TEAMS_MODERN_CARD_PUBLIC_PATH,
+    TEAMS_MODERN_CARD_QUERY_NAME,
+    TEAMS_MODERN_CARD_URL_PREFIX,
+    load_teams_modern_image,
 )
 from storage.destinations import Destination
-from webui.service import WebUIService
 
 
 def public_resolver(*_args, **_kwargs):
@@ -31,6 +33,20 @@ def public_resolver(*_args, **_kwargs):
             ("8.8.8.8", 443),
         )
     ]
+
+
+class Response:
+    status_code = 202
+    text = ""
+
+
+class HTTPClient:
+    def __init__(self):
+        self.calls = []
+
+    def post(self, url, **kwargs):
+        self.calls.append((url, kwargs))
+        return Response()
 
 
 def destination(style="modern") -> Destination:
@@ -94,9 +110,10 @@ def synthetic_modern_png() -> bytes:
 
 def configure_public_cards(monkeypatch, tmp_path):
     monkeypatch.setenv("NOWLERT_STATE_DIR", str(tmp_path / "state"))
-    webui = dict(config.get("webui", default={}) or {})
-    webui["public_url"] = "https://nowlert.example.test"
-    monkeypatch.setitem(config._data, "webui", webui)
+    monkeypatch.setenv(
+        "NOWLERT_TEAMS_PUBLIC_BASE_URL",
+        "https://nowlert.example.test",
+    )
 
 
 def image_item(payload: dict) -> dict:
@@ -105,7 +122,17 @@ def image_item(payload: dict) -> dict:
     return body[0]
 
 
-def test_teams_modern_uses_the_discord_renderer_and_public_image(
+def image_filename(url: str) -> str:
+    parsed = urlsplit(url)
+    values = parse_qs(parsed.query).get(
+        TEAMS_MODERN_CARD_QUERY_NAME,
+        [],
+    )
+    assert len(values) == 1
+    return values[0]
+
+
+def test_teams_modern_uses_discord_renderer_and_public_health_path(
     monkeypatch,
     tmp_path,
 ):
@@ -129,25 +156,28 @@ def test_teams_modern_uses_the_discord_renderer_and_public_image(
     assert calls == [(item, None)]
 
     image = image_item(payload)
+    parsed = urlsplit(image["url"])
     assert image["type"] == "Image"
     assert image["size"] == "Stretch"
+    assert parsed.scheme == "https"
+    assert parsed.netloc == "nowlert.example.test"
+    assert parsed.path == TEAMS_MODERN_CARD_PUBLIC_PATH
     assert image["url"].startswith(
         "https://nowlert.example.test"
-        + TEAMS_MODERN_CARD_ROUTE_PREFIX
+        + TEAMS_MODERN_CARD_URL_PREFIX
     )
     assert "Event details" not in json.dumps(payload)
 
-    route = urlsplit(image["url"]).path
-    response = WebUIService(config).response(route)
-    assert response is not None
-    assert response.status == 200
-    assert response.content_type == "image/png"
+    published = load_teams_modern_image(
+        config,
+        image_filename(image["url"]),
+    )
+    assert published is not None
+    with Image.open(BytesIO(published)) as rendered:
+        assert max(rendered.size) == TEAMS_MODERN_CARD_MAX_DIMENSION
 
-    with Image.open(BytesIO(response.body)) as published:
-        assert max(published.size) == TEAMS_MODERN_CARD_MAX_DIMENSION
 
-
-def test_platform_modern_preview_is_image_only_when_public_url_exists(
+def test_platform_modern_preview_is_image_only_when_public_origin_exists(
     monkeypatch,
     tmp_path,
 ):
@@ -166,11 +196,12 @@ def test_platform_modern_preview_is_image_only_when_public_url_exists(
     assert preview.metadata["rendered_style"] == "modern"
     assert preview.metadata["modern_image"] is True
     assert preview.metadata["formatter"] == "DiscordModernImageRenderer"
-    assert TEAMS_MODERN_CARD_ROUTE_PREFIX in image["url"]
+    assert TEAMS_MODERN_CARD_URL_PREFIX in image["url"]
     assert preview.metadata["payload_bytes"] < 28 * 1024
+    assert "error_code" not in preview.metadata
 
 
-def test_teams_classic_never_invokes_the_modern_image_renderer(
+def test_teams_classic_never_invokes_modern_image_renderer(
     monkeypatch,
     tmp_path,
 ):
@@ -192,19 +223,24 @@ def test_teams_classic_never_invokes_the_modern_image_renderer(
     assert preview.metadata["message_style"] == "classic"
     assert preview.metadata["rendered_style"] == "classic"
     assert preview.metadata["modern_image"] is False
-    assert TEAMS_MODERN_CARD_ROUTE_PREFIX not in encoded
+    assert TEAMS_MODERN_CARD_QUERY_NAME not in encoded
 
 
-def test_private_installation_keeps_native_modern_fallback(
+def test_missing_public_origin_fails_closed_instead_of_native_card(
     monkeypatch,
     tmp_path,
 ):
     monkeypatch.setenv("NOWLERT_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.delenv("NOWLERT_TEAMS_PUBLIC_BASE_URL", raising=False)
     webui = dict(config.get("webui", default={}) or {})
     webui["public_url"] = ""
     monkeypatch.setitem(config._data, "webui", webui)
 
-    adapter = TeamsPlatformAdapter(resolver=public_resolver)
+    client = HTTPClient()
+    adapter = TeamsPlatformAdapter(
+        http_client=client,
+        resolver=public_resolver,
+    )
     monkeypatch.setattr(
         adapter.output.discord_modern_output,
         "render_modern_image",
@@ -212,27 +248,35 @@ def test_private_installation_keeps_native_modern_fallback(
     )
 
     preview = adapter.preview(destination("modern"), notification())
-    encoded = json.dumps(preview.payload)
+    result = adapter.deliver(
+        destination("modern"),
+        b"https://example.com/teams-workflow",
+        notification(),
+    )
 
     assert preview.metadata["modern_image"] is False
-    assert preview.metadata["formatter"] == "TeamsFormatter"
-    assert TEAMS_MODERN_CARD_ROUTE_PREFIX not in encoded
-    assert "Event details" in encoded
+    assert preview.metadata["formatter"] == "DiscordModernImageRenderer"
+    assert preview.metadata["error_code"] == (
+        "teams_modern_image_unavailable"
+    )
+    assert preview.payload["error"] == "teams_modern_image_unavailable"
+    assert "Event details" not in json.dumps(preview.payload)
+    assert result.success is False
+    assert result.error_code == "teams_modern_image_unavailable"
+    assert client.calls == []
 
 
-def test_public_card_route_rejects_unbounded_or_unknown_paths(
+def test_public_card_loader_rejects_unknown_or_traversal_tokens(
     monkeypatch,
     tmp_path,
 ):
     configure_public_cards(monkeypatch, tmp_path)
-    service = WebUIService(config)
 
-    missing = service.response(
-        TEAMS_MODERN_CARD_ROUTE_PREFIX + ("0" * 48) + ".png"
-    )
-    traversal = service.response(
-        TEAMS_MODERN_CARD_ROUTE_PREFIX + "../secret.png"
-    )
-
-    assert missing is not None and missing.status == 404
-    assert traversal is not None and traversal.status == 404
+    assert load_teams_modern_image(
+        config,
+        ("0" * 48) + ".png",
+    ) is None
+    assert load_teams_modern_image(
+        config,
+        "../secret.png",
+    ) is None

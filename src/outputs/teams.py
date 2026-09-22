@@ -67,6 +67,10 @@ def valid_teams_webhook(value) -> bool:
         return False
 
 
+class TeamsModernImageUnavailable(RuntimeError):
+    """The exact Teams Modern rendered image cannot be published."""
+
+
 class TeamsOutput:
     MAX_PAYLOAD_BYTES = 28 * 1024
 
@@ -133,11 +137,10 @@ class TeamsOutput:
 
         image_url = publish_teams_modern_image(config, image)
         if not image_url:
-            log.warning(
-                "Teams Modern image parity is unavailable because "
-                "webui.public_url is not configured as a reachable HTTPS "
-                "address or the card-image cache is not writable; "
-                "falling back to the native Teams Modern card."
+            log.error(
+                "Teams Modern image parity is unavailable because no "
+                "credential-free HTTPS media origin is configured or the "
+                "card-image cache is not writable."
             )
             return None
 
@@ -186,23 +189,17 @@ class TeamsOutput:
         notification: Notification,
         formatter=None,
     ) -> tuple[dict, bool]:
-        """Return image parity when possible, otherwise the native fallback."""
+        """Return the exact shared Modern image or fail closed."""
 
         image_payload = self.modern_image_payload(notification)
-        if image_payload is not None:
-            return image_payload, True
-
-        formatter = (
-            formatter
-            or self.source_formatters.get(
-                str(notification.source or "").casefold(),
-                self.default_formatter,
+        if image_payload is None:
+            raise TeamsModernImageUnavailable(
+                "Microsoft Teams Modern Card requires the shared rendered "
+                "image to be published from a credential-free HTTPS origin. "
+                "Configure NOWLERT_TEAMS_PUBLIC_BASE_URL or webui.public_url "
+                "and ensure the state directory is writable."
             )
-        )
-        payload = formatter._sanitize_payload(
-            formatter.format(notification)
-        )
-        return payload, False
+        return image_payload, True
 
     def send(
         self,
@@ -238,9 +235,11 @@ class TeamsOutput:
         )
 
         try:
-            payload, modern_image = self.modern_payload(
-                notification,
-                formatter,
+            # Legacy YAML-configured Teams outputs predate platform
+            # message_style and keep their native Teams renderer. Platform
+            # Modern destinations use modern_payload() and fail closed.
+            payload = formatter._sanitize_payload(
+                formatter.format(notification)
             )
         except Exception:
             log.exception(
@@ -265,11 +264,7 @@ class TeamsOutput:
 
         log.info(
             "Teams formatter: %s",
-            (
-                "DiscordModernImageRenderer"
-                if modern_image
-                else formatter.__class__.__name__
-            ),
+            formatter.__class__.__name__,
         )
 
         if source.startswith("unifi_"):
