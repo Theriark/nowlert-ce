@@ -2555,7 +2555,7 @@ def test_final_source_xo_icon_vocabulary(tmp_path):
         (HomeAssistantDiscordModernImageRenderer, "Automation"),
     ),
 )
-def test_information_summary_uses_approved_spaced_geometry(
+def test_problem_information_rows_use_exact_shared_dell_layout(
     tmp_path,
     renderer_class,
     category,
@@ -2564,161 +2564,67 @@ def test_information_summary_uses_approved_spaced_geometry(
     metrics = [
         ("status", "Severity", "information", renderer.ICON_BLUE),
         ("sync", "Category", category, renderer.ICON_BLUE),
-        ("clock", "Event time", "17:09:52 UTC", renderer.TEXT),
+        ("clock", "Event time", "19:04:58 UTC", renderer.TEXT),
     ]
 
-    cells = renderer._summary_cells_for_metrics(
+    actual_cells = renderer._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        metrics,
+    )
+    inherited = super(renderer_class, renderer)
+    expected_cells = inherited._summary_cells_for_metrics(
         renderer.CARD_SIDE_PADDING,
         renderer.WIDTH - renderer.CARD_SIDE_PADDING,
         metrics,
     )
 
-    assert cells[1][0] > cells[0][1]
-    assert cells[2][0] > cells[1][1]
+    assert actual_cells == expected_cells
+    assert renderer._summary_fonts_for_metrics(metrics) == (
+        inherited._summary_fonts_for_metrics(metrics)
+    )
 
-    if renderer_class is HardwareDiscordModernImageRenderer:
-        assert (
-            cells[1][0]
-            == renderer.CARD_SIDE_PADDING
-            + renderer.FIRMWARE_CATEGORY_LEFT_OFFSET
-        )
-        assert (
-            cells[2][0]
-            == renderer.CARD_SIDE_PADDING
-            + renderer.FIRMWARE_EVENT_TIME_LEFT_OFFSET
-        )
-        assert (
-            cells[1][0] - cells[0][1]
-            == renderer.FIRMWARE_DIVIDER_INSET
-        )
-        assert (
-            cells[2][0] - cells[1][1]
-            == renderer.FIRMWARE_DIVIDER_INSET
-        )
-    else:
-        assert (
-            cells[1][0] - cells[0][1]
-            == renderer.SUMMARY_CELL_GAP
-        )
-        assert (
-            cells[2][0] - cells[1][1]
-            == renderer.SUMMARY_CELL_GAP
-        )
 
-def test_hardware_firmware_information_uses_smaller_summary_font_only(tmp_path):
+def test_hardware_firmware_row_matches_dell_storage_row_code_path(tmp_path):
     renderer = HardwareDiscordModernImageRenderer(tmp_path)
     firmware_metrics = [
         ("status", "Severity", "information", renderer.ICON_BLUE),
         ("sync", "Category", "Firmware", renderer.ICON_BLUE),
-        ("clock", "Event time", "18:40:59", renderer.TEXT),
+        ("clock", "Event time", "19:04:58 UTC", renderer.TEXT),
     ]
-    storage_metrics = [
+    dell_storage_metrics = [
         ("status", "Severity", "information", renderer.ICON_BLUE),
         ("sync", "Category", "Storage", renderer.ICON_BLUE),
-        ("clock", "Event time", "18:40:59", renderer.TEXT),
+        ("clock", "Event time", "19:04:58 UTC", renderer.TEXT),
     ]
-
-    label_font, value_font = renderer._summary_fonts_for_metrics(
-        firmware_metrics
-    )
-    default_label, default_value = super(
-        HardwareDiscordModernImageRenderer,
-        renderer,
-    )._summary_fonts_for_metrics(
-        firmware_metrics
-    )
-
-    assert label_font.size == renderer.FIRMWARE_SUMMARY_LABEL_FONT_SIZE == 34
-    assert value_font.size == renderer.FIRMWARE_SUMMARY_VALUE_FONT_SIZE == 34
-    assert label_font.size < default_label.size
-    assert value_font.size < default_value.size
-    assert renderer._summary_fonts_for_metrics(storage_metrics) == (
-        default_label,
-        default_value,
-    )
-
-
-def test_hardware_firmware_columns_move_category_and_event_time_right(tmp_path):
-    renderer = HardwareDiscordModernImageRenderer(tmp_path)
-    metrics = [
-        ("status", "Severity", "information", renderer.ICON_BLUE),
-        ("sync", "Category", "Firmware", renderer.ICON_BLUE),
-        ("clock", "Event time", "18:09:11", renderer.TEXT),
-    ]
-
-    fixed = renderer._summary_cells_for_metrics(
-        renderer.CARD_SIDE_PADDING,
-        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        metrics,
-    )
     inherited = super(
         HardwareDiscordModernImageRenderer,
         renderer,
-    )._summary_cells_for_metrics(
-        renderer.CARD_SIDE_PADDING,
-        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        metrics,
     )
-
-    assert fixed[1][0] >= inherited[1][0] + 140
-    assert fixed[2][0] >= inherited[2][0] + 90
-
-
-def test_hardware_firmware_information_compacts_summary_time_only(tmp_path):
-    renderer = HardwareDiscordModernImageRenderer(tmp_path)
-    captured = {}
-
-    parent_renderer = HardwareDiscordModernImageRenderer.__mro__[1]
-    original = parent_renderer._render_standard_card
-
-    def capture(self, **kwargs):
-        captured.update(kwargs)
-        return b"captured"
-
-    parent_renderer._render_standard_card = capture
-    try:
-        result = renderer._render_standard_card(
-            source="hpe_ilo",
-            accent=renderer.SKIPPED,
-            status="skipped",
-            integration="HPE iLO",
-            context="HPE-SRV-01",
-            badge="Firmware Information",
-            title="iLO firmware inventory collection completed",
-            severity="information",
-            category="Firmware",
-            event_time="2026-09-22 18:09:09 UTC",
-            details=[],
-            outcomes=[],
-        )
-    finally:
-        parent_renderer._render_standard_card = original
-
-    assert result == b"captured"
-    assert captured["event_time"] == "18:09:09"
-
-
-def test_hardware_non_firmware_information_keeps_shared_summary_layout(tmp_path):
-    renderer = HardwareDiscordModernImageRenderer(tmp_path)
-    metrics = [
-        ("status", "Severity", "information", renderer.ICON_BLUE),
-        ("sync", "Category", "Storage", renderer.ICON_BLUE),
-        ("clock", "Event time", "17:32:17 UTC", renderer.TEXT),
-    ]
 
     assert renderer._summary_cells_for_metrics(
         renderer.CARD_SIDE_PADDING,
         renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        metrics,
-    ) == super(
-        HardwareDiscordModernImageRenderer,
-        renderer,
-    )._summary_cells_for_metrics(
+        firmware_metrics,
+    ) == inherited._summary_cells_for_metrics(
         renderer.CARD_SIDE_PADDING,
         renderer.WIDTH - renderer.CARD_SIDE_PADDING,
-        metrics,
+        firmware_metrics,
     )
-
+    assert renderer._summary_fonts_for_metrics(
+        firmware_metrics
+    ) == inherited._summary_fonts_for_metrics(
+        firmware_metrics
+    )
+    assert renderer._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        dell_storage_metrics,
+    ) == inherited._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        dell_storage_metrics,
+    )
 
 def test_generic_webhook_fallback_uses_larger_canvas_only_for_webhook(tmp_path):
     renderer = GenericFallbackDiscordModernImageRenderer(tmp_path)
