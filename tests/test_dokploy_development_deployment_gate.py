@@ -156,5 +156,6 @@ def test_development_workflow_verifies_tag_digest_and_deploys_sha_tag():
     )[1].split("- name: Record immutable Development result", 1)[0]
     assert "dokploy_swarm_deploy.py" in deploy_block
     assert '--image "${IMAGE}:sha-${SOURCE_SHA}"' in deploy_block
-    assert "/api/health/teams-modern-card/" in deploy_block
+    assert "api/health?teams_modern_card=" in deploy_block
+    assert "cf-cache-status:" in deploy_block
     assert '@${{ steps.build.outputs.digest }}' not in deploy_block
