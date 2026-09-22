@@ -43,7 +43,10 @@ from formatters.discord_unifi import (
     UniFiProtectDiscordFormatter,
 )
 from formatters.discord_zabbix import ZabbixDiscordFormatter
-from formatters.discord_modern_image import DiscordModernImageRenderer
+from formatters.discord_modern_image import (
+    DiscordModernImageRenderer,
+    ZabbixDiscordModernImageRenderer,
+)
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
 from logger import log
 from models import Notification
@@ -63,6 +66,9 @@ class DiscordOutput:
         self.default_formatter = GenericDiscordFormatter()
         self.xo_image_renderer = XenOrchestraDiscordImageRenderer(self.ICON_DIR)
         self.modern_image_renderer = DiscordModernImageRenderer(self.ICON_DIR)
+        self.zabbix_modern_image_renderer = ZabbixDiscordModernImageRenderer(
+            self.ICON_DIR
+        )
 
         self.source_formatters = {
             "xo": DiscordFormatter(),
@@ -290,7 +296,12 @@ class DiscordOutput:
             classic_payload = formatter._sanitize_payload(
                 formatter.format(notification)
             )
-            return self.modern_image_renderer.render(
+            renderer = (
+                self.zabbix_modern_image_renderer
+                if source == "zabbix"
+                else self.modern_image_renderer
+            )
+            return renderer.render(
                 notification,
                 classic_payload,
             )

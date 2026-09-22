@@ -9,7 +9,10 @@ import socket
 import pytest
 from PIL import Image, ImageDraw
 
-from formatters.discord_modern_image import DiscordModernImageRenderer
+from formatters.discord_modern_image import (
+    DiscordModernImageRenderer,
+    ZabbixDiscordModernImageRenderer,
+)
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
 from models import Notification
 from outputs.discord import DiscordOutput
@@ -118,6 +121,7 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     output = DiscordOutput()
     output.ICON_DIR = tmp_path
     output.modern_image_renderer.icon_dir = tmp_path
+    output.zabbix_modern_image_renderer.icon_dir = tmp_path
     item = notification(source)
     formatter = output.source_formatters.get(
         source,
@@ -132,8 +136,14 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     assert image is not None
     assert image.startswith(b"\x89PNG\r\n\x1a\n")
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.width == 1448
-        assert rendered.height >= output.modern_image_renderer.MIN_HEIGHT
+        expected_width = 2000 if source == "zabbix" else 1448
+        expected_min_height = (
+            output.zabbix_modern_image_renderer.MIN_HEIGHT
+            if source == "zabbix"
+            else output.modern_image_renderer.MIN_HEIGHT
+        )
+        assert rendered.width == expected_width
+        assert rendered.height >= expected_min_height
     assert len(image) < 8 * 1024 * 1024
 
 
@@ -710,3 +720,75 @@ def test_xo_failure_panel_height_grows_for_long_reason(tmp_path):
     )
 
     assert height > style["reason_height"]
+
+
+
+def test_zabbix_modern_matches_frozen_xo_typography_and_scale(tmp_path):
+    zabbix = ZabbixDiscordModernImageRenderer(tmp_path)
+    xo = XenOrchestraDiscordImageRenderer(tmp_path)
+    fonts = zabbix._modern_fonts_for("xo_match")
+
+    assert zabbix.WIDTH == 2000
+    assert zabbix.MODERN_MIN_HEIGHT == 1600
+    assert fonts["heading"].size == xo.font_heading.size
+    assert fonts["title"].size == xo.font_title.size
+    assert fonts["badge"].size == xo.font_bold.size
+    assert fonts["label"].size == xo.font_label.size
+    assert fonts["body"].size == xo.font_detail.size
+    assert fonts["context"].size == xo.font_small.size
+    assert fonts["footer"].size == xo.font_small.size
+
+
+def test_zabbix_badge_fills_header_vertically(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    plan = renderer._standard_card_plan(
+        integration="Zabbix",
+        context="VM-08 | Zabbix Server",
+        badge="Resolved",
+        title="PostgreSQL replication lag exceeds 120 seconds",
+        severity="High",
+        category="Monitoring",
+        event_time="2026-09-22 07:44:57 UTC",
+        details=[],
+        outcomes=[],
+        font_profile=renderer.MODERN_FONT_PROFILE,
+    )
+
+    assert plan["header"]["badge_width"] >= 560
+    assert (
+        plan["header"]["badge_height"]
+        == plan["header"]["header_height"]
+    )
+
+
+def test_zabbix_uses_xo_icon_scale_without_changing_generic_renderer(tmp_path):
+    zabbix = ZabbixDiscordModernImageRenderer(tmp_path)
+    generic = DiscordModernImageRenderer(tmp_path)
+
+    assert zabbix.MODERN_XO_ICON_STYLE is True
+    assert generic.MODERN_XO_ICON_STYLE is False
+    assert generic.WIDTH == 1448
+
+
+def test_discord_output_routes_only_zabbix_to_xo_scaled_renderer(tmp_path):
+    output = DiscordOutput()
+    output.ICON_DIR = tmp_path
+    output.modern_image_renderer.icon_dir = tmp_path
+    output.zabbix_modern_image_renderer.icon_dir = tmp_path
+
+    zabbix = notification("zabbix")
+    zabbix_image = output.render_modern_image(
+        zabbix,
+        output.source_formatters["zabbix"],
+    )
+    grafana = notification("grafana")
+    grafana_image = output.render_modern_image(
+        grafana,
+        output.source_formatters["grafana"],
+    )
+
+    with Image.open(BytesIO(zabbix_image)) as image:
+        assert image.width == 2000
+        assert image.height >= 1600
+    with Image.open(BytesIO(grafana_image)) as image:
+        assert image.width == 1448

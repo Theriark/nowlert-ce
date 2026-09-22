@@ -60,6 +60,18 @@ class ModernCardLayoutMixin:
                     "footer": 34,
                 }
             ),
+            "xo_match": build(
+                {
+                    "heading": 62,
+                    "title": 52,
+                    "badge": 46,
+                    "section": 46,
+                    "label": 40,
+                    "body": 42,
+                    "context": 40,
+                    "footer": 40,
+                }
+            ),
         }
         self.modern_fonts = default
 
@@ -302,12 +314,19 @@ class ModernCardLayoutMixin:
         )
         x0 = self.MODERN_PADDING
         width = self.WIDTH - 2 * x0
-        badge_width = min(ceil(width * .47), max(260, 108 + ceil(
-            draw.textlength(
-                badge,
-                font=fonts["badge"],
-            )
-        )))
+        badge_width = min(
+            ceil(width * .47),
+            max(
+                getattr(self, "MODERN_BADGE_MIN_WIDTH", 0),
+                260,
+                108 + ceil(
+                    draw.textlength(
+                        badge,
+                        font=fonts["badge"],
+                    )
+                ),
+            ),
+        )
         badge_text = self._modern_text(
             draw,
             badge,
@@ -333,9 +352,26 @@ class ModernCardLayoutMixin:
             fonts,
         )
         y = 72
-        header_height = max(120, heading["height"] + 8 + subtitle["height"], badge_height)
-        header = {"y": y, "heading": heading, "subtitle": subtitle,
-                  "badge": badge_text, "badge_width": badge_width, "badge_height": badge_height}
+        header_height = max(
+            120,
+            heading["height"] + 8 + subtitle["height"],
+            badge_height,
+        )
+        if getattr(
+            self,
+            "MODERN_BADGE_FILL_HEADER",
+            False,
+        ):
+            badge_height = header_height
+        header = {
+            "y": y,
+            "heading": heading,
+            "subtitle": subtitle,
+            "badge": badge_text,
+            "badge_width": badge_width,
+            "badge_height": badge_height,
+            "header_height": header_height,
+        }
         y += header_height + 24
         report = self._modern_text(
             draw,
@@ -396,8 +432,15 @@ class ModernCardLayoutMixin:
         for panel in outcome_panels:
             panel["y"] += y
         y += outcome_height
-        footer_y = y + 28
-        height = footer_y + self.FOOTER_RESERVE
+        natural_footer_y = y + 28
+        height = max(
+            natural_footer_y + self.FOOTER_RESERVE,
+            getattr(self, "MODERN_MIN_HEIGHT", 0),
+        )
+        footer_y = max(
+            natural_footer_y,
+            height - self.FOOTER_RESERVE,
+        )
         return {"header": header, "report": report, "title_box": title_box,
                 "summary": summary, "summary_box": summary_box,
                 "panels": detail_panels + outcome_panels,
@@ -446,8 +489,48 @@ class ModernCardLayoutMixin:
         draw = ImageDraw.Draw(image, "RGBA")
         self._rounded(draw, badge_box, fill=(*self._tint(accent, self.CARD_BG, .16), 245),
                       outline=(*accent, 230), radius=17, width=2)
-        self._modern_status_icon(draw, badge_box[0] + 18, y + 18, 44, status, accent)
-        self._modern_paint_text(draw, {**header["badge"], "color": accent}, badge_box[0] + 80, y + 16)
+        if getattr(self, "MODERN_XO_ICON_STYLE", False):
+            badge_icon_size = 64
+            badge_icon_y = y + max(
+                0,
+                (header["badge_height"] - badge_icon_size) // 2,
+            )
+            badge_text_y = y + max(
+                0,
+                (
+                    header["badge_height"]
+                    - header["badge"]["height"]
+                ) // 2,
+            )
+            self._modern_status_icon(
+                draw,
+                badge_box[0] + 28,
+                badge_icon_y,
+                badge_icon_size,
+                status,
+                accent,
+            )
+            self._modern_paint_text(
+                draw,
+                {**header["badge"], "color": accent},
+                badge_box[0] + 112,
+                badge_text_y,
+            )
+        else:
+            self._modern_status_icon(
+                draw,
+                badge_box[0] + 18,
+                y + 18,
+                44,
+                status,
+                accent,
+            )
+            self._modern_paint_text(
+                draw,
+                {**header["badge"], "color": accent},
+                badge_box[0] + 80,
+                y + 16,
+            )
         self._rounded(draw, plan["title_box"], fill=(*self.PANEL_2, 248),
                       outline=(93, 101, 108, 195), radius=14, width=2)
         self._modern_paint_text(draw, plan["report"], x0 + 24, plan["title_box"][1] + 15)
@@ -456,13 +539,46 @@ class ModernCardLayoutMixin:
                       outline=(*self.PANEL_BORDER, 205), radius=14, width=1)
         for index, cell in enumerate(plan["summary"]):
             x = x0 + cell["x"] + 16
+            xo_icons = getattr(
+                self,
+                "MODERN_XO_ICON_STYLE",
+                False,
+            )
+            icon_size = 54 if xo_icons else 36
+            icon_y = box[1] + (
+                16 if xo_icons else 12
+            )
+            text_offset = 66 if xo_icons else 46
             if cell["icon"] == "status":
-                self._modern_status_icon(draw, x, box[1] + 12, 36, status, accent)
+                self._modern_status_icon(
+                    draw,
+                    x,
+                    icon_y,
+                    icon_size,
+                    status,
+                    accent,
+                )
             else:
-                self._draw_icon_badge(draw, x, box[1] + 12, 36, cell["icon"], self.ICON_BLUE)
-            self._modern_paint_text(draw, cell["label"], x + 46, box[1] + 12)
-            self._modern_paint_text(draw, cell["value"], x,
-                                    box[1] + 16 + cell["label"]["height"])
+                self._draw_icon_badge(
+                    draw,
+                    x,
+                    icon_y,
+                    icon_size,
+                    cell["icon"],
+                    self.ICON_BLUE,
+                )
+            self._modern_paint_text(
+                draw,
+                cell["label"],
+                x + text_offset,
+                box[1] + 12,
+            )
+            self._modern_paint_text(
+                draw,
+                cell["value"],
+                x,
+                box[1] + 16 + cell["label"]["height"],
+            )
             if index:
                 draw.line((x - 16, box[1] + 16, x - 16, box[3] - 16),
                           fill=(*self.PANEL_BORDER, 180), width=2)
@@ -480,10 +596,40 @@ class ModernCardLayoutMixin:
             for row in panel["paint"]:
                 rx, ry = px + row["x"], py + row["y"]
                 if row.get("icon") == "status":
-                    self._modern_status_icon(draw, px + 22, ry, 38,
-                                             panel.get("status", status), panel_accent or accent)
+                    status_icon_size = (
+                        54
+                        if getattr(
+                            self,
+                            "MODERN_XO_ICON_STYLE",
+                            False,
+                        )
+                        else 38
+                    )
+                    self._modern_status_icon(
+                        draw,
+                        px + 22,
+                        ry,
+                        status_icon_size,
+                        panel.get("status", status),
+                        panel_accent or accent,
+                    )
                 elif row.get("icon"):
-                    self._draw_field_icon(draw, rx - 46, ry + 3, 30, row["icon"])
+                    field_icon_size = (
+                        44
+                        if getattr(
+                            self,
+                            "MODERN_XO_ICON_STYLE",
+                            False,
+                        )
+                        else 30
+                    )
+                    self._draw_field_icon(
+                        draw,
+                        rx - 46,
+                        ry + 3,
+                        field_icon_size,
+                        row["icon"],
+                    )
                 self._modern_paint_text(draw, row["text"], rx, ry)
         footer_y = plan["footer_y"]
         draw.line((x0, footer_y - 8, right, footer_y - 8), fill=(81, 89, 95, 150), width=1)
