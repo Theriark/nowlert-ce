@@ -3038,3 +3038,188 @@ class ProxmoxDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
             value,
             fallback,
         )
+
+
+
+class QNAPDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
+    """Render QNAP cards on the frozen Grafana/Zabbix/XO baseline."""
+
+    QNAP_XO_SECTION_ICONS = {
+        "qnap nas": "repository",
+        "event details": "list",
+        "timing": "clock",
+    }
+    QNAP_XO_FIELD_ICONS = {
+        "nas": "repository",
+        "application": "list",
+        "storage pool": "disk",
+        "pool": "disk",
+        "volume": "disk",
+        "disk": "disk",
+        "drive": "disk",
+        "drive bay": "disk",
+        "raid group": "disk",
+        "raid level": "disk",
+        "smart status": "status",
+        "smart test": "status",
+        "backup job": "list",
+        "job name": "list",
+        "task": "list",
+        "source": "repository",
+        "destination": "repository",
+        "repository": "repository",
+        "ups": "alert",
+        "power event": "alert",
+        "power source": "alert",
+        "battery level": "chart",
+        "battery capacity": "chart",
+        "runtime remaining": "clock",
+        "account": "list",
+        "user": "list",
+        "username": "list",
+        "source ip": "repository",
+        "ip address": "repository",
+        "protocol": "list",
+        "firmware version": "list",
+        "current version": "list",
+        "available version": "list",
+        "new version": "list",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+    }
+
+    def _zabbix_content_plan(
+        self,
+        draw,
+        details,
+        outcomes,
+        x0,
+        right,
+        start_y,
+    ):
+        return ZabbixDiscordModernImageRenderer._zabbix_content_plan(
+            self,
+            draw,
+            details,
+            outcomes,
+            x0,
+            right,
+            start_y,
+        )
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        return self.QNAP_XO_SECTION_ICONS.get(
+            self._clean(title).casefold(),
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.QNAP_XO_FIELD_ICONS:
+            return self.QNAP_XO_FIELD_ICONS[key]
+
+        panel_key = self._clean(panel_title).casefold()
+        if panel_key == "qnap nas":
+            return "repository"
+        if panel_key == "event details":
+            return "list"
+        if panel_key == "timing":
+            return "clock"
+
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
+
+
+class SynologyDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
+    """Render Synology cards on the frozen Grafana/Zabbix/XO baseline."""
+
+    SYNOLOGY_XO_SECTION_ICONS = {
+        "synology nas": "repository",
+        "event details": "list",
+        "timing": "clock",
+    }
+    SYNOLOGY_XO_FIELD_ICONS = {
+        "nas": "repository",
+        "model": "repository",
+        "storage pool": "disk",
+        "storage": "disk",
+        "volume": "disk",
+        "disk": "disk",
+        "package": "list",
+        "task": "list",
+        "user": "list",
+        "username": "list",
+        "source ip": "repository",
+        "ip address": "repository",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+    }
+
+    def _zabbix_content_plan(
+        self,
+        draw,
+        details,
+        outcomes,
+        x0,
+        right,
+        start_y,
+    ):
+        return ZabbixDiscordModernImageRenderer._zabbix_content_plan(
+            self,
+            draw,
+            details,
+            outcomes,
+            x0,
+            right,
+            start_y,
+        )
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        return self.SYNOLOGY_XO_SECTION_ICONS.get(
+            self._clean(title).casefold(),
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.SYNOLOGY_XO_FIELD_ICONS:
+            return self.SYNOLOGY_XO_FIELD_ICONS[key]
+
+        panel_key = self._clean(panel_title).casefold()
+        if panel_key == "synology nas":
+            return "repository"
+        if panel_key == "event details":
+            return "list"
+        if panel_key == "timing":
+            return "clock"
+
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )

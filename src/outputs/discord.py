@@ -48,6 +48,8 @@ from formatters.discord_modern_image import (
     GrafanaDiscordModernImageRenderer,
     PortainerDiscordModernImageRenderer,
     ProxmoxDiscordModernImageRenderer,
+    QNAPDiscordModernImageRenderer,
+    SynologyDiscordModernImageRenderer,
     ZabbixDiscordModernImageRenderer,
 )
 from formatters.discord_xo_image import XenOrchestraDiscordImageRenderer
@@ -79,6 +81,12 @@ class DiscordOutput:
             self.ICON_DIR
         )
         self.proxmox_modern_image_renderer = ProxmoxDiscordModernImageRenderer(
+            self.ICON_DIR
+        )
+        self.qnap_modern_image_renderer = QNAPDiscordModernImageRenderer(
+            self.ICON_DIR
+        )
+        self.synology_modern_image_renderer = SynologyDiscordModernImageRenderer(
             self.ICON_DIR
         )
 
@@ -317,6 +325,10 @@ class DiscordOutput:
                 if source == "portainer"
                 else self.proxmox_modern_image_renderer
                 if source == "proxmox"
+                else self.qnap_modern_image_renderer
+                if source == "qnap"
+                else self.synology_modern_image_renderer
+                if source == "synology"
                 else self.modern_image_renderer
             )
             return renderer.render(
