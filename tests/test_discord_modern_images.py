@@ -1756,3 +1756,24 @@ def test_portainer_and_proxmox_started_timing_follows_lifecycle_color(
         "Started: 2026-07-15 01:15:00 UTC",
         renderer.BRAND_GOLD,
     ) == renderer.BRAND_GOLD
+
+
+
+def test_portainer_summary_strip_allocates_more_space_to_category(tmp_path):
+    portainer = PortainerDiscordModernImageRenderer(tmp_path)
+    grafana = GrafanaDiscordModernImageRenderer(tmp_path)
+
+    cells = portainer._summary_cells(
+        portainer.CARD_SIDE_PADDING,
+        portainer.WIDTH - portainer.CARD_SIDE_PADDING,
+    )
+
+    assert portainer.SUMMARY_FIRST_CELL_RATIO == 0.27
+    assert portainer.SUMMARY_SECOND_CELL_RATIO == 0.36
+    assert cells[1][1] - cells[1][0] >= 610
+    assert cells[1][0] - cells[0][1] == 72
+    assert cells[2][0] - cells[1][1] == 72
+
+    # Keep the frozen Grafana strip untouched.
+    assert grafana.SUMMARY_FIRST_CELL_RATIO == 0.28
+    assert grafana.SUMMARY_SECOND_CELL_RATIO == 0.32
