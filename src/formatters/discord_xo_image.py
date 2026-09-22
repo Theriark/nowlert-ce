@@ -41,7 +41,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     DETAIL_LABEL_VALUE_GAP = 32
     STATUS_BADGE_WIDTH = 560
     STATUS_BADGE_HEIGHT = 128
-    SUCCESS_BADGE_LEFT_SHIFT = 32
+    SUCCESS_BADGE_LEFT_SHIFT = 48
     SUMMARY_CELL_GAP = 48
     XO_HEADER_ICON_SIZE = 144
     OUTER_GLOW_GOLD_ALPHA = 138
@@ -52,6 +52,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     PAIRED_PANEL_LONG_OTHER_LEFT_RATIO = 0.48
     PAIRED_OUTCOME_MIN_HEIGHT = 370
     EXCEPTION_BASE_HEIGHT = 1600
+    SUCCESS_BASE_HEIGHT = 1600
     FAILED_REASON_TOP_GAP = 24
 
     # Nowlert brand surfaces.
@@ -137,10 +138,17 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             if status == "success"
             else 0
         )
+        if status == "success":
+            return (
+                right - self.STATUS_BADGE_WIDTH - shift,
+                header_y,
+                right,
+                header_y + height,
+            )
         return (
-            right - self.STATUS_BADGE_WIDTH - shift,
+            right - self.STATUS_BADGE_WIDTH,
             header_y,
-            right - shift,
+            right,
             header_y + height,
         )
 
@@ -320,6 +328,11 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             height = max(
                 height,
                 self.EXCEPTION_BASE_HEIGHT,
+            )
+        else:
+            height = max(
+                height,
+                self.SUCCESS_BASE_HEIGHT,
             )
         footer_y = self._footer_y(height)
 
