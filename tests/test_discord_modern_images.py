@@ -1336,7 +1336,8 @@ def test_grafana_uses_frozen_zabbix_visual_metrics(tmp_path):
     assert grafana.WIDTH == zabbix.WIDTH == 2064
     assert grafana.BASE_HEIGHT == zabbix.BASE_HEIGHT == 1600
     assert grafana.CARD_SIDE_PADDING == zabbix.CARD_SIDE_PADDING
-    assert grafana.STATUS_BADGE_WIDTH == zabbix.STATUS_BADGE_WIDTH
+    assert grafana.STATUS_BADGE_WIDTH == 640
+    assert zabbix.STATUS_BADGE_WIDTH == 560
     assert grafana.STATUS_BADGE_HEIGHT == zabbix.STATUS_BADGE_HEIGHT
     assert grafana.SUMMARY_ICON_SIZE == zabbix.SUMMARY_ICON_SIZE == 54
     assert grafana.FOOTER_ICON_SIZE == zabbix.FOOTER_ICON_SIZE == 96
@@ -1473,3 +1474,80 @@ def test_grafana_uses_xo_icon_vocabulary(tmp_path):
     assert renderer._zabbix_xo_field_icon(
         "Timing & Links", "Started:", "2026-07-12 10:15:00", "clock"
     ) == "play"
+
+
+
+def test_grafana_badges_expand_left_for_long_lifecycle_labels(tmp_path):
+    renderer = GrafanaDiscordModernImageRenderer(tmp_path)
+    right = renderer.WIDTH - renderer.CARD_SIDE_PADDING
+
+    warning_box = renderer._status_badge_box(
+        right,
+        renderer.HEADER_Y,
+        renderer.HEADER_MIN_HEIGHT,
+        status="warning",
+    )
+    info_box = renderer._status_badge_box(
+        right,
+        renderer.HEADER_Y,
+        renderer.HEADER_MIN_HEIGHT,
+        status="skipped",
+    )
+
+    assert warning_box[2] == right
+    assert info_box[2] == right
+    assert warning_box[2] - warning_box[0] >= 640
+    assert info_box[2] - info_box[0] >= 640
+
+
+def test_grafana_started_timing_uses_warning_and_information_colors(tmp_path):
+    renderer = GrafanaDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._line_color(
+        "Started: 2026-07-12 10:30:00",
+        renderer.BRAND_GOLD,
+    ) == renderer.BRAND_GOLD
+    assert renderer._line_color(
+        "Started: 2026-07-12 10:00:00",
+        renderer.SKIPPED,
+    ) == renderer.SKIPPED
+
+
+def test_grafana_short_grouped_alert_stays_at_standard_card_height(tmp_path):
+    renderer = GrafanaDiscordModernImageRenderer(tmp_path)
+    details, outcomes = _grafana_reference_panels()
+    outcomes.append(
+        {
+            "title": "Alert details",
+            "accent": renderer.FAILURE,
+            "status": "failure",
+            "rows": [
+                {
+                    "label": "Alerts:",
+                    "value": (
+                        "Synthetic Cache Saturation · Firing · A=95\n"
+                        "Synthetic Worker Failure · Firing · B=1"
+                    ),
+                    "icon": "alert",
+                }
+            ],
+        }
+    )
+
+    image = renderer._render_standard_card(
+        source="grafana",
+        integration="Grafana",
+        context="Synthetic Grouped Rule",
+        badge="Alerting Firing",
+        title="Synthetic Grouped Alerts (2 alerts)",
+        severity="Critical",
+        category="Alerting",
+        event_time="11:30:00 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.size == (2064, 1600)
