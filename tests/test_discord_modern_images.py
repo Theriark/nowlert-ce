@@ -11,10 +11,14 @@ from PIL import Image, ImageDraw
 
 from formatters.discord_modern_image import (
     DiscordModernImageRenderer,
+    GenericFallbackDiscordModernImageRenderer,
     GrafanaDiscordModernImageRenderer,
+    HardwareDiscordModernImageRenderer,
+    HomeAssistantDiscordModernImageRenderer,
     PortainerDiscordModernImageRenderer,
     ProxmoxDiscordModernImageRenderer,
     QNAPDiscordModernImageRenderer,
+    RedfishDiscordModernImageRenderer,
     SynologyDiscordModernImageRenderer,
     TrueNASDiscordModernImageRenderer,
     UniFiDriveDiscordModernImageRenderer,
@@ -140,6 +144,10 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     output.unifi_network_modern_image_renderer.icon_dir = tmp_path
     output.unifi_protect_modern_image_renderer.icon_dir = tmp_path
     output.unifi_drive_modern_image_renderer.icon_dir = tmp_path
+    output.hardware_modern_image_renderer.icon_dir = tmp_path
+    output.home_assistant_modern_image_renderer.icon_dir = tmp_path
+    output.redfish_modern_image_renderer.icon_dir = tmp_path
+    output.generic_fallback_modern_image_renderer.icon_dir = tmp_path
     item = notification(source)
     formatter = output.source_formatters.get(
         source,
@@ -167,6 +175,13 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
                 "unifi_network",
                 "unifi_protect",
                 "unifi_drive",
+                "supermicro",
+                "hpe_ilo",
+                "dell_idrac",
+                "home_assistant",
+                "redfish",
+                "nowlert",
+                "unknown_product",
             }
             else 1448
         )
@@ -181,6 +196,13 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
             "unifi_network": output.unifi_network_modern_image_renderer,
             "unifi_protect": output.unifi_protect_modern_image_renderer,
             "unifi_drive": output.unifi_drive_modern_image_renderer,
+            "supermicro": output.hardware_modern_image_renderer,
+            "hpe_ilo": output.hardware_modern_image_renderer,
+            "dell_idrac": output.hardware_modern_image_renderer,
+            "home_assistant": output.home_assistant_modern_image_renderer,
+            "redfish": output.redfish_modern_image_renderer,
+            "nowlert": output.generic_fallback_modern_image_renderer,
+            "unknown_product": output.generic_fallback_modern_image_renderer,
         }
         expected_min_height = (
             dedicated_renderers[source].MIN_HEIGHT
@@ -830,6 +852,10 @@ def test_discord_output_routes_standardized_sources_to_xo_scaled_renderers(tmp_p
     output.unifi_network_modern_image_renderer.icon_dir = tmp_path
     output.unifi_protect_modern_image_renderer.icon_dir = tmp_path
     output.unifi_drive_modern_image_renderer.icon_dir = tmp_path
+    output.hardware_modern_image_renderer.icon_dir = tmp_path
+    output.home_assistant_modern_image_renderer.icon_dir = tmp_path
+    output.redfish_modern_image_renderer.icon_dir = tmp_path
+    output.generic_fallback_modern_image_renderer.icon_dir = tmp_path
 
     for source in (
         "zabbix",
@@ -842,11 +868,21 @@ def test_discord_output_routes_standardized_sources_to_xo_scaled_renderers(tmp_p
         "unifi_network",
         "unifi_protect",
         "unifi_drive",
+        "supermicro",
+        "hpe_ilo",
+        "dell_idrac",
+        "home_assistant",
+        "redfish",
+        "nowlert",
+        "unknown_product",
     ):
         item = notification(source)
         image_bytes = output.render_modern_image(
             item,
-            output.source_formatters[source],
+            output.source_formatters.get(
+                source,
+                output.default_formatter,
+            ),
         )
         with Image.open(BytesIO(image_bytes)) as image:
             assert image.width == 2064
@@ -2364,3 +2400,141 @@ def test_standardized_source_panels_grow_vertically_with_content(
     )
 
     assert long["height"] > short["height"]
+
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    (
+        HardwareDiscordModernImageRenderer,
+        HomeAssistantDiscordModernImageRenderer,
+        RedfishDiscordModernImageRenderer,
+        GenericFallbackDiscordModernImageRenderer,
+    ),
+)
+def test_final_modern_renderers_use_frozen_standard_metrics(
+    tmp_path,
+    renderer_class,
+):
+    renderer = renderer_class(tmp_path)
+    grafana = GrafanaDiscordModernImageRenderer(tmp_path)
+
+    assert renderer.WIDTH == grafana.WIDTH == 2064
+    assert renderer.BASE_HEIGHT == grafana.BASE_HEIGHT == 1600
+    assert renderer.STATUS_BADGE_WIDTH == grafana.STATUS_BADGE_WIDTH == 640
+    assert renderer.FOOTER_ICON_SIZE == grafana.FOOTER_ICON_SIZE == 96
+    assert renderer.SUMMARY_ICON_SIZE == grafana.SUMMARY_ICON_SIZE == 54
+    for name in (
+        "font_heading",
+        "font_title",
+        "font_bold",
+        "font_label",
+        "font_detail",
+        "font_body",
+        "font_small",
+    ):
+        assert getattr(renderer, name).size == getattr(grafana, name).size
+
+
+@pytest.mark.parametrize(
+    ("source", "renderer_name"),
+    (
+        ("supermicro", "hardware_modern_image_renderer"),
+        ("hpe_ilo", "hardware_modern_image_renderer"),
+        ("dell_idrac", "hardware_modern_image_renderer"),
+        ("home_assistant", "home_assistant_modern_image_renderer"),
+        ("redfish", "redfish_modern_image_renderer"),
+        ("nowlert", "generic_fallback_modern_image_renderer"),
+        ("unknown_product", "generic_fallback_modern_image_renderer"),
+    ),
+)
+def test_final_sources_render_on_standard_2064x1600_baseline(
+    tmp_path,
+    source,
+    renderer_name,
+):
+    output = DiscordOutput()
+    output.ICON_DIR = tmp_path
+    renderer = getattr(output, renderer_name)
+    renderer.icon_dir = tmp_path
+    item = notification(source)
+    formatter = output.source_formatters.get(
+        source,
+        output.default_formatter,
+    )
+
+    image = output.render_modern_image(item, formatter)
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.width == 2064
+        assert rendered.height >= 1600
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    (
+        HardwareDiscordModernImageRenderer,
+        HomeAssistantDiscordModernImageRenderer,
+        RedfishDiscordModernImageRenderer,
+        GenericFallbackDiscordModernImageRenderer,
+    ),
+)
+def test_final_source_panels_grow_vertically_with_wrapped_content(
+    tmp_path,
+    renderer_class,
+):
+    renderer = renderer_class(tmp_path)
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+
+    short = renderer._zabbix_measure_panel(
+        draw,
+        {
+            "title": "EVENT DETAILS",
+            "rows": [
+                {
+                    "value": "Short event detail.",
+                    "icon": "alert",
+                }
+            ],
+        },
+        900,
+    )
+    long = renderer._zabbix_measure_panel(
+        draw,
+        {
+            "title": "EVENT DETAILS",
+            "rows": [
+                {
+                    "value": " ".join(["long-event-detail"] * 100),
+                    "icon": "alert",
+                }
+            ],
+        },
+        900,
+    )
+
+    assert long["height"] > short["height"]
+
+
+def test_final_source_xo_icon_vocabulary(tmp_path):
+    hardware = HardwareDiscordModernImageRenderer(tmp_path)
+    home_assistant = HomeAssistantDiscordModernImageRenderer(tmp_path)
+    redfish = RedfishDiscordModernImageRenderer(tmp_path)
+    fallback = GenericFallbackDiscordModernImageRenderer(tmp_path)
+
+    assert hardware._zabbix_xo_section_icon("Hardware Event") == "alert"
+    assert hardware._zabbix_xo_field_icon(
+        "Hardware Event", "Registry:", "SMC", "list"
+    ) == "list"
+    assert home_assistant._zabbix_xo_section_icon("Source Details") == "list"
+    assert home_assistant._zabbix_xo_field_icon(
+        "Home Assistant", "Device:", "Living room lights", "list"
+    ) == "cube"
+    assert redfish._zabbix_xo_section_icon("Recommended Action") == "alert"
+    assert redfish._zabbix_xo_field_icon(
+        "Source & Event", "Message ID:", "Resource.1.0", "list"
+    ) == "list"
+    assert fallback._zabbix_xo_section_icon("Source & Context") == "repository"
+    assert fallback._zabbix_xo_field_icon(
+        "Source & Context", "Provider:", "Synthetic HTTP Monitor", "list"
+    ) == "repository"

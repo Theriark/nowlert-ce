@@ -45,10 +45,14 @@ from formatters.discord_unifi import (
 from formatters.discord_zabbix import ZabbixDiscordFormatter
 from formatters.discord_modern_image import (
     DiscordModernImageRenderer,
+    GenericFallbackDiscordModernImageRenderer,
     GrafanaDiscordModernImageRenderer,
+    HardwareDiscordModernImageRenderer,
+    HomeAssistantDiscordModernImageRenderer,
     PortainerDiscordModernImageRenderer,
     ProxmoxDiscordModernImageRenderer,
     QNAPDiscordModernImageRenderer,
+    RedfishDiscordModernImageRenderer,
     SynologyDiscordModernImageRenderer,
     TrueNASDiscordModernImageRenderer,
     UniFiDriveDiscordModernImageRenderer,
@@ -104,6 +108,18 @@ class DiscordOutput:
         )
         self.unifi_drive_modern_image_renderer = UniFiDriveDiscordModernImageRenderer(
             self.ICON_DIR
+        )
+        self.hardware_modern_image_renderer = HardwareDiscordModernImageRenderer(
+            self.ICON_DIR
+        )
+        self.home_assistant_modern_image_renderer = (
+            HomeAssistantDiscordModernImageRenderer(self.ICON_DIR)
+        )
+        self.redfish_modern_image_renderer = RedfishDiscordModernImageRenderer(
+            self.ICON_DIR
+        )
+        self.generic_fallback_modern_image_renderer = (
+            GenericFallbackDiscordModernImageRenderer(self.ICON_DIR)
         )
 
         self.source_formatters = {
@@ -353,7 +369,13 @@ class DiscordOutput:
                 if source == "unifi_protect"
                 else self.unifi_drive_modern_image_renderer
                 if source == "unifi_drive"
-                else self.modern_image_renderer
+                else self.hardware_modern_image_renderer
+                if source in {"supermicro", "hpe_ilo", "dell_idrac"}
+                else self.home_assistant_modern_image_renderer
+                if source == "home_assistant"
+                else self.redfish_modern_image_renderer
+                if source == "redfish"
+                else self.generic_fallback_modern_image_renderer
             )
             return renderer.render(
                 notification,

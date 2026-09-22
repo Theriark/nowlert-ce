@@ -3860,3 +3860,242 @@ class UniFiDriveDiscordModernImageRenderer(
             value,
             fallback,
         )
+
+
+
+class HardwareDiscordModernImageRenderer(
+    _StandardizedSourceDiscordModernImageRenderer
+):
+    """Render Supermicro, HPE iLO and Dell iDRAC on the frozen baseline."""
+
+    HARDWARE_XO_SECTION_ICONS = {
+        "system": "repository",
+        "hardware event": "alert",
+        "timing": "clock",
+        "additional details": "list",
+        "event details": "alert",
+    }
+    HARDWARE_XO_FIELD_ICONS = {
+        "system": "repository",
+        "sensor": "chart",
+        "registry": "list",
+        "message id": "list",
+        "source ip": "repository",
+        "origin": "repository",
+        "recommended action": "alert",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+    }
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        key = self._clean(title).casefold()
+        if key.endswith(" result"):
+            return "status"
+        return self.HARDWARE_XO_SECTION_ICONS.get(
+            key,
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.HARDWARE_XO_FIELD_ICONS:
+            return self.HARDWARE_XO_FIELD_ICONS[key]
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
+
+
+class RedfishDiscordModernImageRenderer(
+    _StandardizedSourceDiscordModernImageRenderer
+):
+    """Render the generic Redfish hardware fallback on the frozen baseline."""
+
+    REDFISH_XO_SECTION_ICONS = {
+        "source & event": "repository",
+        "recommended action": "alert",
+        "timing": "clock",
+        "additional details": "list",
+        "event details": "alert",
+    }
+    REDFISH_XO_FIELD_ICONS = {
+        "source": "repository",
+        "input": "list",
+        "provider": "repository",
+        "system": "repository",
+        "category": "list",
+        "registry": "list",
+        "message id": "list",
+        "resource id": "repository",
+        "event id": "list",
+        "origin": "repository",
+        "sensor": "chart",
+        "source ip": "repository",
+        "action": "alert",
+        "recommended action": "alert",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+    }
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        key = self._clean(title).casefold()
+        if key.endswith(" result"):
+            return "status"
+        return self.REDFISH_XO_SECTION_ICONS.get(
+            key,
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.REDFISH_XO_FIELD_ICONS:
+            return self.REDFISH_XO_FIELD_ICONS[key]
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
+
+
+class HomeAssistantDiscordModernImageRenderer(
+    _StandardizedSourceDiscordModernImageRenderer
+):
+    """Render Home Assistant cards on the frozen standardized baseline."""
+
+    HOME_ASSISTANT_XO_SECTION_ICONS = {
+        "home assistant": "repository",
+        "entity / device": "cube",
+        "source details": "list",
+        "timing": "clock",
+        "additional details": "list",
+        "event details": "alert",
+    }
+    HOME_ASSISTANT_XO_FIELD_ICONS = {
+        "area": "repository",
+        "service": "list",
+        "device": "cube",
+        "entity": "cube",
+        "entity id": "cube",
+        "component": "list",
+        "endpoint": "repository",
+        "error": "alert",
+        "retry": "clock",
+        "tags": "list",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+    }
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        key = self._clean(title).casefold()
+        if key.endswith(" result"):
+            return "status"
+        return self.HOME_ASSISTANT_XO_SECTION_ICONS.get(
+            key,
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.HOME_ASSISTANT_XO_FIELD_ICONS:
+            return self.HOME_ASSISTANT_XO_FIELD_ICONS[key]
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
+
+
+class GenericFallbackDiscordModernImageRenderer(
+    _StandardizedSourceDiscordModernImageRenderer
+):
+    """Render generic/unknown fallback cards on the frozen baseline."""
+
+    GENERIC_XO_SECTION_ICONS = {
+        "source & context": "repository",
+        "source & event": "repository",
+        "context": "list",
+        "timing": "clock",
+        "additional details": "list",
+        "event details": "alert",
+        "recommended action": "alert",
+    }
+    GENERIC_XO_FIELD_ICONS = {
+        "source": "repository",
+        "input": "list",
+        "provider": "repository",
+        "host": "repository",
+        "recipient": "list",
+        "sender": "list",
+        "message id": "list",
+        "format": "list",
+        "environment": "repository",
+        "component": "cube",
+        "severity": "status",
+        "category": "list",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+    }
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        key = self._clean(title).casefold()
+        if key.endswith(" result"):
+            return "status"
+        return self.GENERIC_XO_SECTION_ICONS.get(
+            key,
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.GENERIC_XO_FIELD_ICONS:
+            return self.GENERIC_XO_FIELD_ICONS[key]
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
