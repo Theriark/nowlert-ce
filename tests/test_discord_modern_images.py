@@ -2605,6 +2605,39 @@ def test_information_summary_uses_approved_spaced_geometry(
             == renderer.SUMMARY_CELL_GAP
         )
 
+def test_hardware_firmware_information_uses_smaller_summary_font_only(tmp_path):
+    renderer = HardwareDiscordModernImageRenderer(tmp_path)
+    firmware_metrics = [
+        ("status", "Severity", "information", renderer.ICON_BLUE),
+        ("sync", "Category", "Firmware", renderer.ICON_BLUE),
+        ("clock", "Event time", "18:40:59", renderer.TEXT),
+    ]
+    storage_metrics = [
+        ("status", "Severity", "information", renderer.ICON_BLUE),
+        ("sync", "Category", "Storage", renderer.ICON_BLUE),
+        ("clock", "Event time", "18:40:59", renderer.TEXT),
+    ]
+
+    label_font, value_font = renderer._summary_fonts_for_metrics(
+        firmware_metrics
+    )
+    default_label, default_value = super(
+        HardwareDiscordModernImageRenderer,
+        renderer,
+    )._summary_fonts_for_metrics(
+        firmware_metrics
+    )
+
+    assert label_font.size == renderer.FIRMWARE_SUMMARY_LABEL_FONT_SIZE == 34
+    assert value_font.size == renderer.FIRMWARE_SUMMARY_VALUE_FONT_SIZE == 34
+    assert label_font.size < default_label.size
+    assert value_font.size < default_value.size
+    assert renderer._summary_fonts_for_metrics(storage_metrics) == (
+        default_label,
+        default_value,
+    )
+
+
 def test_hardware_firmware_columns_move_category_and_event_time_right(tmp_path):
     renderer = HardwareDiscordModernImageRenderer(tmp_path)
     metrics = [
