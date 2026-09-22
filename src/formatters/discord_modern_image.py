@@ -3898,6 +3898,7 @@ class HardwareDiscordModernImageRenderer(
         if not (
             len(values) == 3
             and values[0] == "information"
+            and values[1] == "firmware"
         ):
             return super()._summary_cells_for_metrics(
                 left,
@@ -3912,8 +3913,11 @@ class HardwareDiscordModernImageRenderer(
             - inner_left
             - self.SUMMARY_CELL_GAP * 2
         )
-        first = int(available * 0.34)
-        second = int(available * 0.30)
+        # Firmware information is the only hardware summary that needs
+        # additional breathing room: keep "information" clear of Category
+        # without changing Dell or any warning/failure/success layout.
+        first = int(available * 0.40)
+        second = int(available * 0.28)
         third = available - first - second
         cell_1 = (inner_left, inner_left + first)
         cell_2 = (

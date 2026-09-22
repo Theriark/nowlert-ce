@@ -2578,6 +2578,39 @@ def test_information_summary_uses_approved_spaced_geometry(
     assert cells[1][0] - cells[0][1] == renderer.SUMMARY_CELL_GAP
     assert cells[2][0] - cells[1][1] == renderer.SUMMARY_CELL_GAP
 
+    if renderer_class is HardwareDiscordModernImageRenderer:
+        available = (
+            renderer.WIDTH
+            - renderer.CARD_SIDE_PADDING * 2
+            - 56
+            - renderer.SUMMARY_CELL_GAP * 2
+        )
+        assert widths[0] == int(available * 0.40)
+        assert widths[1] == int(available * 0.28)
+
+
+
+def test_hardware_non_firmware_information_keeps_shared_summary_layout(tmp_path):
+    renderer = HardwareDiscordModernImageRenderer(tmp_path)
+    metrics = [
+        ("status", "Severity", "information", renderer.ICON_BLUE),
+        ("sync", "Category", "Storage", renderer.ICON_BLUE),
+        ("clock", "Event time", "17:32:17 UTC", renderer.TEXT),
+    ]
+
+    assert renderer._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        metrics,
+    ) == super(
+        HardwareDiscordModernImageRenderer,
+        renderer,
+    )._summary_cells_for_metrics(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        metrics,
+    )
+
 
 def test_generic_webhook_fallback_uses_larger_canvas_only_for_webhook(tmp_path):
     renderer = GenericFallbackDiscordModernImageRenderer(tmp_path)
