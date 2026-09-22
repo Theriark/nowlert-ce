@@ -2728,3 +2728,78 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
             compress_level=7,
         )
         return output.getvalue()
+
+
+
+class GrafanaDiscordModernImageRenderer(ZabbixDiscordModernImageRenderer):
+    """Render Grafana Modern cards with the frozen Zabbix/XO visual system."""
+
+    GRAFANA_XO_SECTION_ICONS = {
+        "rule & location": "chart",
+        "data": "repository",
+        "timing & links": "clock",
+        "alert details": "alert",
+        "event details": "alert",
+        "alerting result": "status",
+    }
+    GRAFANA_XO_FIELD_ICONS = {
+        "rule": "chart",
+        "folder": "repository",
+        "dashboard": "chart",
+        "panel": "chart",
+        "datasource": "repository",
+        "labels": "list",
+        "values": "chart",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+        "links": "list",
+        "dashboard link": "list",
+        "panel link": "list",
+        "silence link": "list",
+        "rule link": "list",
+        "alerts": "alert",
+        "evaluation error": "alert",
+    }
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        return self.GRAFANA_XO_SECTION_ICONS.get(
+            self._clean(title).casefold(),
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.GRAFANA_XO_FIELD_ICONS:
+            return self.GRAFANA_XO_FIELD_ICONS[key]
+
+        panel_key = self._clean(panel_title).casefold()
+        if panel_key == "rule & location":
+            return "chart"
+        if panel_key == "data":
+            return "repository"
+        if panel_key == "timing & links":
+            value_key = self._clean(value).casefold()
+            if any(
+                token in value_key
+                for token in ("started", "updated", "resolved", "finished")
+            ):
+                return "flag"
+            return "clock"
+        if panel_key == "alert details":
+            return "alert"
+
+        return super()._zabbix_xo_field_icon(
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
