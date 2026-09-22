@@ -347,7 +347,7 @@ def test_xo_header_uses_xo_icon_on_left_and_status_badge_at_right(tmp_path):
             for red, green, blue in right_icon_area
         )
 
-    assert renderer.STATUS_BADGE_WIDTH == 470
+    assert renderer.STATUS_BADGE_WIDTH == 560
 
 
 def test_xo_footer_identity_is_nowlert_ce_modern_card():
@@ -768,12 +768,14 @@ def test_xo_uses_dedicated_approved_renderer_not_shared_standard_card(
     assert data.startswith(b"\x89PNG\r\n\x1a\n")
 
 
-def test_xo_approved_layout_is_only_modestly_wider_than_original(tmp_path):
+def test_xo_card_is_larger_without_changing_non_xo_cards(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
 
-    assert renderer.WIDTH == 1700
-    assert renderer.STATUS_BADGE_WIDTH == 470
-    assert renderer.STATUS_BADGE_HEIGHT == 102
+    assert renderer.WIDTH == 2000
+    assert renderer.BASE_HEIGHT >= 1320
+    assert renderer.STATUS_BADGE_WIDTH >= 560
+    assert renderer.STATUS_BADGE_HEIGHT >= 128
+    assert renderer.FOOTER_ICON_SIZE >= 64
 
 
 def test_xo_readability_fonts_are_larger_than_approved_baseline(tmp_path):
@@ -806,3 +808,63 @@ def test_non_xo_modern_width_remains_unchanged():
     from formatters.discord_modern_image import DiscordModernImageRenderer
 
     assert DiscordModernImageRenderer.WIDTH == 1448
+
+
+
+def test_xo_event_time_strip_shows_time_only(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    assert renderer._event_time_only(
+        "2026-09-22 02:03:25 UTC"
+    ) == "02:03:25 UTC"
+    assert renderer._event_time_only(
+        "2026-09-22T02:03:25Z"
+    ) == "02:03:25 UTC"
+    assert renderer._event_time_only(
+        "02:03:25"
+    ) == "02:03:25"
+
+
+def test_xo_summary_cells_have_explicit_breathing_room(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    cells = renderer._summary_cells(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+    )
+
+    assert len(cells) == 3
+    assert cells[1][0] - cells[0][1] >= renderer.SUMMARY_CELL_GAP
+    assert cells[2][0] - cells[1][1] >= renderer.SUMMARY_CELL_GAP
+
+
+def test_xo_status_badge_fills_header_height_and_centers_icon(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    header_y = 82
+    header_height = 154
+    badge = renderer._status_badge_box(
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        header_y,
+        header_height,
+    )
+
+    assert badge[3] - badge[1] == header_height
+    icon_y = renderer._center_y(
+        badge[1],
+        badge[3],
+        64,
+    )
+    assert icon_y - badge[1] == (header_height - 64) // 2
+
+
+def test_xo_readability_scale_increases_with_larger_card(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    assert renderer.font_heading.size >= 62
+    assert renderer.font_title.size >= 52
+    assert renderer.font_body.size >= 42
+    assert renderer.font_detail.size >= 42
+    assert renderer.font_label.size >= 40
+    assert renderer.font_bold.size >= 46
+    assert renderer.font_small.size >= 40
