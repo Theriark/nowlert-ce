@@ -327,25 +327,36 @@ class TeamsPlatformAdapter(_HTTPAdapter):
         requested_style = settings["message_style"]
         formatter = modern_formatter
         rendered_style = "modern"
+        modern_image = False
+        formatter_name = formatter.__class__.__name__
 
         if requested_style == "classic":
             formatter = self.output.classic_source_formatters.get(
                 source,
                 self.output.classic_formatter,
             )
+            formatter_name = formatter.__class__.__name__
             rendered_style = "classic"
+            payload = formatter._sanitize_payload(
+                formatter.format(notification)
+            )
+        else:
+            payload, modern_image = self.output.modern_payload(
+                notification,
+                formatter,
+            )
+            if modern_image:
+                formatter_name = "DiscordModernImageRenderer"
 
-        payload = formatter._sanitize_payload(
-            formatter.format(notification)
-        )
         payload_bytes = self.output.payload_size(payload)
         return OutputPreview(
             "teams",
             "application/json",
             payload,
             {
-                "formatter": formatter.__class__.__name__,
+                "formatter": formatter_name,
                 "message_style": requested_style,
+                "modern_image": modern_image,
                 "rendered_style": rendered_style,
                 "payload_bytes": payload_bytes,
                 "payload_limit_bytes": self.output.MAX_PAYLOAD_BYTES,

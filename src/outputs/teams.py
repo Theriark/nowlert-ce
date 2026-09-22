@@ -15,6 +15,8 @@ import requests
 from urllib.parse import urlsplit
 
 from config import config
+from outputs.discord import DiscordOutput
+from outputs.teams_modern_image import publish_teams_modern_image
 from formatters.teams import TeamsFormatter
 from formatters.teams_classic_v1 import (
     TeamsClassicFormatter,
@@ -85,6 +87,7 @@ class TeamsOutput:
     def __init__(self):
 
         self.default_formatter = GenericTeamsFormatter()
+        self.discord_modern_output = DiscordOutput()
 
         self.source_formatters = {
             "xo": TeamsFormatter(),
@@ -109,6 +112,97 @@ class TeamsOutput:
             "xo": TeamsClassicXenOrchestraFormatter(),
         }
         self.classic_formatter = TeamsClassicFormatter()
+
+    def modern_image_payload(
+        self,
+        notification: Notification,
+    ) -> dict | None:
+        """Reuse the exact Discord Modern renderer for Microsoft Teams."""
+
+        try:
+            image = self.discord_modern_output.render_modern_image(
+                notification
+            )
+        except Exception:
+            log.exception(
+                "Failed to render the shared Modern image for Teams."
+            )
+            return None
+        if image is None:
+            return None
+
+        image_url = publish_teams_modern_image(config, image)
+        if not image_url:
+            log.warning(
+                "Teams Modern image parity is unavailable because "
+                "webui.public_url is not configured as a reachable HTTPS "
+                "address or the card-image cache is not writable; "
+                "falling back to the native Teams Modern card."
+            )
+            return None
+
+        title = (
+            notification.title
+            or notification.subject
+            or notification.job_name
+            or "Nowlert notification"
+        )
+        alt_text = self.default_formatter._truncate(
+            f"{notification.source or 'Nowlert'}: {title}",
+            512,
+        )
+        return {
+            "type": "message",
+            "attachments": [
+                {
+                    "contentType": (
+                        "application/vnd.microsoft.card.adaptive"
+                    ),
+                    "content": {
+                        "$schema": (
+                            "http://adaptivecards.io/schemas/"
+                            "adaptive-card.json"
+                        ),
+                        "type": "AdaptiveCard",
+                        "version": "1.4",
+                        "msteams": {"width": "Full"},
+                        "body": [
+                            {
+                                "type": "Image",
+                                "url": image_url,
+                                "altText": alt_text,
+                                "size": "Stretch",
+                                "horizontalAlignment": "Center",
+                                "spacing": "None",
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+
+    def modern_payload(
+        self,
+        notification: Notification,
+        formatter=None,
+    ) -> tuple[dict, bool]:
+        """Return image parity when possible, otherwise the native fallback."""
+
+        image_payload = self.modern_image_payload(notification)
+        if image_payload is not None:
+            return image_payload, True
+
+        formatter = (
+            formatter
+            or self.source_formatters.get(
+                str(notification.source or "").casefold(),
+                self.default_formatter,
+            )
+        )
+        payload = formatter._sanitize_payload(
+            formatter.format(notification)
+        )
+        return payload, False
 
     def send(
         self,
@@ -144,19 +238,14 @@ class TeamsOutput:
         )
 
         try:
-
-            payload = formatter.format(
+            payload, modern_image = self.modern_payload(
                 notification,
+                formatter,
             )
-
-            payload = formatter._sanitize_payload(payload)
-
         except Exception:
-
             log.exception(
                 "Failed to format Teams notification."
             )
-
             return False
 
         payload_bytes = self.payload_size(payload)
@@ -176,7 +265,11 @@ class TeamsOutput:
 
         log.info(
             "Teams formatter: %s",
-            formatter.__class__.__name__,
+            (
+                "DiscordModernImageRenderer"
+                if modern_image
+                else formatter.__class__.__name__
+            ),
         )
 
         if source.startswith("unifi_"):

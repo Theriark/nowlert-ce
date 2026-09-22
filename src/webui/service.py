@@ -7,6 +7,9 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 
+TEAMS_MODERN_CARD_ROUTE_PREFIX = "/ui/teams-modern-cards/"
+
+
 UI_BUILD = "20260920-r52"
 
 
@@ -312,6 +315,25 @@ class WebUIService:
 
     def response(self, path: str) -> WebUIResponse | None:
         route = str(path or "")
+        if route.startswith(TEAMS_MODERN_CARD_ROUTE_PREFIX):
+            if not self.enabled:
+                return WebUIResponse(404)
+            # Keep this import lazy: the Docker packaged-icon validator loads
+            # this module directly before /nowlert/src is placed on sys.path.
+            from outputs.teams_modern_image import load_teams_modern_image
+
+            body = load_teams_modern_image(
+                self.configuration,
+                route,
+            )
+            if body is None:
+                return WebUIResponse(404)
+            return WebUIResponse(
+                200,
+                body,
+                "image/png",
+                "public, max-age=86400, immutable",
+            )
         if route not in self.assets:
             if route.startswith("/ui/"):
                 return WebUIResponse(404)
