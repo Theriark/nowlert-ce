@@ -2431,6 +2431,11 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
 
         return self.WIDTH
 
+    def _standard_product_icon_source(self, source: str, content) -> str:
+        """Return the product icon identity used by the standardized header."""
+
+        return source
+
     def _render_standard_card(
         self,
         *,
@@ -2546,7 +2551,10 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
 
         self._draw_product_icon(
             image,
-            source,
+            self._standard_product_icon_source(
+                source,
+                content,
+            ),
             x0,
             header_y - 4,
             self.HEADER_ICON_SIZE,
@@ -3875,6 +3883,49 @@ class HardwareDiscordModernImageRenderer(
         "additional details": "list",
         "event details": "alert",
     }
+    def _summary_cells_for_metrics(
+        self,
+        left: int,
+        right: int,
+        metrics,
+    ):
+        """Keep Information / Category / Event time evenly separated."""
+
+        values = [
+            self._clean(metric[2]).casefold()
+            for metric in metrics
+        ]
+        if not (
+            len(values) == 3
+            and values[0] == "information"
+        ):
+            return super()._summary_cells_for_metrics(
+                left,
+                right,
+                metrics,
+            )
+
+        inner_left = left + 28
+        inner_right = right - 28
+        available = (
+            inner_right
+            - inner_left
+            - self.SUMMARY_CELL_GAP * 2
+        )
+        first = int(available * 0.34)
+        second = int(available * 0.30)
+        third = available - first - second
+        cell_1 = (inner_left, inner_left + first)
+        cell_2 = (
+            cell_1[1] + self.SUMMARY_CELL_GAP,
+            cell_1[1] + self.SUMMARY_CELL_GAP + second,
+        )
+        cell_3 = (
+            cell_2[1] + self.SUMMARY_CELL_GAP,
+            cell_2[1] + self.SUMMARY_CELL_GAP + third,
+        )
+        return [cell_1, cell_2, cell_3]
+
     HARDWARE_XO_FIELD_ICONS = {
         "system": "repository",
         "sensor": "chart",
@@ -3922,6 +3973,18 @@ class RedfishDiscordModernImageRenderer(
     _StandardizedSourceDiscordModernImageRenderer
 ):
     """Render the generic Redfish hardware fallback on the frozen baseline."""
+
+    FALLBACK_WIDTH = 2400
+
+    def _standard_canvas_width(self, content) -> int:
+        """Keep the dense Redfish fallback readable in Discord."""
+
+        return self.FALLBACK_WIDTH
+
+    def _standard_product_icon_source(self, source: str, content) -> str:
+        """Redfish is a fallback path, so use the Nowlert fallback identity."""
+
+        return "nowlert"
 
     REDFISH_XO_SECTION_ICONS = {
         "source & event": "repository",
@@ -3985,6 +4048,49 @@ class HomeAssistantDiscordModernImageRenderer(
 ):
     """Render Home Assistant cards on the frozen standardized baseline."""
 
+    def _summary_cells_for_metrics(
+        self,
+        left: int,
+        right: int,
+        metrics,
+    ):
+        """Keep Information / Category / Event time evenly separated."""
+
+        values = [
+            self._clean(metric[2]).casefold()
+            for metric in metrics
+        ]
+        if not (
+            len(values) == 3
+            and values[0] == "information"
+        ):
+            return super()._summary_cells_for_metrics(
+                left,
+                right,
+                metrics,
+            )
+
+        inner_left = left + 28
+        inner_right = right - 28
+        available = (
+            inner_right
+            - inner_left
+            - self.SUMMARY_CELL_GAP * 2
+        )
+        first = int(available * 0.34)
+        second = int(available * 0.30)
+        third = available - first - second
+        cell_1 = (inner_left, inner_left + first)
+        cell_2 = (
+            cell_1[1] + self.SUMMARY_CELL_GAP,
+            cell_1[1] + self.SUMMARY_CELL_GAP + second,
+        )
+        cell_3 = (
+            cell_2[1] + self.SUMMARY_CELL_GAP,
+            cell_2[1] + self.SUMMARY_CELL_GAP + third,
+        )
+        return [cell_1, cell_2, cell_3]
+
     HOME_ASSISTANT_XO_SECTION_ICONS = {
         "home assistant": "repository",
         "entity / device": "cube",
@@ -4043,6 +4149,18 @@ class GenericFallbackDiscordModernImageRenderer(
     _StandardizedSourceDiscordModernImageRenderer
 ):
     """Render generic/unknown fallback cards on the frozen baseline."""
+
+    WEBHOOK_FALLBACK_WIDTH = 2400
+
+    def _standard_canvas_width(self, content) -> int:
+        """Widen dense Generic Webhook fallback cards without moving Generic HTTP."""
+
+        integration = self._clean(
+            content.get("integration") or ""
+        ).casefold()
+        if integration == "generic webhook":
+            return self.WEBHOOK_FALLBACK_WIDTH
+        return super()._standard_canvas_width(content)
 
     GENERIC_XO_SECTION_ICONS = {
         "source & context": "repository",
