@@ -27,39 +27,34 @@ configuration.
 
 ## Microsoft Teams hierarchy
 
-Every Modern integration supplies normalized data to the shared Teams renderer.
-The card mirrors the accepted Discord Modern information hierarchy using native
-Adaptive Card 1.4 components:
+Teams **Modern Card** reuses the exact Discord Modern image renderer instead of
+maintaining a second Teams-specific visual implementation. The rendered card
+therefore keeps the same dark grid, gold frame, lifecycle-colored rail/glow,
+integration artwork, status badge, report title, summary strip, neutral detail
+panels, outcome panels, dynamic content height, and
+`Nowlert CE • Modern Card` footer.
 
-1. Header: integration identity, device/source context, report title, compact
-   lifecycle badge, and the official integration image at the top right.
-2. Context: `integration • state • source area`.
-3. Message: one emphasized event body that expands vertically when text wraps.
-4. Summary strip: Severity, Category, and Event time when available, with
-   separated columns and bold values.
-5. Details: an emphasized, dynamically growing event-details panel containing
-   icon-labelled integration-specific facts.
-6. Optional integration-specific sections/actions.
-7. Nowlert owl identity plus the exact `Nowlert CE • Modern Card` footer used
-   by Discord Modern, with the running Nowlert version retained as secondary
-   compatibility metadata.
+The Teams transport wraps that rendered PNG in a minimal Adaptive Card 1.4
+`Image` element. The image is normalized only to Teams' supported image bounds;
+its layout/content is not rebuilt with native Teams text containers.
 
-Teams does not expose CSS or custom drawing primitives, so the Discord glow,
-gold frame, and pixel-level image-card geometry cannot be reproduced natively.
-The Teams renderer uses the platform-supported `good`, `attention`,
-`warning`, and `accent` container styles for the lifecycle badge instead.
-Text blocks and detail containers remain wrapping and height-free so Teams grows
-the card for longer content rather than clipping it.
+Because Teams workflow payloads are JSON-only and remain bounded to 28 KiB,
+Nowlert does not embed the full PNG as Base64. When `webui.public_url` is a
+credential-free public HTTPS address, the rendered image is stored below
+`platform.state_dir/teams-modern-cards` under an unguessable immutable token
+and exposed through `/ui/teams-modern-cards/<token>.png`. The cache retains
+images for 90 days and removes expired entries opportunistically as new cards
+are published.
 
-The normalized model lives in `src/formatters/teams_common.py`. New Teams
-formatters inherit the shared formatter/model and keep source parsing outside
-the renderer. Teams Classic is a separate renderer and is not changed by the
-Modern shell.
+If a public HTTPS WebUI address is not configured or the image cache is not
+writable, Modern delivery falls back to the native Teams renderer rather than
+dropping the notification. Teams Classic remains a separate renderer and is not
+changed by Modern image parity.
 
-Teams uses public HTTPS image URLs. The default asset root is the repository's
-`main/assets/icons` path. Controlled preview/mirrored installations may use the
-`NOWLERT_TEAMS_ICON_BASE_URL` compatibility override, which must be a valid
-credential-free HTTPS URL.
+The native Teams formatters remain available for that compatibility fallback
+and for their existing presentation tests. Static product artwork still uses
+the public HTTPS icon mapping and `NOWLERT_TEAMS_ICON_BASE_URL` compatibility
+override.
 
 ## Discord hierarchy
 

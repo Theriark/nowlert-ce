@@ -59,27 +59,34 @@ maintenance is waiting.
 
 ## Microsoft Teams
 
-Microsoft Teams uses native Adaptive Card 1.4 payloads and public HTTPS
-source-image URLs because Teams clients do not reliably render embedded
-data-URI artwork. Published release images pin the default source-image base to
-immutable release content.
-
 Operators can choose **Modern Card** or **Classic Card** per destination.
-Modern remains the default and preserves the existing standardized Teams
-layout. Existing destinations that do not yet store `message_style` normalize
-to Modern automatically.
+Existing destinations without `message_style` still normalize to Modern.
 
-Classic uses a separate Teams-native renderer so Classic layout changes do not
-modify Modern cards. It consumes the approved Classic Card v1 information
-contract used by Discord Classic and renders that content as Adaptive Card
-elements. Xen Orchestra, Zabbix, Grafana, Portainer, Proxmox, QNAP, Synology,
-TrueNAS, UniFi Network/Protect/Drive, Home Assistant, Redfish, Supermicro,
-HPE iLO, Dell iDRAC, and generic/Nowlert fallback events all use the Classic
-renderer when the destination selects Classic.
+Modern no longer has a separate Teams visual design. Nowlert renders the event
+with the exact same source-specific image renderer used by Discord Modern, then
+places that PNG inside a minimal Adaptive Card 1.4 image wrapper. Xen Orchestra,
+Zabbix, Grafana, Portainer, Proxmox, QNAP, Synology, TrueNAS, UniFi
+Network/Protect/Drive, Home Assistant, Redfish, Supermicro, HPE iLO, Dell iDRAC,
+and generic/Nowlert fallback therefore inherit the same Modern layout changes
+automatically.
 
-Serialized Teams payloads remain bounded to 28 KiB before transport. HTTP 202
-means the Teams workflow accepted the request; the UI does not claim that the
-card was rendered in the destination channel without operator confirmation.
+Teams workflow requests remain JSON-only and bounded to 28 KiB, so the rendered
+PNG is referenced through Nowlert's HTTPS WebUI rather than embedded in the
+webhook body. Exact Modern parity requires `webui.public_url` to be a reachable
+credential-free HTTPS address. Rendered images use unguessable immutable paths
+under `/ui/teams-modern-cards/`, are persisted below
+`platform.state_dir/teams-modern-cards`, and are retained for 90 days. If that
+public image path cannot be published, Nowlert falls back to the native Teams
+Modern card so delivery is not lost.
+
+Classic remains a separate Teams-native renderer. It consumes the approved
+Classic Card v1 information contract used by Discord Classic and renders that
+content as Adaptive Card elements. Modern image parity does not modify Classic.
+
+Serialized Teams JSON payloads remain bounded to 28 KiB before transport.
+HTTP 202 means the Teams workflow accepted the request; the UI does not claim
+that the card was rendered in the destination channel without operator
+confirmation.
 
 ## Slack
 
