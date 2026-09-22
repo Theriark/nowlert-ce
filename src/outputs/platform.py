@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 import requests
 
+from config import config
 from formatters.classic_card_v1 import classic_card_v1_from_discord_payload
 from formatters.slack import SlackFormatter
 from models import Notification
@@ -25,6 +26,9 @@ from outputs.platform_common import (
 )
 from outputs.settings import normalize_output_settings
 from outputs.teams import TeamsModernImageUnavailable, TeamsOutput
+from outputs.teams_modern_image import (
+    publish_teams_modern_image as publish_modern_card_image,
+)
 from storage.delivery import DeliveryResult
 from storage.destinations import Destination
 
@@ -422,26 +426,127 @@ class SlackPlatformAdapter(_HTTPAdapter):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.formatter = SlackFormatter()
+        self.discord_modern_output = DiscordOutput()
+
+    def _modern_image_payload(self, notification):
+        """Reuse the exact Discord Modern rendered card in Slack."""
+
+        try:
+            image = self.discord_modern_output.render_modern_image(
+                notification
+            )
+        except Exception:
+            return None
+        if image is None:
+            return None
+
+        image_url = publish_modern_card_image(config, image)
+        if not image_url:
+            return None
+
+        title = (
+            notification.title
+            or notification.subject
+            or notification.job_name
+            or "Nowlert notification"
+        )
+        alt_text = self.formatter._truncate(
+            f"{notification.source or 'Nowlert'}: {title}",
+            200,
+        )
+        return self.formatter._sanitize_payload(
+            {
+                "text": alt_text,
+                "blocks": [
+                    {
+                        "type": "image",
+                        "image_url": image_url,
+                        "alt_text": alt_text,
+                    }
+                ],
+            }
+        )
 
     def preview(self, destination, notification):
-        settings = normalize_output_settings("slack", destination.settings)
-        payload = self.formatter.format(
-            notification,
-            include_metadata=settings["include_metadata"],
+        settings = normalize_output_settings(
+            "slack",
+            destination.settings,
         )
+        requested_style = settings["message_style"]
+
+        if requested_style == "classic":
+            payload = self.formatter.format(
+                notification,
+                include_metadata=settings["include_metadata"],
+            )
+            return OutputPreview(
+                "slack",
+                "application/json",
+                payload,
+                {
+                    "formatter": self.formatter.__class__.__name__,
+                    "message_style": "classic",
+                    "modern_image": False,
+                    "rendered_style": "classic",
+                },
+            )
+
+        payload = self._modern_image_payload(notification)
+        if payload is None:
+            safe_error = (
+                "Slack Modern Card requires the shared rendered image "
+                "to be published from the public Nowlert media endpoint."
+            )
+            return OutputPreview(
+                "slack",
+                "application/json",
+                {
+                    "error": "slack_modern_image_unavailable",
+                    "message": safe_error,
+                },
+                {
+                    "formatter": "DiscordModernImageRenderer",
+                    "message_style": "modern",
+                    "modern_image": False,
+                    "rendered_style": "modern",
+                    "error_code": "slack_modern_image_unavailable",
+                    "safe_error": safe_error,
+                },
+            )
+
         return OutputPreview(
             "slack",
             "application/json",
             payload,
-            {"formatter": self.formatter.__class__.__name__},
+            {
+                "formatter": "DiscordModernImageRenderer",
+                "message_style": "modern",
+                "modern_image": True,
+                "rendered_style": "modern",
+            },
         )
 
     def deliver(self, destination, secret_value, notification):
         try:
             preview = self.preview(destination, notification)
+        except ValueError:
+            return DeliveryResult(False, error_code="invalid_destination")
+
+        error_code = str(preview.metadata.get("error_code") or "")
+        if error_code:
+            return DeliveryResult(
+                False,
+                error_code=error_code,
+                safe_error=str(preview.metadata.get("safe_error") or ""),
+            )
+
+        try:
             url = self._url(secret_url(secret_value), destination.settings)
             parsed_host = str(urlsplit(url).hostname or "")
-            if parsed_host.casefold() not in {"hooks.slack.com", "hooks.slack-gov.com"}:
+            if parsed_host.casefold() not in {
+                "hooks.slack.com",
+                "hooks.slack-gov.com",
+            }:
                 raise ValueError("Slack webhook host is invalid")
         except ValueError:
             return DeliveryResult(False, error_code="invalid_destination")

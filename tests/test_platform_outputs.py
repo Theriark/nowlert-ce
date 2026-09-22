@@ -329,6 +329,23 @@ def test_teams_message_style_defaults_to_modern_and_accepts_classic():
     ) == {"message_style": "classic"}
 
 
+def test_slack_message_style_defaults_to_classic_and_accepts_modern():
+    assert normalize_output_settings("slack", {}) == {
+        "message_style": "classic",
+        "include_metadata": True,
+    }
+    assert normalize_output_settings(
+        "slack",
+        {
+            "message_style": "modern",
+            "include_metadata": False,
+        },
+    ) == {
+        "message_style": "modern",
+        "include_metadata": False,
+    }
+
+
 def _teams_modern_image_payload():
     return {
         "type": "message",
@@ -597,6 +614,29 @@ def test_message_style_override_supports_teams_without_mutating_destination():
     assert styled.settings == {"message_style": "classic"}
 
 
+def test_message_style_override_supports_slack_without_mutating_destination():
+    original = destination(
+        "slack",
+        {
+            "message_style": "classic",
+            "include_metadata": True,
+        },
+    )
+    styled = PlatformOutputService._with_message_style(
+        original,
+        "modern",
+    )
+
+    assert original.settings == {
+        "message_style": "classic",
+        "include_metadata": True,
+    }
+    assert styled.settings == {
+        "message_style": "modern",
+        "include_metadata": True,
+    }
+
+
 def test_discord_and_teams_previews_reuse_source_specific_formatters(
     monkeypatch,
 ):
@@ -618,6 +658,148 @@ def test_discord_and_teams_previews_reuse_source_specific_formatters(
     assert teams.metadata["payload_bytes"] <= teams.metadata["payload_limit_bytes"]
     assert "private-token" not in json.dumps(discord.payload)
     assert "private-token" not in json.dumps(teams.payload)
+
+
+def _slack_modern_image_payload_url():
+    return (
+        "https://nowlert.example.test/api/health?"
+        "teams_modern_card="
+        + ("a" * 48)
+        + ".png"
+    )
+
+
+def _enable_slack_modern_image(monkeypatch, adapter):
+    calls = []
+
+    def render(item, formatter=None):
+        calls.append((item, formatter))
+        return b"synthetic-modern-png"
+
+    monkeypatch.setattr(
+        adapter.discord_modern_output,
+        "render_modern_image",
+        render,
+    )
+    monkeypatch.setattr(
+        "outputs.platform.publish_modern_card_image",
+        lambda _configuration, _image: _slack_modern_image_payload_url(),
+    )
+    return calls
+
+
+def test_slack_modern_preview_reuses_exact_discord_modern_renderer(
+    monkeypatch,
+):
+    adapter = SlackPlatformAdapter(resolver=public_resolver)
+    item = notification_for_source("grafana")
+    calls = _enable_slack_modern_image(monkeypatch, adapter)
+
+    preview = adapter.preview(
+        destination(
+            "slack",
+            {
+                "message_style": "modern",
+                "include_metadata": True,
+            },
+        ),
+        item,
+    )
+
+    assert calls == [(item, None)]
+    assert preview.metadata["message_style"] == "modern"
+    assert preview.metadata["rendered_style"] == "modern"
+    assert preview.metadata["modern_image"] is True
+    assert preview.metadata["formatter"] == "DiscordModernImageRenderer"
+    assert preview.payload["blocks"] == [
+        {
+            "type": "image",
+            "image_url": _slack_modern_image_payload_url(),
+            "alt_text": "grafana: Synthetic grafana event",
+        }
+    ]
+    assert preview.payload["text"] == "grafana: Synthetic grafana event"
+    assert "attachments" not in preview.payload
+
+
+@pytest.mark.parametrize("source", CLASSIC_PARITY_SOURCES)
+def test_slack_modern_preserves_every_source_for_shared_renderer(
+    monkeypatch,
+    source,
+):
+    adapter = SlackPlatformAdapter(resolver=public_resolver)
+    item = notification_for_source(source)
+    calls = _enable_slack_modern_image(monkeypatch, adapter)
+
+    preview = adapter.preview(
+        destination("slack", {"message_style": "modern"}),
+        item,
+    )
+
+    assert calls == [(item, None)]
+    assert preview.metadata["modern_image"] is True
+    assert preview.payload["blocks"][0]["type"] == "image"
+
+
+def test_slack_classic_never_invokes_modern_renderer(monkeypatch):
+    adapter = SlackPlatformAdapter(resolver=public_resolver)
+
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("Classic must not render a Modern image")
+
+    monkeypatch.setattr(
+        adapter.discord_modern_output,
+        "render_modern_image",
+        forbidden,
+    )
+
+    preview = adapter.preview(
+        destination(
+            "slack",
+            {
+                "message_style": "classic",
+                "include_metadata": True,
+            },
+        ),
+        notification(),
+    )
+
+    assert preview.metadata["message_style"] == "classic"
+    assert preview.metadata["modern_image"] is False
+    assert "attachments" in preview.payload
+    assert "blocks" not in preview.payload
+
+
+def test_slack_modern_fails_closed_without_public_image(monkeypatch):
+    client = HTTPClient((200,))
+    adapter = SlackPlatformAdapter(
+        http_client=client,
+        resolver=public_resolver,
+    )
+    monkeypatch.setattr(
+        adapter.discord_modern_output,
+        "render_modern_image",
+        lambda *_args, **_kwargs: b"synthetic-modern-png",
+    )
+    monkeypatch.setattr(
+        "outputs.platform.publish_modern_card_image",
+        lambda _configuration, _image: None,
+    )
+
+    target = destination("slack", {"message_style": "modern"})
+    preview = adapter.preview(target, notification())
+    result = adapter.deliver(
+        target,
+        b"https://hooks.slack.com/services/T/B/value",
+        notification(),
+    )
+
+    assert preview.metadata["error_code"] == (
+        "slack_modern_image_unavailable"
+    )
+    assert result.success is False
+    assert result.error_code == "slack_modern_image_unavailable"
+    assert client.calls == []
 
 
 def test_slack_preview_is_classic_sanitized_and_has_safe_action():

@@ -103,8 +103,22 @@ def _teams(settings, _complete):
 
 
 def _slack(settings, _complete):
-    _unknown(settings, {"include_metadata"})
-    return {"include_metadata": _boolean(settings, "include_metadata", True)}
+    _unknown(settings, {"include_metadata", "message_style"})
+    style = str(
+        settings.get("message_style", "classic") or ""
+    ).strip().casefold()
+    if style not in {"modern", "classic"}:
+        raise ValueError(
+            "slack message_style must be modern or classic"
+        )
+    return {
+        "message_style": style,
+        "include_metadata": _boolean(
+            settings,
+            "include_metadata",
+            True,
+        ),
+    }
 
 
 def _webhook(settings, _complete):
