@@ -126,6 +126,46 @@ def test_xo_image_renderer_produces_png_for_all_outcomes(tmp_path):
         assert len(data) < 5 * 1024 * 1024
 
 
+
+def test_xo_modern_uses_large_readability_profile_without_changing_default(tmp_path):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+
+    default = renderer.modern_fonts
+    large = renderer.modern_font_profiles["xo_large"]
+
+    assert default["heading"].size == 54
+    assert default["title"].size == 42
+    assert default["body"].size == 40
+    assert default["label"].size == 36
+
+    assert large["heading"].size >= 66
+    assert large["title"].size >= 60
+    assert large["badge"].size >= 48
+    assert large["section"].size >= 52
+    assert large["label"].size >= 50
+    assert large["body"].size >= 56
+    assert large["context"].size >= 46
+
+
+def test_xo_render_requests_large_modern_readability_profile(tmp_path, monkeypatch):
+    renderer = XenOrchestraDiscordImageRenderer(tmp_path)
+    captured = {}
+
+    def capture(**kwargs):
+        captured.update(kwargs)
+        return b"synthetic"
+
+    monkeypatch.setattr(
+        renderer,
+        "_render_standard_card",
+        capture,
+    )
+
+    assert renderer.render(xo_notification("success")) == b"synthetic"
+    assert captured["source"] == "xo"
+    assert captured["font_profile"] == "xo_large"
+
+
 def test_xo_image_renderer_uses_nowlert_brand_and_state_accents(tmp_path):
     renderer = XenOrchestraDiscordImageRenderer(tmp_path)
 

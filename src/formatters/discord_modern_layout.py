@@ -18,47 +18,128 @@ class ModernCardLayoutMixin:
     MODERN_GAP = 22
 
     def _init_modern_fonts(self):
-        self.modern_fonts = {
-            "heading": self._font(True, 54),
-            "title": self._font(True, 42),
-            "badge": self._font(True, 38),
-            "section": self._font(True, 38),
-            "label": self._font(True, 36),
-            "body": self._font(False, 40),
-            "context": self._font(False, 36),
-            "footer": self._font(False, 28),
-        }
+        def build(sizes):
+            bold_roles = {
+                "heading",
+                "title",
+                "badge",
+                "section",
+                "label",
+            }
+            return {
+                role: self._font(
+                    role in bold_roles,
+                    size,
+                )
+                for role, size in sizes.items()
+            }
 
-    def _modern_lines(self, draw, value, width, role):
+        default = build(
+            {
+                "heading": 54,
+                "title": 42,
+                "badge": 38,
+                "section": 38,
+                "label": 36,
+                "body": 40,
+                "context": 36,
+                "footer": 28,
+            }
+        )
+        self.modern_font_profiles = {
+            "default": default,
+            "xo_large": build(
+                {
+                    "heading": 66,
+                    "title": 60,
+                    "badge": 48,
+                    "section": 52,
+                    "label": 50,
+                    "body": 56,
+                    "context": 46,
+                    "footer": 34,
+                }
+            ),
+        }
+        self.modern_fonts = default
+
+    def _modern_fonts_for(self, profile="default"):
+        return self.modern_font_profiles.get(
+            profile,
+            self.modern_fonts,
+        )
+
+    def _modern_lines(
+        self,
+        draw,
+        value,
+        width,
+        role,
+        fonts=None,
+    ):
         """Wrap paragraphs and indivisible identifiers without ellipses or scaling."""
-        font = self.modern_fonts[role]
+        fonts = fonts or self.modern_fonts
+        font = fonts[role]
         result = []
         for paragraph in str(value or "—").splitlines():
             result.extend(self._wrapped_text_lines(draw, paragraph, width, font) or [""])
         return result or ["—"]
 
-    def _modern_text(self, draw, value, width, role="body", color=None):
-        lines = self._modern_lines(draw, value, width, role)
-        font = self.modern_fonts[role]
+    def _modern_text(
+        self,
+        draw,
+        value,
+        width,
+        role="body",
+        color=None,
+        fonts=None,
+    ):
+        fonts = fonts or self.modern_fonts
+        lines = self._modern_lines(
+            draw,
+            value,
+            width,
+            role,
+            fonts,
+        )
+        font = fonts[role]
         # Ascent + descent also covers accented characters and fallback glyphs.
         line_height = max(font.size + 10, sum(font.getmetrics()))
-        return {"lines": lines, "role": role, "height": len(lines) * line_height,
-                "line_height": line_height, "color": color or self.TEXT}
+        return {
+            "lines": lines,
+            "role": role,
+            "font": font,
+            "height": len(lines) * line_height,
+            "line_height": line_height,
+            "color": color or self.TEXT,
+        }
 
     def _modern_paint_text(self, draw, text, x, y):
         for index, line in enumerate(text["lines"]):
-            draw.text((x, y + index * text["line_height"]), line,
-                      font=self.modern_fonts[text["role"]], fill=text["color"], anchor="lt")
+            draw.text(
+                (x, y + index * text["line_height"]),
+                line,
+                font=text["font"],
+                fill=text["color"],
+                anchor="lt",
+            )
 
-    def _modern_panel(self, draw, panel, width):
+    def _modern_panel(self, draw, panel, width, fonts=None):
         """Measure a neutral details panel or a colored outcome panel."""
+        fonts = fonts or self.modern_fonts
         inside = width - 48
         rows = []
         y = 22
         title = panel.get("title")
         if title:
-            text = self._modern_text(draw, title, inside - 54, "section",
-                                     panel.get("accent") or self.LABEL)
+            text = self._modern_text(
+                draw,
+                title,
+                inside - 54,
+                "section",
+                panel.get("accent") or self.LABEL,
+                fonts,
+            )
             rows.append({"x": 76, "y": y, "text": text,
                          "icon": "status" if panel.get("accent") else "list"})
             y += text["height"] + 16
@@ -68,25 +149,46 @@ class ModernCardLayoutMixin:
             x = 24 + (46 if icon else 0)
             available = width - x - 24
             if label:
-                label_width = ceil(draw.textlength(label, font=self.modern_fonts["label"]))
+                label_width = ceil(
+                    draw.textlength(
+                        label,
+                        font=fonts["label"],
+                    )
+                )
                 # Keep short key/value pairs on one line; longer keys or values
                 # get their own row rather than competing for a tiny column.
                 value_width = available - label_width - 24
                 inline = value_width >= 180
-                label_text = self._modern_text(draw, label,
-                                              label_width + 1 if inline else available,
-                                              "label", self.LABEL)
+                label_text = self._modern_text(
+                    draw,
+                    label,
+                    label_width + 1 if inline else available,
+                    "label",
+                    self.LABEL,
+                    fonts,
+                )
                 rows.append({"x": x, "y": y, "text": label_text, "icon": icon})
                 if inline:
-                    text = self._modern_text(draw, value, value_width,
-                                             color=row.get("color"))
+                    text = self._modern_text(
+                        draw,
+                        value,
+                        value_width,
+                        color=row.get("color"),
+                        fonts=fonts,
+                    )
                     rows.append({"x": x + label_width + 24, "y": y, "text": text})
                     y += max(label_text["height"], text["height"]) + 10
                     continue
                 y += label_text["height"] + 2
                 icon = None
-            text = self._modern_text(draw, value, available,
-                                     row.get("role", "body"), row.get("color"))
+            text = self._modern_text(
+                draw,
+                value,
+                available,
+                row.get("role", "body"),
+                row.get("color"),
+                fonts,
+            )
             rows.append({"x": x, "y": y, "text": text, "icon": icon})
             y += text["height"] + row.get("gap", 10)
         entries = panel.get("entries", [])
@@ -94,14 +196,34 @@ class ModernCardLayoutMixin:
             columns = min(panel.get("columns", 1), len(entries))
             while columns > 1:
                 entry_width = (width - 24) // columns
-                if all(len(self._modern_lines(draw, entry[0]["value"],
-                           entry_width - 94, "section")) <= 2 for entry in entries):
+                if all(
+                    len(
+                        self._modern_lines(
+                            draw,
+                            entry[0]["value"],
+                            entry_width - 94,
+                            "section",
+                            fonts,
+                        )
+                    )
+                    <= 2
+                    for entry in entries
+                ):
                     break
                 columns -= 1
             entry_width = (width - 24) // columns
             for start in range(0, len(entries), columns):
-                measured = [self._modern_panel(draw, {"rows": entry}, entry_width)
-                            for entry in entries[start:start + columns]]
+                measured = [
+                    self._modern_panel(
+                        draw,
+                        {"rows": entry},
+                        entry_width,
+                        fonts,
+                    )
+                    for entry in entries[
+                        start:start + columns
+                    ]
+                ]
                 row_height = max(entry["height"] for entry in measured)
                 for column, entry in enumerate(measured):
                     for row in entry["paint"]:
@@ -110,16 +232,32 @@ class ModernCardLayoutMixin:
                 y += row_height - 16
         return {**panel, "width": width, "height": max(96, y + 12), "paint": rows}
 
-    def _modern_panel_rows(self, draw, panels, width):
+    def _modern_panel_rows(
+        self,
+        draw,
+        panels,
+        width,
+        fonts=None,
+    ):
         """Pair compact panels; let dense panels use the full available width."""
+        fonts = fonts or self.modern_fonts
         result, y, index = [], 0, 0
         half = (width - self.MODERN_GAP) // 2
         while index < len(panels):
             current = panels[index]
             if (index + 1 < len(panels) and not current.get("full_width")
                     and not panels[index + 1].get("full_width")):
-                pair = [self._modern_panel(draw, p, half)
-                        for p in panels[index:index + 2]]
+                pair = [
+                    self._modern_panel(
+                        draw,
+                        panel,
+                        half,
+                        fonts,
+                    )
+                    for panel in panels[
+                        index:index + 2
+                    ]
+                ]
                 # Moderate wrapping is intentional; dense paragraphs get full
                 # width so the card is not made needlessly tall in Discord.
                 if max(p["height"] for p in pair) <= 660:
@@ -130,31 +268,82 @@ class ModernCardLayoutMixin:
                     y += height + self.MODERN_GAP
                     index += 2
                     continue
-            panel = self._modern_panel(draw, current, width)
+            panel = self._modern_panel(
+                draw,
+                current,
+                width,
+                fonts,
+            )
             result.append({**panel, "x": 0, "y": y})
             y += panel["height"] + self.MODERN_GAP
             index += 1
         return result, max(0, y - self.MODERN_GAP)
 
-    def _standard_card_plan(self, *, integration, context, badge, title,
-                            severity, category, event_time, details, outcomes):
+    def _standard_card_plan(
+        self,
+        *,
+        integration,
+        context,
+        badge,
+        title,
+        severity,
+        category,
+        event_time,
+        details,
+        outcomes,
+        font_profile="default",
+    ):
         """Compute every bounding box before allocating the final image."""
-        draw = ImageDraw.Draw(Image.new("RGB", (self.WIDTH, 1)))
+        fonts = self._modern_fonts_for(
+            font_profile
+        )
+        draw = ImageDraw.Draw(
+            Image.new("RGB", (self.WIDTH, 1))
+        )
         x0 = self.MODERN_PADDING
         width = self.WIDTH - 2 * x0
         badge_width = min(ceil(width * .47), max(260, 108 + ceil(
-            draw.textlength(badge, font=self.modern_fonts["badge"]))))
-        badge_text = self._modern_text(draw, badge, badge_width - 104, "badge")
+            draw.textlength(
+                badge,
+                font=fonts["badge"],
+            )
+        )))
+        badge_text = self._modern_text(
+            draw,
+            badge,
+            badge_width - 104,
+            "badge",
+            fonts=fonts,
+        )
         badge_height = max(80, badge_text["height"] + 32)
         heading_width = width - 140 - badge_width - 24
-        heading = self._modern_text(draw, integration, heading_width, "heading")
-        subtitle = self._modern_text(draw, context, heading_width, "context", self.HEADER_MUTED)
+        heading = self._modern_text(
+            draw,
+            integration,
+            heading_width,
+            "heading",
+            fonts=fonts,
+        )
+        subtitle = self._modern_text(
+            draw,
+            context,
+            heading_width,
+            "context",
+            self.HEADER_MUTED,
+            fonts,
+        )
         y = 72
         header_height = max(120, heading["height"] + 8 + subtitle["height"], badge_height)
         header = {"y": y, "heading": heading, "subtitle": subtitle,
                   "badge": badge_text, "badge_width": badge_width, "badge_height": badge_height}
         y += header_height + 24
-        report = self._modern_text(draw, title, width - 48, "title")
+        report = self._modern_text(
+            draw,
+            title,
+            width - 48,
+            "title",
+            fonts=fonts,
+        )
         title_box = (x0, y, x0 + width, y + report["height"] + 30)
         y = title_box[3] + self.MODERN_GAP
         summary = []
@@ -165,19 +354,45 @@ class ModernCardLayoutMixin:
         for (label, value, icon), cell_width in zip(
                 [("Severity", severity, "status"), ("Category", category, "sync"),
                  ("Event time", event_time or "—", "clock")], widths):
-            label_text = self._modern_text(draw, label, cell_width - 76, "label")
-            value_text = self._modern_text(draw, value, cell_width - 32, "context")
+            label_text = self._modern_text(
+                draw,
+                label,
+                cell_width - 76,
+                "label",
+                fonts=fonts,
+            )
+            value_text = self._modern_text(
+                draw,
+                value,
+                cell_width - 32,
+                "context",
+                fonts=fonts,
+            )
             summary.append({"x": offset, "width": cell_width, "label": label_text,
                             "value": value_text, "icon": icon})
             summary_height = max(summary_height, label_text["height"] + value_text["height"] + 28)
             offset += cell_width
         summary_box = (x0, y, x0 + width, y + summary_height)
         y = summary_box[3] + self.MODERN_GAP
-        detail_panels, detail_height = self._modern_panel_rows(draw, details, width)
+        detail_panels, detail_height = (
+            self._modern_panel_rows(
+                draw,
+                details,
+                width,
+                fonts,
+            )
+        )
         for panel in detail_panels:
             panel["y"] += y
         y += detail_height + (self.MODERN_GAP if detail_panels else 0)
-        outcome_panels, outcome_height = self._modern_panel_rows(draw, outcomes, width)
+        outcome_panels, outcome_height = (
+            self._modern_panel_rows(
+                draw,
+                outcomes,
+                width,
+                fonts,
+            )
+        )
         for panel in outcome_panels:
             panel["y"] += y
         y += outcome_height
@@ -186,10 +401,25 @@ class ModernCardLayoutMixin:
         return {"header": header, "report": report, "title_box": title_box,
                 "summary": summary, "summary_box": summary_box,
                 "panels": detail_panels + outcome_panels,
-                "footer_y": footer_y, "height": height}
+                "footer_y": footer_y, "height": height,
+                "font_profile": font_profile}
 
-    def _render_standard_card(self, *, source, accent, status, **content):
-        plan = self._standard_card_plan(**content)
+    def _render_standard_card(
+        self,
+        *,
+        source,
+        accent,
+        status,
+        font_profile="default",
+        **content,
+    ):
+        fonts = self._modern_fonts_for(
+            font_profile
+        )
+        plan = self._standard_card_plan(
+            **content,
+            font_profile=font_profile,
+        )
         height = plan["height"]
         image = self._background(self.WIDTH, height)
         self._outer_glows(image, accent, height)
@@ -258,8 +488,12 @@ class ModernCardLayoutMixin:
         footer_y = plan["footer_y"]
         draw.line((x0, footer_y - 8, right, footer_y - 8), fill=(81, 89, 95, 150), width=1)
         self._draw_nowlert_icon(image, x0 + 18, footer_y + 4, 40)
-        draw.text((x0 + 70, footer_y + 10), self.FOOTER_TEXT,
-                  font=self.modern_fonts["footer"], fill=self.MUTED)
+        draw.text(
+            (x0 + 70, footer_y + 10),
+            self.FOOTER_TEXT,
+            font=fonts["footer"],
+            fill=self.MUTED,
+        )
         output = BytesIO()
         image.convert("RGB").save(output, format="PNG", optimize=True, compress_level=7)
         return output.getvalue()

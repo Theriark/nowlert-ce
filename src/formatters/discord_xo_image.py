@@ -156,6 +156,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             severity=badge.replace("Backup ", ""), category=self._label(notification.category or "backup"),
             event_time=self._clean(notification.end_time or notification.start_time or ""),
             details=details, outcomes=outcomes, accent=accent, status=status,
+            font_profile="xo_large",
         )
 
     def _vm_panel_height(
