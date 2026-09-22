@@ -1542,6 +1542,16 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             return "failure"
         return "skipped"
 
+    def _summary_cells_for_metrics(
+        self,
+        left: int,
+        right: int,
+        metrics,
+    ):
+        """Return summary geometry, allowing source-specific text spacing."""
+
+        return self._summary_cells(left, right)
+
     def _line_color(
         self,
         line,
@@ -2626,7 +2636,11 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
             ("sync", "Category", category, self.ICON_BLUE),
             ("clock", "Event time", event_time, (194, 226, 242)),
         ]
-        cells = self._summary_cells(x0, right)
+        cells = self._summary_cells_for_metrics(
+            x0,
+            right,
+            metrics,
+        )
         summary_mid_y = summary_y + self.SUMMARY_HEIGHT // 2
         for index, ((icon, label, value, color), cell) in enumerate(
             zip(metrics, cells)
@@ -3049,6 +3063,54 @@ class QNAPDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
     # clean alignment used by the approved standardized cards.
     SUMMARY_FIRST_CELL_RATIO = 0.27
     SUMMARY_SECOND_CELL_RATIO = 0.36
+
+    def _summary_cells_for_metrics(
+        self,
+        left: int,
+        right: int,
+        metrics,
+    ):
+        """Give QNAP Information/System enough room without moving other cards."""
+
+        values = [
+            self._clean(metric[2]).casefold()
+            for metric in metrics
+        ]
+        if not (
+            len(values) == 3
+            and values[0] == "information"
+            and values[1] == "system"
+        ):
+            return super()._summary_cells_for_metrics(
+                left,
+                right,
+                metrics,
+            )
+
+        inner_left = left + 28
+        inner_right = right - 28
+        available = (
+            inner_right
+            - inner_left
+            - self.SUMMARY_CELL_GAP * 2
+        )
+        first = int(available * 0.34)
+        second = int(available * 0.30)
+        third = available - first - second
+
+        cell_1 = (
+            inner_left,
+            inner_left + first,
+        )
+        cell_2 = (
+            cell_1[1] + self.SUMMARY_CELL_GAP,
+            cell_1[1] + self.SUMMARY_CELL_GAP + second,
+        )
+        cell_3 = (
+            cell_2[1] + self.SUMMARY_CELL_GAP,
+            cell_2[1] + self.SUMMARY_CELL_GAP + third,
+        )
+        return [cell_1, cell_2, cell_3]
 
     QNAP_XO_SECTION_ICONS = {
         "qnap nas": "repository",
