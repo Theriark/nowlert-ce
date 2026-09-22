@@ -59,6 +59,20 @@ compatibility and presentation tests. Static product artwork still uses
 the public HTTPS icon mapping and `NOWLERT_TEAMS_ICON_BASE_URL` compatibility
 override.
 
+## Slack hierarchy
+
+Slack **Classic Card** is the existing bounded Block Kit implementation and
+remains the compatibility default for destinations created before Modern Card
+support.
+
+Slack **Modern Card** does not maintain a separate visual template. It passes
+the real normalized `Notification` to the exact Discord Modern image renderer,
+publishes that rendered PNG through the same proven public media path used by
+Teams, and sends Slack one Block Kit image block with safe fallback text.
+Therefore every integration and generic fallback inherits later Discord Modern
+layout changes automatically. If the image cannot be rendered or published,
+Modern delivery fails closed instead of falling back to Classic.
+
 ## Discord hierarchy
 
 Every integration supplies normalized data to the shared Discord Components V2

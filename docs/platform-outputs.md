@@ -29,7 +29,7 @@ Credential-like values must not be placed in the public settings document.
 |---|---|---|
 | Discord | message style and destination label | webhook URL |
 | Microsoft Teams | message style and destination label | workflow webhook URL |
-| Slack | message-detail option and destination label | Slack webhook URL |
+| Slack | message style, Classic detail option, and destination label | Slack webhook URL |
 | Webhook | message style and destination label | webhook URL |
 
 ## Discord
@@ -102,9 +102,22 @@ confirmation.
 
 ## Slack
 
-Slack previews/delivery use bounded Block Kit-style content with plain-text
-fallback and normalized source/severity/host context. Credential sanitization
-is applied before payload construction.
+Slack keeps both presentation families. Existing destinations without
+`message_style` normalize to **Classic Card**, preserving the current Block Kit
+templates and the `include_metadata` option exactly as before.
+
+**Modern Card** reuses the exact same source-specific Discord Modern image
+renderer used by Teams. The resulting PNG carries the shared dark grid, gold
+frame, lifecycle rail/glow, integration artwork, status badge, summary/detail
+panels, dynamic height, and `Nowlert CE • Modern Card` footer. Slack receives a
+minimal Block Kit image block plus bounded fallback text; it does not rebuild
+the card with separate Slack layout rules.
+
+Slack Modern deliberately reuses the proven public Modern-card media publisher
+already used by Teams. If the shared rendered image cannot be produced or
+published, Slack Modern fails closed with
+`slack_modern_image_unavailable`; it never silently substitutes Classic.
+Classic delivery remains unchanged.
 
 ## Generic outbound webhook
 
@@ -188,9 +201,8 @@ HTTP-like status, and bounded error code/text.
 
 The destination-card **Send test** is a Nowlert-owned synthetic event. It always
 uses the Nowlert source/icon and the destination name instead of inheriting an
-integration from an attached route. Discord, Teams, and Generic Webhook render
-that event using the destination's selected Modern/Classic presentation; Slack
-renders it through its current Classic-only presentation.
+integration from an attached route. Discord, Teams, Slack, and Generic Webhook render
+that event using the destination's selected Modern/Classic presentation.
 
 Test outcome can be stored as destination health state and surfaced in the
 WebUI/routing flow without storing response bodies or credentials.

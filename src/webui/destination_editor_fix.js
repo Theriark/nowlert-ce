@@ -59,10 +59,13 @@
     const type = document.getElementById("destination-type")?.value || "";
     if (!settings || type !== "slack") return;
 
+    const style = settings.querySelector('[data-field="message_style"]');
+    const styleField = style?.closest("label");
     const input = settings.querySelector('[data-field="include_metadata"]');
     const label = input?.closest("label");
-    if (!label) return;
+    if (!style || !styleField || !label) return;
 
+    styleField.classList.add("destination-message-style");
     label.classList.add("destination-message-options", "wide");
 
     if (!label.querySelector(".destination-message-options-title")) {
@@ -75,9 +78,21 @@
     if (!label.querySelector(".destination-message-options-help")) {
       const helper = document.createElement("small");
       helper.className = "destination-message-options-help";
-      helper.textContent = "Controls Slack message detail; it does not filter events.";
+      helper.textContent = "Controls Slack Classic Card detail; it does not filter events. Modern Card uses the shared rendered card.";
       label.append(helper);
     }
+
+    const sync = () => {
+      const modern = style.value === "modern";
+      label.hidden = modern;
+      label.setAttribute("aria-hidden", modern ? "true" : "false");
+    };
+
+    if (style.dataset.slackMessageStyleBound !== "true") {
+      style.dataset.slackMessageStyleBound = "true";
+      style.addEventListener("change", sync);
+    }
+    sync();
   }
 
   function webhookStoredStyle() {

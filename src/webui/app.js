@@ -3968,8 +3968,23 @@ function destinationDefinition(type) {
       secrets: [{ key: "url", label: "Webhook URL", kind: "password", required: true, wide: true }],
     },
     slack: {
-      help: "Slack Block Kit delivery to an official Slack webhook host.",
-      settings: [presentation, { key: "include_metadata", label: "Include event metadata", kind: "checkbox", default: true }],
+      help: "Slack delivery with preserved Classic Cards and shared Modern image cards.",
+      settings: [
+        presentation,
+        {
+          key: "message_style",
+          label: "Message style",
+          kind: "select",
+          choices: [["classic", "Classic Card"], ["modern", "Modern Card"]],
+          default: "classic",
+        },
+        {
+          key: "include_metadata",
+          label: "Include event metadata",
+          kind: "checkbox",
+          default: true,
+        },
+      ],
       secrets: [{ key: "url", label: "Slack webhook URL", kind: "password", required: true, wide: true }],
     },
     webhook: {
