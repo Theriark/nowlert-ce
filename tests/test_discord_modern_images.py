@@ -1209,3 +1209,25 @@ def test_zabbix_four_standard_boxes_expand_for_long_information(tmp_path):
     with Image.open(BytesIO(image)) as rendered:
         assert rendered.width == 2064
         assert rendered.height > 1600
+
+
+
+def test_zabbix_summary_strip_has_more_breathing_room(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    cells = renderer._summary_cells(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+    )
+
+    assert cells[1][0] - cells[0][1] >= 72
+    assert cells[2][0] - cells[1][1] >= 72
+    assert cells[1][1] - cells[1][0] >= 540
+
+
+def test_zabbix_failed_started_timestamp_uses_failure_color(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+
+    assert renderer._line_color(
+        "Started: 2026-09-22 11:00:29",
+        renderer.FAILURE,
+    ) == renderer.FAILURE
