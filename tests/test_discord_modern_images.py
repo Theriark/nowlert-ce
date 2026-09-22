@@ -136,7 +136,7 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     assert image is not None
     assert image.startswith(b"\x89PNG\r\n\x1a\n")
     with Image.open(BytesIO(image)) as rendered:
-        expected_width = 2032 if source == "zabbix" else 1448
+        expected_width = 2064 if source == "zabbix" else 1448
         expected_min_height = (
             output.zabbix_modern_image_renderer.MIN_HEIGHT
             if source == "zabbix"
@@ -728,7 +728,7 @@ def test_zabbix_modern_matches_frozen_xo_typography_and_scale(tmp_path):
     xo = XenOrchestraDiscordImageRenderer(tmp_path)
     fonts = zabbix._modern_fonts_for("xo_match")
 
-    assert zabbix.WIDTH == 2032
+    assert zabbix.WIDTH == 2064
     assert zabbix.MODERN_MIN_HEIGHT == 1600
     assert fonts["heading"].size == xo.font_heading.size
     assert fonts["title"].size == xo.font_title.size
@@ -788,7 +788,7 @@ def test_discord_output_routes_only_zabbix_to_xo_scaled_renderer(tmp_path):
     )
 
     with Image.open(BytesIO(zabbix_image)) as image:
-        assert image.width == 2032
+        assert image.width == 2064
         assert image.height >= 1600
     with Image.open(BytesIO(grafana_image)) as image:
         assert image.width == 1448
@@ -833,7 +833,7 @@ def test_zabbix_standard_cards_match_xo_canvas_size(
     image = output.render_modern_image(item, formatter)
 
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.size == (2032, 1600)
+        assert rendered.size == (2064, 1600)
 
 
 def test_zabbix_uses_exact_xo_visual_metrics(tmp_path):
@@ -841,8 +841,8 @@ def test_zabbix_uses_exact_xo_visual_metrics(tmp_path):
     xo = XenOrchestraDiscordImageRenderer(tmp_path)
 
     assert xo.WIDTH == 2000
-    assert zabbix.DISCORD_WIDTH_COMPENSATION == 32
-    assert zabbix.WIDTH == xo.WIDTH + 32 == 2032
+    assert zabbix.DISCORD_WIDTH_COMPENSATION == 64
+    assert zabbix.WIDTH == xo.WIDTH + 64 == 2064
     assert zabbix.BASE_HEIGHT == xo.SUCCESS_BASE_HEIGHT == 1600
     assert zabbix.CARD_SIDE_PADDING == xo.CARD_SIDE_PADDING == 78
     assert zabbix.FOOTER_RESERVE == xo.FOOTER_RESERVE == 180
@@ -1009,7 +1009,7 @@ def test_zabbix_live_reference_renders_exact_xo_display_size(tmp_path):
     )
 
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.size == (2032, 1600)
+        assert rendered.size == (2064, 1600)
 
 
 def test_zabbix_long_extra_content_can_still_expand(tmp_path):
@@ -1043,7 +1043,7 @@ def test_zabbix_long_extra_content_can_still_expand(tmp_path):
     )
 
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.width == 2032
+        assert rendered.width == 2064
         assert rendered.height > 1600
 
 
@@ -1126,7 +1126,7 @@ def test_zabbix_standard_live_card_still_matches_xo_outer_size_after_polish(tmp_
     )
 
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.size == (2032, 1600)
+        assert rendered.size == (2064, 1600)
 
 
 
@@ -1207,5 +1207,5 @@ def test_zabbix_four_standard_boxes_expand_for_long_information(tmp_path):
     )
 
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.width == 2032
+        assert rendered.width == 2064
         assert rendered.height > 1600

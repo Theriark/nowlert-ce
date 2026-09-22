@@ -1786,7 +1786,7 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
 class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     """Render Zabbix with the exact frozen Xen Orchestra visual metrics."""
 
-    DISCORD_WIDTH_COMPENSATION = 32
+    DISCORD_WIDTH_COMPENSATION = 64
     WIDTH = (
         XenOrchestraDiscordImageRenderer.WIDTH
         + DISCORD_WIDTH_COMPENSATION
