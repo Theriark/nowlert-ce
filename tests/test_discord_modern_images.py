@@ -902,3 +902,141 @@ def test_zabbix_summary_uses_xo_time_only_format(tmp_path):
     assert renderer._event_time_only(
         "2026-09-22 08:33:31 UTC"
     ) == "08:33:31 UTC"
+
+
+
+def _zabbix_live_reference_panels():
+    details = [
+        {
+            "title": "Problem",
+            "rows": [
+                {"label": "Host:", "value": "VM-08 | Zabbix Server", "icon": "server"},
+                {"label": "Severity:", "value": "High", "icon": "status"},
+                {
+                    "value": "Operational Data",
+                    "role": "label",
+                    "color": (166, 192, 208),
+                },
+                {
+                    "value": "replication_lag=187s; wal_receiver=connected; primary=DB-01",
+                    "icon": "cube",
+                },
+                {"label": "Problem ID:", "value": "3012248682", "icon": "list"},
+            ],
+        },
+        {
+            "title": "Trigger",
+            "rows": [
+                {
+                    "value": "max(/DB-REPLICA/pgsql.replication.lag,5m)>120",
+                    "icon": "chart",
+                },
+            ],
+        },
+        {
+            "title": "Response",
+            "rows": [
+                {"value": "Timing", "role": "label", "color": (166, 192, 208)},
+                {"label": "Started:", "value": "2026-09-22 08:52:03 UTC", "icon": "clock"},
+                {"label": "Duration:", "value": "4m 37s", "icon": "clock"},
+                {"value": "Runbook", "role": "label", "color": (166, 192, 208)},
+                {"value": "DB-RUNBOOK-REPLICATION-01", "icon": "list"},
+            ],
+        },
+    ]
+    outcomes = [
+        {
+            "title": "EVENT DETAILS",
+            "accent": (255, 64, 72),
+            "status": "failure",
+            "rows": [
+                {
+                    "value": "High severity problem detected on VM-08 | Zabbix Server.",
+                    "icon": "cube",
+                },
+            ],
+        }
+    ]
+    return details, outcomes
+
+
+def test_zabbix_standard_live_layout_stays_inside_xo_baseline(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    details, outcomes = _zabbix_live_reference_panels()
+
+    panels, content_bottom = renderer._zabbix_content_plan(
+        draw,
+        details,
+        outcomes,
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        500,
+    )
+
+    response = next(panel for panel in panels if panel["title"] == "Response")
+    result = next(panel for panel in panels if panel["title"] == "EVENT DETAILS")
+
+    assert response["y"] == result["y"]
+    assert response["width"] == result["width"]
+    assert content_bottom + renderer.FOOTER_GAP <= (
+        renderer.BASE_HEIGHT - renderer.FOOTER_RESERVE
+    )
+
+
+def test_zabbix_live_reference_renders_exact_xo_display_size(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    details, outcomes = _zabbix_live_reference_panels()
+
+    image = renderer._render_standard_card(
+        source="zabbix",
+        integration="Zabbix",
+        context="VM-08 | Zabbix Server",
+        badge="Failure",
+        title="PostgreSQL replication lag exceeds 120 seconds",
+        severity="High",
+        category="Monitoring",
+        event_time="2026-09-22 08:52:03 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.size == (2000, 1600)
+
+
+def test_zabbix_long_extra_content_can_still_expand(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    details, outcomes = _zabbix_live_reference_panels()
+    outcomes.append(
+        {
+            "title": "Additional details",
+            "rows": [
+                {
+                    "value": " ".join(["extended"] * 300),
+                    "icon": "info",
+                }
+            ],
+        }
+    )
+
+    image = renderer._render_standard_card(
+        source="zabbix",
+        integration="Zabbix",
+        context="VM-08 | Zabbix Server",
+        badge="Failure",
+        title="PostgreSQL replication lag exceeds 120 seconds",
+        severity="High",
+        category="Monitoring",
+        event_time="2026-09-22 08:52:03 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.width == 2000
+        assert rendered.height > 1600

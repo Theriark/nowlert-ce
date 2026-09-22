@@ -1825,7 +1825,7 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     def _zabbix_measure_panel(self, draw, panel, width):
         """Measure a Zabbix section using XO fonts without shrinking text."""
 
-        y = 20
+        y = 15
         paint = []
         title = self._clean(panel.get("title") or "")
         accent = panel.get("accent")
@@ -1988,27 +1988,29 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
         return {
             **panel,
             "width": width,
-            "height": max(120, y + 12),
+            "height": max(120, y + 7),
             "paint": paint,
         }
 
     def _zabbix_content_plan(self, draw, details, outcomes, x0, right, start_y):
-        """Keep the Zabbix information hierarchy while fitting the XO baseline."""
+        """Pack standard Zabbix rows into the frozen XO 2000x1600 baseline."""
 
         width = right - x0
         gap = self.CONTENT_GAP
+        half = (width - gap) // 2
         panels = []
         y = start_y
         detail_index = 0
+        outcome_index = 0
 
-        if len(details) >= 2:
-            half = (width - gap) // 2
-            pair = [
-                self._zabbix_measure_panel(draw, details[0], half),
-                self._zabbix_measure_panel(draw, details[1], half),
+        def append_pair(left_panel, right_panel):
+            nonlocal y
+            measured = [
+                self._zabbix_measure_panel(draw, left_panel, half),
+                self._zabbix_measure_panel(draw, right_panel, half),
             ]
-            pair_height = max(item["height"] for item in pair)
-            for column, item in enumerate(pair):
+            pair_height = max(item["height"] for item in measured)
+            for column, item in enumerate(measured):
                 panels.append(
                     {
                         **item,
@@ -2018,14 +2020,26 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
                     }
                 )
             y += pair_height + gap
+
+        # Problem + Trigger stay side-by-side exactly as in the approved card.
+        if len(details) >= 2:
+            append_pair(details[0], details[1])
             detail_index = 2
+
+        # The standard Zabbix card has Response plus one lifecycle result.
+        # Put those on the same second row so Discord does not downscale a
+        # needlessly tall image. Long/extra content still grows below.
+        if detail_index < len(details) and outcome_index < len(outcomes):
+            append_pair(details[detail_index], outcomes[outcome_index])
+            detail_index += 1
+            outcome_index += 1
 
         for panel in details[detail_index:]:
             measured = self._zabbix_measure_panel(draw, panel, width)
             panels.append({**measured, "x": x0, "y": y})
             y += measured["height"] + gap
 
-        for panel in outcomes:
+        for panel in outcomes[outcome_index:]:
             measured = self._zabbix_measure_panel(draw, panel, width)
             panels.append({**measured, "x": x0, "y": y})
             y += measured["height"] + gap
