@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from models import Notification
-from outputs.platform import WebhookPlatformAdapter
+from outputs.platform import DiscordPlatformAdapter, WebhookPlatformAdapter
 from outputs.settings import normalize_output_settings
 from storage.delivery import DeliveryResult
 from storage.destinations import Destination
@@ -14,6 +14,27 @@ from storage.destinations import Destination
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_ADDRESS = "93.184.216.34"
+
+DISCORD_MODERN_SOURCES = (
+    "xo",
+    "zabbix",
+    "grafana",
+    "portainer",
+    "proxmox",
+    "qnap",
+    "synology",
+    "truenas",
+    "unifi_network",
+    "unifi_protect",
+    "unifi_drive",
+    "supermicro",
+    "hpe_ilo",
+    "dell_idrac",
+    "home_assistant",
+    "redfish",
+    "nowlert",
+    "unknown_product",
+)
 
 
 def public_resolver(host, port, **_kwargs):
@@ -57,9 +78,9 @@ def destination(settings=None):
     )
 
 
-def notification():
+def notification(source="xo"):
     return Notification(
-        source="xo",
+        source=source,
         category="backup",
         status="success",
         title="Backup completed",
@@ -159,6 +180,39 @@ def test_webhook_discord_target_uses_native_discord_message_style():
     assert modern_destination.settings == {"components_v2": True}
     assert classic_destination.output_type == "discord"
     assert classic_destination.settings == {"components_v2": False}
+
+
+@pytest.mark.parametrize("source", DISCORD_MODERN_SOURCES)
+def test_webhook_discord_modern_preserves_every_source_for_native_delivery(
+    monkeypatch,
+    source,
+):
+    adapter = WebhookPlatformAdapter(resolver=public_resolver)
+    native_discord = adapter.discord
+    calls = []
+
+    assert isinstance(native_discord, DiscordPlatformAdapter)
+
+    def record_delivery(routed_destination, secret_value, routed_notification):
+        calls.append((routed_destination, secret_value, routed_notification))
+        return DeliveryResult(True, response_status=204)
+
+    monkeypatch.setattr(native_discord, "deliver", record_delivery)
+    item = notification(source)
+
+    result = adapter.deliver(
+        destination({"message_style": "modern"}),
+        b"https://discord.com/api/webhooks/123/token",
+        item,
+    )
+
+    assert result.success is True
+    assert len(calls) == 1
+    routed_destination, _secret, routed_notification = calls[0]
+    assert routed_destination.output_type == "discord"
+    assert routed_destination.settings == {"components_v2": True}
+    assert routed_notification is item
+    assert routed_notification.source == source
 
 
 def test_webhook_new_contract_is_fixed_post_json_with_idempotency_header():
