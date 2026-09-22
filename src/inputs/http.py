@@ -14,8 +14,7 @@ from config import config
 from api.service import APIService
 from logger import log
 from outputs.teams_modern_image import (
-    TEAMS_MODERN_CARD_PUBLIC_PATH,
-    TEAMS_MODERN_CARD_QUERY_NAME,
+    TEAMS_MODERN_CARD_PUBLIC_PREFIX,
     load_teams_modern_image,
 )
 from webui.service import SECURITY_HEADERS, WebUIService
@@ -220,10 +219,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         request_url = urlsplit(self.path)
-        if (
-            request_url.path == TEAMS_MODERN_CARD_PUBLIC_PATH
-            and self._teams_modern_card_request(request_url.query)
-        ):
+        if self._teams_modern_card_request(request_url.path):
             return
         if request_url.path.startswith("/api/"):
             self._api_request("GET", request_url.path)
@@ -255,12 +251,9 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
     def do_HEAD(self) -> None:  # noqa: N802
         request_url = urlsplit(self.path)
-        if (
-            request_url.path == TEAMS_MODERN_CARD_PUBLIC_PATH
-            and self._teams_modern_card_request(
-                request_url.query,
-                head=True,
-            )
+        if self._teams_modern_card_request(
+            request_url.path,
+            head=True,
         ):
             return
         if self._webui_request(request_url.path, head=True):
@@ -269,24 +262,21 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
     def _teams_modern_card_request(
         self,
-        query: str,
+        path: str,
         *,
         head: bool = False,
     ) -> bool:
-        values = parse_qs(
-            query,
-            keep_blank_values=True,
-            max_num_fields=8,
-        ).get(TEAMS_MODERN_CARD_QUERY_NAME, [])
-        if not values:
+        if not str(path or "").startswith(
+            TEAMS_MODERN_CARD_PUBLIC_PREFIX
+        ):
             return False
-        if len(values) != 1:
-            self._respond(404)
-            return True
 
+        filename = str(path)[
+            len(TEAMS_MODERN_CARD_PUBLIC_PREFIX):
+        ]
         body = load_teams_modern_image(
             config,
-            values[0],
+            filename,
         )
         if body is None:
             self._respond(404)

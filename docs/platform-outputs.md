@@ -74,7 +74,7 @@ Teams workflow requests remain JSON-only and bounded to 28 KiB, so the rendered
 PNG is referenced by HTTPS rather than embedded in the webhook body. Nowlert
 stores each image below `platform.state_dir/teams-modern-cards` and publishes
 it from the existing public health path as
-`/api/health?teams_modern_card=<unguessable-token>.png`. Plain
+`/api/health/teams-modern-card/<unguessable-token>.png`. Plain
 `/api/health` continues to return normal health JSON. The public origin comes
 from `NOWLERT_TEAMS_PUBLIC_BASE_URL` or, when unset, `webui.public_url`.
 
