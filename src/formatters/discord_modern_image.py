@@ -1552,6 +1552,11 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
 
         return self._summary_cells(left, right)
 
+    def _summary_fonts_for_metrics(self, metrics):
+        """Return the standard summary label/value fonts."""
+
+        return self.font_label, self.font_detail
+
     def _line_color(
         self,
         line,
@@ -2677,6 +2682,9 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
             right,
             metrics,
         )
+        summary_label_font, summary_value_font = (
+            self._summary_fonts_for_metrics(metrics)
+        )
         summary_mid_y = summary_y + self.SUMMARY_HEIGHT // 2
         for index, ((icon, label, value, color), cell) in enumerate(
             zip(metrics, cells)
@@ -2700,13 +2708,13 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
             draw.text(
                 (label_x, summary_mid_y),
                 f"{label}:",
-                font=self.font_label,
+                font=summary_label_font,
                 fill=self.TEXT,
                 anchor="lm",
             )
             label_width = draw.textlength(
                 f"{label}:",
-                font=self.font_label,
+                font=summary_label_font,
             )
             draw.text(
                 (
@@ -2714,7 +2722,7 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
                     summary_mid_y,
                 ),
                 value,
-                font=self.font_detail,
+                font=summary_value_font,
                 fill=self.TEXT,
                 anchor="lm",
             )
@@ -3883,6 +3891,38 @@ class HardwareDiscordModernImageRenderer(
         "additional details": "list",
         "event details": "alert",
     }
+    FIRMWARE_SUMMARY_LABEL_FONT_SIZE = 34
+    FIRMWARE_SUMMARY_VALUE_FONT_SIZE = 34
+
+    def __init__(self, icon_dir: Path | str = "/nowlert/assets/icons"):
+        super().__init__(icon_dir)
+        self.font_firmware_summary_label = self._font(
+            True,
+            self.FIRMWARE_SUMMARY_LABEL_FONT_SIZE,
+        )
+        self.font_firmware_summary_value = self._font(
+            False,
+            self.FIRMWARE_SUMMARY_VALUE_FONT_SIZE,
+        )
+
+    def _summary_fonts_for_metrics(self, metrics):
+        """Use a smaller font only on Firmware Information summary rows."""
+
+        values = [
+            self._clean(metric[2]).casefold()
+            for metric in metrics
+        ]
+        if (
+            len(values) == 3
+            and values[0] == "information"
+            and values[1] == "firmware"
+        ):
+            return (
+                self.font_firmware_summary_label,
+                self.font_firmware_summary_value,
+            )
+        return super()._summary_fonts_for_metrics(metrics)
+
     # Fixed column anchors for the two Firmware Information cards.
     # These deliberately move Category and Event time farther right so the
     # long "information" severity has the same breathing room as approved
