@@ -3110,6 +3110,69 @@ class QNAPDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
             start_y,
         )
 
+    def _zabbix_fill_standard_rows(
+        self,
+        panels,
+        content_y: int,
+        target_bottom: int,
+    ):
+        """Fill the QNAP three-panel information layout to the footer."""
+
+        if len(panels) != 3:
+            return ZabbixDiscordModernImageRenderer._zabbix_fill_standard_rows(
+                self,
+                panels,
+                content_y,
+                target_bottom,
+            )
+
+        row_ys = sorted({panel["y"] for panel in panels})
+        if len(row_ys) != 2:
+            return panels, None
+
+        first_row = [
+            panel
+            for panel in panels
+            if panel["y"] == row_ys[0]
+        ]
+        second_row = [
+            panel
+            for panel in panels
+            if panel["y"] == row_ys[1]
+        ]
+        if len(first_row) != 2 or len(second_row) != 1:
+            return panels, None
+
+        first_height = max(panel["height"] for panel in first_row)
+        second_panel = second_row[0]
+        natural_total = (
+            first_height
+            + self.CONTENT_GAP
+            + second_panel["height"]
+        )
+        available = target_bottom - content_y
+        if natural_total > available:
+            return panels, None
+
+        second_y = content_y + first_height + self.CONTENT_GAP
+        second_height = target_bottom - second_y
+        stretched = [
+            {
+                **panel,
+                "y": content_y,
+                "height": first_height,
+            }
+            for panel in first_row
+        ]
+        stretched.append(
+            {
+                **second_panel,
+                "y": second_y,
+                "height": second_height,
+            }
+        )
+        return stretched, target_bottom
+
     def _zabbix_xo_section_icon(self, title: str) -> str:
         return self.QNAP_XO_SECTION_ICONS.get(
             self._clean(title).casefold(),
