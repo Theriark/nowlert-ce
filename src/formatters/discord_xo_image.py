@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from math import ceil
+import re
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -15,8 +16,8 @@ from formatters.discord_modern_layout import ModernCardLayoutMixin
 class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     """Render XO backup notifications with the approved Nowlert visual system."""
 
-    WIDTH = 1700
-    BASE_HEIGHT = 1260
+    WIDTH = 2000
+    BASE_HEIGHT = 1320
     CARD_SIDE_PADDING = 78
     VM_PANEL_TOP = 780
     VM_HEADER_HEIGHT = 104
@@ -30,22 +31,26 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     VM_ENTRY_HEIGHT_COMPACT = 144
     VM_ENTRY_REASON_HEIGHT_COMPACT = 230
     SUCCESS_ROW_HEIGHT_COMPACT = 144
-    FOOTER_GAP = 30
-    FOOTER_RESERVE = 150
+    FOOTER_GAP = 32
+    FOOTER_RESERVE = 180
+    FOOTER_ICON_SIZE = 68
     FOOTER_TEXT = "Nowlert CE • Modern Card"
     DETAIL_SPLIT_RATIO = 0.43
     DETAIL_LABEL_OFFSET = 92
     DETAIL_VALUE_OFFSET = 300
     DETAIL_LABEL_VALUE_GAP = 32
-    STATUS_BADGE_WIDTH = 470
-    STATUS_BADGE_HEIGHT = 102
-    XO_HEADER_ICON_SIZE = 132
+    STATUS_BADGE_WIDTH = 560
+    STATUS_BADGE_HEIGHT = 128
+    SUMMARY_CELL_GAP = 48
+    XO_HEADER_ICON_SIZE = 144
     OUTER_GLOW_GOLD_ALPHA = 138
     OUTER_GLOW_ACCENT_ALPHA = 124
     OUTER_GLOW_BLUR = 21
     STATUS_GLOW_ALPHA = 116
     PAIRED_PANEL_LEFT_RATIO = 0.50
     PAIRED_PANEL_LONG_OTHER_LEFT_RATIO = 0.48
+    PAIRED_OUTCOME_MIN_HEIGHT = 370
+    EXCEPTION_BASE_HEIGHT = 1600
 
     # Nowlert brand surfaces.
     PAGE_BG = (18, 24, 29)
@@ -69,24 +74,24 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
     def __init__(self, icon_dir: Path | str = "/nowlert/assets/icons"):
         self.icon_dir = Path(icon_dir)
         self._init_modern_fonts()
-        self.font_micro = self._font(False, 36)
-        self.font_tiny = self._font(False, 36)
-        self.font_small = self._font(False, 36)
-        self.font_detail = self._font(False, 38)
-        self.font_body = self._font(False, 38)
-        self.font_label = self._font(True, 36)
-        self.font_vm_micro = self._font(True, 36)
-        self.font_vm_compact = self._font(True, 36)
-        self.font_vm = self._font(True, 38)
-        self.font_vm_large = self._font(True, 40)
-        self.font_vm_meta_compact = self._font(False, 36)
-        self.font_vm_meta_large = self._font(False, 36)
-        self.font_reason_compact = self._font(False, 36)
-        self.font_reason = self._font(False, 36)
-        self.font_reason_large = self._font(False, 36)
-        self.font_bold = self._font(True, 42)
-        self.font_title = self._font(True, 46)
-        self.font_heading = self._font(True, 56)
+        self.font_micro = self._font(False, 40)
+        self.font_tiny = self._font(False, 40)
+        self.font_small = self._font(False, 40)
+        self.font_detail = self._font(False, 42)
+        self.font_body = self._font(False, 42)
+        self.font_label = self._font(True, 40)
+        self.font_vm_micro = self._font(True, 40)
+        self.font_vm_compact = self._font(True, 40)
+        self.font_vm = self._font(True, 42)
+        self.font_vm_large = self._font(True, 44)
+        self.font_vm_meta_compact = self._font(False, 40)
+        self.font_vm_meta_large = self._font(False, 40)
+        self.font_reason_compact = self._font(False, 40)
+        self.font_reason = self._font(False, 40)
+        self.font_reason_large = self._font(False, 40)
+        self.font_bold = self._font(True, 46)
+        self.font_title = self._font(True, 52)
+        self.font_heading = self._font(True, 62)
 
     @staticmethod
     def _font(bold: bool, size: int):
@@ -110,6 +115,77 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         except TypeError:
             return ImageFont.load_default()
 
+    @staticmethod
+    def _center_y(top: int, bottom: int, height: int) -> int:
+        return top + max(0, ((bottom - top) - height) // 2)
+
+    def _status_badge_box(
+        self,
+        right: int,
+        header_y: int,
+        header_height: int,
+    ):
+        """Use the full available header height for the lifecycle badge."""
+
+        height = max(self.STATUS_BADGE_HEIGHT, header_height)
+        return (
+            right - self.STATUS_BADGE_WIDTH,
+            header_y,
+            right,
+            header_y + height,
+        )
+
+    def _summary_cells(self, left: int, right: int):
+        """Return three summary cells with explicit visual breathing room."""
+
+        inner_left = left + 28
+        inner_right = right - 28
+        available = (
+            inner_right
+            - inner_left
+            - self.SUMMARY_CELL_GAP * 2
+        )
+        first = int(available * 0.31)
+        second = int(available * 0.28)
+        third = available - first - second
+
+        cell_1 = (
+            inner_left,
+            inner_left + first,
+        )
+        cell_2 = (
+            cell_1[1] + self.SUMMARY_CELL_GAP,
+            cell_1[1] + self.SUMMARY_CELL_GAP + second,
+        )
+        cell_3 = (
+            cell_2[1] + self.SUMMARY_CELL_GAP,
+            cell_2[1] + self.SUMMARY_CELL_GAP + third,
+        )
+        return [cell_1, cell_2, cell_3]
+
+    def _event_time_only(self, value) -> str:
+        """Keep only the clock portion for the compact top summary strip."""
+
+        text = self._clean(value or "")
+        if not text:
+            return ""
+
+        match = re.search(
+            r"(?<!\d)(\d{1,2}:\d{2}:\d{2})"
+            r"(?:\.\d+)?"
+            r"(?:\s*(Z|UTC|[+-]\d{2}:?\d{2}))?",
+            text,
+            re.IGNORECASE,
+        )
+        if not match:
+            return text
+
+        clock = match.group(1)
+        zone = (match.group(2) or "").upper()
+        if zone == "Z":
+            zone = "UTC"
+        return f"{clock} {zone}".strip()
+
     def render(self, notification: Notification) -> bytes:
         """Render the approved Xen Orchestra card at the larger readable scale."""
 
@@ -125,7 +201,6 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         xo_icon_size = self.XO_HEADER_ICON_SIZE
         title_x = x0 + xo_icon_size + 20
         badge_w = self.STATUS_BADGE_WIDTH
-        badge_h = self.STATUS_BADGE_HEIGHT
         badge_x = right - badge_w
 
         repository = self._clean(notification.repository or "Backup")
@@ -135,9 +210,9 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         ) or ["Backup"]
         body_line_h = self.font_body.getbbox("Ag")[3] - self.font_body.getbbox("Ag")[1]
         header_height = max(
-            138,
-            70 + len(repository_lines) * (body_line_h + 5),
-            badge_h + 8,
+            150,
+            76 + len(repository_lines) * (body_line_h + 6),
+            self.STATUS_BADGE_HEIGHT,
         )
 
         report = self._clean(
@@ -161,7 +236,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         title_h = max(88, 30 + len(report_lines) * (title_line_h + 5))
 
         metric_y = title_y + title_h + 20
-        metric_h = 92
+        metric_h = 112
         detail_y = metric_y + metric_h + 24
         gap = 24
         detail_width = right - x0 - gap
@@ -198,6 +273,11 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             self.BASE_HEIGHT,
             vm_y + vm_panel_height + self.FOOTER_GAP + self.FOOTER_RESERVE,
         )
+        if failed or skipped:
+            height = max(
+                height,
+                self.EXCEPTION_BASE_HEIGHT,
+            )
         footer_y = self._footer_y(height)
 
         image = self._background(self.WIDTH, height)
@@ -227,7 +307,12 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             max_lines=None, line_gap=5,
         )
 
-        badge = (badge_x, header_y, right, header_y + badge_h)
+        badge = self._status_badge_box(
+            right,
+            header_y,
+            header_height,
+        )
+        badge_x = badge[0]
         self._glow_box(
             image, badge, accent, 18, alpha=self.STATUS_GLOW_ALPHA
         )
@@ -237,14 +322,29 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             fill=(*self._tint(accent, self.CARD_BG, 0.16), 245),
             outline=(*accent, 225), radius=18, width=2,
         )
+        badge_icon_size = 64
+        badge_icon_y = self._center_y(
+            badge[1],
+            badge[3],
+            badge_icon_size,
+        )
         self._status_icon(
-            draw, badge_x + 24, header_y + 23, 56, status, accent
+            draw,
+            badge_x + 28,
+            badge_icon_y,
+            badge_icon_size,
+            status,
+            accent,
         )
         draw.text(
-            (badge_x + 96, header_y + 28),
+            (
+                badge_x + 112,
+                (badge[1] + badge[3]) // 2,
+            ),
             status_label,
             font=self.font_bold,
             fill=accent if status != "success" else (103, 239, 174),
+            anchor="lm",
         )
 
         title_box = (x0, title_y, right, title_y + title_h)
@@ -263,8 +363,10 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             draw, metric_box, fill=(*self.PANEL, 248),
             outline=(*self.PANEL_BORDER, 200), radius=14, width=1,
         )
-        event_time = self._clean(
-            notification.end_time or notification.start_time or ""
+        event_time = self._event_time_only(
+            notification.end_time
+            or notification.start_time
+            or ""
         )
         category = self._label(notification.category or "backup")
         metrics = [
@@ -272,38 +374,63 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             ("sync", "Category", category, self.ICON_BLUE),
             ("clock", "Event time", event_time, (194, 226, 242)),
         ]
-        content_width = right - x0
-        widths = [int(content_width * 0.28), int(content_width * 0.27)]
-        widths.append(content_width - sum(widths))
-        mx = x0 + 28
-        for index, ((icon, label, value, color), width) in enumerate(
-            zip(metrics, widths)
-        ):
-            self._draw_icon_badge(
-                draw, mx, metric_y + 18, 48, icon, color, status=status
+        cells = self._summary_cells(x0, right)
+        summary_icon_size = 54
+        summary_mid_y = metric_y + metric_h // 2
+        for index, (
+            (icon, label, value, color),
+            cell,
+        ) in enumerate(zip(metrics, cells)):
+            cell_x1, cell_x2 = cell
+            icon_y = self._center_y(
+                metric_y,
+                metric_y + metric_h,
+                summary_icon_size,
             )
-            label_x = mx + 66
+            self._draw_icon_badge(
+                draw,
+                cell_x1,
+                icon_y,
+                summary_icon_size,
+                icon,
+                color,
+                status=status,
+            )
+            label_x = cell_x1 + 74
             draw.text(
-                (label_x, metric_y + 23),
+                (label_x, summary_mid_y),
                 f"{label}:",
                 font=self.font_label,
                 fill=self.TEXT,
+                anchor="lm",
             )
-            label_w = draw.textlength(f"{label}:", font=self.font_label)
-            value_x = label_x + label_w + 12
-            self._fit_text_adaptive(
-                draw, value, value_x, metric_y + 24,
-                max(80, width - 84 - label_w),
-                (self.font_detail, self.font_small, self.font_tiny),
-                self.TEXT,
+            label_w = draw.textlength(
+                f"{label}:",
+                font=self.font_label,
+            )
+            value_x = label_x + label_w + 18
+            draw.text(
+                (value_x, summary_mid_y),
+                value,
+                font=self.font_detail,
+                fill=self.TEXT,
+                anchor="lm",
             )
             if index < 2:
-                line_x = mx + width - 10
+                next_left = cells[index + 1][0]
+                line_x = (
+                    cell_x2 + next_left
+                ) // 2
                 draw.line(
-                    (line_x, metric_y + 20, line_x, metric_y + metric_h - 20),
-                    fill=(102, 112, 119, 160), width=2,
+                    (
+                        line_x,
+                        metric_y + 22,
+                        line_x,
+                        metric_y + metric_h - 22,
+                    ),
+                    fill=(102, 112, 119, 160),
+                    width=2,
                 )
-            mx += width
 
         left_box = (
             x0, detail_y, x0 + left_width, detail_y + detail_h
@@ -354,15 +481,24 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             (x0, footer_y - 10, right, footer_y - 10),
             fill=(81, 89, 95, 170), width=2,
         )
-        icon_size = 48
+        icon_size = self.FOOTER_ICON_SIZE
         icon_x = x0 + 18
-        icon_y = footer_y + 8
-        self._draw_nowlert_icon(image, icon_x, icon_y, icon_size)
+        icon_y = footer_y + 18
+        self._draw_nowlert_icon(
+            image,
+            icon_x,
+            icon_y,
+            icon_size,
+        )
         draw.text(
-            (icon_x + icon_size + 14, footer_y + 12),
+            (
+                icon_x + icon_size + 18,
+                icon_y + icon_size // 2,
+            ),
             self.FOOTER_TEXT,
             font=self.font_small,
             fill=self.MUTED,
+            anchor="lm",
         )
 
         output = BytesIO()
@@ -449,7 +585,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
                 entry_width=max(180, right_width - entry_padding * 2),
             )
             return max(
-                330,
+                self.PAIRED_OUTCOME_MIN_HEIGHT,
                 self.VM_HEADER_HEIGHT
                 + max(successful_height, other_height)
                 + self.VM_PANEL_BOTTOM_PADDING,
