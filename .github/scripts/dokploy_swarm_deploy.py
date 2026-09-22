@@ -7,6 +7,7 @@ import argparse
 import re
 import sys
 import time
+from urllib.parse import urlsplit, urlunsplit
 
 import dokploy_release as shared
 
@@ -126,6 +127,54 @@ def verify_datadog_identity(application_id: str, expected: dict[str, str]) -> No
         f"service={expected['DD_SERVICE']} env={expected['DD_ENV']} "
         f"version={expected['DD_VERSION']}"
     )
+
+
+def teams_public_media(args: argparse.Namespace) -> dict[str, str]:
+    value = str(getattr(args, "health_url", "") or "").strip()
+    try:
+        parsed = urlsplit(value)
+    except ValueError as error:
+        raise DokployError(
+            "Development health URL cannot provide the Teams media origin"
+        ) from error
+
+    if (
+        parsed.scheme.casefold() != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+    ):
+        raise DokployError(
+            "Development health URL must be credential-free HTTPS"
+        )
+
+    origin = urlunsplit(
+        (parsed.scheme, parsed.netloc, "", "", "")
+    ).rstrip("/")
+    return {"NOWLERT_TEAMS_PUBLIC_BASE_URL": origin}
+
+
+def verify_teams_public_media(
+    application_id: str,
+    expected: dict[str, str],
+) -> None:
+    environment = application_environment(application_id)
+    observed = ""
+    for raw_line in environment.splitlines():
+        if "=" not in raw_line:
+            continue
+        key, value = raw_line.split("=", 1)
+        if key.strip() == "NOWLERT_TEAMS_PUBLIC_BASE_URL":
+            observed = value
+            break
+
+    wanted = expected["NOWLERT_TEAMS_PUBLIC_BASE_URL"]
+    if observed != wanted:
+        raise DokployError(
+            "Dokploy Teams public media origin mismatch: "
+            f"observed {observed!r}, expected {wanted!r}"
+        )
+    print(f"PASS: Teams public media origin {wanted}")
 
 
 def verify_datadog_runtime_security(
@@ -248,7 +297,12 @@ def deploy(args: argparse.Namespace) -> None:
 
     identity = datadog_identity(args)
     runtime_security = datadog_runtime_security(args)
-    managed_environment = {**identity, **runtime_security}
+    public_media = teams_public_media(args)
+    managed_environment = {
+        **identity,
+        **runtime_security,
+        **public_media,
+    }
     current_env = (
         application_environment(args.application_id) if managed_environment else ""
     )
@@ -309,6 +363,7 @@ def deploy(args: argparse.Namespace) -> None:
     print(f"PASS: Dokploy application image is exactly {observed}")
     verify_datadog_identity(args.application_id, identity)
     verify_datadog_runtime_security(args.application_id, runtime_security)
+    verify_teams_public_media(args.application_id, public_media)
 
 
 def build_parser() -> argparse.ArgumentParser:

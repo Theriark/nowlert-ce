@@ -24,7 +24,7 @@ from outputs.platform_common import (
     validate_outbound_url,
 )
 from outputs.settings import normalize_output_settings
-from outputs.teams import TeamsOutput
+from outputs.teams import TeamsModernImageUnavailable, TeamsOutput
 from storage.delivery import DeliveryResult
 from storage.destinations import Destination
 
@@ -341,12 +341,33 @@ class TeamsPlatformAdapter(_HTTPAdapter):
                 formatter.format(notification)
             )
         else:
-            payload, modern_image = self.output.modern_payload(
-                notification,
-                formatter,
-            )
-            if modern_image:
+            try:
+                payload, modern_image = self.output.modern_payload(
+                    notification,
+                    formatter,
+                )
                 formatter_name = "DiscordModernImageRenderer"
+            except TeamsModernImageUnavailable as error:
+                payload = {
+                    "error": "teams_modern_image_unavailable",
+                    "message": str(error),
+                }
+                payload_bytes = self.output.payload_size(payload)
+                return OutputPreview(
+                    "teams",
+                    "application/json",
+                    payload,
+                    {
+                        "formatter": "DiscordModernImageRenderer",
+                        "message_style": requested_style,
+                        "modern_image": False,
+                        "rendered_style": rendered_style,
+                        "payload_bytes": payload_bytes,
+                        "payload_limit_bytes": self.output.MAX_PAYLOAD_BYTES,
+                        "error_code": "teams_modern_image_unavailable",
+                        "safe_error": str(error),
+                    },
+                )
 
         payload_bytes = self.output.payload_size(payload)
         return OutputPreview(
@@ -366,9 +387,22 @@ class TeamsPlatformAdapter(_HTTPAdapter):
     def deliver(self, destination, secret_value, notification):
         try:
             preview = self.preview(destination, notification)
+        except ValueError:
+            return DeliveryResult(False, error_code="invalid_destination")
+
+        error_code = str(preview.metadata.get("error_code") or "")
+        if error_code:
+            return DeliveryResult(
+                False,
+                error_code=error_code,
+                safe_error=str(preview.metadata.get("safe_error") or ""),
+            )
+
+        try:
             url = self._url(secret_url(secret_value), destination.settings)
         except ValueError:
             return DeliveryResult(False, error_code="invalid_destination")
+
         payload_bytes = self.output.payload_size(preview.payload)
         if payload_bytes > self.output.MAX_PAYLOAD_BYTES:
             return DeliveryResult(

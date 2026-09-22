@@ -114,9 +114,44 @@ def test_generic_and_hpe_ilo_cards_use_small_public_https_icons():
         assert output.payload_size(payload) <= output.MAX_PAYLOAD_BYTES
 
 
-def test_platform_teams_rejects_oversized_payload_before_posting():
+def _platform_modern_payload():
+    return {
+        "type": "message",
+        "attachments": [
+            {
+                "contentType": (
+                    "application/vnd.microsoft.card.adaptive"
+                ),
+                "content": {
+                    "type": "AdaptiveCard",
+                    "version": "1.4",
+                    "body": [
+                        {
+                            "type": "Image",
+                            "url": (
+                                "https://nowlert.example.test/api/health"
+                                "?teams_modern_card="
+                                + ("a" * 48)
+                                + ".png"
+                            ),
+                        }
+                    ],
+                },
+            }
+        ],
+    }
+
+
+def test_platform_teams_rejects_oversized_payload_before_posting(
+    monkeypatch,
+):
     client = HTTPClient()
     adapter = TeamsPlatformAdapter(http_client=client, resolver=public_resolver)
+    monkeypatch.setattr(
+        adapter.output,
+        "modern_image_payload",
+        lambda _notification: _platform_modern_payload(),
+    )
     adapter.output.MAX_PAYLOAD_BYTES = 1
     result = adapter.deliver(destination(), b"https://example.com/teams-workflow", notification())
     assert result.success is False
@@ -141,9 +176,16 @@ def test_legacy_teams_rejects_oversized_payload_before_posting(monkeypatch):
     assert calls == []
 
 
-def test_http_202_is_accepted_but_webui_does_not_claim_delivery():
+def test_http_202_is_accepted_but_webui_does_not_claim_delivery(
+    monkeypatch,
+):
     client = HTTPClient(status_code=202)
     adapter = TeamsPlatformAdapter(http_client=client, resolver=public_resolver)
+    monkeypatch.setattr(
+        adapter.output,
+        "modern_image_payload",
+        lambda _notification: _platform_modern_payload(),
+    )
     result = adapter.deliver(destination(), b"https://example.com/teams-workflow", notification())
     script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
     assert result.success is True
