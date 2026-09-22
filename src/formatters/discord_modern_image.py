@@ -1786,7 +1786,11 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
 class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     """Render Zabbix with the exact frozen Xen Orchestra visual metrics."""
 
-    WIDTH = XenOrchestraDiscordImageRenderer.WIDTH
+    DISCORD_WIDTH_COMPENSATION = 32
+    WIDTH = (
+        XenOrchestraDiscordImageRenderer.WIDTH
+        + DISCORD_WIDTH_COMPENSATION
+    )
     MIN_HEIGHT = XenOrchestraDiscordImageRenderer.SUCCESS_BASE_HEIGHT
     BASE_HEIGHT = XenOrchestraDiscordImageRenderer.SUCCESS_BASE_HEIGHT
     CARD_SIDE_PADDING = XenOrchestraDiscordImageRenderer.CARD_SIDE_PADDING
@@ -1795,7 +1799,12 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     FOOTER_ICON_SIZE = XenOrchestraDiscordImageRenderer.FOOTER_ICON_SIZE
     STATUS_BADGE_WIDTH = XenOrchestraDiscordImageRenderer.STATUS_BADGE_WIDTH
     STATUS_BADGE_HEIGHT = XenOrchestraDiscordImageRenderer.STATUS_BADGE_HEIGHT
-    SUMMARY_CELL_GAP = XenOrchestraDiscordImageRenderer.SUMMARY_CELL_GAP
+    SUMMARY_CELL_GAP = (
+        XenOrchestraDiscordImageRenderer.SUMMARY_CELL_GAP
+        + 8
+    )
+    SUMMARY_LABEL_OFFSET = 78
+    SUMMARY_VALUE_GAP = 20
     HEADER_ICON_SIZE = XenOrchestraDiscordImageRenderer.XO_HEADER_ICON_SIZE
 
     HEADER_Y = 82
@@ -2586,7 +2595,7 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
                 color,
                 status=status,
             )
-            label_x = cell_x1 + 74
+            label_x = cell_x1 + self.SUMMARY_LABEL_OFFSET
             draw.text(
                 (label_x, summary_mid_y),
                 f"{label}:",
@@ -2600,7 +2609,7 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
             )
             draw.text(
                 (
-                    label_x + label_width + 18,
+                    label_x + label_width + self.SUMMARY_VALUE_GAP,
                     summary_mid_y,
                 ),
                 value,

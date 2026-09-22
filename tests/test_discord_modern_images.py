@@ -136,7 +136,7 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     assert image is not None
     assert image.startswith(b"\x89PNG\r\n\x1a\n")
     with Image.open(BytesIO(image)) as rendered:
-        expected_width = 2000 if source == "zabbix" else 1448
+        expected_width = 2032 if source == "zabbix" else 1448
         expected_min_height = (
             output.zabbix_modern_image_renderer.MIN_HEIGHT
             if source == "zabbix"
@@ -728,7 +728,7 @@ def test_zabbix_modern_matches_frozen_xo_typography_and_scale(tmp_path):
     xo = XenOrchestraDiscordImageRenderer(tmp_path)
     fonts = zabbix._modern_fonts_for("xo_match")
 
-    assert zabbix.WIDTH == 2000
+    assert zabbix.WIDTH == 2032
     assert zabbix.MODERN_MIN_HEIGHT == 1600
     assert fonts["heading"].size == xo.font_heading.size
     assert fonts["title"].size == xo.font_title.size
@@ -788,7 +788,7 @@ def test_discord_output_routes_only_zabbix_to_xo_scaled_renderer(tmp_path):
     )
 
     with Image.open(BytesIO(zabbix_image)) as image:
-        assert image.width == 2000
+        assert image.width == 2032
         assert image.height >= 1600
     with Image.open(BytesIO(grafana_image)) as image:
         assert image.width == 1448
@@ -833,21 +833,26 @@ def test_zabbix_standard_cards_match_xo_canvas_size(
     image = output.render_modern_image(item, formatter)
 
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.size == (2000, 1600)
+        assert rendered.size == (2032, 1600)
 
 
 def test_zabbix_uses_exact_xo_visual_metrics(tmp_path):
     zabbix = ZabbixDiscordModernImageRenderer(tmp_path)
     xo = XenOrchestraDiscordImageRenderer(tmp_path)
 
-    assert zabbix.WIDTH == xo.WIDTH == 2000
+    assert xo.WIDTH == 2000
+    assert zabbix.DISCORD_WIDTH_COMPENSATION == 32
+    assert zabbix.WIDTH == xo.WIDTH + 32 == 2032
     assert zabbix.BASE_HEIGHT == xo.SUCCESS_BASE_HEIGHT == 1600
     assert zabbix.CARD_SIDE_PADDING == xo.CARD_SIDE_PADDING == 78
     assert zabbix.FOOTER_RESERVE == xo.FOOTER_RESERVE == 180
     assert zabbix.FOOTER_ICON_SIZE == xo.FOOTER_ICON_SIZE == 96
     assert zabbix.STATUS_BADGE_WIDTH == xo.STATUS_BADGE_WIDTH == 560
     assert zabbix.STATUS_BADGE_HEIGHT == xo.STATUS_BADGE_HEIGHT == 128
-    assert zabbix.SUMMARY_CELL_GAP == xo.SUMMARY_CELL_GAP == 48
+    assert xo.SUMMARY_CELL_GAP == 48
+    assert zabbix.SUMMARY_CELL_GAP == 56
+    assert zabbix.SUMMARY_LABEL_OFFSET == 78
+    assert zabbix.SUMMARY_VALUE_GAP == 20
     assert zabbix.HEADER_ICON_SIZE == xo.XO_HEADER_ICON_SIZE == 144
     assert zabbix.BADGE_ICON_SIZE == 64
     assert zabbix.SUMMARY_ICON_SIZE == 54
@@ -1004,7 +1009,7 @@ def test_zabbix_live_reference_renders_exact_xo_display_size(tmp_path):
     )
 
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.size == (2000, 1600)
+        assert rendered.size == (2032, 1600)
 
 
 def test_zabbix_long_extra_content_can_still_expand(tmp_path):
@@ -1038,7 +1043,7 @@ def test_zabbix_long_extra_content_can_still_expand(tmp_path):
     )
 
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.width == 2000
+        assert rendered.width == 2032
         assert rendered.height > 1600
 
 
@@ -1121,4 +1126,86 @@ def test_zabbix_standard_live_card_still_matches_xo_outer_size_after_polish(tmp_
     )
 
     with Image.open(BytesIO(image)) as rendered:
-        assert rendered.size == (2000, 1600)
+        assert rendered.size == (2032, 1600)
+
+
+
+def test_zabbix_summary_cells_keep_xo_icons_with_more_breathing_room(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    cells = renderer._summary_cells(
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+    )
+
+    # XO renders this summary icon at a hard-coded 54px.
+    assert renderer.SUMMARY_ICON_SIZE == 54
+    assert cells[1][0] - cells[0][1] == 56
+    assert cells[2][0] - cells[1][1] == 56
+    assert renderer.SUMMARY_LABEL_OFFSET == 78
+    assert renderer.SUMMARY_VALUE_GAP == 20
+
+
+def test_zabbix_four_standard_boxes_expand_for_long_information(tmp_path):
+    renderer = ZabbixDiscordModernImageRenderer(tmp_path)
+    details, outcomes = _zabbix_live_reference_panels()
+
+    long_problem = " ".join(["replication_diagnostic"] * 90)
+    long_trigger = " ".join(["trigger_expression"] * 70)
+    long_response = " ".join(["runbook_context"] * 70)
+    long_event = " ".join(["event_detail"] * 90)
+
+    details[0]["rows"][3]["value"] = long_problem
+    details[1]["rows"][0]["value"] = long_trigger
+    details[2]["rows"].append(
+        {
+            "label": "Context:",
+            "value": long_response,
+            "icon": "list",
+        }
+    )
+    outcomes[0]["rows"][0]["value"] = long_event
+
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    content_y = 500
+    panels, content_bottom = renderer._zabbix_content_plan(
+        draw,
+        details,
+        outcomes,
+        renderer.CARD_SIDE_PADDING,
+        renderer.WIDTH - renderer.CARD_SIDE_PADDING,
+        content_y,
+    )
+    target_bottom = (
+        renderer.BASE_HEIGHT
+        - renderer.FOOTER_RESERVE
+        - renderer.FOOTER_GAP
+    )
+    unchanged, filled_bottom = renderer._zabbix_fill_standard_rows(
+        panels,
+        content_y,
+        target_bottom,
+    )
+
+    assert filled_bottom is None
+    assert unchanged == panels
+    assert content_bottom > target_bottom
+    assert all(panel["height"] > 120 for panel in panels)
+
+    image = renderer._render_standard_card(
+        source="zabbix",
+        integration="Zabbix",
+        context="VM-08 | Zabbix Server",
+        badge="Failure",
+        title="PostgreSQL replication lag exceeds 120 seconds",
+        severity="High",
+        category="Monitoring",
+        event_time="2026-09-22 09:47:18 UTC",
+        details=details,
+        outcomes=outcomes,
+        accent=renderer.FAILURE,
+        status="failure",
+    )
+
+    with Image.open(BytesIO(image)) as rendered:
+        assert rendered.width == 2032
+        assert rendered.height > 1600
