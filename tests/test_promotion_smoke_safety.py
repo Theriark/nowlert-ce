@@ -60,7 +60,8 @@ def test_automatic_stage_promotion_has_zero_active_delivery_test_paths() -> None
     folded = content.casefold()
     assert "promotion-smoke" in content
     assert "external notification delivery during promotion: disabled" in folded
-    assert "--evidence-type silent-promotion-smoke" in content
+    assert "aws-actions/configure-aws-credentials" not in content
+    assert "ledger.py" not in content
     for value in forbidden:
         assert value not in folded, value
 
@@ -125,7 +126,8 @@ def test_release_finalization_requires_stage_silent_gate_only() -> None:
     assert "production_reference" not in finalizer.casefold()
     assert "production_reference_run_id" not in workflow
     assert "CE_PRODREF_APPLICATION_ID" not in workflow
-    assert "--environment stage" in workflow
+    assert "aws-actions/configure-aws-credentials" not in workflow
+    assert "ledger.py" not in workflow
     assert "Notification delivery tests during Stage promotion: disabled" in workflow
 
 
