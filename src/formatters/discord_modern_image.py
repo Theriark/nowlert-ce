@@ -3044,6 +3044,12 @@ class ProxmoxDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
 class QNAPDiscordModernImageRenderer(GrafanaDiscordModernImageRenderer):
     """Render QNAP cards on the frozen Grafana/Zabbix/XO baseline."""
 
+    # QNAP's Information severity is wider than the common Warning/Error
+    # values, so keep Category readable and push Event time into the same
+    # clean alignment used by the approved standardized cards.
+    SUMMARY_FIRST_CELL_RATIO = 0.27
+    SUMMARY_SECOND_CELL_RATIO = 0.36
+
     QNAP_XO_SECTION_ICONS = {
         "qnap nas": "repository",
         "event details": "list",
