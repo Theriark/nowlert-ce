@@ -1807,6 +1807,26 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     SUMMARY_ICON_SIZE = 54
     BADGE_ICON_SIZE = 64
     PANEL_TITLE_STATUS_ICON_SIZE = 54
+    PANEL_TITLE_ICON_SIZE = 54
+
+    ZABBIX_XO_SECTION_ICONS = {
+        "problem": "list",
+        "trigger": "chart",
+        "response": "clock",
+    }
+    ZABBIX_XO_FIELD_ICONS = {
+        "host": "repository",
+        "severity": "status",
+        "operational data": "chart",
+        "problem id": "list",
+        "trigger": "chart",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+        "runbook": "list",
+    }
 
     # Compatibility flags retained for the generic renderer API, but this
     # class uses its own XO-exact drawing path below.
@@ -1822,6 +1842,111 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     def _zabbix_line_height(font) -> int:
         return max(font.size + 8, sum(font.getmetrics()))
 
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        return self.ZABBIX_XO_SECTION_ICONS.get(
+            self._clean(title).casefold(),
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.ZABBIX_XO_FIELD_ICONS:
+            return self.ZABBIX_XO_FIELD_ICONS[key]
+
+        panel_key = self._clean(panel_title).casefold()
+        value_key = self._clean(value).casefold()
+        if panel_key == "trigger":
+            return "chart"
+        if panel_key == "response":
+            if "runbook" in value_key:
+                return "list"
+            if any(token in value_key for token in ("started", "updated", "resolved", "finished")):
+                return "flag"
+        if fallback in {
+            "cube",
+            "rocket",
+            "clock",
+            "list",
+            "repository",
+            "play",
+            "flag",
+            "chart",
+            "disk",
+            "alert",
+            "info",
+            "status",
+        }:
+            return fallback
+        return "list"
+
+    def _zabbix_fill_standard_rows(
+        self,
+        panels,
+        content_y: int,
+        target_bottom: int,
+    ):
+        """Use all XO baseline content space without changing font sizes."""
+
+        if len(panels) != 4:
+            return panels, None
+
+        row_ys = sorted({panel["y"] for panel in panels})
+        if len(row_ys) != 2:
+            return panels, None
+
+        rows = [
+            [panel for panel in panels if panel["y"] == row_y]
+            for row_y in row_ys
+        ]
+        if any(len(row) != 2 for row in rows):
+            return panels, None
+
+        row_heights = [
+            max(panel["height"] for panel in row)
+            for row in rows
+        ]
+        natural_total = (
+            row_heights[0]
+            + self.CONTENT_GAP
+            + row_heights[1]
+        )
+        available = target_bottom - content_y
+        if natural_total > available:
+            return panels, None
+
+        extra = available - natural_total
+        first_extra = extra // 2
+        second_extra = extra - first_extra
+        stretched = []
+        first_height = row_heights[0] + first_extra
+        second_height = row_heights[1] + second_extra
+        second_y = content_y + first_height + self.CONTENT_GAP
+
+        for panel in rows[0]:
+            stretched.append(
+                {
+                    **panel,
+                    "y": content_y,
+                    "height": first_height,
+                }
+            )
+        for panel in rows[1]:
+            stretched.append(
+                {
+                    **panel,
+                    "y": second_y,
+                    "height": second_height,
+                }
+            )
+
+        return stretched, target_bottom
+
     def _zabbix_measure_panel(self, draw, panel, width):
         """Measure a Zabbix section using XO fonts without shrinking text."""
 
@@ -1829,6 +1954,7 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
         paint = []
         title = self._clean(panel.get("title") or "")
         accent = panel.get("accent")
+        panel_title = title
         if title:
             title_width = max(160, width - 118)
             title_lines = (
@@ -1842,7 +1968,11 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
             )
             title_line_height = self._zabbix_line_height(self.font_bold)
             title_height = max(
-                self.PANEL_TITLE_STATUS_ICON_SIZE if accent else self.DETAIL_ICON_SIZE,
+                (
+                    self.PANEL_TITLE_STATUS_ICON_SIZE
+                    if accent
+                    else self.PANEL_TITLE_ICON_SIZE
+                ),
                 len(title_lines) * title_line_height,
             )
             paint.append(
@@ -1860,7 +1990,12 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
             label = self._clean(row.get("label") or "")
             value = self._clean(row.get("value") or "") or "—"
             color = row.get("color") or self.TEXT
-            icon = row.get("icon")
+            icon = self._zabbix_xo_field_icon(
+                panel_title,
+                label,
+                value,
+                row.get("icon"),
+            )
 
             if role == "label" and not label:
                 lines = (
@@ -1885,9 +2020,9 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
                 y += len(lines) * line_height + 8
                 continue
 
-            icon_space = self.DETAIL_ICON_SIZE + 18 if icon else 0
-            text_x = 24 + icon_space
-            available = max(180, width - text_x - 24)
+            icon_space = self.DETAIL_ICON_SIZE + 20 if icon else 0
+            text_x = 28 + icon_space
+            available = max(180, width - text_x - 28)
             body_line_height = self._zabbix_line_height(self.font_detail)
             label_line_height = self._zabbix_line_height(self.font_label)
 
@@ -2099,11 +2234,13 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
                     self._draw_field_icon(
                         draw,
                         x1 + 24,
-                        py + 3,
-                        self.DETAIL_ICON_SIZE,
-                        self._section_icon(panel.get("title") or ""),
+                        py,
+                        self.PANEL_TITLE_ICON_SIZE,
+                        self._zabbix_xo_section_icon(
+                            panel.get("title") or ""
+                        ),
                     )
-                    title_x = x1 + 84
+                    title_x = x1 + 98
                     title_color = self.LABEL
                 for index, line in enumerate(item["lines"]):
                     draw.text(
@@ -2131,7 +2268,16 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
                 continue
 
             icon = item.get("icon")
-            if icon:
+            if icon == "status":
+                self._status_icon(
+                    draw,
+                    x1 + 24,
+                    py + 2,
+                    self.DETAIL_ICON_SIZE,
+                    status,
+                    accent,
+                )
+            elif icon:
                 self._draw_field_icon(
                     draw,
                     x1 + 24,
@@ -2271,6 +2417,15 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
         )
 
         baseline_footer_y = self.BASE_HEIGHT - self.FOOTER_RESERVE
+        standard_target_bottom = baseline_footer_y - self.FOOTER_GAP
+        panels, filled_bottom = self._zabbix_fill_standard_rows(
+            panels,
+            content_y,
+            standard_target_bottom,
+        )
+        if filled_bottom is not None:
+            content_bottom = filled_bottom
+
         required_footer_y = content_bottom + self.FOOTER_GAP
         footer_y = max(baseline_footer_y, required_footer_y)
         height = max(
