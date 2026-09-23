@@ -200,11 +200,8 @@ def notification(source: str) -> Notification:
     return item
 
 
-@pytest.mark.parametrize(("source", "_legacy_signature"), SOURCE_SIGNATURES)
-def test_classic_adapter_uses_shared_rich_layout_without_ai(
-    source: str,
-    _legacy_signature: str,
-):
+@pytest.mark.parametrize(("source", "signature"), SOURCE_SIGNATURES)
+def test_classic_embed_v1_uses_ee_source_layout_without_ai(source: str, signature: str):
     preview = DiscordPlatformAdapter().preview(
         destination(components_v2=False),
         notification(source),
@@ -223,25 +220,7 @@ def test_classic_adapter_uses_shared_rich_layout_without_ai(
         ]
     )
 
-    assert names[:3] == [
-        "⚠️ Severity",
-        (
-            "🔄 Category"
-            if notification(source).category == "backup"
-            else "💾 Category"
-            if notification(source).category == "storage"
-            else "🌐 Category"
-            if notification(source).category == "network"
-            else "🛡️ Category"
-            if notification(source).category == "security"
-            else "⚙️ Category"
-            if notification(source).category == "hardware"
-            else "📁 Category"
-        ),
-        "🕒 Event time",
-    ], source
-    assert "🧾 Event details" in names, source
-    assert f"Synthetic {source} operational detail." in flattened, source
+    assert signature in names, source
     assert embed["footer"] == {"text": CLASSIC_FOOTER}, source
     assert "Nowlert AI" not in flattened, source
     assert "Insight" not in names, source
@@ -249,32 +228,32 @@ def test_classic_adapter_uses_shared_rich_layout_without_ai(
     assert "Recommended Action" not in names, source
 
 
-def test_classic_adapter_xo_uses_rich_shared_geometry():
+def test_classic_embed_v1_xo_uses_compact_ce_geometry():
     preview = DiscordPlatformAdapter().preview(
         destination(components_v2=False),
         notification("xo"),
     )
-    embed = preview.payload["embeds"][0]
-    fields = embed["fields"]
+    fields = preview.payload["embeds"][0]["fields"]
     names = [field["name"] for field in fields]
-    rendered = repr(embed)
+    values = {field["name"]: field["value"] for field in fields}
 
-    assert names[:3] == [
-        "⚠️ Severity",
-        "🔄 Category",
-        "🕒 Event time",
+    assert names == [
+        "⏱️ Duration",
+        "📦 Transfer Size",
+        "🚀 Transfer Speed",
+        "📁 Storage",
+        "✅ Successful VMs · 2",
+        "❌ Failed VMs · 1",
+        "🆔 Job ID",
     ]
-    assert "🧾 Event details" in names
-    assert "SYNTHETIC-REPOSITORY" in rendered
-    assert "52.06 GiB" in rendered
-    assert "33.73 MiB/s" in rendered
-    assert "Synthetic timeout" in rendered
-    assert "VM-OK-1" in rendered
-    assert "VM-FAILED" in rendered
-    assert embed["thumbnail"]["url"].endswith(
-        "/discord/xen-orchestra.png"
-    )
-    assert embed["footer"] == {"text": CLASSIC_FOOTER}
+    assert values["📁 Storage"] == "`SYNTHETIC-REPOSITORY · Full`"
+    assert "30 MiB/s" not in values["✅ Successful VMs · 2"]
+    assert "29 MiB/s" not in values["✅ Successful VMs · 2"]
+    assert "Synthetic timeout" in values["❌ Failed VMs · 1"]
+    assert "⏱️ Timing" not in names
+    assert "📧 Email" not in names
+    assert "✉️ Subject" not in names
+    assert "🔢 Job Details" not in names
 
 
 def test_components_v2_bypasses_classic_embed_v1():
