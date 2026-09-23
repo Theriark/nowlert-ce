@@ -10,6 +10,7 @@
     destinations: "Configure delivery targets for Discord, Microsoft Teams, Slack, and generic webhooks.",
     filtering: "Control which notifications can reach each destination.",
     deliveries: "Review final delivery outcomes, retries, response status, and safe transport errors for routed events.",
+    "email-alerts": "Connect mailboxes, organise alert groups, classify messages with rules, and review email processing activity.",
     audit: "Review security-relevant actions, health checks, outcomes, and operational details.",
     backups: "Configure backup destinations, schedules, snapshots, restore operations, and portable configuration.",
     tokens: "Allow external applications to submit events to /api/v2/events.",
@@ -191,6 +192,8 @@
       nodes.push(document.getElementById("add-destination-button"));
     } else if (view === "filtering") {
       nodes.push(document.getElementById("add-filter-button"));
+    } else if (view === "email-alerts") {
+      nodes.push(document.getElementById("email-primary-action"));
     } else if (view === "audit") {
       nodes.push(section?.querySelector('[data-action="run-health-checks"]'));
     } else if (view === "tokens") {

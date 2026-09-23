@@ -79,16 +79,20 @@ function emailRuleName(id) {
 function emailPrimaryAction() {
   const button = byId("email-primary-action");
   if (!button) return;
+  const overviewAction = emailAlertsState.mailboxes.length
+    ? ["Add rule", "new-rule"]
+    : ["Connect mailbox", "new-mailbox"];
   const actions = {
-    overview: ["Add rule", "new-rule"],
+    overview: overviewAction,
     groups: ["Add group", "new-group"],
     rules: ["Add rule", "new-rule"],
-    mailboxes: ["Add mailbox", "new-mailbox"],
+    mailboxes: ["Connect mailbox", "new-mailbox"],
     activity: ["Refresh", "refresh"],
   };
   const [label, action] = actions[emailAlertsState.tab] || actions.overview;
   button.textContent = label;
   button.dataset.emailAction = action;
+  button.hidden = false;
 }
 
 function emailSetTab(tab) {
@@ -142,6 +146,7 @@ async function emailLoad(force = false) {
 function emailRender() {
   const root = byId("email-alerts-root");
   if (!root) return;
+  emailPrimaryAction();
   if (!emailAlertsState.loaded) {
     root.replaceChildren();
     return;
@@ -187,7 +192,7 @@ function emailRenderOverview() {
 
   const mailboxHealth = element("div", { className: "email-overview-list" });
   if (!emailAlertsState.mailboxes.length) {
-    empty(mailboxHealth, "No mailboxes connected", "Add Gmail, Microsoft 365, or IMAP to start receiving email metadata.");
+    mailboxHealth.replaceChildren(emailMailboxEmptyState(true));
   } else {
     for (const mailbox of emailAlertsState.mailboxes.slice(0, 6)) {
       mailboxHealth.append(
@@ -369,10 +374,39 @@ function emailProviderLabel(provider) {
   }[provider] || provider;
 }
 
+function emailMailboxConnectButton(provider, label, primary = false) {
+  return element("button", {
+    className: `button ${primary ? "primary" : "secondary"}`,
+    text: label,
+    type: "button",
+    dataset: {
+      emailAction: "new-mailbox",
+      provider,
+    },
+  });
+}
+
+function emailMailboxEmptyState(compact = false) {
+  return element("div", {
+    className: `empty-state email-mailbox-connect-empty${compact ? " compact" : ""}`,
+  }, [
+    element("strong", { text: "No mailboxes connected" }),
+    element("span", {
+      text: "Connect a mailbox so Nowlert can synchronize alert metadata and classify incoming messages.",
+    }),
+    element("div", { className: "email-mailbox-connect-actions" }, [
+      emailMailboxConnectButton("gmail", "Connect Gmail", true),
+      emailMailboxConnectButton("microsoft_365", "Connect Microsoft 365"),
+      emailMailboxConnectButton("imap", "Connect IMAP / IMAPS"),
+    ]),
+  ]);
+}
+
 function emailRenderMailboxes() {
   const container = element("div", { className: "email-card-grid" });
   if (!emailAlertsState.mailboxes.length) {
-    empty(container, "No mailboxes connected", "Connect Gmail, Microsoft 365, or an IMAP/IMAPS mailbox.");
+    container.classList.add("email-mailbox-connect-grid");
+    container.replaceChildren(emailMailboxEmptyState(false));
     return container;
   }
   for (const mailbox of emailAlertsState.mailboxes) {
@@ -777,11 +811,21 @@ function emailEnsureDialogs() {
         emailLabel("Username", element("input", { attributes: { id: "email-imap-username", autocomplete: "username" } })),
         emailLabel("Password / app password", element("input", { type: "password", attributes: { id: "email-imap-password", autocomplete: "new-password" } })),
       ]),
+      element("p", {
+        className: "email-mailbox-provider-hint",
+        attributes: { id: "email-mailbox-provider-hint" },
+        text: "After saving this connection, Nowlert redirects you to Google to sign in and grant read-only Gmail access.",
+      }),
       element("p", { className: "email-mailbox-security-note", text: "OAuth and IMAP credentials are submitted once to Nowlert and stored only through the platform SecretStore. They are never returned by this API." }),
       element("p", { className: "form-error", attributes: { id: "email-mailbox-error", role: "alert" }, hidden: true }),
       element("div", { className: "modal-actions" }, [
         element("button", { className: "button secondary", text: "Cancel", type: "button", dataset: { emailAction: "close-dialog", dialog: "email-mailbox-dialog" } }),
-        element("button", { className: "button primary", text: "Add mailbox", type: "submit" }),
+        element("button", {
+          className: "button primary",
+          text: "Continue to Google",
+          type: "submit",
+          attributes: { id: "email-mailbox-submit" },
+        }),
       ]),
     ]);
     dialog.append(form);
@@ -982,10 +1026,47 @@ async function emailSaveSeverity(event) {
 
 function emailMailboxProviderFields() {
   const provider = byId("email-mailbox-provider")?.value || "gmail";
-  byId("email-oauth-fields").hidden = provider === "imap";
+  const oauth = provider !== "imap";
+  byId("email-oauth-fields").hidden = !oauth;
   byId("email-imap-fields").hidden = provider !== "imap";
   byId("email-gmail-settings").hidden = provider !== "gmail";
   byId("email-microsoft-settings").hidden = provider !== "microsoft_365";
+
+  for (const id of ["email-oauth-client-id", "email-oauth-client-secret"]) {
+    const input = byId(id);
+    if (!input) continue;
+    input.disabled = !oauth;
+    input.required = oauth;
+  }
+  const redirect = byId("email-oauth-redirect");
+  if (redirect) {
+    redirect.disabled = !oauth;
+    redirect.required = oauth;
+  }
+  for (const id of ["email-imap-host", "email-imap-username", "email-imap-password"]) {
+    const input = byId(id);
+    if (!input) continue;
+    input.disabled = provider !== "imap";
+    input.required = provider === "imap";
+  }
+
+  const hint = byId("email-mailbox-provider-hint");
+  if (hint) {
+    hint.textContent = provider === "gmail"
+      ? "After saving this connection, Nowlert redirects you to Google to sign in and grant read-only Gmail access."
+      : provider === "microsoft_365"
+        ? "After saving this connection, Nowlert redirects you to Microsoft to sign in and grant read-only Mail access."
+        : "Nowlert connects directly to the IMAP/IMAPS server with the username and password or app password below.";
+  }
+  const submit = byId("email-mailbox-submit");
+  if (submit) {
+    submit.textContent = provider === "gmail"
+      ? "Continue to Google"
+      : provider === "microsoft_365"
+        ? "Continue to Microsoft"
+        : "Connect mailbox";
+  }
+
   if (provider === "imap") {
     const security = byId("email-imap-security").value;
     byId("email-imap-port").value = security === "ssl" ? "993" : "143";
@@ -1063,10 +1144,13 @@ function emailOpenRule(rule = null) {
   byId("email-rule-name").focus();
 }
 
-function emailOpenMailbox() {
+function emailOpenMailbox(provider = "gmail") {
   emailEnsureDialogs();
+  const selectedProvider = ["gmail", "microsoft_365", "imap"].includes(provider)
+    ? provider
+    : "gmail";
   byId("email-mailbox-form").reset();
-  byId("email-mailbox-provider").value = "gmail";
+  byId("email-mailbox-provider").value = selectedProvider;
   byId("email-gmail-label").value = "INBOX";
   byId("email-microsoft-tenant").value = "common";
   byId("email-microsoft-folder").value = "inbox";
@@ -1077,6 +1161,7 @@ function emailOpenMailbox() {
   byId("email-mailbox-error").hidden = true;
   emailMailboxProviderFields();
   byId("email-mailbox-dialog").showModal();
+  byId("email-mailbox-address")?.focus();
 }
 
 function emailReadConditions() {
@@ -1208,7 +1293,7 @@ async function emailAction(action, id, node) {
   try {
     if (action === "new-group") return emailOpenGroup();
     if (action === "new-rule") return emailOpenRule();
-    if (action === "new-mailbox") return emailOpenMailbox();
+    if (action === "new-mailbox") return emailOpenMailbox(node?.dataset.provider || "gmail");
     if (action === "refresh") return emailLoad(true);
     if (action === "close-dialog") {
       byId(node.dataset.dialog)?.close();
