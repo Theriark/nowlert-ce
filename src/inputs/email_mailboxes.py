@@ -27,7 +27,7 @@ from urllib.parse import quote, urlencode, urlsplit
 import requests
 
 from email_alert_pipeline import EmailAlertProcessor
-from environment import first_environment
+from environment import first_environment, secret_environment
 from email_security import build_email_preview
 from storage.audit_events import AuditEventStore
 from storage.database import Database
@@ -84,8 +84,12 @@ def email_oauth_applications(configuration=None, *, environment=None) -> dict:
                 or ""
             ).strip(),
             "client_secret": str(
-                first_environment(
+                secret_environment(
                     f"NOWLERT_EMAIL_{prefix}_CLIENT_SECRET",
+                    default_file=(
+                        "/run/secrets/"
+                        f"nowlert_email_{prefix.casefold()}_client_secret"
+                    ),
                     default="",
                     environment=environment,
                 )

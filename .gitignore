@@ -10,6 +10,7 @@ state/
 # Local config with secrets
 config/config.yaml
 .env
+secrets/
 
 # Python
 __pycache__/
