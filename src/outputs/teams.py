@@ -18,11 +18,6 @@ from config import config
 from outputs.discord import DiscordOutput
 from outputs.teams_modern_image import publish_teams_modern_image
 from formatters.teams import TeamsFormatter
-from formatters.teams_classic_v1 import (
-    TeamsClassicFormatter,
-    TeamsClassicPrometheusFormatter,
-    TeamsClassicXenOrchestraFormatter,
-)
 from formatters.teams_generic import GenericTeamsFormatter
 from formatters.teams_grafana import GrafanaTeamsFormatter
 from formatters.teams_hardware import (
@@ -93,33 +88,48 @@ class TeamsOutput:
     def __init__(self):
 
         self.default_formatter = GenericTeamsFormatter()
+        self.classic_formatter = GenericTeamsFormatter(
+            card_style="classic"
+        )
         self.discord_modern_output = DiscordOutput()
 
-        self.source_formatters = {
-            "xo": TeamsFormatter(),
-            "grafana": GrafanaTeamsFormatter(),
-            "portainer": PortainerTeamsFormatter(),
-            "prometheus": PrometheusTeamsFormatter(),
-            "proxmox": ProxmoxTeamsFormatter(),
-            "qnap": QNAPTeamsFormatter(),
-            "synology": SynologyTeamsFormatter(),
-            "truenas": TrueNASTeamsFormatter(),
-            "unifi_drive": UniFiDriveTeamsFormatter(),
-            "unifi_network": UniFiNetworkTeamsFormatter(),
-            "unifi_protect": UniFiProtectTeamsFormatter(),
-            "zabbix": ZabbixTeamsFormatter(),
-            "redfish": RedfishTeamsFormatter(),
-            "supermicro": SupermicroTeamsFormatter(),
-            "hpe_ilo": HPEILOTeamsFormatter(),
-            "dell_idrac": DellIDRACTeamsFormatter(),
-            "home_assistant": HomeAssistantTeamsFormatter(),
-        }
+        self.source_formatters = self._build_source_formatters()
+        self.classic_source_formatters = self._build_source_formatters(
+            card_style="classic"
+        )
 
-        self.classic_source_formatters = {
-            "prometheus": TeamsClassicPrometheusFormatter(),
-            "xo": TeamsClassicXenOrchestraFormatter(),
+    @staticmethod
+    def _build_source_formatters(
+        *,
+        card_style: str = "modern",
+    ) -> dict[str, object]:
+        """Build isolated native formatter instances for one Teams style."""
+
+        return {
+            "xo": TeamsFormatter(card_style=card_style),
+            "grafana": GrafanaTeamsFormatter(card_style=card_style),
+            "portainer": PortainerTeamsFormatter(card_style=card_style),
+            "prometheus": PrometheusTeamsFormatter(card_style=card_style),
+            "proxmox": ProxmoxTeamsFormatter(card_style=card_style),
+            "qnap": QNAPTeamsFormatter(card_style=card_style),
+            "synology": SynologyTeamsFormatter(card_style=card_style),
+            "truenas": TrueNASTeamsFormatter(card_style=card_style),
+            "unifi_drive": UniFiDriveTeamsFormatter(card_style=card_style),
+            "unifi_network": UniFiNetworkTeamsFormatter(
+                card_style=card_style
+            ),
+            "unifi_protect": UniFiProtectTeamsFormatter(
+                card_style=card_style
+            ),
+            "zabbix": ZabbixTeamsFormatter(card_style=card_style),
+            "redfish": RedfishTeamsFormatter(card_style=card_style),
+            "supermicro": SupermicroTeamsFormatter(card_style=card_style),
+            "hpe_ilo": HPEILOTeamsFormatter(card_style=card_style),
+            "dell_idrac": DellIDRACTeamsFormatter(card_style=card_style),
+            "home_assistant": HomeAssistantTeamsFormatter(
+                card_style=card_style
+            ),
         }
-        self.classic_formatter = TeamsClassicFormatter()
 
     def modern_image_payload(
         self,

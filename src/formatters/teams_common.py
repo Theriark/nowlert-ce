@@ -42,9 +42,17 @@ class TeamsCardData:
 
 
 class TeamsCardFormatter(BaseFormatter):
-    """Render normalized integration data using one Teams Modern card layout."""
+    """Render normalized integration data using one native Teams card layout."""
 
     MODERN_FOOTER = "Nowlert CE • Modern Card"
+    CLASSIC_FOOTER = "Nowlert CE • Classic Card"
+    CARD_STYLES = {"modern", "classic"}
+
+    def __init__(self, *, card_style: str = "modern") -> None:
+        normalized = str(card_style or "modern").strip().casefold()
+        if normalized not in self.CARD_STYLES:
+            raise ValueError("Teams card_style must be modern or classic")
+        self.card_style = normalized
 
     def _render_teams_card(self, data: TeamsCardData) -> dict[str, Any]:
         status_icon, color, default_state = self._teams_status(
@@ -164,7 +172,7 @@ class TeamsCardFormatter(BaseFormatter):
             )
 
         body.extend(data.extra_body)
-        body.append(self._teams_modern_footer())
+        body.append(self._teams_footer())
 
         card: dict[str, Any] = {
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -197,7 +205,7 @@ class TeamsCardFormatter(BaseFormatter):
         event: str,
         source_area: str,
     ) -> dict[str, Any]:
-        """Build the shared Teams Modern header and lifecycle badge."""
+        """Build the shared native Teams header and lifecycle badge."""
 
         status_style = color.casefold()
         heading_items: list[dict[str, Any]] = [
@@ -296,15 +304,20 @@ class TeamsCardFormatter(BaseFormatter):
             "columns": columns,
         }
 
-    def _teams_modern_footer(self) -> dict[str, Any]:
-        """Render the same Nowlert Modern identity used by Discord cards."""
+    def _teams_footer(self) -> dict[str, Any]:
+        """Render the shared footer with the selected Teams card identity."""
 
+        footer = (
+            self.CLASSIC_FOOTER
+            if self.card_style == "classic"
+            else self.MODERN_FOOTER
+        )
         icon_url = self._product_icon_url("nowlert")
         if not icon_url:
             return {
                 "type": "TextBlock",
                 "text": (
-                    f"{self.MODERN_FOOTER}\n"
+                    f"{footer}\n"
                     f"Theriark • Nowlert v{VERSION}"
                 ),
                 "isSubtle": True,
@@ -316,7 +329,7 @@ class TeamsCardFormatter(BaseFormatter):
 
         return {
             "type": "ColumnSet",
-            "text": self.MODERN_FOOTER,
+            "text": footer,
             "spacing": "Medium",
             "separator": True,
             "columns": [
@@ -341,7 +354,7 @@ class TeamsCardFormatter(BaseFormatter):
                     "items": [
                         {
                             "type": "TextBlock",
-                            "text": self.MODERN_FOOTER,
+                            "text": footer,
                             "isSubtle": True,
                             "size": "Small",
                             "wrap": True,
@@ -358,6 +371,11 @@ class TeamsCardFormatter(BaseFormatter):
                 },
             ],
         }
+
+    def _teams_modern_footer(self) -> dict[str, Any]:
+        """Backward-compatible alias for the shared native Teams footer."""
+
+        return self._teams_footer()
 
     @staticmethod
     def _teams_metric(icon: str, label: str, value: Any) -> dict[str, Any]:

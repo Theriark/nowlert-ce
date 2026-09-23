@@ -21,6 +21,7 @@ from outputs.platform import (
 )
 from outputs.service import PlatformOutputService
 from outputs.settings import normalize_output_settings
+from outputs.teams import TeamsOutput
 from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.delivery import DeliveryHistoryStore, DeliveryResult, PlatformDeliveryService
@@ -416,6 +417,23 @@ def test_teams_message_style_rejects_unknown_values():
         )
 
 
+def test_teams_classic_has_isolated_rich_formatter_for_every_native_source():
+    output = TeamsOutput()
+
+    assert set(output.classic_source_formatters) == set(
+        output.source_formatters
+    )
+    assert output.default_formatter.card_style == "modern"
+    assert output.classic_formatter.card_style == "classic"
+
+    for source, modern in output.source_formatters.items():
+        classic = output.classic_source_formatters[source]
+        assert classic is not modern
+        assert type(classic) is type(modern)
+        assert modern.card_style == "modern"
+        assert classic.card_style == "classic"
+
+
 def test_teams_default_and_explicit_modern_xo_use_existing_formatter(
     monkeypatch,
 ):
@@ -443,33 +461,60 @@ def test_teams_default_and_explicit_modern_xo_use_existing_formatter(
 
 
 @pytest.mark.parametrize("source", CLASSIC_PARITY_SOURCES)
-def test_teams_classic_uses_classic_renderer_for_every_supported_source(source):
+def test_teams_classic_uses_rich_native_layout_for_every_supported_source(source):
     item = notification_for_source(source)
-    preview = TeamsPlatformAdapter(
+    adapter = TeamsPlatformAdapter(
         resolver=public_resolver
-    ).preview(
+    )
+    preview = adapter.preview(
         destination("teams", {"message_style": "classic"}),
         item,
+    )
+    formatter = adapter.output.classic_source_formatters.get(
+        source,
+        adapter.output.classic_formatter,
     )
 
     assert preview.metadata["message_style"] == "classic"
     assert preview.metadata["rendered_style"] == "classic"
-    expected_formatter = {
-        "prometheus": "TeamsClassicPrometheusFormatter",
-        "xo": "TeamsClassicXenOrchestraFormatter",
-    }.get(source, "TeamsClassicFormatter")
-    assert preview.metadata["formatter"] == expected_formatter
-    assert "🦉 Nowlert CE • Classic Card" in json.dumps(
-        preview.payload,
-        ensure_ascii=False,
-    )
+    assert preview.metadata["formatter"] == formatter.__class__.__name__
+    assert formatter.card_style == "classic"
+
+    card = preview.payload["attachments"][0]["content"]
+    body = card["body"]
+    header = body[0]
+    heading = header["columns"][0]["items"]
+    icon_column = header["columns"][-1]
+    badge = heading[3]["columns"][0]["items"][0]
+
+    assert card["msteams"] == {"width": "Full"}
+    assert header["type"] == "ColumnSet"
+    assert len(header["columns"]) == 2
+    assert icon_column["items"][0]["type"] == "Image"
+    assert heading[0]["type"] == "TextBlock"
+    assert heading[2]["type"] == "TextBlock"
+    assert badge["type"] == "Container"
+    assert badge["style"] in {"accent", "attention", "good", "warning"}
+
+    assert body[2]["type"] == "Container"
+    assert body[2]["style"] == "emphasis"
+    assert body[3]["type"] == "ColumnSet"
+    assert len(body[3]["columns"]) == 3
+
+    footer = body[-1]
+    assert footer["text"] == "Nowlert CE • Classic Card"
+
+    encoded = json.dumps(preview.payload, ensure_ascii=False)
+    assert f"Synthetic {source} operational detail." in encoded
+    assert "Nowlert CE • Classic Card" in encoded
+    assert "Nowlert CE • Modern Card" not in encoded
     assert (
         preview.metadata["payload_bytes"]
         <= preview.metadata["payload_limit_bytes"]
     )
 
 
-def test_teams_classic_redfish_fallback_uses_nowlert_icon():
+def test_teams_classic_redfish_uses_source_icon_in_rich_header():
     item = notification_for_source("redfish")
     preview = TeamsPlatformAdapter(
         resolver=public_resolver
@@ -479,11 +524,10 @@ def test_teams_classic_redfish_fallback_uses_nowlert_icon():
     )
 
     encoded = json.dumps(preview.payload)
-    assert "/nowlert.png" in encoded
-    assert "/redfish.png" not in encoded
+    assert "/redfish.png" in encoded
 
 
-def test_teams_classic_non_xo_uses_approved_plain_text_style():
+def test_teams_classic_non_xo_keeps_rich_icon_details():
     preview = TeamsPlatformAdapter(
         resolver=public_resolver
     ).preview(
@@ -493,8 +537,9 @@ def test_teams_classic_non_xo_uses_approved_plain_text_style():
 
     encoded = json.dumps(preview.payload, ensure_ascii=False)
     assert "`" not in encoded
-    assert "📣 Alert" in encoded
-    assert "📂 Rule" in encoded
+    assert "🧾 Event details" in encoded
+    assert "📏 Alert rule:" in encoded
+    assert "📁 Folder:" in encoded
 
 
 def test_teams_classic_xo_is_sanitized_and_bounded():
@@ -782,7 +827,7 @@ def test_send_test_teams_modern_and_classic_use_nowlert_identity(
     assert modern.metadata["formatter"] == "DiscordModernImageRenderer"
     assert "/nowlert.png" in json.dumps(classic.payload)
     assert "xen-orchestra.png" not in json.dumps(classic.payload)
-    assert "Destination test" in json.dumps(classic.payload)
+    assert "Destination Test" in json.dumps(classic.payload)
 
 
 def test_send_test_slack_uses_nowlert_identity():
