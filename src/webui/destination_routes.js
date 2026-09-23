@@ -95,6 +95,11 @@ if (typeof routeAssignmentInstallStyles === "function") {
       description: "Send structured events to a webhook endpoint",
       presentation: "Destination label",
     },
+    email: {
+      label: "Email",
+      description: "Send routed alerts through an SMTP server",
+      presentation: "Recipients",
+    },
     mqtt: {
       label: "MQTT",
       description: "Publish alerts to a bounded MQTT topic",
@@ -180,7 +185,17 @@ if (typeof routeAssignmentInstallStyles === "function") {
     if (item && item.secret_configured && !typeChanged) {
       status.textContent = "Configured";
       status.className = "destination-credential-status configured";
-    } else if (REQUIRED_CREDENTIAL_TYPES.has(type)) {
+    } else if (
+      REQUIRED_CREDENTIAL_TYPES.has(type)
+      || (
+        type === "email"
+        && Boolean(
+          byId("destination-settings")
+            ?.querySelector('[data-field="username"]')
+            ?.value.trim()
+        )
+      )
+    ) {
       status.textContent = "Required";
       status.className = "destination-credential-status required";
     } else {
@@ -222,6 +237,15 @@ if (typeof routeAssignmentInstallStyles === "function") {
     const presentationLabel = presentation?.closest("label")?.querySelector(":scope > span");
     if (presentationLabel) presentationLabel.textContent = destinationEditorMeta().presentation;
     destinationEditorInstallDiscordStyleControl();
+    const username = settings.querySelector('[data-field="username"]');
+    if (
+      byId("destination-type")?.value === "email"
+      && username
+      && username.dataset.destinationCredentialStateBound !== "true"
+    ) {
+      username.dataset.destinationCredentialStateBound = "true";
+      username.addEventListener("input", destinationEditorRefreshCredentialState);
+    }
     destinationEditorRefreshCredentialState();
     destinationEditorRefreshProvider();
   }

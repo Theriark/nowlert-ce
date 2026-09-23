@@ -33,7 +33,7 @@ def test_route_assignment_is_a_right_hand_drawer_with_search_and_done_action():
 def test_destination_editor_supports_all_output_types_without_backend_contract_changes():
     source = SCRIPT.read_text(encoding="utf-8")
 
-    for output_type in ("discord", "teams", "slack", "webhook", "mqtt", "ntfy"):
+    for output_type in ("discord", "teams", "slack", "email", "webhook", "mqtt", "ntfy"):
         assert f'{output_type}:' in source
     assert 'route_ids: [...routeAssignmentSelection]' not in source
     assert 'saveDestination(event)' in source
@@ -46,3 +46,16 @@ def test_changing_destination_type_does_not_claim_old_credentials_are_configured
     assert 'const originalType = byId("destination-original-type")?.value || "";' in source
     assert 'const typeChanged = Boolean(item && originalType && originalType !== type);' in source
     assert 'item && item.secret_configured && !typeChanged' in source
+
+
+
+def test_email_destination_editor_marks_smtp_auth_password_as_conditional():
+    source = SCRIPT.read_text(encoding="utf-8")
+
+    assert 'email: {' in source
+    assert 'label: "Email"' in source
+    assert 'description: "Send routed alerts through an SMTP server"' in source
+    assert 'presentation: "Recipients"' in source
+    assert 'type === "email"' in source
+    assert 'querySelector(\'[data-field="username"]\')' in source
+    assert "destinationCredentialStateBound" in source

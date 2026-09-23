@@ -5,7 +5,11 @@
   const NS = "http://www.w3.org/2000/svg";
   const PAGE = "routing-flow";
   const POLL_MS = 5000;
-  const OUTPUT_LOGOS = { teams: "/ui/icons/routing-teams.svg", slack: "/ui/icons/routing-slack.svg" };
+  const OUTPUT_LOGOS = {
+    teams: "/ui/icons/routing-teams.svg",
+    slack: "/ui/icons/routing-slack.svg",
+    email: "/ui/icons/email.svg",
+  };
   const ICONS = {
     flow: "M4 4h5v5H4z M15 15h5v5h-5z M6.5 9v8.5H15 M17.5 15V6.5H9",
     filter: "M3 4h18l-7 8v7l-4 2v-9z",

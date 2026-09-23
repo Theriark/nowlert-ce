@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
 </p>
 
-**Self-hosted infrastructure notifications from SMTP, HTTP and Redfish to Teams, Slack, Discord and more.**
+**Self-hosted infrastructure notifications from SMTP, HTTP, Redfish, and Email Alerts to Teams, Slack, Discord, Email, and webhooks.**
 
 Nowlert CE is the free, open-source, self-hosted edition of Nowlert. It receives
 infrastructure signals, normalizes vendor-specific events, applies deterministic
@@ -155,10 +155,10 @@ notifications. The goal is not to replace monitoring, storage, virtualization,
 networking, backup, or hardware-management systems. The goal is to make the
 events they already emit easier to route, read, and act on.
 
-Nowlert does **not** poll mailboxes, Microsoft Graph, Gmail, IMAP, or vendor
-infrastructure APIs. SMTP-capable systems send mail directly to Nowlert;
-webhook-capable systems post to authenticated HTTP endpoints; supported
-hardware controllers can submit Redfish Event Service notifications.
+Nowlert can ingest Email Alerts through configured mailbox connections as well
+as direct SMTP delivery. SMTP-capable systems can send mail directly to Nowlert;
+webhook-capable systems post to authenticated HTTP endpoints; supported hardware
+controllers can submit Redfish Event Service notifications.
 
 ---
 
@@ -233,9 +233,8 @@ The platform supports:
 - Discord;
 - Microsoft Teams;
 - Slack;
-- generic webhooks;
-- MQTT; and
-- ntfy.
+- Email over SMTP; and
+- generic webhooks.
 
 Destination credentials are write-only. Read APIs expose only safe metadata
 such as whether a secret is configured. Private destinations are owner-scoped;
@@ -410,7 +409,8 @@ Infrastructure product
         v
 +-----------------------------+
 | Destination adapters        |
-| Discord / Teams / ...       |
+| Discord / Teams / Slack /   |
+| Email / Webhook             |
 +-----------------------------+
         |
         v
@@ -524,7 +524,7 @@ Zabbix
   -> enabled Zabbix (HTTP) routes
   -> host/event/severity/status filters
   -> selected destination
-  -> Discord / Teams / webhook / ...
+  -> Discord / Teams / Slack / Email / webhook
 ```
 
 If no dedicated Zabbix route matches, Nowlert may then evaluate an enabled

@@ -221,7 +221,15 @@ class PlatformAPI(BasePlatformAPI):
         owner_id = self._owner(data, actor)
         output_type = data.get("output_type")
         settings = data.get("settings", {})
-        normalize_output_settings(output_type, settings)
+        normalized_settings = normalize_output_settings(output_type, settings)
+        if (
+            str(output_type or "").strip().casefold() == "email"
+            and normalized_settings.get("username")
+            and not self._email_password_configured(data.get("secret"))
+        ):
+            raise ValueError(
+                "Email destination password is required when username is configured"
+            )
         if not self.destinations.name_available(owner_id, data.get("name")):
             raise ConflictError(
                 f"A destination named {str(data.get('name') or '').strip()} already exists."
@@ -365,7 +373,24 @@ class PlatformAPI(BasePlatformAPI):
             )
 
         next_settings = data.get("settings", destination.settings)
-        normalize_output_settings(next_type, next_settings)
+        normalized_settings = normalize_output_settings(next_type, next_settings)
+        if (
+            next_type == "email"
+            and normalized_settings.get("username")
+            and (
+                (
+                    "secret" in data
+                    and not self._email_password_configured(data.get("secret"))
+                )
+                or (
+                    "secret" not in data
+                    and not destination.secret_configured
+                )
+            )
+        ):
+            raise ValueError(
+                "Email destination password is required when username is configured"
+            )
         enabled = (
             self._boolean(data, "enabled")
             if "enabled" in data
