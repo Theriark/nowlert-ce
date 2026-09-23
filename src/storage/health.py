@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 
@@ -51,7 +52,7 @@ class HealthCheckService:
         with self.database.connect() as connection:
             destinations = connection.execute(
                 """
-                SELECT id, name, output_type, enabled, secret_id
+                SELECT id, name, output_type, enabled, secret_id, settings_json
                 FROM destinations ORDER BY name_normalized
                 """
             ).fetchall()
@@ -71,7 +72,7 @@ class HealthCheckService:
             str(row["name"])
             for row in destinations
             if bool(row["enabled"])
-            and str(row["output_type"]) in {"discord", "teams", "slack", "webhook"}
+            and self._destination_requires_credentials(row)
             and row["secret_id"] is None
         ]
         checks.append(
@@ -92,6 +93,21 @@ class HealthCheckService:
             )
         )
         return checks
+
+    @staticmethod
+    def _destination_requires_credentials(row) -> bool:
+        output_type = str(row["output_type"] or "").strip().casefold()
+        if output_type in {"discord", "teams", "slack", "webhook"}:
+            return True
+        if output_type != "email":
+            return False
+        try:
+            settings = json.loads(str(row["settings_json"] or "{}"))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return True
+        if not isinstance(settings, dict):
+            return True
+        return bool(str(settings.get("username") or "").strip())
 
     def _backup_target(self):
         if self.configuration_sync is None:

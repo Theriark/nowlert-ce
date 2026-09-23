@@ -30,6 +30,7 @@ const OUTPUT_NAMES = {
 };
 const OUTPUT_ICONS = {
   discord: "/ui/icons/discord.svg",
+  email: "/ui/icons/email.svg",
   mqtt: "/ui/icons/mqtt.svg",
   ntfy: "/ui/icons/ntfy.svg",
 };

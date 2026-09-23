@@ -16,6 +16,7 @@ from storage.filtering import RoutingOnlyRouteStore
 from storage.filtering_toggle import DestinationFilterStore as ToggleDestinationFilterStore
 from storage.ownership import Actor, OwnershipPolicy
 from storage.route_destinations import RouteDestinationCandidate, RouteDestinationStore
+from storage.validation import normalized_name
 
 
 _PERMISSION_NAMESPACE = "destination_user_permissions"
@@ -466,7 +467,11 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
 
     @staticmethod
     def _matrix_route_base(option: dict) -> str:
-        return f"{option['integration_name']} {option['input_name']}".strip()
+        integration_name = str(option["integration_name"]).strip()
+        input_name = str(option["input_name"]).strip()
+        if integration_name.casefold() == input_name.casefold():
+            return integration_name
+        return f"{integration_name} {input_name}".strip()
 
     @classmethod
     def _matrix_suffix(cls, rows, options_by_pair) -> str:
@@ -511,6 +516,65 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
                     ORDER BY priority, name_normalized, id
                     """
                 ).fetchall()
+
+            renamed = False
+            for row in rows:
+                option = options_by_pair.get(
+                    self._matrix_pair(
+                        str(row["source"]),
+                        str(row["input_type"] or ""),
+                    )
+                )
+                if option is None:
+                    continue
+                integration_name = str(option["integration_name"]).strip()
+                input_name = str(option["input_name"]).strip()
+                legacy_base = f"{integration_name} {input_name}".strip()
+                base = self._matrix_route_base(option)
+                if legacy_base.casefold() == base.casefold():
+                    continue
+                if str(row["name"] or "").strip().casefold() != legacy_base.casefold():
+                    continue
+                display, normalized = normalized_name(base, "route name")
+                with self.database.transaction() as connection:
+                    conflict = connection.execute(
+                        """
+                        SELECT 1 FROM routes
+                        WHERE owner_user_id = ? AND name_normalized = ? AND id != ?
+                        LIMIT 1
+                        """,
+                        (
+                            str(row["owner_user_id"]),
+                            normalized,
+                            str(row["id"]),
+                        ),
+                    ).fetchone()
+                    if conflict is not None:
+                        continue
+                    connection.execute(
+                        """
+                        UPDATE routes
+                        SET name = ?, name_normalized = ?, updated_at = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            display,
+                            normalized,
+                            int(time.time()),
+                            str(row["id"]),
+                        ),
+                    )
+                    renamed = True
+
+            if renamed:
+                with self.database.connect() as connection:
+                    rows = connection.execute(
+                        """
+                        SELECT id, owner_user_id, name, source, input_type
+                        FROM routes
+                        ORDER BY priority, name_normalized, id
+                        """
+                    ).fetchall()
 
             existing_pairs = {
                 self._matrix_pair(

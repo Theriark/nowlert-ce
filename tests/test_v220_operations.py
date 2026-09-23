@@ -143,6 +143,47 @@ def test_health_checks_report_missing_destination_credentials(operations):
     assert "Unconfigured Discord" in credentials["detail"]
 
 
+def test_health_checks_require_email_secret_only_when_smtp_auth_is_configured(operations):
+    database, _users, admin, _user = operations
+    destinations = DestinationStore(database)
+    destinations.create(
+        admin.actor,
+        admin.id,
+        "Trusted email relay",
+        "email",
+        settings={
+            "server": "smtp-relay.example.com",
+            "port": 587,
+            "security": "starttls",
+            "from_address": "alerts@example.com",
+            "to": ["noc@example.com"],
+        },
+        shared=True,
+    )
+    destinations.create(
+        admin.actor,
+        admin.id,
+        "Authenticated email",
+        "email",
+        settings={
+            "server": "smtp.example.com",
+            "port": 587,
+            "security": "starttls",
+            "username": "alerts@example.com",
+            "from_address": "alerts@example.com",
+            "to": ["noc@example.com"],
+        },
+        shared=True,
+    )
+
+    checks = HealthCheckService(database, None, clock=lambda: 1_700_000_000).run()
+    credentials = next(item for item in checks if item["key"] == "destination_credentials")
+
+    assert credentials["status"] == "error"
+    assert "Authenticated email" in credentials["detail"]
+    assert "Trusted email relay" not in credentials["detail"]
+
+
 def test_scheduled_backup_runs_once_and_mirrors_to_host_mount(operations, tmp_path):
     database, _users, _admin, _user = operations
     external = tmp_path / "mounted-share"

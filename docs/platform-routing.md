@@ -34,9 +34,8 @@ Supported platform destination types are:
 - Discord;
 - Microsoft Teams;
 - Slack;
-- generic webhook;
-- MQTT; and
-- ntfy.
+- Email over SMTP; and
+- generic webhook.
 
 Credential-like keys are rejected from public settings. Webhook URLs,
 passwords, tokens, and similar values use the owner-scoped secret store. Normal
@@ -49,10 +48,27 @@ destination, but user-facing destination mutations remain owner-only. A route ma
 reference a shared destination without revealing or rotating that destination
 owner's credential.
 
+## Managed routes and destination assignments
+
+CE treats Routes as reusable integration/input traffic definitions. Destinations
+own their assignments, so the same managed Route can feed Discord, Teams, Slack,
+Email, or Generic Webhook destinations without duplicating source logic.
+
+The built-in catalogue includes an **Email Alerts** managed Route with the
+**Email Alerts** input. Existing full route matrices automatically reconcile that
+route when it is missing. Older generated routes named
+`Email Alerts Email Alerts` are normalized to `Email Alerts`.
+
+Assigning the Email Alerts Route to an Email destination makes the Email Alerts
+filter vocabulary available for that destination, including mailbox, sender,
+sender domain, recipient, subject, group, rule, classification, provider, and
+severity. Routing Flow then displays the same Route → Filter → Email destination
+relationship as other CE destinations.
+
 ## Route identity
 
-Routes belong to one user and point to an owned or explicitly shared
-destination.
+Routes belong to one user and can be assigned to one or more owned or explicitly
+shared destinations.
 
 A route persists:
 

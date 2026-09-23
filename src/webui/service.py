@@ -265,6 +265,9 @@ class WebUIService:
             "/ui/icons/discord.svg": (
                 "assets/icons/discord.svg", "image/svg+xml", "public, max-age=86400"
             ),
+            "/ui/icons/email.svg": (
+                "assets/icons/email.svg", "image/svg+xml", "public, max-age=86400"
+            ),
             "/ui/icons/mqtt.svg": (
                 "assets/icons/mqtt.svg", "image/svg+xml", "public, max-age=86400"
             ),
