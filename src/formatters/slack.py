@@ -12,7 +12,9 @@ from outputs.platform_common import safe_action_url
 
 CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
 _MARKDOWN_LINK = re.compile(r"\[([^\]\n]{1,120})\]\((https://[^)\s]+)\)")
-_UNFOLDED_CLASSIC_SOURCES = frozenset({"truenas", "unifi_network"})
+_UNFOLDED_CLASSIC_SOURCES = frozenset(
+    {"prometheus", "truenas", "unifi_network"}
+)
 
 
 class SlackFormatter(PresentationMixin):
