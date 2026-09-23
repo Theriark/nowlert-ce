@@ -51,6 +51,7 @@ from formatters.discord_modern_image import (
     HardwareDiscordModernImageRenderer,
     HomeAssistantDiscordModernImageRenderer,
     PortainerDiscordModernImageRenderer,
+    PrometheusDiscordModernImageRenderer,
     ProxmoxDiscordModernImageRenderer,
     QNAPDiscordModernImageRenderer,
     RedfishDiscordModernImageRenderer,
@@ -84,6 +85,9 @@ class DiscordOutput:
             self.ICON_DIR
         )
         self.grafana_modern_image_renderer = GrafanaDiscordModernImageRenderer(
+            self.ICON_DIR
+        )
+        self.prometheus_modern_image_renderer = PrometheusDiscordModernImageRenderer(
             self.ICON_DIR
         )
         self.portainer_modern_image_renderer = PortainerDiscordModernImageRenderer(
@@ -357,7 +361,7 @@ class DiscordOutput:
                 if source == "grafana"
                 else self.portainer_modern_image_renderer
                 if source == "portainer"
-                else self.modern_image_renderer
+                else self.prometheus_modern_image_renderer
                 if source == "prometheus"
                 else self.proxmox_modern_image_renderer
                 if source == "proxmox"
