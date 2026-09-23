@@ -523,6 +523,120 @@ def _render_grafana(notification, payload, normalized, metadata):
     )
 
 
+
+def _render_prometheus(notification, payload, normalized, metadata):
+    """Render an Alertmanager group without exposing raw webhook data."""
+
+    status = str(normalized.get("status") or "").strip()
+    state = str(metadata.get("state") or status).strip().casefold()
+    severity = str(metadata.get("severity") or "unspecified").strip()
+    severity_label = severity.replace("_", " ").title()
+    title_text = str(
+        normalized.get("title")
+        or normalized.get("subject")
+        or "Prometheus alert"
+    ).strip()
+    description = str(
+        metadata.get("description")
+        or metadata.get("summary")
+        or normalized.get("body")
+        or title_text
+    ).strip()[:4096]
+
+    color, icon, _lifecycle_label = _lifecycle(
+        status,
+        severity,
+        state=state,
+    )
+    state_label = state.replace("_", " ").title() or "Information"
+
+    try:
+        count = max(1, int(metadata.get("alert_count") or 1))
+    except (TypeError, ValueError):
+        count = 1
+
+    fields: list[dict[str, Any]] = []
+
+    def append(field):
+        if field is not None:
+            fields.append(field)
+
+    append(_rows_field(f"{icon} Alert", [("Severity", severity_label)]))
+    append(
+        _rows_field(
+            "🎯 Target",
+            [
+                ("Instance", metadata.get("instance")),
+                ("Service", metadata.get("service")),
+                ("Job", metadata.get("job")),
+                ("Namespace", metadata.get("namespace")),
+                ("Pod", metadata.get("pod")),
+                ("Node", metadata.get("node")),
+            ],
+        )
+    )
+    prometheus_rows = [
+        ("Receiver", metadata.get("receiver")),
+        ("Reason", metadata.get("notification_reason")),
+    ]
+    truncated = int(metadata.get("truncated_alerts") or 0)
+    if truncated:
+        prometheus_rows.append(("Truncated", truncated))
+    append(_rows_field("📈 Prometheus", prometheus_rows))
+    append(_field("🏷️ Labels", _code(metadata.get("labels"))))
+
+    if count > 1:
+        member_lines: list[str] = []
+        members = metadata.get("group_members")
+        if isinstance(members, list):
+            for index, member in enumerate(members[:10], start=1):
+                if not isinstance(member, dict):
+                    continue
+                name = str(member.get("title") or f"Alert {index}").strip()
+                parts = []
+                member_state = str(member.get("state") or "").strip()
+                member_severity = str(member.get("severity") or "").strip()
+                member_target = str(member.get("target") or "").strip()
+                if member_state:
+                    parts.append(member_state.title())
+                if member_severity and member_severity != "unspecified":
+                    parts.append(member_severity.title())
+                if member_target:
+                    parts.append(member_target)
+                line = f"**{name}**"
+                if parts:
+                    line += " · " + " · ".join(parts)
+                member_lines.append(line)
+        if count > 10:
+            member_lines.append(f"… and {count - 10} more")
+        append(_field(f"👥 Alerts · {count}", "\n".join(member_lines)))
+
+    timing_rows = [("Started", normalized.get("start_time"))]
+    if state == "resolved":
+        timing_rows.append(("Resolved", normalized.get("end_time")))
+    append(_rows_field("⏱️ Timing", timing_rows))
+
+    links: list[str] = []
+    for label, key in (
+        ("Alertmanager", "external_url"),
+        ("Prometheus", "generator_url"),
+        ("Runbook", "runbook_url"),
+    ):
+        url = str(metadata.get(key) or "").strip()
+        if url:
+            links.append(f"[{label}]({url})")
+    append(_field("🔗 Links", " · ".join(links)))
+
+    return _finish(
+        {
+            "title": f"{icon} {title_text} — {state_label}"[:256],
+            "description": description,
+            "color": color,
+            "fields": fields,
+        },
+        payload,
+    )
+
 def _render_portainer(notification, payload, normalized, metadata):
     """Render the compact CE Portainer Classic Card v1 geometry."""
 
@@ -2335,6 +2449,7 @@ _RENDERERS = {
     "xo": _render_xo,
     "zabbix": _render_zabbix,
     "grafana": _render_grafana,
+    "prometheus": _render_prometheus,
     "portainer": _render_portainer,
     "proxmox": _render_proxmox,
     "qnap": _render_qnap,

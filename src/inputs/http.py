@@ -26,6 +26,7 @@ ENDPOINTS = {
     "/unifi/protect": "protect",
     "/unifi/drive": "drive",
     "/portainer/alerts": "portainer",
+    "/prometheus/alerts": "prometheus",
     "/proxmox/events": "proxmox",
     "/synology/events": "synology",
     "/redfish/events": "redfish",

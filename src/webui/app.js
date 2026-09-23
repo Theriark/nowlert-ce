@@ -39,6 +39,7 @@ const SOURCE_ICONS = {
   restful: "/ui/source-icons/rest-api.svg",
   rest_api: "/ui/source-icons/rest-api.svg",
   grafana: "/ui/source-icons/grafana.png",
+  prometheus: "/ui/source-icons/prometheus.png",
   portainer: "/ui/source-icons/portainer.png",
   proxmox: "/ui/source-icons/proxmox.png",
   qnap: "/ui/source-icons/qnap.png",

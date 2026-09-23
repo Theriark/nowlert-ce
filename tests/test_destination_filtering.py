@@ -102,8 +102,8 @@ def test_schema_11_adds_destination_filter_storage(tmp_path):
 
 def test_every_builtin_integration_has_a_declared_safe_filter_schema():
     schemas = filter_schemas()
-    assert len(schemas) == 15
-    assert len({item["source"] for item in schemas}) == 15
+    assert len(schemas) == 16
+    assert len({item["source"] for item in schemas}) == 16
     assert all(item["fields"] for item in schemas)
     for schema in schemas:
         for field in schema["fields"]:

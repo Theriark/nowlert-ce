@@ -285,6 +285,7 @@ class WebUIService:
         for filename in (
             "xen-orchestra.png",
             "grafana.png",
+            "prometheus.png",
             "portainer.png",
             "proxmox.png",
             "qnap.png",

@@ -106,7 +106,7 @@ configuration.
 
 ## Built-in integrations
 
-Xen Orchestra, Zabbix, Grafana, Portainer, Proxmox, QNAP, Synology, TrueNAS,
+Xen Orchestra, Zabbix, Grafana, Prometheus, Portainer, Proxmox, QNAP, Synology, TrueNAS,
 UniFi Network, UniFi Protect, UniFi Drive, Supermicro, HPE iLO, Dell iDRAC, and
 Home Assistant.
 

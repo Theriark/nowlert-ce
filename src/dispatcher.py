@@ -25,6 +25,7 @@ from parsers.home_assistant import Parser as HomeAssistantParser
 from parsers.hpe_ilo import Parser as HPEILOParser
 from parsers.proxmox import Parser as ProxmoxParser
 from parsers.portainer import Parser as PortainerParser
+from parsers.prometheus import Parser as PrometheusParser
 from parsers.qnap import Parser as QnapParser
 from parsers.redfish import RedfishParser
 from parsers.supermicro import Parser as SupermicroParser
@@ -52,6 +53,8 @@ class Dispatcher:
         self.proxmox_parser = ProxmoxParser()
 
         self.portainer_parser = PortainerParser()
+
+        self.prometheus_parser = PrometheusParser()
 
         self.qnap_parser = QnapParser()
 
@@ -308,6 +311,11 @@ class Dispatcher:
                 self.portainer_parser.is_envelope,
                 self.portainer_parser.parse,
                 "Detected Portainer Alerting webhook",
+            ),
+            "prometheus": (
+                self.prometheus_parser.is_envelope,
+                self.prometheus_parser.parse,
+                "Detected Prometheus Alertmanager webhook",
             ),
             "proxmox": (
                 self.proxmox_parser.is_envelope,

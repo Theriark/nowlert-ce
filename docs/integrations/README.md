@@ -17,6 +17,7 @@ breaking inbound links.
 ## Monitoring
 
 - [Grafana](../grafana.md)
+- [Prometheus](../prometheus.md)
 
 ## Virtualization and containers
 

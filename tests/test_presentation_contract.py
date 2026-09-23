@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TEAMS_PRODUCT_ASSETS = {
     "xo": "xen-orchestra.png",
     "grafana": "grafana.png",
+    "prometheus": "prometheus.png",
     "portainer": "portainer.png",
     "proxmox": "proxmox.png",
     "qnap": "qnap.png",
@@ -209,6 +210,7 @@ def test_resolved_state_wins_over_previous_critical_severity():
         "zabbix",
         "qnap",
         "grafana",
+        "prometheus",
         "truenas",
         "unifi_network",
         "unifi_protect",

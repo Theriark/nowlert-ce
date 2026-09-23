@@ -13,6 +13,7 @@ reverse vendor variants are used where needed for Teams' dark card surface.
 |---|---|---|---|
 | Xen Orchestra | `xen-orchestra.png` | [Vates Xen Orchestra repository](https://github.com/vatesfr/xen-orchestra/blob/master/packages/xo-web/src/assets/favicon.svg) | Official application favicon |
 | Grafana | `grafana.png` | [Grafana repository](https://github.com/grafana/grafana/blob/main/public/img/grafana_icon.svg) | Official Grafana mark |
+| Prometheus | `prometheus.png` | [Prometheus repository](https://github.com/prometheus/prometheus/blob/main/documentation/images/prometheus-logo.svg) | Official Prometheus mark |
 | Portainer | `portainer.png` | [Portainer repository](https://github.com/portainer/portainer/blob/develop/app/assets/ico/logomark.svg) | Official logomark |
 | Proxmox VE | `proxmox.png` | [Proxmox VE repository](https://github.com/proxmox/pve-manager/blob/master/www/images/logo-128.png) | Official application logo |
 | QNAP | `qnap.png` | [QNAP marketing resources](https://marketing.qnap.com/resource/qnap-logo-standard/) | Standard official logo |
