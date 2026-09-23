@@ -313,6 +313,64 @@ class TeamsCardFormatter(BaseFormatter):
             else self.MODERN_FOOTER
         )
         icon_url = self._product_icon_url("nowlert")
+
+        if self.card_style == "classic":
+            if not icon_url:
+                return {
+                    "type": "TextBlock",
+                    "text": footer,
+                    "isSubtle": True,
+                    "size": "Small",
+                    "spacing": "Medium",
+                    "separator": True,
+                    "horizontalAlignment": "Right",
+                    "wrap": True,
+                }
+
+            return {
+                "type": "ColumnSet",
+                "text": footer,
+                "spacing": "Medium",
+                "separator": True,
+                "columns": [
+                    {
+                        "type": "Column",
+                        "width": "stretch",
+                        "items": [],
+                    },
+                    {
+                        "type": "Column",
+                        "width": "auto",
+                        "verticalContentAlignment": "Center",
+                        "items": [
+                            {
+                                "type": "Image",
+                                "url": icon_url,
+                                "altText": "Nowlert icon",
+                                "width": "32px",
+                                "height": "32px",
+                            }
+                        ],
+                    },
+                    {
+                        "type": "Column",
+                        "width": "auto",
+                        "verticalContentAlignment": "Center",
+                        "spacing": "Small",
+                        "items": [
+                            {
+                                "type": "TextBlock",
+                                "text": footer,
+                                "isSubtle": True,
+                                "size": "Small",
+                                "horizontalAlignment": "Right",
+                                "wrap": True,
+                            }
+                        ],
+                    },
+                ],
+            }
+
         if not icon_url:
             return {
                 "type": "TextBlock",
