@@ -100,44 +100,50 @@ class TeamsCardFormatter(BaseFormatter):
             source_area=source_area,
         )
 
-        body: list[dict[str, Any]] = [
-            header,
-            {
-                "type": "TextBlock",
-                "text": (
-                    f"{data.integration} • {status_icon} **{state}** • "
-                    f"{data.source_area_icon} {source_area}"
-                ),
-                "isSubtle": True,
-                "size": "Small",
-                "spacing": "Small",
-                "wrap": True,
-            },
-            {
-                "type": "Container",
-                "style": "emphasis",
-                "spacing": "Medium",
-                "separator": True,
-                "items": [
-                    {
-                        "type": "TextBlock",
-                        "text": self._truncate(
-                            f"{data.event_icon} {message}",
-                            4000,
-                        ),
-                        "weight": "Bolder",
-                        "size": "Medium",
-                        "wrap": True,
-                    }
-                ],
-            },
-            {
-                "type": "ColumnSet",
-                "spacing": "Medium",
-                "separator": True,
-                "columns": metrics,
-            },
-        ]
+        body: list[dict[str, Any]] = [header]
+        if self.card_style != "classic":
+            body.append(
+                {
+                    "type": "TextBlock",
+                    "text": (
+                        f"{data.integration} • {status_icon} **{state}** • "
+                        f"{data.source_area_icon} {source_area}"
+                    ),
+                    "isSubtle": True,
+                    "size": "Small",
+                    "spacing": "Small",
+                    "wrap": True,
+                }
+            )
+
+        body.extend(
+            [
+                {
+                    "type": "Container",
+                    "style": "emphasis",
+                    "spacing": "Medium",
+                    "separator": True,
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": self._truncate(
+                                f"{data.event_icon} {message}",
+                                4000,
+                            ),
+                            "weight": "Bolder",
+                            "size": "Medium",
+                            "wrap": True,
+                        }
+                    ],
+                },
+                {
+                    "type": "ColumnSet",
+                    "spacing": "Medium",
+                    "separator": True,
+                    "columns": metrics,
+                },
+            ]
+        )
 
         facts = [
             {

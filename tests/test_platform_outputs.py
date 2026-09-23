@@ -496,15 +496,21 @@ def test_teams_classic_uses_rich_native_layout_for_every_supported_source(source
     assert badge["type"] == "Container"
     assert badge["style"] in {"accent", "attention", "good", "warning"}
 
-    assert body[2]["type"] == "Container"
-    assert body[2]["style"] == "emphasis"
-    assert body[3]["type"] == "ColumnSet"
-    assert len(body[3]["columns"]) == 3
+    assert body[1]["type"] == "Container"
+    assert body[1]["style"] == "emphasis"
+    assert body[2]["type"] == "ColumnSet"
+    assert len(body[2]["columns"]) == 3
 
     footer = body[-1]
     assert footer["text"] == "Nowlert CE • Classic Card"
 
     encoded = json.dumps(preview.payload, ensure_ascii=False)
+    assert not any(
+        item.get("type") == "TextBlock"
+        and item.get("isSubtle") is True
+        and " • " in str(item.get("text") or "")
+        for item in body[1:-1]
+    )
     assert f"Synthetic {source} operational detail." in encoded
     assert "Nowlert CE • Classic Card" in encoded
     assert "Nowlert CE • Modern Card" not in encoded
