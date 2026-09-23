@@ -27,6 +27,7 @@ from urllib.parse import quote, urlencode, urlsplit
 import requests
 
 from email_alert_pipeline import EmailAlertProcessor
+from environment import first_environment
 from email_security import build_email_preview
 from storage.audit_events import AuditEventStore
 from storage.database import Database
@@ -42,6 +43,68 @@ _OAUTH_STATE_TTL_SECONDS = 10 * 60
 _HTTP_TIMEOUT_SECONDS = 20
 _DEFAULT_SYNC_LIMIT = 100
 _MAX_SYNC_LIMIT = 500
+_OAUTH_APPLICATION_FIELDS = ("client_id", "client_secret", "redirect_uri")
+_OAUTH_MAILBOX_FIELDS = ("state_key", "access_token", "refresh_token", "expires_at")
+
+
+def email_oauth_applications(configuration=None, *, environment=None) -> dict:
+    """Load deployment-owned OAuth application credentials.
+
+    OAuth application credentials belong to the Nowlert instance, never to an
+    individual mailbox owner. The redirect URI defaults to the canonical
+    WebUI URL so self-hosted operators configure the application once.
+    """
+
+    public_url = ""
+    if configuration is not None:
+        public_url = str(
+            configuration.get("webui", "public_url", default="") or ""
+        ).strip().rstrip("/")
+    default_redirect = (
+        f"{public_url}/ui/" if public_url else ""
+    )
+
+    common_redirect = str(
+        first_environment(
+            "NOWLERT_EMAIL_OAUTH_REDIRECT_URI",
+            default=default_redirect,
+            environment=environment,
+        )
+        or ""
+    ).strip()
+
+    def application(prefix: str) -> dict:
+        return {
+            "client_id": str(
+                first_environment(
+                    f"NOWLERT_EMAIL_{prefix}_CLIENT_ID",
+                    default="",
+                    environment=environment,
+                )
+                or ""
+            ).strip(),
+            "client_secret": str(
+                first_environment(
+                    f"NOWLERT_EMAIL_{prefix}_CLIENT_SECRET",
+                    default="",
+                    environment=environment,
+                )
+                or ""
+            ).strip(),
+            "redirect_uri": str(
+                first_environment(
+                    f"NOWLERT_EMAIL_{prefix}_REDIRECT_URI",
+                    default=common_redirect,
+                    environment=environment,
+                )
+                or ""
+            ).strip(),
+        }
+
+    return {
+        "gmail": application("GMAIL"),
+        "microsoft_365": application("MICROSOFT"),
+    }
 
 
 class MailboxConnectionError(RuntimeError):
@@ -853,6 +916,7 @@ class MailboxConnectionService:
         http=None,
         imap_factory=None,
         imap_ssl_factory=None,
+        oauth_applications: dict | None = None,
         clock: Callable[[], float] = time.time,
     ):
         self.database = database
@@ -860,6 +924,14 @@ class MailboxConnectionService:
         self.store = store or EmailAlertStore(database, clock=clock)
         self.secrets = secrets or SecretStore(database, clock=clock)
         self.audit = audit or AuditEventStore(database, clock=clock)
+        self.oauth_applications = (
+            email_oauth_applications()
+            if oauth_applications is None
+            else {
+                str(key): dict(value or {})
+                for key, value in oauth_applications.items()
+            }
+        )
         self.gmail = GmailMailboxProvider(http=http, clock=clock)
         self.microsoft = Microsoft365MailboxProvider(http=http, clock=clock)
         self.imap = IMAPMailboxProvider(
@@ -892,6 +964,7 @@ class MailboxConnectionService:
         credential_value = self._credential(provider_value, credential or {})
         if provider_value in {"gmail", "microsoft_365"}:
             credential_value.setdefault("state_key", token_secrets.token_urlsafe(32))
+            self._oauth_application(provider_value, credential_value)
         secret = self.secrets.create(
             actor,
             owner_user_id,
@@ -992,6 +1065,8 @@ class MailboxConnectionService:
         if mailbox.provider not in {"gmail", "microsoft_365"}:
             raise ValueError("OAuth is not used by this mailbox provider")
         credentials = self._credentials(actor, mailbox)
+        application = self._oauth_application(mailbox.provider, credentials)
+        oauth_credentials = {**credentials, **application}
         expires_at = int(self.clock()) + _OAUTH_STATE_TTL_SECONDS
         state = _signed_state(
             credentials["state_key"],
@@ -999,9 +1074,13 @@ class MailboxConnectionService:
             expires_at,
         )
         if mailbox.provider == "gmail":
-            url = self.gmail.authorization_url(mailbox, credentials, state)
+            url = self.gmail.authorization_url(mailbox, oauth_credentials, state)
         else:
-            url = self.microsoft.authorization_url(mailbox, credentials, state)
+            url = self.microsoft.authorization_url(
+                mailbox,
+                oauth_credentials,
+                state,
+            )
         self.store.update_mailbox_connection(
             actor,
             mailbox.id,
@@ -1030,6 +1109,8 @@ class MailboxConnectionService:
         if mailbox.provider not in {"gmail", "microsoft_365"}:
             raise ValueError("OAuth is not used by this mailbox provider")
         credentials = self._credentials(actor, mailbox)
+        application = self._oauth_application(mailbox.provider, credentials)
+        oauth_credentials = {**credentials, **application}
         _verify_state(
             credentials["state_key"],
             mailbox.id,
@@ -1041,11 +1122,14 @@ class MailboxConnectionService:
             raise ValueError("OAuth authorization code is invalid")
         try:
             if mailbox.provider == "gmail":
-                token = self.gmail.exchange_code(credentials, authorization_code)
+                token = self.gmail.exchange_code(
+                    oauth_credentials,
+                    authorization_code,
+                )
             else:
                 token = self.microsoft.exchange_code(
                     mailbox,
-                    credentials,
+                    oauth_credentials,
                     authorization_code,
                 )
             updated = self._merge_token(credentials, token)
@@ -1323,10 +1407,12 @@ class MailboxConnectionService:
                 "authentication_required",
                 "mailbox authorization is required",
             )
+        application = self._oauth_application(mailbox.provider, credentials)
+        oauth_credentials = {**credentials, **application}
         if mailbox.provider == "gmail":
-            token = self.gmail.refresh_token(credentials)
+            token = self.gmail.refresh_token(oauth_credentials)
         else:
-            token = self.microsoft.refresh_token(mailbox, credentials)
+            token = self.microsoft.refresh_token(mailbox, oauth_credentials)
         updated = self._merge_token(credentials, token)
         self._rotate_credentials(actor, mailbox, updated)
         return str(updated["access_token"]), updated
@@ -1346,6 +1432,65 @@ class MailboxConnectionService:
         expires_in = int(token.get("expires_in") or 3600)
         updated["expires_at"] = int(self.clock()) + max(60, min(expires_in, 86400))
         return updated
+
+    def provider_status(self) -> dict:
+        result = {
+            "imap": {
+                "label": "IMAP / IMAPS",
+                "configured": True,
+                "authentication": "credentials",
+            }
+        }
+        for provider, label in (
+            ("gmail", "Gmail"),
+            ("microsoft_365", "Microsoft 365"),
+        ):
+            result[provider] = {
+                "label": label,
+                "configured": self._oauth_application_configured(provider),
+                "authentication": "oauth",
+            }
+        return result
+
+    def _oauth_application_configured(self, provider: str) -> bool:
+        try:
+            self._oauth_application(provider)
+            return True
+        except MailboxConnectionError:
+            return False
+
+    def _oauth_application(
+        self,
+        provider: str,
+        legacy_credentials: dict | None = None,
+    ) -> dict:
+        configured = dict(self.oauth_applications.get(provider) or {})
+        legacy = dict(legacy_credentials or {})
+        application = {}
+        for key in _OAUTH_APPLICATION_FIELDS:
+            application[key] = str(
+                configured.get(key) or legacy.get(key) or ""
+            ).strip()
+
+        if not all(application.values()):
+            label = "Gmail" if provider == "gmail" else "Microsoft 365"
+            raise MailboxConnectionError(
+                "provider_not_configured",
+                f"{label} OAuth is not configured by the Nowlert administrator",
+            )
+
+        parsed = urlsplit(application["redirect_uri"])
+        if (
+            parsed.scheme.casefold() != "https"
+            or not parsed.netloc
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
+            raise MailboxConnectionError(
+                "provider_not_configured",
+                "mailbox OAuth redirect URI is not configured safely",
+            )
+        return application
 
     def _credentials(
         self,
@@ -1380,7 +1525,14 @@ class MailboxConnectionService:
                 "credentials_missing",
                 "mailbox credentials are not configured",
             )
-        self.secrets.rotate(actor, reference, _encode_credential(credentials))
+        persisted = dict(credentials)
+        if (
+            mailbox.provider in {"gmail", "microsoft_365"}
+            and self._oauth_application_configured(mailbox.provider)
+        ):
+            for key in _OAUTH_APPLICATION_FIELDS:
+                persisted.pop(key, None)
+        self.secrets.rotate(actor, reference, _encode_credential(persisted))
 
     def _connection_failure(
         self,
@@ -1498,33 +1650,31 @@ class MailboxConnectionService:
             raise ValueError("mailbox credential must be an object")
         credential = dict(value)
         if provider in {"gmail", "microsoft_365"}:
-            allowed = {
-                "client_id",
-                "client_secret",
-                "redirect_uri",
-                "state_key",
-                "access_token",
-                "refresh_token",
-                "expires_at",
-            }
+            # OAuth application credentials are deployment-owned. The legacy
+            # fields remain readable only so existing mailboxes continue to
+            # work until the instance-level provider configuration is present.
+            allowed = set(_OAUTH_APPLICATION_FIELDS) | set(_OAUTH_MAILBOX_FIELDS)
             unknown = set(credential) - allowed
             if unknown:
                 raise ValueError(
                     f"unsupported OAuth credential field: {sorted(unknown)[0]}"
                 )
-            for key in ("client_id", "client_secret", "redirect_uri"):
+            for key in _OAUTH_APPLICATION_FIELDS:
+                if key not in credential:
+                    continue
                 text = str(credential.get(key) or "").strip()
                 if not text or len(text) > 4096:
-                    raise ValueError(f"{key} is required")
+                    raise ValueError(f"{key} is invalid")
                 credential[key] = text
-            parsed = urlsplit(credential["redirect_uri"])
-            if (
-                parsed.scheme.casefold() != "https"
-                or not parsed.netloc
-                or parsed.username is not None
-                or parsed.password is not None
-            ):
-                raise ValueError("OAuth redirect_uri must be a safe HTTPS URL")
+            if "redirect_uri" in credential:
+                parsed = urlsplit(credential["redirect_uri"])
+                if (
+                    parsed.scheme.casefold() != "https"
+                    or not parsed.netloc
+                    or parsed.username is not None
+                    or parsed.password is not None
+                ):
+                    raise ValueError("OAuth redirect_uri must be a safe HTTPS URL")
             if existing:
                 state_key = str(credential.get("state_key") or "")
                 if len(state_key) < 32:
@@ -1561,8 +1711,12 @@ class MailboxSyncScheduler:
         *,
         interval_seconds: int = 60,
         service: MailboxConnectionService | None = None,
+        oauth_applications: dict | None = None,
     ):
-        self.service = service or MailboxConnectionService(database)
+        self.service = service or MailboxConnectionService(
+            database,
+            oauth_applications=oauth_applications,
+        )
         self.interval_seconds = max(30, min(int(interval_seconds), 3600))
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None

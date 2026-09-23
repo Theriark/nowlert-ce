@@ -29,7 +29,7 @@ from storage.configuration_bridge import ConfigurationBridgeService
 from storage.configuration_sync import UnifiedConfigurationService
 from storage.delivery import DeliveryHistoryStore, PlatformDeliveryService
 from storage.destinations import DestinationStore
-from inputs.email_mailboxes import MailboxConnectionService
+from inputs.email_mailboxes import MailboxConnectionService, email_oauth_applications
 from storage.ownership import Actor
 from storage.portability import PlatformPortabilityService
 from storage.routes import RouteStore
@@ -83,6 +83,7 @@ class PlatformAPI:
             database,
             secrets=self.secrets,
             audit=self.audit,
+            oauth_applications=email_oauth_applications(configuration),
         )
         self.email_pipeline = self.email_connections.processor
         self.email_rules = self.email_pipeline.rules
@@ -298,6 +299,8 @@ class PlatformAPI:
                     email_message_action.group(1),
                     email_message_action.group(2),
                 )
+            if path == "/api/v2/email-mailbox-providers":
+                return self._email_mailbox_providers_endpoint(method)
             if path == "/api/v2/email-mailboxes":
                 return self._email_mailboxes_endpoint(method, payload, actor)
             if path == "/api/v2/email-mailboxes/oauth-complete":
@@ -1345,6 +1348,15 @@ class PlatformAPI:
             + uuid.uuid4().hex[:8]
         )
 
+    def _email_mailbox_providers_endpoint(self, method) -> APIResponse:
+        if method != "GET":
+            return self._method_not_allowed("GET")
+        return APIResponse(
+            200,
+            {"providers": self.email_connections.provider_status()},
+            (("Cache-Control", "no-store"),),
+        )
+
     def _email_mailboxes_endpoint(self, method, payload, actor) -> APIResponse:
         if method == "GET":
             return APIResponse(
@@ -1370,14 +1382,20 @@ class PlatformAPI:
                 },
             )
             owner_id = self._owner(data, actor)
+            provider = str(data.get("provider") or "").strip().casefold()
+            credential = data.get("credential", {})
+            if provider in {"gmail", "microsoft_365"} and credential:
+                raise ValueError(
+                    "OAuth application credentials are managed by the Nowlert instance"
+                )
             mailbox = self.email_connections.create_mailbox(
                 actor,
                 owner_id,
-                data.get("provider"),
+                provider,
                 data.get("address"),
                 name=str(data.get("name") or ""),
                 settings=data.get("settings", {}),
-                credential=data.get("credential", {}),
+                credential=credential,
                 enabled=self._boolean(data, "enabled", True),
             )
             return APIResponse(

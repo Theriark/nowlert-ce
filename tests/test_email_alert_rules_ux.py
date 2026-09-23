@@ -423,6 +423,7 @@ def test_phase7_email_alerts_webui_is_packaged_and_normal_user_visible(tmp_path)
         "/email-groups",
         "/email-rules",
         "/email-mailboxes",
+        "/email-mailbox-providers",
         "/email-activity",
         "/email-mailboxes/oauth-complete",
     ):
@@ -472,11 +473,17 @@ def test_email_alerts_mailbox_connect_ux_exposes_provider_login_paths():
     assert 'emailMailboxConnectButton("gmail", "Connect Gmail", true)' in script
     assert 'emailMailboxConnectButton("microsoft_365", "Connect Microsoft 365")' in script
     assert 'emailMailboxConnectButton("imap", "Connect IMAP / IMAPS")' in script
-    assert 'node?.dataset.provider || "gmail"' in script
+    assert 'node?.dataset.provider || ""' in script
+    assert 'request("/email-mailbox-providers")' in script
     assert '"Continue to Google"' in script
     assert '"Continue to Microsoft"' in script
     assert 'id: "email-mailbox-provider-hint"' in script
-    assert 'input.required = oauth' in script
     assert 'input.required = provider === "imap"' in script
+    assert "email-oauth-client-id" not in script
+    assert "email-oauth-client-secret" not in script
+    assert "email-oauth-redirect" not in script
+    assert "client_id:" not in script
+    assert "client_secret:" not in script
+    assert "OAuth application credentials are configured once" in script
     assert ".email-mailbox-connect-actions" in styles
     assert ".email-mailbox-connect-empty" in styles

@@ -22,7 +22,7 @@ from config import config
 from dispatcher import Dispatcher
 from inputs.http import HTTPInput
 from inputs.http_matrix_parity import install as install_http_matrix_parity
-from inputs.email_mailboxes import MailboxSyncScheduler
+from inputs.email_mailboxes import MailboxSyncScheduler, email_oauth_applications
 from inputs.smtp import SMTPInput
 from logger import log
 from router import Router
@@ -113,7 +113,10 @@ def main() -> int:
             backup_scheduler.start()
             housekeeping_scheduler = HousekeepingScheduler(state_database, config)
             housekeeping_scheduler.start()
-            mailbox_sync_scheduler = MailboxSyncScheduler(state_database)
+            mailbox_sync_scheduler = MailboxSyncScheduler(
+                state_database,
+                oauth_applications=email_oauth_applications(config),
+            )
             mailbox_sync_scheduler.start()
 
         smtp = SMTPInput(

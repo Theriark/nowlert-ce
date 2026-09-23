@@ -67,6 +67,30 @@ The base production definition runs non-root, drops Linux capabilities,
 prevents privilege escalation, uses a read-only root filesystem, and persists
 only the explicitly mounted configuration/state/log/backup paths.
 
+### Email Alerts OAuth applications
+
+Gmail and Microsoft 365 mailbox users never provide OAuth application
+credentials. The Nowlert operator registers each OAuth application once and
+provides its credentials to the deployment:
+
+```dotenv
+NOWLERT_EMAIL_GMAIL_CLIENT_ID=
+NOWLERT_EMAIL_GMAIL_CLIENT_SECRET=
+NOWLERT_EMAIL_MICROSOFT_CLIENT_ID=
+NOWLERT_EMAIL_MICROSOFT_CLIENT_SECRET=
+```
+
+By default the OAuth redirect URI is derived from `webui.public_url` as
+`<public_url>/ui/`. An operator can override both providers with
+`NOWLERT_EMAIL_OAUTH_REDIRECT_URI`, or use
+`NOWLERT_EMAIL_GMAIL_REDIRECT_URI` and
+`NOWLERT_EMAIL_MICROSOFT_REDIRECT_URI` independently.
+
+These are instance/application credentials. Keep the client secrets in the
+deployment secret boundary; do not ask mailbox owners to supply them. Mailbox
+records retain only their owner-scoped authorization state/tokens. Existing
+mailboxes created before this model remain readable for compatibility.
+
 ## Portainer stacks
 
 Use absolute host paths in `.env`, for example:
