@@ -54,7 +54,7 @@ class RunningServer:
                     "client": {
                         "token_sha256": hash_token(secret),
                         "role": "application",
-                        "sources": ["home_assistant", "home_lab"],
+                        "sources": ["home_assistant", "home_lab", "prometheus"],
                         "rate_limit_per_minute": limit,
                     }
                 },
@@ -133,6 +133,43 @@ def home_assistant_event():
     }
 
 
+def prometheus_event():
+    return {
+        "version": "4",
+        "groupKey": "synthetic-prometheus-group",
+        "truncatedAlerts": 0,
+        "status": "firing",
+        "receiver": "nowlert-critical",
+        "groupLabels": {"alertname": "HighRequestLatency"},
+        "commonLabels": {
+            "alertname": "HighRequestLatency",
+            "severity": "critical",
+            "instance": "api-01:9090",
+        },
+        "commonAnnotations": {
+            "summary": "High request latency",
+        },
+        "externalURL": "https://alertmanager.example.invalid",
+        "alerts": [
+            {
+                "status": "firing",
+                "labels": {
+                    "alertname": "HighRequestLatency",
+                    "severity": "critical",
+                    "instance": "api-01:9090",
+                },
+                "annotations": {
+                    "summary": "High request latency",
+                },
+                "startsAt": "2026-09-23T08:30:00Z",
+                "endsAt": "0001-01-01T00:00:00Z",
+                "generatorURL": "https://prometheus.example.invalid/graph",
+                "fingerprint": "synthetic-fingerprint-001",
+            }
+        ],
+    }
+
+
 def test_health_and_generic_event_transport(monkeypatch, tmp_path):
     with RunningServer(monkeypatch, tmp_path) as running:
         port = running.server.server_port
@@ -161,6 +198,27 @@ def test_source_endpoint_uses_api_scope_without_global_secret(monkeypatch, tmp_p
 
     assert (missing[0], accepted[0]) == (401, 204)
     assert [item.source for item in running.router.items] == ["home_assistant"]
+
+
+def test_prometheus_endpoint_uses_api_scope_without_global_secret(monkeypatch, tmp_path):
+    with RunningServer(monkeypatch, tmp_path) as running:
+        port = running.server.server_port
+        missing = request(
+            port,
+            "POST",
+            "/prometheus/alerts",
+            prometheus_event(),
+        )
+        accepted = request(
+            port,
+            "POST",
+            "/prometheus/alerts",
+            prometheus_event(),
+            running.secret,
+        )
+
+    assert (missing[0], accepted[0]) == (401, 204)
+    assert [item.source for item in running.router.items] == ["prometheus"]
 
 
 def test_teams_modern_media_uses_path_below_public_health_prefix(
