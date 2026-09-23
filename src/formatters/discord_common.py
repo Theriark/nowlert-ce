@@ -14,10 +14,6 @@ _COMPONENTS_V2_RENDERING = ContextVar(
     "discord_components_v2_rendering",
     default=False,
 )
-_RICH_CLASSIC_RENDERING = ContextVar(
-    "discord_rich_classic_rendering",
-    default=False,
-)
 
 
 @dataclass(frozen=True)
@@ -86,20 +82,9 @@ class DiscordCardFormatter(BaseFormatter):
         finally:
             _COMPONENTS_V2_RENDERING.reset(token)
 
-    def format_classic_rich(self, notification) -> dict[str, Any]:
-        """Render one integration through the shared rich Classic shell."""
-
-        token = _RICH_CLASSIC_RENDERING.set(True)
-        try:
-            return self.format(notification)
-        finally:
-            _RICH_CLASSIC_RENDERING.reset(token)
-
     def _render_discord_card(self, data: DiscordCardData) -> dict[str, Any]:
         if _COMPONENTS_V2_RENDERING.get():
             return self._render_discord_components_v2(data)
-        if _RICH_CLASSIC_RENDERING.get():
-            return self._render_discord_rich_classic(data)
 
         status_icon, color, default_state = self._discord_status(
             data.status,
@@ -172,152 +157,6 @@ class DiscordCardFormatter(BaseFormatter):
         if isinstance(embeds, list) and embeds and isinstance(embeds[0], dict):
             self._enforce_discord_budget(embeds[0])
         return rendered
-
-    def _render_discord_rich_classic(
-        self,
-        data: DiscordCardData,
-    ) -> dict[str, Any]:
-        """Render the Teams-style rich hierarchy as a native Discord embed."""
-
-        status_icon, color, default_state = self._discord_status(
-            data.status,
-            data.severity,
-        )
-        state = self._label(data.state) or default_state
-        severity = self._label(data.severity) or default_state
-        category = self._label(data.category) or "Event"
-        source_area = self._truncate(
-            self._label(data.source_area) or category,
-            700,
-        )
-        device = self._truncate(data.device or data.integration, 160)
-        event = self._truncate(data.event or "Notification", 240)
-        message = self._truncate(data.message or event, 980)
-        event_time = self._format_datetime(data.event_time)
-
-        context = (
-            f"{data.device_icon} {device} • "
-            f"{data.source_area_icon} {source_area}"
-        )
-        secondary = (
-            f"{data.integration} • {status_icon} **{state}** • "
-            f"{data.source_area_icon} {source_area}"
-        )
-        description = "\n".join(
-            (
-                context,
-                "",
-                f"**{event}**",
-                f"{status_icon} **{state}**",
-                "",
-                secondary,
-                self.SEPARATOR,
-                self._discord_highlight(
-                    f"{data.event_icon} {message}"
-                ),
-            )
-        )
-
-        fields = [
-            self._discord_field(
-                status_icon,
-                "Severity",
-                severity,
-                inline=True,
-            ),
-            self._discord_field(
-                self._category_icon(data.category),
-                "Category",
-                category,
-                inline=True,
-            ),
-        ]
-        if event_time:
-            fields.append(
-                self._discord_field(
-                    "🕒",
-                    "Event time",
-                    event_time,
-                    inline=True,
-                )
-            )
-
-        fields.extend(
-            self._discord_rich_detail_fields(data.details)
-        )
-
-        embed: dict[str, Any] = {
-            "title": self._truncate(
-                data.integration or "Nowlert",
-                256,
-            ),
-            "description": self._truncate(description, 4096),
-            "color": color,
-            "fields": fields[: self.MAX_FIELDS],
-            "footer": {
-                "text": "🦉 Nowlert CE • Classic Card",
-            },
-        }
-        if data.url:
-            embed["url"] = self._truncate(data.url, 2000)
-
-        self._set_discord_thumbnail(embed, data.source)
-        self._enforce_discord_budget(embed)
-        return {"embeds": [embed]}
-
-    def _discord_rich_detail_fields(
-        self,
-        details: tuple[DiscordFact, ...],
-    ) -> list[dict[str, Any]]:
-        """Render integration facts as one rich vertical Event details panel."""
-
-        entries = []
-        for fact in details:
-            if not self._meaningful_fact(fact.value):
-                continue
-            label = self._truncate(fact.label, 120)
-            value = self._truncate(fact.value, 900)
-            if "\n" in value:
-                entries.append(
-                    f"{fact.icon} **{label}:**\n{value}"
-                )
-            else:
-                entries.append(
-                    f"{fact.icon} **{label}:** {value}"
-                )
-
-        if not entries:
-            return []
-
-        chunks = []
-        current = ""
-        for entry in entries:
-            candidate = (
-                f"{current}\n{entry}"
-                if current
-                else entry
-            )
-            if len(candidate) <= 1000:
-                current = candidate
-                continue
-            if current:
-                chunks.append(current)
-            current = self._truncate(entry, 1000)
-        if current:
-            chunks.append(current)
-
-        return [
-            {
-                "name": (
-                    "🧾 Event details"
-                    if index == 0
-                    else "\u200b"
-                ),
-                "value": chunk,
-                "inline": False,
-            }
-            for index, chunk in enumerate(chunks)
-        ]
 
     def _render_discord_components_v2(
         self,
