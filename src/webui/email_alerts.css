@@ -482,3 +482,61 @@
     width: 100%;
   }
 }
+
+
+/* Mailbox connection entry points. */
+.email-mailbox-connect-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.email-mailbox-connect-empty {
+  grid-column: 1 / -1;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  min-height: 290px;
+  align-content: center;
+}
+
+.email-mailbox-connect-empty.compact {
+  min-height: 230px;
+  padding-block: 2rem;
+}
+
+.email-mailbox-connect-empty > span {
+  max-width: 46rem;
+  line-height: 1.55;
+}
+
+.email-mailbox-connect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.email-mailbox-connect-actions .button {
+  min-height: 40px;
+}
+
+.email-mailbox-provider-hint {
+  color: #c6bda9;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(244, 197, 66, 0.16);
+  border-radius: 9px;
+  background: rgba(244, 197, 66, 0.035);
+}
+
+@media (max-width: 720px) {
+  .email-mailbox-connect-actions {
+    width: 100%;
+  }
+
+  .email-mailbox-connect-actions .button {
+    width: 100%;
+  }
+}

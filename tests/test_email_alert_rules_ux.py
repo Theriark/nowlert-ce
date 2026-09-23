@@ -461,3 +461,22 @@ def test_phase7_email_alerts_webui_is_packaged_and_normal_user_visible(tmp_path)
     page = service.response("/").body.decode("utf-8")
     assert "/ui/email_alerts.js?v=" in page
     assert "/ui/email_alerts.css?v=" in page
+
+
+
+def test_email_alerts_mailbox_connect_ux_exposes_provider_login_paths():
+    script = (ROOT / "src" / "webui" / "email_alerts.js").read_text(encoding="utf-8")
+    styles = (ROOT / "src" / "webui" / "email_alerts.css").read_text(encoding="utf-8")
+
+    assert '["Connect mailbox", "new-mailbox"]' in script
+    assert 'emailMailboxConnectButton("gmail", "Connect Gmail", true)' in script
+    assert 'emailMailboxConnectButton("microsoft_365", "Connect Microsoft 365")' in script
+    assert 'emailMailboxConnectButton("imap", "Connect IMAP / IMAPS")' in script
+    assert 'node?.dataset.provider || "gmail"' in script
+    assert '"Continue to Google"' in script
+    assert '"Continue to Microsoft"' in script
+    assert 'id: "email-mailbox-provider-hint"' in script
+    assert 'input.required = oauth' in script
+    assert 'input.required = provider === "imap"' in script
+    assert ".email-mailbox-connect-actions" in styles
+    assert ".email-mailbox-connect-empty" in styles

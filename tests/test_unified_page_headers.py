@@ -17,7 +17,7 @@ def test_requested_surfaces_use_one_page_command_header():
 
     for view in (
         'dashboard', 'routing-flow', 'destinations', 'filtering', 'deliveries',
-        'audit', 'backups', 'tokens', 'account',
+        'email-alerts', 'audit', 'backups', 'tokens', 'account',
     ):
         assert f'"{view}"' in script
 
@@ -91,3 +91,12 @@ def test_backup_add_action_is_owned_by_backup_storage_panel():
     assert 'panelHeading.append(action)' in script
     assert 'else if (view === "backups")' not in script
     assert '.backup-targets-card > .panel-heading > [data-action="new-backup-target"]' in styles
+
+
+
+def test_email_alerts_primary_action_is_promoted_to_unified_header():
+    script = (ROOT / "src" / "webui" / "page_headers.js").read_text(encoding="utf-8")
+
+    assert 'view === "email-alerts"' in script
+    assert 'document.getElementById("email-primary-action")' in script
+    assert '"email-alerts": "Connect mailboxes' in script
