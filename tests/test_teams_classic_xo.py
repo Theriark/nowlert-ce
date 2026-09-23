@@ -173,8 +173,30 @@ def test_xo_classic_matches_rich_report_summary_details_and_footer():
     assert "✅ Successful VMs" in text
     assert "VM-01 | Admin" in text
     assert "45.01 GiB" in text
-    assert body[-1]["text"] == "Nowlert CE • Classic Card"
-    assert "Nowlert CE • Modern Card" not in json.dumps(payload)
+
+    footer = body[-1]
+    assert footer["text"] == "Nowlert CE • Classic Card"
+    assert [column["width"] for column in footer["columns"]] == [
+        "stretch",
+        "auto",
+        "auto",
+    ]
+    assert footer["columns"][0]["items"] == []
+    assert footer["columns"][1]["items"][0]["type"] == "Image"
+    assert footer["columns"][2]["items"] == [
+        {
+            "type": "TextBlock",
+            "text": "Nowlert CE • Classic Card",
+            "isSubtle": True,
+            "size": "Small",
+            "horizontalAlignment": "Right",
+            "wrap": True,
+        }
+    ]
+
+    encoded = json.dumps(payload)
+    assert "Theriark • Nowlert v" not in encoded
+    assert "Nowlert CE • Modern Card" not in encoded
 
 
 def test_xo_classic_keeps_failure_and_skipped_sections_dynamic():
