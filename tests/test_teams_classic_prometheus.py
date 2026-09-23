@@ -1,11 +1,9 @@
-"""Microsoft Teams Classic Prometheus card regressions."""
+"""Microsoft Teams Classic rich Prometheus layout regressions."""
 
 from __future__ import annotations
 
-from formatters.teams_classic_v1 import (
-    CLASSIC_FOOTER,
-    TeamsClassicPrometheusFormatter,
-)
+import json
+
 from formatters.teams_prometheus import PrometheusTeamsFormatter
 from models import Notification
 from outputs.teams import TeamsOutput
@@ -19,7 +17,11 @@ def prometheus_notification(state="firing") -> Notification:
         status="success" if resolved else "failure",
         title="HighRequestLatency",
         subject="HighRequestLatency",
-        body="95th percentile latency exceeded two seconds.",
+        body=(
+            "Request latency returned below the alert threshold."
+            if resolved
+            else "95th percentile latency exceeded two seconds."
+        ),
         start_time="2026-09-23T02:00:00Z",
         end_time="2026-09-23T02:02:00Z" if resolved else "",
     )
@@ -35,14 +37,9 @@ def prometheus_notification(state="firing") -> Notification:
         "receiver": "nowlert-critical",
         "notification_reason": "",
         "truncated_alerts": 0,
-        "labels": "environment=production",
+        "labels": {"environment": "production"},
         "alert_count": 1,
         "group_members": [],
-        "description": (
-            "Request latency returned below the alert threshold."
-            if resolved
-            else "95th percentile latency exceeded two seconds."
-        ),
         "external_url": "https://alertmanager.example.invalid",
         "generator_url": (
             "https://prometheus.example.invalid/graph?g0.expr=latency"
@@ -63,9 +60,10 @@ def flattened_text(payload):
 
     def visit(value):
         if isinstance(value, dict):
-            text = value.get("text")
-            if isinstance(text, str):
-                values.append(text)
+            for key in ("text", "title", "value"):
+                raw = value.get(key)
+                if isinstance(raw, str):
+                    values.append(raw)
             for child in value.values():
                 visit(child)
         elif isinstance(value, list):
@@ -76,101 +74,79 @@ def flattened_text(payload):
     return "\n".join(values)
 
 
-def section_value(payload, title):
-    for item in card_body(payload):
-        if item.get("type") != "Container":
-            continue
-        blocks = item.get("items") or []
-        if (
-            blocks
-            and blocks[0].get("text") == title
-            and len(blocks) > 1
-        ):
-            return blocks[1].get("text") or ""
-    return ""
-
-
-def test_prometheus_classic_formatter_is_registered_without_touching_modern():
+def classic_formatter():
     output = TeamsOutput()
+    classic = output.classic_source_formatters["prometheus"]
+    modern = output.source_formatters["prometheus"]
 
-    assert isinstance(
-        output.classic_source_formatters["prometheus"],
-        TeamsClassicPrometheusFormatter,
-    )
-    assert isinstance(
-        output.source_formatters["prometheus"],
-        PrometheusTeamsFormatter,
-    )
+    assert isinstance(classic, PrometheusTeamsFormatter)
+    assert isinstance(modern, PrometheusTeamsFormatter)
+    assert classic is not modern
+    assert classic.card_style == "classic"
+    assert modern.card_style == "modern"
+    return classic
 
 
-def test_prometheus_classic_uses_xo_style_summary_and_sections():
-    formatter = TeamsClassicPrometheusFormatter()
-    payload = formatter.format(prometheus_notification())
+def test_prometheus_classic_uses_rich_header_summary_details_and_footer():
+    payload = classic_formatter().format(prometheus_notification())
     body = card_body(payload)
     text = flattened_text(payload)
 
-    summary = body[2]
-    assert summary["type"] == "ColumnSet"
+    header = body[0]
+    heading = header["columns"][0]["items"]
+    badge = heading[3]["columns"][0]["items"][0]
+    icon = header["columns"][1]["items"][0]
+
+    assert heading[0]["text"] == "Prometheus"
+    assert heading[2]["text"] == "HighRequestLatency"
+    assert badge["style"] == "attention"
+    assert badge["items"][0]["text"] == "🚨 Firing"
+    assert "/prometheus.png" in icon["url"]
+
+    assert body[2]["style"] == "emphasis"
+    assert "95th percentile latency exceeded two seconds." in text
+
+    summary = body[3]
     labels = [
         column["items"][0]["text"]
         for column in summary["columns"]
     ]
-    values = [
-        column["items"][1]["text"]
-        for column in summary["columns"]
-    ]
-
     assert labels == [
         "🚨 Severity",
-        "🎯 Target",
-        "📥 Receiver",
-    ]
-    assert values == [
-        "Critical",
-        "api-01:9090",
-        "nowlert-critical",
+        "📁 Category",
+        "🕒 Event time",
     ]
 
-    expected_order = [
-        "📈 Prometheus",
-        "🏷️ Labels",
-        "⏱️ Timing",
-        "🔗 Links",
-    ]
-    positions = [text.index(label) for label in expected_order]
-    assert positions == sorted(positions)
-
-    prometheus = section_value(payload, "📈 Prometheus")
-    assert "**Service:** checkout" in prometheus
-    assert "**Job:** api-server" in prometheus
-    assert "**Namespace:** production" in prometheus
-    assert "Receiver" not in prometheus
+    for label in (
+        "📥 Receiver:",
+        "🧩 Service:",
+        "⚙️ Job:",
+        "📦 Namespace:",
+        "🏷️ Labels:",
+        "▶️ Started:",
+    ):
+        assert label in text
 
     assert "environment=production" in text
-    assert "Alertmanager" in text
-    assert "Prometheus" in text
-    assert "Runbook" in text
-    assert CLASSIC_FOOTER in text
-    assert "`" not in text
-    assert (
-        TeamsOutput.payload_size(payload)
-        <= TeamsOutput.MAX_PAYLOAD_BYTES
-    )
+    assert body[-1]["text"] == "Nowlert CE • Classic Card"
+    assert "Nowlert CE • Modern Card" not in json.dumps(payload)
 
 
-def test_prometheus_classic_resolved_keeps_started_and_resolved_times():
-    payload = TeamsClassicPrometheusFormatter().format(
+def test_prometheus_classic_resolved_is_green_and_keeps_resolved_time():
+    payload = classic_formatter().format(
         prometheus_notification("resolved")
     )
+    body = card_body(payload)
     text = flattened_text(payload)
-    timing = section_value(payload, "⏱️ Timing")
+    badge = body[0]["columns"][0]["items"][3]["columns"][0]["items"][0]
 
-    assert "✅ HighRequestLatency — Resolved" in text
-    assert "**Started:** 2026-09-23T02:00:00Z" in timing
-    assert "**Resolved:** 2026-09-23T02:02:00Z" in timing
+    assert badge["style"] == "good"
+    assert badge["items"][0]["text"] == "✅ Resolved"
+    assert "🏁 Resolved:" in text
+    assert "23 Sep 2026" in text
 
 
-def test_prometheus_classic_keeps_grouped_alerts_compact():
+def test_prometheus_classic_keeps_grouped_alerts_and_actions():
     item = prometheus_notification()
     item.title = "Prometheus alert group"
     item.metadata["alert_count"] = 2
@@ -189,45 +165,27 @@ def test_prometheus_classic_keeps_grouped_alerts_compact():
         },
     ]
 
-    payload = TeamsClassicPrometheusFormatter().format(item)
-    alerts = section_value(payload, "👥 Alerts · 2")
-
-    assert (
-        "**ApiErrorRateHigh** · Firing · Critical · api-02:9090"
-        in alerts
-    )
-    assert (
-        "**QueueDepthHigh** · Firing · Warning · worker-02:9090"
-        in alerts
-    )
-
-
-def test_prometheus_classic_omits_empty_optional_summary_and_sections():
-    item = prometheus_notification()
-    for key in (
-        "instance",
-        "service",
-        "job",
-        "namespace",
-        "pod",
-        "node",
-        "labels",
-        "external_url",
-        "generator_url",
-        "runbook_url",
-    ):
-        item.metadata[key] = ""
-
-    payload = TeamsClassicPrometheusFormatter().format(item)
-    body = card_body(payload)
+    payload = classic_formatter().format(item)
     text = flattened_text(payload)
-    summary = body[2]
+    actions = payload["attachments"][0]["content"]["actions"]
 
-    labels = [
-        column["items"][0]["text"]
-        for column in summary["columns"]
+    assert "👥 Alerts · 2" in text
+    assert "ApiErrorRateHigh" in text
+    assert "QueueDepthHigh" in text
+    assert [action["title"] for action in actions] == [
+        "Open Alertmanager",
+        "Open Prometheus",
+        "Open runbook",
     ]
-    assert labels == ["🚨 Severity", "📥 Receiver"]
-    assert "📈 Prometheus" not in text
-    assert "🏷️ Labels" not in text
-    assert "🔗 Links" not in text
+
+
+def test_prometheus_classic_payload_is_bounded():
+    formatter = classic_formatter()
+    payload = formatter._sanitize_payload(
+        formatter.format(prometheus_notification())
+    )
+
+    assert (
+        TeamsOutput.payload_size(payload)
+        <= TeamsOutput.MAX_PAYLOAD_BYTES
+    )
