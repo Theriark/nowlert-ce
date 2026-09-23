@@ -323,6 +323,152 @@ def test_truenas_and_unifi_network_sections_do_not_need_show_more():
         assert expected in truenas_rendered
 
 
+def prometheus_notification(state: str = "firing") -> Notification:
+    resolved = state == "resolved"
+    item = Notification(
+        source="prometheus",
+        category="monitoring",
+        status="success" if resolved else "warning",
+        title="HighRequestLatency",
+        body=(
+            "Request latency returned below the alert threshold."
+            if resolved
+            else "95th percentile latency exceeded two seconds."
+        ),
+        start_time="2026-09-23T02:00:00Z",
+        end_time="2026-09-23T02:02:00Z" if resolved else "",
+    )
+    item.metadata = {
+        "state": state,
+        "severity": "critical" if resolved else "warning",
+        "instance": "api-01:9090",
+        "service": "checkout",
+        "job": "api-server",
+        "namespace": "production",
+        "receiver": "nowlert-critical",
+        "labels": "environment=production",
+        "alert_count": 1,
+        "group_members": [],
+        "external_url": "https://alertmanager.example.invalid",
+        "generator_url": "https://prometheus.example.invalid/graph",
+        "runbook_url": "https://runbooks.example.invalid/request-latency",
+    }
+    return item
+
+
+def test_prometheus_slack_classic_is_unfolded_without_show_more_geometry():
+    formatter = SlackFormatter()
+    payload = formatter.format(prometheus_notification())
+    blocks = payload["attachments"][0]["blocks"]
+
+    sections = [
+        block
+        for block in blocks
+        if block.get("type") == "section"
+    ]
+    assert sections
+    assert sections[0]["accessory"]["image_url"].endswith(
+        "/discord/prometheus.png"
+    )
+
+    # Slack folds tall field grids behind "Show more". Keep Prometheus
+    # Classic split into small two-column field sections instead.
+    assert all(
+        len(block.get("fields", [])) <= 2
+        for block in sections
+    )
+
+    text_sections = [
+        block["text"]["text"]
+        for block in sections
+        if isinstance(block.get("text"), dict)
+        and "accessory" not in block
+    ]
+    assert all(
+        text.count("\n") <= 4
+        for text in text_sections
+    )
+    assert all(
+        len(text) <= 650
+        for text in text_sections
+    )
+
+    rendered = str(blocks)
+    for expected in (
+        "HighRequestLatency",
+        "Receiver",
+        "nowlert-critical",
+        "Labels",
+        "environment=production",
+        "Target",
+        "api-01:9090",
+        "checkout",
+        "api-server",
+        "production",
+        "Timing",
+        "2026-09-23T02:00:00Z",
+        "Alertmanager",
+        "Prometheus",
+        "Runbook",
+    ):
+        assert expected in rendered
+
+
+def test_prometheus_slack_classic_grouped_and_resolved_stay_fully_expanded():
+    formatter = SlackFormatter()
+
+    grouped = prometheus_notification()
+    grouped.title = "Prometheus alert group"
+    grouped.metadata["alert_count"] = 2
+    grouped.metadata["group_members"] = [
+        {
+            "title": "ApiErrorRateHigh",
+            "state": "firing",
+            "severity": "critical",
+            "target": "api-02:9090",
+        },
+        {
+            "title": "QueueDepthHigh",
+            "state": "firing",
+            "severity": "warning",
+            "target": "worker-02:9090",
+        },
+    ]
+
+    resolved = prometheus_notification("resolved")
+
+    for item in (grouped, resolved):
+        blocks = formatter.format(item)["attachments"][0]["blocks"]
+        sections = [
+            block
+            for block in blocks
+            if block.get("type") == "section"
+        ]
+        assert all(
+            len(block.get("fields", [])) <= 2
+            for block in sections
+        )
+        assert all(
+            block["text"]["text"].count("\n") <= 4
+            and len(block["text"]["text"]) <= 650
+            for block in sections
+            if isinstance(block.get("text"), dict)
+            and "accessory" not in block
+        )
+
+    grouped_rendered = str(
+        formatter.format(grouped)["attachments"][0]["blocks"]
+    )
+    assert "ApiErrorRateHigh" in grouped_rendered
+    assert "QueueDepthHigh" in grouped_rendered
+
+    resolved_rendered = str(
+        formatter.format(resolved)["attachments"][0]["blocks"]
+    )
+    assert "Resolved" in resolved_rendered
+    assert "2026-09-23T02:02:00Z" in resolved_rendered
+
+
 def test_slack_generic_fallback_uses_nowlert_classic_card():
     formatter = SlackFormatter()
     item = notification("home_lab")
