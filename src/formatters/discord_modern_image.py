@@ -55,6 +55,7 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
         "nowlert": "Nowlert",
         "zabbix": "Zabbix",
         "grafana": "Grafana",
+        "prometheus": "Prometheus",
         "portainer": "Portainer",
         "proxmox": "Proxmox",
         "qnap": "QNAP",
@@ -74,6 +75,7 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
     CONTEXT_KEYS = {
         "zabbix": ("host", "hostname"),
         "grafana": ("rule_name", "alert_rule", "folder", "host"),
+        "prometheus": ("instance", "service", "job", "namespace", "pod", "node"),
         "portainer": ("instance", "endpoint", "host"),
         "proxmox": ("node", "cluster", "host"),
         "qnap": ("nas_name", "hostname", "host"),
@@ -101,6 +103,12 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             ("Rule & Location", ("rule", "location"), False),
             ("Data", ("datasource", "labels", "values"), False),
             ("Alert details", ("alerts", "evaluation error"), True),
+            ("Timing & Links", ("timing", "links"), False),
+        ),
+        "prometheus": (
+            ("Target", ("target",), False),
+            ("Prometheus", ("prometheus", "labels"), False),
+            ("Alert details", ("alerts",), True),
             ("Timing & Links", ("timing", "links"), False),
         ),
         "portainer": (

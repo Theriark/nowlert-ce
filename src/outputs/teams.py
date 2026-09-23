@@ -32,6 +32,7 @@ from formatters.teams_hardware import (
 )
 from formatters.teams_home_assistant import HomeAssistantTeamsFormatter
 from formatters.teams_portainer import PortainerTeamsFormatter
+from formatters.teams_prometheus import PrometheusTeamsFormatter
 from formatters.teams_proxmox import ProxmoxTeamsFormatter
 from formatters.teams_qnap import QNAPTeamsFormatter
 from formatters.teams_synology import SynologyTeamsFormatter
@@ -97,6 +98,7 @@ class TeamsOutput:
             "xo": TeamsFormatter(),
             "grafana": GrafanaTeamsFormatter(),
             "portainer": PortainerTeamsFormatter(),
+            "prometheus": PrometheusTeamsFormatter(),
             "proxmox": ProxmoxTeamsFormatter(),
             "qnap": QNAPTeamsFormatter(),
             "synology": SynologyTeamsFormatter(),

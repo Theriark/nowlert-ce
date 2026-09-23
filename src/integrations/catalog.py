@@ -52,6 +52,14 @@ _CATALOGUE = (
         "aliases": (),
     },
     {
+        "source": "prometheus",
+        "name": "Prometheus",
+        "category": "monitoring",
+        "icon_key": "prometheus",
+        "inputs": ("http",),
+        "aliases": ("alertmanager", "prometheus_alertmanager"),
+    },
+    {
         "source": "portainer",
         "name": "Portainer",
         "category": "containers",
@@ -195,6 +203,23 @@ _ROUTE_FILTERS = {
             "error",
             "test",
             "not resolved",
+        ),
+    },
+    "prometheus": {
+        "severities": (
+            "info",
+            "information",
+            "notice",
+            "warning",
+            "warn",
+            "error",
+            "critical",
+            "fatal",
+            "emergency",
+        ),
+        "statuses": (
+            "firing",
+            "resolved",
         ),
     },
     "portainer": {

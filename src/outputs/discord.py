@@ -33,6 +33,7 @@ from formatters.discord_hardware import (
 )
 from formatters.discord_home_assistant import HomeAssistantDiscordFormatter
 from formatters.discord_portainer import PortainerDiscordFormatter
+from formatters.discord_prometheus import PrometheusDiscordFormatter
 from formatters.discord_proxmox import ProxmoxDiscordFormatter
 from formatters.discord_qnap import QNAPDiscordFormatter
 from formatters.discord_synology import SynologyDiscordFormatter
@@ -126,6 +127,7 @@ class DiscordOutput:
             "xo": DiscordFormatter(),
             "grafana": GrafanaDiscordFormatter(),
             "portainer": PortainerDiscordFormatter(),
+            "prometheus": PrometheusDiscordFormatter(),
             "proxmox": ProxmoxDiscordFormatter(),
             "qnap": QNAPDiscordFormatter(),
             "synology": SynologyDiscordFormatter(),
@@ -355,6 +357,8 @@ class DiscordOutput:
                 if source == "grafana"
                 else self.portainer_modern_image_renderer
                 if source == "portainer"
+                else self.modern_image_renderer
+                if source == "prometheus"
                 else self.proxmox_modern_image_renderer
                 if source == "proxmox"
                 else self.qnap_modern_image_renderer

@@ -12,6 +12,7 @@ transport types: **SMTP**, **HTTP**, and **Redfish**.
 | Xen Orchestra | `xo` | SMTP | Virtualization |
 | Zabbix | `zabbix` | SMTP, HTTP | Monitoring |
 | Grafana | `grafana` | HTTP | Monitoring |
+| Prometheus | `prometheus` | HTTP | Monitoring |
 | Portainer | `portainer` | HTTP | Containers |
 | Proxmox | `proxmox` | HTTP | Virtualization |
 | QNAP | `qnap` | SMTP | Storage |
