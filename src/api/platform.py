@@ -15,7 +15,6 @@ from urllib.parse import unquote
 
 from api.response import APIResponse
 from environment import compatible_environment
-from email_rules import EmailRuleEngine
 from integrations.catalog import integrations, route_options
 from logger import log
 from api.security import Principal, RateLimiter
@@ -85,7 +84,8 @@ class PlatformAPI:
             secrets=self.secrets,
             audit=self.audit,
         )
-        self.email_rules = EmailRuleEngine(self.email_connections.store)
+        self.email_pipeline = self.email_connections.processor
+        self.email_rules = self.email_pipeline.rules
         self.portability = PlatformPortabilityService(
             database,
             secrets=self.secrets,
@@ -284,6 +284,18 @@ class PlatformAPI:
                     payload,
                     actor,
                     email_rule_match.group(1),
+                )
+            email_message_action = re.fullmatch(
+                r"/api/v2/email-messages/([0-9a-f]{32})/(reprocess)",
+                path,
+            )
+            if email_message_action:
+                return self._email_message_action(
+                    method,
+                    payload,
+                    actor,
+                    email_message_action.group(1),
+                    email_message_action.group(2),
                 )
             if path == "/api/v2/email-mailboxes":
                 return self._email_mailboxes_endpoint(method, payload, actor)
@@ -1081,6 +1093,35 @@ class PlatformAPI:
             200,
             {"mailbox": self._email_mailbox(mailbox)},
             (("Cache-Control", "no-store"),),
+        )
+
+    def _email_message_action(
+        self,
+        method,
+        payload,
+        actor,
+        message_id: str,
+        action: str,
+    ) -> APIResponse:
+        if action != "reprocess":
+            return APIResponse(404, {"error": "resource not found"})
+        if method != "POST":
+            return self._method_not_allowed("POST")
+        data = self._object(payload or {}, {"bypass_quiet_window"})
+        bypass = self._boolean(
+            data,
+            "bypass_quiet_window",
+            False,
+        )
+        result = self.email_pipeline.process(
+            actor,
+            message_id,
+            replay=True,
+            bypass_quiet_window=bypass,
+        )
+        return APIResponse(
+            200,
+            {"result": result.public()},
         )
 
     def _email_mailboxes_endpoint(self, method, payload, actor) -> APIResponse:

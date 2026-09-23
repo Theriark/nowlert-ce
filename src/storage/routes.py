@@ -563,8 +563,10 @@ class RouteStore:
     @staticmethod
     def _input_type(value) -> str:
         normalized = str(value or "").strip().casefold()
-        if normalized not in {"", "smtp", "http", "redfish"}:
-            raise ValueError("route input type must be smtp, http, or redfish")
+        if normalized not in {"", "smtp", "http", "redfish", "email"}:
+            raise ValueError(
+                "route input type must be smtp, http, redfish, or email"
+            )
         return normalized
 
     @staticmethod

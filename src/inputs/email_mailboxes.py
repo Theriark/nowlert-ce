@@ -26,6 +26,7 @@ from urllib.parse import quote, urlencode, urlsplit
 
 import requests
 
+from email_alert_pipeline import EmailAlertProcessor
 from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.email_alerts import EmailAlertStore, EmailMailbox, EmailMessage
@@ -865,6 +866,13 @@ class MailboxConnectionService:
             imap_ssl_factory=imap_ssl_factory,
             clock=clock,
         )
+        self.processor = EmailAlertProcessor(
+            database,
+            store=self.store,
+            audit=self.audit,
+            raw_loader=self._raw_for_rules,
+            clock=clock,
+        )
 
     def create_mailbox(
         self,
@@ -1098,8 +1106,9 @@ class MailboxConnectionService:
 
             created = 0
             duplicates = 0
+            new_message_ids: list[str] = []
             for item in batch.messages:
-                _message, inserted = self.store.record_message(
+                message, inserted = self.store.record_message(
                     actor,
                     mailbox.id,
                     provider_message_id=item.provider_message_id,
@@ -1115,6 +1124,7 @@ class MailboxConnectionService:
                 )
                 if inserted:
                     created += 1
+                    new_message_ids.append(message.id)
                 else:
                     duplicates += 1
             synced_at = int(self.clock())
@@ -1126,6 +1136,19 @@ class MailboxConnectionService:
                 last_sync_at=synced_at,
                 clear_error=True,
             )
+            for message_id in new_message_ids:
+                try:
+                    self.processor.process(actor, message_id)
+                except Exception:
+                    try:
+                        self.store.record_processing(
+                            actor,
+                            message_id,
+                            "error",
+                            details={"reason": "processing_exception"},
+                        )
+                    except Exception:
+                        pass
         except Exception as error:
             self._connection_failure(actor, mailbox, error)
             raise
@@ -1202,6 +1225,17 @@ class MailboxConnectionService:
             except Exception:
                 continue
         return results
+
+    def _raw_for_rules(
+        self,
+        actor: Actor,
+        message_id: str,
+    ) -> bytes:
+        try:
+            return self.store.read_raw_content(actor, message_id)
+        except KeyError:
+            self.fetch_raw_content(actor, message_id)
+            return self.store.read_raw_content(actor, message_id)
 
     def _oauth_access_token(
         self,

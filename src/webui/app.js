@@ -1446,7 +1446,12 @@ function integrationBySource(value) {
 }
 
 function inputLabel(value) {
-  const labels = { smtp: "SMTP", http: "HTTP", redfish: "Redfish" };
+  const labels = {
+    smtp: "SMTP",
+    http: "HTTP",
+    redfish: "Redfish",
+    email: "Email Alerts",
+  };
   return labels[String(value || "").toLowerCase()] || String(value || "Any input").toUpperCase();
 }
 

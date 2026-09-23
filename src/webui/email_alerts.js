@@ -447,7 +447,7 @@ function emailRenderActivity() {
   const table = element("table", { className: "email-activity-table" });
   const head = element("thead");
   const headRow = element("tr");
-  for (const label of ["Received", "Mailbox", "Sender", "Subject", "Classification", "Rule", "Original"]) {
+  for (const label of ["Received", "Mailbox", "Sender", "Subject", "Classification", "Rule", "Processing", "Original", "Actions"]) {
     headRow.append(element("th", { text: label }));
   }
   head.append(headRow);
@@ -478,7 +478,24 @@ function emailRenderActivity() {
       ]),
       element("td", {}, [emailClassificationBadge(processing?.classification || "")]),
       element("td", { text: processing?.rule_id ? emailRuleName(processing.rule_id) : "Not evaluated" }),
+      element("td", { text: processing?.action || "Pending" }),
       element("td", {}, [original]),
+      element("td", {}, [
+        element("div", { className: "row-actions email-row-actions" }, [
+          element("button", {
+            className: "text-button",
+            text: "Reprocess",
+            type: "button",
+            dataset: { emailAction: "reprocess-message", id: message.id },
+          }),
+          element("button", {
+            className: "text-button",
+            text: "Force replay",
+            type: "button",
+            dataset: { emailAction: "force-reprocess-message", id: message.id },
+          }),
+        ]),
+      ]),
     );
     body.append(row);
   }
@@ -571,7 +588,7 @@ function emailEnsureDialogs() {
           element("button", { className: "button small secondary", text: "Add condition", type: "button", dataset: { emailAction: "add-condition" } }),
         ]),
         element("div", { attributes: { id: "email-rule-conditions" } }),
-        element("small", { className: "email-body-rule-note", text: "Body conditions are evaluated only when message content is available. Phase 8 will retrieve content only when a body rule requires it." }),
+        element("small", { className: "email-body-rule-note", text: "Body conditions retrieve message content only when an enabled body rule requires it. Attachments are never used for matching." }),
       ]),
       element("p", { className: "form-error", attributes: { id: "email-rule-error", role: "alert" }, hidden: true }),
       element("div", { className: "modal-actions" }, [
@@ -943,6 +960,38 @@ async function emailAction(action, id, node) {
       toast("Mailbox deleted.", "success");
       await emailLoad(true);
     }
+    if (action === "reprocess-message" || action === "force-reprocess-message") {
+      const force = action === "force-reprocess-message";
+      if (
+        force
+        && !window.confirm(
+          "Force replay bypasses the Email Alert group quiet window. Continue?"
+        )
+      ) return;
+      node.disabled = true;
+      const response = await request(`/email-messages/${id}/reprocess`, {
+        method: "POST",
+        body: { bypass_quiet_window: force },
+      });
+      const result = response.result || {};
+      const summary = result.reason === "routed"
+        ? `Routed to ${result.delivered} destination${result.delivered === 1 ? "" : "s"}.`
+        : result.reason === "quiet_window"
+          ? "Reprocessing matched a rule but was suppressed by the group quiet window."
+          : result.reason === "classification_ignore"
+            ? "Reprocessing matched an Ignore rule."
+            : result.reason === "no_matching_rule"
+              ? "No enabled Email Alert rule matched this message."
+              : result.reason === "no_matching_route"
+                ? "The email was promoted, but no Email Alerts route is assigned to a destination."
+                : result.reason === "delivery_failed"
+                  ? "The email was promoted, but destination delivery failed."
+                  : "Email Alert reprocessing completed.";
+      toast(summary, result.failed ? "danger" : "success");
+      await emailLoad(true);
+      return;
+    }
+
   } catch (error) {
     toast(error.message || "Email Alerts action failed.", "danger");
   } finally {
