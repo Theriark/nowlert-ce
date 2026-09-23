@@ -31,6 +31,7 @@ on:
 permissions:
   actions: read
   contents: write
+  id-token: write
   packages: write
 
 concurrency:
@@ -183,6 +184,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Configure AWS credentials for CE ledger
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: arn:aws:iam::845958214943:role/GitHubActions-NowlertCE-LedgerWriter
+          aws-region: eu-west-1
+          role-session-name: nowlert-ce-release-${{ github.run_id }}
+          role-duration-seconds: 900
+          allowed-account-ids: "845958214943"
+          mask-aws-account-id: true
+          unset-current-credentials: true
+
+      - name: Confirm CE Stage ledger approval
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/ledger.py assert-current \
+            --environment stage \
+            --image "${FINAL_IMAGE}" \
+            --source-commit "${SOURCE_COMMIT}" \
+            --promotion-run "${STAGE_PROMOTION_RUN_ID}"
+
       - name: Advance main to Stage-approved source
         shell: bash
         env:
@@ -318,7 +341,7 @@ jobs:
             echo "PASS: ${image} -> ${actual}"
           done
 
-      - name: Publish annotated CE tag and GitHub Release
+      - name: Publish annotated CE tag, GitHub Release, and ledger record
         id: publish
         shell: bash
         env:
@@ -395,6 +418,9 @@ jobs:
             release-manifest.json \
             release-summary.md
 
+          python .github/scripts/ledger.py release \
+            --manifest release-manifest.json \
+            --output-path "${VERSION}-ledger-record.json"
 
           trap - ERR
 
@@ -407,6 +433,7 @@ jobs:
           path: |
             release-manifest.json
             release-summary.md
+            ${{ inputs.version }}-ledger-record.json
 
       - name: Record successful CE release finalization
         shell: bash
@@ -424,6 +451,8 @@ jobs:
             echo "- GHCR aliases: \`${RELEASE_VERSION}\`, \`latest\`"
             echo "- Docker Hub aliases: \`${RELEASE_VERSION}\`, \`latest\`"
             echo "- Notification delivery tests during Stage promotion: disabled"
+            echo "- Ledger key: \`${{ steps.publish.outputs.key }}\`"
+            echo "- Ledger version: \`${{ steps.publish.outputs.version_id }}\`"
             echo "- Image rebuild performed: no"
             echo "- Rebuild performed: no"
             echo "- Deployment performed: no"
