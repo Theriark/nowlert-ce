@@ -20,6 +20,7 @@ from outputs.teams_modern_image import publish_teams_modern_image
 from formatters.teams import TeamsFormatter
 from formatters.teams_classic_v1 import (
     TeamsClassicFormatter,
+    TeamsClassicPrometheusFormatter,
     TeamsClassicXenOrchestraFormatter,
 )
 from formatters.teams_generic import GenericTeamsFormatter
@@ -115,6 +116,7 @@ class TeamsOutput:
         }
 
         self.classic_source_formatters = {
+            "prometheus": TeamsClassicPrometheusFormatter(),
             "xo": TeamsClassicXenOrchestraFormatter(),
         }
         self.classic_formatter = TeamsClassicFormatter()

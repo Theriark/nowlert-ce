@@ -454,11 +454,10 @@ def test_teams_classic_uses_classic_renderer_for_every_supported_source(source):
 
     assert preview.metadata["message_style"] == "classic"
     assert preview.metadata["rendered_style"] == "classic"
-    expected_formatter = (
-        "TeamsClassicXenOrchestraFormatter"
-        if source == "xo"
-        else "TeamsClassicFormatter"
-    )
+    expected_formatter = {
+        "prometheus": "TeamsClassicPrometheusFormatter",
+        "xo": "TeamsClassicXenOrchestraFormatter",
+    }.get(source, "TeamsClassicFormatter")
     assert preview.metadata["formatter"] == expected_formatter
     assert "🦉 Nowlert CE • Classic Card" in json.dumps(
         preview.payload,
