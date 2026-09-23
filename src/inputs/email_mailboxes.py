@@ -1165,6 +1165,16 @@ class MailboxConnectionService:
         mailbox = self.store.get_mailbox(actor, mailbox_id)
         if not mailbox.enabled:
             raise PermissionError("email mailbox is disabled")
+        credentials = self._credentials(actor, mailbox)
+        if (
+            mailbox.provider in {"gmail", "microsoft_365"}
+            and not str(credentials.get("access_token") or "")
+            and not str(credentials.get("refresh_token") or "")
+        ):
+            raise MailboxConnectionError(
+                "authentication_required",
+                "Connect the mailbox before synchronizing it",
+            )
         self.store.update_mailbox_connection(
             actor,
             mailbox.id,
@@ -1173,7 +1183,6 @@ class MailboxConnectionService:
         )
         old_cursor = mailbox.sync_cursor
         try:
-            credentials = self._credentials(actor, mailbox)
             if mailbox.provider == "gmail":
                 access_token, credentials = self._oauth_access_token(
                     actor,
@@ -1362,7 +1371,7 @@ class MailboxConnectionService:
                 FROM email_mailboxes
                 WHERE enabled = 1
                   AND secret_id IS NOT NULL
-                  AND connection_state IN ('healthy', 'degraded', 'connecting')
+                  AND connection_state IN ('healthy', 'degraded')
                 ORDER BY id
                 """
             ).fetchall()

@@ -29,7 +29,11 @@ from storage.configuration_bridge import ConfigurationBridgeService
 from storage.configuration_sync import UnifiedConfigurationService
 from storage.delivery import DeliveryHistoryStore, PlatformDeliveryService
 from storage.destinations import DestinationStore
-from inputs.email_mailboxes import MailboxConnectionService, email_oauth_applications
+from inputs.email_mailboxes import (
+    MailboxConnectionError,
+    MailboxConnectionService,
+    email_oauth_applications,
+)
 from storage.ownership import Actor
 from storage.portability import PlatformPortabilityService
 from storage.routes import RouteStore
@@ -422,6 +426,29 @@ class PlatformAPI:
                     "code": "validation_error",
                     "path": path,
                 },
+            )
+        except MailboxConnectionError as error:
+            status = (
+                409
+                if error.code in {
+                    "authentication_required",
+                    "credentials_missing",
+                    "credentials_invalid",
+                    "provider_not_configured",
+                    "sync_cursor_expired",
+                    "sync_cursor_invalid",
+                    "provider_message_missing",
+                }
+                else 502
+            )
+            return APIResponse(
+                status,
+                {
+                    "error": error.safe_message or "mailbox operation failed",
+                    "code": error.code or "mailbox_operation_failed",
+                    "path": path,
+                },
+                (("Cache-Control", "no-store"),),
             )
         except Exception as error:
             return self._unexpected(path, error)
