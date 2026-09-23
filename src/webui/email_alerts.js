@@ -8,6 +8,7 @@ const emailAlertsState = {
   groups: [],
   rules: [],
   mailboxes: [],
+  providers: {},
   activity: { messages: [], processing: [] },
 };
 
@@ -119,17 +120,19 @@ async function emailLoad(force = false) {
   byId("email-alerts-loading").hidden = false;
   byId("email-alerts-error").hidden = true;
   try {
-    const [overview, groups, rules, mailboxes, activity] = await Promise.all([
+    const [overview, groups, rules, mailboxes, providers, activity] = await Promise.all([
       request("/email-overview"),
       request("/email-groups"),
       request("/email-rules"),
       request("/email-mailboxes"),
+      request("/email-mailbox-providers"),
       request("/email-activity"),
     ]);
     emailAlertsState.overview = overview.overview || {};
     emailAlertsState.groups = groups.groups || [];
     emailAlertsState.rules = rules.rules || [];
     emailAlertsState.mailboxes = mailboxes.mailboxes || [];
+    emailAlertsState.providers = providers.providers || {};
     emailAlertsState.activity = activity || { messages: [], processing: [] };
     emailAlertsState.loaded = true;
     emailRender();
@@ -374,7 +377,19 @@ function emailProviderLabel(provider) {
   }[provider] || provider;
 }
 
+function emailProviderConfigured(provider) {
+  if (provider === "imap") return true;
+  return emailAlertsState.providers?.[provider]?.configured === true;
+}
+
+function emailDefaultMailboxProvider() {
+  if (emailProviderConfigured("gmail")) return "gmail";
+  if (emailProviderConfigured("microsoft_365")) return "microsoft_365";
+  return "imap";
+}
+
 function emailMailboxConnectButton(provider, label, primary = false) {
+  const configured = emailProviderConfigured(provider);
   return element("button", {
     className: `button ${primary ? "primary" : "secondary"}`,
     text: label,
@@ -382,6 +397,12 @@ function emailMailboxConnectButton(provider, label, primary = false) {
     dataset: {
       emailAction: "new-mailbox",
       provider,
+    },
+    disabled: !configured,
+    attributes: {
+      title: configured
+        ? `Connect ${emailProviderLabel(provider)}`
+        : `${emailProviderLabel(provider)} OAuth is not configured on this Nowlert instance`,
     },
   });
 }
@@ -399,6 +420,14 @@ function emailMailboxEmptyState(compact = false) {
       emailMailboxConnectButton("microsoft_365", "Connect Microsoft 365"),
       emailMailboxConnectButton("imap", "Connect IMAP / IMAPS"),
     ]),
+    (
+      emailProviderConfigured("gmail") && emailProviderConfigured("microsoft_365")
+        ? null
+        : element("small", {
+            className: "email-mailbox-provider-status",
+            text: "OAuth providers are enabled once the Nowlert administrator configures the instance application credentials.",
+          })
+    ),
   ]);
 }
 
@@ -786,19 +815,12 @@ function emailEnsureDialogs() {
         emailLabel("Mailbox name", element("input", { attributes: { id: "email-mailbox-name", required: "", maxlength: "160", placeholder: "Operations inbox" } })),
         emailLabel("Email address", element("input", { type: "email", attributes: { id: "email-mailbox-address", required: "", maxlength: "320", placeholder: "alerts@example.com" } })),
       ]),
-      element("div", { attributes: { id: "email-oauth-fields" } }, [
-        element("div", { className: "form-grid" }, [
-          emailLabel("OAuth client ID", element("input", { attributes: { id: "email-oauth-client-id", autocomplete: "off" } })),
-          emailLabel("OAuth client secret", element("input", { type: "password", attributes: { id: "email-oauth-client-secret", autocomplete: "new-password" } })),
-          emailLabel("Redirect URL", element("input", { attributes: { id: "email-oauth-redirect", readonly: "" } })),
-        ]),
-        element("div", { attributes: { id: "email-gmail-settings" } }, [
-          emailLabel("Gmail label", element("input", { value: "INBOX", attributes: { id: "email-gmail-label", maxlength: "128" } })),
-        ]),
-        element("div", { className: "form-grid", attributes: { id: "email-microsoft-settings" }, hidden: true }, [
-          emailLabel("Tenant", element("input", { value: "common", attributes: { id: "email-microsoft-tenant", maxlength: "128" } })),
-          emailLabel("Folder", element("input", { value: "inbox", attributes: { id: "email-microsoft-folder", maxlength: "256" } })),
-        ]),
+      element("div", { attributes: { id: "email-gmail-settings" } }, [
+        emailLabel("Gmail label", element("input", { value: "INBOX", attributes: { id: "email-gmail-label", maxlength: "128" } })),
+      ]),
+      element("div", { className: "form-grid", attributes: { id: "email-microsoft-settings" }, hidden: true }, [
+        emailLabel("Tenant", element("input", { value: "common", attributes: { id: "email-microsoft-tenant", maxlength: "128" } })),
+        emailLabel("Folder", element("input", { value: "inbox", attributes: { id: "email-microsoft-folder", maxlength: "256" } })),
       ]),
       element("div", { className: "form-grid", attributes: { id: "email-imap-fields" }, hidden: true }, [
         emailLabel("IMAP host", element("input", { attributes: { id: "email-imap-host", maxlength: "253", placeholder: "imap.example.com" } })),
@@ -816,7 +838,7 @@ function emailEnsureDialogs() {
         attributes: { id: "email-mailbox-provider-hint" },
         text: "After saving this connection, Nowlert redirects you to Google to sign in and grant read-only Gmail access.",
       }),
-      element("p", { className: "email-mailbox-security-note", text: "OAuth and IMAP credentials are submitted once to Nowlert and stored only through the platform SecretStore. They are never returned by this API." }),
+      element("p", { className: "email-mailbox-security-note", text: "For Gmail and Microsoft 365, Nowlert stores only the mailbox authorization tokens in the owner-scoped SecretStore. OAuth application credentials are configured once by the Nowlert administrator and are never requested from mailbox users. IMAP credentials are stored in the same secret boundary." }),
       element("p", { className: "form-error", attributes: { id: "email-mailbox-error", role: "alert" }, hidden: true }),
       element("div", { className: "modal-actions" }, [
         element("button", { className: "button secondary", text: "Cancel", type: "button", dataset: { emailAction: "close-dialog", dialog: "email-mailbox-dialog" } }),
@@ -1027,22 +1049,11 @@ async function emailSaveSeverity(event) {
 function emailMailboxProviderFields() {
   const provider = byId("email-mailbox-provider")?.value || "gmail";
   const oauth = provider !== "imap";
-  byId("email-oauth-fields").hidden = !oauth;
+  const configured = emailProviderConfigured(provider);
   byId("email-imap-fields").hidden = provider !== "imap";
   byId("email-gmail-settings").hidden = provider !== "gmail";
   byId("email-microsoft-settings").hidden = provider !== "microsoft_365";
 
-  for (const id of ["email-oauth-client-id", "email-oauth-client-secret"]) {
-    const input = byId(id);
-    if (!input) continue;
-    input.disabled = !oauth;
-    input.required = oauth;
-  }
-  const redirect = byId("email-oauth-redirect");
-  if (redirect) {
-    redirect.disabled = !oauth;
-    redirect.required = oauth;
-  }
   for (const id of ["email-imap-host", "email-imap-username", "email-imap-password"]) {
     const input = byId(id);
     if (!input) continue;
@@ -1052,11 +1063,15 @@ function emailMailboxProviderFields() {
 
   const hint = byId("email-mailbox-provider-hint");
   if (hint) {
-    hint.textContent = provider === "gmail"
-      ? "After saving this connection, Nowlert redirects you to Google to sign in and grant read-only Gmail access."
-      : provider === "microsoft_365"
-        ? "After saving this connection, Nowlert redirects you to Microsoft to sign in and grant read-only Mail access."
-        : "Nowlert connects directly to the IMAP/IMAPS server with the username and password or app password below.";
+    if (oauth && !configured) {
+      hint.textContent = `${emailProviderLabel(provider)} connections are not configured on this Nowlert instance. An administrator must configure the OAuth application once at deployment level.`;
+    } else {
+      hint.textContent = provider === "gmail"
+        ? "Continue to Google to sign in and grant Nowlert read-only Gmail access. You never need to provide an OAuth client ID or client secret."
+        : provider === "microsoft_365"
+          ? "Continue to Microsoft to sign in and grant Nowlert read-only Mail access. You never need to provide an OAuth client ID or client secret."
+          : "Nowlert connects directly to the IMAP/IMAPS server with the username and password or app password below.";
+    }
   }
   const submit = byId("email-mailbox-submit");
   if (submit) {
@@ -1065,6 +1080,7 @@ function emailMailboxProviderFields() {
       : provider === "microsoft_365"
         ? "Continue to Microsoft"
         : "Connect mailbox";
+    submit.disabled = !configured;
   }
 
   if (provider === "imap") {
@@ -1144,11 +1160,11 @@ function emailOpenRule(rule = null) {
   byId("email-rule-name").focus();
 }
 
-function emailOpenMailbox(provider = "gmail") {
+function emailOpenMailbox(provider = "") {
   emailEnsureDialogs();
   const selectedProvider = ["gmail", "microsoft_365", "imap"].includes(provider)
     ? provider
-    : "gmail";
+    : emailDefaultMailboxProvider();
   byId("email-mailbox-form").reset();
   byId("email-mailbox-provider").value = selectedProvider;
   byId("email-gmail-label").value = "INBOX";
@@ -1157,7 +1173,6 @@ function emailOpenMailbox(provider = "gmail") {
   byId("email-imap-port").value = "993";
   byId("email-imap-security").value = "ssl";
   byId("email-imap-folder").value = "INBOX";
-  byId("email-oauth-redirect").value = `${window.location.origin}/ui/`;
   byId("email-mailbox-error").hidden = true;
   emailMailboxProviderFields();
   byId("email-mailbox-dialog").showModal();
@@ -1244,20 +1259,10 @@ async function emailSaveMailbox(event) {
     body.settings = {
       label: byId("email-gmail-label").value.trim() || "INBOX",
     };
-    body.credential = {
-      client_id: byId("email-oauth-client-id").value.trim(),
-      client_secret: byId("email-oauth-client-secret").value,
-      redirect_uri: byId("email-oauth-redirect").value,
-    };
   } else if (provider === "microsoft_365") {
     body.settings = {
       tenant: byId("email-microsoft-tenant").value.trim() || "common",
       folder: byId("email-microsoft-folder").value.trim() || "inbox",
-    };
-    body.credential = {
-      client_id: byId("email-oauth-client-id").value.trim(),
-      client_secret: byId("email-oauth-client-secret").value,
-      redirect_uri: byId("email-oauth-redirect").value,
     };
   } else {
     body.settings = {
@@ -1293,7 +1298,7 @@ async function emailAction(action, id, node) {
   try {
     if (action === "new-group") return emailOpenGroup();
     if (action === "new-rule") return emailOpenRule();
-    if (action === "new-mailbox") return emailOpenMailbox(node?.dataset.provider || "gmail");
+    if (action === "new-mailbox") return emailOpenMailbox(node?.dataset.provider || "");
     if (action === "refresh") return emailLoad(true);
     if (action === "close-dialog") {
       byId(node.dataset.dialog)?.close();

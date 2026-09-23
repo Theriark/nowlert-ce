@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import json
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -464,3 +465,99 @@ def test_invalid_oauth_state_is_rejected_without_exposing_credentials(tmp_path):
     assert "credential" not in public
     assert "secret_id" not in public
     assert public["secret_configured"] is True
+
+
+
+def test_platform_managed_gmail_oauth_keeps_application_secret_out_of_mailbox_secret(
+    tmp_path,
+):
+    now = 2_000_000_000
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    http = GmailHTTP()
+    service = MailboxConnectionService(
+        database,
+        http=http,
+        clock=lambda: now,
+        oauth_applications={
+            "gmail": {
+                "client_id": "instance-gmail-client",
+                "client_secret": "instance-gmail-secret",
+                "redirect_uri": "https://nowlert.example.com/ui/",
+            },
+            "microsoft_365": {},
+        },
+    )
+
+    mailbox = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "gmail",
+        "alerts@example.com",
+        name="Operations Gmail",
+    )
+
+    secret_id = service.store.mailbox_secret_id(actor, mailbox.id)
+    stored = json.loads(service.secrets.resolve(actor, secret_id).decode("utf-8"))
+    assert len(stored["state_key"]) >= 32
+    assert "client_id" not in stored
+    assert "client_secret" not in stored
+    assert "redirect_uri" not in stored
+
+    oauth = service.oauth_start(actor, mailbox.id)
+    query = parse_qs(urlsplit(oauth.authorization_url).query)
+    assert query["client_id"] == ["instance-gmail-client"]
+    assert query["redirect_uri"] == ["https://nowlert.example.com/ui/"]
+
+    state = query["state"][0]
+    service.oauth_complete(
+        actor,
+        mailbox.id,
+        code="authorization-code",
+        state=state,
+    )
+
+    stored = json.loads(service.secrets.resolve(actor, secret_id).decode("utf-8"))
+    assert stored["access_token"] == "gmail-access"
+    assert stored["refresh_token"] == "gmail-refresh"
+    assert "client_id" not in stored
+    assert "client_secret" not in stored
+    assert "redirect_uri" not in stored
+
+
+def test_mailbox_provider_status_exposes_configuration_without_oauth_secrets(tmp_path):
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    service = MailboxConnectionService(
+        database,
+        oauth_applications={
+            "gmail": {
+                "client_id": "configured",
+                "client_secret": "private-secret",
+                "redirect_uri": "https://nowlert.example.com/ui/",
+            },
+            "microsoft_365": {},
+        },
+    )
+
+    status = service.provider_status()
+
+    assert status == {
+        "imap": {
+            "label": "IMAP / IMAPS",
+            "configured": True,
+            "authentication": "credentials",
+        },
+        "gmail": {
+            "label": "Gmail",
+            "configured": True,
+            "authentication": "oauth",
+        },
+        "microsoft_365": {
+            "label": "Microsoft 365",
+            "configured": False,
+            "authentication": "oauth",
+        },
+    }
+    assert "private-secret" not in json.dumps(status)

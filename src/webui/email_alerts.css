@@ -540,3 +540,12 @@
     width: 100%;
   }
 }
+
+
+.email-mailbox-provider-status {
+  color: #8f99a3;
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  max-width: 44rem;
+}
