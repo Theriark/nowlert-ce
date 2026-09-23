@@ -42,6 +42,7 @@ SCOPED_SOURCES = {
     "hpe": "hpe_ilo",
     "dell": "dell_idrac",
     "home_assistant": "home_assistant",
+    "prometheus": "prometheus",
 }
 
 
