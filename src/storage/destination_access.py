@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
+import threading
 import time
 
 from dataclasses import replace
 
-from integrations.catalog import canonical_source
+from integrations.catalog import canonical_source, infer_input_type, route_options
 from models import Notification
 from storage.delivery import DeliveryHistoryStore
 from storage.destinations import DeliveryDestination, DestinationStore
@@ -18,6 +19,7 @@ from storage.route_destinations import RouteDestinationCandidate, RouteDestinati
 
 
 _PERMISSION_NAMESPACE = "destination_user_permissions"
+_SYSTEM_ROUTE_RECONCILE_LOCK = threading.Lock()
 
 
 class DestinationAccessStore:
@@ -454,6 +456,133 @@ class AccessControlledDestinationFilterStore(ToggleDestinationFilterStore):
 class SystemRoutingRouteStore(RoutingOnlyRouteStore):
     """Expose Route definitions as always-available system integration plumbing."""
 
+    @staticmethod
+    def _matrix_pair(source: str, input_type: str = "") -> tuple[str, str]:
+        normalized_source = canonical_source(source)
+        normalized_input = str(input_type or "").strip().casefold()
+        if not normalized_input and normalized_source != "*":
+            normalized_input = infer_input_type(normalized_source)
+        return normalized_source, normalized_input
+
+    @staticmethod
+    def _matrix_route_base(option: dict) -> str:
+        return f"{option['integration_name']} {option['input_name']}".strip()
+
+    @classmethod
+    def _matrix_suffix(cls, rows, options_by_pair) -> str:
+        counts: dict[str, int] = {}
+        for row in rows:
+            option = options_by_pair.get(
+                cls._matrix_pair(str(row["source"]), str(row["input_type"] or ""))
+            )
+            if option is None:
+                continue
+            base = cls._matrix_route_base(option)
+            name = str(row["name"] or "")
+            if not name.casefold().startswith(base.casefold()):
+                continue
+            suffix = name[len(base):]
+            if not suffix.startswith(" ") or not suffix.strip():
+                continue
+            counts[suffix] = counts.get(suffix, 0) + 1
+        if not counts:
+            return ""
+        return sorted(
+            counts,
+            key=lambda item: (-counts[item], item.casefold()),
+        )[0]
+
+    def _reconcile_catalogue_route_matrix(self) -> None:
+        """Add one newly introduced catalogue route to an existing full matrix."""
+
+        options = route_options()
+        options_by_pair = {
+            self._matrix_pair(item["source"], item["input_type"]): item
+            for item in options
+        }
+        target_pairs = set(options_by_pair)
+
+        with _SYSTEM_ROUTE_RECONCILE_LOCK:
+            with self.database.connect() as connection:
+                rows = connection.execute(
+                    """
+                    SELECT id, owner_user_id, name, source, input_type
+                    FROM routes
+                    ORDER BY priority, name_normalized, id
+                    """
+                ).fetchall()
+
+            existing_pairs = {
+                self._matrix_pair(
+                    str(row["source"]),
+                    str(row["input_type"] or ""),
+                )
+                for row in rows
+            }
+            missing_pairs = target_pairs - existing_pairs
+
+            # A partial/custom route set is intentional. Only heal the exact
+            # upgrade shape where one newly introduced catalogue pair is the
+            # sole missing member of an otherwise complete system matrix.
+            if len(missing_pairs) != 1:
+                return
+            if len(existing_pairs & target_pairs) != len(target_pairs) - 1:
+                return
+
+            missing_pair = next(iter(missing_pairs))
+            option = options_by_pair[missing_pair]
+            matching_rows = [
+                row
+                for row in rows
+                if self._matrix_pair(
+                    str(row["source"]),
+                    str(row["input_type"] or ""),
+                ) in target_pairs
+            ]
+            if not matching_rows:
+                return
+
+            owner_counts: dict[str, int] = {}
+            for row in matching_rows:
+                owner_id = str(row["owner_user_id"])
+                owner_counts[owner_id] = owner_counts.get(owner_id, 0) + 1
+            owner_id = sorted(
+                owner_counts,
+                key=lambda item: (-owner_counts[item], item),
+            )[0]
+
+            with self.database.connect() as connection:
+                owner = connection.execute(
+                    "SELECT id, role, enabled FROM users WHERE id = ?",
+                    (owner_id,),
+                ).fetchone()
+            if owner is None or not bool(owner["enabled"]):
+                return
+
+            suffix = self._matrix_suffix(rows, options_by_pair)
+            base = self._matrix_route_base(option)
+            actor = Actor(str(owner["id"]), str(owner["role"]))
+            candidates = (
+                f"{base}{suffix}",
+                f"{base} integration{suffix}",
+                f"{base} system route{suffix}",
+            )
+            for candidate in candidates:
+                try:
+                    self.create(
+                        actor,
+                        owner_id,
+                        candidate,
+                        option["source"],
+                        input_type=option["input_type"],
+                        priority=100,
+                        enabled=True,
+                    )
+                    return
+                except ValueError as error:
+                    if "route name is already configured" not in str(error):
+                        raise
+
     def _visible_destination_ids(self, actor: Actor, route_id: str) -> tuple[str, ...]:
         with self.database.connect() as connection:
             rows = connection.execute(
@@ -484,6 +613,7 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
         return self._for_actor(actor, row)
 
     def list_visible_safe(self, actor: Actor):
+        self._reconcile_catalogue_route_matrix()
         with self.database.connect() as connection:
             rows = connection.execute(
                 "SELECT * FROM routes ORDER BY priority, name_normalized"
