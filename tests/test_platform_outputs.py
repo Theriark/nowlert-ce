@@ -571,6 +571,163 @@ def test_send_test_discord_modern_and_classic_use_nowlert_identity():
     )
 
 
+def test_prometheus_discord_classic_uses_compact_xo_style_geometry():
+    item = prometheus_notification()
+    preview = DiscordPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("discord", {"components_v2": False}),
+        item,
+    )
+
+    embed = preview.payload["embeds"][0]
+    fields = embed["fields"]
+
+    assert embed["title"] == "🚨 HighRequestLatency — Firing"
+    assert embed["description"] == (
+        "95th percentile latency exceeded two seconds."
+    )
+    assert "url" not in embed
+    assert embed["thumbnail"] == {
+        "url": "nowlert-asset://prometheus.png"
+    }
+    assert embed["footer"] == {
+        "text": "🦉 Nowlert CE • Classic Card"
+    }
+
+    assert [field["name"] for field in fields[:3]] == [
+        "🚨 Severity",
+        "🎯 Target",
+        "📥 Receiver",
+    ]
+    assert all(field["inline"] is True for field in fields[:3])
+    assert fields[0]["value"] == "`Critical`"
+    assert fields[1]["value"] == "`api-01:9090`"
+    assert fields[2]["value"] == "`nowlert-critical`"
+
+    names = [field["name"] for field in fields]
+    assert names == [
+        "🚨 Severity",
+        "🎯 Target",
+        "📥 Receiver",
+        "📈 Prometheus",
+        "🏷️ Labels",
+        "⏱️ Timing",
+        "🔗 Links",
+    ]
+    prometheus = fields[3]["value"]
+    assert "**Service:** `checkout`" in prometheus
+    assert "**Job:** `api-server`" in prometheus
+    assert "**Namespace:** `production`" in prometheus
+    assert "**Started:** `2026-09-23T02:00:00Z`" in fields[5]["value"]
+
+
+def test_prometheus_discord_classic_grouped_alerts_stay_compact():
+    item = prometheus_notification()
+    item.metadata["alert_count"] = 2
+    item.metadata["group_members"] = [
+        {
+            "title": "ApiErrorRateHigh",
+            "state": "firing",
+            "severity": "critical",
+            "target": "api-02:9090",
+        },
+        {
+            "title": "QueueDepthHigh",
+            "state": "firing",
+            "severity": "warning",
+            "target": "worker-02:9090",
+        },
+    ]
+
+    embed = DiscordPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("discord", {"components_v2": False}),
+        item,
+    ).payload["embeds"][0]
+    grouped = next(
+        field for field in embed["fields"]
+        if field["name"] == "👥 Alerts · 2"
+    )
+
+    assert (
+        "**ApiErrorRateHigh** · Firing · Critical · api-02:9090"
+        in grouped["value"]
+    )
+    assert (
+        "**QueueDepthHigh** · Firing · Warning · worker-02:9090"
+        in grouped["value"]
+    )
+
+
+def test_prometheus_discord_classic_resolved_keeps_started_and_resolved():
+    item = prometheus_notification()
+    item.status = "success"
+    item.metadata["state"] = "resolved"
+    item.end_time = "2026-09-23T02:05:00Z"
+
+    embed = DiscordPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("discord", {"components_v2": False}),
+        item,
+    ).payload["embeds"][0]
+
+    assert embed["title"] == "✅ HighRequestLatency — Resolved"
+    assert embed["color"] == 0x2ECC71
+    timing = next(
+        field for field in embed["fields"]
+        if field["name"] == "⏱️ Timing"
+    )
+    assert "**Started:** `2026-09-23T02:00:00Z`" in timing["value"]
+    assert "**Resolved:** `2026-09-23T02:05:00Z`" in timing["value"]
+
+
+def test_prometheus_modern_seed_contract_is_unchanged_by_classic_layout():
+    item = prometheus_notification()
+    formatter = DiscordPlatformAdapter(
+        resolver=public_resolver
+    ).output.source_formatters["prometheus"]
+    embed = formatter.format(item)["embeds"][0]
+
+    assert [field["name"] for field in embed["fields"]] == [
+        "🚨 Alert",
+        "🎯 Target",
+        "📈 Prometheus",
+        "🏷️ Labels",
+        "⏱️ Timing",
+        "🔗 Links",
+    ]
+    assert embed["thumbnail"]["url"].endswith(
+        "/discord/prometheus.png"
+    )
+    assert embed["url"] == "https://prometheus.example.test/graph"
+
+
+def test_prometheus_webhook_classic_keeps_existing_neutral_contract():
+    preview = WebhookPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("webhook", {"message_style": "classic"}),
+        prometheus_notification(),
+    )
+    names = [
+        field["title"]
+        for field in preview.payload["presentation"]["fields"]
+    ]
+
+    assert names == [
+        "🚨 Alert",
+        "🎯 Target",
+        "📈 Prometheus",
+        "🏷️ Labels",
+        "⏱️ Timing",
+        "🔗 Links",
+    ]
+    assert preview.payload["presentation"]["style"] == "classic_card_v1"
+
+
 def test_prometheus_teams_modern_reuses_standardized_discord_image(
     monkeypatch,
 ):
@@ -942,7 +1099,10 @@ def test_webhook_preview_uses_stable_secret_safe_envelope_and_ignores_legacy_tem
     assert "summary" not in legacy.payload
 
 
-@pytest.mark.parametrize("source", CLASSIC_PARITY_SOURCES)
+@pytest.mark.parametrize(
+    "source",
+    tuple(source for source in CLASSIC_PARITY_SOURCES if source != "prometheus"),
+)
 def test_webhook_classic_preview_matches_approved_discord_classic_geometry(source):
     item = notification_for_source(source)
     webhook_adapter = WebhookPlatformAdapter(resolver=public_resolver)

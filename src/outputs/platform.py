@@ -99,12 +99,18 @@ class DiscordPlatformAdapter(_HTTPAdapter):
 
     def preview(self, destination, notification):
         settings = normalize_output_settings("discord", destination.settings)
+        source = str(notification.source or "").casefold()
         formatter = self.output.source_formatters.get(
-            str(notification.source or "").casefold(),
+            source,
             self.output.default_formatter,
         )
         if settings["components_v2"] and hasattr(formatter, "format_components_v2"):
             payload = formatter.format_components_v2(notification)
+        elif (
+            source == "prometheus"
+            and hasattr(formatter, "format_discord_classic")
+        ):
+            payload = formatter.format_discord_classic(notification)
         else:
             payload = formatter.format(notification)
         payload = formatter._sanitize_payload(payload)
@@ -747,6 +753,20 @@ class WebhookPlatformAdapter(_HTTPAdapter):
         return classic_card_v1_from_discord_payload(payload)
 
     def _classic_presentation(self, destination, notification) -> dict:
+        source = str(notification.source or "").strip().casefold()
+        if source == "prometheus":
+            # Discord Classic has a destination-only compact Prometheus layout.
+            # Generic Webhook Classic deliberately keeps the existing neutral
+            # Prometheus Classic Card v1 contract unchanged.
+            formatter = self.discord.output.source_formatters.get(
+                source,
+                self.discord.output.default_formatter,
+            )
+            payload = formatter._sanitize_payload(
+                formatter.format(notification)
+            )
+            return self._classic_card_from_discord_payload(payload)
+
         discord_destination = self._discord_destination(
             destination,
             "classic",
