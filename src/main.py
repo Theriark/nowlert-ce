@@ -22,6 +22,7 @@ from config import config
 from dispatcher import Dispatcher
 from inputs.http import HTTPInput
 from inputs.http_matrix_parity import install as install_http_matrix_parity
+from inputs.email_mailboxes import MailboxSyncScheduler
 from inputs.smtp import SMTPInput
 from logger import log
 from router import Router
@@ -51,6 +52,7 @@ def main() -> int:
     http = None
     backup_scheduler = None
     housekeeping_scheduler = None
+    mailbox_sync_scheduler = None
     shutdown_requested = Event()
 
     def request_shutdown(signum, _frame):
@@ -111,6 +113,8 @@ def main() -> int:
             backup_scheduler.start()
             housekeeping_scheduler = HousekeepingScheduler(state_database, config)
             housekeeping_scheduler.start()
+            mailbox_sync_scheduler = MailboxSyncScheduler(state_database)
+            mailbox_sync_scheduler.start()
 
         smtp = SMTPInput(
             dispatcher=dispatcher,
@@ -148,6 +152,10 @@ def main() -> int:
         return 1
 
     finally:
+
+        if mailbox_sync_scheduler is not None:
+
+            mailbox_sync_scheduler.stop()
 
         if housekeeping_scheduler is not None:
 

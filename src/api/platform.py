@@ -29,6 +29,7 @@ from storage.configuration_bridge import ConfigurationBridgeService
 from storage.configuration_sync import UnifiedConfigurationService
 from storage.delivery import DeliveryHistoryStore, PlatformDeliveryService
 from storage.destinations import DestinationStore
+from inputs.email_mailboxes import MailboxConnectionService
 from storage.ownership import Actor
 from storage.portability import PlatformPortabilityService
 from storage.routes import RouteStore
@@ -78,6 +79,11 @@ class PlatformAPI:
         self.sessions = SessionStore(database)
         self.tokens = APITokenStore(database, audit=self.audit)
         self.secrets = SecretStore(database)
+        self.email_connections = MailboxConnectionService(
+            database,
+            secrets=self.secrets,
+            audit=self.audit,
+        )
         self.portability = PlatformPortabilityService(
             database,
             secrets=self.secrets,
@@ -245,6 +251,20 @@ class PlatformAPI:
                 return self._version_endpoint(method)
             if path == "/api/v2/tokens":
                 return self._tokens_endpoint(method, payload, actor)
+            if path == "/api/v2/email-mailboxes":
+                return self._email_mailboxes_endpoint(method, payload, actor)
+            email_mailbox_match = re.fullmatch(
+                r"/api/v2/email-mailboxes/([0-9a-f]{32})(?:/(oauth-start|oauth-complete|sync))?",
+                path,
+            )
+            if email_mailbox_match:
+                return self._email_mailbox_resource(
+                    method,
+                    payload,
+                    actor,
+                    email_mailbox_match.group(1),
+                    email_mailbox_match.group(2),
+                )
             if path == "/api/v2/destinations":
                 return self._destinations_endpoint(method, payload, actor)
             if path == "/api/v2/routes":
@@ -688,6 +708,123 @@ class PlatformAPI:
             return APIResponse(200, {"user": self._user(user)})
 
         return self._method_not_allowed("PUT, DELETE")
+
+    def _email_mailboxes_endpoint(self, method, payload, actor) -> APIResponse:
+        if method == "GET":
+            return APIResponse(
+                200,
+                {
+                    "mailboxes": [
+                        self._email_mailbox(item)
+                        for item in self.email_connections.store.list_mailboxes(actor)
+                    ]
+                },
+            )
+        if method == "POST":
+            data = self._object(
+                payload,
+                {
+                    "owner_user_id",
+                    "provider",
+                    "address",
+                    "name",
+                    "settings",
+                    "credential",
+                    "enabled",
+                },
+            )
+            owner_id = self._owner(data, actor)
+            mailbox = self.email_connections.create_mailbox(
+                actor,
+                owner_id,
+                data.get("provider"),
+                data.get("address"),
+                name=str(data.get("name") or ""),
+                settings=data.get("settings", {}),
+                credential=data.get("credential", {}),
+                enabled=self._boolean(data, "enabled", True),
+            )
+            return APIResponse(
+                201,
+                {"mailbox": self._email_mailbox(mailbox)},
+            )
+        return self._method_not_allowed("GET, POST")
+
+    def _email_mailbox_resource(
+        self,
+        method,
+        payload,
+        actor,
+        mailbox_id: str,
+        action: str | None,
+    ) -> APIResponse:
+        if action is None:
+            if method != "GET":
+                return self._method_not_allowed("GET")
+            mailbox = self.email_connections.store.get_mailbox(
+                actor,
+                mailbox_id,
+            )
+            return APIResponse(
+                200,
+                {"mailbox": self._email_mailbox(mailbox)},
+            )
+
+        if action == "oauth-start":
+            if method != "POST":
+                return self._method_not_allowed("POST")
+            self._object(payload or {}, set())
+            result = self.email_connections.oauth_start(actor, mailbox_id)
+            mailbox = self.email_connections.store.get_mailbox(
+                actor,
+                mailbox_id,
+            )
+            return APIResponse(
+                200,
+                {
+                    "mailbox": self._email_mailbox(mailbox),
+                    "oauth": result.public(),
+                },
+                (("Cache-Control", "no-store"),),
+            )
+
+        if action == "oauth-complete":
+            if method != "POST":
+                return self._method_not_allowed("POST")
+            data = self._object(payload, {"code", "state"})
+            mailbox = self.email_connections.oauth_complete(
+                actor,
+                mailbox_id,
+                code=data.get("code"),
+                state=data.get("state"),
+            )
+            return APIResponse(
+                200,
+                {"mailbox": self._email_mailbox(mailbox)},
+                (("Cache-Control", "no-store"),),
+            )
+
+        if action == "sync":
+            if method != "POST":
+                return self._method_not_allowed("POST")
+            self._object(payload or {}, set())
+            summary = self.email_connections.sync_mailbox(
+                actor,
+                mailbox_id,
+            )
+            mailbox = self.email_connections.store.get_mailbox(
+                actor,
+                mailbox_id,
+            )
+            return APIResponse(
+                200,
+                {
+                    "mailbox": self._email_mailbox(mailbox),
+                    "sync": summary.public(),
+                },
+            )
+
+        return APIResponse(404, {"error": "resource not found"})
 
     def _tokens_endpoint(self, method, payload, actor) -> APIResponse:
         if method == "GET":
@@ -2151,6 +2288,25 @@ class PlatformAPI:
             "last_used_at": item.last_used_at,
             "revoked_at": item.revoked_at,
             "enabled": item.enabled,
+        }
+
+    @staticmethod
+    def _email_mailbox(item):
+        return {
+            "id": item.id,
+            "owner_user_id": item.owner_user_id,
+            "provider": item.provider,
+            "name": item.name,
+            "address": item.address,
+            "settings": item.settings,
+            "enabled": item.enabled,
+            "secret_configured": item.secret_configured,
+            "connection_state": item.connection_state,
+            "last_sync_at": item.last_sync_at,
+            "last_error_code": item.last_error_code,
+            "last_error_safe": item.last_error_safe,
+            "created_at": item.created_at,
+            "updated_at": item.updated_at,
         }
 
     @staticmethod
