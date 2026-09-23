@@ -414,7 +414,7 @@ def test_prometheus_slack_classic_is_unfolded_without_show_more_geometry():
         assert expected in rendered
 
 
-def test_prometheus_slack_classic_grouped_and_resolved_stay_fully_expanded():
+def test_prometheus_slack_classic_grouped_stays_below_attachment_fold():
     formatter = SlackFormatter()
 
     grouped = prometheus_notification()
@@ -435,38 +435,82 @@ def test_prometheus_slack_classic_grouped_and_resolved_stay_fully_expanded():
         },
     ]
 
+    blocks = formatter.format(grouped)["attachments"][0]["blocks"]
+
+    # Slack folds the entire attachment when this grouped card becomes too
+    # tall. Keep the full grouped Prometheus payload in four compact blocks.
+    assert len(blocks) == 4
+    assert [block["type"] for block in blocks] == [
+        "section",
+        "section",
+        "section",
+        "context",
+    ]
+
+    header, alerts, target, footer = blocks
+    assert header["accessory"]["image_url"].endswith(
+        "/discord/prometheus.png"
+    )
+    assert len(header["fields"]) == 2
+    assert len(alerts["fields"]) == 2
+    assert len(target["fields"]) == 2
+
+    header_text = str(header["fields"])
+    alerts_text = str(alerts["fields"])
+    target_text = str(target["fields"])
+    footer_text = str(footer["elements"])
+
+    assert "Alert" in header_text
+    assert "Prometheus" in header_text
+    assert "Labels" in alerts_text
+    assert "Alerts · 2" in alerts_text
+    assert "ApiErrorRateHigh" in alerts_text
+    assert "QueueDepthHigh" in alerts_text
+    assert "api-02:9090" in alerts_text
+    assert "worker-02:9090" in alerts_text
+    assert "Timing" in target_text
+    assert "Target" in target_text
+    assert "api-01:9090" in target_text
+    assert "api-server" in target_text
+    assert "production" in target_text
+    assert "Links" in footer_text
+    assert "Alertmanager" in footer_text
+    assert "Prometheus" in footer_text
+    assert CLASSIC_FOOTER in footer_text
+
+    target_field = next(
+        field
+        for field in target["fields"]
+        if "Target" in field["text"]
+    )
+    assert target_field["text"].count("\n") <= 2
+
+
+def test_prometheus_slack_classic_resolved_stays_fully_expanded():
+    formatter = SlackFormatter()
     resolved = prometheus_notification("resolved")
+    blocks = formatter.format(resolved)["attachments"][0]["blocks"]
 
-    for item in (grouped, resolved):
-        blocks = formatter.format(item)["attachments"][0]["blocks"]
-        sections = [
-            block
-            for block in blocks
-            if block.get("type") == "section"
-        ]
-        assert all(
-            len(block.get("fields", [])) <= 2
-            for block in sections
-        )
-        assert all(
-            block["text"]["text"].count("\n") <= 4
-            and len(block["text"]["text"]) <= 650
-            for block in sections
-            if isinstance(block.get("text"), dict)
-            and "accessory" not in block
-        )
-
-    grouped_rendered = str(
-        formatter.format(grouped)["attachments"][0]["blocks"]
+    sections = [
+        block
+        for block in blocks
+        if block.get("type") == "section"
+    ]
+    assert all(
+        len(block.get("fields", [])) <= 2
+        for block in sections
     )
-    assert "ApiErrorRateHigh" in grouped_rendered
-    assert "QueueDepthHigh" in grouped_rendered
-
-    resolved_rendered = str(
-        formatter.format(resolved)["attachments"][0]["blocks"]
+    assert all(
+        block["text"]["text"].count("\n") <= 4
+        and len(block["text"]["text"]) <= 650
+        for block in sections
+        if isinstance(block.get("text"), dict)
+        and "accessory" not in block
     )
-    assert "Resolved" in resolved_rendered
-    assert "2026-09-23T02:02:00Z" in resolved_rendered
+
+    rendered = str(blocks)
+    assert "Resolved" in rendered
+    assert "2026-09-23T02:02:00Z" in rendered
 
 
 def test_slack_generic_fallback_uses_nowlert_classic_card():

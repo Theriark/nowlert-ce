@@ -90,10 +90,29 @@ class SlackFormatter(PresentationMixin):
         title_link = safe_action_url(embed.get("url") or action)
         icon_url = self._slack_classic_icon_url(icon_source)
 
-        attachment = {
-            "fallback": title,
-            "color": self._slack_classic_color(embed.get("color")),
-            "blocks": self._slack_classic_blocks(
+        try:
+            alert_count = max(
+                1,
+                int(metadata.get("alert_count") or 1),
+            )
+        except (TypeError, ValueError):
+            alert_count = 1
+
+        grouped_prometheus = (
+            source == "prometheus"
+            and alert_count > 1
+        )
+        if grouped_prometheus:
+            blocks = self._slack_prometheus_grouped_blocks(
+                title,
+                description,
+                fields,
+                icon_url,
+                title_link=title_link,
+                footer=footer,
+            )
+        else:
+            blocks = self._slack_classic_blocks(
                 title,
                 description,
                 fields,
@@ -101,7 +120,12 @@ class SlackFormatter(PresentationMixin):
                 source=source,
                 title_link=title_link,
                 footer=footer,
-            ),
+            )
+
+        attachment = {
+            "fallback": title,
+            "color": self._slack_classic_color(embed.get("color")),
+            "blocks": blocks,
         }
 
         return self._sanitize_payload(
@@ -244,6 +268,160 @@ class SlackFormatter(PresentationMixin):
                 ],
             }
         )
+        return blocks
+
+    def _slack_prometheus_grouped_blocks(
+        self,
+        title,
+        description,
+        fields,
+        icon_url,
+        *,
+        title_link="",
+        footer=CLASSIC_FOOTER,
+    ):
+        """Keep grouped Prometheus Classic attachments below Slack's fold."""
+
+        def field_named(fragment):
+            wanted = str(fragment or "").casefold()
+            return next(
+                (
+                    field
+                    for field in fields
+                    if wanted
+                    in str(field.get("title") or "").casefold()
+                ),
+                None,
+            )
+
+        def compact_value(value, *, per_line=2):
+            lines = [
+                line.strip()
+                for line in str(value or "").splitlines()
+                if line.strip()
+            ]
+            if len(lines) <= per_line:
+                return "\n".join(lines)
+            return "\n".join(
+                " · ".join(lines[index:index + per_line])
+                for index in range(0, len(lines), per_line)
+            )
+
+        def slack_field(field, *, compact=False):
+            if not isinstance(field, dict):
+                return None
+            field_title = str(field.get("title") or "").strip()
+            field_value = str(field.get("value") or "").strip()
+            if not field_title and not field_value:
+                return None
+            if compact:
+                field_value = compact_value(field_value)
+            return {
+                "type": "mrkdwn",
+                "text": (
+                    f"*{self._escape(field_title)}*\n"
+                    f"{field_value}"
+                )[:2000],
+            }
+
+        title_text = self._escape(title)
+        if title_link:
+            title_text = (
+                f"<{self._escape(title_link)}|{title_text}>"
+            )
+        header_text = f"*{title_text}*"
+        if description:
+            header_text = f"{header_text}\n{description}"
+
+        header = {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": header_text[:3000],
+            },
+        }
+        if icon_url:
+            header["accessory"] = {
+                "type": "image",
+                "image_url": icon_url,
+                "alt_text": "Nowlert integration",
+            }
+
+        header_fields = [
+            slack_field(field_named("alert")),
+            slack_field(field_named("prometheus")),
+        ]
+        header_fields = [
+            field for field in header_fields if field is not None
+        ]
+        if header_fields:
+            header["fields"] = header_fields[:2]
+
+        blocks = [header]
+
+        alert_summary = [
+            slack_field(field_named("labels")),
+            slack_field(
+                field_named("alerts ·"),
+                compact=True,
+            ),
+        ]
+        alert_summary = [
+            field for field in alert_summary if field is not None
+        ]
+        if alert_summary:
+            blocks.append(
+                {
+                    "type": "section",
+                    "fields": alert_summary[:2],
+                }
+            )
+
+        target_summary = [
+            slack_field(field_named("timing")),
+            slack_field(
+                field_named("target"),
+                compact=True,
+            ),
+        ]
+        target_summary = [
+            field for field in target_summary if field is not None
+        ]
+        if target_summary:
+            blocks.append(
+                {
+                    "type": "section",
+                    "fields": target_summary[:2],
+                }
+            )
+
+        context_elements = []
+        links = field_named("links")
+        if isinstance(links, dict):
+            link_value = str(links.get("value") or "").strip()
+            if link_value:
+                context_elements.append(
+                    {
+                        "type": "mrkdwn",
+                        "text": (
+                            f"*{self._escape(links.get('title') or 'Links')}* "
+                            f"{link_value}"
+                        )[:2000],
+                    }
+                )
+        context_elements.append(
+            {
+                "type": "mrkdwn",
+                "text": footer,
+            }
+        )
+        blocks.append(
+            {
+                "type": "context",
+                "elements": context_elements,
+            }
+        )
+
         return blocks
 
     @staticmethod
