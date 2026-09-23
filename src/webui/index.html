@@ -230,7 +230,7 @@
         </section>
 
         <section id="view-destinations" class="view" data-page="destinations" hidden>
-          <div class="section-toolbar"><div><h2>Destinations</h2><p>Configure delivery targets for Discord, Microsoft Teams, Slack, generic webhooks, MQTT, and ntfy.</p></div><button id="add-destination-button" class="button primary" type="button" data-action="new-destination">Add destination</button></div>
+          <div class="section-toolbar"><div><h2>Destinations</h2><p>Configure delivery targets for Discord, Microsoft Teams, Slack, Email, and generic webhooks.</p></div><button id="add-destination-button" class="button primary" type="button" data-action="new-destination">Add destination</button></div>
           <div id="destination-list" class="resource-grid"></div>
         </section>
 
@@ -614,7 +614,7 @@
       <input id="destination-original-type" type="hidden">
       <div class="form-grid">
         <label class="wide"><span>Name</span><input id="destination-name" required maxlength="120" placeholder="Operations alerts"></label>
-        <label><span>Type</span><select id="destination-type" required><option value="discord">Discord</option><option value="teams">Microsoft Teams</option><option value="slack">Slack</option><option value="webhook">Generic webhook</option><option value="mqtt">MQTT</option><option value="ntfy">ntfy</option></select></label>
+        <label><span>Type</span><select id="destination-type" required><option value="discord">Discord</option><option value="teams">Microsoft Teams</option><option value="slack">Slack</option><option value="email">Email</option><option value="webhook">Generic webhook</option><option value="mqtt">MQTT</option><option value="ntfy">ntfy</option></select></label>
         <label class="switch-field"><input id="destination-enabled" type="checkbox" checked><span>Enabled</span></label>
         <label id="destination-shared-field" class="switch-field"><input id="destination-shared" type="checkbox"><span>Shared with users</span></label>
       </div>

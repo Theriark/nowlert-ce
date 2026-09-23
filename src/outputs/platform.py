@@ -15,6 +15,7 @@ from formatters.classic_card_v1 import classic_card_v1_from_discord_payload
 from formatters.slack import SlackFormatter
 from models import Notification
 from outputs.discord import DiscordOutput
+from outputs.email import EmailOutput
 from outputs.platform_common import (
     decode_secret,
     event_identifier,
@@ -872,6 +873,23 @@ class WebhookPlatformAdapter(_HTTPAdapter):
         )
 
 
+class EmailPlatformAdapter(PlatformOutputAdapter):
+    output_type = "email"
+
+    def __init__(self, **kwargs):
+        self.output = EmailOutput(**kwargs)
+
+    def preview(self, destination, notification):
+        settings = normalize_output_settings("email", destination.settings)
+        payload = self.output.preview(settings, notification)
+        return OutputPreview("email", "message/rfc822", payload, {
+            "transport": "smtp", "security": settings["security"],
+        })
+
+    def deliver(self, destination, secret_value, notification):
+        return self.output.deliver(destination.settings, secret_value, notification)
+
+
 class PlatformOutputRegistry:
     def __init__(self, adapters: list[PlatformOutputAdapter] | None = None):
         configured = (
@@ -882,6 +900,7 @@ class PlatformOutputRegistry:
                 TeamsPlatformAdapter(),
                 SlackPlatformAdapter(),
                 WebhookPlatformAdapter(),
+                EmailPlatformAdapter(),
             ]
         )
         self.adapters = {adapter.output_type: adapter for adapter in configured}

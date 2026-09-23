@@ -24,6 +24,7 @@ const OUTPUT_NAMES = {
   teams: "Microsoft Teams",
   slack: "Slack",
   webhook: "Generic webhook",
+  email: "Email",
   mqtt: "MQTT",
   ntfy: "ntfy",
 };
@@ -1476,7 +1477,7 @@ function friendlyName(value) {
 
 function outputIcon(type) {
   if (OUTPUT_ICONS[type]) return element("img", { className: "output-icon-image", attributes: { src: OUTPUT_ICONS[type], alt: "" } });
-  const labels = { teams: "T", slack: "S", webhook: "↗" };
+  const labels = { teams: "T", slack: "S", webhook: "↗", email: "@" };
   return element("span", { className: `output-icon-fallback ${type}`, text: labels[type] || String(type || "?").slice(0, 1).toUpperCase(), attributes: { "aria-hidden": "true" } });
 }
 
@@ -1572,7 +1573,11 @@ function destinationTestDetail(result) {
 function destinationFlowState(destination) {
   if (!destination) return { state: "error", detail: "Destination is missing" };
   if (!destination.enabled) return { state: "disabled", detail: "Destination is disabled" };
-  if (CREDENTIAL_OUTPUTS.has(destination.output_type) && !destination.secret_configured) {
+  if (
+    (CREDENTIAL_OUTPUTS.has(destination.output_type)
+      || (destination.output_type === "email" && destination.settings?.username))
+    && !destination.secret_configured
+  ) {
     return { state: "error", detail: "Destination credentials are unavailable" };
   }
   const testResult = destinationTestResult(destination);
@@ -1605,6 +1610,12 @@ function destinationTestToast(delivery, outputType) {
     return {
       message: `Test delivery failed (${detail}).`,
       style: "error",
+    };
+  }
+  if (outputType === "email" && delivery.success) {
+    return {
+      message: "Email test sent successfully through SMTP.",
+      style: "success",
     };
   }
   if (outputType === "teams" && delivery.response_status === 202) {
@@ -4009,6 +4020,29 @@ function destinationDefinition(type) {
         },
       ],
       secrets: [{ key: "url", label: "Slack webhook URL", kind: "password", required: true, wide: true }],
+    },
+    email: {
+      help: "SMTP email delivery with TLS and optional authentication.",
+      settings: [
+        { key: "server", label: "SMTP server", required: true, wide: true },
+        { key: "port", label: "Port", kind: "number", valueType: "number", default: 587, attributes: { min: 1, max: 65535 } },
+        {
+          key: "security",
+          label: "Security",
+          kind: "select",
+          choices: [["starttls", "STARTTLS"], ["tls", "TLS / SMTPS"]],
+          default: "starttls",
+        },
+        { key: "username", label: "Username", help: "Leave blank for an SMTP relay that does not require authentication." },
+        { key: "from_address", label: "From", required: true, wide: true },
+        { key: "to", label: "To", required: true, wide: true, valueType: "list", help: "Comma-separated email addresses" },
+        { key: "cc", label: "CC", wide: true, valueType: "list", help: "Optional comma-separated email addresses" },
+        { key: "reply_to", label: "Reply-To", wide: true },
+        ...adminPrivate,
+      ],
+      secrets: [
+        { key: "password", label: "SMTP password", kind: "password", wide: true },
+      ],
     },
     webhook: {
       help: "Bounded JSON delivery with backend-owned Modern or Classic presentation.",

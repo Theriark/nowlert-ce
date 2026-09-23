@@ -33,7 +33,7 @@ def test_removed_destination_types_are_pruned_from_editor():
     assert 'REMOVED_DESTINATION_TYPES = new Set(["mqtt", "ntfy"])' in SCRIPT
     assert 'type === "mqtt"' not in SCRIPT
     assert 'type === "ntfy"' not in SCRIPT
-    assert "Discord, Microsoft Teams, Slack, and generic webhooks." in SCRIPT
+    assert "Discord, Microsoft Teams, Slack, Email, and generic webhooks." in SCRIPT
 
 
 def test_destination_editor_keeps_fixed_footer_layout():

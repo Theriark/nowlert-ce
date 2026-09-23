@@ -355,7 +355,7 @@ def test_v310_management_headers_and_dashboard_analytics_alignment():
 
     assert (
         "Configure delivery targets for Discord, Microsoft Teams, Slack, "
-        "generic webhooks, MQTT, and ntfy."
+        "Email, and generic webhooks."
     ) in markup
     assert (
         "Review final delivery outcomes, retries, response status, and safe "

@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_destination_provider_selector_keeps_all_supported_types():
     markup = (ROOT / "src/webui/index.html").read_text(encoding="utf-8")
-    for output_type in ("discord", "teams", "slack", "webhook", "mqtt", "ntfy"):
+    for output_type in ("discord", "teams", "slack", "email", "webhook", "mqtt", "ntfy"):
         assert f'value="{output_type}"' in markup
 
 

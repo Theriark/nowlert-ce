@@ -31,7 +31,7 @@
 
     const copy = document.querySelector("#view-destinations .section-toolbar p");
     if (copy) {
-      copy.textContent = "Configure delivery targets for Discord, Microsoft Teams, Slack, and generic webhooks.";
+      copy.textContent = "Configure delivery targets for Discord, Microsoft Teams, Slack, Email, and generic webhooks.";
     }
   }
 

@@ -19,6 +19,7 @@ class PlatformOutputService:
         "teams": "Microsoft Teams",
         "slack": "Slack",
         "webhook": "Generic webhook",
+        "email": "Email",
         "mqtt": "MQTT",
         "ntfy": "ntfy",
     }

@@ -338,6 +338,7 @@ def test_registry_exposes_supported_platform_output_types():
         "teams",
         "slack",
         "webhook",
+        "email",
     }
     assert PlatformOutputRegistry([]).delivery_adapters() == {}
 

@@ -2,7 +2,7 @@
 
 The platform output layer introduced in Nowlert v3.1.2 exposes database-authoritative
 destinations through a shared output-adapter layer for Discord, Microsoft Teams, Slack,
-and generic outbound webhooks.
+Email over SMTP, and generic outbound webhooks.
 
 Adapters receive safe public destination metadata, an internally resolved
 owner-scoped secret, and the normalized `Notification` model.
@@ -31,6 +31,7 @@ Credential-like values must not be placed in the public settings document.
 | Microsoft Teams | message style and destination label | workflow webhook URL |
 | Slack | message style, Classic detail option, and destination label | Slack webhook URL |
 | Webhook | message style and destination label | webhook URL |
+| Email | SMTP host/port/security, username, From/To/CC/Reply-To | SMTP password when authentication is used |
 
 ## Discord
 
@@ -119,6 +120,51 @@ published, Slack Modern fails closed with
 `slack_modern_image_unavailable`; it never silently substitutes Classic.
 Classic delivery remains unchanged.
 
+## Email (SMTP)
+
+The Email destination is independent from Email Alerts mailbox ingestion. It uses
+the same destination ownership, routing, test-send, retry, Delivery History, and
+audit paths as the other outputs.
+
+Outbound SMTP is TLS-only. Choose **STARTTLS** (normally port 587) or implicit
+**TLS / SMTPS** (normally port 465). Username/password authentication is optional,
+so an administrator can also target a trusted SMTP relay. Passwords are stored as
+owner-scoped destination secrets and are never returned to the browser.
+
+New SMTP destinations reject private or non-global network targets by default.
+Administrators can explicitly enable the private-network target option for an
+internal relay. TLS certificate validation remains enabled in either case.
+
+Example configuration:
+
+```yaml
+outputs:
+  email:
+    enabled: true
+    operations:
+      name: Operations email
+      settings:
+        server: smtp.example.com
+        port: 587
+        security: starttls
+        username: alerts@example.com
+        from_address: alerts@example.com
+        to:
+          - noc@example.com
+        cc:
+          - service-owner@example.com
+        reply_to: noreply@example.com
+      secret:
+        password: "<smtp-password>"
+```
+
+The adapter sends a bounded plain-text Nowlert notification containing the event
+title/body plus severity, status, source, category, and stable event ID. SMTP 4xx
+responses and transport disconnects are retryable; authentication, TLS
+configuration, and permanent SMTP rejections are terminal. Partial-recipient
+acceptance is recorded as failed without automatic retry so already accepted
+recipients are not sent duplicate mail.
+
 ## Generic outbound webhook
 
 Generic Webhook is intentionally backend-owned rather than a raw HTTP request
@@ -190,8 +236,10 @@ backend-owned contract above.
 
 ## Outbound network policy
 
-All supported destination types require public HTTPS delivery targets. Generic
-Webhook does not expose a private-network override in the simplified editor.
+HTTP-based destinations require public HTTPS delivery targets. The Email destination
+validates its SMTP host before connecting and blocks private/non-global addresses by
+default; administrators may explicitly allow a private SMTP relay. Generic Webhook
+does not expose a private-network override in the simplified editor.
 
 ## Preview and test delivery
 
@@ -202,7 +250,8 @@ HTTP-like status, and bounded error code/text.
 The destination-card **Send test** is a Nowlert-owned synthetic event. It always
 uses the Nowlert source/icon and the destination name instead of inheriting an
 integration from an attached route. Discord, Teams, Slack, and Generic Webhook render
-that event using the destination's selected Modern/Classic presentation.
+that event using the destination's selected Modern/Classic presentation. Email sends
+the same synthetic test event through the configured SMTP server.
 
 Test outcome can be stored as destination health state and surfaced in the
 WebUI/routing flow without storing response bodies or credentials.
