@@ -557,7 +557,200 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             ON routing_flow_events(route_id, destination_id, created_at DESC)
             """,
         ),
-    )
+    ),
+    (
+        15,
+        "email alerts foundation",
+        (
+            """
+            CREATE TABLE email_mailboxes (
+                id TEXT PRIMARY KEY,
+                owner_user_id TEXT NOT NULL
+                    REFERENCES users(id) ON DELETE CASCADE,
+                provider TEXT NOT NULL CHECK (
+                    provider IN ('gmail', 'microsoft_365', 'imap')
+                ),
+                name TEXT NOT NULL,
+                name_normalized TEXT NOT NULL,
+                address TEXT NOT NULL,
+                address_normalized TEXT NOT NULL,
+                secret_id TEXT
+                    REFERENCES secret_records(id) ON DELETE SET NULL,
+                settings_json TEXT NOT NULL DEFAULT '{}',
+                enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+                connection_state TEXT NOT NULL DEFAULT 'disconnected' CHECK (
+                    connection_state IN (
+                        'disconnected', 'connecting', 'healthy',
+                        'degraded', 'error'
+                    )
+                ),
+                sync_cursor TEXT NOT NULL DEFAULT '',
+                last_sync_at INTEGER,
+                last_error_code TEXT,
+                last_error_safe TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                UNIQUE (owner_user_id, name_normalized),
+                UNIQUE (owner_user_id, provider, address_normalized)
+            )
+            """,
+            """
+            CREATE INDEX email_mailboxes_owner_provider
+            ON email_mailboxes(owner_user_id, provider, name_normalized)
+            """,
+            """
+            CREATE TABLE email_groups (
+                id TEXT PRIMARY KEY,
+                owner_user_id TEXT NOT NULL
+                    REFERENCES users(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                name_normalized TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+                quiet_window_seconds INTEGER NOT NULL DEFAULT 0 CHECK (
+                    quiet_window_seconds BETWEEN 0 AND 604800
+                ),
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                UNIQUE (owner_user_id, name_normalized)
+            )
+            """,
+            """
+            CREATE INDEX email_groups_owner_enabled
+            ON email_groups(owner_user_id, enabled, name_normalized)
+            """,
+            """
+            CREATE TABLE email_rules (
+                id TEXT PRIMARY KEY,
+                owner_user_id TEXT NOT NULL
+                    REFERENCES users(id) ON DELETE CASCADE,
+                group_id TEXT NOT NULL
+                    REFERENCES email_groups(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                name_normalized TEXT NOT NULL,
+                classification TEXT NOT NULL CHECK (
+                    classification IN (
+                        'urgent', 'warning', 'information', 'ignore'
+                    )
+                ),
+                match_mode TEXT NOT NULL DEFAULT 'all' CHECK (
+                    match_mode IN ('all', 'any')
+                ),
+                conditions_json TEXT NOT NULL DEFAULT '[]',
+                priority INTEGER NOT NULL DEFAULT 100,
+                enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                UNIQUE (group_id, name_normalized)
+            )
+            """,
+            """
+            CREATE INDEX email_rules_owner_group_priority
+            ON email_rules(owner_user_id, group_id, enabled, priority)
+            """,
+            """
+            CREATE TABLE email_messages (
+                id TEXT PRIMARY KEY,
+                owner_user_id TEXT NOT NULL
+                    REFERENCES users(id) ON DELETE CASCADE,
+                mailbox_id TEXT NOT NULL
+                    REFERENCES email_mailboxes(id) ON DELETE CASCADE,
+                provider_message_id TEXT NOT NULL DEFAULT '',
+                internet_message_id TEXT NOT NULL DEFAULT '',
+                identity_key TEXT NOT NULL,
+                sender TEXT NOT NULL DEFAULT '',
+                sender_normalized TEXT NOT NULL DEFAULT '',
+                sender_domain TEXT NOT NULL DEFAULT '',
+                recipients_json TEXT NOT NULL DEFAULT '[]',
+                subject TEXT NOT NULL DEFAULT '',
+                folder TEXT NOT NULL DEFAULT '',
+                labels_json TEXT NOT NULL DEFAULT '[]',
+                provider_deep_link TEXT NOT NULL DEFAULT '',
+                metadata_json TEXT NOT NULL DEFAULT '{}',
+                received_at INTEGER NOT NULL,
+                metadata_expires_at INTEGER,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                UNIQUE (mailbox_id, identity_key)
+            )
+            """,
+            """
+            CREATE INDEX email_messages_mailbox_received
+            ON email_messages(mailbox_id, received_at DESC)
+            """,
+            """
+            CREATE INDEX email_messages_owner_received
+            ON email_messages(owner_user_id, received_at DESC)
+            """,
+            """
+            CREATE INDEX email_messages_sender_domain_received
+            ON email_messages(sender_domain, received_at DESC)
+            """,
+            """
+            CREATE INDEX email_messages_metadata_expiry
+            ON email_messages(metadata_expires_at)
+            WHERE metadata_expires_at IS NOT NULL
+            """,
+            """
+            CREATE TABLE email_message_contents (
+                message_id TEXT PRIMARY KEY
+                    REFERENCES email_messages(id) ON DELETE CASCADE,
+                content_type TEXT NOT NULL,
+                raw_content BLOB NOT NULL,
+                content_sha256 TEXT NOT NULL,
+                stored_at INTEGER NOT NULL,
+                expires_at INTEGER
+            )
+            """,
+            """
+            CREATE INDEX email_message_contents_expiry
+            ON email_message_contents(expires_at)
+            WHERE expires_at IS NOT NULL
+            """,
+            """
+            CREATE TABLE email_processing_history (
+                id TEXT PRIMARY KEY,
+                owner_user_id TEXT NOT NULL
+                    REFERENCES users(id) ON DELETE CASCADE,
+                message_id TEXT NOT NULL
+                    REFERENCES email_messages(id) ON DELETE CASCADE,
+                group_id TEXT
+                    REFERENCES email_groups(id) ON DELETE SET NULL,
+                rule_id TEXT
+                    REFERENCES email_rules(id) ON DELETE SET NULL,
+                action TEXT NOT NULL CHECK (
+                    action IN (
+                        'matched', 'ignored', 'promoted', 'duplicate',
+                        'suppressed', 'reprocessed', 'error'
+                    )
+                ),
+                classification TEXT CHECK (
+                    classification IS NULL
+                    OR classification IN (
+                        'urgent', 'warning', 'information', 'ignore'
+                    )
+                ),
+                details_json TEXT NOT NULL DEFAULT '{}',
+                event_id TEXT,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER
+            )
+            """,
+            """
+            CREATE INDEX email_processing_history_message_created
+            ON email_processing_history(message_id, created_at DESC)
+            """,
+            """
+            CREATE INDEX email_processing_history_owner_created
+            ON email_processing_history(owner_user_id, created_at DESC)
+            """,
+            """
+            CREATE INDEX email_processing_history_expiry
+            ON email_processing_history(expires_at)
+            WHERE expires_at IS NOT NULL
+            """,
+        ),
+    ),
 )
 
 

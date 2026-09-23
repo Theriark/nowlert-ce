@@ -87,8 +87,8 @@ def route(platform, target, source, *, input_type="http", enabled=True, name=Non
 
 def test_schema_11_adds_destination_filter_storage(tmp_path):
     database = Database(tmp_path / "state" / "nowlert.db")
-    assert database.migrate() == 14
-    assert LATEST_SCHEMA_VERSION == 14
+    assert database.migrate() == 15
+    assert LATEST_SCHEMA_VERSION == 15
     with database.connect() as connection:
         tables = {
             row["name"]

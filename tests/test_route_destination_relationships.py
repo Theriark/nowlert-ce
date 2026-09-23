@@ -126,7 +126,7 @@ def test_schema_11_to_12_preserves_topology_history_and_filters(tmp_path):
             (destination_id,),
         )
 
-    assert database.migrate() == 14
+    assert database.migrate() == 15
 
     with database.connect() as connection:
         columns = {
@@ -300,7 +300,7 @@ def test_deleting_destination_leaves_route_intact(platform):
 
 def test_schema_12_has_independent_routes_and_relationship_table(platform):
     with platform["database"].connect() as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 14
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 15
         route_columns = {
             row["name"] for row in connection.execute("PRAGMA table_info(routes)").fetchall()
         }
