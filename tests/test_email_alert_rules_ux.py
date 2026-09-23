@@ -487,3 +487,13 @@ def test_email_alerts_mailbox_connect_ux_exposes_provider_login_paths():
     assert "OAuth application credentials are configured once" in script
     assert ".email-mailbox-connect-actions" in styles
     assert ".email-mailbox-connect-empty" in styles
+
+
+
+def test_oauth_mailbox_sync_button_waits_for_authorization():
+    script = (ROOT / "src" / "webui" / "email_alerts.js").read_text(encoding="utf-8")
+
+    assert 'const oauthProvider = ["gmail", "microsoft_365"].includes(mailbox.provider)' in script
+    assert '["healthy", "degraded"].includes(mailbox.connection_state)' in script
+    assert "disabled: !syncReady" in script
+    assert "Connect and authorize this mailbox before synchronizing it" in script

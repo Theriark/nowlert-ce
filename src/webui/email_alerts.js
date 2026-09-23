@@ -439,16 +439,30 @@ function emailRenderMailboxes() {
     return container;
   }
   for (const mailbox of emailAlertsState.mailboxes) {
+    const oauthProvider = ["gmail", "microsoft_365"].includes(mailbox.provider);
+    const syncReady = mailbox.enabled && (
+      !oauthProvider
+      || ["healthy", "degraded"].includes(mailbox.connection_state)
+    );
     const actions = [
       element("button", {
         className: "button small secondary",
         text: "Sync now",
         type: "button",
         dataset: { emailAction: "sync-mailbox", id: mailbox.id },
-        disabled: !mailbox.enabled,
+        disabled: !syncReady,
+        attributes: {
+          title: syncReady
+            ? "Synchronize mailbox metadata now"
+            : (
+              oauthProvider
+                ? "Connect and authorize this mailbox before synchronizing it"
+                : "Enable this mailbox before synchronizing it"
+            ),
+        },
       }),
     ];
-    if (["gmail", "microsoft_365"].includes(mailbox.provider)) {
+    if (oauthProvider) {
       actions.push(
         element("button", {
           className: "button small secondary",

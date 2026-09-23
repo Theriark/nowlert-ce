@@ -1756,3 +1756,51 @@ def test_email_destination_requires_password_only_when_smtp_auth_is_enabled(plat
     )
     assert relay.status == 201
     assert relay.payload["destination"]["secret_configured"] is False
+
+
+
+def test_oauth_mailbox_sync_requires_completed_authorization(platform_api):
+    headers = login(platform_api)
+    platform = platform_api["service"].platform
+    platform.email_connections.oauth_applications["gmail"] = {
+        "client_id": "gmail-client",
+        "client_secret": "gmail-secret",
+        "redirect_uri": "https://ce-dev-nowlert.theriark.dev/ui/",
+    }
+
+    created = call(
+        platform_api,
+        "POST",
+        "/api/v2/email-mailboxes",
+        {
+            "provider": "gmail",
+            "name": "Pending Gmail",
+            "address": "gmail-test@example.com",
+            "settings": {"label": "INBOX"},
+        },
+        headers,
+    )
+    assert created.status == 201
+    mailbox_id = created.payload["mailbox"]["id"]
+
+    started = call(
+        platform_api,
+        "POST",
+        f"/api/v2/email-mailboxes/{mailbox_id}/oauth-start",
+        {},
+        headers,
+    )
+    assert started.status == 200
+    assert started.payload["mailbox"]["connection_state"] == "connecting"
+
+    sync = call(
+        platform_api,
+        "POST",
+        f"/api/v2/email-mailboxes/{mailbox_id}/sync",
+        {},
+        headers,
+    )
+    assert sync.status == 409
+    assert sync.payload["code"] == "authentication_required"
+    assert sync.payload["error"] == "Connect the mailbox before synchronizing it"
+    assert "gmail-secret" not in json.dumps(sync.payload)
