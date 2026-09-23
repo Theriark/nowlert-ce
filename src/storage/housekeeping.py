@@ -53,6 +53,15 @@ class HousekeepingService:
             backup_runs = connection.execute(
                 "SELECT COUNT(*) AS total, MIN(started_at) AS oldest FROM backup_schedule_runs"
             ).fetchone()
+            email_messages = connection.execute(
+                "SELECT COUNT(*) AS total, MIN(created_at) AS oldest FROM email_messages"
+            ).fetchone()
+            email_content = connection.execute(
+                "SELECT COUNT(*) AS total, MIN(stored_at) AS oldest FROM email_message_contents"
+            ).fetchone()
+            email_processing = connection.execute(
+                "SELECT COUNT(*) AS total, MIN(created_at) AS oldest FROM email_processing_history"
+            ).fetchone()
             last = connection.execute(
                 """
                 SELECT * FROM housekeeping_runs
@@ -82,6 +91,18 @@ class HousekeepingService:
             "backup_runs": {
                 "rows": int(backup_runs["total"] or 0),
                 "oldest_at": int(backup_runs["oldest"]) if backup_runs["oldest"] is not None else None,
+            },
+            "email_message_metadata": {
+                "rows": int(email_messages["total"] or 0),
+                "oldest_at": int(email_messages["oldest"]) if email_messages["oldest"] is not None else None,
+            },
+            "email_raw_content": {
+                "rows": int(email_content["total"] or 0),
+                "oldest_at": int(email_content["oldest"]) if email_content["oldest"] is not None else None,
+            },
+            "email_processing_history": {
+                "rows": int(email_processing["total"] or 0),
+                "oldest_at": int(email_processing["oldest"]) if email_processing["oldest"] is not None else None,
             },
             "last_run": dict(last) if last is not None else None,
             "recent_runs": [dict(row) for row in recent],
@@ -141,6 +162,9 @@ class HousekeepingService:
             "audit_deleted": 0,
             "backup_runs_deleted": 0,
             "sessions_deleted": 0,
+            "email_messages_deleted": 0,
+            "email_raw_content_deleted": 0,
+            "email_processing_deleted": 0,
         }
         try:
             delivery_days = int(values["delivery_history_days"])
@@ -160,6 +184,32 @@ class HousekeepingService:
                 removed["backup_runs_deleted"] = self._delete_before(
                     "backup_schedule_runs", "started_at", now - run_days * 86400,
                     extra="completed_at IS NOT NULL",
+                )
+
+            email_raw_days = int(values["email_raw_content_days"])
+            if email_raw_days > 0:
+                removed["email_raw_content_deleted"] = self._delete_before(
+                    "email_message_contents",
+                    "stored_at",
+                    now - email_raw_days * 86400,
+                )
+
+            email_processing_days = int(
+                values["email_processing_history_days"]
+            )
+            if email_processing_days > 0:
+                removed["email_processing_deleted"] = self._delete_before(
+                    "email_processing_history",
+                    "created_at",
+                    now - email_processing_days * 86400,
+                )
+
+            email_metadata_days = int(values["email_message_metadata_days"])
+            if email_metadata_days > 0:
+                removed["email_messages_deleted"] = self._delete_before(
+                    "email_messages",
+                    "created_at",
+                    now - email_metadata_days * 86400,
                 )
 
             session_cutoff = now - _SESSION_GRACE_SECONDS
@@ -194,9 +244,16 @@ class HousekeepingService:
         return result
 
     def _delete_before(self, table: str, column: str, cutoff: int, *, extra: str = "") -> int:
-        if table not in {"delivery_attempts", "audit_events", "backup_schedule_runs"}:
+        if table not in {
+            "delivery_attempts",
+            "audit_events",
+            "backup_schedule_runs",
+            "email_messages",
+            "email_message_contents",
+            "email_processing_history",
+        }:
             raise ValueError("unsupported housekeeping table")
-        if column not in {"created_at", "started_at"}:
+        if column not in {"created_at", "started_at", "stored_at"}:
             raise ValueError("unsupported housekeeping timestamp")
         suffix = f" AND {extra}" if extra else ""
         total = 0

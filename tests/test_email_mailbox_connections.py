@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 
 from api.platform import PlatformAPI
+from email_alert_pipeline import email_message_text
 from inputs.email_mailboxes import MailboxConnectionService
 from storage.database import Database
 from storage.ownership import Actor
@@ -324,10 +325,10 @@ def test_gmail_raw_content_is_retrieved_only_on_demand(tmp_path):
         ).fetchone()[0] == 0
 
     stored = service.fetch_raw_content(actor, message_id)
+    retained = service.store.read_raw_content(actor, message_id)
     assert stored["size_bytes"] > 0
-    assert service.store.read_raw_content(actor, message_id).endswith(
-        b"private body"
-    )
+    assert email_message_text(retained) == "private body"
+    assert b"X-Nowlert-Retained-Content: sanitized-body-only" in retained
 
 
 def test_microsoft_365_delta_sync_uses_provider_web_link(tmp_path):

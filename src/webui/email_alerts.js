@@ -436,18 +436,103 @@ function emailRenderMailboxes() {
   return container;
 }
 
+function emailWhyExplanation(processing) {
+  if (!processing) {
+    return element("span", { className: "muted", text: "No processing record" });
+  }
+  const details = processing.details || {};
+  const matched = Array.isArray(details.matched_conditions)
+    ? details.matched_conditions
+    : [];
+  const items = [];
+  if (processing.group_id) {
+    items.push(
+      element("strong", {
+        text: `${emailGroupName(processing.group_id)} · ${processing.rule_id ? emailRuleName(processing.rule_id) : "No rule"}`,
+      }),
+    );
+  }
+  if (matched.length) {
+    const summary = matched
+      .filter((item) => item && item.matched !== false)
+      .slice(0, 3)
+      .map((item) => emailConditionSummary(item))
+      .join(" · ");
+    if (summary) items.push(element("span", { text: summary }));
+  } else if (details.reason) {
+    items.push(
+      element("span", {
+        text: String(details.reason).replaceAll("_", " "),
+      }),
+    );
+  }
+  if (details.resulting_severity) {
+    items.push(
+      element("small", {
+        text: `Resulting severity: ${capitalize(details.resulting_severity)}`,
+      }),
+    );
+  }
+  if (!items.length) {
+    items.push(element("span", { text: processing.action || "Processed" }));
+  }
+  return element("div", { className: "email-why" }, items);
+}
+
+function emailActivityMessage(id) {
+  return (emailAlertsState.activity.messages || [])
+    .find((item) => item.id === id);
+}
+
+function emailOpenRuleFromActivity(message) {
+  if (!message) return;
+  const processing = message.processing || {};
+  let field = "subject";
+  let operator = "contains";
+  let value = message.subject || "";
+  if (message.sender_domain) {
+    field = "sender_domain";
+    operator = "equals";
+    value = message.sender_domain;
+  } else if (message.sender) {
+    field = "sender";
+    operator = "equals";
+    value = message.sender;
+  }
+  const classification = ["urgent", "warning", "information"].includes(processing.classification)
+    ? processing.classification
+    : "warning";
+  const groupId = emailAlertsState.groups.some((item) => item.id === processing.group_id)
+    ? processing.group_id
+    : (emailAlertsState.groups[0]?.id || "");
+  emailOpenRule({
+    id: "",
+    group_id: groupId,
+    name: `Alert like: ${(message.subject || message.sender || "email").slice(0, 120)}`,
+    classification,
+    match_mode: "all",
+    priority: 100,
+    enabled: true,
+    conditions: [{ field, operator, value }],
+  });
+}
+
 function emailRenderActivity() {
   const messages = emailAlertsState.activity.messages || [];
   const panel = element("div", { className: "table-panel email-table-panel" });
   if (!messages.length) {
-    empty(panel, "No Email Alert activity", "Mailbox messages will appear after synchronization. Classification activity begins when rules are evaluated.");
+    empty(
+      panel,
+      "No Email Alert activity",
+      "Only email that Nowlert evaluated, suppressed, ignored, promoted, replayed, or failed is shown here. This is not a mailbox replica.",
+    );
     return panel;
   }
 
   const table = element("table", { className: "email-activity-table" });
   const head = element("thead");
   const headRow = element("tr");
-  for (const label of ["Received", "Mailbox", "Sender", "Subject", "Classification", "Rule", "Processing", "Original", "Actions"]) {
+  for (const label of ["Received", "Mailbox", "Sender", "Subject", "Classification", "Why Nowlert reacted", "Original", "Actions"]) {
     headRow.append(element("th", { text: label }));
   }
   head.append(headRow);
@@ -458,7 +543,7 @@ function emailRenderActivity() {
     const original = message.provider_deep_link
       ? element("a", {
           className: "text-button email-original-link",
-          text: "Open",
+          text: "Open Original Email",
           attributes: {
             href: message.provider_deep_link,
             target: "_blank",
@@ -466,6 +551,64 @@ function emailRenderActivity() {
           },
         })
       : element("span", { className: "muted", text: "Unavailable" });
+
+    const actions = [
+      element("button", {
+        className: "text-button",
+        text: "Preview",
+        type: "button",
+        dataset: { emailAction: "preview-message", id: message.id },
+      }),
+      processing?.rule_id
+        ? element("button", {
+            className: "text-button",
+            text: "Edit Rule",
+            type: "button",
+            dataset: { emailAction: "edit-activity-rule", id: message.id },
+          })
+        : null,
+      element("button", {
+        className: "text-button",
+        text: "Alert me like this",
+        type: "button",
+        dataset: { emailAction: "alert-like-this", id: message.id },
+      }),
+      element("button", {
+        className: "text-button",
+        text: "Mute Similar",
+        type: "button",
+        dataset: { emailAction: "mute-similar", id: message.id },
+      }),
+      message.sender
+        ? element("button", {
+            className: "text-button",
+            text: "Ignore Sender",
+            type: "button",
+            dataset: { emailAction: "ignore-sender", id: message.id },
+          })
+        : null,
+      processing?.rule_id
+        ? element("button", {
+            className: "text-button",
+            text: "Change Severity",
+            type: "button",
+            dataset: { emailAction: "change-severity", id: message.id },
+          })
+        : null,
+      element("button", {
+        className: "text-button",
+        text: "Reprocess",
+        type: "button",
+        dataset: { emailAction: "reprocess-message", id: message.id },
+      }),
+      element("button", {
+        className: "text-button",
+        text: "Force replay",
+        type: "button",
+        dataset: { emailAction: "force-reprocess-message", id: message.id },
+      }),
+    ].filter(Boolean);
+
     row.append(
       element("td", { text: formatTime(message.received_at) }),
       element("td", { text: emailMailboxName(message.mailbox_id) }),
@@ -477,30 +620,22 @@ function emailRenderActivity() {
           : null,
       ]),
       element("td", {}, [emailClassificationBadge(processing?.classification || "")]),
-      element("td", { text: processing?.rule_id ? emailRuleName(processing.rule_id) : "Not evaluated" }),
-      element("td", { text: processing?.action || "Pending" }),
+      element("td", {}, [emailWhyExplanation(processing)]),
       element("td", {}, [original]),
       element("td", {}, [
-        element("div", { className: "row-actions email-row-actions" }, [
-          element("button", {
-            className: "text-button",
-            text: "Reprocess",
-            type: "button",
-            dataset: { emailAction: "reprocess-message", id: message.id },
-          }),
-          element("button", {
-            className: "text-button",
-            text: "Force replay",
-            type: "button",
-            dataset: { emailAction: "force-reprocess-message", id: message.id },
-          }),
-        ]),
+        element("div", { className: "row-actions email-row-actions email-activity-actions" }, actions),
       ]),
     );
     body.append(row);
   }
   table.append(head, body);
-  panel.append(element("div", { className: "table-scroll" }, [table]));
+  panel.append(
+    element("p", {
+      className: "email-activity-scope-note",
+      text: "Activity contains only messages that participated in Nowlert processing. Message previews are sanitized and attachments are never retained.",
+    }),
+    element("div", { className: "table-scroll" }, [table]),
+  );
   return panel;
 }
 
@@ -652,6 +787,196 @@ function emailEnsureDialogs() {
     dialog.append(form);
     document.body.append(dialog);
     provider.addEventListener("change", emailMailboxProviderFields);
+  }
+}
+
+function emailEnsurePhase9Dialogs() {
+  if (!byId("email-preview-dialog")) {
+    const dialog = element("dialog", {
+      className: "modal email-dialog email-preview-dialog",
+      attributes: { id: "email-preview-dialog" },
+    });
+    const frame = element("iframe", {
+      className: "email-preview-frame",
+      attributes: {
+        id: "email-preview-frame",
+        title: "Sanitized email preview",
+        sandbox: "",
+        referrerpolicy: "no-referrer",
+      },
+    });
+    dialog.append(
+      emailDialogHeading(
+        "Sanitized email preview",
+        "Active content, remote images and attachment payloads are blocked before this preview reaches your browser.",
+        "email-preview-dialog",
+      ),
+      element("div", {
+        className: "email-preview-security",
+        attributes: { id: "email-preview-security" },
+      }),
+      frame,
+      element("div", { className: "email-preview-attachments" }, [
+        element("strong", { text: "Attachments" }),
+        element("div", { attributes: { id: "email-preview-attachments" } }),
+      ]),
+      element("div", { className: "modal-actions" }, [
+        element("button", {
+          className: "button secondary",
+          text: "Close",
+          type: "button",
+          dataset: { emailAction: "close-dialog", dialog: "email-preview-dialog" },
+        }),
+      ]),
+    );
+    document.body.append(dialog);
+  }
+
+  if (!byId("email-severity-dialog")) {
+    const dialog = element("dialog", {
+      className: "modal email-dialog email-severity-dialog",
+      attributes: { id: "email-severity-dialog" },
+    });
+    const select = element("select", {
+      attributes: { id: "email-severity-value" },
+    }, [
+      emailOption("urgent", "Urgent"),
+      emailOption("warning", "Warning"),
+      emailOption("information", "Information"),
+    ]);
+    const form = element("form", {
+      className: "stack",
+      attributes: { id: "email-severity-form" },
+    }, [
+      emailDialogHeading(
+        "Change rule severity",
+        "This updates the matched rule for future email. Reprocess the current Activity item separately if you need to apply the new severity now.",
+        "email-severity-dialog",
+      ),
+      emailLabel("Severity", select),
+      element("p", {
+        className: "form-error",
+        attributes: { id: "email-severity-error", role: "alert" },
+        hidden: true,
+      }),
+      element("div", { className: "modal-actions" }, [
+        element("button", {
+          className: "button secondary",
+          text: "Cancel",
+          type: "button",
+          dataset: { emailAction: "close-dialog", dialog: "email-severity-dialog" },
+        }),
+        element("button", {
+          className: "button primary",
+          text: "Change severity",
+          type: "submit",
+        }),
+      ]),
+    ]);
+    dialog.append(form);
+    document.body.append(dialog);
+  }
+}
+
+async function emailOpenPreview(messageId) {
+  emailEnsurePhase9Dialogs();
+  const dialog = byId("email-preview-dialog");
+  const frame = byId("email-preview-frame");
+  const security = byId("email-preview-security");
+  const attachments = byId("email-preview-attachments");
+  frame.srcdoc = "<p>Loading sanitized preview…</p>";
+  security.replaceChildren();
+  attachments.replaceChildren();
+  dialog.showModal();
+  try {
+    const response = await request(`/email-messages/${messageId}/preview`);
+    const preview = response.preview || {};
+    frame.srcdoc = preview.html || "<p>No previewable message body.</p>";
+    security.replaceChildren(
+      emailBadge(
+        `${Number(preview.active_content_blocked || 0)} active-content item${Number(preview.active_content_blocked || 0) === 1 ? "" : "s"} blocked`,
+        "state-healthy",
+      ),
+      emailBadge(
+        `${Number(preview.remote_content_blocked || 0)} remote-content item${Number(preview.remote_content_blocked || 0) === 1 ? "" : "s"} blocked`,
+        "state-healthy",
+      ),
+      element("span", {
+        text: "Sandboxed · no scripts · no remote images · no attachment payloads",
+      }),
+    );
+    const items = Array.isArray(preview.attachments) ? preview.attachments : [];
+    if (!items.length) {
+      attachments.append(
+        element("span", { className: "muted", text: "No attachments reported." }),
+      );
+    } else {
+      for (const item of items) {
+        attachments.append(
+          element("div", { className: "email-preview-attachment" }, [
+            element("div", {}, [
+              element("strong", { text: item.name || "Unnamed attachment" }),
+              element("small", {
+                text: `${item.content_type || "unknown type"} · ${formatBytes(Number(item.size_bytes || 0))}`,
+              }),
+            ]),
+            emailBadge(
+              item.within_policy ? "Within policy · not retained" : "Blocked by policy · not retained",
+              item.within_policy ? "state-healthy" : "state-error",
+            ),
+          ]),
+        );
+      }
+    }
+  } catch (error) {
+    frame.srcdoc = "<p>Preview unavailable.</p>";
+    security.replaceChildren(
+      element("span", {
+        className: "email-safe-error",
+        text: error.message || "The message preview could not be loaded.",
+      }),
+    );
+  }
+}
+
+function emailOpenSeverity(message) {
+  if (!message?.processing?.rule_id) {
+    toast("This Activity item does not have a matched rule.", "warning");
+    return;
+  }
+  emailEnsurePhase9Dialogs();
+  const form = byId("email-severity-form");
+  form.dataset.messageId = message.id;
+  const current = message.processing.classification;
+  byId("email-severity-value").value = ["urgent", "warning", "information"].includes(current)
+    ? current
+    : "warning";
+  byId("email-severity-error").hidden = true;
+  byId("email-severity-dialog").showModal();
+}
+
+async function emailSaveSeverity(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const error = byId("email-severity-error");
+  error.hidden = true;
+  try {
+    const response = await request(
+      `/email-messages/${form.dataset.messageId}/change-severity`,
+      {
+        method: "POST",
+        body: { classification: byId("email-severity-value").value },
+      },
+    );
+    byId("email-severity-dialog").close();
+    toast(
+      `Rule “${response.rule?.name || "matched rule"}” updated. Future matches use ${capitalize(response.rule?.classification || "the new severity")}.`,
+      "success",
+    );
+    await emailLoad(true);
+  } catch (requestError) {
+    error.textContent = requestError.message || "The severity could not be changed.";
+    error.hidden = false;
   }
 }
 
@@ -935,6 +1260,42 @@ async function emailAction(action, id, node) {
       return;
     }
 
+    if (action === "preview-message") {
+      await emailOpenPreview(id);
+      return;
+    }
+    if (action === "edit-activity-rule") {
+      const message = emailActivityMessage(id);
+      const rule = emailAlertsState.rules.find(
+        (item) => item.id === message?.processing?.rule_id,
+      );
+      if (!rule) {
+        toast("The matched rule is no longer available.", "warning");
+        return;
+      }
+      emailOpenRule(rule);
+      return;
+    }
+    if (action === "alert-like-this") {
+      emailOpenRuleFromActivity(emailActivityMessage(id));
+      return;
+    }
+    if (action === "mute-similar" || action === "ignore-sender") {
+      const label = action === "mute-similar" ? "Mute Similar" : "Ignore Sender";
+      if (!window.confirm(`${label} will create a high-priority Ignore rule. Continue?`)) return;
+      const response = await request(
+        `/email-messages/${id}/${action}`,
+        { method: "POST", body: {} },
+      );
+      toast(`Ignore rule “${response.rule?.name || label}” created.`, "success");
+      await emailLoad(true);
+      return;
+    }
+    if (action === "change-severity") {
+      emailOpenSeverity(emailActivityMessage(id));
+      return;
+    }
+
     if (action === "sync-mailbox") {
       node.disabled = true;
       const response = await request(`/email-mailboxes/${id}/sync`, { method: "POST", body: {} });
@@ -1044,9 +1405,11 @@ document.addEventListener("click", (event) => {
 });
 
 emailEnsureDialogs();
+emailEnsurePhase9Dialogs();
 byId("email-group-form")?.addEventListener("submit", emailSaveGroup);
 byId("email-rule-form")?.addEventListener("submit", emailSaveRule);
 byId("email-mailbox-form")?.addEventListener("submit", emailSaveMailbox);
+byId("email-severity-form")?.addEventListener("submit", emailSaveSeverity);
 byId("email-imap-security")?.addEventListener("change", emailMailboxProviderFields);
 
 const emailOriginalNavigate = navigate;

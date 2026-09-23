@@ -27,6 +27,7 @@ from urllib.parse import quote, urlencode, urlsplit
 import requests
 
 from email_alert_pipeline import EmailAlertProcessor
+from email_security import build_email_preview
 from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.email_alerts import EmailAlertStore, EmailMailbox, EmailMessage
@@ -1177,33 +1178,93 @@ class MailboxConnectionService:
         actor: Actor,
         message_id: str,
     ) -> dict:
+        """Fetch on demand but retain only sanitized body content.
+
+        Attachment payloads and remote/active HTML content never enter the
+        retained message-content store.
+        """
+
         message = self.store.get_message(actor, message_id)
         mailbox = self.store.get_mailbox(actor, message.mailbox_id)
-        credentials = self._credentials(actor, mailbox)
         try:
-            if mailbox.provider == "gmail":
-                access_token, _credentials = self._oauth_access_token(
-                    actor, mailbox, credentials
-                )
-                content = self.gmail.fetch_raw(mailbox, message, access_token)
-            elif mailbox.provider == "microsoft_365":
-                access_token, _credentials = self._oauth_access_token(
-                    actor, mailbox, credentials
-                )
-                content = self.microsoft.fetch_raw(mailbox, message, access_token)
-            elif mailbox.provider == "imap":
-                content = self.imap.fetch_raw(mailbox, message, credentials)
-            else:
-                raise ValueError("email mailbox provider is not supported")
-            return self.store.store_raw_content(
+            preview = build_email_preview(
+                self._provider_raw_content(actor, mailbox, message)
+            )
+            stored = self.store.store_raw_content(
                 actor,
                 message.id,
-                content,
+                preview.retained_source,
                 content_type="message/rfc822",
             )
+            return {
+                **stored,
+                "attachments": [item.public() for item in preview.attachments],
+                "active_content_blocked": preview.active_content_blocked,
+                "remote_content_blocked": preview.remote_content_blocked,
+            }
         except Exception as error:
             self._connection_failure(actor, mailbox, error, degraded=True)
             raise
+
+    def preview_message(
+        self,
+        actor: Actor,
+        message_id: str,
+    ) -> dict:
+        """Return a sandbox-ready preview without attachment payloads."""
+
+        message = self.store.get_message(actor, message_id)
+        mailbox = self.store.get_mailbox(actor, message.mailbox_id)
+        try:
+            raw = self._provider_raw_content(actor, mailbox, message)
+            preview = build_email_preview(raw)
+            self.store.store_raw_content(
+                actor,
+                message.id,
+                preview.retained_source,
+                content_type="message/rfc822",
+            )
+            self.audit.write(
+                actor,
+                "email.message.preview",
+                "email_message",
+                message.id,
+                "success",
+                {
+                    "attachments": len(preview.attachments),
+                    "active_content_blocked": preview.active_content_blocked,
+                    "remote_content_blocked": preview.remote_content_blocked,
+                },
+            )
+            return preview.public()
+        except Exception as error:
+            self._connection_failure(actor, mailbox, error, degraded=True)
+            raise
+
+    def _provider_raw_content(
+        self,
+        actor: Actor,
+        mailbox: EmailMailbox,
+        message: EmailMessage,
+    ) -> bytes:
+        credentials = self._credentials(actor, mailbox)
+        if mailbox.provider == "gmail":
+            access_token, _credentials = self._oauth_access_token(
+                actor,
+                mailbox,
+                credentials,
+            )
+            return self.gmail.fetch_raw(mailbox, message, access_token)
+        if mailbox.provider == "microsoft_365":
+            access_token, _credentials = self._oauth_access_token(
+                actor,
+                mailbox,
+                credentials,
+            )
+            return self.microsoft.fetch_raw(mailbox, message, access_token)
+        if mailbox.provider == "imap":
+            return self.imap.fetch_raw(mailbox, message, credentials)
+        raise ValueError("email mailbox provider is not supported")
 
     def sync_ready_mailboxes(self) -> list[MailboxSyncSummary]:
         with self.database.connect() as connection:
@@ -1234,8 +1295,18 @@ class MailboxConnectionService:
         try:
             return self.store.read_raw_content(actor, message_id)
         except KeyError:
-            self.fetch_raw_content(actor, message_id)
-            return self.store.read_raw_content(actor, message_id)
+            message = self.store.get_message(actor, message_id)
+            mailbox = self.store.get_mailbox(actor, message.mailbox_id)
+            preview = build_email_preview(
+                self._provider_raw_content(actor, mailbox, message)
+            )
+            self.store.store_raw_content(
+                actor,
+                message.id,
+                preview.retained_source,
+                content_type="message/rfc822",
+            )
+            return preview.retained_source
 
     def _oauth_access_token(
         self,

@@ -286,7 +286,8 @@ class PlatformAPI:
                     email_rule_match.group(1),
                 )
             email_message_action = re.fullmatch(
-                r"/api/v2/email-messages/([0-9a-f]{32})/(reprocess)",
+                r"/api/v2/email-messages/([0-9a-f]{32})/"
+                r"(reprocess|preview|mute-similar|ignore-sender|change-severity)",
                 path,
             )
             if email_message_action:
@@ -1054,7 +1055,7 @@ class PlatformAPI:
         if method != "GET":
             return self._method_not_allowed("GET")
         store = self.email_connections.store
-        messages = store.list_messages(actor, limit=100)
+        messages = store.list_activity_messages(actor, limit=100)
         processing = store.list_processing(actor, limit=250)
         latest = {}
         for item in processing:
@@ -1103,25 +1104,245 @@ class PlatformAPI:
         message_id: str,
         action: str,
     ) -> APIResponse:
-        if action != "reprocess":
-            return APIResponse(404, {"error": "resource not found"})
+        store = self.email_connections.store
+        message = store.get_message(actor, message_id)
+
+        if action == "preview":
+            if method != "GET":
+                return self._method_not_allowed("GET")
+            preview = self.email_connections.preview_message(
+                actor,
+                message.id,
+            )
+            return APIResponse(
+                200,
+                {"preview": preview},
+                (("Cache-Control", "no-store"),),
+            )
+
         if method != "POST":
             return self._method_not_allowed("POST")
-        data = self._object(payload or {}, {"bypass_quiet_window"})
-        bypass = self._boolean(
-            data,
-            "bypass_quiet_window",
-            False,
-        )
-        result = self.email_pipeline.process(
+
+        if action == "reprocess":
+            data = self._object(payload or {}, {"bypass_quiet_window"})
+            bypass = self._boolean(
+                data,
+                "bypass_quiet_window",
+                False,
+            )
+            result = self.email_pipeline.process(
+                actor,
+                message.id,
+                replay=True,
+                bypass_quiet_window=bypass,
+            )
+            return APIResponse(
+                200,
+                {"result": result.public()},
+            )
+
+        if action in {"mute-similar", "ignore-sender"}:
+            self._object(payload or {}, set())
+            rule = self._email_activity_ignore_rule(
+                actor,
+                message,
+                action,
+            )
+            return APIResponse(
+                201,
+                {"rule": self._email_rule(rule)},
+            )
+
+        if action == "change-severity":
+            data = self._object(payload, {"classification"})
+            classification = str(
+                data.get("classification") or ""
+            ).strip().casefold()
+            if classification not in {
+                "urgent",
+                "warning",
+                "information",
+            }:
+                raise ValueError(
+                    "classification must be urgent, warning, or information"
+                )
+            latest = store.latest_processing(actor, message.id)
+            if latest is None or not latest.rule_id:
+                raise ValueError(
+                    "this Activity item does not have a matched rule to update"
+                )
+            rule = store.get_rule(actor, latest.rule_id)
+            previous = rule.classification
+            rule = store.update_rule(
+                actor,
+                rule.id,
+                classification=classification,
+            )
+            self.audit.write(
+                actor,
+                "email.rule.change_severity",
+                "email_rule",
+                rule.id,
+                "success",
+                {
+                    "message_id": message.id,
+                    "previous": previous,
+                    "classification": classification,
+                },
+            )
+            return APIResponse(
+                200,
+                {"rule": self._email_rule(rule)},
+            )
+
+        return APIResponse(404, {"error": "resource not found"})
+
+    def _email_activity_ignore_rule(
+        self,
+        actor,
+        message,
+        action: str,
+    ):
+        store = self.email_connections.store
+        latest = store.latest_processing(actor, message.id)
+        group = None
+        if latest is not None and latest.group_id:
+            try:
+                candidate = store.get_group(actor, latest.group_id)
+                if (
+                    candidate.owner_user_id == message.owner_user_id
+                    and candidate.enabled
+                ):
+                    group = candidate
+            except KeyError:
+                group = None
+        if group is None:
+            group = next(
+                (
+                    item
+                    for item in store.list_groups(actor)
+                    if item.owner_user_id == message.owner_user_id
+                    and item.name.casefold() == "activity quick rules"
+                    and item.enabled
+                ),
+                None,
+            )
+        if group is None:
+            disabled_quick_group = next(
+                (
+                    item
+                    for item in store.list_groups(actor)
+                    if item.owner_user_id == message.owner_user_id
+                    and item.name.casefold() == "activity quick rules"
+                ),
+                None,
+            )
+            if disabled_quick_group is not None:
+                group = store.update_group(
+                    actor,
+                    disabled_quick_group.id,
+                    enabled=True,
+                )
+        if group is None:
+            group = store.create_group(
+                actor,
+                message.owner_user_id,
+                "Activity quick rules",
+                description=(
+                    "Rules created from Email Alerts Activity quick actions."
+                ),
+            )
+
+        if action == "ignore-sender":
+            value = str(message.sender or "").strip().casefold()
+            if not value:
+                raise ValueError(
+                    "this message does not have a sender to ignore"
+                )
+            condition = {
+                "field": "sender",
+                "operator": "equals",
+                "value": value,
+            }
+            base_name = f"Ignore sender {value}"
+            audit_action = "email.activity.ignore_sender"
+        else:
+            subject = re.sub(
+                r"^(?:(?:re|fw|fwd)\s*:\s*)+",
+                "",
+                str(message.subject or ""),
+                flags=re.IGNORECASE,
+            )
+            value = sanitize_text(subject)[:240]
+            if not value:
+                raise ValueError(
+                    "this message does not have a subject to mute"
+                )
+            condition = {
+                "field": "subject",
+                "operator": "contains",
+                "value": value,
+            }
+            base_name = f"Mute similar {value}"
+            audit_action = "email.activity.mute_similar"
+
+        name = self._email_unique_rule_name(
             actor,
-            message_id,
-            replay=True,
-            bypass_quiet_window=bypass,
+            message.owner_user_id,
+            group.id,
+            base_name,
         )
-        return APIResponse(
-            200,
-            {"result": result.public()},
+        rule = store.create_rule(
+            actor,
+            message.owner_user_id,
+            group.id,
+            name,
+            "ignore",
+            [condition],
+            match_mode="all",
+            priority=0,
+        )
+        self.audit.write(
+            actor,
+            audit_action,
+            "email_rule",
+            rule.id,
+            "success",
+            {
+                "message_id": message.id,
+                "group_id": group.id,
+                "condition_field": condition["field"],
+            },
+        )
+        return rule
+
+    def _email_unique_rule_name(
+        self,
+        actor,
+        owner_user_id: str,
+        group_id: str,
+        base_name: str,
+    ) -> str:
+        compact = sanitize_text(base_name)[:140] or "Activity rule"
+        existing = {
+            item.name.casefold()
+            for item in self.email_connections.store.list_rules(
+                actor,
+                group_id=group_id,
+            )
+            if item.owner_user_id == owner_user_id
+        }
+        if compact.casefold() not in existing:
+            return compact
+        for index in range(2, 100):
+            suffix = f" {index}"
+            candidate = compact[: 160 - len(suffix)] + suffix
+            if candidate.casefold() not in existing:
+                return candidate
+        return (
+            compact[:120]
+            + " "
+            + uuid.uuid4().hex[:8]
         )
 
     def _email_mailboxes_endpoint(self, method, payload, actor) -> APIResponse:

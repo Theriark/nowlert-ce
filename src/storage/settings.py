@@ -45,12 +45,18 @@ DEFAULT_HOUSEKEEPING_SETTINGS = {
     "delivery_history_days": 90,
     "audit_history_days": 365,
     "backup_run_history_days": 180,
+    "email_message_metadata_days": 90,
+    "email_raw_content_days": 7,
+    "email_processing_history_days": 90,
 }
 
 HOUSEKEEPING_RETENTION_OPTIONS = {
     "delivery_history_days": (7, 30, 60, 90, 180, 365, 0),
     "audit_history_days": (90, 180, 365, 730, 1095, 0),
     "backup_run_history_days": (30, 90, 180, 365, 730, 0),
+    "email_message_metadata_days": (7, 30, 60, 90, 180, 365, 0),
+    "email_raw_content_days": (1, 3, 7, 14, 30, 90, 0),
+    "email_processing_history_days": (7, 30, 60, 90, 180, 365, 0),
 }
 
 DEFAULT_INTEGRATION_SETTINGS = {
@@ -352,6 +358,9 @@ class SettingsStore:
             ("delivery_history_days", 90),
             ("audit_history_days", 365),
             ("backup_run_history_days", 180),
+            ("email_message_metadata_days", 90),
+            ("email_raw_content_days", 7),
+            ("email_processing_history_days", 90),
         ):
             raw = value.get(key, default)
             if isinstance(raw, bool):
