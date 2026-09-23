@@ -47,7 +47,7 @@ class PrometheusDiscordFormatter(DiscordCardFormatter):
             value = self._classic_code(metadata.get(key), 220)
             if value:
                 parts.append(f"**{label}:** {value}")
-        return " · ".join(parts)
+        return "\n".join(parts)
 
     @staticmethod
     def _classic_severity_icon(severity) -> str:
