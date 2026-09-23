@@ -26,6 +26,88 @@ class SlackFormatter(PresentationMixin):
             return self._format_xo_classic(notification)
         return self._format_discord_classic(notification)
 
+    def format_discord_classic_payload(
+        self,
+        notification: Notification,
+        classic: dict,
+    ) -> dict:
+        """Translate the shared rich Discord Classic card into Slack blocks."""
+
+        source = str(
+            notification.source or ""
+        ).strip().casefold()
+        icon_source = (
+            source
+            if source in self.PRODUCT_ICONS
+            else "nowlert"
+        )
+        embeds = (
+            classic.get("embeds")
+            if isinstance(classic, dict)
+            else None
+        )
+        embed = (
+            embeds[0]
+            if (
+                isinstance(embeds, list)
+                and embeds
+                and isinstance(embeds[0], dict)
+            )
+            else {}
+        )
+
+        title = self._truncate(
+            embed.get("title")
+            or notification.title
+            or notification.subject
+            or "Notification",
+            200,
+        )
+        description = self._slack_classic_mrkdwn(
+            embed.get("description") or ""
+        )
+        fields = [
+            self._slack_classic_field(field)
+            for field in embed.get("fields", [])[:12]
+            if isinstance(field, dict)
+        ]
+        footer = str(
+            (embed.get("footer") or {}).get("text")
+            or CLASSIC_FOOTER
+        )[:300]
+        metadata = (
+            notification.metadata
+            if isinstance(notification.metadata, dict)
+            else {}
+        )
+        action = safe_action_url(
+            metadata.get("action_link")
+        )
+        title_link = safe_action_url(
+            embed.get("url") or action
+        )
+        icon_url = self._slack_classic_icon_url(
+            icon_source
+        )
+
+        attachment = {
+            "fallback": title,
+            "color": self._slack_classic_color(
+                embed.get("color")
+            ),
+            "blocks": self._slack_rich_classic_blocks(
+                title,
+                description,
+                fields,
+                icon_url,
+                title_link=title_link,
+                footer=footer,
+            ),
+        }
+        return self._sanitize_payload(
+            {"attachments": [attachment]}
+        )
+
     def _format_discord_classic(self, notification: Notification) -> dict:
         """Translate the shared Discord Classic embed into Slack attachments."""
 
@@ -241,6 +323,129 @@ class SlackFormatter(PresentationMixin):
                     }
                 ],
             }
+        )
+        return blocks
+
+    def _slack_rich_classic_blocks(
+        self,
+        title,
+        description,
+        fields,
+        icon_url,
+        *,
+        title_link="",
+        footer=CLASSIC_FOOTER,
+    ):
+        """Render the Teams-style rich hierarchy using native Slack blocks."""
+
+        title_text = self._escape(title)
+        if title_link:
+            title_text = (
+                f"<{self._escape(title_link)}|"
+                f"{title_text}>"
+            )
+
+        header_text = f"*{title_text}*"
+        if description:
+            header_text = (
+                f"{header_text}\n{description}"
+            )
+
+        header = {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": header_text[:3000],
+            },
+        }
+        if icon_url:
+            header["accessory"] = {
+                "type": "image",
+                "image_url": icon_url,
+                "alt_text": "Nowlert integration",
+            }
+
+        summary = []
+        body_fields = []
+        for field in fields:
+            title_value = str(
+                field.get("title") or ""
+            ).strip()
+            field_value = str(
+                field.get("value") or ""
+            ).removesuffix("\n\u200b").strip()
+            if not title_value and not field_value:
+                continue
+            rendered = {
+                "type": "mrkdwn",
+                "text": (
+                    f"*{self._escape(title_value)}*\n"
+                    f"{field_value}"
+                )[:2000],
+            }
+            if field.get("short") and len(summary) < 3:
+                summary.append(rendered)
+            else:
+                body_fields.append(rendered["text"])
+
+        blocks = [header, {"type": "divider"}]
+        if summary:
+            blocks.append(
+                {
+                    "type": "section",
+                    "fields": summary,
+                }
+            )
+            if body_fields:
+                blocks.append({"type": "divider"})
+
+        for body in body_fields:
+            for chunk in self._slack_classic_unfolded_text_chunks(
+                body,
+                max_lines=8,
+                max_chars=2600,
+            ):
+                blocks.append(
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": chunk[:3000],
+                        },
+                    }
+                )
+
+        footer_text = str(
+            footer or CLASSIC_FOOTER
+        )
+        if footer_text.startswith("🦉"):
+            footer_text = footer_text[1:].strip()
+        footer_elements = []
+        nowlert_icon = self._product_icon_url(
+            "nowlert"
+        )
+        if nowlert_icon:
+            footer_elements.append(
+                {
+                    "type": "image",
+                    "image_url": nowlert_icon,
+                    "alt_text": "Nowlert",
+                }
+            )
+        footer_elements.append(
+            {
+                "type": "mrkdwn",
+                "text": footer_text,
+            }
+        )
+        blocks.extend(
+            (
+                {"type": "divider"},
+                {
+                    "type": "context",
+                    "elements": footer_elements,
+                },
+            )
         )
         return blocks
 

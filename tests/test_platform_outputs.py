@@ -278,20 +278,65 @@ def prometheus_notification() -> Notification:
 
 
 def neutral_classic_from_embed(embed: dict) -> dict:
+    fields = [
+        {
+            "title": field.get("name", ""),
+            "value": field.get("value", ""),
+            "inline": bool(field.get("inline", False)),
+        }
+        for field in embed.get("fields", [])
+    ]
     result = {
         "style": "classic_card_v1",
         "title": embed.get("title", ""),
         "description": embed.get("description", ""),
         "color": embed.get("color"),
-        "fields": [
-            {
-                "title": field.get("name", ""),
-                "value": field.get("value", ""),
-                "inline": bool(field.get("inline", False)),
-            }
-            for field in embed.get("fields", [])
-        ],
+        "fields": fields,
     }
+    rich_titles = [field["title"] for field in fields[:3]]
+    is_rich = (
+        len(rich_titles) == 3
+        and "Severity" in rich_titles[0]
+        and "Category" in rich_titles[1]
+        and "Event time" in rich_titles[2]
+        and any(
+            field["title"] == "🧾 Event details"
+            for field in fields
+        )
+    )
+    if is_rich:
+        result.update(
+            {
+                "visual_system": "nowlert_rich_classic_v1",
+                "integration": embed.get("title", ""),
+                "accent": f"#{int(embed.get('color') or 0) & 0xFFFFFF:06X}",
+                "summary": [
+                    {
+                        "label": field["title"],
+                        "value": field["value"],
+                    }
+                    for field in fields
+                    if field["inline"]
+                ][:3],
+                "sections": [
+                    {
+                        "title": field["title"],
+                        "items": [
+                            {
+                                "title": "",
+                                "value": field["value"],
+                            }
+                        ],
+                    }
+                    for field in fields
+                    if not field["inline"]
+                ],
+            }
+        )
+        thumbnail = embed.get("thumbnail")
+        if isinstance(thumbnail, dict) and thumbnail.get("url"):
+            result["source_icon"] = thumbnail["url"]
+
     footer = embed.get("footer")
     if isinstance(footer, dict) and footer.get("text"):
         result["footer"] = footer["text"]
@@ -514,6 +559,102 @@ def test_teams_classic_uses_rich_native_layout_for_every_supported_source(source
     )
 
 
+@pytest.mark.parametrize("source", CLASSIC_PARITY_SOURCES)
+def test_discord_classic_uses_rich_layout_for_every_supported_source(source):
+    item = notification_for_source(source)
+    preview = DiscordPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("discord", {"components_v2": False}),
+        item,
+    )
+    embed = preview.payload["embeds"][0]
+    fields = embed["fields"]
+    encoded = json.dumps(embed, ensure_ascii=False)
+
+    assert embed["title"]
+    assert embed["thumbnail"]["url"].startswith("nowlert-asset://")
+    assert embed["footer"] == {
+        "text": "🦉 Nowlert CE • Classic Card"
+    }
+    assert [field["name"] for field in fields[:3]] == [
+        "⚠️ Severity",
+        {
+            "backup": "🔄 Category",
+            "monitoring": "📁 Category",
+            "containers": "📁 Category",
+            "storage": "💾 Category",
+            "network": "🌐 Category",
+            "security": "🛡️ Category",
+            "hardware": "⚙️ Category",
+            "automation": "📁 Category",
+            "event": "📁 Category",
+        }[item.category],
+        "🕒 Event time",
+    ]
+    assert all(field["inline"] is True for field in fields[:3])
+    assert any(
+        field["name"] == "🧾 Event details"
+        for field in fields
+    )
+    assert f"Synthetic {source} operational detail." in encoded
+
+
+@pytest.mark.parametrize("source", CLASSIC_PARITY_SOURCES)
+def test_slack_classic_reuses_rich_discord_hierarchy_for_every_source(source):
+    item = notification_for_source(source)
+    preview = SlackPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("slack", {"message_style": "classic"}),
+        item,
+    )
+    attachment = preview.payload["attachments"][0]
+    blocks = attachment["blocks"]
+    encoded = json.dumps(blocks, ensure_ascii=False)
+
+    assert blocks[0]["type"] == "section"
+    assert blocks[0]["accessory"]["type"] == "image"
+    assert blocks[1] == {"type": "divider"}
+    assert blocks[2]["type"] == "section"
+    assert len(blocks[2]["fields"]) == 3
+    assert "Severity" in encoded
+    assert "Category" in encoded
+    assert "Event time" in encoded
+    assert "Event details" in encoded
+    assert f"Synthetic {source} operational detail." in encoded
+
+    footer = blocks[-1]
+    assert footer["type"] == "context"
+    assert footer["elements"][0]["type"] == "image"
+    assert footer["elements"][-1] == {
+        "type": "mrkdwn",
+        "text": "Nowlert CE • Classic Card",
+    }
+
+
+@pytest.mark.parametrize("source", CLASSIC_PARITY_SOURCES)
+def test_webhook_classic_exposes_same_rich_hierarchy_for_every_source(source):
+    item = notification_for_source(source)
+    preview = WebhookPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("webhook", {"message_style": "classic"}),
+        item,
+    )
+    presentation = preview.payload["presentation"]
+    encoded = json.dumps(presentation, ensure_ascii=False)
+
+    assert presentation["style"] == "classic_card_v1"
+    assert presentation["visual_system"] == "nowlert_rich_classic_v1"
+    assert presentation["integration"]
+    assert len(presentation["summary"]) == 3
+    assert presentation["sections"]
+    assert presentation["sections"][0]["title"] == "🧾 Event details"
+    assert presentation["source_icon"].startswith("nowlert-asset://")
+    assert f"Synthetic {source} operational detail." in encoded
+
+
 def test_teams_classic_redfish_uses_source_icon_in_rich_header():
     item = notification_for_source("redfish")
     preview = TeamsPlatformAdapter(
@@ -615,7 +756,7 @@ def test_send_test_discord_modern_and_classic_use_nowlert_identity():
     )
 
 
-def test_prometheus_discord_classic_uses_compact_xo_style_geometry():
+def test_prometheus_discord_classic_uses_rich_shared_geometry():
     item = prometheus_notification()
     preview = DiscordPlatformAdapter(
         resolver=public_resolver
@@ -626,49 +767,46 @@ def test_prometheus_discord_classic_uses_compact_xo_style_geometry():
 
     embed = preview.payload["embeds"][0]
     fields = embed["fields"]
+    encoded = json.dumps(embed, ensure_ascii=False)
 
-    assert embed["title"] == "🚨 HighRequestLatency — Firing"
-    assert embed["description"] == (
-        "95th percentile latency exceeded two seconds."
+    assert embed["title"] == "Prometheus"
+    assert "HighRequestLatency" in embed["description"]
+    assert "🚨 **Firing**" in embed["description"]
+    assert "95th percentile latency exceeded two seconds." in (
+        embed["description"]
     )
-    assert "url" not in embed
-    assert embed["thumbnail"] == {
-        "url": "nowlert-asset://prometheus.png"
-    }
+    assert embed["thumbnail"]["url"].endswith(
+        "/discord/prometheus.png"
+    )
     assert embed["footer"] == {
         "text": "🦉 Nowlert CE • Classic Card"
     }
 
     assert [field["name"] for field in fields[:3]] == [
         "🚨 Severity",
-        "🎯 Target",
-        "📥 Receiver",
+        "📁 Category",
+        "🕒 Event time",
     ]
     assert all(field["inline"] is True for field in fields[:3])
-    assert fields[0]["value"] == "`Critical`"
-    assert fields[1]["value"] == "`api-01:9090`"
-    assert fields[2]["value"] == "`nowlert-critical`"
+    assert fields[0]["value"] == "Critical"
+    assert fields[1]["value"] == "Monitoring"
 
-    names = [field["name"] for field in fields]
-    assert names == [
-        "🚨 Severity",
-        "🎯 Target",
-        "📥 Receiver",
-        "📈 Prometheus",
-        "🏷️ Labels",
-        "⏱️ Timing",
-        "🔗 Links",
-    ]
-    prometheus = fields[3]["value"]
-    assert prometheus == (
-        "**Service:** `checkout`\n"
-        "**Job:** `api-server`\n"
-        "**Namespace:** `production`"
+    details = next(
+        field for field in fields
+        if field["name"] == "🧾 Event details"
     )
-    assert "**Started:** `2026-09-23T02:00:00Z`" in fields[5]["value"]
+    assert "📥 **Receiver:** nowlert-critical" in details["value"]
+    assert "🧩 **Service:** checkout" in details["value"]
+    assert "⚙️ **Job:** api-server" in details["value"]
+    assert "📦 **Namespace:** production" in details["value"]
+    assert "environment=production" in encoded
+    assert "▶️ **Started:**" in encoded
+    assert "[Alertmanager]" in encoded
+    assert "[Prometheus]" in encoded
+    assert "[Runbook]" in encoded
 
 
-def test_prometheus_discord_classic_grouped_alerts_stay_compact():
+def test_prometheus_discord_classic_grouped_alerts_stay_rich():
     item = prometheus_notification()
     item.metadata["alert_count"] = 2
     item.metadata["group_members"] = [
@@ -692,18 +830,16 @@ def test_prometheus_discord_classic_grouped_alerts_stay_compact():
         destination("discord", {"components_v2": False}),
         item,
     ).payload["embeds"][0]
-    grouped = next(
-        field for field in embed["fields"]
-        if field["name"] == "👥 Alerts · 2"
-    )
+    encoded = json.dumps(embed, ensure_ascii=False)
 
+    assert "👥 **Alerts · 2:**" in encoded
     assert (
         "**ApiErrorRateHigh** · Firing · Critical · api-02:9090"
-        in grouped["value"]
+        in encoded
     )
     assert (
         "**QueueDepthHigh** · Firing · Warning · worker-02:9090"
-        in grouped["value"]
+        in encoded
     )
 
 
@@ -719,15 +855,13 @@ def test_prometheus_discord_classic_resolved_keeps_started_and_resolved():
         destination("discord", {"components_v2": False}),
         item,
     ).payload["embeds"][0]
+    encoded = json.dumps(embed, ensure_ascii=False)
 
-    assert embed["title"] == "✅ HighRequestLatency — Resolved"
+    assert embed["title"] == "Prometheus"
     assert embed["color"] == 0x2ECC71
-    timing = next(
-        field for field in embed["fields"]
-        if field["name"] == "⏱️ Timing"
-    )
-    assert "**Started:** `2026-09-23T02:00:00Z`" in timing["value"]
-    assert "**Resolved:** `2026-09-23T02:05:00Z`" in timing["value"]
+    assert "✅ **Resolved**" in embed["description"]
+    assert "▶️ **Started:**" in encoded
+    assert "🏁 **Resolved:**" in encoded
 
 
 def test_prometheus_modern_seed_contract_is_unchanged_by_classic_layout():
@@ -751,27 +885,27 @@ def test_prometheus_modern_seed_contract_is_unchanged_by_classic_layout():
     assert embed["url"] == "https://prometheus.example.test/graph"
 
 
-def test_prometheus_webhook_classic_keeps_existing_neutral_contract():
+def test_prometheus_webhook_classic_uses_rich_shared_contract():
     preview = WebhookPlatformAdapter(
         resolver=public_resolver
     ).preview(
         destination("webhook", {"message_style": "classic"}),
         prometheus_notification(),
     )
-    names = [
-        field["title"]
-        for field in preview.payload["presentation"]["fields"]
-    ]
+    presentation = preview.payload["presentation"]
 
-    assert names == [
-        "🚨 Alert",
-        "🎯 Target",
-        "📈 Prometheus",
-        "🏷️ Labels",
-        "⏱️ Timing",
-        "🔗 Links",
+    assert presentation["style"] == "classic_card_v1"
+    assert presentation["visual_system"] == "nowlert_rich_classic_v1"
+    assert presentation["integration"] == "Prometheus"
+    assert [item["label"] for item in presentation["summary"]] == [
+        "🚨 Severity",
+        "📁 Category",
+        "🕒 Event time",
     ]
-    assert preview.payload["presentation"]["style"] == "classic_card_v1"
+    assert presentation["sections"][0]["title"] == "🧾 Event details"
+    encoded = json.dumps(presentation, ensure_ascii=False)
+    assert "nowlert-critical" in encoded
+    assert "environment=production" in encoded
 
 
 def test_prometheus_teams_modern_reuses_standardized_discord_image(
@@ -858,7 +992,10 @@ def test_send_test_generic_webhook_respects_modern_and_classic():
     assert modern.payload["presentation"]["style"] == "modern_card"
     assert classic.payload["presentation"]["style"] == "classic_card_v1"
     assert modern.payload["presentation"]["title"] == item.title
-    assert item.title in classic.payload["presentation"]["title"]
+    assert classic.payload["presentation"]["visual_system"] == (
+        "nowlert_rich_classic_v1"
+    )
+    assert item.title in classic.payload["presentation"]["description"]
     assert item.body in classic.payload["presentation"]["description"]
 
 
@@ -1108,14 +1245,12 @@ def test_slack_preview_is_classic_sanitized_and_has_safe_action():
     assert header["accessory"]["image_url"].endswith(
         "/discord/grafana.png"
     )
-    assert attachment["blocks"][-1] == {
-        "type": "context",
-        "elements": [
-            {
-                "type": "mrkdwn",
-                "text": "🦉 Nowlert CE • Classic Card",
-            }
-        ],
+    footer = attachment["blocks"][-1]
+    assert footer["type"] == "context"
+    assert footer["elements"][0]["type"] == "image"
+    assert footer["elements"][-1] == {
+        "type": "mrkdwn",
+        "text": "Nowlert CE • Classic Card",
     }
     assert "private-token" not in encoded
 
@@ -1172,32 +1307,32 @@ def test_webhook_classic_preview_matches_approved_discord_classic_geometry(sourc
     assert "attachments" not in webhook_preview.payload
 
 
-def test_webhook_classic_grafana_contains_source_specific_sections():
+def test_webhook_classic_grafana_keeps_source_specific_details():
     preview = WebhookPlatformAdapter(resolver=public_resolver).preview(
         destination("webhook", {"message_style": "classic"}),
         notification_for_source("grafana"),
     )
-    names = [
-        field["title"]
-        for field in preview.payload["presentation"]["fields"]
-    ]
+    presentation = preview.payload["presentation"]
+    encoded = json.dumps(presentation, ensure_ascii=False)
 
-    assert preview.payload["presentation"]["style"] == "classic_card_v1"
-    assert "📣 Alert" in names
-    assert "📂 Rule" in names
-    assert "⏱️ Timing" in names
-    assert names != ["severity", "status", "source", "category"]
+    assert presentation["style"] == "classic_card_v1"
+    assert presentation["visual_system"] == "nowlert_rich_classic_v1"
+    assert presentation["integration"] == "Grafana"
+    assert presentation["sections"][0]["title"] == "🧾 Event details"
+    assert "Synthetic rule" in encoded
+    assert "Synthetic folder" in encoded
+    assert "Synthetic dashboard" in encoded
 
 
 @pytest.mark.parametrize(
     ("source", "identity"),
     (
-        ("supermicro", "🖥️ Supermicro BMC"),
-        ("hpe_ilo", "🖥️ HPE iLO"),
-        ("dell_idrac", "🖥️ Dell iDRAC"),
+        ("supermicro", "Supermicro BMC"),
+        ("hpe_ilo", "HPE iLO"),
+        ("dell_idrac", "Dell iDRAC"),
     ),
 )
-def test_webhook_classic_hardware_reuses_discord_hardware_sections(
+def test_webhook_classic_hardware_keeps_rich_vendor_identity(
     source,
     identity,
 ):
@@ -1205,13 +1340,13 @@ def test_webhook_classic_hardware_reuses_discord_hardware_sections(
         destination("webhook", {"message_style": "classic"}),
         notification_for_source(source),
     )
-    names = [
-        field["title"]
-        for field in preview.payload["presentation"]["fields"]
-    ]
+    presentation = preview.payload["presentation"]
+    encoded = json.dumps(presentation, ensure_ascii=False)
 
-    assert identity in names
-    assert "🔎 Hardware Event" in names
+    assert presentation["integration"] == identity
+    assert presentation["sections"][0]["title"] == "🧾 Event details"
+    assert "Synthetic.Registry" in encoded
+    assert "Synthetic.Message" in encoded
 
 
 def test_prometheus_webhook_modern_uses_standardized_card_hierarchy():
@@ -1366,18 +1501,18 @@ def test_webhook_classic_presentation_remains_secret_safe():
     assert "<redacted>" in encoded
 
 
-def test_webhook_classic_unknown_source_uses_generic_fallback():
+def test_webhook_classic_unknown_source_uses_rich_generic_fallback():
     preview = WebhookPlatformAdapter(resolver=public_resolver).preview(
         destination("webhook", {"message_style": "classic"}),
         notification_for_source("unknown_product"),
     )
-    names = [
-        field["title"]
-        for field in preview.payload["presentation"]["fields"]
-    ]
+    presentation = preview.payload["presentation"]
+    encoded = json.dumps(presentation, ensure_ascii=False)
 
-    assert "📍 Source" in names
-    assert preview.payload["presentation"]["footer"] == (
+    assert presentation["integration"] == "Synthetic Generic Provider"
+    assert presentation["sections"][0]["title"] == "🧾 Event details"
+    assert "Synthetic Generic Provider" in encoded
+    assert presentation["footer"] == (
         "🦉 Nowlert CE • Classic Card"
     )
 
