@@ -60,7 +60,11 @@ def test_automatic_stage_promotion_has_zero_active_delivery_test_paths() -> None
     folded = content.casefold()
     assert "promotion-smoke" in content
     assert "external notification delivery during promotion: disabled" in folded
-    assert "--evidence-type silent-promotion-smoke" in content
+    assert "STAGE CE SILENT PROMOTION SMOKE PASSED" in content
+    assert "aws-actions/configure-aws-credentials" not in content
+    assert "GitHubActions-NowlertCE-LedgerWriter" not in content
+    assert "ledger.py" not in content
+    assert "id-token: write" not in content
     for value in forbidden:
         assert value not in folded, value
 
@@ -125,8 +129,37 @@ def test_release_finalization_requires_stage_silent_gate_only() -> None:
     assert "production_reference" not in finalizer.casefold()
     assert "production_reference_run_id" not in workflow
     assert "CE_PRODREF_APPLICATION_ID" not in workflow
-    assert "--environment stage" in workflow
+    assert "actions: read" in workflow
+    assert "Validate Development and Stage promotion chain" in workflow
+    assert "python .github/scripts/finalize_release.py" in workflow
+    assert "--development-run" in workflow
+    assert "--stage-run" in workflow
+    assert "--final-image" in workflow
+    assert "--source-commit" in workflow
+    assert "aws-actions/configure-aws-credentials" not in workflow
+    assert "GitHubActions-NowlertCE-LedgerWriter" not in workflow
+    assert "ledger.py" not in workflow
+    assert "id-token: write" not in workflow
     assert "Notification delivery tests during Stage promotion: disabled" in workflow
+
+
+def test_release_pipeline_has_no_aws_ledger_dependency() -> None:
+    stage = (ROOT / ".github" / "workflows" / "promote-stage.yml").read_text(
+        encoding="utf-8"
+    )
+    release = (ROOT / ".github" / "workflows" / "finalize-release.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert not (ROOT / ".github" / "scripts" / "ledger.py").exists()
+    assert not (ROOT / "tests" / "test_ledger.py").exists()
+
+    for workflow in (stage, release):
+        assert "aws-actions/configure-aws-credentials" not in workflow
+        assert "GitHubActions-NowlertCE-LedgerWriter" not in workflow
+        assert "theriark-ops-ledger" not in workflow
+        assert "ledger.py" not in workflow
+        assert "id-token: write" not in workflow
 
 
 def test_legacy_schedule_runner_remains_available_but_is_not_auto_promoted() -> None:
