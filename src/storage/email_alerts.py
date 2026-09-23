@@ -23,6 +23,12 @@ from storage.validation import normalized_name
 
 EMAIL_MAILBOX_PROVIDERS = frozenset({"gmail", "microsoft_365", "imap"})
 EMAIL_MATCH_MODES = frozenset({"all", "any"})
+EMAIL_RULE_FIELDS = frozenset(
+    {"sender", "sender_domain", "recipient", "subject", "body", "mailbox"}
+)
+EMAIL_RULE_OPERATORS = frozenset(
+    {"equals", "contains", "starts_with", "ends_with"}
+)
 EMAIL_PROCESSING_ACTIONS = frozenset(
     {
         "matched",
@@ -326,6 +332,63 @@ class EmailAlertStore:
             )
         return self.get_mailbox(actor, mailbox_id)
 
+    def update_mailbox(
+        self,
+        actor: Actor,
+        mailbox_id: str,
+        *,
+        name: str | None = None,
+        settings: dict | None = None,
+        enabled: bool | None = None,
+    ) -> EmailMailbox:
+        row = self._mailbox_row(mailbox_id)
+        OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
+        assignments = ["updated_at = ?"]
+        values: list[object] = [int(self.clock())]
+        if name is not None:
+            display, normalized = normalized_name(
+                name,
+                "mailbox name",
+                maximum=160,
+            )
+            assignments.extend(["name = ?", "name_normalized = ?"])
+            values.extend([display, normalized])
+        if settings is not None:
+            assignments.append("settings_json = ?")
+            values.append(self._json(self._settings(settings)))
+        if enabled is not None:
+            if not isinstance(enabled, bool):
+                raise ValueError("mailbox enabled must be a boolean")
+            assignments.append("enabled = ?")
+            values.append(1 if enabled else 0)
+        values.append(str(mailbox_id))
+        try:
+            with self.database.transaction() as connection:
+                connection.execute(
+                    f"UPDATE email_mailboxes SET {', '.join(assignments)} WHERE id = ?",
+                    tuple(values),
+                )
+        except sqlite3.IntegrityError as error:
+            raise ValueError(
+                "email mailbox name is already configured for this owner"
+            ) from error
+        return self.get_mailbox(actor, mailbox_id)
+
+    def delete_mailbox(self, actor: Actor, mailbox_id: str) -> str | None:
+        row = self._mailbox_row(mailbox_id)
+        OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
+        secret_id = (
+            str(row["secret_id"])
+            if row["secret_id"] is not None
+            else None
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                "DELETE FROM email_mailboxes WHERE id = ?",
+                (str(mailbox_id),),
+            )
+        return secret_id
+
     def create_group(
         self,
         actor: Actor,
@@ -378,6 +441,66 @@ class EmailAlertStore:
                 "email group name is already configured for this owner"
             ) from error
         return self.get_group(actor, group_id)
+
+    def update_group(
+        self,
+        actor: Actor,
+        group_id: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        enabled: bool | None = None,
+        quiet_window_seconds: int | None = None,
+    ) -> EmailGroup:
+        row = self._group_row(group_id)
+        OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
+        assignments = ["updated_at = ?"]
+        values: list[object] = [int(self.clock())]
+        if name is not None:
+            display, normalized = normalized_name(
+                name,
+                "email group name",
+                maximum=160,
+            )
+            assignments.extend(["name = ?", "name_normalized = ?"])
+            values.extend([display, normalized])
+        if description is not None:
+            assignments.append("description = ?")
+            values.append(sanitize_text(description)[:1000])
+        if enabled is not None:
+            if not isinstance(enabled, bool):
+                raise ValueError("email group enabled must be a boolean")
+            assignments.append("enabled = ?")
+            values.append(1 if enabled else 0)
+        if quiet_window_seconds is not None:
+            quiet = int(quiet_window_seconds)
+            if not 0 <= quiet <= 604800:
+                raise ValueError(
+                    "email group quiet window must be between 0 and 604800 seconds"
+                )
+            assignments.append("quiet_window_seconds = ?")
+            values.append(quiet)
+        values.append(str(group_id))
+        try:
+            with self.database.transaction() as connection:
+                connection.execute(
+                    f"UPDATE email_groups SET {', '.join(assignments)} WHERE id = ?",
+                    tuple(values),
+                )
+        except sqlite3.IntegrityError as error:
+            raise ValueError(
+                "email group name is already configured for this owner"
+            ) from error
+        return self.get_group(actor, group_id)
+
+    def delete_group(self, actor: Actor, group_id: str) -> None:
+        row = self._group_row(group_id)
+        OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "DELETE FROM email_groups WHERE id = ?",
+                (str(group_id),),
+            )
 
     def get_group(self, actor: Actor, group_id: str) -> EmailGroup:
         row = self._group_row(group_id)
@@ -472,6 +595,87 @@ class EmailAlertStore:
                 "email rule name is already configured in this group"
             ) from error
         return self.get_rule(actor, rule_id)
+
+    def update_rule(
+        self,
+        actor: Actor,
+        rule_id: str,
+        *,
+        group_id: str | None = None,
+        name: str | None = None,
+        classification: str | None = None,
+        conditions: list[dict] | None = None,
+        match_mode: str | None = None,
+        priority: int | None = None,
+        enabled: bool | None = None,
+    ) -> EmailRule:
+        row = self._rule_row(rule_id)
+        owner_user_id = str(row["owner_user_id"])
+        OwnershipPolicy.require_write(actor, owner_user_id)
+        assignments = ["updated_at = ?"]
+        values: list[object] = [int(self.clock())]
+        if group_id is not None:
+            group = self._group_row(group_id)
+            if str(group["owner_user_id"]) != owner_user_id:
+                raise PermissionError(
+                    "email rule and group must have the same owner"
+                )
+            assignments.append("group_id = ?")
+            values.append(str(group_id))
+        if name is not None:
+            display, normalized = normalized_name(
+                name,
+                "email rule name",
+                maximum=160,
+            )
+            assignments.extend(["name = ?", "name_normalized = ?"])
+            values.extend([display, normalized])
+        if classification is not None:
+            assignments.append("classification = ?")
+            values.append(self._classification(classification))
+        if conditions is not None:
+            assignments.append("conditions_json = ?")
+            values.append(self._json(self._conditions(conditions)))
+        if match_mode is not None:
+            mode = str(match_mode or "").strip().casefold()
+            if mode not in EMAIL_MATCH_MODES:
+                raise ValueError("email rule match mode must be all or any")
+            assignments.append("match_mode = ?")
+            values.append(mode)
+        if priority is not None:
+            priority_value = int(priority)
+            if not 0 <= priority_value <= 100000:
+                raise ValueError(
+                    "email rule priority must be between 0 and 100000"
+                )
+            assignments.append("priority = ?")
+            values.append(priority_value)
+        if enabled is not None:
+            if not isinstance(enabled, bool):
+                raise ValueError("email rule enabled must be a boolean")
+            assignments.append("enabled = ?")
+            values.append(1 if enabled else 0)
+        values.append(str(rule_id))
+        try:
+            with self.database.transaction() as connection:
+                connection.execute(
+                    f"UPDATE email_rules SET {', '.join(assignments)} WHERE id = ?",
+                    tuple(values),
+                )
+        except sqlite3.IntegrityError as error:
+            raise ValueError(
+                "email rule name is already configured in this group"
+            ) from error
+        return self.get_rule(actor, rule_id)
+
+    def delete_rule(self, actor: Actor, rule_id: str) -> None:
+        row = self._rule_row(rule_id)
+        OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "DELETE FROM email_rules WHERE id = ?",
+                (str(rule_id),),
+            )
 
     def get_rule(self, actor: Actor, rule_id: str) -> EmailRule:
         row = self._rule_row(rule_id)
@@ -606,6 +810,31 @@ class EmailAlertStore:
             return self._message(existing), False
 
         return self.get_message(actor, message_id), True
+
+    def list_messages(
+        self,
+        actor: Actor,
+        *,
+        mailbox_id: str | None = None,
+        limit: int = 100,
+    ) -> list[EmailMessage]:
+        bounded = max(1, min(int(limit), 500))
+        query = "SELECT * FROM email_messages"
+        clauses = []
+        values: list[object] = []
+        if not actor.is_admin:
+            clauses.append("owner_user_id = ?")
+            values.append(actor.user_id)
+        if mailbox_id is not None:
+            clauses.append("mailbox_id = ?")
+            values.append(str(mailbox_id))
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY received_at DESC, id DESC LIMIT ?"
+        values.append(bounded)
+        with self.database.connect() as connection:
+            rows = connection.execute(query, tuple(values)).fetchall()
+        return [self._message(row) for row in rows]
 
     def get_message(self, actor: Actor, message_id: str) -> EmailMessage:
         row = self._message_row(message_id)
@@ -981,7 +1210,26 @@ class EmailAlertStore:
         for condition in value:
             if not isinstance(condition, dict):
                 raise ValueError("email rule conditions must be objects")
-            result.append(cls._object(condition, "email rule condition"))
+            if set(condition) - {"field", "operator", "value"}:
+                raise ValueError("email rule condition contains unsupported fields")
+            field = str(condition.get("field") or "").strip().casefold()
+            operator = str(condition.get("operator") or "").strip().casefold()
+            raw_value = sanitize_text(condition.get("value"))[:2000]
+            if field not in EMAIL_RULE_FIELDS:
+                raise ValueError("email rule condition field is invalid")
+            if operator not in EMAIL_RULE_OPERATORS:
+                raise ValueError("email rule condition operator is invalid")
+            if not raw_value:
+                raise ValueError("email rule condition value is required")
+            if field in {"sender", "sender_domain", "recipient", "mailbox"}:
+                raw_value = raw_value.casefold()
+            result.append(
+                {
+                    "field": field,
+                    "operator": operator,
+                    "value": raw_value,
+                }
+            )
         cls._json(result)
         return result
 
@@ -1236,6 +1484,8 @@ __all__ = [
     "EMAIL_CONNECTION_STATES",
     "EMAIL_MAILBOX_PROVIDERS",
     "EMAIL_MATCH_MODES",
+    "EMAIL_RULE_FIELDS",
+    "EMAIL_RULE_OPERATORS",
     "EMAIL_PROCESSING_ACTIONS",
     "EmailAlertStore",
     "EmailGroup",

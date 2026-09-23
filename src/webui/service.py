@@ -102,6 +102,16 @@ class WebUIService:
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/email_alerts.js": (
+                "src/webui/email_alerts.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/email_alerts.css": (
+                "src/webui/email_alerts.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/destination_routes.css": (
                 "src/webui/destination_routes.css",
                 "text/css; charset=utf-8",
@@ -351,6 +361,7 @@ class WebUIService:
             text = body.decode("utf-8")
             version = f"?v={UI_BUILD}"
             extension = (
+                f'  <link rel="stylesheet" href="/ui/email_alerts.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/filtering.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/destination_routes.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/destination_editor_fix.css{version}">\n'
@@ -365,6 +376,7 @@ class WebUIService:
                 f'  <link rel="stylesheet" href="/ui/management_consistency.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/reference_acceptance.css{version}">\n'
                 f'  <script src="/ui/filtering.js{version}" defer></script>\n'
+                f'  <script src="/ui/email_alerts.js{version}" defer></script>\n'
                 f'  <script src="/ui/source_ui_retirement.js{version}" defer></script>\n'
                 f'  <script src="/ui/destination_routes.js{version}" defer></script>\n'
                 f'  <script src="/ui/destination_editor_fix.js{version}" defer></script>\n'
