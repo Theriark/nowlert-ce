@@ -98,6 +98,7 @@ CLASSIC_PARITY_SOURCES = (
     "xo",
     "zabbix",
     "grafana",
+    "prometheus",
     "portainer",
     "proxmox",
     "qnap",
@@ -122,6 +123,7 @@ def notification_for_source(source: str) -> Notification:
         "xo": "backup",
         "zabbix": "monitoring",
         "grafana": "monitoring",
+        "prometheus": "monitoring",
         "portainer": "containers",
         "proxmox": "storage",
         "qnap": "storage",
@@ -248,6 +250,30 @@ def notification_for_source(source: str) -> Notification:
         }
     )
     return item
+
+
+def prometheus_notification() -> Notification:
+    return Notification(
+        source="prometheus",
+        category="monitoring",
+        status="failure",
+        title="HighRequestLatency",
+        body="95th percentile latency exceeded two seconds.",
+        start_time="2026-09-23T02:00:00Z",
+        metadata={
+            "state": "firing",
+            "severity": "critical",
+            "instance": "api-01:9090",
+            "service": "checkout",
+            "job": "api-server",
+            "namespace": "production",
+            "receiver": "nowlert-critical",
+            "labels": {"environment": "production"},
+            "external_url": "https://alertmanager.example.test",
+            "generator_url": "https://prometheus.example.test/graph",
+            "runbook_url": "https://runbook.example.test/prometheus",
+        },
+    )
 
 
 def neutral_classic_from_embed(embed: dict) -> dict:
@@ -545,6 +571,39 @@ def test_send_test_discord_modern_and_classic_use_nowlert_identity():
     )
 
 
+def test_prometheus_teams_modern_reuses_standardized_discord_image(
+    monkeypatch,
+):
+    item = prometheus_notification()
+    adapter = TeamsPlatformAdapter(resolver=public_resolver)
+    calls = []
+
+    def render(value, formatter=None):
+        calls.append((value, formatter))
+        return b"synthetic-prometheus-modern-png"
+
+    monkeypatch.setattr(
+        adapter.output.discord_modern_output,
+        "render_modern_image",
+        render,
+    )
+    monkeypatch.setattr(
+        "outputs.teams.publish_teams_modern_image",
+        lambda _configuration, _image: _slack_modern_image_payload_url(),
+    )
+
+    preview = adapter.preview(
+        destination("teams", {"message_style": "modern"}),
+        item,
+    )
+
+    assert calls == [(item, None)]
+    assert preview.metadata["modern_image"] is True
+    assert preview.metadata["formatter"] == "DiscordModernImageRenderer"
+    encoded = json.dumps(preview.payload)
+    assert _slack_modern_image_payload_url() in encoded
+
+
 def test_send_test_teams_modern_and_classic_use_nowlert_identity(
     monkeypatch,
 ):
@@ -686,6 +745,28 @@ def _enable_slack_modern_image(monkeypatch, adapter):
         lambda _configuration, _image: _slack_modern_image_payload_url(),
     )
     return calls
+
+
+def test_prometheus_slack_modern_reuses_standardized_discord_image(
+    monkeypatch,
+):
+    adapter = SlackPlatformAdapter(resolver=public_resolver)
+    item = prometheus_notification()
+    calls = _enable_slack_modern_image(monkeypatch, adapter)
+
+    preview = adapter.preview(
+        destination("slack", {"message_style": "modern"}),
+        item,
+    )
+
+    assert calls == [(item, None)]
+    assert preview.metadata["modern_image"] is True
+    assert preview.metadata["formatter"] == "DiscordModernImageRenderer"
+    assert preview.payload["blocks"][0] == {
+        "type": "image",
+        "image_url": _slack_modern_image_payload_url(),
+        "alt_text": "prometheus: HighRequestLatency",
+    }
 
 
 def test_slack_modern_preview_reuses_exact_discord_modern_renderer(
@@ -925,6 +1006,93 @@ def test_webhook_classic_hardware_reuses_discord_hardware_sections(
 
     assert identity in names
     assert "🔎 Hardware Event" in names
+
+
+def test_prometheus_webhook_modern_uses_standardized_card_hierarchy():
+    preview = WebhookPlatformAdapter(resolver=public_resolver).preview(
+        destination("webhook", {"message_style": "modern"}),
+        prometheus_notification(),
+    )
+
+    presentation = preview.payload["presentation"]
+    assert presentation["style"] == "modern_card"
+    assert presentation["visual_system"] == "nowlert_standard_v1"
+    assert presentation["integration"] == "Prometheus"
+    assert presentation["accent"] == "#E74C3C"
+    assert presentation["badge"] == {
+        "label": "Firing",
+        "tone": "failure",
+        "icon": "status",
+    }
+    assert [item["label"] for item in presentation["summary"]] == [
+        "Severity",
+        "Category",
+        "Event time",
+    ]
+    assert presentation["summary"][0]["value"] == "critical"
+    assert presentation["summary"][1]["value"] == "monitoring"
+    assert presentation["summary"][2]["value"] == "2026-09-23T02:00:00Z"
+
+    section_titles = [section["title"] for section in presentation["sections"]]
+    assert section_titles == [
+        "Target",
+        "Prometheus",
+        "Timing & Links",
+        "Event Details",
+    ]
+
+    rendered = json.dumps(presentation, ensure_ascii=False)
+    for value in (
+        "api-01:9090",
+        "checkout",
+        "api-server",
+        "production",
+        "nowlert-critical",
+        "environment",
+        "Alertmanager",
+        "Prometheus",
+        "Runbook",
+        "95th percentile latency exceeded two seconds.",
+    ):
+        assert value in rendered
+    assert presentation["footer"] == "Nowlert CE • Modern Card"
+
+
+@pytest.mark.parametrize(
+    ("state", "status", "severity", "expected_tone", "expected_accent"),
+    (
+        ("firing", "failure", "critical", "failure", "#E74C3C"),
+        ("firing", "warning", "warning", "warning", "#F39C12"),
+        ("resolved", "success", "critical", "success", "#2ECC71"),
+    ),
+)
+def test_prometheus_webhook_modern_lifecycle_matches_standard_card(
+    state,
+    status,
+    severity,
+    expected_tone,
+    expected_accent,
+):
+    item = prometheus_notification()
+    item.metadata["state"] = state
+    item.metadata["severity"] = severity
+    item.status = status
+    if state == "resolved":
+        item.end_time = "2026-09-23T02:05:00Z"
+
+    presentation = WebhookPlatformAdapter(
+        resolver=public_resolver
+    ).preview(
+        destination("webhook", {"message_style": "modern"}),
+        item,
+    ).payload["presentation"]
+
+    assert presentation["badge"]["label"] == state.title()
+    assert presentation["badge"]["tone"] == expected_tone
+    assert presentation["accent"] == expected_accent
+    assert presentation["summary"][2]["value"] == (
+        item.end_time if state == "resolved" else item.start_time
+    )
 
 
 def test_webhook_modern_presentation_contract_is_unchanged():
