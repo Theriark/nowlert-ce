@@ -836,6 +836,39 @@ class EmailAlertStore:
             rows = connection.execute(query, tuple(values)).fetchall()
         return [self._message(row) for row in rows]
 
+    def list_activity_messages(
+        self,
+        actor: Actor,
+        *,
+        limit: int = 100,
+    ) -> list[EmailMessage]:
+        """Return only messages that participated in Nowlert processing."""
+
+        bounded = max(1, min(int(limit), 500))
+        values: list[object] = []
+        owner_clause = ""
+        if not actor.is_admin:
+            owner_clause = "AND email_messages.owner_user_id = ?"
+            values.append(actor.user_id)
+        values.append(bounded)
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT email_messages.*
+                FROM email_messages
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM email_processing_history
+                    WHERE email_processing_history.message_id = email_messages.id
+                )
+                {owner_clause}
+                ORDER BY email_messages.received_at DESC, email_messages.id DESC
+                LIMIT ?
+                """,
+                tuple(values),
+            ).fetchall()
+        return [self._message(row) for row in rows]
+
     def get_message(self, actor: Actor, message_id: str) -> EmailMessage:
         row = self._message_row(message_id)
         OwnershipPolicy.require_read(actor, str(row["owner_user_id"]))
@@ -1314,24 +1347,40 @@ class EmailAlertStore:
             {} if value is None else value,
             "email processing details",
         )
-        result = {}
-        for key, child in list(supplied.items())[:32]:
-            label = sanitize_text(key)[:64]
-            if _SENSITIVE_KEY.search(label):
-                result[label] = "<redacted>"
-            elif isinstance(child, bool) or child is None:
-                result[label] = child
-            elif isinstance(child, (int, float)):
-                result[label] = child
-            elif isinstance(child, list):
-                result[label] = [
-                    sanitize_text(item)[:256]
-                    for item in child[:32]
-                ]
-            else:
-                result[label] = sanitize_text(child)[:1000]
+        result = cls._safe_detail_value(supplied, depth=0)
+        if not isinstance(result, dict):
+            raise ValueError("email processing details must be an object")
         cls._json(result)
         return result
+
+    @classmethod
+    def _safe_detail_value(cls, value, *, depth: int):
+        if depth > 3:
+            return sanitize_text(value)[:1000]
+        if isinstance(value, dict):
+            result = {}
+            for key, child in list(value.items())[:32]:
+                label = sanitize_text(key)[:64]
+                if not label:
+                    continue
+                if _SENSITIVE_KEY.search(label):
+                    result[label] = "<redacted>"
+                else:
+                    result[label] = cls._safe_detail_value(
+                        child,
+                        depth=depth + 1,
+                    )
+            return result
+        if isinstance(value, list):
+            return [
+                cls._safe_detail_value(child, depth=depth + 1)
+                for child in value[:32]
+            ]
+        if isinstance(value, bool) or value is None:
+            return value
+        if isinstance(value, (int, float)):
+            return value
+        return sanitize_text(value)[:1000]
 
     @staticmethod
     def _object(value, label: str) -> dict:

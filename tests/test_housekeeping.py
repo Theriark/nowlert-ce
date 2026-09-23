@@ -33,6 +33,9 @@ def test_housekeeping_defaults_and_bounded_history_retention(tmp_path):
         "delivery_history_days": 90,
         "audit_history_days": 365,
         "backup_run_history_days": 180,
+        "email_message_metadata_days": 90,
+        "email_raw_content_days": 7,
+        "email_processing_history_days": 90,
     }
 
     old_delivery = now - 91 * 86400

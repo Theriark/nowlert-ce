@@ -3198,6 +3198,19 @@ function renderHousekeepingSettings() {
   byId("housekeeping-delivery-days").value = String(settings.delivery_history_days ?? 90);
   byId("housekeeping-audit-days").value = String(settings.audit_history_days ?? 365);
   byId("housekeeping-backup-run-days").value = String(settings.backup_run_history_days ?? 180);
+  byId("housekeeping-email-metadata-days").value = String(settings.email_message_metadata_days ?? 90);
+  byId("housekeeping-email-content-days").value = String(settings.email_raw_content_days ?? 7);
+  byId("housekeeping-email-processing-days").value = String(settings.email_processing_history_days ?? 90);
+
+  const emailMetadataStatus = status.email_message_metadata || {};
+  const emailContentStatus = status.email_raw_content || {};
+  const emailProcessingStatus = status.email_processing_history || {};
+  byId("housekeeping-email-metadata-count").textContent =
+    `${Number(emailMetadataStatus.rows || 0).toLocaleString()} retained metadata record${Number(emailMetadataStatus.rows || 0) === 1 ? "" : "s"}; separate from ordinary event history.`;
+  byId("housekeeping-email-content-count").textContent =
+    `${Number(emailContentStatus.rows || 0).toLocaleString()} retained sanitized preview record${Number(emailContentStatus.rows || 0) === 1 ? "" : "s"}; attachment payloads are never retained.`;
+  byId("housekeeping-email-processing-count").textContent =
+    `${Number(emailProcessingStatus.rows || 0).toLocaleString()} retained Email processing record${Number(emailProcessingStatus.rows || 0) === 1 ? "" : "s"}.`;
 
   const timeSelect = byId("housekeeping-time");
   timeSelect.disabled = !enabled;
@@ -3337,6 +3350,9 @@ async function saveHousekeepingSettings(event) {
         delivery_history_days: Number(byId("housekeeping-delivery-days").value),
         audit_history_days: Number(byId("housekeeping-audit-days").value),
         backup_run_history_days: Number(byId("housekeeping-backup-run-days").value),
+        email_message_metadata_days: Number(byId("housekeeping-email-metadata-days").value),
+        email_raw_content_days: Number(byId("housekeeping-email-content-days").value),
+        email_processing_history_days: Number(byId("housekeeping-email-processing-days").value),
       },
     });
     state.housekeepingSettings = response.settings;

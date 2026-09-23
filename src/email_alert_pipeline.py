@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-import re
 import time
 import uuid
 
 from dataclasses import dataclass
-from email import policy
-from email.parser import BytesParser
-from html.parser import HTMLParser
 from typing import Callable
 
 from email_rules import EmailRuleEngine
+from email_security import build_email_preview
 from models import Notification
 from storage.audit_events import AuditEventStore
 from storage.email_alerts import EmailAlertStore
@@ -33,54 +30,13 @@ _MAX_RULE_BODY_CHARS = 64 * 1024
 _MAX_NOTIFICATION_BODY_CHARS = 4000
 
 
-class _HTMLText(HTMLParser):
-    def __init__(self):
-        super().__init__(convert_charrefs=True)
-        self.parts: list[str] = []
-
-    def handle_data(self, data):
-        text = str(data or "").strip()
-        if text:
-            self.parts.append(text)
-
-    def text(self) -> str:
-        return " ".join(self.parts)
-
-
 def email_message_text(raw: bytes) -> str:
-    """Extract bounded human-readable text without exposing attachments."""
+    """Extract bounded sanitized body text without exposing attachments."""
 
     try:
-        message = BytesParser(policy=policy.default).parsebytes(bytes(raw))
-    except Exception:
+        return build_email_preview(raw).text[:_MAX_RULE_BODY_CHARS]
+    except (TypeError, ValueError):
         return ""
-
-    selected = None
-    try:
-        if message.is_multipart():
-            selected = message.get_body(preferencelist=("plain", "html"))
-        elif message.get_content_maintype() == "text":
-            selected = message
-    except Exception:
-        selected = None
-    if selected is None:
-        return ""
-
-    try:
-        value = selected.get_content()
-    except Exception:
-        return ""
-    text = str(value or "")
-    if selected.get_content_subtype() == "html":
-        parser = _HTMLText()
-        try:
-            parser.feed(text)
-            text = parser.text()
-        except Exception:
-            text = re.sub(r"<[^>]+>", " ", text)
-
-    text = sanitize_text(text)
-    return text[:_MAX_RULE_BODY_CHARS]
 
 
 @dataclass(frozen=True)
@@ -238,6 +194,18 @@ class EmailAlertProcessor:
 
         classification = evaluation.classification
         group = self.store.get_group(owner_actor, evaluation.group_id)
+        explanation = {
+            "matched_conditions": [
+                condition.public()
+                for condition in evaluation.conditions
+                if condition.matched
+            ],
+            "resulting_classification": classification,
+            "resulting_severity": _CLASSIFICATION_SEVERITY.get(
+                classification,
+                "information",
+            ),
+        }
         if classification == "ignore":
             record = self.store.record_processing(
                 owner_actor,
@@ -249,6 +217,7 @@ class EmailAlertProcessor:
                 details={
                     "reason": "classification_ignore",
                     "replay": bool(replay),
+                    **explanation,
                 },
             )
             self._audit(
@@ -295,6 +264,7 @@ class EmailAlertProcessor:
                     "reason": "quiet_window",
                     "quiet_window_seconds": group.quiet_window_seconds,
                     "replay": bool(replay),
+                    **explanation,
                 },
             )
             self._audit(
@@ -337,6 +307,7 @@ class EmailAlertProcessor:
             "attempts": summary.attempts,
             "replay": bool(replay),
             "bypass_quiet_window": bool(bypass_quiet_window),
+            **explanation,
         }
         self.store.record_processing(
             owner_actor,
