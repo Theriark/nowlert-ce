@@ -1585,7 +1585,15 @@ class PlatformAPI:
             owner_id = self._owner(data, actor)
             output_type = data.get("output_type")
             settings = data.get("settings", {})
-            normalize_output_settings(output_type, settings)
+            normalized_settings = normalize_output_settings(output_type, settings)
+            if (
+                str(output_type or "").strip().casefold() == "email"
+                and normalized_settings.get("username")
+                and not self._email_password_configured(data.get("secret"))
+            ):
+                raise ValueError(
+                    "Email destination password is required when username is configured"
+                )
             if not self.destinations.name_available(owner_id, data.get("name")):
                 raise ConflictError(
                     f"A destination named {str(data.get('name') or '').strip()} already exists."
@@ -2660,7 +2668,21 @@ class PlatformAPI:
                     "new credentials are required when changing destination type"
                 )
             next_settings = data.get("settings", destination.settings)
-            normalize_output_settings(next_type, next_settings)
+            normalized_settings = normalize_output_settings(
+                next_type,
+                next_settings,
+            )
+            if (
+                next_type == "email"
+                and normalized_settings.get("username")
+                and (
+                    ("secret" in data and not self._email_password_configured(data.get("secret")))
+                    or ("secret" not in data and not destination.secret_configured)
+                )
+            ):
+                raise ValueError(
+                    "Email destination password is required when username is configured"
+                )
             enabled = (
                 self._boolean(data, "enabled")
                 if "enabled" in data
@@ -2898,6 +2920,30 @@ class PlatformAPI:
     def _require_admin(actor):
         if not actor.is_admin:
             raise PermissionError("administrator access is required")
+
+    @staticmethod
+    def _email_password_configured(value):
+        if isinstance(value, dict):
+            candidate = value.get("password")
+            if candidate is None:
+                candidate = value.get("value")
+            return bool(str(candidate or "").strip())
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return False
+            if text.startswith("{"):
+                try:
+                    decoded = json.loads(text)
+                except json.JSONDecodeError:
+                    return bool(text)
+                if isinstance(decoded, dict):
+                    candidate = decoded.get("password")
+                    if candidate is None:
+                        candidate = decoded.get("value")
+                    return bool(str(candidate or "").strip())
+            return bool(text)
+        return False
 
     @staticmethod
     def _secret_value(value):

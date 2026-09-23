@@ -348,8 +348,12 @@ def validate_config(data) -> list[str]:
                         for key, value in destination.items()
                         if key not in {"enabled", "name", "settings", "shared", "secret", "webhook"}
                     }
+                normalized_settings = None
                 try:
-                    normalize_output_settings(output_name, public_settings or {})
+                    normalized_settings = normalize_output_settings(
+                        output_name,
+                        public_settings or {},
+                    )
                 except (TypeError, ValueError) as error:
                     errors.append(f"{prefix}: {error}")
                 configured_secret = destination.get("secret")
@@ -364,6 +368,16 @@ def validate_config(data) -> list[str]:
                         errors.append(f"{prefix}.webhook is required")
                     elif configured_secret not in (None, "", {}) and not _valid_https_url(configured_secret):
                         errors.append(f"{prefix}.webhook must be a valid HTTPS URL")
+                if (
+                    output_name == "email"
+                    and destination_enabled
+                    and isinstance(normalized_settings, dict)
+                    and normalized_settings.get("username")
+                    and not _smtp_password_configured(configured_secret)
+                ):
+                    errors.append(
+                        f"{prefix}.secret.password is required when username is configured"
+                    )
     if isinstance(routing, dict):
         for source, route in routing.items():
             if not isinstance(route, dict):
@@ -434,3 +448,13 @@ def _valid_https_url(value) -> bool:
         )
     except ValueError:
         return False
+
+
+
+def _smtp_password_configured(value) -> bool:
+    if isinstance(value, dict):
+        candidate = value.get("password")
+        if candidate is None:
+            candidate = value.get("value")
+        return bool(str(candidate or "").strip())
+    return bool(str(value or "").strip())

@@ -1693,3 +1693,66 @@ def test_admin_can_delete_users_and_state_backups(platform_api):
     actions = {item["action"] for item in audit.payload["audit_events"]}
     assert "user.delete" in actions
     assert "state.backup.delete" in actions
+
+
+def test_email_destination_requires_password_only_when_smtp_auth_is_enabled(platform_api):
+    headers = login(platform_api)
+
+    authenticated = {
+        "name": "Authenticated SMTP",
+        "output_type": "email",
+        "settings": {
+            "server": "smtp.example.com",
+            "port": 587,
+            "security": "starttls",
+            "username": "alerts@example.com",
+            "from_address": "alerts@example.com",
+            "to": ["noc@example.com"],
+        },
+    }
+    missing = call(
+        platform_api,
+        "POST",
+        "/api/v2/destinations",
+        authenticated,
+        headers,
+    )
+    assert missing.status == 400
+    assert missing.payload["code"] == "validation_error"
+    assert "password is required" in missing.payload["error"]
+
+    created = call(
+        platform_api,
+        "POST",
+        "/api/v2/destinations",
+        {
+            **authenticated,
+            "secret": {"password": "private-smtp-password"},
+        },
+        headers,
+    )
+    assert created.status == 201
+    assert created.payload["destination"]["output_type"] == "email"
+    assert created.payload["destination"]["secret_configured"] is True
+    serialized = json.dumps(created.payload, sort_keys=True)
+    assert "private-smtp-password" not in serialized
+
+    relay = call(
+        platform_api,
+        "POST",
+        "/api/v2/destinations",
+        {
+            "name": "Trusted SMTP relay",
+            "output_type": "email",
+            "settings": {
+                "server": "smtp-relay.example.com",
+                "port": 465,
+                "security": "tls",
+                "from_address": "alerts@example.com",
+                "to": ["noc@example.com"],
+            },
+        },
+        headers,
+    )
+    assert relay.status == 201
+    assert relay.payload["destination"]["secret_configured"] is False

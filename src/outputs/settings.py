@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import re
 
 from urllib.parse import urlsplit
 
 
-OUTPUT_TYPES = {"discord", "teams", "slack", "webhook"}
+OUTPUT_TYPES = {"discord", "teams", "slack", "webhook", "email"}
 _HEADER = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$")
 _FORBIDDEN_HEADERS = {
     "authorization",
@@ -51,6 +52,7 @@ def normalize_output_settings(
         "teams": _teams,
         "slack": _slack,
         "webhook": _webhook,
+        "email": _email,
     }
     normalized = {**validators[kind](specific, require_complete), **common}
     encoded = json.dumps(
@@ -181,6 +183,108 @@ def _webhook(settings, _complete):
     if template is not None:
         result["body_template"] = template
     return result
+
+
+
+_EMAIL_LOCAL = re.compile(r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}$")
+_DOMAIN_LABEL = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$")
+
+
+def _email(settings, _complete):
+    _unknown(settings, {
+        "server", "port", "security", "username", "from_address",
+        "to", "cc", "reply_to", "allow_private_network",
+    })
+    server = _smtp_host(settings.get("server"))
+    security = str(settings.get("security", "starttls") or "").strip().casefold()
+    if security not in {"starttls", "tls"}:
+        raise ValueError("email security must be starttls or tls")
+    port = _integer(settings, "port", 465 if security == "tls" else 587, 1, 65535)
+    username = _smtp_username(settings.get("username"))
+    from_address = _email_address(settings.get("from_address"), "email from_address")
+    to_addresses = _email_addresses(settings.get("to"), "email to", required=True)
+    cc_addresses = _email_addresses(settings.get("cc", []), "email cc", required=False)
+    if len(to_addresses) + len(cc_addresses) > 100:
+        raise ValueError("email destination must not exceed 100 recipients")
+    reply_to = ""
+    if str(settings.get("reply_to") or "").strip():
+        reply_to = _email_address(settings.get("reply_to"), "email reply_to")
+    return {
+        "server": server, "port": port, "security": security,
+        "username": username, "from_address": from_address,
+        "to": to_addresses, "cc": cc_addresses, "reply_to": reply_to,
+        "allow_private_network": _boolean(settings, "allow_private_network", False),
+    }
+
+
+def _smtp_host(value) -> str:
+    text = str(value or "").strip()
+    if not text or len(text) > 253 or any(ch.isspace() for ch in text) or any(ch in text for ch in "/?#@"):
+        raise ValueError("email server must be a hostname or IP address")
+    candidate = text[1:-1] if text.startswith("[") and text.endswith("]") else text
+    try:
+        return str(ipaddress.ip_address(candidate))
+    except ValueError:
+        pass
+    try:
+        ascii_host = candidate.rstrip(".").encode("idna").decode("ascii")
+    except UnicodeError as error:
+        raise ValueError("email server must be a valid hostname") from error
+    labels = ascii_host.split(".")
+    if not labels or any(not _DOMAIN_LABEL.fullmatch(label) for label in labels):
+        raise ValueError("email server must be a valid hostname")
+    return ascii_host.casefold()
+
+
+def _smtp_username(value) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if len(text) > 320 or "\r" in text or "\n" in text:
+        raise ValueError("email username must not exceed 320 characters")
+    return text
+
+
+def _email_addresses(value, field: str, *, required: bool) -> list[str]:
+    if value in (None, ""):
+        raw = []
+    elif isinstance(value, str):
+        raw = [item.strip() for item in value.split(",")]
+    elif isinstance(value, list):
+        raw = [str(item or "").strip() for item in value]
+    else:
+        raise ValueError(f"{field} must be a list or comma-separated string")
+    normalized, seen = [], set()
+    for item in raw:
+        if not item:
+            continue
+        address = _email_address(item, field)
+        key = address.casefold()
+        if key not in seen:
+            normalized.append(address)
+            seen.add(key)
+    if required and not normalized:
+        raise ValueError(f"{field} must contain at least one address")
+    if len(normalized) > 100:
+        raise ValueError(f"{field} must not exceed 100 addresses")
+    return normalized
+
+
+def _email_address(value, field: str) -> str:
+    text = str(value or "").strip()
+    if not text or len(text) > 320 or "\r" in text or "\n" in text or text.count("@") != 1:
+        raise ValueError(f"{field} must be a valid email address")
+    local, domain = text.rsplit("@", 1)
+    if not _EMAIL_LOCAL.fullmatch(local):
+        raise ValueError(f"{field} must be a valid email address")
+    try:
+        ascii_domain = domain.rstrip(".").encode("idna").decode("ascii")
+    except UnicodeError as error:
+        raise ValueError(f"{field} must be a valid email address") from error
+    labels = ascii_domain.split(".")
+    if not ascii_domain or len(ascii_domain) > 253 or any(not _DOMAIN_LABEL.fullmatch(label) for label in labels):
+        raise ValueError(f"{field} must be a valid email address")
+    return f"{local}@{ascii_domain.casefold()}"
 
 
 def _unknown(settings, allowed):
