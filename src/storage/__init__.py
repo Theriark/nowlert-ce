@@ -18,6 +18,14 @@ from storage.delivery import (
     PlatformDeliveryService,
 )
 from storage.destinations import Destination, DestinationStore
+from storage.email_alerts import (
+    EmailAlertStore,
+    EmailGroup,
+    EmailMailbox,
+    EmailMessage,
+    EmailProcessingRecord,
+    EmailRule,
+)
 from storage.ownership import Actor, OwnershipPolicy
 from storage.portability import ImportPlan, PlatformPortabilityService
 from storage.route_destinations import RouteDestinationCandidate, RouteDestinationStore
@@ -54,6 +62,12 @@ __all__ = [
     "DeliverySummary",
     "Destination",
     "DestinationStore",
+    "EmailAlertStore",
+    "EmailGroup",
+    "EmailMailbox",
+    "EmailMessage",
+    "EmailProcessingRecord",
+    "EmailRule",
     "OwnershipPolicy",
     "ImportPlan",
     "PlatformPortabilityService",
