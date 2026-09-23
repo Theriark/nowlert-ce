@@ -16,6 +16,7 @@ from formatters.discord_modern_image import (
     HardwareDiscordModernImageRenderer,
     HomeAssistantDiscordModernImageRenderer,
     PortainerDiscordModernImageRenderer,
+    PrometheusDiscordModernImageRenderer,
     ProxmoxDiscordModernImageRenderer,
     QNAPDiscordModernImageRenderer,
     RedfishDiscordModernImageRenderer,
@@ -38,6 +39,7 @@ PUBLIC_ADDRESS = "93.184.216.34"
 SOURCES = (
     "zabbix",
     "grafana",
+    "prometheus",
     "portainer",
     "proxmox",
     "qnap",
@@ -136,6 +138,7 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
     output.modern_image_renderer.icon_dir = tmp_path
     output.zabbix_modern_image_renderer.icon_dir = tmp_path
     output.grafana_modern_image_renderer.icon_dir = tmp_path
+    output.prometheus_modern_image_renderer.icon_dir = tmp_path
     output.portainer_modern_image_renderer.icon_dir = tmp_path
     output.proxmox_modern_image_renderer.icon_dir = tmp_path
     output.qnap_modern_image_renderer.icon_dir = tmp_path
@@ -169,6 +172,7 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
             if source in {
                 "zabbix",
                 "grafana",
+                "prometheus",
                 "portainer",
                 "proxmox",
                 "qnap",
@@ -190,6 +194,7 @@ def test_every_non_xo_modern_source_renders_png_from_classic_content(
         dedicated_renderers = {
             "zabbix": output.zabbix_modern_image_renderer,
             "grafana": output.grafana_modern_image_renderer,
+            "prometheus": output.prometheus_modern_image_renderer,
             "portainer": output.portainer_modern_image_renderer,
             "proxmox": output.proxmox_modern_image_renderer,
             "qnap": output.qnap_modern_image_renderer,
@@ -2412,6 +2417,7 @@ def test_standardized_source_panels_grow_vertically_with_content(
 @pytest.mark.parametrize(
     "renderer_class",
     (
+        PrometheusDiscordModernImageRenderer,
         HardwareDiscordModernImageRenderer,
         HomeAssistantDiscordModernImageRenderer,
         RedfishDiscordModernImageRenderer,
@@ -2445,6 +2451,7 @@ def test_final_modern_renderers_use_frozen_standard_metrics(
 @pytest.mark.parametrize(
     ("source", "renderer_name", "expected_width"),
     (
+        ("prometheus", "prometheus_modern_image_renderer", 2064),
         ("supermicro", "hardware_modern_image_renderer", 2064),
         ("hpe_ilo", "hardware_modern_image_renderer", 2064),
         ("dell_idrac", "hardware_modern_image_renderer", 2064),
@@ -2480,6 +2487,7 @@ def test_final_sources_render_on_standard_2064x1600_baseline(
 @pytest.mark.parametrize(
     "renderer_class",
     (
+        PrometheusDiscordModernImageRenderer,
         HardwareDiscordModernImageRenderer,
         HomeAssistantDiscordModernImageRenderer,
         RedfishDiscordModernImageRenderer,
@@ -2524,11 +2532,22 @@ def test_final_source_panels_grow_vertically_with_wrapped_content(
 
 
 def test_final_source_xo_icon_vocabulary(tmp_path):
+    prometheus = PrometheusDiscordModernImageRenderer(tmp_path)
     hardware = HardwareDiscordModernImageRenderer(tmp_path)
     home_assistant = HomeAssistantDiscordModernImageRenderer(tmp_path)
     redfish = RedfishDiscordModernImageRenderer(tmp_path)
     fallback = GenericFallbackDiscordModernImageRenderer(tmp_path)
 
+    assert prometheus._zabbix_xo_section_icon("Target") == "repository"
+    assert prometheus._zabbix_xo_section_icon("Prometheus") == "chart"
+    assert prometheus._zabbix_xo_section_icon("Timing & Links") == "clock"
+    assert prometheus._zabbix_xo_section_icon("EVENT DETAILS") == "alert"
+    assert prometheus._zabbix_xo_field_icon(
+        "Target", "Instance:", "api-01:9090", "list"
+    ) == "repository"
+    assert prometheus._zabbix_xo_field_icon(
+        "Prometheus", "Receiver:", "nowlert-critical", "list"
+    ) == "list"
     assert hardware._zabbix_xo_section_icon("Hardware Event") == "alert"
     assert hardware._zabbix_xo_field_icon(
         "Hardware Event", "Registry:", "SMC", "list"

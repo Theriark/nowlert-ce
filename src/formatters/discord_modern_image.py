@@ -3629,6 +3629,65 @@ class _StandardizedSourceDiscordModernImageRenderer(
         return stretched, target_bottom
 
 
+class PrometheusDiscordModernImageRenderer(
+    _StandardizedSourceDiscordModernImageRenderer
+):
+    """Render Prometheus on the frozen Nowlert/XO visual baseline."""
+
+    PROMETHEUS_XO_SECTION_ICONS = {
+        "target": "repository",
+        "prometheus": "chart",
+        "timing & links": "clock",
+        "alert details": "alert",
+        "event details": "alert",
+        "result": "status",
+    }
+    PROMETHEUS_XO_FIELD_ICONS = {
+        "instance": "repository",
+        "service": "cube",
+        "job": "list",
+        "namespace": "repository",
+        "pod": "cube",
+        "node": "repository",
+        "receiver": "list",
+        "labels": "list",
+        "started": "play",
+        "updated": "flag",
+        "resolved": "flag",
+        "finished": "flag",
+        "duration": "clock",
+        "links": "list",
+        "alerts": "alert",
+    }
+
+    def _zabbix_xo_section_icon(self, title: str) -> str:
+        key = self._clean(title).casefold()
+        if key.endswith(" result"):
+            return "status"
+        return self.PROMETHEUS_XO_SECTION_ICONS.get(
+            key,
+            "list",
+        )
+
+    def _zabbix_xo_field_icon(
+        self,
+        panel_title: str,
+        label: str,
+        value: str,
+        fallback: str | None,
+    ) -> str:
+        key = self._clean(label).rstrip(":").casefold()
+        if key in self.PROMETHEUS_XO_FIELD_ICONS:
+            return self.PROMETHEUS_XO_FIELD_ICONS[key]
+        return ZabbixDiscordModernImageRenderer._zabbix_xo_field_icon(
+            self,
+            panel_title,
+            label,
+            value,
+            fallback,
+        )
+
+
 class TrueNASDiscordModernImageRenderer(
     _StandardizedSourceDiscordModernImageRenderer
 ):
