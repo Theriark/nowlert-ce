@@ -143,10 +143,10 @@ def test_xo_classic_matches_rich_report_summary_details_and_footer():
     body = card_body(payload)
     text = flattened_text(payload)
 
-    assert body[2]["style"] == "emphasis"
+    assert body[1]["style"] == "emphasis"
     assert "Backup report for Daily Production Backup" in text
 
-    summary = body[3]
+    summary = body[2]
     labels = [
         column["items"][0]["text"]
         for column in summary["columns"]

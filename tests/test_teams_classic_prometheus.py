@@ -103,10 +103,10 @@ def test_prometheus_classic_uses_rich_header_summary_details_and_footer():
     assert badge["items"][0]["text"] == "🚨 Firing"
     assert "/prometheus.png" in icon["url"]
 
-    assert body[2]["style"] == "emphasis"
+    assert body[1]["style"] == "emphasis"
     assert "95th percentile latency exceeded two seconds." in text
 
-    summary = body[3]
+    summary = body[2]
     labels = [
         column["items"][0]["text"]
         for column in summary["columns"]
