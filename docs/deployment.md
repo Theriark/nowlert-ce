@@ -69,26 +69,61 @@ only the explicitly mounted configuration/state/log/backup paths.
 
 ### Email Alerts OAuth applications
 
-Gmail and Microsoft 365 mailbox users never provide OAuth application
-credentials. The Nowlert operator registers each OAuth application once and
-provides its credentials to the deployment:
+Nowlert CE uses a per-installation OAuth model. Each self-hosted operator
+registers its own Google and/or Microsoft application for its own Nowlert URL.
+Theriark does not ship a shared OAuth client secret in source code or in the
+container image.
+
+Mailbox users never provide OAuth application credentials. The operator
+configures the application once and mounts the client secret into the
+container's secret boundary.
+
+Configure public application values in `.env`:
 
 ```dotenv
-NOWLERT_EMAIL_GMAIL_CLIENT_ID=
-NOWLERT_EMAIL_GMAIL_CLIENT_SECRET=
-NOWLERT_EMAIL_MICROSOFT_CLIENT_ID=
-NOWLERT_EMAIL_MICROSOFT_CLIENT_SECRET=
+NOWLERT_EMAIL_GMAIL_CLIENT_ID=<your-google-client-id>
+NOWLERT_EMAIL_GMAIL_CLIENT_SECRET_FILE=/run/secrets/nowlert_email_gmail_client_secret
+NOWLERT_EMAIL_MICROSOFT_CLIENT_ID=<your-entra-client-id>
+NOWLERT_EMAIL_MICROSOFT_CLIENT_SECRET_FILE=/run/secrets/nowlert_email_microsoft_client_secret
 ```
 
-By default the OAuth redirect URI is derived from `webui.public_url` as
-`<public_url>/ui/`. An operator can override both providers with
-`NOWLERT_EMAIL_OAUTH_REDIRECT_URI`, or use
-`NOWLERT_EMAIL_GMAIL_REDIRECT_URI` and
-`NOWLERT_EMAIL_MICROSOFT_REDIRECT_URI` independently.
+Store only the secret values in the host secret directory:
 
-These are instance/application credentials. Keep the client secrets in the
-deployment secret boundary; do not ask mailbox owners to supply them. Mailbox
-records retain only their owner-scoped authorization state/tokens. Existing
+```text
+./secrets/nowlert_email_gmail_client_secret
+./secrets/nowlert_email_microsoft_client_secret
+```
+
+The production Compose definition already mounts `NOWLERT_SECRETS_DIR`
+read-only at `/run/secrets`. Docker Swarm/Portainer operators may instead
+attach Docker secrets using the same in-container filenames.
+
+The application resolves each client secret in this order:
+
+1. the explicit `NOWLERT_EMAIL_*_CLIENT_SECRET_FILE` path;
+2. the conventional `/run/secrets/nowlert_email_*_client_secret` file; then
+3. the legacy `NOWLERT_EMAIL_*_CLIENT_SECRET` environment variable.
+
+The environment-variable secret form remains supported for upgrades, but it is
+not the recommended deployment model because environment values are easier to
+expose through container inspection and diagnostics.
+
+By default the OAuth redirect URI is derived from `webui.public_url` as
+`<public_url>/ui/`. The exact same URI must be registered in the operator's
+Google OAuth or Microsoft Entra application. It can be overridden for both
+providers with `NOWLERT_EMAIL_OAUTH_REDIRECT_URI`, or independently with
+`NOWLERT_EMAIL_GMAIL_REDIRECT_URI` and
+`NOWLERT_EMAIL_MICROSOFT_REDIRECT_URI`.
+
+Example for a self-hosted instance at `https://nowlert.example.com`:
+
+```text
+Authorized redirect URI:
+https://nowlert.example.com/ui/
+```
+
+The instance-level client secret is never copied into mailbox records. Mailbox
+records retain only owner-scoped OAuth state/access/refresh tokens. Existing
 mailboxes created before this model remain readable for compatibility.
 
 ## Portainer stacks

@@ -78,6 +78,17 @@ administrator username and password.
 
 There is no default password.
 
+## Optional: Gmail and Microsoft 365 mailbox login
+
+Nowlert CE does not contain a Theriark-owned OAuth secret. Each self-hosted
+operator registers its own Google and/or Microsoft OAuth application for its
+Nowlert URL. Put the public client ID in `.env` and mount the client secret
+under `/run/secrets`; mailbox users then only see **Continue to Google** or
+**Continue to Microsoft**.
+
+See [Container deployment and release flow](docs/deployment.md#email-alerts-oauth-applications)
+for the exact secret filenames and redirect URI requirements.
+
 ---
 
 # 🚀 Project Status

@@ -6,6 +6,7 @@ from environment import (
     compatible_environment,
     compatible_environment_names,
     first_environment,
+    secret_environment,
 )
 from inputs.smtp_security import _read_password
 
@@ -79,3 +80,60 @@ def test_smtp_configuration_reads_configured_variable():
     )
 
     assert password == b"new-secret"
+
+
+
+def test_secret_environment_prefers_explicit_secret_file(tmp_path):
+    path = tmp_path / "oauth-secret"
+    path.write_text("from-file\n", encoding="utf-8")
+
+    value = secret_environment(
+        "NOWLERT_EMAIL_GMAIL_CLIENT_SECRET",
+        environment={
+            "NOWLERT_EMAIL_GMAIL_CLIENT_SECRET": "from-environment",
+            "NOWLERT_EMAIL_GMAIL_CLIENT_SECRET_FILE": str(path),
+        },
+    )
+
+    assert value == "from-file"
+
+
+def test_secret_environment_uses_default_secret_file_before_environment(tmp_path):
+    path = tmp_path / "oauth-secret"
+    path.write_text("default-file-secret\n", encoding="utf-8")
+
+    value = secret_environment(
+        "NOWLERT_EMAIL_GMAIL_CLIENT_SECRET",
+        default_file=path,
+        environment={
+            "NOWLERT_EMAIL_GMAIL_CLIENT_SECRET": "legacy-environment-secret",
+        },
+    )
+
+    assert value == "default-file-secret"
+
+
+def test_secret_environment_falls_back_when_default_secret_file_is_absent(tmp_path):
+    value = secret_environment(
+        "NOWLERT_EMAIL_GMAIL_CLIENT_SECRET",
+        default_file=tmp_path / "missing",
+        environment={
+            "NOWLERT_EMAIL_GMAIL_CLIENT_SECRET": "legacy-environment-secret",
+        },
+    )
+
+    assert value == "legacy-environment-secret"
+
+
+def test_secret_environment_explicit_missing_file_fails_closed(tmp_path):
+    import pytest
+
+    with pytest.raises(ValueError, match="secret file does not exist"):
+        secret_environment(
+            "NOWLERT_EMAIL_GMAIL_CLIENT_SECRET",
+            environment={
+                "NOWLERT_EMAIL_GMAIL_CLIENT_SECRET_FILE": str(
+                    tmp_path / "missing"
+                ),
+            },
+        )

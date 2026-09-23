@@ -10,7 +10,7 @@ import pytest
 
 from api.platform import PlatformAPI
 from email_alert_pipeline import email_message_text
-from inputs.email_mailboxes import MailboxConnectionService
+from inputs.email_mailboxes import MailboxConnectionService, email_oauth_applications
 from storage.database import Database
 from storage.ownership import Actor
 
@@ -561,3 +561,35 @@ def test_mailbox_provider_status_exposes_configuration_without_oauth_secrets(tmp
         },
     }
     assert "private-secret" not in json.dumps(status)
+
+
+
+def test_oauth_applications_read_instance_secret_files(tmp_path):
+    gmail_secret = tmp_path / "gmail-client-secret"
+    microsoft_secret = tmp_path / "microsoft-client-secret"
+    gmail_secret.write_text("gmail-private\n", encoding="utf-8")
+    microsoft_secret.write_text("microsoft-private\n", encoding="utf-8")
+
+    applications = email_oauth_applications(
+        environment={
+            "NOWLERT_EMAIL_GMAIL_CLIENT_ID": "gmail-client-id",
+            "NOWLERT_EMAIL_GMAIL_CLIENT_SECRET_FILE": str(gmail_secret),
+            "NOWLERT_EMAIL_GMAIL_REDIRECT_URI": "https://nowlert.example/ui/",
+            "NOWLERT_EMAIL_MICROSOFT_CLIENT_ID": "microsoft-client-id",
+            "NOWLERT_EMAIL_MICROSOFT_CLIENT_SECRET_FILE": str(
+                microsoft_secret
+            ),
+            "NOWLERT_EMAIL_MICROSOFT_REDIRECT_URI": "https://nowlert.example/ui/",
+        }
+    )
+
+    assert applications["gmail"] == {
+        "client_id": "gmail-client-id",
+        "client_secret": "gmail-private",
+        "redirect_uri": "https://nowlert.example/ui/",
+    }
+    assert applications["microsoft_365"] == {
+        "client_id": "microsoft-client-id",
+        "client_secret": "microsoft-private",
+        "redirect_uri": "https://nowlert.example/ui/",
+    }
