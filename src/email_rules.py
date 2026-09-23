@@ -57,6 +57,29 @@ class EmailRuleEngine:
     def __init__(self, store: EmailAlertStore):
         self.store = store
 
+    def requires_body(
+        self,
+        actor: Actor,
+        message_id: str,
+    ) -> bool:
+        message = self.store.get_message(actor, message_id)
+        owner_id = message.owner_user_id
+        enabled_groups = {
+            item.id
+            for item in self.store.list_groups(actor)
+            if item.enabled and item.owner_user_id == owner_id
+        }
+        return any(
+            rule.enabled
+            and rule.owner_user_id == owner_id
+            and rule.group_id in enabled_groups
+            and any(
+                str(condition.get("field") or "") == "body"
+                for condition in rule.conditions
+            )
+            for rule in self.store.list_rules(actor)
+        )
+
     def evaluate_message(
         self,
         actor: Actor,

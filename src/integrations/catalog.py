@@ -21,6 +21,7 @@ _INPUT_NAMES = {
     "smtp": "SMTP",
     "http": "HTTP",
     "redfish": "Redfish",
+    "email": "Email Alerts",
 }
 
 # ``source`` is the value produced by the parser and persisted on routes.
@@ -153,6 +154,14 @@ _CATALOGUE = (
         "category": "automation",
         "icon_key": "home_assistant",
         "inputs": ("http",),
+        "aliases": (),
+    },
+    {
+        "source": "email",
+        "name": "Email Alerts",
+        "category": "generic",
+        "icon_key": "nowlert",
+        "inputs": ("email",),
         "aliases": (),
     },
 )
@@ -383,6 +392,14 @@ _ROUTE_FILTERS = {
             "critical",
             "fatal",
             "emergency",
+        ),
+        "statuses": (),
+    },
+    "email": {
+        "severities": (
+            "information",
+            "warning",
+            "critical",
         ),
         "statuses": (),
     },

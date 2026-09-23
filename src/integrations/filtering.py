@@ -178,6 +178,17 @@ _TEXT_FIELDS = {
         ("tags", "Tags", ("metadata.tags",)),
         ("event_state", "Event state", ("metadata.event_state",)),
     ),
+    "email": (
+        ("mailbox", "Mailbox", ("metadata.mailbox", "metadata.mailbox_id")),
+        ("sender", "Sender", ("sender", "metadata.sender")),
+        ("sender_domain", "Sender domain", ("metadata.sender_domain",)),
+        ("recipient", "Recipient", ("metadata.recipient", "metadata.recipients")),
+        ("subject", "Subject", ("subject", "metadata.subject")),
+        ("group", "Email group", ("metadata.group", "metadata.group_id")),
+        ("rule", "Email rule", ("metadata.rule", "metadata.rule_id")),
+        ("classification", "Classification", ("metadata.classification",)),
+        ("provider", "Provider", ("metadata.provider",)),
+    ),
 }
 
 

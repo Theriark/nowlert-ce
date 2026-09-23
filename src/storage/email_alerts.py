@@ -1017,6 +1017,59 @@ class EmailAlertStore:
             rows = connection.execute(query, tuple(values)).fetchall()
         return [self._processing(row) for row in rows]
 
+    def latest_processing(
+        self,
+        actor: Actor,
+        message_id: str,
+    ) -> EmailProcessingRecord | None:
+        message = self._message_row(message_id)
+        OwnershipPolicy.require_read(actor, str(message["owner_user_id"]))
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT * FROM email_processing_history
+                WHERE message_id = ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1
+                """,
+                (str(message_id),),
+            ).fetchone()
+        return self._processing(row) if row is not None else None
+
+    def recent_group_delivery(
+        self,
+        actor: Actor,
+        group_id: str,
+        *,
+        since: int,
+        excluding_message_id: str = "",
+    ) -> EmailProcessingRecord | None:
+        group = self._group_row(group_id)
+        OwnershipPolicy.require_read(actor, str(group["owner_user_id"]))
+        values: list[object] = [
+            str(group_id),
+            int(since),
+        ]
+        excluding = str(excluding_message_id or "").strip()
+        exclusion_sql = ""
+        if excluding:
+            exclusion_sql = " AND message_id <> ?"
+            values.append(excluding)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                f"""
+                SELECT * FROM email_processing_history
+                WHERE group_id = ?
+                  AND created_at >= ?
+                  AND action IN ('promoted', 'reprocessed')
+                  {exclusion_sql}
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1
+                """,
+                tuple(values),
+            ).fetchone()
+        return self._processing(row) if row is not None else None
+
     def build_event(
         self,
         actor: Actor,
