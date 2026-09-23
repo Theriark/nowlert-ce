@@ -107,10 +107,10 @@ class DiscordPlatformAdapter(_HTTPAdapter):
         if settings["components_v2"] and hasattr(formatter, "format_components_v2"):
             payload = formatter.format_components_v2(notification)
         elif (
-            source == "prometheus"
-            and hasattr(formatter, "format_discord_classic")
+            not settings["components_v2"]
+            and hasattr(formatter, "format_classic_rich")
         ):
-            payload = formatter.format_discord_classic(notification)
+            payload = formatter.format_classic_rich(notification)
         else:
             payload = formatter.format(notification)
         payload = formatter._sanitize_payload(payload)
@@ -481,9 +481,28 @@ class SlackPlatformAdapter(_HTTPAdapter):
         requested_style = settings["message_style"]
 
         if requested_style == "classic":
-            payload = self.formatter.format(
-                notification,
-                include_metadata=settings["include_metadata"],
+            source = str(
+                notification.source or ""
+            ).strip().casefold()
+            source_formatter = (
+                self.discord_modern_output
+                .source_formatters
+                .get(
+                    source,
+                    self.discord_modern_output.default_formatter,
+                )
+            )
+            classic = source_formatter._sanitize_payload(
+                source_formatter.format_classic_rich(
+                    notification
+                )
+            )
+            payload = (
+                self.formatter
+                .format_discord_classic_payload(
+                    notification,
+                    classic,
+                )
             )
             return OutputPreview(
                 "slack",
@@ -749,23 +768,18 @@ class WebhookPlatformAdapter(_HTTPAdapter):
         return presentation
 
     @staticmethod
-    def _classic_card_from_discord_payload(payload: dict) -> dict:
-        return classic_card_v1_from_discord_payload(payload)
+    def _classic_card_from_discord_payload(
+        payload: dict,
+        *,
+        rich: bool = False,
+    ) -> dict:
+        return classic_card_v1_from_discord_payload(
+            payload,
+            rich=rich,
+        )
 
     def _classic_presentation(self, destination, notification) -> dict:
-        source = str(notification.source or "").strip().casefold()
-        if source == "prometheus":
-            # Discord Classic has a destination-only compact Prometheus layout.
-            # Generic Webhook Classic deliberately keeps the existing neutral
-            # Prometheus Classic Card v1 contract unchanged.
-            formatter = self.discord.output.source_formatters.get(
-                source,
-                self.discord.output.default_formatter,
-            )
-            payload = formatter._sanitize_payload(
-                formatter.format(notification)
-            )
-            return self._classic_card_from_discord_payload(payload)
+        """Reuse the same rich Classic hierarchy exposed by Discord."""
 
         discord_destination = self._discord_destination(
             destination,
@@ -776,7 +790,8 @@ class WebhookPlatformAdapter(_HTTPAdapter):
             notification,
         )
         return self._classic_card_from_discord_payload(
-            preview.payload
+            preview.payload,
+            rich=True,
         )
 
     @staticmethod
@@ -810,9 +825,17 @@ class WebhookPlatformAdapter(_HTTPAdapter):
             )
         else:
             if str(notification.source or "").strip().casefold() == "prometheus":
-                classic = self._classic_presentation(
-                    destination,
-                    notification,
+                formatter = (
+                    self.discord.output.source_formatters.get(
+                        "prometheus",
+                        self.discord.output.default_formatter,
+                    )
+                )
+                seed = formatter._sanitize_payload(
+                    formatter.format(notification)
+                )
+                classic = self._classic_card_from_discord_payload(
+                    seed
                 )
                 payload["presentation"] = self._prometheus_modern_presentation(
                     payload,
