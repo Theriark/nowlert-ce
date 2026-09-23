@@ -34,6 +34,9 @@ EMAIL_PROCESSING_ACTIONS = frozenset(
         "error",
     }
 )
+EMAIL_CONNECTION_STATES = frozenset(
+    {"disconnected", "connecting", "healthy", "degraded", "error"}
+)
 
 DEFAULT_EMAIL_METADATA_RETENTION_DAYS = 90
 DEFAULT_EMAIL_CONTENT_RETENTION_DAYS = 7
@@ -262,6 +265,66 @@ class EmailAlertStore:
                     (actor.user_id,),
                 ).fetchall()
         return [self._mailbox(row) for row in rows]
+
+    def mailbox_secret_id(
+        self,
+        actor: Actor,
+        mailbox_id: str,
+    ) -> str | None:
+        """Return the credential reference without ever resolving its value."""
+
+        row = self._mailbox_row(mailbox_id)
+        OwnershipPolicy.require_read(actor, str(row["owner_user_id"]))
+        return str(row["secret_id"]) if row["secret_id"] is not None else None
+
+    def update_mailbox_connection(
+        self,
+        actor: Actor,
+        mailbox_id: str,
+        *,
+        connection_state: str,
+        sync_cursor: str | None = None,
+        last_sync_at: int | None = None,
+        error_code: str | None = None,
+        safe_error: str | None = None,
+        clear_error: bool = False,
+    ) -> EmailMailbox:
+        """Persist provider health/checkpoints without exposing credentials."""
+
+        row = self._mailbox_row(mailbox_id)
+        OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
+        state = str(connection_state or "").strip().casefold()
+        if state not in EMAIL_CONNECTION_STATES:
+            raise ValueError("email mailbox connection state is invalid")
+        assignments = ["connection_state = ?", "updated_at = ?"]
+        values: list[object] = [state, int(self.clock())]
+        if sync_cursor is not None:
+            cursor = str(sync_cursor)
+            if len(cursor.encode("utf-8")) > 16 * 1024:
+                raise ValueError("email mailbox synchronization checkpoint is too large")
+            assignments.append("sync_cursor = ?")
+            values.append(cursor)
+        if last_sync_at is not None:
+            assignments.append("last_sync_at = ?")
+            values.append(int(last_sync_at))
+        if clear_error:
+            assignments.extend(
+                ["last_error_code = NULL", "last_error_safe = NULL"]
+            )
+        else:
+            if error_code is not None:
+                assignments.append("last_error_code = ?")
+                values.append(sanitize_text(error_code)[:64] or None)
+            if safe_error is not None:
+                assignments.append("last_error_safe = ?")
+                values.append(sanitize_text(safe_error)[:500] or None)
+        values.append(str(mailbox_id))
+        with self.database.transaction() as connection:
+            connection.execute(
+                f"UPDATE email_mailboxes SET {', '.join(assignments)} WHERE id = ?",
+                tuple(values),
+            )
+        return self.get_mailbox(actor, mailbox_id)
 
     def create_group(
         self,
@@ -1170,6 +1233,7 @@ __all__ = [
     "DEFAULT_EMAIL_CONTENT_RETENTION_DAYS",
     "DEFAULT_EMAIL_METADATA_RETENTION_DAYS",
     "DEFAULT_EMAIL_PROCESSING_RETENTION_DAYS",
+    "EMAIL_CONNECTION_STATES",
     "EMAIL_MAILBOX_PROVIDERS",
     "EMAIL_MATCH_MODES",
     "EMAIL_PROCESSING_ACTIONS",
