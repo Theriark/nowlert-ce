@@ -616,9 +616,11 @@ def test_prometheus_discord_classic_uses_compact_xo_style_geometry():
         "🔗 Links",
     ]
     prometheus = fields[3]["value"]
-    assert "**Service:** `checkout`" in prometheus
-    assert "**Job:** `api-server`" in prometheus
-    assert "**Namespace:** `production`" in prometheus
+    assert prometheus == (
+        "**Service:** `checkout`\n"
+        "**Job:** `api-server`\n"
+        "**Namespace:** `production`"
+    )
     assert "**Started:** `2026-09-23T02:00:00Z`" in fields[5]["value"]
 
 
