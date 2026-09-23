@@ -73,6 +73,21 @@ Therefore every integration and generic fallback inherits later Discord Modern
 layout changes automatically. If the image cannot be rendered or published,
 Modern delivery fails closed instead of falling back to Classic.
 
+## Generic webhook hierarchy
+
+Generic webhook **Modern Card** remains a destination-neutral JSON presentation.
+For Prometheus, it now exposes the same standardized Nowlert hierarchy used by
+the shared image card: lifecycle badge/accent, Severity/Category/Event time
+summary, Target, Prometheus, Timing & Links, grouped Alert details when present,
+Event Details, semantic title icons, and the
+`Nowlert CE • Modern Card` footer. The stable event envelope and existing
+`title`/`message`/`facts` members remain available for compatibility.
+
+Slack Modern and Teams Modern continue to reuse the exact Discord Modern image,
+so Prometheus automatically inherits the same rendered sizing, fonts, badge,
+summary strip, colors, spacing, icons, dynamic height, frame, glow, and footer
+without maintaining separate visual implementations.
+
 ## Discord hierarchy
 
 Every integration supplies normalized data to the shared Discord Components V2

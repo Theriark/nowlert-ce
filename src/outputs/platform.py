@@ -591,6 +591,158 @@ class WebhookPlatformAdapter(_HTTPAdapter):
         }
 
     @staticmethod
+    def _modern_accent(color) -> tuple[str, str]:
+        try:
+            value = int(color) & 0xFFFFFF
+        except (TypeError, ValueError):
+            value = 0x3498DB
+        tone = {
+            0xE74C3C: "failure",
+            0xED4245: "failure",
+            0xF1C40F: "warning",
+            0xF39C12: "warning",
+            0x2ECC71: "success",
+            0x57F287: "success",
+        }.get(value, "information")
+        return tone, f"#{value:06X}"
+
+    @staticmethod
+    def _modern_section(title: str, icon: str, fields: list[dict]) -> dict | None:
+        items = [
+            {
+                "title": str(field.get("title") or ""),
+                "value": str(field.get("value") or ""),
+            }
+            for field in fields
+            if str(field.get("title") or "").strip()
+            or str(field.get("value") or "").strip()
+        ]
+        if not items:
+            return None
+        return {
+            "title": title,
+            "icon": icon,
+            "items": items,
+        }
+
+    @classmethod
+    def _prometheus_modern_presentation(
+        cls,
+        payload: dict,
+        classic: dict,
+    ) -> dict:
+        """Expose the standardized Prometheus card hierarchy to webhooks."""
+
+        presentation = cls._presentation(payload, "modern")
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        tone, accent = cls._modern_accent(classic.get("color"))
+        state = str(
+            metadata.get("state")
+            or payload.get("status")
+            or "information"
+        ).replace("_", " ").strip()
+        badge_label = state.title() or "Information"
+        event_time = (
+            payload.get("end_time")
+            if state.casefold() in {"resolved", "recovered", "success"}
+            and payload.get("end_time")
+            else payload.get("start_time")
+        )
+
+        grouped = {
+            "target": [],
+            "prometheus": [],
+            "timing": [],
+            "alerts": [],
+            "other": [],
+        }
+        for field in classic.get("fields", []):
+            if not isinstance(field, dict):
+                continue
+            title = str(field.get("title") or "")
+            normalized = title.casefold()
+            if "alert" in normalized and "alerts" not in normalized:
+                # Severity already has a dedicated summary cell.
+                continue
+            if "target" in normalized:
+                grouped["target"].append(field)
+            elif "prometheus" in normalized or "labels" in normalized:
+                grouped["prometheus"].append(field)
+            elif "timing" in normalized or "links" in normalized:
+                grouped["timing"].append(field)
+            elif "alerts" in normalized:
+                grouped["alerts"].append(field)
+            else:
+                grouped["other"].append(field)
+
+        sections = []
+        for key, title, icon in (
+            ("target", "Target", "target"),
+            ("prometheus", "Prometheus", "chart"),
+            ("timing", "Timing & Links", "clock"),
+            ("alerts", "Alert details", "alert"),
+            ("other", "Additional details", "list"),
+        ):
+            section = cls._modern_section(
+                title,
+                icon,
+                grouped[key],
+            )
+            if section is not None:
+                if key == "alerts":
+                    section["accent"] = accent
+                    section["tone"] = tone
+                sections.append(section)
+
+        description = str(classic.get("description") or payload.get("body") or "")
+        if description:
+            sections.append(
+                {
+                    "title": "Event Details",
+                    "icon": "alert",
+                    "accent": accent,
+                    "tone": tone,
+                    "items": [{"title": "", "value": description}],
+                }
+            )
+
+        presentation.update(
+            {
+                "visual_system": "nowlert_standard_v1",
+                "integration": "Prometheus",
+                "accent": accent,
+                "badge": {
+                    "label": badge_label,
+                    "tone": tone,
+                    "icon": "status",
+                },
+                "summary": [
+                    {
+                        "label": "Severity",
+                        "value": payload.get("severity") or "information",
+                        "icon": "status",
+                    },
+                    {
+                        "label": "Category",
+                        "value": payload.get("category") or "monitoring",
+                        "icon": "sync",
+                    },
+                    {
+                        "label": "Event time",
+                        "value": event_time or "",
+                        "icon": "clock",
+                    },
+                ],
+                "sections": sections,
+                "footer": "Nowlert CE • Modern Card",
+            }
+        )
+        return presentation
+
+    @staticmethod
     def _classic_card_from_discord_payload(payload: dict) -> dict:
         return classic_card_v1_from_discord_payload(payload)
 
@@ -637,10 +789,20 @@ class WebhookPlatformAdapter(_HTTPAdapter):
                 notification,
             )
         else:
-            payload["presentation"] = self._presentation(
-                payload,
-                settings["message_style"],
-            )
+            if str(notification.source or "").strip().casefold() == "prometheus":
+                classic = self._classic_presentation(
+                    destination,
+                    notification,
+                )
+                payload["presentation"] = self._prometheus_modern_presentation(
+                    payload,
+                    classic,
+                )
+            else:
+                payload["presentation"] = self._presentation(
+                    payload,
+                    settings["message_style"],
+                )
         return OutputPreview(
             "webhook",
             "application/json",
