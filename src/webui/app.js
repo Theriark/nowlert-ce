@@ -9,6 +9,7 @@ const VIEW_TITLES = {
   routes: "Routes",
   tokens: "API access",
   deliveries: "Delivery history",
+  "email-alerts": "Email Alerts",
   audit: "Audit log",
   users: "Users",
   settings: "Settings",

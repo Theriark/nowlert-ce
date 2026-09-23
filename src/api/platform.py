@@ -15,6 +15,7 @@ from urllib.parse import unquote
 
 from api.response import APIResponse
 from environment import compatible_environment
+from email_rules import EmailRuleEngine
 from integrations.catalog import integrations, route_options
 from logger import log
 from api.security import Principal, RateLimiter
@@ -84,6 +85,7 @@ class PlatformAPI:
             secrets=self.secrets,
             audit=self.audit,
         )
+        self.email_rules = EmailRuleEngine(self.email_connections.store)
         self.portability = PlatformPortabilityService(
             database,
             secrets=self.secrets,
@@ -251,8 +253,42 @@ class PlatformAPI:
                 return self._version_endpoint(method)
             if path == "/api/v2/tokens":
                 return self._tokens_endpoint(method, payload, actor)
+            if path == "/api/v2/email-overview":
+                return self._email_overview_endpoint(method, actor)
+            if path == "/api/v2/email-activity":
+                return self._email_activity_endpoint(method, actor)
+            if path == "/api/v2/email-groups":
+                return self._email_groups_endpoint(method, payload, actor)
+            email_group_match = re.fullmatch(
+                r"/api/v2/email-groups/([0-9a-f]{32})",
+                path,
+            )
+            if email_group_match:
+                return self._email_group_resource(
+                    method,
+                    payload,
+                    actor,
+                    email_group_match.group(1),
+                )
+            if path == "/api/v2/email-rules":
+                return self._email_rules_endpoint(method, payload, actor)
+            if path == "/api/v2/email-rules/evaluate":
+                return self._email_rule_evaluate(method, payload, actor)
+            email_rule_match = re.fullmatch(
+                r"/api/v2/email-rules/([0-9a-f]{32})",
+                path,
+            )
+            if email_rule_match:
+                return self._email_rule_resource(
+                    method,
+                    payload,
+                    actor,
+                    email_rule_match.group(1),
+                )
             if path == "/api/v2/email-mailboxes":
                 return self._email_mailboxes_endpoint(method, payload, actor)
+            if path == "/api/v2/email-mailboxes/oauth-complete":
+                return self._email_oauth_complete(method, payload, actor)
             email_mailbox_match = re.fullmatch(
                 r"/api/v2/email-mailboxes/([0-9a-f]{32})(?:/(oauth-start|oauth-complete|sync))?",
                 path,
@@ -709,6 +745,344 @@ class PlatformAPI:
 
         return self._method_not_allowed("PUT, DELETE")
 
+    def _email_overview_endpoint(self, method, actor) -> APIResponse:
+        if method != "GET":
+            return self._method_not_allowed("GET")
+        mailboxes = self.email_connections.store.list_mailboxes(actor)
+        groups = self.email_connections.store.list_groups(actor)
+        rules = self.email_connections.store.list_rules(actor)
+        messages = self.email_connections.store.list_messages(actor, limit=25)
+        processing = self.email_connections.store.list_processing(actor, limit=100)
+        classifications = {
+            "urgent": 0,
+            "warning": 0,
+            "information": 0,
+            "ignore": 0,
+        }
+        for item in processing:
+            if item.classification in classifications:
+                classifications[item.classification] += 1
+        return APIResponse(
+            200,
+            {
+                "overview": {
+                    "mailboxes": len(mailboxes),
+                    "healthy_mailboxes": sum(
+                        1
+                        for item in mailboxes
+                        if item.connection_state == "healthy" and item.enabled
+                    ),
+                    "groups": len(groups),
+                    "enabled_groups": sum(1 for item in groups if item.enabled),
+                    "rules": len(rules),
+                    "enabled_rules": sum(1 for item in rules if item.enabled),
+                    "recent_messages": len(messages),
+                    "classifications": classifications,
+                }
+            },
+        )
+
+    def _email_groups_endpoint(self, method, payload, actor) -> APIResponse:
+        store = self.email_connections.store
+        if method == "GET":
+            return APIResponse(
+                200,
+                {"groups": [self._email_group(item) for item in store.list_groups(actor)]},
+            )
+        if method == "POST":
+            data = self._object(
+                payload,
+                {
+                    "owner_user_id",
+                    "name",
+                    "description",
+                    "enabled",
+                    "quiet_window_seconds",
+                },
+            )
+            owner_id = self._owner(data, actor)
+            group = store.create_group(
+                actor,
+                owner_id,
+                data.get("name"),
+                description=str(data.get("description") or ""),
+                enabled=self._boolean(data, "enabled", True),
+                quiet_window_seconds=int(data.get("quiet_window_seconds") or 0),
+            )
+            self.audit.write(
+                actor,
+                "email.group.create",
+                "email_group",
+                group.id,
+                "success",
+                {"name": group.name},
+            )
+            return APIResponse(201, {"group": self._email_group(group)})
+        return self._method_not_allowed("GET, POST")
+
+    def _email_group_resource(
+        self,
+        method,
+        payload,
+        actor,
+        group_id: str,
+    ) -> APIResponse:
+        store = self.email_connections.store
+        if method == "GET":
+            return APIResponse(
+                200,
+                {"group": self._email_group(store.get_group(actor, group_id))},
+            )
+        if method == "PATCH":
+            data = self._object(
+                payload,
+                {
+                    "name",
+                    "description",
+                    "enabled",
+                    "quiet_window_seconds",
+                },
+            )
+            group = store.update_group(
+                actor,
+                group_id,
+                name=data.get("name") if "name" in data else None,
+                description=(
+                    str(data.get("description") or "")
+                    if "description" in data
+                    else None
+                ),
+                enabled=(
+                    self._boolean(data, "enabled")
+                    if "enabled" in data
+                    else None
+                ),
+                quiet_window_seconds=(
+                    int(data.get("quiet_window_seconds") or 0)
+                    if "quiet_window_seconds" in data
+                    else None
+                ),
+            )
+            self.audit.write(
+                actor,
+                "email.group.update",
+                "email_group",
+                group.id,
+                "success",
+                {"name": group.name, "enabled": group.enabled},
+            )
+            return APIResponse(200, {"group": self._email_group(group)})
+        if method == "DELETE":
+            group = store.get_group(actor, group_id)
+            store.delete_group(actor, group_id)
+            self.audit.write(
+                actor,
+                "email.group.delete",
+                "email_group",
+                group_id,
+                "success",
+                {"name": group.name},
+            )
+            return APIResponse(204)
+        return self._method_not_allowed("GET, PATCH, DELETE")
+
+    def _email_rules_endpoint(self, method, payload, actor) -> APIResponse:
+        store = self.email_connections.store
+        if method == "GET":
+            return APIResponse(
+                200,
+                {"rules": [self._email_rule(item) for item in store.list_rules(actor)]},
+            )
+        if method == "POST":
+            data = self._object(
+                payload,
+                {
+                    "owner_user_id",
+                    "group_id",
+                    "name",
+                    "classification",
+                    "conditions",
+                    "match_mode",
+                    "priority",
+                    "enabled",
+                },
+            )
+            owner_id = self._owner(data, actor)
+            rule = store.create_rule(
+                actor,
+                owner_id,
+                str(data.get("group_id") or ""),
+                data.get("name"),
+                data.get("classification"),
+                data.get("conditions"),
+                match_mode=str(data.get("match_mode") or "all"),
+                priority=int(data.get("priority", 100)),
+                enabled=self._boolean(data, "enabled", True),
+            )
+            self.audit.write(
+                actor,
+                "email.rule.create",
+                "email_rule",
+                rule.id,
+                "success",
+                {
+                    "classification": rule.classification,
+                    "match_mode": rule.match_mode,
+                },
+            )
+            return APIResponse(201, {"rule": self._email_rule(rule)})
+        return self._method_not_allowed("GET, POST")
+
+    def _email_rule_resource(
+        self,
+        method,
+        payload,
+        actor,
+        rule_id: str,
+    ) -> APIResponse:
+        store = self.email_connections.store
+        if method == "GET":
+            return APIResponse(
+                200,
+                {"rule": self._email_rule(store.get_rule(actor, rule_id))},
+            )
+        if method == "PATCH":
+            data = self._object(
+                payload,
+                {
+                    "group_id",
+                    "name",
+                    "classification",
+                    "conditions",
+                    "match_mode",
+                    "priority",
+                    "enabled",
+                },
+            )
+            rule = store.update_rule(
+                actor,
+                rule_id,
+                group_id=(
+                    str(data.get("group_id") or "")
+                    if "group_id" in data
+                    else None
+                ),
+                name=data.get("name") if "name" in data else None,
+                classification=(
+                    data.get("classification")
+                    if "classification" in data
+                    else None
+                ),
+                conditions=(
+                    data.get("conditions")
+                    if "conditions" in data
+                    else None
+                ),
+                match_mode=(
+                    str(data.get("match_mode") or "")
+                    if "match_mode" in data
+                    else None
+                ),
+                priority=(
+                    int(data.get("priority"))
+                    if "priority" in data
+                    else None
+                ),
+                enabled=(
+                    self._boolean(data, "enabled")
+                    if "enabled" in data
+                    else None
+                ),
+            )
+            self.audit.write(
+                actor,
+                "email.rule.update",
+                "email_rule",
+                rule.id,
+                "success",
+                {
+                    "classification": rule.classification,
+                    "match_mode": rule.match_mode,
+                    "enabled": rule.enabled,
+                },
+            )
+            return APIResponse(200, {"rule": self._email_rule(rule)})
+        if method == "DELETE":
+            rule = store.get_rule(actor, rule_id)
+            store.delete_rule(actor, rule_id)
+            self.audit.write(
+                actor,
+                "email.rule.delete",
+                "email_rule",
+                rule_id,
+                "success",
+                {"classification": rule.classification},
+            )
+            return APIResponse(204)
+        return self._method_not_allowed("GET, PATCH, DELETE")
+
+    def _email_rule_evaluate(self, method, payload, actor) -> APIResponse:
+        if method != "POST":
+            return self._method_not_allowed("POST")
+        data = self._object(payload, {"message_id", "body"})
+        message_id = str(data.get("message_id") or "")
+        if not _RESOURCE_ID.fullmatch(message_id):
+            raise ValueError("message_id is invalid")
+        body = str(data.get("body") or "")
+        if len(body.encode("utf-8")) > 64 * 1024:
+            raise ValueError("email rule evaluation body is too large")
+        result = self.email_rules.evaluate_message(
+            actor,
+            message_id,
+            body=body,
+        )
+        return APIResponse(200, {"evaluation": result.public()})
+
+    def _email_activity_endpoint(self, method, actor) -> APIResponse:
+        if method != "GET":
+            return self._method_not_allowed("GET")
+        store = self.email_connections.store
+        messages = store.list_messages(actor, limit=100)
+        processing = store.list_processing(actor, limit=250)
+        latest = {}
+        for item in processing:
+            latest.setdefault(item.message_id, item)
+        return APIResponse(
+            200,
+            {
+                "messages": [
+                    {
+                        **self._email_message(item),
+                        "processing": (
+                            self._email_processing(latest[item.id])
+                            if item.id in latest
+                            else None
+                        ),
+                    }
+                    for item in messages
+                ],
+                "processing": [
+                    self._email_processing(item)
+                    for item in processing
+                ],
+            },
+        )
+
+    def _email_oauth_complete(self, method, payload, actor) -> APIResponse:
+        if method != "POST":
+            return self._method_not_allowed("POST")
+        data = self._object(payload, {"code", "state"})
+        mailbox = self.email_connections.oauth_complete_from_state(
+            actor,
+            code=str(data.get("code") or ""),
+            state=str(data.get("state") or ""),
+        )
+        return APIResponse(
+            200,
+            {"mailbox": self._email_mailbox(mailbox)},
+            (("Cache-Control", "no-store"),),
+        )
+
     def _email_mailboxes_endpoint(self, method, payload, actor) -> APIResponse:
         if method == "GET":
             return APIResponse(
@@ -759,16 +1133,43 @@ class PlatformAPI:
         action: str | None,
     ) -> APIResponse:
         if action is None:
-            if method != "GET":
-                return self._method_not_allowed("GET")
-            mailbox = self.email_connections.store.get_mailbox(
-                actor,
-                mailbox_id,
-            )
-            return APIResponse(
-                200,
-                {"mailbox": self._email_mailbox(mailbox)},
-            )
+            if method == "GET":
+                mailbox = self.email_connections.store.get_mailbox(
+                    actor,
+                    mailbox_id,
+                )
+                return APIResponse(
+                    200,
+                    {"mailbox": self._email_mailbox(mailbox)},
+                )
+            if method == "PATCH":
+                data = self._object(
+                    payload,
+                    {"name", "settings", "enabled"},
+                )
+                mailbox = self.email_connections.update_mailbox(
+                    actor,
+                    mailbox_id,
+                    name=data.get("name") if "name" in data else None,
+                    settings=(
+                        data.get("settings")
+                        if "settings" in data
+                        else None
+                    ),
+                    enabled=(
+                        self._boolean(data, "enabled")
+                        if "enabled" in data
+                        else None
+                    ),
+                )
+                return APIResponse(
+                    200,
+                    {"mailbox": self._email_mailbox(mailbox)},
+                )
+            if method == "DELETE":
+                self.email_connections.delete_mailbox(actor, mailbox_id)
+                return APIResponse(204)
+            return self._method_not_allowed("GET, PATCH, DELETE")
 
         if action == "oauth-start":
             if method != "POST":
@@ -2288,6 +2689,65 @@ class PlatformAPI:
             "last_used_at": item.last_used_at,
             "revoked_at": item.revoked_at,
             "enabled": item.enabled,
+        }
+
+    @staticmethod
+    def _email_group(item):
+        return {
+            "id": item.id,
+            "owner_user_id": item.owner_user_id,
+            "name": item.name,
+            "description": item.description,
+            "enabled": item.enabled,
+            "quiet_window_seconds": item.quiet_window_seconds,
+            "created_at": item.created_at,
+            "updated_at": item.updated_at,
+        }
+
+    @staticmethod
+    def _email_rule(item):
+        return {
+            "id": item.id,
+            "owner_user_id": item.owner_user_id,
+            "group_id": item.group_id,
+            "name": item.name,
+            "classification": item.classification,
+            "match_mode": item.match_mode,
+            "conditions": [dict(value) for value in item.conditions],
+            "priority": item.priority,
+            "enabled": item.enabled,
+            "created_at": item.created_at,
+            "updated_at": item.updated_at,
+        }
+
+    @staticmethod
+    def _email_message(item):
+        return {
+            "id": item.id,
+            "owner_user_id": item.owner_user_id,
+            "mailbox_id": item.mailbox_id,
+            "sender": item.sender,
+            "sender_domain": item.sender_domain,
+            "recipients": list(item.recipients),
+            "subject": item.subject,
+            "folder": item.folder,
+            "labels": list(item.labels),
+            "provider_deep_link": item.provider_deep_link,
+            "received_at": item.received_at,
+        }
+
+    @staticmethod
+    def _email_processing(item):
+        return {
+            "id": item.id,
+            "message_id": item.message_id,
+            "group_id": item.group_id,
+            "rule_id": item.rule_id,
+            "action": item.action,
+            "classification": item.classification,
+            "details": item.details,
+            "event_id": item.event_id,
+            "created_at": item.created_at,
         }
 
     @staticmethod

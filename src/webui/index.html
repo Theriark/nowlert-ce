@@ -126,6 +126,9 @@
         <button class="nav-item" type="button" data-view="filtering">
           <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5Z"></path></svg></span><span class="nav-label">Filtering</span>
         </button>
+        <button id="email-alerts-nav" class="nav-item" type="button" data-view="email-alerts">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg></span><span class="nav-label">Email Alerts</span>
+        </button>
         <button class="nav-item" type="button" data-view="deliveries">
           <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7c2.2-2.7 4.4 2.7 6.6 0s4.4 2.7 6.6 0 4.4 2.7 4.8 2.2"></path><path d="M3 12c2.2-2.7 4.4 2.7 6.6 0s4.4 2.7 6.6 0 4.4 2.7 4.8 2.2"></path><path d="M3 17c2.2-2.7 4.4 2.7 6.6 0s4.4 2.7 6.6 0 4.4 2.7 4.8 2.2"></path></svg></span><span class="nav-label">Delivery history</span>
         </button>
@@ -250,6 +253,28 @@
             </div>
             <div id="delivery-list" class="timeline"></div>
           </div>
+        </section>
+
+        <section id="view-email-alerts" class="view email-alerts-view" data-page="email-alerts" hidden>
+          <div class="section-toolbar email-alerts-heading">
+            <div>
+              <h2>Email Alerts</h2>
+              <p>Connect mailboxes, organise alert groups, classify messages with rules, and review email processing activity.</p>
+            </div>
+            <div class="email-alerts-heading-actions">
+              <button id="email-primary-action" class="button primary" type="button" data-email-action="new-rule">Add rule</button>
+            </div>
+          </div>
+          <nav class="email-alert-tabs" aria-label="Email Alerts sections">
+            <button class="email-alert-tab active" type="button" data-email-tab="overview" aria-selected="true">Overview</button>
+            <button class="email-alert-tab" type="button" data-email-tab="groups" aria-selected="false">Groups</button>
+            <button class="email-alert-tab" type="button" data-email-tab="rules" aria-selected="false">Rules</button>
+            <button class="email-alert-tab" type="button" data-email-tab="mailboxes" aria-selected="false">Mailboxes</button>
+            <button class="email-alert-tab" type="button" data-email-tab="activity" aria-selected="false">Activity</button>
+          </nav>
+          <div id="email-alerts-loading" class="email-alert-loading" role="status" hidden>Loading Email Alerts…</div>
+          <div id="email-alerts-error" class="workspace-alert email-alert-error" role="alert" hidden></div>
+          <div id="email-alerts-root" class="email-alerts-root"></div>
         </section>
 
         <section id="view-audit" class="view" data-page="audit" hidden>

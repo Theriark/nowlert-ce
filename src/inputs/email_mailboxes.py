@@ -914,6 +914,70 @@ class MailboxConnectionService:
         )
         return mailbox
 
+    def update_mailbox(
+        self,
+        actor: Actor,
+        mailbox_id: str,
+        *,
+        name: str | None = None,
+        settings: dict | None = None,
+        enabled: bool | None = None,
+    ) -> EmailMailbox:
+        mailbox = self.store.get_mailbox(actor, mailbox_id)
+        settings_value = (
+            self._settings(mailbox.provider, settings)
+            if settings is not None
+            else None
+        )
+        updated = self.store.update_mailbox(
+            actor,
+            mailbox.id,
+            name=name,
+            settings=settings_value,
+            enabled=enabled,
+        )
+        self.audit.write(
+            actor,
+            "email.mailbox.update",
+            "email_mailbox",
+            updated.id,
+            "success",
+            {"provider": updated.provider, "enabled": updated.enabled},
+        )
+        return updated
+
+    def delete_mailbox(self, actor: Actor, mailbox_id: str) -> None:
+        mailbox = self.store.get_mailbox(actor, mailbox_id)
+        secret_id = self.store.delete_mailbox(actor, mailbox.id)
+        if secret_id:
+            try:
+                self.secrets.delete(actor, secret_id)
+            except KeyError:
+                pass
+        self.audit.write(
+            actor,
+            "email.mailbox.delete",
+            "email_mailbox",
+            mailbox.id,
+            "success",
+            {"provider": mailbox.provider},
+        )
+
+    def oauth_complete_from_state(
+        self,
+        actor: Actor,
+        *,
+        code: str,
+        state: str,
+    ) -> EmailMailbox:
+        mailbox_id = _state_mailbox_id(state)
+        return self.oauth_complete(
+            actor,
+            mailbox_id,
+            code=code,
+            state=state,
+        )
+
     def oauth_start(self, actor: Actor, mailbox_id: str) -> OAuthStart:
         mailbox = self.store.get_mailbox(actor, mailbox_id)
         if mailbox.provider not in {"gmail", "microsoft_365"}:
@@ -1455,6 +1519,30 @@ def _signed_state(state_key: str, mailbox_id: str, expires_at: int) -> str:
         hashlib.sha256,
     ).hexdigest()
     return f"{encoded}.{signature}"
+
+
+def _state_mailbox_id(state: str) -> str:
+    encoded, separator, _signature = str(state or "").partition(".")
+    if not separator or not encoded:
+        raise PermissionError("OAuth state is invalid or expired")
+    try:
+        padding = "=" * (-len(encoded) % 4)
+        payload = json.loads(
+            base64.urlsafe_b64decode(encoded + padding).decode("utf-8")
+        )
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise PermissionError("OAuth state is invalid or expired") from error
+    mailbox_id = (
+        str(payload.get("mailbox_id") or "")
+        if isinstance(payload, dict)
+        else ""
+    )
+    if (
+        len(mailbox_id) != 32
+        or any(character not in "0123456789abcdef" for character in mailbox_id)
+    ):
+        raise PermissionError("OAuth state is invalid or expired")
+    return mailbox_id
 
 
 def _verify_state(
