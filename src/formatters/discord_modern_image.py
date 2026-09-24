@@ -2030,6 +2030,70 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
 
         return stretched, target_bottom
 
+    @staticmethod
+    def _semantic_modern_field_icon(label: str) -> str | None:
+        """Return richer shared icons for common field semantics."""
+
+        key = " ".join(
+            str(label or "")
+            .strip()
+            .rstrip(":")
+            .casefold()
+            .replace("_", " ")
+            .replace("-", " ")
+            .split()
+        )
+        if not key:
+            return None
+
+        if (
+            key == "id"
+            or key.endswith(" id")
+            or key in {"identifier", "message identifier"}
+        ):
+            return "id"
+        if key in {
+            "email",
+            "email address",
+            "mailbox",
+            "sender",
+            "recipient",
+            "from",
+            "to",
+        } or "mailbox" in key:
+            return "mail"
+        if key in {
+            "user",
+            "username",
+            "account",
+            "owner",
+            "operator",
+        }:
+            return "user"
+        if key in {
+            "classification",
+            "category",
+            "group",
+            "label",
+            "labels",
+            "tag",
+            "tags",
+        }:
+            return "tag"
+        if (
+            key in {"rule", "policy", "filter", "condition"}
+            or key.endswith(" rule")
+            or key.endswith(" policy")
+        ):
+            return "filter"
+        if (
+            key in {"link", "links", "url", "runbook", "webhook"}
+            or key.endswith(" url")
+            or key.endswith(" link")
+        ):
+            return "link"
+        return None
+
     def _zabbix_measure_panel(self, draw, panel, width):
         """Measure a Zabbix section using XO fonts without shrinking text."""
 
@@ -2079,6 +2143,9 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
                 value,
                 row.get("icon"),
             )
+            semantic_icon = self._semantic_modern_field_icon(label)
+            if semantic_icon and icon in {"list", "repository"}:
+                icon = semantic_icon
 
             if role == "label" and not label:
                 lines = (

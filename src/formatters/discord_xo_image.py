@@ -1576,8 +1576,200 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             self._draw_alert(draw, x, y, size)
         elif icon == "info":
             self._draw_info(draw, x, y, size)
+        elif icon == "mail":
+            self._draw_mail(draw, x, y, size)
+        elif icon == "user":
+            self._draw_user(draw, x, y, size)
+        elif icon == "tag":
+            self._draw_tag(draw, x, y, size)
+        elif icon == "link":
+            self._draw_link(draw, x, y, size)
+        elif icon == "filter":
+            self._draw_filter(draw, x, y, size)
+        elif icon == "id":
+            self._draw_id(draw, x, y, size)
         else:
             self._draw_list(draw, x, y, size)
+
+    def _draw_mail(self, draw, x, y, size):
+        fg = (216, 238, 248)
+        accent = self.ICON_BLUE
+        left = x + size * 0.10
+        top = y + size * 0.20
+        right = x + size * 0.90
+        bottom = y + size * 0.80
+        draw.rounded_rectangle(
+            (left, top, right, bottom),
+            radius=max(3, size // 10),
+            fill=(48, 91, 116, 255),
+            outline=(*fg, 255),
+            width=max(2, size // 12),
+        )
+        center_x = x + size * 0.50
+        center_y = y + size * 0.52
+        draw.line(
+            (left + 2, top + 3, center_x, center_y),
+            fill=(*accent, 255),
+            width=max(2, size // 12),
+        )
+        draw.line(
+            (right - 2, top + 3, center_x, center_y),
+            fill=(*accent, 255),
+            width=max(2, size // 12),
+        )
+
+    def _draw_user(self, draw, x, y, size):
+        fg = (216, 238, 248)
+        draw.ellipse(
+            (
+                x + size * 0.31,
+                y + size * 0.10,
+                x + size * 0.69,
+                y + size * 0.48,
+            ),
+            fill=(*self.ICON_BLUE, 255),
+            outline=(*fg, 255),
+            width=max(1, size // 14),
+        )
+        draw.rounded_rectangle(
+            (
+                x + size * 0.16,
+                y + size * 0.56,
+                x + size * 0.84,
+                y + size * 0.90,
+            ),
+            radius=max(4, size // 6),
+            fill=(48, 91, 116, 255),
+            outline=(*fg, 255),
+            width=max(2, size // 12),
+        )
+
+    def _draw_tag(self, draw, x, y, size):
+        fg = (216, 238, 248)
+        polygon = [
+            (x + size * 0.12, y + size * 0.20),
+            (x + size * 0.58, y + size * 0.20),
+            (x + size * 0.88, y + size * 0.50),
+            (x + size * 0.58, y + size * 0.80),
+            (x + size * 0.12, y + size * 0.80),
+        ]
+        draw.polygon(polygon, fill=(48, 91, 116, 255))
+        draw.line(
+            polygon + [polygon[0]],
+            fill=(*fg, 255),
+            width=max(2, size // 12),
+            joint="curve",
+        )
+        draw.ellipse(
+            (
+                x + size * 0.24,
+                y + size * 0.39,
+                x + size * 0.38,
+                y + size * 0.53,
+            ),
+            fill=(*self.BRAND_GOLD, 255),
+        )
+
+    def _draw_link(self, draw, x, y, size):
+        fg = (216, 238, 248)
+        width = max(2, size // 10)
+        draw.arc(
+            (
+                x + size * 0.05,
+                y + size * 0.28,
+                x + size * 0.58,
+                y + size * 0.78,
+            ),
+            start=45,
+            end=315,
+            fill=(*fg, 255),
+            width=width,
+        )
+        draw.arc(
+            (
+                x + size * 0.42,
+                y + size * 0.12,
+                x + size * 0.95,
+                y + size * 0.62,
+            ),
+            start=225,
+            end=135,
+            fill=(*self.ICON_BLUE, 255),
+            width=width,
+        )
+        draw.line(
+            (
+                x + size * 0.35,
+                y + size * 0.61,
+                x + size * 0.65,
+                y + size * 0.39,
+            ),
+            fill=(*fg, 255),
+            width=width,
+        )
+
+    def _draw_filter(self, draw, x, y, size):
+        fg = (216, 238, 248)
+        draw.polygon(
+            [
+                (x + size * 0.08, y + size * 0.14),
+                (x + size * 0.92, y + size * 0.14),
+                (x + size * 0.62, y + size * 0.50),
+                (x + size * 0.62, y + size * 0.82),
+                (x + size * 0.38, y + size * 0.92),
+                (x + size * 0.38, y + size * 0.50),
+            ],
+            fill=(48, 91, 116, 255),
+            outline=(*fg, 255),
+        )
+        draw.line(
+            (
+                x + size * 0.20,
+                y + size * 0.28,
+                x + size * 0.80,
+                y + size * 0.28,
+            ),
+            fill=(*self.BRAND_GOLD, 255),
+            width=max(2, size // 12),
+        )
+
+    def _draw_id(self, draw, x, y, size):
+        fg = (216, 238, 248)
+        draw.rounded_rectangle(
+            (
+                x + size * 0.08,
+                y + size * 0.14,
+                x + size * 0.92,
+                y + size * 0.86,
+            ),
+            radius=max(4, size // 8),
+            fill=(48, 91, 116, 255),
+            outline=(*fg, 255),
+            width=max(2, size // 12),
+        )
+        line_width = max(2, size // 12)
+        for offset in (0.38, 0.60):
+            draw.line(
+                (
+                    x + size * offset,
+                    y + size * 0.28,
+                    x + size * (offset - 0.08),
+                    y + size * 0.72,
+                ),
+                fill=(*self.ICON_BLUE, 255),
+                width=line_width,
+            )
+        for offset in (0.42, 0.62):
+            draw.line(
+                (
+                    x + size * 0.24,
+                    y + size * offset,
+                    x + size * 0.72,
+                    y + size * offset,
+                ),
+                fill=(*self.BRAND_GOLD, 255),
+                width=line_width,
+            )
 
     def _draw_list(self, draw, x, y, size):
         fg = (215, 236, 248)
