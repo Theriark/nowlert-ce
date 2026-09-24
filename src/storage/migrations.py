@@ -751,6 +751,21 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             """,
         ),
     ),
+    (
+        16,
+        "email mailbox sharing",
+        (
+            """
+            ALTER TABLE email_mailboxes
+            ADD COLUMN shared INTEGER NOT NULL DEFAULT 0
+                CHECK (shared IN (0, 1))
+            """,
+            """
+            CREATE INDEX email_mailboxes_visibility
+            ON email_mailboxes(owner_user_id, shared, name_normalized)
+            """,
+        ),
+    ),
 )
 
 

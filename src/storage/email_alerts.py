@@ -68,6 +68,7 @@ class EmailMailbox:
     secret_configured: bool
     settings: dict
     enabled: bool
+    shared: bool
     connection_state: str
     sync_cursor: str
     last_sync_at: int | None
@@ -189,6 +190,7 @@ class EmailAlertStore:
         secret_id: str | None = None,
         settings: dict | None = None,
         enabled: bool = True,
+        shared: bool = False,
     ) -> EmailMailbox:
         OwnershipPolicy.require_write(actor, str(owner_user_id))
         provider_value = str(provider or "").strip().casefold()
@@ -226,8 +228,8 @@ class EmailAlertStore:
                     INSERT INTO email_mailboxes(
                         id, owner_user_id, provider, name, name_normalized,
                         address, address_normalized, secret_id, settings_json,
-                        enabled, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        enabled, shared, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         mailbox_id,
@@ -240,6 +242,7 @@ class EmailAlertStore:
                         str(secret_id) if secret_id else None,
                         self._json(settings_value),
                         1 if enabled else 0,
+                        1 if shared else 0,
                         now,
                         now,
                     ),
@@ -252,7 +255,11 @@ class EmailAlertStore:
 
     def get_mailbox(self, actor: Actor, mailbox_id: str) -> EmailMailbox:
         row = self._mailbox_row(mailbox_id)
-        OwnershipPolicy.require_read(actor, str(row["owner_user_id"]))
+        OwnershipPolicy.require_read(
+            actor,
+            str(row["owner_user_id"]),
+            bool(row["shared"]),
+        )
         return self._mailbox(row)
 
     def list_mailboxes(self, actor: Actor) -> list[EmailMailbox]:
@@ -265,7 +272,7 @@ class EmailAlertStore:
                 rows = connection.execute(
                     """
                     SELECT * FROM email_mailboxes
-                    WHERE owner_user_id = ?
+                    WHERE owner_user_id = ? OR shared = 1
                     ORDER BY name_normalized
                     """,
                     (actor.user_id,),
@@ -280,7 +287,7 @@ class EmailAlertStore:
         """Return the credential reference without ever resolving its value."""
 
         row = self._mailbox_row(mailbox_id)
-        OwnershipPolicy.require_read(actor, str(row["owner_user_id"]))
+        OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
         return str(row["secret_id"]) if row["secret_id"] is not None else None
 
     def update_mailbox_connection(
@@ -340,6 +347,7 @@ class EmailAlertStore:
         name: str | None = None,
         settings: dict | None = None,
         enabled: bool | None = None,
+        shared: bool | None = None,
     ) -> EmailMailbox:
         row = self._mailbox_row(mailbox_id)
         OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
@@ -361,6 +369,15 @@ class EmailAlertStore:
                 raise ValueError("mailbox enabled must be a boolean")
             assignments.append("enabled = ?")
             values.append(1 if enabled else 0)
+        if shared is not None:
+            if not isinstance(shared, bool):
+                raise ValueError("mailbox shared must be a boolean")
+            if str(row["owner_user_id"]) != actor.user_id:
+                raise PermissionError(
+                    "only the mailbox owner can change sharing"
+                )
+            assignments.append("shared = ?")
+            values.append(1 if shared else 0)
         values.append(str(mailbox_id))
         try:
             with self.database.transaction() as connection:
@@ -1513,6 +1530,7 @@ class EmailAlertStore:
             secret_configured=row["secret_id"] is not None,
             settings=json.loads(str(row["settings_json"] or "{}")),
             enabled=bool(row["enabled"]),
+            shared=bool(row["shared"]),
             connection_state=str(row["connection_state"]),
             sync_cursor=str(row["sync_cursor"] or ""),
             last_sync_at=(

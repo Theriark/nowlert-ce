@@ -1423,6 +1423,7 @@ class PlatformAPI:
                     "settings",
                     "credential",
                     "enabled",
+                    "shared",
                 },
             )
             owner_id = self._owner(data, actor)
@@ -1441,6 +1442,7 @@ class PlatformAPI:
                 settings=data.get("settings", {}),
                 credential=credential,
                 enabled=self._boolean(data, "enabled", True),
+                shared=self._boolean(data, "shared", False),
             )
             return APIResponse(
                 201,
@@ -1469,7 +1471,7 @@ class PlatformAPI:
             if method == "PATCH":
                 data = self._object(
                     payload,
-                    {"name", "settings", "enabled"},
+                    {"name", "settings", "enabled", "shared"},
                 )
                 mailbox = self.email_connections.update_mailbox(
                     actor,
@@ -1483,6 +1485,11 @@ class PlatformAPI:
                     enabled=(
                         self._boolean(data, "enabled")
                         if "enabled" in data
+                        else None
+                    ),
+                    shared=(
+                        self._boolean(data, "shared")
+                        if "shared" in data
                         else None
                     ),
                 )
@@ -3130,6 +3137,7 @@ class PlatformAPI:
             "address": item.address,
             "settings": item.settings,
             "enabled": item.enabled,
+            "shared": item.shared,
             "secret_configured": item.secret_configured,
             "connection_state": item.connection_state,
             "last_sync_at": item.last_sync_at,
