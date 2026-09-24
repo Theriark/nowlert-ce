@@ -593,3 +593,27 @@ def test_oauth_applications_read_instance_secret_files(tmp_path):
         "client_secret": "microsoft-private",
         "redirect_uri": "https://nowlert.example/ui/",
     }
+
+
+def test_microsoft_oauth_uses_instance_tenant_id(tmp_path):
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    service = MailboxConnectionService(
+        database,
+        oauth_applications={
+            "gmail": {},
+            "microsoft_365": {
+                "client_id": "client",
+                "client_secret": "secret",
+                "redirect_uri": "https://nowlert.example/ui/",
+                "tenant_id": "152cc14d-5969-4329-a9a0-c1ddb5e3232b",
+            },
+        },
+    )
+    mailbox = service.create_mailbox(
+        actor, actor.user_id, "microsoft_365", "qa@theriark.com",
+        name="QA", settings={"folder": "inbox"},
+    )
+    start = service.oauth_start(actor, mailbox.id)
+    assert "login.microsoftonline.com/152cc14d-5969-4329-a9a0-c1ddb5e3232b/oauth2/v2.0/authorize" in start.authorization_url

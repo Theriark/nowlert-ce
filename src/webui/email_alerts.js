@@ -832,8 +832,7 @@ function emailEnsureDialogs() {
       element("div", { attributes: { id: "email-gmail-settings" } }, [
         emailLabel("Gmail label", element("input", { value: "INBOX", attributes: { id: "email-gmail-label", maxlength: "128" } })),
       ]),
-      element("div", { className: "form-grid", attributes: { id: "email-microsoft-settings" }, hidden: true }, [
-        emailLabel("Tenant", element("input", { value: "common", attributes: { id: "email-microsoft-tenant", maxlength: "128" } })),
+      element("div", { attributes: { id: "email-microsoft-settings" }, hidden: true }, [
         emailLabel("Folder", element("input", { value: "inbox", attributes: { id: "email-microsoft-folder", maxlength: "256" } })),
       ]),
       element("div", { className: "form-grid", attributes: { id: "email-imap-fields" }, hidden: true }, [
@@ -1182,7 +1181,6 @@ function emailOpenMailbox(provider = "") {
   byId("email-mailbox-form").reset();
   byId("email-mailbox-provider").value = selectedProvider;
   byId("email-gmail-label").value = "INBOX";
-  byId("email-microsoft-tenant").value = "common";
   byId("email-microsoft-folder").value = "inbox";
   byId("email-imap-port").value = "993";
   byId("email-imap-security").value = "ssl";
@@ -1275,7 +1273,6 @@ async function emailSaveMailbox(event) {
     };
   } else if (provider === "microsoft_365") {
     body.settings = {
-      tenant: byId("email-microsoft-tenant").value.trim() || "common",
       folder: byId("email-microsoft-folder").value.trim() || "inbox",
     };
   } else {
@@ -1473,7 +1470,18 @@ async function emailHandleOAuthReturn() {
   if (!code && !providerError) return;
   try {
     if (providerError) {
-      toast("Mailbox authorization was cancelled or denied.", "danger");
+      if (oauthState) {
+        const failed = await request("/email-mailboxes/oauth-failed", {
+          method: "POST",
+          body: { state: oauthState, error: providerError },
+        });
+        toast(
+          failed.mailbox?.last_error_safe || "Mailbox authorization failed.",
+          "danger",
+        );
+      } else {
+        toast("Mailbox authorization was cancelled or denied.", "danger");
+      }
     } else if (oauthState) {
       await request("/email-mailboxes/oauth-complete", {
         method: "POST",
@@ -1484,6 +1492,7 @@ async function emailHandleOAuthReturn() {
   } catch (error) {
     toast(error.message || "Mailbox authorization failed.", "danger");
   } finally {
+    emailAlertsState.tab = "mailboxes";
     for (const key of ["code", "state", "scope", "authuser", "prompt", "error", "error_description", "session_state"]) {
       params.delete(key);
     }

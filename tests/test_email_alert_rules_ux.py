@@ -497,3 +497,10 @@ def test_oauth_mailbox_sync_button_waits_for_authorization():
     assert '["healthy", "degraded"].includes(mailbox.connection_state)' in script
     assert "disabled: !syncReady" in script
     assert "Connect and authorize this mailbox before synchronizing it" in script
+
+
+def test_microsoft_mailbox_tenant_is_instance_managed_and_oauth_returns_to_mailboxes():
+    script = (ROOT / "src" / "webui" / "email_alerts.js").read_text(encoding="utf-8")
+    assert "email-microsoft-tenant" not in script
+    assert 'request("/email-mailboxes/oauth-failed"' in script
+    assert 'emailAlertsState.tab = "mailboxes"' in script

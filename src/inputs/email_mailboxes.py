@@ -105,9 +105,22 @@ def email_oauth_applications(configuration=None, *, environment=None) -> dict:
             ).strip(),
         }
 
+    gmail = application("GMAIL")
+    microsoft = application("MICROSOFT")
+    microsoft_tenant_id = str(
+        first_environment(
+            "NOWLERT_EMAIL_MICROSOFT_TENANT_ID",
+            default="",
+            environment=environment,
+        )
+        or ""
+    ).strip()
+    if microsoft_tenant_id:
+        microsoft["tenant_id"] = microsoft_tenant_id
+
     return {
-        "gmail": application("GMAIL"),
-        "microsoft_365": application("MICROSOFT"),
+        "gmail": gmail,
+        "microsoft_365": microsoft,
     }
 
 
@@ -467,8 +480,13 @@ class Microsoft365MailboxProvider(_HTTPProvider):
     GRAPH_ROOT = "https://graph.microsoft.com/v1.0"
 
     @staticmethod
-    def _tenant(mailbox: EmailMailbox) -> str:
-        tenant = str(mailbox.settings.get("tenant") or "common").strip()
+    def _tenant(mailbox: EmailMailbox, credentials: dict | None = None) -> str:
+        configured = dict(credentials or {})
+        tenant = str(
+            configured.get("tenant_id")
+            or mailbox.settings.get("tenant")
+            or "common"
+        ).strip()
         if (
             not tenant
             or len(tenant) > 128
@@ -485,7 +503,7 @@ class Microsoft365MailboxProvider(_HTTPProvider):
         credentials: dict,
         state: str,
     ) -> str:
-        tenant = self._tenant(mailbox)
+        tenant = self._tenant(mailbox, credentials)
         endpoint = (
             f"https://login.microsoftonline.com/{quote(tenant, safe='')}"
             "/oauth2/v2.0/authorize"
@@ -509,7 +527,7 @@ class Microsoft365MailboxProvider(_HTTPProvider):
         code: str,
     ) -> dict:
         return self._form(
-            self._token_url(mailbox),
+            self._token_url(mailbox, credentials),
             {
                 "client_id": credentials["client_id"],
                 "client_secret": credentials["client_secret"],
@@ -526,7 +544,7 @@ class Microsoft365MailboxProvider(_HTTPProvider):
         credentials: dict,
     ) -> dict:
         return self._form(
-            self._token_url(mailbox),
+            self._token_url(mailbox, credentials),
             {
                 "client_id": credentials["client_id"],
                 "client_secret": credentials["client_secret"],
@@ -627,8 +645,8 @@ class Microsoft365MailboxProvider(_HTTPProvider):
             )
         return bytes(getattr(response, "content", b""))
 
-    def _token_url(self, mailbox: EmailMailbox) -> str:
-        tenant = self._tenant(mailbox)
+    def _token_url(self, mailbox: EmailMailbox, credentials: dict) -> str:
+        tenant = self._tenant(mailbox, credentials)
         return (
             f"https://login.microsoftonline.com/{quote(tenant, safe='')}"
             "/oauth2/v2.0/token"
@@ -964,7 +982,12 @@ class MailboxConnectionService:
         enabled: bool = True,
     ) -> EmailMailbox:
         provider_value = str(provider or "").strip().casefold()
-        settings_value = self._settings(provider_value, settings or {})
+        settings_input = dict(settings or {})
+        if provider_value == "microsoft_365":
+            settings_input["tenant"] = self._microsoft_tenant_id(
+                fallback=settings_input.get("tenant") or "common"
+            )
+        settings_value = self._settings(provider_value, settings_input)
         credential_value = self._credential(provider_value, credential or {})
         if provider_value in {"gmail", "microsoft_365"}:
             credential_value.setdefault("state_key", token_secrets.token_urlsafe(32))
@@ -1010,11 +1033,14 @@ class MailboxConnectionService:
         enabled: bool | None = None,
     ) -> EmailMailbox:
         mailbox = self.store.get_mailbox(actor, mailbox_id)
-        settings_value = (
-            self._settings(mailbox.provider, settings)
-            if settings is not None
-            else None
-        )
+        settings_value = None
+        if settings is not None:
+            settings_input = dict(settings)
+            if mailbox.provider == "microsoft_365":
+                settings_input["tenant"] = self._microsoft_tenant_id(
+                    fallback=mailbox.settings.get("tenant")
+                )
+            settings_value = self._settings(mailbox.provider, settings_input)
         updated = self.store.update_mailbox(
             actor,
             mailbox.id,
@@ -1063,6 +1089,55 @@ class MailboxConnectionService:
             code=code,
             state=state,
         )
+
+    def oauth_failure_from_state(
+        self,
+        actor: Actor,
+        *,
+        state: str,
+        provider_error: str,
+    ) -> EmailMailbox:
+        mailbox_id = _state_mailbox_id(state)
+        mailbox = self.store.get_mailbox(actor, mailbox_id)
+        if mailbox.provider not in {"gmail", "microsoft_365"}:
+            raise ValueError("OAuth is not used by this mailbox provider")
+        credentials = self._credentials(actor, mailbox)
+        _verify_state(
+            credentials["state_key"],
+            mailbox.id,
+            state,
+            int(self.clock()),
+        )
+        raw_code = sanitize_text(provider_error).strip().casefold()
+        safe_code = (
+            raw_code
+            if raw_code
+            and len(raw_code) <= 40
+            and all(character.isalnum() or character == "_" for character in raw_code)
+            else "authorization_failed"
+        )
+        label = "Gmail" if mailbox.provider == "gmail" else "Microsoft 365"
+        message = (
+            f"{label} authorization was cancelled or denied"
+            if safe_code == "access_denied"
+            else f"{label} authorization could not be completed"
+        )
+        mailbox = self.store.update_mailbox_connection(
+            actor,
+            mailbox.id,
+            connection_state="error",
+            error_code=f"oauth_{safe_code}"[:64],
+            safe_error=message,
+        )
+        self.audit.write(
+            actor,
+            "email.mailbox.oauth.complete",
+            "email_mailbox",
+            mailbox.id,
+            "failed",
+            {"provider": mailbox.provider, "code": f"oauth_{safe_code}"[:64]},
+        )
+        return mailbox
 
     def oauth_start(self, actor: Actor, mailbox_id: str) -> OAuthStart:
         mailbox = self.store.get_mailbox(actor, mailbox_id)
@@ -1468,9 +1543,27 @@ class MailboxConnectionService:
     def _oauth_application_configured(self, provider: str) -> bool:
         try:
             self._oauth_application(provider)
+            if provider == "microsoft_365":
+                self._microsoft_tenant_id()
             return True
         except MailboxConnectionError:
             return False
+
+    def _microsoft_tenant_id(self, *, fallback=None) -> str:
+        configured = dict(self.oauth_applications.get("microsoft_365") or {})
+        tenant = str(configured.get("tenant_id") or fallback or "").strip()
+        if (
+            not tenant
+            or len(tenant) > 128
+            or "/" in tenant
+            or "\\" in tenant
+            or any(character.isspace() for character in tenant)
+        ):
+            raise MailboxConnectionError(
+                "provider_not_configured",
+                "Microsoft 365 tenant is not configured by the Nowlert administrator",
+            )
+        return tenant
 
     def _oauth_application(
         self,
@@ -1485,7 +1578,12 @@ class MailboxConnectionService:
                 configured.get(key) or legacy.get(key) or ""
             ).strip()
 
-        if not all(application.values()):
+        if provider == "microsoft_365":
+            tenant_id = str(configured.get("tenant_id") or "").strip()
+            if tenant_id:
+                application["tenant_id"] = tenant_id
+
+        if not all(application.get(key) for key in _OAUTH_APPLICATION_FIELDS):
             label = "Gmail" if provider == "gmail" else "Microsoft 365"
             raise MailboxConnectionError(
                 "provider_not_configured",
