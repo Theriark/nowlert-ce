@@ -309,6 +309,8 @@ class PlatformAPI:
                 return self._email_mailboxes_endpoint(method, payload, actor)
             if path == "/api/v2/email-mailboxes/oauth-complete":
                 return self._email_oauth_complete(method, payload, actor)
+            if path == "/api/v2/email-mailboxes/oauth-failed":
+                return self._email_oauth_failed(method, payload, actor)
             email_mailbox_match = re.fullmatch(
                 r"/api/v2/email-mailboxes/([0-9a-f]{32})(?:/(oauth-start|oauth-complete|sync))?",
                 path,
@@ -1381,6 +1383,21 @@ class PlatformAPI:
         return APIResponse(
             200,
             {"providers": self.email_connections.provider_status()},
+            (("Cache-Control", "no-store"),),
+        )
+
+    def _email_oauth_failed(self, method, payload, actor) -> APIResponse:
+        if method != "POST":
+            return self._method_not_allowed("POST")
+        data = self._object(payload, {"state", "error"})
+        mailbox = self.email_connections.oauth_failure_from_state(
+            actor,
+            state=data.get("state"),
+            provider_error=data.get("error"),
+        )
+        return APIResponse(
+            200,
+            {"mailbox": self._email_mailbox(mailbox)},
             (("Cache-Control", "no-store"),),
         )
 

@@ -84,6 +84,7 @@ Configure public application values in `.env`:
 NOWLERT_EMAIL_GMAIL_CLIENT_ID=<your-google-client-id>
 NOWLERT_EMAIL_GMAIL_CLIENT_SECRET_FILE=/run/secrets/nowlert_email_gmail_client_secret
 NOWLERT_EMAIL_MICROSOFT_CLIENT_ID=<your-entra-client-id>
+NOWLERT_EMAIL_MICROSOFT_TENANT_ID=<your-directory-tenant-id>
 NOWLERT_EMAIL_MICROSOFT_CLIENT_SECRET_FILE=/run/secrets/nowlert_email_microsoft_client_secret
 ```
 
