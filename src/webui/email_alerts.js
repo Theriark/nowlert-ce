@@ -439,53 +439,58 @@ function emailRenderMailboxes() {
     return container;
   }
   for (const mailbox of emailAlertsState.mailboxes) {
+    const owned = String(mailbox.owner_user_id || "") === String(state.user?.id || "");
+    const editable = owned || state.user?.role === "admin";
     const oauthProvider = ["gmail", "microsoft_365"].includes(mailbox.provider);
-    const syncReady = mailbox.enabled && (
+    const syncReady = editable && mailbox.enabled && (
       !oauthProvider
       || ["healthy", "degraded"].includes(mailbox.connection_state)
     );
-    const actions = [
-      element("button", {
-        className: "button small secondary",
-        text: "Sync now",
-        type: "button",
-        dataset: { emailAction: "sync-mailbox", id: mailbox.id },
-        disabled: !syncReady,
-        attributes: {
-          title: syncReady
-            ? "Synchronize mailbox metadata now"
-            : (
-              oauthProvider
-                ? "Connect and authorize this mailbox before synchronizing it"
-                : "Enable this mailbox before synchronizing it"
-            ),
-        },
-      }),
-    ];
-    if (oauthProvider) {
+    const actions = [];
+    if (editable) {
       actions.push(
         element("button", {
           className: "button small secondary",
-          text: mailbox.connection_state === "healthy" ? "Reconnect" : "Connect",
+          text: "Sync now",
           type: "button",
-          dataset: { emailAction: "connect-mailbox", id: mailbox.id },
+          dataset: { emailAction: "sync-mailbox", id: mailbox.id },
+          disabled: !syncReady,
+          attributes: {
+            title: syncReady
+              ? "Synchronize mailbox metadata now"
+              : (
+                oauthProvider
+                  ? "Connect and authorize this mailbox before synchronizing it"
+                  : "Enable this mailbox before synchronizing it"
+              ),
+          },
+        }),
+      );
+      if (oauthProvider) {
+        actions.push(
+          element("button", {
+            className: "button small secondary",
+            text: mailbox.connection_state === "healthy" ? "Reconnect" : "Connect",
+            type: "button",
+            dataset: { emailAction: "connect-mailbox", id: mailbox.id },
+          }),
+        );
+      }
+      actions.push(
+        element("button", {
+          className: "button small secondary",
+          text: mailbox.enabled ? "Disable" : "Enable",
+          type: "button",
+          dataset: { emailAction: "toggle-mailbox", id: mailbox.id },
+        }),
+        element("button", {
+          className: "button small danger",
+          text: "Delete",
+          type: "button",
+          dataset: { emailAction: "delete-mailbox", id: mailbox.id },
         }),
       );
     }
-    actions.push(
-      element("button", {
-        className: "button small secondary",
-        text: mailbox.enabled ? "Disable" : "Enable",
-        type: "button",
-        dataset: { emailAction: "toggle-mailbox", id: mailbox.id },
-      }),
-      element("button", {
-        className: "button small danger",
-        text: "Delete",
-        type: "button",
-        dataset: { emailAction: "delete-mailbox", id: mailbox.id },
-      }),
-    );
 
     const error = mailbox.last_error_safe
       ? element("p", { className: "email-safe-error", text: mailbox.last_error_safe })
@@ -502,7 +507,24 @@ function emailRenderMailboxes() {
           emailConnectionBadge(mailbox.connection_state, mailbox.enabled),
         ]),
         element("div", { className: "email-resource-meta" }, [
-          element("span", { text: mailbox.secret_configured ? "Credentials configured" : "Credentials missing" }),
+          element("button", {
+            className: `badge status-button ${mailbox.shared ? "success" : "warning"}`,
+            text: mailbox.shared ? "Shared" : "Private",
+            type: "button",
+            disabled: !owned,
+            dataset: owned
+              ? { emailAction: "toggle-mailbox-shared", id: mailbox.id }
+              : {},
+            attributes: {
+              title: owned
+                ? (mailbox.shared ? "Make this mailbox private" : "Share this mailbox with other users")
+                : "Only the mailbox owner can change visibility",
+            },
+          }),
+          !editable ? emailBadge("View only", "state-disabled") : null,
+          editable
+            ? element("span", { text: mailbox.secret_configured ? "Credentials configured" : "Credentials missing" })
+            : null,
           element("span", { text: mailbox.last_sync_at ? `Last sync ${relativeTime(mailbox.last_sync_at)}` : "Never synchronized" }),
         ]),
         error,
@@ -828,6 +850,10 @@ function emailEnsureDialogs() {
         emailLabel("Provider", provider),
         emailLabel("Mailbox name", element("input", { attributes: { id: "email-mailbox-name", required: "", maxlength: "160", placeholder: "Operations inbox" } })),
         emailLabel("Email address", element("input", { type: "email", attributes: { id: "email-mailbox-address", required: "", maxlength: "320", placeholder: "alerts@example.com" } })),
+        emailLabel("Visibility", element("select", { attributes: { id: "email-mailbox-shared" } }, [
+          emailOption("false", "Private"),
+          emailOption("true", "Shared"),
+        ])),
       ]),
       element("div", { attributes: { id: "email-gmail-settings" } }, [
         emailLabel("Gmail label", element("input", { value: "INBOX", attributes: { id: "email-gmail-label", maxlength: "128" } })),
@@ -1185,6 +1211,7 @@ function emailOpenMailbox(provider = "") {
   byId("email-imap-port").value = "993";
   byId("email-imap-security").value = "ssl";
   byId("email-imap-folder").value = "INBOX";
+  byId("email-mailbox-shared").value = "false";
   byId("email-mailbox-error").hidden = true;
   emailMailboxProviderFields();
   byId("email-mailbox-dialog").showModal();
@@ -1266,6 +1293,7 @@ async function emailSaveMailbox(event) {
     name: byId("email-mailbox-name").value.trim(),
     address: byId("email-mailbox-address").value.trim(),
     enabled: true,
+    shared: byId("email-mailbox-shared").value === "true",
   };
   if (provider === "gmail") {
     body.settings = {
@@ -1412,6 +1440,14 @@ async function emailAction(action, id, node) {
     if (action === "toggle-mailbox") {
       const item = emailAlertsState.mailboxes.find((mailbox) => mailbox.id === id);
       await request(`/email-mailboxes/${id}`, { method: "PATCH", body: { enabled: !item.enabled } });
+      await emailLoad(true);
+      return;
+    }
+    if (action === "toggle-mailbox-shared") {
+      const item = emailAlertsState.mailboxes.find((mailbox) => mailbox.id === id);
+      if (!item || String(item.owner_user_id || "") !== String(state.user?.id || "")) return;
+      await request(`/email-mailboxes/${id}`, { method: "PATCH", body: { shared: !item.shared } });
+      toast(item.shared ? "Mailbox is now private." : "Mailbox is now shared.", "success");
       await emailLoad(true);
       return;
     }

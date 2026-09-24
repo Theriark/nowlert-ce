@@ -1001,6 +1001,7 @@ class MailboxConnectionService:
         settings: dict | None = None,
         credential: dict | None = None,
         enabled: bool = True,
+        shared: bool = False,
     ) -> EmailMailbox:
         provider_value = str(provider or "").strip().casefold()
         settings_input = dict(settings or {})
@@ -1030,6 +1031,7 @@ class MailboxConnectionService:
                 secret_id=secret.id,
                 settings=settings_value,
                 enabled=enabled,
+                shared=shared,
             )
         except Exception:
             self.secrets.delete(actor, secret.id)
@@ -1052,6 +1054,7 @@ class MailboxConnectionService:
         name: str | None = None,
         settings: dict | None = None,
         enabled: bool | None = None,
+        shared: bool | None = None,
     ) -> EmailMailbox:
         mailbox = self.store.get_mailbox(actor, mailbox_id)
         settings_value = None
@@ -1068,6 +1071,7 @@ class MailboxConnectionService:
             name=name,
             settings=settings_value,
             enabled=enabled,
+            shared=shared,
         )
         self.audit.write(
             actor,
@@ -1075,7 +1079,11 @@ class MailboxConnectionService:
             "email_mailbox",
             updated.id,
             "success",
-            {"provider": updated.provider, "enabled": updated.enabled},
+            {
+                "provider": updated.provider,
+                "enabled": updated.enabled,
+                "shared": updated.shared,
+            },
         )
         return updated
 

@@ -30,8 +30,8 @@ def create_user(database, user_id, username, role="user"):
 def test_schema_15_adds_email_alert_foundation_tables(tmp_path):
     database = Database(tmp_path / "state" / "nowlert.db")
 
-    assert database.migrate() == 15
-    assert LATEST_SCHEMA_VERSION == 15
+    assert database.migrate() == 16
+    assert LATEST_SCHEMA_VERSION == 16
 
     with database.connect() as connection:
         tables = {
@@ -207,6 +207,57 @@ def test_mailbox_group_rule_and_event_contract_are_owner_scoped(tmp_path):
         store.get_mailbox(other, mailbox.id)
     with pytest.raises(PermissionError):
         store.get_message(other, message.id)
+
+
+def test_mailbox_sharing_matches_destination_visibility_without_sharing_credentials(tmp_path):
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    owner = create_user(database, "a" * 32, "owner")
+    other = create_user(database, "b" * 32, "other")
+    admin = create_user(database, "c" * 32, "administrator", role="admin")
+    store = EmailAlertStore(database)
+
+    private = store.create_mailbox(
+        owner,
+        owner.user_id,
+        "imap",
+        "private@example.com",
+        name="Private",
+    )
+    shared = store.create_mailbox(
+        owner,
+        owner.user_id,
+        "imap",
+        "shared@example.com",
+        name="Shared",
+        shared=True,
+    )
+
+    visible = store.list_mailboxes(other)
+    assert [item.id for item in visible] == [shared.id]
+    assert store.get_mailbox(other, shared.id).shared is True
+
+    with pytest.raises(PermissionError):
+        store.get_mailbox(other, private.id)
+    with pytest.raises(PermissionError):
+        store.mailbox_secret_id(other, shared.id)
+    with pytest.raises(PermissionError):
+        store.update_mailbox(other, shared.id, enabled=False)
+    with pytest.raises(PermissionError):
+        store.update_mailbox(other, shared.id, shared=False)
+    with pytest.raises(PermissionError, match="only the mailbox owner"):
+        store.update_mailbox(admin, shared.id, shared=False)
+    with pytest.raises(PermissionError):
+        store.delete_mailbox(other, shared.id)
+
+    assert store.get_mailbox(admin, private.id).id == private.id
+
+    updated = store.update_mailbox(owner, private.id, shared=True)
+    assert updated.shared is True
+    assert {item.id for item in store.list_mailboxes(other)} == {
+        private.id,
+        shared.id,
+    }
 
 
 def test_message_deduplication_is_within_mailbox_scope(tmp_path):
