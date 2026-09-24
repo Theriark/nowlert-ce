@@ -12,11 +12,12 @@ import hashlib
 import hmac
 import imaplib
 import json
+import re
 import secrets as token_secrets
 import threading
 import time
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from email.parser import BytesParser
 from email.policy import default
@@ -197,6 +198,15 @@ class MailboxSyncSummary:
 
 
 @dataclass(frozen=True)
+class MailboxFolder:
+    id: str
+    name: str
+
+    def public(self) -> dict:
+        return {"id": self.id, "name": self.name}
+
+
+@dataclass(frozen=True)
 class OAuthStart:
     authorization_url: str
     expires_at: int
@@ -318,6 +328,34 @@ class GmailMailboxProvider(_HTTPProvider):
             },
         )
 
+    def folders(self, access_token: str) -> tuple[MailboxFolder, ...]:
+        payload = self._json(
+            "get",
+            f"{self.API_ROOT}/labels",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        folders: list[MailboxFolder] = []
+        for item in payload.get("labels", []):
+            if not isinstance(item, dict):
+                continue
+            identifier = str(item.get("id") or "").strip()
+            name = str(item.get("name") or identifier).strip()
+            if not identifier or not name:
+                continue
+            if str(item.get("type") or "").casefold() == "user" and "/" in name:
+                continue
+            folders.append(MailboxFolder(identifier, name))
+        return tuple(
+            sorted(
+                folders,
+                key=lambda item: (
+                    item.id.casefold() != "inbox",
+                    item.name.casefold(),
+                    item.id.casefold(),
+                ),
+            )
+        )
+
     def sync(
         self,
         mailbox: EmailMailbox,
@@ -332,6 +370,7 @@ class GmailMailboxProvider(_HTTPProvider):
                     mailbox.sync_cursor,
                     headers,
                     limit,
+                    str(mailbox.settings.get("label") or "INBOX").strip(),
                 )
             except MailboxConnectionError as error:
                 if error.code != "sync_cursor_expired":
@@ -401,13 +440,20 @@ class GmailMailboxProvider(_HTTPProvider):
             if isinstance(item, dict) and item.get("id")
         ][:limit]
 
-    def _history_ids(self, cursor: str, headers, limit: int) -> list[str]:
+    def _history_ids(
+        self,
+        cursor: str,
+        headers,
+        limit: int,
+        label: str,
+    ) -> list[str]:
         ids: list[str] = []
         page_token = ""
         while len(ids) < limit:
             params = {
                 "startHistoryId": str(cursor),
                 "historyTypes": "messageAdded",
+                "labelId": label,
                 "maxResults": min(100, limit),
             }
             if page_token:
@@ -575,6 +621,44 @@ class Microsoft365MailboxProvider(_HTTPProvider):
             },
         )
 
+    def folders(self, access_token: str) -> tuple[MailboxFolder, ...]:
+        headers = {"Authorization": f"Bearer {access_token}"}
+        url = f"{self.GRAPH_ROOT}/me/mailFolders"
+        params = {
+            "$select": "id,displayName,isHidden",
+            "$top": 100,
+        }
+        folders: list[MailboxFolder] = []
+        while True:
+            payload = self._json(
+                "get",
+                url,
+                headers=headers,
+                params=params,
+            )
+            params = None
+            for item in payload.get("value", []):
+                if not isinstance(item, dict) or item.get("isHidden") is True:
+                    continue
+                identifier = str(item.get("id") or "").strip()
+                name = str(item.get("displayName") or identifier).strip()
+                if identifier and name:
+                    folders.append(MailboxFolder(identifier, name))
+            next_link = str(payload.get("@odata.nextLink") or "").strip()
+            if not next_link:
+                break
+            url = _safe_graph_cursor(next_link)
+        return tuple(
+            sorted(
+                folders,
+                key=lambda item: (
+                    item.name.casefold() != "inbox",
+                    item.name.casefold(),
+                    item.id.casefold(),
+                ),
+            )
+        )
+
     def sync(
         self,
         mailbox: EmailMailbox,
@@ -719,6 +803,51 @@ class IMAPMailboxProvider:
         self.imap_factory = imap_factory or imaplib.IMAP4
         self.imap_ssl_factory = imap_ssl_factory or imaplib.IMAP4_SSL
         self.clock = clock
+
+    def folders(
+        self,
+        mailbox: EmailMailbox,
+        credentials: dict,
+    ) -> tuple[MailboxFolder, ...]:
+        client = self._connect(mailbox, credentials)
+        try:
+            status, data = client.list("", "%")
+            if str(status).upper() != "OK":
+                raise MailboxConnectionError(
+                    "provider_request_failed",
+                    "IMAP folders could not be listed",
+                )
+            folders: list[MailboxFolder] = []
+            for raw in data or []:
+                if not isinstance(raw, bytes):
+                    continue
+                flags = {
+                    item.decode("ascii", errors="ignore").casefold()
+                    for item in imaplib.ParseFlags(raw)
+                }
+                if "\\noselect" in flags:
+                    continue
+                name = _imap_list_mailbox_name(raw)
+                if name:
+                    folders.append(MailboxFolder(name, name))
+            return tuple(
+                sorted(
+                    folders,
+                    key=lambda item: (
+                        item.id.casefold() != "inbox",
+                        item.name.casefold(),
+                    ),
+                )
+            )
+        except MailboxConnectionError:
+            raise
+        except imaplib.IMAP4.error as error:
+            raise MailboxConnectionError(
+                "provider_request_failed",
+                "IMAP folders could not be listed",
+            ) from error
+        finally:
+            self._close(client)
 
     def sync(
         self,
@@ -1046,6 +1175,99 @@ class MailboxConnectionService:
         )
         return mailbox
 
+    def list_mailbox_folders(
+        self,
+        actor: Actor,
+        mailbox_id: str,
+        *,
+        settings: dict | None = None,
+        credential: dict | None = None,
+    ) -> dict:
+        mailbox = self.store.get_mailbox(actor, mailbox_id)
+        credentials = self._credentials(actor, mailbox)
+
+        if mailbox.provider == "gmail":
+            if settings or credential:
+                raise ValueError(
+                    "Gmail folder discovery does not accept connection overrides"
+                )
+            access_token, _updated = self._oauth_access_token(
+                actor,
+                mailbox,
+                credentials,
+            )
+            folders = self.gmail.folders(access_token)
+            current = str(mailbox.settings.get("label") or "INBOX")
+            username = ""
+        elif mailbox.provider == "microsoft_365":
+            if settings or credential:
+                raise ValueError(
+                    "Microsoft 365 folder discovery does not accept connection overrides"
+                )
+            access_token, _updated = self._oauth_access_token(
+                actor,
+                mailbox,
+                credentials,
+            )
+            folders = self.microsoft.folders(access_token)
+            current = str(mailbox.settings.get("folder") or "inbox")
+            username = ""
+        elif mailbox.provider == "imap":
+            merged_settings = {
+                **mailbox.settings,
+                **dict(settings or {}),
+            }
+            normalized_settings = self._settings("imap", merged_settings)
+            merged_credentials = dict(credentials)
+            overrides = dict(credential or {})
+            unknown = set(overrides) - {"username", "password"}
+            if unknown:
+                raise ValueError(
+                    f"unsupported IMAP credential field: {sorted(unknown)[0]}"
+                )
+            if "username" in overrides:
+                username = str(overrides.get("username") or "").strip()
+                if not username:
+                    raise ValueError("IMAP username is required")
+                merged_credentials["username"] = username
+            if str(overrides.get("password") or ""):
+                merged_credentials["password"] = str(overrides["password"])
+            normalized_credentials = self._credential(
+                "imap",
+                merged_credentials,
+                existing=True,
+            )
+            candidate = replace(mailbox, settings=normalized_settings)
+            folders = self.imap.folders(candidate, normalized_credentials)
+            current = str(normalized_settings.get("folder") or "INBOX")
+            username = str(normalized_credentials.get("username") or "")
+        else:
+            raise ValueError("email mailbox provider is not supported")
+
+        selected = ""
+        for folder in folders:
+            if (
+                folder.id.casefold() == current.casefold()
+                or folder.name.casefold() == current.casefold()
+            ):
+                selected = folder.id
+                break
+        if not selected and folders:
+            selected = next(
+                (
+                    folder.id
+                    for folder in folders
+                    if folder.name.casefold() == "inbox"
+                    or folder.id.casefold() == "inbox"
+                ),
+                folders[0].id,
+            )
+        return {
+            "folders": [folder.public() for folder in folders],
+            "selected": selected,
+            "username": username,
+        }
+
     def update_mailbox(
         self,
         actor: Actor,
@@ -1053,18 +1275,121 @@ class MailboxConnectionService:
         *,
         name: str | None = None,
         settings: dict | None = None,
+        credential: dict | None = None,
         enabled: bool | None = None,
         shared: bool | None = None,
     ) -> EmailMailbox:
         mailbox = self.store.get_mailbox(actor, mailbox_id)
         settings_value = None
+        credential_value = None
+        reset_cursor = False
+        connection_validated = False
+
         if settings is not None:
-            settings_input = dict(settings)
+            settings_input = {
+                **mailbox.settings,
+                **dict(settings),
+            }
             if mailbox.provider == "microsoft_365":
                 settings_input["tenant"] = self._microsoft_tenant_id(
                     fallback=mailbox.settings.get("tenant")
                 )
             settings_value = self._settings(mailbox.provider, settings_input)
+
+        if credential is not None:
+            if mailbox.provider != "imap":
+                raise ValueError(
+                    "OAuth mailbox credentials are managed by the Nowlert instance"
+                )
+            existing_credentials = self._credentials(actor, mailbox)
+            credential_input = dict(existing_credentials)
+            supplied = dict(credential)
+            unknown = set(supplied) - {"username", "password"}
+            if unknown:
+                raise ValueError(
+                    f"unsupported IMAP credential field: {sorted(unknown)[0]}"
+                )
+            if "username" in supplied:
+                username = str(supplied.get("username") or "").strip()
+                if not username:
+                    raise ValueError("IMAP username is required")
+                credential_input["username"] = username
+            if str(supplied.get("password") or ""):
+                credential_input["password"] = str(supplied["password"])
+            credential_value = self._credential(
+                "imap",
+                credential_input,
+                existing=True,
+            )
+
+        candidate_settings = settings_value or mailbox.settings
+        candidate_credentials = None
+        connection_changed = False
+        if mailbox.provider == "gmail":
+            connection_changed = (
+                str(candidate_settings.get("label") or "INBOX")
+                != str(mailbox.settings.get("label") or "INBOX")
+            )
+        elif mailbox.provider == "microsoft_365":
+            connection_changed = (
+                str(candidate_settings.get("folder") or "inbox")
+                != str(mailbox.settings.get("folder") or "inbox")
+            )
+        elif mailbox.provider == "imap":
+            existing_credentials = (
+                self._credentials(actor, mailbox)
+                if credential_value is None
+                else None
+            )
+            candidate_credentials = credential_value or existing_credentials
+            reset_cursor = any(
+                candidate_settings.get(key) != mailbox.settings.get(key)
+                for key in ("host", "port", "security", "folder")
+            )
+            if credential_value is not None:
+                current_credentials = existing_credentials or self._credentials(
+                    actor,
+                    mailbox,
+                )
+                reset_cursor = reset_cursor or (
+                    credential_value.get("username")
+                    != current_credentials.get("username")
+                )
+            connection_changed = (
+                reset_cursor
+                or credential_value is not None
+                or settings_value is not None
+            )
+
+        if mailbox.provider in {"gmail", "microsoft_365"} and connection_changed:
+            discovered = self.list_mailbox_folders(actor, mailbox.id)
+            requested = str(
+                candidate_settings.get(
+                    "label" if mailbox.provider == "gmail" else "folder"
+                )
+                or ""
+            )
+            valid = {
+                str(item["id"]).casefold()
+                for item in discovered["folders"]
+            }
+            if requested.casefold() not in valid:
+                raise ValueError("selected mailbox folder is not available")
+            reset_cursor = True
+            connection_validated = True
+        elif mailbox.provider == "imap" and connection_changed:
+            candidate = replace(mailbox, settings=candidate_settings)
+            folders = self.imap.folders(candidate, candidate_credentials)
+            selected = str(candidate_settings.get("folder") or "INBOX")
+            if selected.casefold() not in {
+                folder.id.casefold() for folder in folders
+            }:
+                raise ValueError("selected IMAP folder is not available")
+            connection_validated = True
+
+        if credential_value is not None:
+            self._rotate_credentials(actor, mailbox, credential_value)
+
         updated = self.store.update_mailbox(
             actor,
             mailbox.id,
@@ -1073,6 +1398,16 @@ class MailboxConnectionService:
             enabled=enabled,
             shared=shared,
         )
+
+        if connection_validated:
+            updated = self.store.update_mailbox_connection(
+                actor,
+                mailbox.id,
+                connection_state="healthy",
+                sync_cursor="" if reset_cursor else None,
+                clear_error=True,
+            )
+
         self.audit.write(
             actor,
             "email.mailbox.update",
@@ -1083,6 +1418,7 @@ class MailboxConnectionService:
                 "provider": updated.provider,
                 "enabled": updated.enabled,
                 "shared": updated.shared,
+                "connection_updated": connection_changed,
             },
         )
         return updated
@@ -2050,6 +2386,21 @@ def _iso_timestamp(value, fallback: int) -> int:
         return int(fallback)
 
 
+def _imap_list_mailbox_name(value: bytes) -> str:
+    text = value.decode("utf-8", errors="replace").strip()
+    match = re.match(
+        r'^\([^)]*\)\s+(?:NIL|"(?:[^"\\]|\\.)*"|\S+)\s+(.+)$',
+        text,
+    )
+    if not match:
+        return ""
+    mailbox = match.group(1).strip()
+    if len(mailbox) >= 2 and mailbox[0] == mailbox[-1] == '"':
+        mailbox = mailbox[1:-1]
+        mailbox = mailbox.replace(r'\"', '"').replace(r"\\", "\\")
+    return mailbox.strip()
+
+
 def _imap_cursor(value: str) -> dict:
     if not str(value or "").strip():
         return {}
@@ -2080,6 +2431,7 @@ __all__ = [
     "IMAPMailboxProvider",
     "MailboxConnectionError",
     "MailboxConnectionService",
+    "MailboxFolder",
     "MailboxProviderMessage",
     "MailboxSyncBatch",
     "MailboxSyncScheduler",

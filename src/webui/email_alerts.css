@@ -487,6 +487,26 @@
   min-height: 40px;
 }
 
+.email-mailbox-folder-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.email-mailbox-folder-editor[hidden] {
+  display: none;
+}
+
+.email-mailbox-folder-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.email-mailbox-folder-actions small {
+  flex: 1 1 280px;
+}
+
 .email-mailbox-provider-hint {
   color: #c6bda9;
   font-size: 0.82rem;

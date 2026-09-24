@@ -312,7 +312,7 @@ class PlatformAPI:
             if path == "/api/v2/email-mailboxes/oauth-failed":
                 return self._email_oauth_failed(method, payload, actor)
             email_mailbox_match = re.fullmatch(
-                r"/api/v2/email-mailboxes/([0-9a-f]{32})(?:/(oauth-start|oauth-complete|sync))?",
+                r"/api/v2/email-mailboxes/([0-9a-f]{32})(?:/(oauth-start|oauth-complete|sync|folders))?",
                 path,
             )
             if email_mailbox_match:
@@ -1471,7 +1471,7 @@ class PlatformAPI:
             if method == "PATCH":
                 data = self._object(
                     payload,
-                    {"name", "settings", "enabled", "shared"},
+                    {"name", "settings", "credential", "enabled", "shared"},
                 )
                 mailbox = self.email_connections.update_mailbox(
                     actor,
@@ -1480,6 +1480,11 @@ class PlatformAPI:
                     settings=(
                         data.get("settings")
                         if "settings" in data
+                        else None
+                    ),
+                    credential=(
+                        data.get("credential")
+                        if "credential" in data
                         else None
                     ),
                     enabled=(
@@ -1554,6 +1559,39 @@ class PlatformAPI:
                     "mailbox": self._email_mailbox(mailbox),
                     "sync": summary.public(),
                 },
+            )
+
+        if action == "folders":
+            if method == "GET":
+                result = self.email_connections.list_mailbox_folders(
+                    actor,
+                    mailbox_id,
+                )
+            elif method == "POST":
+                data = self._object(
+                    payload or {},
+                    {"settings", "credential"},
+                )
+                result = self.email_connections.list_mailbox_folders(
+                    actor,
+                    mailbox_id,
+                    settings=(
+                        data.get("settings")
+                        if "settings" in data
+                        else None
+                    ),
+                    credential=(
+                        data.get("credential")
+                        if "credential" in data
+                        else None
+                    ),
+                )
+            else:
+                return self._method_not_allowed("GET, POST")
+            return APIResponse(
+                200,
+                {"folders": result},
+                (("Cache-Control", "no-store"),),
             )
 
         return APIResponse(404, {"error": "resource not found"})

@@ -52,6 +52,17 @@ class GmailHTTP:
 
     def get(self, url, **kwargs):
         self.calls.append(("get", url, kwargs))
+        if url.endswith("/labels"):
+            return Response(
+                payload={
+                    "labels": [
+                        {"id": "INBOX", "name": "Inbox", "type": "system"},
+                        {"id": "SENT", "name": "Sent", "type": "system"},
+                        {"id": "Label_1", "name": "Operations", "type": "user"},
+                        {"id": "Label_2", "name": "Operations/Nested", "type": "user"},
+                    ]
+                }
+            )
         if url.endswith("/messages"):
             return Response(payload={"messages": [{"id": "gmail-message-1"}]})
         if url.endswith("/messages/gmail-message-1"):
@@ -118,6 +129,16 @@ class MicrosoftHTTP:
 
     def get(self, url, **kwargs):
         self.calls.append(("get", url, kwargs))
+        if url.endswith("/me/mailFolders"):
+            return Response(
+                payload={
+                    "value": [
+                        {"id": "folder-inbox", "displayName": "Inbox", "isHidden": False},
+                        {"id": "folder-ops", "displayName": "Operations", "isHidden": False},
+                        {"id": "folder-hidden", "displayName": "Hidden", "isHidden": True},
+                    ]
+                }
+            )
         if "/messages/delta" in url:
             return Response(
                 payload={
@@ -168,6 +189,16 @@ class FakeIMAP:
         self.logged_in = True
         return "OK", [b"logged in"]
 
+    def list(self, reference="", pattern="*"):
+        assert self.logged_in is True
+        assert reference == ""
+        assert pattern == "%"
+        return "OK", [
+            b'(\\HasNoChildren) "/" "INBOX"',
+            b'(\\HasNoChildren) "/" "Operations"',
+            b'(\\Noselect \\HasChildren) "/" "Archive"',
+        ]
+
     def select(self, folder, readonly=True):
         assert self.logged_in is True
         assert folder == "INBOX"
@@ -208,6 +239,27 @@ class FakeIMAP:
 
     def logout(self):
         return "BYE", []
+
+
+class EditableIMAP(FakeIMAP):
+    def login(self, username, password):
+        assert username == "edited@example.com"
+        assert password == "new-password"
+        self.logged_in = True
+        return "OK", [b"logged in"]
+
+    def list(self, reference="", pattern="*"):
+        assert self.logged_in is True
+        return "OK", [
+            b'(\\HasNoChildren) "/" "INBOX"',
+            b'(\\HasNoChildren) "/" "Alerts"',
+        ]
+
+    def select(self, folder, readonly=True):
+        assert self.logged_in is True
+        assert folder in {"INBOX", "Alerts"}
+        assert readonly is True
+        return "OK", [b"0"]
 
 
 def user(database, identifier="u" * 32):
@@ -623,6 +675,211 @@ def test_microsoft_oauth_uses_instance_tenant_id(tmp_path):
     )
     start = service.oauth_start(actor, mailbox.id)
     assert "login.microsoftonline.com/152cc14d-5969-4329-a9a0-c1ddb5e3232b/oauth2/v2.0/authorize" in start.authorization_url
+
+def test_gmail_folder_discovery_returns_only_top_level_labels(tmp_path):
+    now = 2_000_000_000
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    service = MailboxConnectionService(
+        database,
+        http=GmailHTTP(),
+        clock=lambda: now,
+        oauth_applications={
+            "gmail": {
+                "client_id": "client",
+                "client_secret": "secret",
+                "redirect_uri": "https://nowlert.example/ui/",
+            },
+            "microsoft_365": {},
+        },
+    )
+    mailbox = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "gmail",
+        "alerts@example.com",
+        name="Gmail alerts",
+        credential={
+            "access_token": "existing",
+            "refresh_token": "refresh",
+            "expires_at": now + 3600,
+        },
+    )
+
+    result = service.list_mailbox_folders(actor, mailbox.id)
+
+    assert result["folders"] == [
+        {"id": "INBOX", "name": "Inbox"},
+        {"id": "Label_1", "name": "Operations"},
+        {"id": "SENT", "name": "Sent"},
+    ]
+    assert result["selected"] == "INBOX"
+    assert result["username"] == ""
+
+
+def test_microsoft_folder_discovery_returns_root_mail_folders(tmp_path):
+    now = 2_000_000_000
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    service = MailboxConnectionService(
+        database,
+        http=MicrosoftHTTP(),
+        clock=lambda: now,
+        oauth_applications={
+            "gmail": {},
+            "microsoft_365": {
+                "client_id": "client",
+                "client_secret": "secret",
+                "redirect_uri": "https://nowlert.example/ui/",
+                "tenant_id": "organizations",
+            },
+        },
+    )
+    mailbox = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "microsoft_365",
+        "alerts@example.com",
+        name="Microsoft alerts",
+        credential={
+            "access_token": "graph-access",
+            "refresh_token": "graph-refresh",
+            "expires_at": now + 3600,
+        },
+    )
+
+    result = service.list_mailbox_folders(actor, mailbox.id)
+
+    assert result["folders"] == [
+        {"id": "folder-inbox", "name": "Inbox"},
+        {"id": "folder-ops", "name": "Operations"},
+    ]
+    assert result["selected"] == "folder-inbox"
+
+
+def test_imap_folder_discovery_and_edit_rotates_credentials_without_exposure(tmp_path):
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    service = MailboxConnectionService(
+        database,
+        imap_ssl_factory=EditableIMAP,
+    )
+    mailbox = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "imap",
+        "alerts@example.com",
+        name="IMAP alerts",
+        settings={
+            "host": "imap.example.invalid",
+            "port": 993,
+            "security": "ssl",
+        },
+        credential={
+            "username": "edited@example.com",
+            "password": "new-password",
+        },
+    )
+
+    folders = service.list_mailbox_folders(actor, mailbox.id)
+    assert folders["folders"] == [
+        {"id": "INBOX", "name": "INBOX"},
+        {"id": "Alerts", "name": "Alerts"},
+    ]
+    assert folders["username"] == "edited@example.com"
+
+    service.store.update_mailbox_connection(
+        actor,
+        mailbox.id,
+        connection_state="healthy",
+        sync_cursor='{"uidvalidity":"777","last_uid":42}',
+    )
+    updated = service.update_mailbox(
+        actor,
+        mailbox.id,
+        name="Edited IMAP",
+        settings={"folder": "Alerts"},
+        credential={
+            "username": "edited@example.com",
+            "password": "new-password",
+        },
+    )
+
+    assert updated.name == "Edited IMAP"
+    assert updated.settings["folder"] == "Alerts"
+    assert updated.sync_cursor == ""
+    assert updated.connection_state == "healthy"
+
+    secret_id = service.store.mailbox_secret_id(actor, mailbox.id)
+    secret = json.loads(service.secrets.resolve(actor, secret_id).decode("utf-8"))
+    assert secret == {
+        "password": "new-password",
+        "username": "edited@example.com",
+    }
+    public = PlatformAPI._email_mailbox(updated)
+    assert "credential" not in public
+    assert "password" not in json.dumps(public)
+
+
+def test_gmail_folder_change_resets_cursor_and_filters_incremental_history(tmp_path):
+    now = 2_000_000_000
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    http = GmailHTTP()
+    service = MailboxConnectionService(
+        database,
+        http=http,
+        clock=lambda: now,
+        oauth_applications={
+            "gmail": {
+                "client_id": "client",
+                "client_secret": "secret",
+                "redirect_uri": "https://nowlert.example/ui/",
+            },
+            "microsoft_365": {},
+        },
+    )
+    mailbox = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "gmail",
+        "alerts@example.com",
+        credential={
+            "access_token": "existing",
+            "refresh_token": "refresh",
+            "expires_at": now + 3600,
+        },
+    )
+    service.store.update_mailbox_connection(
+        actor,
+        mailbox.id,
+        connection_state="healthy",
+        sync_cursor="99",
+    )
+
+    updated = service.update_mailbox(
+        actor,
+        mailbox.id,
+        settings={"label": "Label_1"},
+    )
+
+    assert updated.settings["label"] == "Label_1"
+    assert updated.sync_cursor == ""
+
+    service.store.update_mailbox_connection(
+        actor,
+        mailbox.id,
+        connection_state="healthy",
+        sync_cursor="100",
+    )
+    service.sync_mailbox(actor, mailbox.id)
+    history_call = next(call for call in http.calls if call[1].endswith("/history"))
+    assert history_call[2]["params"]["labelId"] == "Label_1"
+
 
 def test_transient_sync_failure_stays_retryable_without_losing_credentials(tmp_path):
     class OfflineIMAP:

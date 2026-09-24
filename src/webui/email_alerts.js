@@ -394,6 +394,12 @@ function emailRenderMailboxCards() {
       actions.push(
         element("button", {
           className: "button small secondary",
+          text: "Edit",
+          type: "button",
+          dataset: { emailAction: "edit-mailbox", id: mailbox.id },
+        }),
+        element("button", {
+          className: "button small secondary",
           text: "Sync now",
           type: "button",
           dataset: { emailAction: "sync-mailbox", id: mailbox.id },
@@ -875,12 +881,6 @@ function emailEnsureDialogs() {
           emailOption("true", "Shared"),
         ])),
       ]),
-      element("div", { attributes: { id: "email-gmail-settings" } }, [
-        emailLabel("Gmail label", element("input", { value: "INBOX", attributes: { id: "email-gmail-label", maxlength: "128" } })),
-      ]),
-      element("div", { attributes: { id: "email-microsoft-settings" }, hidden: true }, [
-        emailLabel("Folder", element("input", { value: "inbox", attributes: { id: "email-microsoft-folder", maxlength: "256" } })),
-      ]),
       element("div", { className: "form-grid", attributes: { id: "email-imap-fields" }, hidden: true }, [
         emailLabel("IMAP host", element("input", { attributes: { id: "email-imap-host", maxlength: "253", placeholder: "imap.example.com" } })),
         emailLabel("Port", element("input", { type: "number", value: "993", attributes: { id: "email-imap-port", min: "1", max: "65535" } })),
@@ -888,9 +888,31 @@ function emailEnsureDialogs() {
           emailOption("ssl", "SSL / TLS"),
           emailOption("starttls", "STARTTLS"),
         ])),
-        emailLabel("Folder", element("input", { value: "INBOX", attributes: { id: "email-imap-folder", maxlength: "512" } })),
         emailLabel("Username", element("input", { attributes: { id: "email-imap-username", autocomplete: "username" } })),
         emailLabel("Password / app password", element("input", { type: "password", attributes: { id: "email-imap-password", autocomplete: "new-password" } })),
+      ]),
+      element("div", {
+        className: "email-mailbox-folder-editor",
+        attributes: { id: "email-mailbox-folder-editor" },
+        hidden: true,
+      }, [
+        emailLabel("Folder", element("select", {
+          attributes: { id: "email-mailbox-folder" },
+        })),
+        element("div", { className: "email-mailbox-folder-actions" }, [
+          element("button", {
+            className: "button small secondary",
+            text: "Scan folders",
+            type: "button",
+            dataset: { emailAction: "scan-mailbox-folders" },
+            attributes: { id: "email-mailbox-folder-scan" },
+          }),
+          element("small", {
+            className: "muted",
+            text: "Folders are read directly from the connected mailbox and are never guessed.",
+            attributes: { id: "email-mailbox-folder-help" },
+          }),
+        ]),
       ]),
       element("p", {
         className: "email-mailbox-provider-hint",
@@ -1106,43 +1128,89 @@ async function emailSaveSeverity(event) {
 }
 
 function emailMailboxProviderFields() {
+  const form = byId("email-mailbox-form");
   const provider = byId("email-mailbox-provider")?.value || "gmail";
+  const editing = Boolean(form?.dataset.mailboxId);
   const oauth = provider !== "imap";
   const configured = emailProviderConfigured(provider);
-  byId("email-imap-fields").hidden = provider !== "imap";
-  byId("email-gmail-settings").hidden = provider !== "gmail";
-  byId("email-microsoft-settings").hidden = provider !== "microsoft_365";
 
-  for (const id of ["email-imap-host", "email-imap-username", "email-imap-password"]) {
+  byId("email-imap-fields").hidden = provider !== "imap";
+  byId("email-mailbox-folder-editor").hidden = !editing;
+
+  byId("email-mailbox-provider").disabled = editing;
+  byId("email-mailbox-address").disabled = editing;
+  byId("email-mailbox-shared").disabled = (
+    editing
+    && form?.dataset.ownerId
+    && String(form.dataset.ownerId) !== String(state.user?.id || "")
+  );
+
+  for (const id of ["email-imap-host", "email-imap-username"]) {
     const input = byId(id);
     if (!input) continue;
     input.disabled = provider !== "imap";
     input.required = provider === "imap";
   }
+  const password = byId("email-imap-password");
+  if (password) {
+    password.disabled = provider !== "imap";
+    password.required = provider === "imap" && !editing;
+    password.placeholder = editing
+      ? "Leave blank to keep the current password"
+      : "";
+  }
 
   const hint = byId("email-mailbox-provider-hint");
   if (hint) {
-    if (oauth && !configured) {
+    if (editing) {
+      hint.textContent = provider === "gmail"
+        ? "Edit the mailbox name, visibility, and scanned Gmail label. OAuth authorization remains unchanged."
+        : provider === "microsoft_365"
+          ? "Edit the mailbox name, visibility, and scanned Microsoft 365 folder. OAuth authorization remains unchanged."
+          : "Edit the IMAP connection safely. Leave the password blank to keep the stored password, then scan folders before saving a new folder.";
+    } else if (oauth && !configured) {
       hint.textContent = `${emailProviderLabel(provider)} connections are not configured on this Nowlert instance. An administrator must configure the OAuth application once at deployment level.`;
     } else {
       hint.textContent = provider === "gmail"
-        ? "Continue to Google to sign in and grant Nowlert read-only Gmail access. You never need to provide an OAuth client ID or client secret."
+        ? "Continue to Google to sign in and grant Nowlert read-only Gmail access. Folder selection is available after the mailbox is connected."
         : provider === "microsoft_365"
-          ? "Continue to Microsoft to sign in and grant Nowlert read-only Mail access. You never need to provide an OAuth client ID or client secret."
-          : "Nowlert connects directly to the IMAP/IMAPS server with the username and password or app password below.";
+          ? "Continue to Microsoft to sign in and grant Nowlert read-only Mail access. Folder selection is available after the mailbox is connected."
+          : "Nowlert connects directly to the IMAP/IMAPS server with the username and password or app password below. Folder selection is available after the mailbox is connected.";
     }
   }
-  const submit = byId("email-mailbox-submit");
-  if (submit) {
-    submit.textContent = provider === "gmail"
-      ? "Continue to Google"
+
+  const folderEditor = byId("email-mailbox-folder-editor");
+  const folderLabel = folderEditor?.querySelector("label > span");
+  if (folderLabel && editing) {
+    folderLabel.textContent = provider === "gmail"
+      ? "Inbox label"
       : provider === "microsoft_365"
-        ? "Continue to Microsoft"
-        : "Connect mailbox";
-    submit.disabled = !configured;
+        ? "Inbox folder"
+        : "Folder";
   }
 
-  if (provider === "imap") {
+  const folderHelp = byId("email-mailbox-folder-help");
+  if (folderHelp && editing) {
+    folderHelp.textContent = provider === "gmail"
+      ? "Choose a top-level Gmail label scanned from this account."
+      : provider === "microsoft_365"
+        ? "Choose a top-level Microsoft 365 mail folder scanned from this account."
+        : "Choose a top-level IMAP folder scanned from the configured server.";
+  }
+
+  const submit = byId("email-mailbox-submit");
+  if (submit) {
+    submit.textContent = editing
+      ? "Save changes"
+      : provider === "gmail"
+        ? "Continue to Google"
+        : provider === "microsoft_365"
+          ? "Continue to Microsoft"
+          : "Connect mailbox";
+    submit.disabled = !editing && !configured;
+  }
+
+  if (provider === "imap" && !editing && !form?.dataset.portTouched) {
     const security = byId("email-imap-security").value;
     byId("email-imap-port").value = security === "ssl" ? "993" : "143";
   }
@@ -1218,23 +1286,138 @@ function emailOpenRule(rule = null) {
   byId("email-rule-name").focus();
 }
 
+function emailResetMailboxFolderOptions(text = "Scan folders to choose") {
+  const select = byId("email-mailbox-folder");
+  select.replaceChildren(emailOption("", text));
+  select.value = "";
+  select.disabled = true;
+}
+
 function emailOpenMailbox(provider = "") {
   emailEnsureDialogs();
+  const form = byId("email-mailbox-form");
   const selectedProvider = ["gmail", "microsoft_365", "imap"].includes(provider)
     ? provider
     : emailDefaultMailboxProvider();
-  byId("email-mailbox-form").reset();
+  form.reset();
+  form.dataset.mailboxId = "";
+  form.dataset.ownerId = "";
+  form.dataset.portTouched = "";
   byId("email-mailbox-provider").value = selectedProvider;
-  byId("email-gmail-label").value = "INBOX";
-  byId("email-microsoft-folder").value = "inbox";
   byId("email-imap-port").value = "993";
   byId("email-imap-security").value = "ssl";
-  byId("email-imap-folder").value = "INBOX";
   byId("email-mailbox-shared").value = "false";
   byId("email-mailbox-error").hidden = true;
+  emailResetMailboxFolderOptions();
+  byId("email-mailbox-dialog").querySelector("h2").textContent = "Connect mailbox";
   emailMailboxProviderFields();
   byId("email-mailbox-dialog").showModal();
   byId("email-mailbox-address")?.focus();
+}
+
+function emailPopulateMailboxFolders(result) {
+  const select = byId("email-mailbox-folder");
+  const folders = Array.isArray(result?.folders) ? result.folders : [];
+  select.replaceChildren();
+  for (const folder of folders) {
+    if (!folder?.id) continue;
+    select.append(emailOption(String(folder.id), String(folder.name || folder.id)));
+  }
+  const selected = String(result?.selected || "");
+  if (
+    selected
+    && ![...select.options].some((option) => option.value === selected)
+  ) {
+    select.append(emailOption(selected, selected));
+  }
+  if (!select.options.length) {
+    select.append(emailOption("", "No selectable folders found"));
+  }
+  select.value = selected || select.options[0]?.value || "";
+  select.disabled = !folders.length;
+}
+
+function emailMailboxImapScanPayload() {
+  const body = {
+    settings: {
+      host: byId("email-imap-host").value.trim(),
+      port: Number(byId("email-imap-port").value),
+      security: byId("email-imap-security").value,
+    },
+    credential: {},
+  };
+  const username = byId("email-imap-username").value.trim();
+  const password = byId("email-imap-password").value;
+  if (username) body.credential.username = username;
+  if (password) body.credential.password = password;
+  return body;
+}
+
+async function emailScanMailboxFolders({ manual = true } = {}) {
+  const form = byId("email-mailbox-form");
+  const mailboxId = form?.dataset.mailboxId || "";
+  if (!mailboxId) return;
+
+  const scan = byId("email-mailbox-folder-scan");
+  const select = byId("email-mailbox-folder");
+  const provider = byId("email-mailbox-provider").value;
+  if (scan) scan.disabled = true;
+  select.disabled = true;
+  if (manual) {
+    select.replaceChildren(emailOption("", "Scanning mailbox folders…"));
+  }
+  try {
+    const response = provider === "imap" && manual
+      ? await request(`/email-mailboxes/${mailboxId}/folders`, {
+          method: "POST",
+          body: emailMailboxImapScanPayload(),
+        })
+      : await request(`/email-mailboxes/${mailboxId}/folders`);
+
+    const result = response.folders || {};
+    if (provider === "imap" && result.username) {
+      byId("email-imap-username").value = result.username;
+    }
+    emailPopulateMailboxFolders(result);
+  } catch (error) {
+    emailResetMailboxFolderOptions("Folder scan unavailable");
+    const formError = byId("email-mailbox-error");
+    formError.textContent = error.message || "Mailbox folders could not be scanned.";
+    formError.hidden = false;
+  } finally {
+    if (scan) scan.disabled = false;
+  }
+}
+
+function emailOpenMailboxEdit(mailbox) {
+  if (!mailbox) return;
+  emailEnsureDialogs();
+  const form = byId("email-mailbox-form");
+  form.reset();
+  form.dataset.mailboxId = mailbox.id;
+  form.dataset.ownerId = mailbox.owner_user_id || "";
+  form.dataset.portTouched = "";
+
+  byId("email-mailbox-provider").value = mailbox.provider;
+  byId("email-mailbox-name").value = mailbox.name || "";
+  byId("email-mailbox-address").value = mailbox.address || "";
+  byId("email-mailbox-shared").value = String(Boolean(mailbox.shared));
+  byId("email-mailbox-error").hidden = true;
+  emailResetMailboxFolderOptions("Loading mailbox folders…");
+
+  if (mailbox.provider === "imap") {
+    byId("email-imap-host").value = mailbox.settings?.host || "";
+    byId("email-imap-port").value = String(mailbox.settings?.port || 993);
+    byId("email-imap-security").value = mailbox.settings?.security || "ssl";
+    byId("email-imap-username").value = "";
+    byId("email-imap-password").value = "";
+  }
+
+  byId("email-mailbox-dialog").querySelector("h2").textContent = "Edit mailbox";
+  emailMailboxProviderFields();
+  byId("email-mailbox-dialog").showModal();
+  byId("email-mailbox-name")?.focus();
+  void emailScanMailboxFolders({ manual: false });
 }
 
 function emailReadConditions() {
@@ -1304,50 +1487,94 @@ async function emailSaveRule(event) {
 
 async function emailSaveMailbox(event) {
   event.preventDefault();
+  const form = event.currentTarget;
+  const mailboxId = form.dataset.mailboxId || "";
+  const editing = Boolean(mailboxId);
   const error = byId("email-mailbox-error");
   error.hidden = true;
   const provider = byId("email-mailbox-provider").value;
-  const body = {
-    provider,
-    name: byId("email-mailbox-name").value.trim(),
-    address: byId("email-mailbox-address").value.trim(),
-    enabled: true,
-    shared: byId("email-mailbox-shared").value === "true",
-  };
-  if (provider === "gmail") {
-    body.settings = {
-      label: byId("email-gmail-label").value.trim() || "INBOX",
-    };
-  } else if (provider === "microsoft_365") {
-    body.settings = {
-      folder: byId("email-microsoft-folder").value.trim() || "inbox",
-    };
-  } else {
-    body.settings = {
-      host: byId("email-imap-host").value.trim(),
-      port: Number(byId("email-imap-port").value),
-      security: byId("email-imap-security").value,
-      folder: byId("email-imap-folder").value.trim() || "INBOX",
-    };
-    body.credential = {
-      username: byId("email-imap-username").value,
-      password: byId("email-imap-password").value,
-    };
-  }
+
   try {
-    const response = await request("/email-mailboxes", { method: "POST", body });
+    if (editing) {
+      const folder = byId("email-mailbox-folder").value;
+      if (!folder) {
+        throw new Error("Scan and select a mailbox folder before saving.");
+      }
+      const body = {
+        name: byId("email-mailbox-name").value.trim(),
+      };
+      if (
+        String(form.dataset.ownerId || "")
+        === String(state.user?.id || "")
+      ) {
+        body.shared = byId("email-mailbox-shared").value === "true";
+      }
+      if (provider === "gmail") {
+        body.settings = { label: folder };
+      } else if (provider === "microsoft_365") {
+        body.settings = { folder };
+      } else {
+        body.settings = {
+          host: byId("email-imap-host").value.trim(),
+          port: Number(byId("email-imap-port").value),
+          security: byId("email-imap-security").value,
+          folder,
+        };
+        body.credential = {
+          username: byId("email-imap-username").value.trim(),
+        };
+        const password = byId("email-imap-password").value;
+        if (password) body.credential.password = password;
+      }
+      await request(`/email-mailboxes/${mailboxId}`, {
+        method: "PATCH",
+        body,
+      });
+      byId("email-mailbox-dialog").close();
+      toast("Mailbox updated.", "success");
+      await emailLoad(true);
+      return;
+    }
+
+    const body = {
+      provider,
+      name: byId("email-mailbox-name").value.trim(),
+      address: byId("email-mailbox-address").value.trim(),
+      enabled: true,
+      shared: byId("email-mailbox-shared").value === "true",
+    };
+    if (provider === "imap") {
+      body.settings = {
+        host: byId("email-imap-host").value.trim(),
+        port: Number(byId("email-imap-port").value),
+        security: byId("email-imap-security").value,
+      };
+      body.credential = {
+        username: byId("email-imap-username").value.trim(),
+        password: byId("email-imap-password").value,
+      };
+    }
+
+    const response = await request("/email-mailboxes", {
+      method: "POST",
+      body,
+    });
     byId("email-mailbox-dialog").close();
     toast("Mailbox added.", "success");
     await emailLoad(true);
     if (["gmail", "microsoft_365"].includes(response.mailbox.provider)) {
-      const connect = await request(`/email-mailboxes/${response.mailbox.id}/oauth-start`, {
-        method: "POST",
-        body: {},
-      });
+      const connect = await request(
+        `/email-mailboxes/${response.mailbox.id}/oauth-start`,
+        { method: "POST", body: {} },
+      );
       window.location.assign(connect.oauth.authorization_url);
     }
   } catch (requestError) {
-    error.textContent = requestError.message || "The mailbox could not be added.";
+    error.textContent = requestError.message || (
+      editing
+        ? "The mailbox could not be updated."
+        : "The mailbox could not be added."
+    );
     error.hidden = false;
   }
 }
@@ -1357,6 +1584,15 @@ async function emailAction(action, id, node) {
     if (action === "new-group") return emailOpenGroup();
     if (action === "new-rule") return emailOpenRule();
     if (action === "new-mailbox") return emailOpenMailbox(node?.dataset.provider || "");
+    if (action === "edit-mailbox") {
+      return emailOpenMailboxEdit(
+        emailAlertsState.mailboxes.find((mailbox) => mailbox.id === id),
+      );
+    }
+    if (action === "scan-mailbox-folders") {
+      await emailScanMailboxFolders({ manual: true });
+      return;
+    }
     if (action === "refresh") return emailLoad(true);
     if (action === "close-dialog") {
       byId(node.dataset.dialog)?.close();
@@ -1578,7 +1814,15 @@ byId("email-group-form")?.addEventListener("submit", emailSaveGroup);
 byId("email-rule-form")?.addEventListener("submit", emailSaveRule);
 byId("email-mailbox-form")?.addEventListener("submit", emailSaveMailbox);
 byId("email-severity-form")?.addEventListener("submit", emailSaveSeverity);
-byId("email-imap-security")?.addEventListener("change", emailMailboxProviderFields);
+byId("email-imap-security")?.addEventListener("change", () => {
+  const form = byId("email-mailbox-form");
+  if (form) form.dataset.portTouched = "";
+  emailMailboxProviderFields();
+});
+byId("email-imap-port")?.addEventListener("input", () => {
+  const form = byId("email-mailbox-form");
+  if (form) form.dataset.portTouched = "true";
+});
 
 const emailOriginalNavigate = navigate;
 navigate = function navigateEmailAlerts(view, historyMode = "push") {
