@@ -481,6 +481,7 @@ def test_phase7_email_alerts_webui_is_packaged_and_normal_user_visible(tmp_path)
 def test_email_alerts_mailbox_connect_ux_exposes_provider_login_paths():
     script = (ROOT / "src" / "webui" / "email_alerts.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "email_alerts.css").read_text(encoding="utf-8")
+    markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
 
     assert 'text: "+ Connect mailbox"' in script
     assert 'dataset: { emailAction: "new-mailbox" }' in script
@@ -492,7 +493,18 @@ def test_email_alerts_mailbox_connect_ux_exposes_provider_login_paths():
     assert '"Continue to Google"' in script
     assert '"Continue to Microsoft"' in script
     assert 'id: "email-mailbox-provider-hint"' in script
-    assert 'input.required = provider === "imap"' in script
+    assert 'password.required = provider === "imap" && !editing' in script
+    assert 'dataset: { emailAction: "edit-mailbox", id: mailbox.id }' in script
+    assert 'data-email-action="edit-mailbox"' not in markup
+    assert '/folders' in script
+    assert 'text: "Scan folders"' in script
+    assert 'text: "Save changes"' not in script
+    assert '"Save changes"' in script
+    assert "email-gmail-label" not in script
+    assert "email-microsoft-folder" not in script
+    assert "email-imap-folder" not in script
+    assert "Leave blank to keep the current password" in script
+    assert "Folder selection is available after the mailbox is connected." in script
     assert "email-oauth-client-id" not in script
     assert "email-oauth-client-secret" not in script
     assert "email-oauth-redirect" not in script
@@ -502,6 +514,22 @@ def test_email_alerts_mailbox_connect_ux_exposes_provider_login_paths():
     assert ".email-mailbox-connect-actions" in styles
     assert ".email-mailbox-connect-empty" in styles
 
+
+
+def test_mailbox_edit_uses_scanned_folders_and_keeps_create_folderless():
+    script = (ROOT / "src" / "webui" / "email_alerts.js").read_text(encoding="utf-8")
+
+    assert "function emailOpenMailboxEdit(mailbox)" in script
+    assert "function emailScanMailboxFolders" in script
+    assert 'method: "PATCH"' in script
+    assert 'body.settings = { label: folder }' in script
+    assert 'body.settings = { folder }' in script
+    assert 'folder,' in script
+    assert 'if (password) body.credential.password = password;' in script
+    assert 'byId("email-mailbox-provider").disabled = editing' in script
+    assert 'byId("email-mailbox-address").disabled = editing' in script
+    assert 'body.settings = {' in script
+    assert 'host: byId("email-imap-host").value.trim()' in script
 
 
 def test_oauth_mailbox_sync_button_waits_for_authorization():
