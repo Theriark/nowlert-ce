@@ -267,6 +267,58 @@ def test_message_deduplication_is_within_mailbox_scope(tmp_path):
         ).fetchone()[0] == 2
 
 
+def test_message_deduplication_crosses_providers_for_same_address(tmp_path):
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = create_user(database, "u" * 32, "user")
+    store = EmailAlertStore(database, clock=lambda: 1000)
+
+    gmail = store.create_mailbox(
+        actor,
+        actor.user_id,
+        "gmail",
+        "alerts@example.com",
+        name="Gmail",
+    )
+    imap = store.create_mailbox(
+        actor,
+        actor.user_id,
+        "imap",
+        "alerts@example.com",
+        name="IMAP",
+    )
+
+    first, first_created = store.record_message(
+        actor,
+        gmail.id,
+        provider_message_id="gmail-provider-id",
+        internet_message_id="<shared-message@example.invalid>",
+        sender="sender@example.invalid",
+        recipients=["alerts@example.com"],
+        subject="Provider-native copy",
+    )
+    duplicate, duplicate_created = store.record_message(
+        actor,
+        imap.id,
+        provider_message_id="imap:777:42",
+        internet_message_id="shared-message@example.invalid",
+        sender="sender@example.invalid",
+        recipients=["alerts@example.com"],
+        subject="Same physical email through IMAP",
+    )
+
+    assert first_created is True
+    assert duplicate_created is False
+    assert duplicate.id == first.id
+    assert duplicate.mailbox_id == gmail.id
+    assert duplicate.subject == "Provider-native copy"
+
+    with database.connect() as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM email_messages"
+        ).fetchone()[0] == 1
+
+
 def test_raw_content_is_separate_and_expires_before_metadata(tmp_path):
     now = 2_000_000_000
     database = Database(tmp_path / "state" / "nowlert.db")

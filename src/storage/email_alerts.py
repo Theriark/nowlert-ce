@@ -727,6 +727,45 @@ class EmailAlertStore:
             str(mailbox_row["owner_user_id"]),
         )
         owner_user_id = str(mailbox_row["owner_user_id"])
+        internet_value = str(internet_message_id or "").strip()
+        if internet_value.startswith("<") and internet_value.endswith(">"):
+            canonical_internet_id = internet_value[1:-1].strip()
+        else:
+            canonical_internet_id = internet_value
+
+        if canonical_internet_id:
+            message_id_variants = tuple(
+                dict.fromkeys(
+                    (
+                        canonical_internet_id,
+                        f"<{canonical_internet_id}>",
+                        internet_value,
+                    )
+                )
+            )
+            placeholders = ", ".join("?" for _ in message_id_variants)
+            with self.database.connect() as connection:
+                existing = connection.execute(
+                    f"""
+                    SELECT email_messages.*
+                    FROM email_messages
+                    JOIN email_mailboxes
+                      ON email_mailboxes.id = email_messages.mailbox_id
+                    WHERE email_messages.owner_user_id = ?
+                      AND email_mailboxes.address_normalized = ?
+                      AND email_messages.internet_message_id IN ({placeholders})
+                    ORDER BY email_messages.created_at, email_messages.id
+                    LIMIT 1
+                    """,
+                    (
+                        owner_user_id,
+                        str(mailbox_row["address_normalized"]),
+                        *message_id_variants,
+                    ),
+                ).fetchone()
+            if existing is not None:
+                return self._message(existing), False
+
         identity = email_message_identity(
             str(mailbox_id),
             provider_message_id=provider_message_id,
