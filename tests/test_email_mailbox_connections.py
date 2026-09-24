@@ -10,7 +10,11 @@ import pytest
 
 from api.platform import PlatformAPI
 from email_alert_pipeline import email_message_text
-from inputs.email_mailboxes import MailboxConnectionService, email_oauth_applications
+from inputs.email_mailboxes import (
+    MailboxConnectionService,
+    MailboxSyncScheduler,
+    email_oauth_applications,
+)
 from storage.database import Database
 from storage.ownership import Actor
 
@@ -617,3 +621,51 @@ def test_microsoft_oauth_uses_instance_tenant_id(tmp_path):
     )
     start = service.oauth_start(actor, mailbox.id)
     assert "login.microsoftonline.com/152cc14d-5969-4329-a9a0-c1ddb5e3232b/oauth2/v2.0/authorize" in start.authorization_url
+
+def test_mailbox_sync_scheduler_runs_immediately_on_fast_background_thread():
+    class RecordingService:
+        def __init__(self):
+            self.calls = 0
+            self.called = __import__("threading").Event()
+
+        def sync_ready_mailboxes(self):
+            self.calls += 1
+            self.called.set()
+            return []
+
+    service = RecordingService()
+    scheduler = MailboxSyncScheduler(object(), service=service)
+
+    assert scheduler.interval_seconds == 5
+
+    scheduler.start()
+    try:
+        assert service.called.wait(1)
+        assert service.calls == 1
+        assert scheduler._thread is not None
+        assert scheduler._thread.daemon is True
+        assert scheduler._thread.name == "nowlert-email-mailboxes"
+    finally:
+        scheduler.stop()
+
+
+def test_mailbox_sync_scheduler_clamps_interval_to_safe_bounds():
+    service = type("Service", (), {"sync_ready_mailboxes": lambda self: []})()
+
+    assert (
+        MailboxSyncScheduler(
+            object(),
+            interval_seconds=1,
+            service=service,
+        ).interval_seconds
+        == 5
+    )
+    assert (
+        MailboxSyncScheduler(
+            object(),
+            interval_seconds=7200,
+            service=service,
+        ).interval_seconds
+        == 3600
+    )
+
