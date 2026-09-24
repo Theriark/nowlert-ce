@@ -1,7 +1,7 @@
 "use strict";
 
 const emailAlertsState = {
-  tab: "overview",
+  tab: "rules",
   loading: false,
   loaded: false,
   overview: null,
@@ -77,28 +77,9 @@ function emailRuleName(id) {
   return emailAlertsState.rules.find((item) => item.id === id)?.name || "Unknown rule";
 }
 
-function emailPrimaryAction() {
-  const button = byId("email-primary-action");
-  if (!button) return;
-  const overviewAction = emailAlertsState.mailboxes.length
-    ? ["Add rule", "new-rule"]
-    : ["Connect mailbox", "new-mailbox"];
-  const actions = {
-    overview: overviewAction,
-    groups: ["Add group", "new-group"],
-    rules: ["Add rule", "new-rule"],
-    mailboxes: ["Connect mailbox", "new-mailbox"],
-    activity: ["Refresh", "refresh"],
-  };
-  const [label, action] = actions[emailAlertsState.tab] || actions.overview;
-  button.textContent = label;
-  button.dataset.emailAction = action;
-  button.hidden = false;
-}
-
 function emailSetTab(tab) {
-  if (!["overview", "groups", "rules", "mailboxes", "activity"].includes(tab)) {
-    tab = "overview";
+  if (!["rules", "mailboxes", "activity"].includes(tab)) {
+    tab = "rules";
   }
   emailAlertsState.tab = tab;
   for (const button of document.querySelectorAll("[data-email-tab]")) {
@@ -106,7 +87,6 @@ function emailSetTab(tab) {
     button.classList.toggle("active", active);
     button.setAttribute("aria-selected", String(active));
   }
-  emailPrimaryAction();
   emailRender();
 }
 
@@ -149,14 +129,11 @@ async function emailLoad(force = false) {
 function emailRender() {
   const root = byId("email-alerts-root");
   if (!root) return;
-  emailPrimaryAction();
   if (!emailAlertsState.loaded) {
     root.replaceChildren();
     return;
   }
   const renderers = {
-    overview: emailRenderOverview,
-    groups: emailRenderGroups,
     rules: emailRenderRules,
     mailboxes: emailRenderMailboxes,
     activity: emailRenderActivity,
@@ -169,104 +146,6 @@ function emailMetric(label, value, copy) {
     element("span", { text: label }),
     element("strong", { text: value }),
     element("small", { text: copy }),
-  ]);
-}
-
-function emailRenderOverview() {
-  const data = emailAlertsState.overview || {};
-  const classifications = data.classifications || {};
-  const metrics = element("div", { className: "email-metric-grid" }, [
-    emailMetric("Mailboxes", data.mailboxes || 0, `${data.healthy_mailboxes || 0} healthy`),
-    emailMetric("Groups", data.groups || 0, `${data.enabled_groups || 0} enabled`),
-    emailMetric("Rules", data.rules || 0, `${data.enabled_rules || 0} enabled`),
-    emailMetric("Recent messages", data.recent_messages || 0, "Latest retained mailbox metadata"),
-  ]);
-
-  const classificationRows = element("div", { className: "email-classification-grid" });
-  for (const [key, label] of EMAIL_CLASSIFICATIONS) {
-    classificationRows.append(
-      element("div", { className: "email-classification-card" }, [
-        emailClassificationBadge(key),
-        element("strong", { text: classifications[key] || 0 }),
-        element("small", { text: "Recent processing records" }),
-      ]),
-    );
-  }
-
-  const mailboxHealth = element("div", { className: "email-overview-list" });
-  if (!emailAlertsState.mailboxes.length) {
-    mailboxHealth.replaceChildren(emailMailboxEmptyState(true));
-  } else {
-    for (const mailbox of emailAlertsState.mailboxes.slice(0, 6)) {
-      mailboxHealth.append(
-        element("div", { className: "email-overview-row" }, [
-          element("div", {}, [
-            element("strong", { text: mailbox.name || mailbox.address }),
-            element("small", { text: `${emailProviderLabel(mailbox.provider)} · ${mailbox.address}` }),
-          ]),
-          emailConnectionBadge(mailbox.connection_state, mailbox.enabled),
-        ]),
-      );
-    }
-  }
-
-  const recent = element("div", { className: "email-overview-list" });
-  const messages = emailAlertsState.activity.messages || [];
-  if (!messages.length) {
-    empty(recent, "No email activity yet", "Connected mailboxes will appear here after their first synchronization.");
-  } else {
-    for (const message of messages.slice(0, 6)) {
-      recent.append(
-        element("div", { className: "email-overview-row" }, [
-          element("div", {}, [
-            element("strong", { text: message.subject || "(No subject)" }),
-            element("small", { text: `${message.sender || "Unknown sender"} · ${emailMailboxName(message.mailbox_id)}` }),
-          ]),
-          element("span", { className: "email-time", text: relativeTime(message.received_at) }),
-        ]),
-      );
-    }
-  }
-
-  return element("div", { className: "email-overview-stack" }, [
-    metrics,
-    element("section", { className: "email-overview-split" }, [
-      element("article", { className: "panel email-panel" }, [
-        element("div", { className: "panel-heading" }, [
-          element("div", {}, [
-            element("p", { className: "eyebrow", text: "Classification" }),
-            element("h3", { text: "Rule outcomes" }),
-            element("p", { text: "Urgent, Warning, Information, and Ignore are the only Email Alert classifications." }),
-          ]),
-        ]),
-        classificationRows,
-      ]),
-      element("article", { className: "panel email-panel" }, [
-        element("div", { className: "panel-heading" }, [
-          element("div", {}, [
-            element("p", { className: "eyebrow", text: "Connections" }),
-            element("h3", { text: "Mailbox health" }),
-          ]),
-        ]),
-        mailboxHealth,
-      ]),
-    ]),
-    element("article", { className: "panel email-panel" }, [
-      element("div", { className: "panel-heading" }, [
-        element("div", {}, [
-          element("p", { className: "eyebrow", text: "Latest" }),
-          element("h3", { text: "Recent mailbox messages" }),
-          element("p", { text: "Only searchable metadata is synchronized by default; full message content remains on demand." }),
-        ]),
-        element("button", {
-          className: "text-button",
-          text: "View activity",
-          type: "button",
-          dataset: { emailTab: "activity" },
-        }),
-      ]),
-      recent,
-    ]),
   ]);
 }
 
@@ -326,7 +205,7 @@ function emailConditionSummary(condition) {
   return `${field} ${operator.toLowerCase()} “${condition.value}”`;
 }
 
-function emailRenderRules() {
+function emailRenderRuleTable() {
   const panel = element("div", { className: "table-panel email-table-panel" });
   if (!emailAlertsState.rules.length) {
     empty(panel, "No Email Alert rules", "Create a rule to classify mailbox messages as Urgent, Warning, Information, or Ignore.");
@@ -367,6 +246,70 @@ function emailRenderRules() {
   table.append(head, body);
   panel.append(element("div", { className: "table-scroll" }, [table]));
   return panel;
+}
+
+function emailRenderRules() {
+  const stats = emailAlertsState.overview || {};
+  const classifications = stats.classifications || {};
+  const enabledGroups = emailAlertsState.groups.filter((group) => group.enabled).length;
+  const enabledRules = emailAlertsState.rules.filter((rule) => rule.enabled).length;
+
+  const classificationRows = element("div", { className: "email-classification-grid" });
+  for (const [key] of EMAIL_CLASSIFICATIONS) {
+    classificationRows.append(
+      element("div", { className: "email-classification-card" }, [
+        emailClassificationBadge(key),
+        element("strong", { text: classifications[key] || 0 }),
+        element("small", { text: "Recent processing records" }),
+      ]),
+    );
+  }
+
+  return element("div", { className: "email-workspace-stack" }, [
+    element("article", { className: "panel email-panel email-config-panel" }, [
+      element("div", { className: "panel-heading" }, [
+        element("div", {}, [
+          element("p", { className: "eyebrow", text: "Organisation" }),
+          element("h3", { text: "Groups" }),
+          element("p", {
+            text: `${emailAlertsState.groups.length} group${emailAlertsState.groups.length === 1 ? "" : "s"} · ${enabledGroups} enabled. Groups organise related rules and their quiet windows.`,
+          }),
+        ]),
+        element("button", {
+          className: "button primary",
+          text: "+ Add group",
+          type: "button",
+          dataset: { emailAction: "new-group" },
+        }),
+      ]),
+      emailRenderGroups(),
+    ]),
+    element("article", { className: "panel email-panel email-config-panel" }, [
+      element("div", { className: "panel-heading" }, [
+        element("div", {}, [
+          element("p", { className: "eyebrow", text: "Classification" }),
+          element("h3", { text: "Rules" }),
+          element("p", {
+            text: `${emailAlertsState.rules.length} rule${emailAlertsState.rules.length === 1 ? "" : "s"} · ${enabledRules} enabled. Classify matching email as Urgent, Warning, Information, or Ignore.`,
+          }),
+        ]),
+        element("button", {
+          className: "button primary",
+          text: "+ Add rule",
+          type: "button",
+          dataset: { emailAction: "new-rule" },
+          disabled: emailAlertsState.groups.length === 0,
+          attributes: {
+            title: emailAlertsState.groups.length
+              ? "Add Email Alert rule"
+              : "Add a group before creating a rule",
+          },
+        }),
+      ]),
+      classificationRows,
+      emailRenderRuleTable(),
+    ]),
+  ]);
 }
 
 function emailProviderLabel(provider) {
@@ -431,7 +374,7 @@ function emailMailboxEmptyState(compact = false) {
   ]);
 }
 
-function emailRenderMailboxes() {
+function emailRenderMailboxCards() {
   const container = element("div", { className: "email-card-grid" });
   if (!emailAlertsState.mailboxes.length) {
     container.classList.add("email-mailbox-connect-grid");
@@ -535,6 +478,62 @@ function emailRenderMailboxes() {
   return container;
 }
 
+function emailRenderMailboxes() {
+  const mailboxes = emailAlertsState.mailboxes;
+  const healthy = mailboxes.filter(
+    (mailbox) => mailbox.enabled && mailbox.connection_state === "healthy",
+  ).length;
+  const attention = mailboxes.filter(
+    (mailbox) => mailbox.enabled && mailbox.connection_state !== "healthy",
+  ).length;
+  const shared = mailboxes.filter((mailbox) => mailbox.shared).length;
+
+  const metrics = element("div", { className: "email-metric-grid" }, [
+    emailMetric(
+      "Mailboxes",
+      mailboxes.length,
+      "Visible to this account",
+    ),
+    emailMetric(
+      "Healthy",
+      healthy,
+      "Background synchronization operating",
+    ),
+    emailMetric(
+      "Needs attention",
+      attention,
+      "Enabled mailbox connections not healthy",
+    ),
+    emailMetric(
+      "Shared",
+      shared,
+      "Visible to other Nowlert users",
+    ),
+  ]);
+
+  return element("div", { className: "email-workspace-stack" }, [
+    metrics,
+    element("article", { className: "panel email-panel email-config-panel" }, [
+      element("div", { className: "panel-heading" }, [
+        element("div", {}, [
+          element("p", { className: "eyebrow", text: "Connections" }),
+          element("h3", { text: "Mailboxes" }),
+          element("p", {
+            text: "Connection health, synchronization state, credentials, and Private/Shared visibility are managed here.",
+          }),
+        ]),
+        element("button", {
+          className: "button primary",
+          text: "+ Connect mailbox",
+          type: "button",
+          dataset: { emailAction: "new-mailbox" },
+        }),
+      ]),
+      emailRenderMailboxCards(),
+    ]),
+  ]);
+}
+
 function emailWhyExplanation(processing) {
   if (!processing) {
     return element("span", { className: "muted", text: "No processing record" });
@@ -616,7 +615,7 @@ function emailOpenRuleFromActivity(message) {
   });
 }
 
-function emailRenderActivity() {
+function emailRenderActivityTable() {
   const messages = emailAlertsState.activity.messages || [];
   const panel = element("div", { className: "table-panel email-table-panel" });
   if (!messages.length) {
@@ -736,6 +735,27 @@ function emailRenderActivity() {
     element("div", { className: "table-scroll" }, [table]),
   );
   return panel;
+}
+
+function emailRenderActivity() {
+  return element("article", { className: "panel email-panel email-config-panel" }, [
+    element("div", { className: "panel-heading" }, [
+      element("div", {}, [
+        element("p", { className: "eyebrow", text: "Processing" }),
+        element("h3", { text: "Activity" }),
+        element("p", {
+          text: "Review only email that participated in Nowlert processing; this is not a mailbox replica.",
+        }),
+      ]),
+      element("button", {
+        className: "button secondary",
+        text: "Refresh",
+        type: "button",
+        dataset: { emailAction: "refresh" },
+      }),
+    ]),
+    emailRenderActivityTable(),
+  ]);
 }
 
 function emailDialogHeading(title, copy, dialogId) {
@@ -1179,8 +1199,7 @@ function emailAddCondition(condition = null) {
 function emailOpenRule(rule = null) {
   emailEnsureDialogs();
   if (!emailAlertsState.groups.length) {
-    toast("Create an Email Alert group before adding a rule.", "warning");
-    emailSetTab("groups");
+    toast("Add an Email Alert group before creating a rule.", "warning");
     return;
   }
   const form = byId("email-rule-form");

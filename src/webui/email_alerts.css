@@ -47,9 +47,18 @@
 }
 
 .email-alerts-root,
-.email-overview-stack {
+.email-workspace-stack {
   display: grid;
   gap: 18px;
+}
+
+.email-config-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.email-config-panel > .panel-heading {
+  margin-bottom: 0;
 }
 
 .email-alert-loading {
@@ -89,12 +98,6 @@
   color: #f5f7f9;
   font-size: 1.8rem;
   line-height: 1;
-}
-
-.email-overview-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
 }
 
 .email-panel {
@@ -168,38 +171,6 @@
   background: rgba(73, 194, 108, 0.09);
 }
 
-.email-overview-list {
-  display: grid;
-  gap: 8px;
-}
-
-.email-overview-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 11px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.email-overview-row:last-child {
-  border-bottom: 0;
-}
-
-.email-overview-row > div {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.email-overview-row strong,
-.email-overview-row small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.email-overview-row small,
 .email-time,
 .email-resource-meta,
 .email-labels {
@@ -457,7 +428,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .email-overview-split,
   .email-card-grid {
     grid-template-columns: 1fr;
   }
@@ -478,9 +448,6 @@
     align-items: stretch;
   }
 
-  .email-alerts-heading-actions .button {
-    width: 100%;
-  }
 }
 
 
