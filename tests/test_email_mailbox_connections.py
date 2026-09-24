@@ -11,8 +11,10 @@ import pytest
 from api.platform import PlatformAPI
 from email_alert_pipeline import email_message_text
 from inputs.email_mailboxes import (
+    MailboxConnectionError,
     MailboxConnectionService,
     MailboxSyncScheduler,
+    MailboxSyncSummary,
     email_oauth_applications,
 )
 from storage.database import Database
@@ -621,6 +623,157 @@ def test_microsoft_oauth_uses_instance_tenant_id(tmp_path):
     )
     start = service.oauth_start(actor, mailbox.id)
     assert "login.microsoftonline.com/152cc14d-5969-4329-a9a0-c1ddb5e3232b/oauth2/v2.0/authorize" in start.authorization_url
+
+def test_transient_sync_failure_stays_retryable_without_losing_credentials(tmp_path):
+    class OfflineIMAP:
+        def __init__(self, *_args, **_kwargs):
+            raise OSError("temporary network failure")
+
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    service = MailboxConnectionService(
+        database,
+        imap_ssl_factory=OfflineIMAP,
+    )
+    mailbox = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "imap",
+        "alerts@example.com",
+        name="IMAP alerts",
+        settings={
+            "host": "imap.example.invalid",
+            "port": 993,
+            "security": "ssl",
+            "folder": "INBOX",
+        },
+        credential={
+            "username": "alerts@example.com",
+            "password": "private-password",
+        },
+    )
+    service.store.update_mailbox_connection(
+        actor,
+        mailbox.id,
+        connection_state="healthy",
+    )
+
+    with pytest.raises(MailboxConnectionError) as raised:
+        service.sync_mailbox(actor, mailbox.id)
+
+    assert raised.value.code == "provider_unreachable"
+    mailbox = service.store.get_mailbox(actor, mailbox.id)
+    assert mailbox.connection_state == "degraded"
+    assert mailbox.last_error_code == "provider_unreachable"
+    assert mailbox.secret_configured is True
+
+
+def test_background_sync_retries_existing_transient_error_but_not_auth_error(tmp_path):
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    service = MailboxConnectionService(database)
+
+    transient = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "imap",
+        "transient@example.com",
+        name="Transient",
+        settings={
+            "host": "imap.example.invalid",
+            "port": 993,
+            "security": "ssl",
+            "folder": "INBOX",
+        },
+        credential={"username": "transient@example.com", "password": "secret"},
+    )
+    fatal = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "imap",
+        "fatal@example.com",
+        name="Fatal",
+        settings={
+            "host": "imap.example.invalid",
+            "port": 993,
+            "security": "ssl",
+            "folder": "INBOX",
+        },
+        credential={"username": "fatal@example.com", "password": "secret"},
+    )
+
+    service.store.update_mailbox_connection(
+        actor,
+        transient.id,
+        connection_state="error",
+        error_code="provider_unreachable",
+        safe_error="IMAP mailbox could not be connected",
+    )
+    service.store.update_mailbox_connection(
+        actor,
+        fatal.id,
+        connection_state="error",
+        error_code="authentication_required",
+        safe_error="IMAP authentication failed",
+    )
+
+    attempted = []
+
+    def fake_sync(sync_actor, mailbox_id):
+        attempted.append((sync_actor.user_id, mailbox_id))
+        return MailboxSyncSummary(
+            mailbox_id=mailbox_id,
+            provider="imap",
+            observed=0,
+            created=0,
+            duplicates=0,
+            cursor_changed=False,
+            last_sync_at=1,
+        )
+
+    service.sync_mailbox = fake_sync
+
+    summaries = service.sync_ready_mailboxes()
+
+    assert [item.mailbox_id for item in summaries] == [transient.id]
+    assert attempted == [(actor.user_id, transient.id)]
+
+
+def test_authentication_failure_remains_error_and_requires_user_action(tmp_path):
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    service = MailboxConnectionService(database)
+    mailbox = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "imap",
+        "alerts@example.com",
+        name="IMAP alerts",
+        settings={
+            "host": "imap.example.invalid",
+            "port": 993,
+            "security": "ssl",
+            "folder": "INBOX",
+        },
+        credential={"username": "alerts@example.com", "password": "secret"},
+    )
+
+    service._connection_failure(
+        actor,
+        mailbox,
+        MailboxConnectionError(
+            "authentication_required",
+            "IMAP authentication failed",
+        ),
+    )
+
+    mailbox = service.store.get_mailbox(actor, mailbox.id)
+    assert mailbox.connection_state == "error"
+    assert mailbox.last_error_code == "authentication_required"
+
 
 def test_mailbox_sync_scheduler_runs_immediately_on_fast_background_thread():
     class RecordingService:

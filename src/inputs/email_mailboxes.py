@@ -41,6 +41,27 @@ GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 MICROSOFT_SCOPE = "https://graph.microsoft.com/Mail.Read"
 _OAUTH_STATE_TTL_SECONDS = 10 * 60
 _HTTP_TIMEOUT_SECONDS = 20
+
+_FATAL_CONNECTION_ERRORS = frozenset(
+    {
+        "authentication_required",
+        "credentials_missing",
+        "credentials_invalid",
+        "provider_not_configured",
+    }
+)
+_RETRYABLE_CONNECTION_ERRORS = frozenset(
+    {
+        "provider_unreachable",
+        "provider_request_failed",
+        "provider_response_invalid",
+        "mailbox_unavailable",
+        "sync_cursor_expired",
+        "sync_cursor_invalid",
+        "tls_failed",
+        "mailbox_sync_failed",
+    }
+)
 _DEFAULT_SYNC_LIMIT = 100
 _MAX_SYNC_LIMIT = 500
 _OAUTH_APPLICATION_FIELDS = ("client_id", "client_secret", "redirect_uri")
@@ -1440,15 +1461,24 @@ class MailboxConnectionService:
 
     def sync_ready_mailboxes(self) -> list[MailboxSyncSummary]:
         with self.database.connect() as connection:
+            retryable = sorted(_RETRYABLE_CONNECTION_ERRORS)
+            placeholders = ", ".join("?" for _ in retryable)
             rows = connection.execute(
-                """
+                f"""
                 SELECT id, owner_user_id
                 FROM email_mailboxes
                 WHERE enabled = 1
                   AND secret_id IS NOT NULL
-                  AND connection_state IN ('healthy', 'degraded')
+                  AND (
+                        connection_state IN ('healthy', 'degraded')
+                        OR (
+                            connection_state = 'error'
+                            AND COALESCE(last_error_code, '') IN ({placeholders})
+                        )
+                  )
                 ORDER BY id
-                """
+                """,
+                tuple(retryable),
             ).fetchall()
         results = []
         for row in rows:
@@ -1659,11 +1689,17 @@ class MailboxConnectionService:
         else:
             code = "mailbox_sync_failed"
             message = "mailbox synchronization failed"
+
+        connection_state = (
+            "error"
+            if code in _FATAL_CONNECTION_ERRORS and not degraded
+            else "degraded"
+        )
         try:
             self.store.update_mailbox_connection(
                 actor,
                 mailbox.id,
-                connection_state="degraded" if degraded else "error",
+                connection_state=connection_state,
                 error_code=code,
                 safe_error=message,
             )
