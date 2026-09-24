@@ -414,8 +414,12 @@ def test_phase7_email_alerts_webui_is_packaged_and_normal_user_visible(tmp_path)
     assert 'id="email-alerts-nav"' in markup
     assert 'data-view="email-alerts"' in markup
     assert 'id="view-email-alerts"' in markup
-    for tab in ("overview", "groups", "rules", "mailboxes", "activity"):
+    for tab in ("rules", "mailboxes", "activity"):
         assert f'data-email-tab="{tab}"' in markup
+    for removed_tab in ("overview", "groups"):
+        assert f'data-email-tab="{removed_tab}"' not in markup
+    assert "Rules &amp; Groups" in markup
+    assert 'id="email-primary-action"' not in markup
     assert '"email-alerts": "Email Alerts"' in app
 
     for endpoint in (
@@ -440,6 +444,15 @@ def test_phase7_email_alerts_webui_is_packaged_and_normal_user_visible(tmp_path)
         "mailbox",
     ):
         assert f'["{field}",' in script
+
+    assert 'text: "+ Add group"' in script
+    assert 'text: "+ Add rule"' in script
+    assert "Recent mailbox messages" not in script
+    assert 'emailSetTab("groups")' not in script
+    assert "function emailRenderOverview" not in script
+    assert "function emailRenderRuleTable" in script
+    assert "function emailRenderMailboxCards" in script
+    assert "function emailRenderActivityTable" in script
 
     assert "innerHTML" not in script
     assert "localStorage" not in script
@@ -469,7 +482,8 @@ def test_email_alerts_mailbox_connect_ux_exposes_provider_login_paths():
     script = (ROOT / "src" / "webui" / "email_alerts.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "email_alerts.css").read_text(encoding="utf-8")
 
-    assert '["Connect mailbox", "new-mailbox"]' in script
+    assert 'text: "+ Connect mailbox"' in script
+    assert 'dataset: { emailAction: "new-mailbox" }' in script
     assert 'emailMailboxConnectButton("gmail", "Connect Gmail", true)' in script
     assert 'emailMailboxConnectButton("microsoft_365", "Connect Microsoft 365")' in script
     assert 'emailMailboxConnectButton("imap", "Connect IMAP / IMAPS")' in script
