@@ -775,6 +775,59 @@ def test_authentication_failure_remains_error_and_requires_user_action(tmp_path)
     assert mailbox.last_error_code == "authentication_required"
 
 
+def test_routine_sync_does_not_publish_connecting_state(tmp_path):
+    now = 2_000_000_000
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    service = MailboxConnectionService(
+        database,
+        http=GmailHTTP(),
+        clock=lambda: now,
+        oauth_applications={
+            "gmail": {
+                "client_id": "client",
+                "client_secret": "secret",
+                "redirect_uri": "https://nowlert.example/ui/",
+            },
+            "microsoft_365": {},
+        },
+    )
+    mailbox = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "gmail",
+        "alerts@example.com",
+        name="Gmail alerts",
+        credential={
+            "access_token": "existing",
+            "refresh_token": "refresh",
+            "expires_at": now + 3600,
+        },
+    )
+    service.store.update_mailbox_connection(
+        actor,
+        mailbox.id,
+        connection_state="healthy",
+    )
+
+    states = []
+    original_update = service.store.update_mailbox_connection
+
+    def recording_update(*args, **kwargs):
+        if kwargs.get("connection_state"):
+            states.append(kwargs["connection_state"])
+        return original_update(*args, **kwargs)
+
+    service.store.update_mailbox_connection = recording_update
+
+    service.sync_mailbox(actor, mailbox.id)
+
+    assert "connecting" not in states
+    assert states[-1] == "healthy"
+    assert service.store.get_mailbox(actor, mailbox.id).connection_state == "healthy"
+
+
 def test_mailbox_sync_scheduler_runs_immediately_on_fast_background_thread():
     class RecordingService:
         def __init__(self):

@@ -1279,12 +1279,10 @@ class MailboxConnectionService:
                 "authentication_required",
                 "Connect the mailbox before synchronizing it",
             )
-        self.store.update_mailbox_connection(
-            actor,
-            mailbox.id,
-            connection_state="connecting",
-            clear_error=True,
-        )
+        # Routine synchronization must not masquerade as a connection attempt.
+        # Keep the current health state visible while polling; successful sync
+        # restores/keeps Healthy and failures move through the normal degraded/
+        # error path.
         old_cursor = mailbox.sync_cursor
         try:
             if mailbox.provider == "gmail":
