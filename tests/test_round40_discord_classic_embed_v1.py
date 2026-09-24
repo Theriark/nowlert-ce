@@ -256,6 +256,110 @@ def test_classic_embed_v1_xo_uses_compact_ce_geometry():
     assert "🔢 Job Details" not in names
 
 
+
+@pytest.mark.parametrize(
+    ("classification", "status", "icon", "label", "color"),
+    (
+        ("urgent", "critical", "🚨", "Urgent", 0xE74C3C),
+        ("warning", "warning", "⚠️", "Warning", 0xF39C12),
+        ("information", "information", "ℹ️", "Information", 0x3498DB),
+    ),
+)
+def test_email_classic_card_uses_email_alert_semantics(
+    classification,
+    status,
+    icon,
+    label,
+    color,
+):
+    item = Notification(
+        source="email",
+        category="Nowlert CE Dev",
+        status=status,
+        title="[NOWLERT-MOCK-GATE] Email Alerts acceptance",
+        subject="[NOWLERT-MOCK-GATE] Email Alerts acceptance",
+        body=(
+            "Email from nowlert.qa@gmail.com to nowlert.qa@gmail.com "
+            "matched Nowlert CE Mock Platform."
+        ),
+        sender="nowlert.qa@gmail.com",
+    )
+    item.metadata = {
+        "_input_type": "email",
+        "classification": classification,
+        "state": classification,
+        "severity": status,
+        "group": "Nowlert CE Dev",
+        "rule": f"Nowlert CE Mock Platform - {label}",
+        "mailbox": "nowlert.qa@gmail.com",
+        "recipient": "nowlert.qa@gmail.com",
+        "sender": "nowlert.qa@gmail.com",
+        "provider": "gmail",
+        "message_id": "internal-message-id",
+        "internet_message_id": "<internet-message@example.invalid>",
+        "provider_deep_link": "https://mail.google.com/mail/u/0/#inbox/example",
+    }
+
+    preview = DiscordPlatformAdapter().preview(
+        destination(components_v2=False),
+        item,
+    )
+
+    embed = preview.payload["embeds"][0]
+    fields = {field["name"]: field["value"] for field in embed["fields"]}
+    flattened = repr(embed)
+
+    assert embed["title"] == (
+        f"{icon} [NOWLERT-MOCK-GATE] Email Alerts acceptance — {label}"
+    )
+    assert embed["color"] == color
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Email Alerts"}
+    assert embed["url"] == "https://mail.google.com/mail/u/0/#inbox/example"
+    assert f"**Classification:** `{label}`" in fields[f"{icon} Email Alert"]
+    assert (
+        f"**Rule:** `Nowlert CE Mock Platform - {label}`"
+        in fields[f"{icon} Email Alert"]
+    )
+    assert "**Group:** `Nowlert CE Dev`" in fields[f"{icon} Email Alert"]
+    assert "**Sender:** `nowlert.qa@gmail.com`" in fields["✉️ Email"]
+    assert "**Mailbox:** `nowlert.qa@gmail.com`" in fields["✉️ Email"]
+    assert "**Provider:** `Gmail`" in fields["✉️ Email"]
+    assert "**Recipient:**" not in fields["✉️ Email"]
+    assert "Failed" not in flattened
+    assert "Input" not in flattened
+    assert "Message ID" not in flattened
+    assert "Category" not in flattened
+
+
+def test_email_components_v2_remains_on_existing_modern_contract():
+    item = Notification(
+        source="email",
+        category="Nowlert CE Dev",
+        status="critical",
+        title="Urgent email",
+        subject="Urgent email",
+        body="Existing modern-card body",
+        sender="nowlert.qa@gmail.com",
+    )
+    item.metadata = {
+        "_input_type": "email",
+        "classification": "urgent",
+        "severity": "critical",
+        "provider": "gmail",
+        "mailbox": "nowlert.qa@gmail.com",
+    }
+
+    preview = DiscordPlatformAdapter().preview(
+        destination(components_v2=True),
+        item,
+    )
+
+    assert preview.payload["flags"] == 32768
+    assert "components" in preview.payload
+    assert "embeds" not in preview.payload
+    assert "Nowlert CE • Email Alerts" not in repr(preview.payload)
+
+
 def test_components_v2_bypasses_classic_embed_v1():
     preview = DiscordPlatformAdapter().preview(
         destination(components_v2=True),
