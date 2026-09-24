@@ -173,11 +173,14 @@ class SlackFormatter(PresentationMixin):
         header_fields = []
         overflow_fields = []
         body_parts = []
-        unfolded_source = (
-            str(source or "").strip().casefold()
-            in _UNFOLDED_CLASSIC_SOURCES
+        normalized_source = str(source or "").strip().casefold()
+        unfolded_source = normalized_source in _UNFOLDED_CLASSIC_SOURCES
+        spaced_field_grid = normalized_source == "email"
+        header_field_limit = (
+            0
+            if spaced_field_grid
+            else (2 if unfolded_source else 10)
         )
-        header_field_limit = 2 if unfolded_source else 10
 
         for field in fields:
             field_title = str(field.get("title") or "")

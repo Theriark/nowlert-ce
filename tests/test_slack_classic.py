@@ -513,6 +513,64 @@ def test_prometheus_slack_classic_resolved_stays_fully_expanded():
     assert "2026-09-23T02:02:00Z" in rendered
 
 
+def test_email_slack_classic_uses_separate_field_section_for_spacing():
+    formatter = SlackFormatter()
+    item = Notification(
+        source="email",
+        category="Nowlert CE Dev",
+        status="information",
+        title="[NOWLERT-MOCK-GATE][INFORMATION] Email Alerts acceptance",
+        subject="[NOWLERT-MOCK-GATE][INFORMATION] Email Alerts acceptance",
+        body=(
+            "Email from nowlert.qa@gmail.com to nowlert.qa@gmail.com "
+            "matched Nowlert CE Mock Platform - Information."
+        ),
+        sender="nowlert.qa@gmail.com",
+    )
+    item.metadata = {
+        "_input_type": "email",
+        "classification": "information",
+        "state": "information",
+        "severity": "information",
+        "group": "Nowlert CE Dev",
+        "rule": "Nowlert CE Mock Platform - Information",
+        "mailbox": "nowlert.qa@gmail.com",
+        "recipient": "nowlert.qa@gmail.com",
+        "sender": "nowlert.qa@gmail.com",
+        "provider": "gmail",
+    }
+
+    blocks = formatter.format(item)["attachments"][0]["blocks"]
+
+    assert [block["type"] for block in blocks] == [
+        "section",
+        "section",
+        "context",
+    ]
+
+    header, details, footer = blocks
+    assert "fields" not in header
+    assert header["accessory"]["image_url"].endswith(
+        "/discord/nowlert-owl-v3.1.0.png"
+    )
+
+    assert len(details["fields"]) == 2
+    rendered_fields = str(details["fields"])
+    assert "Email Alert" in rendered_fields
+    assert "Classification" in rendered_fields
+    assert "Rule" in rendered_fields
+    assert "Group" in rendered_fields
+    assert "Email" in rendered_fields
+    assert "Sender" in rendered_fields
+    assert "Mailbox" in rendered_fields
+    assert "Provider" in rendered_fields
+
+    assert footer == {
+        "type": "context",
+        "elements": [{"type": "mrkdwn", "text": CLASSIC_FOOTER}],
+    }
+
+
 def test_slack_generic_fallback_uses_nowlert_classic_card():
     formatter = SlackFormatter()
     item = notification("home_lab")
