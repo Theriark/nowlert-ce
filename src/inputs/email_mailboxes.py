@@ -1814,13 +1814,13 @@ class MailboxConnectionService:
 
 
 class MailboxSyncScheduler:
-    """Periodically synchronize already-connected mailboxes."""
+    """Periodically synchronize already-connected mailboxes in the background."""
 
     def __init__(
         self,
         database: Database,
         *,
-        interval_seconds: int = 60,
+        interval_seconds: int = 5,
         service: MailboxConnectionService | None = None,
         oauth_applications: dict | None = None,
     ):
@@ -1828,7 +1828,7 @@ class MailboxSyncScheduler:
             database,
             oauth_applications=oauth_applications,
         )
-        self.interval_seconds = max(30, min(int(interval_seconds), 3600))
+        self.interval_seconds = max(5, min(int(interval_seconds), 3600))
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
