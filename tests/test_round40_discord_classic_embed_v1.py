@@ -313,7 +313,7 @@ def test_email_classic_card_uses_email_alert_semantics(
         f"{icon} [NOWLERT-MOCK-GATE] Email Alerts acceptance — {label}"
     )
     assert embed["color"] == color
-    assert embed["footer"] == {"text": "🦉 Nowlert CE • Email Alerts"}
+    assert embed["footer"] == {"text": "🦉 Nowlert CE • Classic Card"}
     assert embed["url"] == "https://mail.google.com/mail/u/0/#inbox/example"
     assert f"**Classification:** `{label}`" in fields[f"{icon} Email Alert"]
     assert (
@@ -357,7 +357,7 @@ def test_email_components_v2_remains_on_existing_modern_contract():
     assert preview.payload["flags"] == 32768
     assert "components" in preview.payload
     assert "embeds" not in preview.payload
-    assert "Nowlert CE • Email Alerts" not in repr(preview.payload)
+    assert "Nowlert CE • Classic Card" not in repr(preview.payload)
 
 
 def test_components_v2_bypasses_classic_embed_v1():

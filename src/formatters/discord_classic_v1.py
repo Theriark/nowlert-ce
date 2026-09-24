@@ -14,7 +14,7 @@ from typing import Any
 
 
 CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
-EMAIL_CLASSIC_FOOTER = "🦉 Nowlert CE • Email Alerts"
+EMAIL_CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
 
 _WORDS = re.compile(r"[^a-z0-9]+")
 _RED = 0xE74C3C
