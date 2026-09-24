@@ -2531,6 +2531,92 @@ def test_final_source_panels_grow_vertically_with_wrapped_content(
     assert long["height"] > short["height"]
 
 
+def test_shared_modern_template_enriches_semantic_field_icons(tmp_path):
+    renderer = GenericFallbackDiscordModernImageRenderer(tmp_path)
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+
+    measured = renderer._zabbix_measure_panel(
+        draw,
+        {
+            "title": "Source & Context",
+            "rows": [
+                {"label": "Classification:", "value": "Urgent", "icon": "list"},
+                {"label": "Rule:", "value": "Nowlert CE Mock Platform", "icon": "list"},
+                {"label": "Group:", "value": "Nowlert CE Dev", "icon": "list"},
+                {"label": "Sender:", "value": "sender@example.com", "icon": "list"},
+                {"label": "Mailbox:", "value": "alerts@example.com", "icon": "list"},
+                {"label": "Message ID:", "value": "abc-123", "icon": "list"},
+                {"label": "Runbook:", "value": "https://example.invalid/runbook", "icon": "list"},
+            ],
+        },
+        1200,
+    )
+
+    icons = [
+        row.get("icon")
+        for row in measured["paint"]
+        if row.get("kind") in {"inline", "stacked", "value"}
+    ]
+    assert icons == [
+        "tag",
+        "filter",
+        "tag",
+        "mail",
+        "mail",
+        "id",
+        "link",
+    ]
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    (
+        ZabbixDiscordModernImageRenderer,
+        GrafanaDiscordModernImageRenderer,
+        PrometheusDiscordModernImageRenderer,
+        PortainerDiscordModernImageRenderer,
+        ProxmoxDiscordModernImageRenderer,
+        QNAPDiscordModernImageRenderer,
+        SynologyDiscordModernImageRenderer,
+        TrueNASDiscordModernImageRenderer,
+        UniFiNetworkDiscordModernImageRenderer,
+        UniFiProtectDiscordModernImageRenderer,
+        UniFiDriveDiscordModernImageRenderer,
+        HardwareDiscordModernImageRenderer,
+        HomeAssistantDiscordModernImageRenderer,
+        RedfishDiscordModernImageRenderer,
+        GenericFallbackDiscordModernImageRenderer,
+    ),
+)
+def test_shared_modern_semantic_icons_apply_without_layout_changes(
+    tmp_path,
+    renderer_class,
+):
+    renderer = renderer_class(tmp_path)
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    measured = renderer._zabbix_measure_panel(
+        draw,
+        {
+            "title": "Additional details",
+            "rows": [
+                {"label": "Message ID:", "value": "evt-123", "icon": "list"},
+                {"label": "Labels:", "value": "environment=dev", "icon": "list"},
+                {"label": "Runbook:", "value": "https://example.invalid", "icon": "list"},
+            ],
+        },
+        1000,
+    )
+
+    paint = [
+        row
+        for row in measured["paint"]
+        if row.get("kind") in {"inline", "stacked", "value"}
+    ]
+    assert [row.get("icon") for row in paint] == ["id", "tag", "link"]
+    assert measured["width"] == 1000
+    assert measured["height"] >= 120
+
+
 def test_final_source_xo_icon_vocabulary(tmp_path):
     prometheus = PrometheusDiscordModernImageRenderer(tmp_path)
     hardware = HardwareDiscordModernImageRenderer(tmp_path)
