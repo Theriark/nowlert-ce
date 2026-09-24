@@ -14,6 +14,7 @@ from typing import Any
 
 
 CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
+EMAIL_CLASSIC_FOOTER = "🦉 Nowlert CE • Email Alerts"
 
 _WORDS = re.compile(r"[^a-z0-9]+")
 _RED = 0xE74C3C
@@ -106,12 +107,13 @@ def _finish(
     payload: object,
     *,
     preserve: tuple[str, ...] = ("thumbnail", "url", "timestamp"),
+    footer: str = CLASSIC_FOOTER,
 ) -> dict[str, Any]:
     original = _original_embed(payload)
     for key in preserve:
         if key in original and key not in embed:
             embed[key] = deepcopy(original[key])
-    embed["footer"] = {"text": CLASSIC_FOOTER}
+    embed["footer"] = {"text": footer}
     fields = embed.get("fields")
     if isinstance(fields, list):
         embed["fields"] = fields[:25]
@@ -2302,6 +2304,116 @@ def _render_redfish(notification, payload, normalized, metadata):
     )
 
 
+def _render_email(notification, payload, normalized, metadata):
+    """Render Email Alerts as a dedicated compact Classic card."""
+
+    classification = _normal_words(
+        _metadata_value(metadata, "classification", "state")
+        or normalized.get("status")
+    )
+    presentation = {
+        "urgent": (_RED, "🚨", "Urgent"),
+        "critical": (_RED, "🚨", "Urgent"),
+        "warning": (_ORANGE, "⚠️", "Warning"),
+        "information": (_BLUE, "ℹ️", "Information"),
+        "informational": (_BLUE, "ℹ️", "Information"),
+        "info": (_BLUE, "ℹ️", "Information"),
+    }
+    color, icon, label = presentation.get(
+        classification,
+        (_BLUE, "ℹ️", "Information"),
+    )
+
+    subject = str(
+        normalized.get("subject")
+        or normalized.get("title")
+        or _metadata_value(metadata, "subject")
+        or "Email alert"
+    ).strip()
+    sender = str(
+        _metadata_value(metadata, "sender")
+        or normalized.get("sender")
+        or ""
+    ).strip()
+    mailbox = str(_metadata_value(metadata, "mailbox") or "").strip()
+    recipient = str(
+        _metadata_value(metadata, "recipient", "to")
+        or ""
+    ).strip()
+    if _normal_words(recipient) == _normal_words(mailbox):
+        recipient = ""
+
+    provider_key = _normal_words(_metadata_value(metadata, "provider"))
+    provider = {
+        "gmail": "Gmail",
+        "microsoft 365": "Microsoft 365",
+        "microsoft_365": "Microsoft 365",
+        "imap": "IMAP",
+        "smtp": "SMTP",
+    }.get(
+        provider_key,
+        str(_metadata_value(metadata, "provider") or "").strip(),
+    )
+
+    rule = str(_metadata_value(metadata, "rule") or "").strip()
+    group = str(
+        _metadata_value(metadata, "group")
+        or normalized.get("category")
+        or ""
+    ).strip()
+
+    description = str(normalized.get("body") or "").strip()
+    if not description:
+        description = (
+            f"Email from {sender or 'unknown sender'}"
+            f"{f' to {mailbox}' if mailbox else ''}"
+            f" matched {rule or 'an Email Alert rule'}."
+        )
+    description = description[:4096]
+
+    fields: list[dict[str, Any]] = []
+    for field in (
+        _rows_field(
+            f"{icon} Email Alert",
+            [
+                ("Classification", label),
+                ("Rule", rule),
+                ("Group", group),
+            ],
+        ),
+        _rows_field(
+            "✉️ Email",
+            [
+                ("Sender", sender),
+                ("Mailbox", mailbox),
+                ("Recipient", recipient),
+                ("Provider", provider),
+            ],
+        ),
+    ):
+        if field is not None:
+            fields.append(field)
+
+    embed: dict[str, Any] = {
+        "title": f"{icon} {subject} — {label}"[:256],
+        "description": description,
+        "color": color,
+        "fields": fields,
+    }
+    provider_deep_link = str(
+        _metadata_value(metadata, "provider_deep_link") or ""
+    ).strip()
+    if provider_deep_link:
+        embed["url"] = provider_deep_link
+
+    return _finish(
+        embed,
+        payload,
+        preserve=("thumbnail", "timestamp"),
+        footer=EMAIL_CLASSIC_FOOTER,
+    )
+
+
 def _render_generic(notification, payload, normalized, metadata):
     """Render a useful transport-aware card for unmatched generic events."""
 
@@ -2460,6 +2572,7 @@ _RENDERERS = {
     "unifi_drive": _render_unifi_drive,
     "home_assistant": _render_home_assistant,
     "redfish": _render_redfish,
+    "email": _render_email,
 }
 
 
