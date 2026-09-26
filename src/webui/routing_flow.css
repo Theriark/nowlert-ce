@@ -301,8 +301,15 @@
 .rf-page .rf-route .source-product-icon { width:43px !important; height:43px !important; }
 
 
-/* Preserve the prototype's static filter card styling. */
+/* 2026-09-18 approved compact Routing Flow filter card. */
+@property --rf-filter-border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 .rf-filter-card {
+  --rf-filter-border-angle: 0deg;
   background: linear-gradient(115deg, #031724, #021a1c) !important;
   border: 1px solid #315565 !important;
   border-radius: 12px !important;
@@ -311,6 +318,40 @@
   min-height: 168px !important;
   overflow: visible;
   padding: 12px 13px 10px !important;
+}
+
+.rf-filter-card::before {
+  animation: rf-filter-border-travel 3.2s linear infinite;
+  background: conic-gradient(
+    from var(--rf-filter-border-angle),
+    transparent 0deg 258deg,
+    rgba(255, 210, 64, 0.18) 274deg,
+    #ffd13a 298deg,
+    #ffb916 314deg,
+    rgba(255, 204, 48, 0.24) 330deg,
+    transparent 348deg 360deg
+  );
+  border-radius: inherit;
+  content: "";
+  filter: drop-shadow(0 0 4px rgba(255, 196, 32, 0.42));
+  inset: -1px;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+.rf-filter-card > * {
+  position: relative;
+  z-index: 3;
 }
 
 .rf-filter-card-header {
@@ -471,6 +512,10 @@
   white-space: nowrap;
 }
 
+@keyframes rf-filter-border-travel {
+  to { --rf-filter-border-angle: 360deg; }
+}
+
 @media (max-width: 1050px) {
   .rf-filter-card {
     min-height: 154px !important;
@@ -495,6 +540,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .rf-filter-card::before {
+    animation: none;
+    --rf-filter-border-angle: 300deg;
+  }
+
   .rf-node.rf-has-incoming > .rf-socket-left,
   .rf-node.rf-has-outgoing > .rf-socket-right {
     animation:none;

@@ -38,6 +38,9 @@ def test_filter_cards_keep_geometry_content_semantics_and_approved_pulse():
     assert ".rf-filter { min-height:66px; padding:10px; gap:10px; }" in ROUTING
     assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in ROUTING
     assert ".rf-filter-card-tags" in ROUTING and ".rf-filter-rule-tag-blue { color: #12bce9" in ROUTING
+    assert "/* 2026-09-18 approved compact Routing Flow filter card. */" in ROUTING
+    assert "animation: rf-filter-border-travel 3.2s linear infinite;" in ROUTING
+    assert "@keyframes rf-filter-border-travel" in ROUTING
     assert "rf-node.rf-filter.rf-pulse-dual::before" in ROUTING
     assert "@keyframes rf-trace-forward" in ROUTING
     assert "#view-routing-flow#view-routing-flow .rf-filter-card" in THEME
