@@ -63,6 +63,7 @@ jobs:
           node --check src/webui/filtering.js
           node --check src/webui/routing_flow.js
           node --check src/webui/reference_acceptance.js
+          node --test tests/webui/test_delivery_chart_model.mjs tests/webui/test_routing_pulse_model.mjs
 
       - name: Validate public YAML files
         shell: bash

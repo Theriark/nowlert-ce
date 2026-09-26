@@ -13,6 +13,7 @@
 .rf-error { background:#322319; color:#ffda9b; border:1px solid #977041; border-radius:6px; padding:12px; margin:12px 0; }
 .rf-metrics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; margin:14px 0; }
 .rf-metric { display:flex; align-items:center; gap:14px; background:linear-gradient(120deg,#11242e,#0b1821); border:1px solid #29414d; border-radius:7px; padding:16px 14px; min-width:0; }
+#view-routing-flow .rf-metric::before { content:none !important; display:none !important; }
 .rf-metric strong { display:block; font-size:23px; line-height:1.2; font-variant-numeric:tabular-nums; }
 .rf-metric span:not(.rf-dot) { display:block; font-size:13px; }
 .rf-metric small { display:block; color:var(--rf-muted); font-size:11px; margin-top:5px; }
@@ -82,8 +83,32 @@
 .rf-minimap { width:130px; height:46px; border:1px solid #9a8338; border-radius:3px; background:#0a1922; padding:4px; }
 .rf-minimap rect { fill:#36586b; }.rf-minimap .rf-edge { stroke-width:1; vector-effect:non-scaling-stroke; }
 .rf-history { margin-top:14px; border:1px solid #304653; border-radius:8px; background:linear-gradient(#11232d,#0b1922); padding:12px 15px; }
-.rf-history-heading { margin-bottom:10px; }
-.rf-history h3 { font-size:16px; margin:0; color:#edf3f7; }
+.rf-history-heading { margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid rgba(170,190,205,.11); align-items:flex-start; }
+.rf-history h3 { font-size:1.12rem; line-height:1.15; margin:0; color:#f5f7f8; }
+.rf-history-heading #rf-history-toggle { color:#f4c542; background:none; border:0; box-shadow:none; min-height:0; padding:0; font-size:.7rem; font-weight:700; white-space:nowrap; }
+#view-routing-flow#view-routing-flow .rf-history::before { content:none !important; display:none !important; }
+#view-routing-flow#view-routing-flow .rf-history > .rf-history-heading {
+  position:relative;
+  box-sizing:border-box;
+  min-height:58px;
+  margin:-16px -18px 14px;
+  padding:14px 18px;
+  align-items:center;
+  background:linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%);
+  border-bottom:1px solid rgba(148, 163, 184, 0.12);
+}
+#view-routing-flow#view-routing-flow .rf-history > .rf-history-heading::before {
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  width:52px;
+  height:3px;
+  border-radius:999px;
+  background:linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  pointer-events:none;
+  animation:ops-dashboard-accent-pulse 2s ease-in-out infinite;
+}
 .rf-table-scroll { overflow-x:auto; }
 .rf-history table { width:100%; border-collapse:collapse; color:#edf3f7; font-size:12px; background:transparent; }
 .rf-history th { color:#b6c7d2; font-weight:400; text-align:left; padding:7px 5px; background:transparent; }
@@ -105,22 +130,179 @@
 @media(max-width:1050px) { .rf-metric { padding:12px 9px; gap:8px; }.rf-metric strong { font-size:20px; }.rf-graph { column-gap:7%; }.rf-node { padding:9px; gap:8px; }.rf-node img { width:34px; height:34px; }.rf-node-copy strong { font-size:12px; }.rf-funnel { padding:5px; } }
 @media(max-width:800px) { .rf-metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }.rf-column-heading { font-size:13px; }.rf-destination { padding:10px; }.rf-destination-top { flex-wrap:wrap; }.rf-node-copy { overflow-wrap:anywhere; } }
 @media(max-width:640px) { .rf-graph { grid-template-columns:1fr; gap:10px; transform:none !important; }.rf-column-heading,.rf-edges,.rf-minimap { display:none; }.rf-node,.rf-unassigned { grid-column:auto !important; grid-row:auto !important; }.rf-filter { margin-bottom:14px; width:calc(100% - 20px); margin-left:20px; }.rf-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }.rf-destination-top { flex-wrap:nowrap; }.rf-history table { min-width:540px; }.rf-canvas { padding:12px; }.rf-detail-row { flex-wrap:wrap; gap:7px; }.rf-detail-row strong { text-align:left; }.rf-detail-identity { justify-content:flex-start; } }
-@media(prefers-reduced-motion:reduce) { .rf-graph { transition:none; } }
+@media(prefers-reduced-motion:reduce) {
+  .rf-graph { transition:none; }
+  #view-routing-flow#view-routing-flow .rf-history > .rf-history-heading::before { animation:none !important; }
+}
+
+/* Add route-aware tracer segments over active nodes without changing their face or layout. */
+#view-routing-flow#view-routing-flow .rf-node { --rf-node-trace-core:14deg; --rf-node-trace-sweep:44deg; }
+#view-routing-flow#view-routing-flow .rf-node.rf-filter { --rf-node-trace-core:14deg; --rf-node-trace-sweep:44deg; }
+
+@property --rf-node-trace-forward {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@property --rf-node-trace-secondary {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 180deg;
+}
+
+#view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-single::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-dual::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-dual::after,
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::after,
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::after,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::after,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: -1px;
+  padding: 2px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+#view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-single::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-dual::before {
+  color: #ffda32;
+  background: conic-gradient(from var(--rf-node-trace-forward), #ffda32 0deg, rgba(255, 218, 50, .68) 14deg, transparent 44deg 360deg);
+  animation: rf-trace-forward 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
+}
+
+#view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-dual::after {
+  color: #ded7ca;
+  background: conic-gradient(from var(--rf-node-trace-secondary), #ded7ca 0deg, rgba(183, 172, 154, .72) 14deg, transparent 44deg 360deg);
+  animation: rf-trace-secondary 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes rf-trace-forward {
+  to { --rf-node-trace-forward: 360deg; }
+}
+@keyframes rf-trace-secondary {
+  to { --rf-node-trace-secondary: 540deg; }
+}
+@keyframes rf-trace-glow {
+  0%, 100% { opacity: .72; filter: drop-shadow(0 0 2px currentColor); }
+  50% { opacity: 1; filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px currentColor); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-single::before,
+  #view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-dual::before,
+  #view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-dual::after,
+  #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single,
+  #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual,
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single,
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual {
+    animation: none !important;
+  }
+}
+
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single {
+  animation:rf-card-highlight-yellow 2.2s ease-in-out infinite;
+}
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual {
+  animation:rf-card-highlight-gray 2.2s ease-in-out infinite;
+}
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::after,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: -2px;
+  width: auto;
+  height: auto;
+  border: 1px solid transparent;
+  border-radius: inherit;
+  background: none;
+  pointer-events: none;
+  z-index: 3;
+}
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: -1px;
+  width: auto;
+  height: auto;
+  border: 1px solid transparent;
+  border-radius: inherit;
+  background: none;
+  pointer-events: none;
+  z-index: 3;
+}
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::before {
+  border-color: #ffda32;
+  clip-path: inset(0 0 50% 0);
+  animation: rf-card-highlight-mixed-yellow 2.2s ease-in-out infinite;
+}
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::after,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::after {
+  border-color: #ded7ca;
+  clip-path: inset(50% 0 0 0);
+  animation: rf-card-highlight-mixed-gray 2.2s ease-in-out infinite;
+}
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::after,
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::after,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::after,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::after {
+  content:none !important; display:none !important;
+}
+@keyframes rf-card-highlight-yellow {
+  0%,100% { border-color:rgba(255,218,50,.62); box-shadow:0 0 0 1px rgba(255,218,50,.35),0 0 8px rgba(255,218,50,.18); }
+  50% { border-color:#ffda32; box-shadow:0 0 0 1px rgba(255,218,50,.8),0 0 16px rgba(255,218,50,.38); }
+}
+@keyframes rf-card-highlight-gray {
+  0%,100% { border-color:rgba(222,215,202,.58); box-shadow:0 0 0 1px rgba(222,215,202,.3),0 0 8px rgba(222,215,202,.14); }
+  50% { border-color:#ded7ca; box-shadow:0 0 0 1px rgba(222,215,202,.72),0 0 16px rgba(222,215,202,.3); }
+}
+@keyframes rf-card-highlight-mixed-yellow {
+  0%,100% { border-color:rgba(255,218,50,.62); box-shadow:0 0 0 1px rgba(255,218,50,.35),0 0 8px rgba(255,218,50,.18); }
+  50% { border-color:#ffda32; box-shadow:0 0 0 1px rgba(255,218,50,.8),0 0 16px rgba(255,218,50,.38); }
+}
+@keyframes rf-card-highlight-mixed-gray {
+  0%,100% { border-color:rgba(222,215,202,.58); box-shadow:0 0 0 1px rgba(222,215,202,.3),0 0 8px rgba(222,215,202,.14); }
+  50% { border-color:#ded7ca; box-shadow:0 0 0 1px rgba(222,215,202,.72),0 0 16px rgba(222,215,202,.3); }
+}
+@media(prefers-reduced-motion:reduce) {
+  #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::before,
+  #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::after,
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::before,
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::after,
+  #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single,
+  #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual,
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single,
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual { animation:none !important; }
+}
 
 /* Existing enhancement icons use !important globally; contain their dimensions. */
 .rf-page .rf-history-identity .source-product-icon { width:20px !important; height:20px !important; }
 .rf-page .rf-route .source-product-icon { width:43px !important; height:43px !important; }
 
 
-/* 2026-09-18 approved compact Routing Flow filter card. */
-@property --rf-filter-border-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
+/* Preserve the prototype's static filter card styling. */
 .rf-filter-card {
-  --rf-filter-border-angle: 0deg;
   background: linear-gradient(115deg, #031724, #021a1c) !important;
   border: 1px solid #315565 !important;
   border-radius: 12px !important;
@@ -129,40 +311,6 @@
   min-height: 168px !important;
   overflow: visible;
   padding: 12px 13px 10px !important;
-}
-
-.rf-filter-card::before {
-  animation: rf-filter-border-travel 3.2s linear infinite;
-  background: conic-gradient(
-    from var(--rf-filter-border-angle),
-    transparent 0deg 258deg,
-    rgba(255, 210, 64, 0.18) 274deg,
-    #ffd13a 298deg,
-    #ffb916 314deg,
-    rgba(255, 204, 48, 0.24) 330deg,
-    transparent 348deg 360deg
-  );
-  border-radius: inherit;
-  content: "";
-  filter: drop-shadow(0 0 4px rgba(255, 196, 32, 0.42));
-  inset: -1px;
-  padding: 1px;
-  pointer-events: none;
-  position: absolute;
-  z-index: 2;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-}
-
-.rf-filter-card > * {
-  position: relative;
-  z-index: 3;
 }
 
 .rf-filter-card-header {
@@ -323,10 +471,6 @@
   white-space: nowrap;
 }
 
-@keyframes rf-filter-border-travel {
-  to { --rf-filter-border-angle: 360deg; }
-}
-
 @media (max-width: 1050px) {
   .rf-filter-card {
     min-height: 154px !important;
@@ -351,11 +495,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rf-filter-card::before {
-    animation: none;
-    --rf-filter-border-angle: 300deg;
-  }
-
   .rf-node.rf-has-incoming > .rf-socket-left,
   .rf-node.rf-has-outgoing > .rf-socket-right {
     animation:none;

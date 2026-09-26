@@ -72,3 +72,22 @@ def test_dialog_icons_have_scoped_sizes():
     assert ".rf-dialog-title-icon" in CSS
     assert ".rf-detail-identity" in CSS
     assert ".rf-detail-icon" in CSS
+
+
+def test_routing_node_pulse_modes_follow_active_direct_and_filtered_links():
+    assert "NowlertRoutingPulseModel?.resolveNodeModes(current)" in SCRIPT
+    assert 'classList.remove("rf-pulse-single", "rf-pulse-dual", "rf-pulse-mixed")' in SCRIPT
+    assert 'classList.add(`rf-pulse-${item.mode}`)' in SCRIPT
+    assert "rf-node.rf-route.rf-pulse-single" in CSS
+    assert "rf-node.rf-destination.rf-pulse-dual" in CSS
+    assert "rf-node.rf-route.rf-pulse-mixed" in CSS
+    assert "rf-card-highlight-yellow" in CSS
+    assert "rf-card-highlight-gray" in CSS
+    assert "rf-node-tracer" not in CSS
+
+
+def test_routing_pulse_keeps_filter_geometry_and_metric_exceptions():
+    assert ".rf-filter { min-height:66px; padding:10px; gap:10px; }" in CSS
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in CSS
+    assert "#view-routing-flow .rf-metric::before { content:none !important; display:none !important; }" in CSS
+    assert "@media(prefers-reduced-motion:reduce)" in CSS

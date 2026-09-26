@@ -1089,13 +1089,17 @@
     if (!data || section.hidden) return;
     const graph = $("rf-graph"), edges = $("rf-edges");
     const edgeLayer = $("rf-edge-layer"); edgeLayer.replaceChildren(); edgePaths = new Map();
+    const current = graphModel || activeFlowGraph();
+    graph.querySelectorAll(".rf-node").forEach(node => node.classList.remove("rf-pulse-single", "rf-pulse-dual", "rf-pulse-mixed"));
+    for (const item of window.NowlertRoutingPulseModel?.resolveNodeModes(current) || []) {
+      nodeFor(item.kind, item.id)?.classList.add(`rf-pulse-${item.mode}`);
+    }
     graph.querySelectorAll(".rf-node.rf-has-incoming, .rf-node.rf-has-outgoing").forEach(node => {
       node.classList.remove("rf-has-incoming");
       node.classList.remove("rf-has-outgoing");
     });
     if (graph.hidden || graph.clientWidth === 0 || window.innerWidth <= 640) return;
     edges.setAttribute("viewBox", `0 0 ${graph.clientWidth} ${graph.clientHeight}`);
-    const current = graphModel || activeFlowGraph();
 
     for (const link of current.links) {
       const key = linkKey(link.route_id, link.destination_id);

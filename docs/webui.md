@@ -117,6 +117,12 @@ save.
 Wildcard routes are labelled **Fallback**. They are evaluated only when no
 enabled dedicated integration route matches the event.
 
+### Routing Flow
+
+Routing Flow shows the active integration, filter, and destination topology. Its
+card highlight follows route type: direct paths pulse yellow, filtered paths
+pulse grey, and endpoints shared by both use a split yellow/grey pulse. Filter
+criteria and routing behavior are unchanged.
 ### Event API tokens
 
 Event API tokens authorize external applications to submit
