@@ -1,0 +1,1065 @@
+/* Nowlert brand treatment based on nweb-dev. Critical and Shared badges keep
+   their established semantic colors; Routing Flow filter layout and motion stay. */
+:root {
+  --bg: #0c0f12;
+  --bg-soft: #14171b;
+  --surface: #202327;
+  --surface-solid: #202327;
+  --surface-raised: #292d32;
+  --line: rgba(242, 235, 221, 0.16);
+  --line-strong: rgba(242, 235, 221, 0.26);
+  --text: #f2ebdd;
+  --muted: #c8bdab;
+  --accent: #d9a629;
+  --accent-strong: #f4c542;
+  --accent-soft: rgba(244, 197, 66, 0.12);
+  --shadow: 0 18px 46px rgba(0, 0, 0, 0.34);
+  --brand-charcoal: #0c0f12;
+  --brand-card: #202327;
+  --brand-card-soft: #292d32;
+  --brand-gold: #d9a629;
+  --brand-amber: #f4c542;
+  --brand-ivory: #f2ebdd;
+  --brand-taupe: #b7ac9a;
+}
+
+body {
+  background:
+    radial-gradient(circle at 78% 5%, rgba(244, 197, 66, 0.08), transparent 26rem),
+    radial-gradient(circle at 12% 95%, rgba(183, 172, 154, 0.055), transparent 25rem),
+    #0c0f12;
+  color: #f2ebdd;
+}
+
+.sidebar {
+  background: rgba(12, 15, 18, 0.98);
+  border-color: rgba(242, 235, 221, 0.13);
+  box-shadow: 10px 0 34px rgba(0, 0, 0, 0.22);
+}
+
+.topbar {
+  background: rgba(12, 15, 18, 0.94);
+  border-color: rgba(242, 235, 221, 0.13);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+}
+
+.nav-item.active {
+  background: rgba(244, 197, 66, 0.14);
+  color: #f4c542;
+}
+
+.eyebrow { color: #f4c542; }
+
+.content input:not([type="checkbox"]):not([type="radio"]),
+.content select,
+.content textarea,
+.ops-global-range,
+.ops-range select {
+  background-color: #14171b;
+  border-color: rgba(242, 235, 221, 0.2);
+  color: #f2ebdd;
+}
+
+[id^="view-"]:not(#view-routing-flow) .button.primary { background: #d9a629; color: #20242a; }
+[id^="view-"]:not(#view-routing-flow) .button.primary:hover:not(:disabled) { background: #f4c542; }
+[id^="view-"]:not(#view-routing-flow) .button.secondary,
+[id^="view-"]:not(#view-routing-flow) .icon-button {
+  background-color: rgba(242, 235, 221, 0.055);
+  border-color: rgba(242, 235, 221, 0.19);
+  color: #f2ebdd;
+}
+.ops-global-range select,
+.ops-range select { background: transparent; color: #f2ebdd; }
+
+.metric-card,
+.panel,
+.table-panel,
+.resource-card,
+.settings-card,
+.configuration-status,
+.hero-panel,
+.workspace-alert {
+  background-color: #202327;
+  border-color: rgba(242, 235, 221, 0.16);
+  color: #f2ebdd;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(242, 235, 221, 0.018);
+}
+
+.metric-card,
+.panel,
+.table-panel,
+.resource-card,
+.settings-card {
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.resource-card:hover,
+.metric-card:hover,
+.panel:hover,
+.settings-card:hover {
+  border-color: rgba(244, 197, 66, 0.38);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.3), 0 0 20px rgba(244, 197, 66, 0.055);
+}
+
+.hero-panel {
+  background:
+    radial-gradient(circle at 88% 0, rgba(244, 197, 66, 0.075), transparent 24rem),
+    linear-gradient(135deg, #202327, #14171b);
+  border-color: rgba(244, 197, 66, 0.22);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(242, 235, 221, 0.025);
+}
+
+.configuration-status {
+  background: linear-gradient(110deg, rgba(244, 197, 66, 0.07), #202327 45%);
+}
+
+.status-dot.success::before,
+.ops-live-dot { animation: live-halo 1.8s ease-out infinite; }
+
+@keyframes live-halo {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 197, 66, 0.34), 0 0 10px rgba(244, 197, 66, 0.52); }
+  55% { box-shadow: 0 0 0 7px rgba(244, 197, 66, 0), 0 0 15px rgba(244, 197, 66, 0.68); }
+}
+
+.badge.success,
+.badge.warning,
+.badge.danger,
+.ops-severity.severity-critical,
+.ops-severity.severity-error,
+.ops-severity.severity-fatal,
+.ops-severity.severity-high,
+.ops-severity.severity-warning,
+.ops-severity.severity-warn,
+.ops-outcome.delivered { animation: status-glow 2.6s ease-in-out infinite; }
+
+.badge.success,
+.ops-outcome.delivered { --status-rgb: 52, 211, 153; }
+.badge.warning,
+.ops-severity.severity-high,
+.ops-severity.severity-warning,
+.ops-severity.severity-warn { --status-rgb: 244, 197, 66; }
+.badge.danger,
+.ops-severity.severity-critical,
+.ops-severity.severity-error,
+.ops-severity.severity-fatal { --status-rgb: 248, 113, 113; }
+
+/* High uses the warm warning tier; neutral severities stay quiet and do not
+   reintroduce the legacy blue accent into the Nowlert palette. */
+.ops-severity.severity-high {
+  color: #f4c542 !important;
+  border-color: rgba(244, 197, 66, 0.45) !important;
+  background: rgba(151, 109, 22, 0.12) !important;
+}
+
+.ops-severity:not(.severity-critical):not(.severity-error):not(.severity-fatal):not(.severity-high):not(.severity-warning):not(.severity-warn) {
+  color: #c8bdab;
+  border-color: rgba(183, 172, 154, 0.28);
+  background: rgba(183, 172, 154, 0.07);
+}
+
+@keyframes status-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--status-rgb), 0), 0 0 2px rgba(var(--status-rgb), 0.1); }
+  50% { box-shadow: 0 0 0 2px rgba(var(--status-rgb), 0.14), 0 0 14px rgba(var(--status-rgb), 0.3); }
+}
+
+/* Override the legacy gray dashboard panels with the actual brand card surface. */
+#view-dashboard.ops-dashboard .panel,
+#view-dashboard.ops-dashboard .table-panel,
+#view-dashboard.ops-dashboard .metric-card,
+#view-dashboard.ops-dashboard .resource-card,
+.ops-dashboard .ops-kpi-card {
+  background: linear-gradient(155deg, #202327, #191c20);
+  border-color: rgba(242, 235, 221, 0.16);
+}
+
+.ops-dashboard .ops-kpi-card::before,
+.ops-dashboard .panel::before {
+  background: linear-gradient(90deg, transparent, rgba(244, 197, 66, 0.26), transparent);
+}
+
+.ops-kpi-icon { color: #f4c542; }
+.ops-kpi-success .ops-kpi-icon {
+  background: #34d399;
+  box-shadow: 0 0 16px rgba(52, 211, 153, 0.2);
+}
+
+.ops-delivery-chart {
+  background: linear-gradient(180deg, rgba(12, 15, 18, 0.44), rgba(12, 15, 18, 0.12));
+  border: 1px solid rgba(242, 235, 221, 0.07);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ops-chart-plot { fill: #0c0f12; }
+.ops-chart-grid { stroke: rgba(242, 235, 221, 0.1); }
+.ops-chart-axis { fill: #c8bdab; }
+.ops-chart-axis-title { fill: #b7ac9a; font-size: 12px; letter-spacing: 0.04em; }
+.ops-chart-series-delivered { filter: drop-shadow(0 0 5px rgba(52, 211, 153, 0.38)); }
+.ops-chart-series-failed { filter: drop-shadow(0 0 5px rgba(251, 113, 133, 0.3)); }
+.ops-chart-series-retry { filter: drop-shadow(0 0 5px rgba(244, 197, 66, 0.3)); }
+
+/* Reframe the Routing Flow canvas and non-filter nodes only. The filter cards
+   retain every prototype style declaration without overrides from this layer. */
+.rf-page .rf-toolbar p,
+.rf-page .rf-metric small,
+.rf-page .rf-last,
+.rf-page .rf-empty { color: #c8bdab; }
+
+.rf-page .rf-canvas {
+  background: #0c0f12;
+  border-color: rgba(242, 235, 221, 0.16);
+  box-shadow: inset 0 1px 0 rgba(242, 235, 221, 0.018), 0 14px 36px rgba(0, 0, 0, 0.24);
+}
+
+.rf-page .rf-metric,
+.rf-page .rf-history,
+.rf-page .rf-node:not(.rf-filter-card),
+.rf-page .rf-destination {
+  background: linear-gradient(145deg, #202327, #171a1e);
+  border-color: rgba(242, 235, 221, 0.16);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(242, 235, 221, 0.018), 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.rf-page .rf-node:not(.rf-filter-card):hover,
+.rf-page .rf-node:not(.rf-filter-card):focus-visible,
+.rf-page .rf-destination:hover {
+  border-color: rgba(244, 197, 66, 0.5);
+  box-shadow: 0 0 20px rgba(244, 197, 66, 0.08), 0 10px 26px rgba(0, 0, 0, 0.25);
+}
+
+.rf-page .rf-history { background: #202327; }
+.rf-page .rf-history td { border-color: rgba(242, 235, 221, 0.13); }
+.rf-page .rf-edge { stroke: #d9a629; }
+.rf-page .rf-particle { fill: #fff0b8; filter: drop-shadow(0 0 4px rgba(244, 197, 66, 0.72)) drop-shadow(0 0 7px rgba(217, 166, 41, 0.55)); }
+.rf-page .rf-particle.rf-failed-particle { fill: #ff9494; filter: drop-shadow(0 0 4px rgba(248, 113, 113, 0.72)); }
+
+/* One shared Nowlert surface treatment across every menu. */
+[id^="view-"] .panel,
+[id^="view-"] .table-panel,
+[id^="view-"] .metric-card,
+[id^="view-"] .resource-card {
+  background: linear-gradient(155deg, #202327, #171a1e) !important;
+  border-color: rgba(242, 235, 221, 0.13);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(242, 235, 221, 0.018);
+}
+
+[id^="view-"] .panel,
+[id^="view-"] .table-panel,
+[id^="view-"] .metric-card,
+[id^="view-"] .resource-card,
+[id^="view-"] .email-metric-card,
+[id^="view-"] .email-classification-card,
+[id^="view-"] .email-resource-card,
+[id^="view-"] .audit-health-card,
+[id^="view-"] .backup-tool-box {
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+[id^="view-"] .panel:hover,
+[id^="view-"] .table-panel:hover,
+[id^="view-"] .metric-card:hover,
+[id^="view-"] .resource-card:hover,
+[id^="view-"] .email-metric-card:hover,
+[id^="view-"] .email-classification-card:hover,
+[id^="view-"] .email-resource-card:hover,
+[id^="view-"] .audit-health-card:hover,
+[id^="view-"] .backup-tool-box:hover {
+  border-color: rgba(244, 197, 66, 0.28);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28), 0 0 18px rgba(244, 197, 66, 0.045);
+  transform: translateY(-1px);
+}
+
+/* Dashboard's ranking bars use the brand accent instead of the old blue track. */
+#view-dashboard .ops-ranking-track { background: rgba(242, 235, 221, 0.11); }
+#view-dashboard .ops-ranking-fill { background: linear-gradient(90deg, #d9a629, #f4c542); }
+
+/* Email Alerts: same charcoal surfaces as the rest of the UI; classification
+   and connection badges retain their semantic colors. */
+#view-email-alerts .email-alert-tabs,
+#view-email-alerts .email-config-panel,
+#view-email-alerts .email-panel,
+#view-email-alerts .email-metric-card,
+#view-email-alerts .email-classification-card,
+#view-email-alerts .email-resource-card,
+#view-email-alerts .email-condition-editor,
+#view-email-alerts .email-condition-row {
+  background: linear-gradient(155deg, #202327, #171a1e);
+  border-color: rgba(242, 235, 221, 0.13);
+}
+
+#view-email-alerts .email-alert-tab.active {
+  background: #f4c542;
+  color: #20242a;
+}
+
+/* Audit log: match the same surfaces and separators while keeping health colors. */
+#view-audit .audit-health-checks-panel,
+#view-audit .audit-health-latest-panel {
+  background: linear-gradient(155deg, #202327, #171a1e);
+  border-color: rgba(242, 235, 221, 0.13);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(242, 235, 221, 0.018);
+}
+
+#view-audit .audit-health-card { background: #191c20; border-color: rgba(242, 235, 221, 0.11); }
+
+/* Backups: remove the isolated cyan/blue card fills that do not appear in the
+   Nowlert reference palette. */
+#view-backups .backup-dashboard-panel,
+#view-backups .backup-tool-box,
+#backup-data-tools-panel .data-tools-reference-card {
+  background: linear-gradient(155deg, #202327, #171a1e) !important;
+  border-color: rgba(242, 235, 221, 0.15) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(242, 235, 221, 0.018) !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-card .backup-tool-icon {
+  background: rgba(244, 197, 66, 0.09);
+  border-color: rgba(244, 197, 66, 0.22);
+}
+
+#backup-data-tools-panel .data-tools-reference-card > p { color: #c8bdab; }
+
+#backup-data-tools-panel .data-tools-reference-file,
+#backup-data-tools-panel .data-tools-reference-file input[type="file"] {
+  background: #14171b !important;
+  border-color: rgba(242, 235, 221, 0.2) !important;
+  color: #f2ebdd !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-file input[type="file"]::file-selector-button {
+  background: #292d32 !important;
+  border: 1px solid rgba(242, 235, 221, 0.2) !important;
+  color: #f2ebdd !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-preview {
+  background: rgba(242, 235, 221, 0.055) !important;
+  border-color: rgba(242, 235, 221, 0.2) !important;
+  color: #f2ebdd !important;
+}
+
+/* Normalize custom cards that use their own blue-tinted reference styles. */
+#view-backups .backup-overview-strip,
+#view-users .reference-user-metric,
+#view-users .reference-users-recent,
+#view-settings .reference-regional-card,
+#view-settings .reference-updates-card,
+#view-settings .reference-update-version-card,
+#view-settings .reference-update-checked,
+#view-settings .housekeeping-retention-panel,
+#view-settings .housekeeping-runs-panel,
+#view-account .reference-profile-card,
+#view-account .reference-password-card,
+#view-account .reference-profile-body,
+#view-account .reference-access-status,
+#view-account .reference-account-meta-item,
+#view-account .reference-api-tokens > .table-panel {
+  background: linear-gradient(155deg, #202327, #171a1e) !important;
+  border-color: rgba(242, 235, 221, 0.16) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(242, 235, 221, 0.018);
+}
+
+#view-settings .reference-update-status-card,
+#view-settings .housekeeping-status-card,
+#view-settings .housekeeping-schedule-note {
+  background: #202327 !important;
+}
+
+#view-backups .backup-summary-item:not(:last-child)::after {
+  background: rgba(242, 235, 221, 0.13);
+}
+
+#view-backups .backup-summary-icon:not(.success) {
+  background: rgba(244, 197, 66, 0.09);
+  border-color: rgba(244, 197, 66, 0.22);
+}
+
+#view-backups .badge.info {
+  background: rgba(242, 235, 221, 0.055);
+  border-color: rgba(242, 235, 221, 0.19);
+  color: #c8bdab;
+}
+
+#view-users .reference-user-metric-icon {
+  background: rgba(244, 197, 66, 0.09);
+  border-color: rgba(244, 197, 66, 0.22);
+  color: #f4c542;
+}
+
+#view-users .reference-user-metric:nth-child(2) .reference-user-metric-icon {
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.24);
+  color: #70e58c;
+}
+
+#view-users .reference-user-metric-copy > span,
+#view-users .reference-user-metric-copy small,
+#view-users .reference-users-recent-heading > span,
+#view-users .reference-users-recent-row time,
+#view-users .reference-users-recent-row > span:nth-child(3) {
+  color: #c8bdab;
+}
+
+#view-users .reference-user-metric-copy strong { color: #f2ebdd; }
+#view-users .reference-user-metric:nth-child(2) .reference-user-metric-copy strong,
+#view-users .reference-user-metric:nth-child(2) .reference-user-metric-copy small { color: #70e58c; }
+
+#view-account .reference-profile-body #account-avatar {
+  border-color: rgba(244, 197, 66, 0.72) !important;
+  box-shadow: 0 0 20px rgba(244, 197, 66, 0.12) !important;
+}
+
+#view-account .reference-profile-copy #account-role,
+#view-account .reference-profile-copy #account-session,
+#view-account .reference-account-card-heading p,
+#view-account .reference-access-status-copy > small,
+#view-account .reference-access-status-copy > p,
+#view-account .reference-account-meta-item small {
+  color: #c8bdab !important;
+}
+
+#view-account .reference-account-meta-icon {
+  background: rgba(244, 197, 66, 0.09) !important;
+}
+
+#view-destinations .destination-owner-badge,
+#view-destinations .destination-view-only-badge {
+  background: rgba(242, 235, 221, 0.055) !important;
+  border-color: rgba(242, 235, 221, 0.2) !important;
+  color: #c8bdab !important;
+}
+
+#view-deliveries .delivery-history-list-panel,
+#view-deliveries .delivery-history-detail,
+#view-deliveries .delivery-history-detail-card {
+  background: linear-gradient(155deg, #202327, #171a1e) !important;
+  border-color: rgba(242, 235, 221, 0.16) !important;
+}
+
+#view-deliveries .delivery-history-message {
+  background: #14171b !important;
+  border-color: rgba(242, 235, 221, 0.16) !important;
+  color: #f2ebdd !important;
+}
+
+#view-dashboard .ops-delivery-chart { background: #0c0f12; }
+
+/* Bring the remaining reference-specific nested surfaces into the brand
+   palette. Keep operational success/failure colors and Routing Flow filters. */
+#view-backups .backup-heading-status {
+  background: linear-gradient(150deg, #202327, #171a1e) !important;
+  border-color: rgba(242, 235, 221, 0.16) !important;
+  box-shadow: inset 0 1px 0 rgba(244, 197, 66, 0.08), 0 8px 22px rgba(0, 0, 0, 0.2);
+}
+#view-backups .backup-heading-status small { color: #c8bdab !important; }
+#view-backups .backup-heading-divider { background: rgba(242, 235, 221, 0.16) !important; }
+
+/* These cards are assembled and reparented by the Settings view script. Match
+   their stable component classes directly so the original blue fills cannot
+   reappear when that view is rebuilt. */
+.housekeeping-card,
+.housekeeping-retention-panel,
+.housekeeping-runs-panel,
+.housekeeping-recent-runs,
+.reference-update-version-card,
+.reference-update-checked {
+  background: linear-gradient(150deg, #202327, #171a1e) !important;
+  border-color: rgba(242, 235, 221, 0.16) !important;
+  box-shadow: inset 0 1px 0 rgba(244, 197, 66, 0.075), 0 10px 26px rgba(0, 0, 0, 0.22);
+}
+.housekeeping-status-card {
+  background: linear-gradient(105deg, #24272a, #1b1e21) !important;
+}
+.reference-update-status-card {
+  background: linear-gradient(105deg, rgba(35, 161, 80, 0.1), #202327 82%) !important;
+}
+.reference-update-version-card > div,
+.reference-update-checked > div { background: transparent !important; }
+#view-settings .housekeeping-workspace {
+  background: linear-gradient(150deg, #202327, #171a1e) !important;
+  border-color: rgba(242, 235, 221, 0.16) !important;
+  box-shadow: inset 0 1px 0 rgba(244, 197, 66, 0.08), 0 12px 32px rgba(0, 0, 0, 0.22) !important;
+}
+#view-settings .reference-updates-card .reference-update-version-card > div,
+#view-settings .reference-updates-card .reference-update-checked > div {
+  background: #202327 !important;
+  border-color: rgba(242, 235, 221, 0.16) !important;
+  box-shadow: inset 0 1px 0 rgba(244, 197, 66, 0.07) !important;
+}
+#view-settings .reference-updates-card > .update-panel {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+#view-settings .reference-updates-card .reference-update-version-grid {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+#view-settings .reference-updates-card .reference-update-status-card > div {
+  background: #202327 !important;
+  border: 1px solid rgba(242, 235, 221, 0.14) !important;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(244, 197, 66, 0.06) !important;
+}
+
+/* The user activity cue uses the same warm accent as links and active tabs. */
+.reference-users-recent-toggle { color: #f4c542 !important; }
+.reference-users-recent-dot { background: #d9a629 !important; box-shadow: 0 0 8px rgba(244, 197, 66, 0.42); }
+
+/* A quiet gold edge gives custom cards the same Nowlert finish as standard
+   panels; hover remains the moment the glow intensifies. */
+#view-users .reference-user-metric,
+#view-users .reference-users-recent,
+#view-settings .reference-update-version-card,
+#view-settings .reference-update-checked,
+#view-account .reference-profile-body,
+#view-account .reference-access-status,
+#view-account .reference-account-meta-item,
+#view-backups .backup-heading-status {
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(244, 197, 66, 0.08), 0 10px 26px rgba(0, 0, 0, 0.22);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+#view-users .reference-user-metric:hover,
+#view-users .reference-users-recent:hover,
+#view-settings .reference-update-version-card:hover,
+#view-settings .reference-update-checked:hover,
+#view-account .reference-profile-body:hover,
+#view-account .reference-access-status:hover,
+#view-account .reference-account-meta-item:hover,
+#view-backups .backup-heading-status:hover {
+  border-color: rgba(244, 197, 66, 0.42) !important;
+  box-shadow: inset 0 1px 0 rgba(244, 197, 66, 0.14), 0 12px 30px rgba(0, 0, 0, 0.26), 0 0 20px rgba(244, 197, 66, 0.055);
+  transform: translateY(-1px);
+}
+
+/* The security view has two nested grids; keep their internal columns readable
+   by stacking the main cards before the profile grid becomes too narrow. */
+@media (max-width: 1600px) {
+  #view-account .reference-account-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 1500px) {
+  #view-destinations #destination-list.resource-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Keep reduced-motion preferences respected by every added animation. */
+
+@keyframes rf-live-halo {
+  0%, 100% { filter: drop-shadow(0 0 2px currentColor); }
+  50% { filter: drop-shadow(0 0 7px currentColor); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot.success::before,
+  .ops-live-dot,
+  .badge.success,
+  .badge.warning,
+  .badge.danger,
+  .ops-severity.severity-critical,
+  .ops-severity.severity-error,
+  .ops-severity.severity-fatal,
+  .ops-severity.severity-high,
+  .ops-severity.severity-warning,
+  .ops-severity.severity-warn,
+  .ops-outcome.delivered { animation: none !important; }
+}
+
+/* One shared card face and short upper-left gold accent across every menu.
+   This changes surfaces only; component layout and contents stay intact.
+   Routing Flow keeps its filter details while sharing the common outer face. */
+[id^="view-"] :is(
+  .panel,
+  .table-panel,
+  .metric-card,
+  .resource-card,
+  .settings-card,
+  .hero-panel,
+  .workspace-alert,
+  .backup-heading-status,
+  .audit-log-detail,
+  .audit-log-detail-identity,
+  .delivery-history-detail,
+  .delivery-history-detail-card,
+  .audit-health-checks-panel,
+  .audit-health-latest-panel,
+  .audit-health-card,
+  .email-alert-tabs,
+  .email-config-panel,
+  .email-panel,
+  .email-condition-editor,
+  .email-condition-row,
+  .housekeeping-workspace,
+  [class$="-card"],
+  [class*="-card "],
+  [class$="-panel"],
+  [class*="-panel "],
+  [class$="-box"],
+  [class*="-box "]
+):not(.rf-filter-card):not(.rf-filter-card *) {
+  position: relative;
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+[id^="view-"] :is(
+  .panel,
+  .table-panel,
+  .metric-card,
+  .resource-card,
+  .settings-card,
+  .hero-panel,
+  .workspace-alert,
+  .backup-heading-status,
+  .audit-log-detail,
+  .audit-log-detail-identity,
+  .delivery-history-detail,
+  .delivery-history-detail-card,
+  .audit-health-checks-panel,
+  .audit-health-latest-panel,
+  .audit-health-card,
+  .email-alert-tabs,
+  .email-config-panel,
+  .email-panel,
+  .email-condition-editor,
+  .email-condition-row,
+  .housekeeping-workspace,
+  [class$="-card"],
+  [class*="-card "],
+  [class$="-panel"],
+  [class*="-panel "],
+  [class$="-box"],
+  [class*="-box "]
+):not(.rf-filter-card):not(.rf-filter-card *)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: auto;
+  width: 52px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  pointer-events: none;
+}
+
+/* The Backups health summary is moved into the page header at runtime. */
+.backup-heading-status {
+  position: relative;
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+/* Match custom Routing Flow boxes too; filter card contents keep their styling. */
+.rf-page .rf-metric,
+.rf-page .rf-history,
+.rf-page .rf-node:not(.rf-filter-card),
+.rf-page .rf-destination {
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+/* Recent Deliveries uses the same card face and inset as Dashboard panels. */
+.rf-page .rf-history {
+  background: linear-gradient(155deg, #202327, #191c20) !important;
+  padding: 16px 18px;
+  overflow: hidden;
+}
+
+/* Keep filter structure and colors intact except for the approved shared box
+   face. Filters, integrations, and destinations use the same dark surface. */
+.rf-page .rf-filter-card {
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+.backup-heading-status::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 52px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  pointer-events: none;
+}
+
+/* Routing Flow uses custom node classes. Apply the shared box accent to its
+   metrics, history and source/destination nodes while leaving filters untouched. */
+.rf-page .rf-metric,
+.rf-page .rf-history,
+.rf-page .rf-node:not(.rf-filter-card),
+.rf-page .rf-destination {
+  position: relative;
+}
+
+.rf-page .rf-metric::before,
+.rf-page .rf-history::before,
+.rf-page .rf-node:not(.rf-filter-card)::before,
+.rf-page .rf-destination::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: auto;
+  width: 52px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  pointer-events: none;
+}
+
+/* Development Routing Flow integration and destination nodes have no top stripe. */
+.rf-page .rf-node:not(.rf-filter-card)::before,
+.rf-page .rf-destination::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Use the approved clean menu heading treatment and retain its divider line. */
+#page-subtitle,
+#view-audit .audit-log-detail-heading > div > small {
+  display: none !important;
+}
+
+/* Keep Routing Flow cards title-led; their detail actions retain the metadata. */
+.rf-page .rf-node-copy > small,
+.rf-page .rf-node-copy > span,
+.rf-page .rf-destination-top .rf-node-copy > small {
+  display: none !important;
+}
+
+/* Normalize every card-like surface after the page-specific theme rules.
+   The repeated view IDs deliberately outrank older, more specific menu rules.
+   This only changes card fill, border, and the gold corner accent. */
+:is(
+  #view-dashboard#view-dashboard,
+  #view-routing-flow#view-routing-flow,
+  #view-sources#view-sources,
+  #view-destinations#view-destinations,
+  #view-routes#view-routes,
+  #view-tokens#view-tokens,
+  #view-email-alerts#view-email-alerts,
+  #view-deliveries#view-deliveries,
+  #view-audit#view-audit,
+  #view-backups#view-backups,
+  #view-users#view-users,
+  #view-settings#view-settings,
+  #view-updates#view-updates,
+  #view-inputs#view-inputs,
+  #view-data#view-data,
+  #view-account#view-account
+) :is(
+  .panel,
+  .table-panel,
+  .metric-card,
+  .resource-card,
+  .settings-card,
+  .hero-panel,
+  .workspace-alert,
+  .backup-overview-strip,
+  .backup-heading-status,
+  .backup-tool-box,
+  .data-tools-reference-preview,
+  .reference-user-metric,
+  .reference-users-recent,
+  .reference-profile-body,
+  .reference-access-status,
+  .reference-account-meta-item,
+  .reference-update-version-card,
+  .reference-update-checked,
+  .reference-update-status-card,
+  .housekeeping-workspace,
+  .housekeeping-retention-panel,
+  .housekeeping-runs-panel,
+  .housekeeping-status-card,
+  .housekeeping-schedule-note,
+  .housekeeping-recent-runs,
+  .audit-health-checks-panel,
+  .audit-health-latest-panel,
+  .audit-health-card,
+  .audit-log-summary-card,
+  .audit-log-detail,
+  .audit-log-detail-identity,
+  .delivery-history-list-panel,
+  .delivery-history-detail,
+  .delivery-history-detail-card,
+  .delivery-history-message,
+  .email-alert-tabs,
+  .email-config-panel,
+  .email-panel,
+  .email-condition-editor,
+  .email-condition-row,
+  .compact-resource-card,
+  .integration-card,
+  .rf-metric,
+  .rf-history,
+  .rf-node:not(.rf-filter-card),
+  .rf-destination,
+  .rf-filter-card,
+  [class$="-card"],
+  [class*="-card "],
+  [class$="-panel"],
+  [class*="-panel "],
+  [class$="-box"],
+  [class*="-box "]
+):not(button):not(input):not(select):not(textarea):not(.rf-filter-card):not(.rf-filter-card *) {
+  position: relative;
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+/* Filter cards keep their development-branch borders, chips, and metrics;
+   only their outer face is brought to the same approved surface color. */
+#view-routing-flow#view-routing-flow .rf-filter-card {
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-version-card > div,
+#view-settings#view-settings .reference-updates-card .reference-update-checked > div,
+#view-settings#view-settings .reference-updates-card .reference-update-status-card > div {
+  position: relative;
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-version-card > div::before,
+#view-settings#view-settings .reference-updates-card .reference-update-checked > div::before,
+#view-settings#view-settings .reference-updates-card .reference-update-status-card > div::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 52px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  pointer-events: none;
+}
+
+:is(
+  #view-dashboard#view-dashboard,
+  #view-routing-flow#view-routing-flow,
+  #view-sources#view-sources,
+  #view-destinations#view-destinations,
+  #view-routes#view-routes,
+  #view-tokens#view-tokens,
+  #view-email-alerts#view-email-alerts,
+  #view-deliveries#view-deliveries,
+  #view-audit#view-audit,
+  #view-backups#view-backups,
+  #view-users#view-users,
+  #view-settings#view-settings,
+  #view-updates#view-updates,
+  #view-inputs#view-inputs,
+  #view-data#view-data,
+  #view-account#view-account
+) :is(
+  .panel,
+  .table-panel,
+  .metric-card,
+  .resource-card,
+  .settings-card,
+  .hero-panel,
+  .workspace-alert,
+  .backup-overview-strip,
+  .backup-heading-status,
+  .backup-tool-box,
+  .reference-user-metric,
+  .reference-users-recent,
+  .reference-profile-body,
+  .reference-access-status,
+  .reference-account-meta-item,
+  .reference-update-version-card,
+  .reference-update-checked,
+  .reference-update-status-card,
+  .housekeeping-workspace,
+  .housekeeping-retention-panel,
+  .housekeeping-runs-panel,
+  .housekeeping-status-card,
+  .housekeeping-schedule-note,
+  .housekeeping-recent-runs,
+  .audit-health-checks-panel,
+  .audit-health-latest-panel,
+  .audit-health-card,
+  .audit-log-summary-card,
+  .audit-log-detail,
+  .audit-log-detail-identity,
+  .delivery-history-list-panel,
+  .delivery-history-detail,
+  .delivery-history-detail-card,
+  .delivery-history-message,
+  .email-alert-tabs,
+  .email-config-panel,
+  .email-panel,
+  .email-condition-editor,
+  .email-condition-row,
+  .compact-resource-card,
+  .integration-card,
+  .rf-metric,
+  .rf-history,
+  [class$="-card"],
+  [class*="-card "],
+  [class$="-panel"],
+  [class*="-panel "],
+  [class$="-box"],
+  [class*="-box "]
+):not(button):not(input):not(select):not(textarea):not(.rf-filter-card):not(.rf-filter-card *)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: auto;
+  width: 52px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  pointer-events: none;
+}
+
+/* Remove explanatory sublines immediately below box/page headings while
+   keeping metrics, badges, filter details, and body copy untouched. */
+:is(
+  #view-dashboard#view-dashboard,
+  #view-routing-flow#view-routing-flow,
+  #view-sources#view-sources,
+  #view-destinations#view-destinations,
+  #view-routes#view-routes,
+  #view-tokens#view-tokens,
+  #view-email-alerts#view-email-alerts,
+  #view-deliveries#view-deliveries,
+  #view-audit#view-audit,
+  #view-backups#view-backups,
+  #view-users#view-users,
+  #view-settings#view-settings,
+  #view-updates#view-updates,
+  #view-inputs#view-inputs,
+  #view-data#view-data,
+  #view-account#view-account
+) :is(
+  .section-toolbar,
+  .panel-heading,
+  .ops-panel-heading,
+  .housekeeping-page-heading,
+  .housekeeping-panel-heading,
+  .email-resource-heading,
+  .integration-behavior-heading-copy,
+  .audit-health-heading-copy,
+  .audit-log-detail-heading,
+  .reference-account-card-heading,
+  .reference-password-heading,
+  .backup-tool-heading
+) :is(h2, h3, strong) + :is(p, small) {
+  display: none !important;
+}
+
+/* Dashboard-only treatment requested against the approved Audit Event details header. */
+#view-dashboard#view-dashboard .ops-kpi-card::before {
+  content: none !important;
+  display: none !important;
+}
+
+#view-dashboard#view-dashboard :is(
+  .ops-delivery-panel > .ops-panel-heading,
+  .ops-activity-panel > .ops-panel-heading,
+  .ops-insight-panel > .ops-panel-heading,
+  .ops-health-panel > .ops-panel-heading
+) {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 58px;
+  margin: -16px -18px 14px;
+  padding: 14px 18px;
+  align-items: center;
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+#view-dashboard#view-dashboard :is(
+  .ops-delivery-panel > .ops-panel-heading,
+  .ops-activity-panel > .ops-panel-heading,
+  .ops-insight-panel > .ops-panel-heading,
+  .ops-health-panel > .ops-panel-heading,
+  .ops-workspace-summary
+)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 52px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  pointer-events: none;
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ops-dashboard-accent-pulse {
+  0%, 100% { opacity: .72; filter: drop-shadow(0 0 1px rgba(255, 218, 50, .45)) drop-shadow(0 0 3px rgba(255, 218, 50, .2)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 8px rgba(255, 218, 50, 1)) drop-shadow(0 0 16px rgba(255, 218, 50, .72)); }
+}
+
+#view-dashboard#view-dashboard .ops-workspace-summary {
+  position: relative;
+  box-sizing: border-box;
+  align-self: stretch;
+  margin: -14px 0 -14px -18px;
+  width: calc(100% + 18px);
+  padding: 14px 24px 14px 18px;
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%);
+}
+
+#view-dashboard#view-dashboard .ops-workspace-summary-copy > small {
+  display: none !important;
+}
+
+#view-dashboard#view-dashboard .ops-health-status {
+  border: 1px solid rgba(52, 211, 153, 0.28);
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: rgba(42, 142, 71, 0.12);
+  --status-rgb: 52, 211, 153;
+  animation: status-glow 2.6s ease-in-out infinite;
+}
+
+#view-dashboard#view-dashboard .ops-health-status.warning {
+  border-color: rgba(244, 197, 66, 0.35);
+  background: rgba(146, 112, 25, 0.11);
+  --status-rgb: 244, 197, 66;
+}
+
+#view-dashboard#view-dashboard .ops-health-status.error {
+  border-color: rgba(248, 113, 113, 0.36);
+  background: rgba(150, 45, 45, 0.12);
+  --status-rgb: 248, 113, 113;
+}
+
+#view-dashboard#view-dashboard .ops-config-status {
+  animation: status-glow 2.6s ease-in-out infinite;
+}
+
+#view-dashboard#view-dashboard .ops-config-status.is-healthy { --status-rgb: 52, 211, 153; }
+#view-dashboard#view-dashboard .ops-config-status.is-review { --status-rgb: 244, 197, 66; }
+#view-dashboard#view-dashboard .ops-config-status.is-shared { --status-rgb: 114, 180, 255; }
+#view-dashboard#view-dashboard .ops-config-status.is-neutral { --status-rgb: 198, 208, 216; }
+
+@media (prefers-reduced-motion: reduce) {
+  #view-dashboard#view-dashboard :is(
+    .ops-delivery-panel > .ops-panel-heading,
+    .ops-activity-panel > .ops-panel-heading,
+    .ops-insight-panel > .ops-panel-heading,
+    .ops-health-panel > .ops-panel-heading,
+    .ops-workspace-summary
+  )::before,
+  #view-dashboard#view-dashboard .ops-health-status,
+  #view-dashboard#view-dashboard .ops-config-status {
+    animation: none !important;
+  }
+}
