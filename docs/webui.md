@@ -62,6 +62,12 @@ administration:
 - complete Integration/Input → Route → Destination flow; and
 - independent working, disabled, warning, and error states.
 
+The delivery chart plots cumulative delivery outcomes with a thin pulsing yellow
+line and animated pulses at recorded events. The animation restarts when the
+Dashboard is entered or refreshed; reduced-motion preferences disable it. The
+chart shares its selected time range with the Dashboard controls and has no
+manual replay button.
+
 ![Nowlert Dashboard](images/v3.1.0-dashboard.png)
 
 ### Sources

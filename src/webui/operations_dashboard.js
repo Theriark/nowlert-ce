@@ -45,6 +45,9 @@
   let refreshBusy = false;
   let refreshPending = false;
   let lastUpdatedAt = 0;
+  let deliveryChartSignature = "";
+  let animateChartNextRender = true;
+  const DELIVERY_CHART_ANIMATION_MS = 2_800;
 
   function node(tag, className = "", text = "") {
     const item = document.createElement(tag);
@@ -186,8 +189,7 @@
       <section class="ops-main-grid" aria-label="Delivery operations">
         <article class="panel ops-delivery-panel">
           <div class="ops-panel-heading">
-            <div><h2>Delivery Performance</h2><p>Alert delivery outcomes over time</p></div>
-            <label class="ops-range"><span>Range</span><select id="history-range" aria-label="Dashboard history range">${rangeOptions()}</select></label>
+            <div><h2>Delivery Performance</h2></div>
           </div>
           <div id="dashboard-delivery-chart" class="ops-delivery-chart" role="img" aria-label="Delivery performance chart"></div>
           <div id="dashboard-chart-summary" class="ops-chart-summary" aria-live="polite"></div>
@@ -431,60 +433,159 @@
       buckets[index][classifyAttempt(item)] += 1;
     }
 
+    const chartSignature = `${state.historyRange}|${attempts.map((item) => `${item.id || attemptTime(item)}:${classifyAttempt(item)}`).sort().join("|")}`;
+    const chartModel = window.NowlertDeliveryChart;
+    const shouldAnimate = chartModel.shouldAnimateRender(
+      deliveryChartSignature,
+      chartSignature,
+      animateChartNextRender,
+    );
+    deliveryChartSignature = chartSignature;
+    animateChartNextRender = false;
+
     const width = 980, height = 330;
     const padding = { top: 22, right: 18, bottom: 48, left: 54 };
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
-    const maximum = Math.max(1, ...buckets.map(bucket => bucket.delivered + bucket.failed + bucket.retry));
+    // The headline figures show outcomes over the whole range, so plot those
+    // same totals cumulatively. Per-bucket columns made four deliveries look
+    // like four unrelated one-event spikes beside a total of four.
+    let deliveredTotal = 0, failedTotal = 0, retryTotal = 0;
+    for (const bucket of buckets) {
+      deliveredTotal += bucket.delivered;
+      failedTotal += bucket.failed;
+      retryTotal += bucket.retry;
+      bucket.cumulative = { delivered: deliveredTotal, failed: failedTotal, retry: retryTotal };
+    }
+    const { points, total } = chartModel.buildCumulativeSeries(buckets, bucketSeconds);
+    const peakCount = total;
+    const rawTick = Math.max(1, peakCount / 4);
+    const scale = 10 ** Math.floor(Math.log10(rawTick));
+    const normalizedTick = rawTick / scale;
+    const tickStep = (normalizedTick <= 1 ? 1 : normalizedTick <= 2 ? 2 : normalizedTick <= 5 ? 5 : 10) * scale;
+    let maximum = Math.ceil(peakCount / tickStep) * tickStep;
+    if (maximum <= peakCount) maximum += tickStep;
+    maximum = Math.max(tickStep, maximum);
+    const axisIntervals = Math.round(maximum / tickStep);
     const svg = document.createElementNS(SVG_NS, "svg");
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     svg.setAttribute("preserveAspectRatio", "none");
-    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", `Cumulative outcome during the selected ${state.historyRange} window: ${total} total attempts, ${deliveredTotal} delivered, ${failedTotal} failed, ${retryTotal} retry.`);
+    svg.dataset.animation = shouldAnimate ? "play" : "static";
 
-    for (let line = 0; line <= 3; line += 1) {
-      const y = padding.top + (plotHeight * line) / 3;
+    const defs = document.createElementNS(SVG_NS, "defs");
+    const plotGradient = document.createElementNS(SVG_NS, "linearGradient");
+    plotGradient.id = "ops-chart-plot-fill";
+    plotGradient.setAttribute("x1", "0"); plotGradient.setAttribute("y1", "0");
+    plotGradient.setAttribute("x2", "0"); plotGradient.setAttribute("y2", "1");
+    for (const [offset, color] of [["0%", "#0c0f12"], ["100%", "#0c0f12"]]) {
+      const stop = document.createElementNS(SVG_NS, "stop");
+      stop.setAttribute("offset", offset); stop.setAttribute("stop-color", color);
+      plotGradient.append(stop);
+    }
+    const deliveredGradient = document.createElementNS(SVG_NS, "linearGradient");
+    deliveredGradient.id = "ops-delivery-area-gradient";
+    deliveredGradient.setAttribute("x1", "0"); deliveredGradient.setAttribute("y1", "0");
+    deliveredGradient.setAttribute("x2", "0"); deliveredGradient.setAttribute("y2", "1");
+    for (const [offset, opacity] of [["0%", ".24"], ["100%", ".015"]]) {
+      const stop = document.createElementNS(SVG_NS, "stop");
+      stop.setAttribute("offset", offset); stop.setAttribute("stop-color", "#ffda32"); stop.setAttribute("stop-opacity", opacity);
+      deliveredGradient.append(stop);
+    }
+    const neonGlow = document.createElementNS(SVG_NS, "filter");
+    neonGlow.id = "ops-delivery-neon-glow";
+    neonGlow.setAttribute("x", "-60%"); neonGlow.setAttribute("y", "-80%");
+    neonGlow.setAttribute("width", "220%"); neonGlow.setAttribute("height", "260%");
+    const glowBlur = document.createElementNS(SVG_NS, "feGaussianBlur");
+    glowBlur.setAttribute("stdDeviation", "2.7"); glowBlur.setAttribute("result", "glow");
+    const glowMerge = document.createElementNS(SVG_NS, "feMerge");
+    const glowNode = document.createElementNS(SVG_NS, "feMergeNode"); glowNode.setAttribute("in", "glow");
+    const sourceNode = document.createElementNS(SVG_NS, "feMergeNode"); sourceNode.setAttribute("in", "SourceGraphic");
+    glowMerge.append(glowNode, sourceNode); neonGlow.append(glowBlur, glowMerge);
+    const revealClip = document.createElementNS(SVG_NS, "clipPath");
+    revealClip.id = "ops-delivery-reveal-clip";
+    const revealRect = document.createElementNS(SVG_NS, "rect");
+    revealRect.setAttribute("x", padding.left); revealRect.setAttribute("y", padding.top);
+    revealRect.setAttribute("width", shouldAnimate ? 0 : plotWidth); revealRect.setAttribute("height", plotHeight);
+    revealRect.setAttribute("class", "ops-chart-reveal-mask");
+    revealClip.append(revealRect);
+    defs.append(plotGradient, deliveredGradient, neonGlow, revealClip);
+    svg.append(defs);
+
+    const plot = document.createElementNS(SVG_NS, "rect");
+    plot.setAttribute("x", padding.left); plot.setAttribute("y", padding.top);
+    plot.setAttribute("width", plotWidth); plot.setAttribute("height", plotHeight);
+    plot.setAttribute("rx", "8"); plot.setAttribute("class", "ops-chart-plot");
+    svg.append(plot);
+
+    for (let line = 0; line <= axisIntervals; line += 1) {
+      const y = padding.top + (plotHeight * line) / axisIntervals;
       const grid = document.createElementNS(SVG_NS, "line");
       grid.setAttribute("x1", padding.left); grid.setAttribute("x2", width - padding.right);
       grid.setAttribute("y1", y); grid.setAttribute("y2", y); grid.setAttribute("class", "ops-chart-grid");
       svg.append(grid);
       const label = document.createElementNS(SVG_NS, "text");
       label.setAttribute("x", padding.left - 14); label.setAttribute("y", y + 4); label.setAttribute("text-anchor", "end"); label.setAttribute("class", "ops-chart-axis");
-      label.textContent = String(Math.round(maximum * (1 - line / 3)));
+      const value = maximum - line * tickStep;
+      label.textContent = Number.isInteger(value) ? String(value) : value.toFixed(1);
       svg.append(label);
     }
 
-    const slot = plotWidth / bucketCount;
-    const barWidth = Math.max(4, Math.min(13, slot * 0.55));
-    const failedPoints = [], retryPoints = [];
-    buckets.forEach((bucket, index) => {
-      const x = padding.left + index * slot + (slot - barWidth) / 2;
-      const baseline = padding.top + plotHeight;
-      const deliveredHeight = (bucket.delivered / maximum) * plotHeight;
-      const bar = document.createElementNS(SVG_NS, "rect");
-      bar.setAttribute("x", x); bar.setAttribute("width", barWidth); bar.setAttribute("rx", 2);
-      bar.setAttribute("y", baseline - Math.max(bucket.delivered ? 3 : 1, deliveredHeight));
-      bar.setAttribute("height", Math.max(bucket.delivered ? 3 : 1, deliveredHeight));
-      bar.setAttribute("class", bucket.delivered ? "ops-chart-bar" : "ops-chart-zero");
-      svg.append(bar);
-      const centerX = x + barWidth / 2;
-      failedPoints.push(`${centerX},${baseline - Math.max(1.5, (bucket.failed / maximum) * plotHeight)}`);
-      retryPoints.push(`${centerX},${baseline - Math.max(4, (bucket.retry / maximum) * plotHeight)}`);
+    const axisTitle = document.createElementNS(SVG_NS, "text");
+    const axisMid = padding.top + plotHeight / 2;
+    axisTitle.setAttribute("x", 15); axisTitle.setAttribute("y", axisMid);
+    axisTitle.setAttribute("text-anchor", "middle"); axisTitle.setAttribute("class", "ops-chart-axis-title");
+    axisTitle.setAttribute("transform", `rotate(-90 15 ${axisMid})`);
+    axisTitle.textContent = "Cumulative outcome";
+    svg.append(axisTitle);
 
-      if (index % Math.max(1, Math.floor(bucketCount / 7)) === 0 || index === bucketCount - 1) {
-        const label = document.createElementNS(SVG_NS, "text");
-        label.setAttribute("x", centerX); label.setAttribute("y", height - 14); label.setAttribute("text-anchor", "middle"); label.setAttribute("class", "ops-chart-axis ops-chart-time");
-        label.textContent = bucketLabel(bucket.start);
-        svg.append(label);
-      }
-    });
-    for (const [points, cls] of [[retryPoints, "ops-chart-retry-line"], [failedPoints, "ops-chart-failed-line"]]) {
-      const polyline = document.createElementNS(SVG_NS, "polyline");
-      polyline.setAttribute("points", points.join(" "));
-      polyline.setAttribute("fill", "none");
-      polyline.setAttribute("class", cls);
-      svg.append(polyline);
+    const xAt = (time) => padding.left + Math.max(0, Math.min(1, (time - start) / seconds)) * plotWidth;
+    const yAt = (value) => padding.top + plotHeight - (value / maximum) * plotHeight;
+    const stepLine = chartModel.buildStepPath(points, xAt, yAt, padding.left, width - padding.right);
+    const areaPath = document.createElementNS(SVG_NS, "path");
+    areaPath.setAttribute("d", `${stepLine} L ${width - padding.right} ${yAt(0)} L ${padding.left} ${yAt(0)} Z`);
+    areaPath.setAttribute("class", "ops-chart-outcome-area");
+    areaPath.setAttribute("fill", "url(#ops-delivery-area-gradient)");
+    const glowPath = document.createElementNS(SVG_NS, "path");
+    glowPath.setAttribute("d", stepLine); glowPath.setAttribute("class", "ops-chart-outcome-glow");
+    const outcomePath = document.createElementNS(SVG_NS, "path");
+    outcomePath.setAttribute("d", stepLine); outcomePath.setAttribute("class", "ops-chart-outcome-line");
+    outcomePath.setAttribute("data-tooltip", `Cumulative outcomes reach ${total} total attempt${total === 1 ? "" : "s"}.`);
+    const chartDrawing = document.createElementNS(SVG_NS, "g");
+    chartDrawing.setAttribute("clip-path", "url(#ops-delivery-reveal-clip)");
+    chartDrawing.append(areaPath, glowPath, outcomePath);
+    for (const point of points) {
+      const x = xAt(point.time), y = yAt(point.value);
+      if (!shouldAnimate) continue;
+      const pulse = document.createElementNS(SVG_NS, "circle");
+      pulse.setAttribute("cx", x); pulse.setAttribute("cy", y); pulse.setAttribute("r", "6");
+      pulse.setAttribute("class", "ops-chart-delivery-pulse"); pulse.setAttribute("aria-hidden", "true");
+      pulse.style.animationDelay = `${chartModel.pulseDelay(point.time, start, seconds, DELIVERY_CHART_ANIMATION_MS)}ms`;
+      chartDrawing.append(pulse);
+    }
+    svg.append(chartDrawing);
+    for (let index = 0; index <= 6; index += 1) {
+      const x = padding.left + (plotWidth * index) / 6;
+      const label = document.createElementNS(SVG_NS, "text");
+      label.setAttribute("x", x); label.setAttribute("y", height - 14);
+      label.setAttribute("text-anchor", index === 0 ? "start" : index === 6 ? "end" : "middle");
+      label.setAttribute("class", "ops-chart-axis ops-chart-time");
+      label.textContent = bucketLabel(start + seconds * index / 6);
+      svg.append(label);
     }
     container.append(svg);
+
+    const reducedMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (shouldAnimate && !reducedMotion && typeof revealRect.animate === "function") {
+      revealRect.animate(
+        [{ width: "0px" }, { width: `${plotWidth}px` }],
+        { duration: DELIVERY_CHART_ANIMATION_MS, easing: "cubic-bezier(.16, 1, .3, 1)", fill: "forwards" },
+      );
+    } else {
+      revealRect.setAttribute("width", plotWidth);
+      chartDrawing.querySelectorAll(".ops-chart-delivery-pulse").forEach((pulse) => pulse.remove());
+    }
 
     const stats = successStats(attempts);
     summary.append(
@@ -718,12 +819,15 @@
   const previousRenderDashboard = renderDashboard;
   renderDashboard = function operationsDashboardRender() {
     // Do not call the legacy renderer: this intentionally retires the old Dashboard Routing Flow.
+    animateChartNextRender = true;
     renderOperationsDashboard();
   };
 
   const previousNavigate = navigate;
   navigate = function operationsDashboardNavigate(view, historyMode = "push") {
+    const enteringDashboard = view === DASHBOARD_VIEW && state.currentView !== DASHBOARD_VIEW;
     const result = previousNavigate(view, historyMode);
+    if (enteringDashboard) animateChartNextRender = true;
     syncDashboardChrome();
     if (view === DASHBOARD_VIEW && Number(state.workspaceLoadedAt || 0) > 0) {
       refreshDashboardData(false);
@@ -733,6 +837,7 @@
 
   const previousShowApp = showApp;
   showApp = function operationsDashboardShowApp(session) {
+    animateChartNextRender = true;
     restoreDashboardSnapshot(session, state.historyRange);
     renderOperationsDashboard();
     return previousShowApp(session);
@@ -758,6 +863,8 @@
     dashboardDeliveries = [];
     refreshPending = false;
     lastUpdatedAt = 0;
+    deliveryChartSignature = "";
+    animateChartNextRender = true;
     return previousExpireSession(options);
   };
 

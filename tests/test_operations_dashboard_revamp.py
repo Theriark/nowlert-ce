@@ -34,7 +34,7 @@ def test_operations_dashboard_matches_approved_information_architecture():
 
 def test_operations_dashboard_has_two_synchronized_dashboard_range_controls():
     script = _read("src/webui/operations_dashboard.js")
-    assert 'id="history-range"' in script
+    assert 'id="history-range"' not in script
     assert 'id="ops-dashboard-range"' in script
     assert 'state.historyRange = value;' in script
     assert 'syncRangeControls();' in script
@@ -85,6 +85,22 @@ def test_selected_visual_reference_layout_is_encoded_in_css():
     assert "grid-template-columns: minmax(0, 1.56fr) minmax(430px, .94fr);" in css
     assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in css
     assert "grid-template-columns: 180px repeat(4, minmax(0, 1fr));" in css
-    assert ".ops-chart-bar" in css
-    assert ".ops-chart-failed-line" in css
-    assert ".ops-chart-retry-line" in css
+    assert ".ops-chart-outcome-line" in css
+    assert ".ops-chart-delivery-pulse" in css
+    assert "ops-chart-line-core 2s ease-in-out infinite" in css
+    assert "@media (prefers-reduced-motion: reduce)" in css
+
+
+def test_dashboard_delivery_chart_is_cumulative_pulsing_and_has_no_replay_or_dots():
+    script = _read("src/webui/operations_dashboard.js")
+    css = _read("src/webui/operations_dashboard.css")
+    assert "window.NowlertDeliveryChart" in script
+    assert "chartModel.buildCumulativeSeries(buckets, bucketSeconds)" in script
+    assert "chartModel.buildStepPath(points" in script
+    assert "ops-chart-delivery-pulse" in script
+    assert "ops-chart-replay" not in script
+    assert "ops-chart-outcome-point" not in script
+    assert "ops-chart-bar" not in script
+    assert "ops-chart-outcome-line" in css
+    assert "ops-chart-line-core 2s ease-in-out infinite" in css
+    assert "prefers-reduced-motion: reduce" in css
