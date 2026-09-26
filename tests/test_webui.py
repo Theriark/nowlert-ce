@@ -108,6 +108,34 @@ def test_webui_service_is_explicitly_gated_and_has_no_path_mapping():
         assert disabled.response("/ui/app.js").status == 404
 
 
+def test_prototype_assets_are_allowlisted_and_loaded_in_dependency_order():
+    service = WebUIService(enabled_config(), root=ROOT)
+    markup = service.response("/").body.decode("utf-8")
+
+    assert UI_BUILD == "20260926-r53"
+    assert f'name="nowlert-ui-build" content="{UI_BUILD}"' in markup
+    for asset in (
+        "/ui/delivery_chart_model.js",
+        "/ui/routing_pulse_model.js",
+        "/ui/visual_refinement.css",
+    ):
+        response = service.response(asset)
+        assert response is not None and response.status == 200
+        assert response.cache_control == "no-cache"
+        assert asset + f"?v={UI_BUILD}" in markup
+
+    assert markup.index(f"/ui/delivery_chart_model.js?v={UI_BUILD}") < markup.index(
+        f"/ui/operations_dashboard.js?v={UI_BUILD}"
+    )
+    assert markup.index(f"/ui/routing_pulse_model.js?v={UI_BUILD}") < markup.index(
+        f"/ui/routing_flow.js?v={UI_BUILD}"
+    )
+    assert markup.index(f"/ui/reference_acceptance.css?v={UI_BUILD}") < markup.index(
+        f"/ui/visual_refinement.css?v={UI_BUILD}"
+    )
+    assert service.response("/ui/unknown.js").status == 404
+
+
 def test_webui_is_default_on_but_every_explicit_disable_is_authoritative():
     service = WebUIService(Configuration({}), root=ROOT, platform_available=True)
 
@@ -230,16 +258,16 @@ def test_webui_markup_is_semantic_external_and_complete():
     for retired in ("notice-console", "notice-composer", "notice-form", "notice-panel", "notice-list"):
         assert retired not in inspector.ids
     assert inspector.scripts == [
-        "/ui/app.js?v=20260920-r52",
+        "/ui/app.js?v=20260926-r53",
         "/ui/enhancements.js",
-        "/ui/qa_patch.js?v=20260920-r52",
+        "/ui/qa_patch.js?v=20260926-r53",
         "/ui/i18n.js",
         "/ui/dashboard.js",
     ]
     assert inspector.stylesheets == [
         "/ui/styles.css",
         "/ui/enhancements.css",
-        "/ui/qa_patch.css?v=20260920-r52",
+        "/ui/qa_patch.css?v=20260926-r53",
         "/ui/professional.css",
     ]
     assert inspector.inline_handlers == []
@@ -941,9 +969,9 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
     assert response is not None and response.status == 200
     markup = response.body.decode("utf-8")
 
-    assert 'name="nowlert-ui-build" content="20260920-r52"' in markup
-    assert "/ui/app.js?v=20260920-r52" in markup
-    assert "/ui/qa_patch.css?v=20260920-r52" in markup
+    assert 'name="nowlert-ui-build" content="20260926-r53"' in markup
+    assert "/ui/app.js?v=20260926-r53" in markup
+    assert "/ui/qa_patch.css?v=20260926-r53" in markup
 
     # Every runtime extension receives the same build key so a newly deployed
     # WebUI cannot keep executing an older extension bundle.

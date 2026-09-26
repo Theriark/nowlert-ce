@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 TEAMS_MODERN_CARD_ROUTE_PREFIX = "/ui/teams-modern-cards/"
 
 
-UI_BUILD = "20260920-r52"
+UI_BUILD = "20260926-r53"
 
 
 SECURITY_HEADERS = (
@@ -167,6 +167,11 @@ class WebUIService:
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/routing_pulse_model.js": (
+                "src/webui/routing_pulse_model.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/routing_flow.css": (
                 "src/webui/routing_flow.css",
                 "text/css; charset=utf-8",
@@ -184,6 +189,11 @@ class WebUIService:
             ),
             "/ui/operations_dashboard.js": (
                 "src/webui/operations_dashboard.js",
+                "text/javascript; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/delivery_chart_model.js": (
+                "src/webui/delivery_chart_model.js",
                 "text/javascript; charset=utf-8",
                 "no-cache",
             ),
@@ -249,6 +259,11 @@ class WebUIService:
             ),
             "/ui/reference_acceptance.css": (
                 "src/webui/reference_acceptance.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/visual_refinement.css": (
+                "src/webui/visual_refinement.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
@@ -378,6 +393,7 @@ class WebUIService:
                 f'  <link rel="stylesheet" href="/ui/audit_log_refinement.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/management_consistency.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/reference_acceptance.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/visual_refinement.css{version}">\n'
                 f'  <script src="/ui/filtering.js{version}" defer></script>\n'
                 f'  <script src="/ui/email_alerts.js{version}" defer></script>\n'
                 f'  <script src="/ui/source_ui_retirement.js{version}" defer></script>\n'
@@ -385,8 +401,10 @@ class WebUIService:
                 f'  <script src="/ui/destination_editor_fix.js{version}" defer></script>\n'
                 f'  <script src="/ui/policy_simplification.js{version}" defer></script>\n'
                 f'  <script src="/ui/acceptance_cleanup.js{version}" defer></script>\n'
+                f'  <script src="/ui/routing_pulse_model.js{version}" defer></script>\n'
                 f'  <script src="/ui/routing_flow.js{version}" defer></script>\n'
                 f'  <script src="/ui/filtering_ownership_sync.js{version}" defer></script>\n'
+                f'  <script src="/ui/delivery_chart_model.js{version}" defer></script>\n'
                 f'  <script src="/ui/operations_dashboard.js{version}" defer></script>\n'
                 f'  <script src="/ui/operations_acceptance.js{version}" defer></script>\n'
                 f'  <script src="/ui/page_headers.js{version}" defer></script>\n'

@@ -61,6 +61,8 @@ jobs:
           set -euo pipefail
           node --check src/webui/app.js
           node --check src/webui/filtering.js
+          node --check src/webui/delivery_chart_model.js
+          node --check src/webui/routing_pulse_model.js
           node --check src/webui/routing_flow.js
           node --check src/webui/reference_acceptance.js
           node --test tests/webui/test_delivery_chart_model.mjs tests/webui/test_routing_pulse_model.mjs
@@ -292,7 +294,10 @@ jobs:
             require_contains "HTML Filtering" "/ui/filtering.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML Filtering CSS" "/ui/filtering_ownership_sync.css?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML qa_patch JS" "/ui/qa_patch.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML Routing pulse model" "/ui/routing_pulse_model.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML Dashboard" "/ui/operations_dashboard.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML delivery chart model" "/ui/delivery_chart_model.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML shared visual theme" "/ui/visual_refinement.css?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML acceptance" "/ui/operations_acceptance.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML cleanup" "/ui/acceptance_cleanup.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML consistency layer" "/ui/management_consistency.js?v=${UI_BUILD}" "${html}" || return 1
@@ -308,6 +313,14 @@ jobs:
             require_contains "qa_patch.css owl" "transform: scale(1.65)" "${css}" || return 1
             require_contains "qa_patch.css workspace" "#app-shell .workspace" "${css}" || return 1
             require_contains "qa_patch.css backups" "backup-dashboard-grid-top" "${css}" || return 1
+
+            visual_theme="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/visual_refinement.css?v=${UI_BUILD}"
+            )" || { echo "WAIT: visual_refinement.css request failed"; return 1; }
+            require_contains "Shared theme dashboard surfaces" "#view-dashboard#view-dashboard" "${visual_theme}" || return 1
+            require_contains "Shared theme source surfaces" "#view-sources#view-sources" "${visual_theme}" || return 1
 
             app="$(
               curl --fail --silent --show-error \
