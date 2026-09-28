@@ -135,3 +135,23 @@ def test_filter_connected_routes_use_muted_edges_and_flow_particles():
     assert ".rf-page .rf-particle.rf-filter-flow-particle" in CSS
     assert '"rf-filter-connected"' in SCRIPT
     assert "rf-filter-flow-particle" in SCRIPT
+
+
+def test_filter_flow_particles_are_larger_slower_and_match_the_filter_gray():
+    assert 'r: 5,' in SCRIPT
+    assert 'const elapsed = (now - p.started) / 2800;' in SCRIPT
+    assert ".rf-page .rf-particle.rf-filter-flow-particle { fill:#81909a;" in CSS
+    assert ".rf-page .rf-particle.rf-filter-flow-particle.rf-failed-particle { fill:#81909a;" in CSS
+
+
+def test_routing_graph_rebuild_resumes_css_effects_from_the_shared_clock():
+    render_graph = SCRIPT.split("function renderGraph()", 1)[1].split(
+        "function renderHistory()", 1
+    )[0]
+
+    assert "syncAnimationPhases();" in render_graph
+    assert 'style.setProperty(`--rf-motion-phase-${period}`' in SCRIPT
+    assert "window.NowlertRoutingPulseModel?.animationPhaseDelay;" in SCRIPT
+    assert "animationPhaseDelay(period, now)" in SCRIPT
+    assert "animation-delay:var(--rf-motion-phase-2200, 0ms)" in CSS
+    assert "animation-delay:var(--rf-motion-phase-4000, 0ms),var(--rf-motion-phase-1800, 0ms)" in CSS

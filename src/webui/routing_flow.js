@@ -981,8 +981,17 @@
     node.style.gridRow = "auto";
     node.dataset.layoutY = String(Math.round(center));
   }
+  function syncAnimationPhases() {
+    const animationPhaseDelay = window.NowlertRoutingPulseModel?.animationPhaseDelay;
+    if (typeof animationPhaseDelay !== "function") return;
+    const now = Date.now();
+    for (const period of [1800, 2200, 4000]) {
+      section.style.setProperty(`--rf-motion-phase-${period}`, animationPhaseDelay(period, now));
+    }
+  }
   function renderGraph() {
     const graph = $("rf-graph");
+    syncAnimationPhases();
     graph.querySelectorAll(":scope > :not(svg)").forEach(n => n.remove());
     graphModel = activeFlowGraph();
     const current = graphModel;
@@ -1174,7 +1183,7 @@
       const usesFilter = Boolean(filterPaths?.length);
       const filtered = item.outcome === "filtered";
       const circle = svg("circle", {
-        r: 3.2,
+        r: 5,
         class: `rf-particle${usesFilter ? " rf-filter-flow-particle" : ""}${item.outcome === "failed" ? " rf-failed-particle" : filtered ? " rf-filtered-particle" : ""}`,
       });
       $("rf-particle-layer").append(circle);
@@ -1184,7 +1193,7 @@
       if (!active()) { stopPulses(); return; }
       pulses = pulses.filter(p => {
         if (p.started === null) p.started = now;
-        const elapsed = (now - p.started) / 1600;
+        const elapsed = (now - p.started) / 2800;
         if (elapsed >= 1) { p.dot.remove(); return false; }
         const bundle = edgePaths.get(p.key);
         if (!bundle) { p.dot.remove(); return false; }

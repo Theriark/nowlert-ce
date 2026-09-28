@@ -68,6 +68,7 @@
 .rf-node.rf-has-incoming > .rf-socket-left,
 .rf-node.rf-has-outgoing > .rf-socket-right {
   animation:rf-socket-pulse 2.2s ease-in-out infinite;
+  animation-delay:var(--rf-motion-phase-2200, 0ms);
   opacity:1;
 }
 .rf-node.rf-filter-connected > .rf-socket-left,
@@ -90,8 +91,8 @@
 .rf-edge.rf-dim { opacity:.18; }
 .rf-particle { fill:#fff5b9; filter:drop-shadow(0 0 4px #ffcd43) drop-shadow(0 0 7px #ffb900); }
 .rf-particle.rf-failed-particle { fill:#ff9494; filter:drop-shadow(0 0 4px #ff5353); }
-.rf-page .rf-particle.rf-filter-flow-particle { fill:#ded7ca; filter:drop-shadow(0 0 4px #ded7ca) drop-shadow(0 0 7px rgba(222,215,202,.55)); }
-.rf-page .rf-particle.rf-filter-flow-particle.rf-failed-particle { fill:#ded7ca; filter:drop-shadow(0 0 4px #ded7ca) drop-shadow(0 0 7px rgba(222,215,202,.55)); }
+.rf-page .rf-particle.rf-filter-flow-particle { fill:#81909a; filter:drop-shadow(0 0 4px #81909a) drop-shadow(0 0 7px rgba(129,144,154,.55)); }
+.rf-page .rf-particle.rf-filter-flow-particle.rf-failed-particle { fill:#81909a; filter:drop-shadow(0 0 4px #81909a) drop-shadow(0 0 7px rgba(129,144,154,.55)); }
 .rf-canvas-footer { margin-top:17px; position:relative; z-index:2; }
 .rf-canvas-footer .rf-zoom, .rf-canvas-footer #rf-fit { width:126px; height:40px; min-height:40px; }
 .rf-zoom { display:flex; align-items:center; justify-content:space-between; border:1px solid #344b59; background:#0d1e29; border-radius:6px; }
@@ -203,12 +204,14 @@
   color: #ffda32;
   background: conic-gradient(from var(--rf-node-trace-forward), #ffda32 0deg, rgba(255, 218, 50, .68) 14deg, transparent 44deg 360deg);
   animation: rf-trace-forward 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
+  animation-delay:var(--rf-motion-phase-4000, 0ms),var(--rf-motion-phase-1800, 0ms);
 }
 
 #view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-dual::after {
   color: #ded7ca;
   background: conic-gradient(from var(--rf-node-trace-secondary), #ded7ca 0deg, rgba(183, 172, 154, .72) 14deg, transparent 44deg 360deg);
   animation: rf-trace-secondary 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
+  animation-delay:var(--rf-motion-phase-4000, 0ms),var(--rf-motion-phase-1800, 0ms);
 }
 
 @keyframes rf-trace-forward {
@@ -248,6 +251,12 @@
 #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual {
   animation:rf-card-highlight-gray 2.2s ease-in-out infinite;
 }
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single,
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual {
+  animation-delay:var(--rf-motion-phase-2200, 0ms);
+}
 #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::before,
 #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::after,
 #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::before {
@@ -281,12 +290,14 @@
   border-color: #ffda32;
   clip-path: inset(0 0 50% 0);
   animation: rf-card-highlight-mixed-yellow 2.2s ease-in-out infinite;
+  animation-delay:var(--rf-motion-phase-2200, 0ms);
 }
 #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::after,
 #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::after {
   border-color: #ded7ca;
   clip-path: inset(50% 0 0 0);
   animation: rf-card-highlight-mixed-gray 2.2s ease-in-out infinite;
+  animation-delay:var(--rf-motion-phase-2200, 0ms);
 }
 @keyframes rf-card-highlight-yellow {
   0%,100% { border-color:rgba(255,218,50,.62); box-shadow:0 0 0 1px rgba(255,218,50,.35),0 0 8px rgba(255,218,50,.18); }

@@ -13,6 +13,13 @@ test("exports the routing pulse model", () => {
   assert.ok(model, "the routing pulse model is available");
 });
 
+test("animation delays resume at the current shared clock phase", () => {
+  assert.equal(model.animationPhaseDelay(2200, 0), "0ms");
+  assert.equal(model.animationPhaseDelay(2200, 10000), "-1200ms");
+  assert.equal(model.animationPhaseDelay(4000, 10000), "-2000ms");
+  assert.equal(model.animationPhaseDelay(1800, 10000), "-1000ms");
+});
+
 test("direct links give integrations and destinations the yellow mode", () => {
   assert.ok(model, "the routing pulse model is available");
   assert.deepEqual(normalize(model.resolveNodeModes({

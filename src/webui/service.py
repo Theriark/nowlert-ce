@@ -11,7 +11,7 @@ TEAMS_MODERN_CARD_ROUTE_PREFIX = "/ui/teams-modern-cards/"
 
 
 UI_BUILD = "20260928-r55"
-ROUTING_FLOW_CSS_BUILD = f"{UI_BUILD}-routing-flow-2"
+ROUTING_FLOW_CSS_BUILD = f"{UI_BUILD}-routing-flow-3"
 
 
 SECURITY_HEADERS = (
