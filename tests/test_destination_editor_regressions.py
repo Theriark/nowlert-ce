@@ -48,7 +48,7 @@ def test_destination_editor_fix_moves_sharing_to_provider_header():
     stylesheet = FIX_STYLE.read_text(encoding="utf-8")
 
     assert 'sharing.id = "destination-provider-sharing"' in source
-    assert 'status.textContent = sharedInput.checked ? "Shared" : "Private"' in source
+    assert 'label.textContent = shared ? "Shared" : "Private"' in source
     assert 'sharedInput.checked = !sharedInput.checked' in source
     assert "credentials.append(shared);" not in source
     assert ".destination-shared-native" in stylesheet

@@ -1356,19 +1356,19 @@ body {
   }
 }
 
-/* Keep the details inspector level with the event list instead of offsetting it
-   by the sticky-header distance. */
+/* Keep the detail inspector level with the full event-list panel on desktop. */
 #view-audit#view-audit .audit-log-workbench {
-  align-items: start !important;
+  align-items: stretch !important;
 }
 
 #view-audit#view-audit .audit-log-detail {
   position: static !important;
   top: auto !important;
-  align-self: start !important;
+  align-self: stretch !important;
   height: auto !important;
+  min-height: 0 !important;
   max-height: none !important;
-  overflow: visible !important;
+  overflow: auto !important;
 }
 
 /* Put the three Audit pulses on the outer cards, exactly like the approved

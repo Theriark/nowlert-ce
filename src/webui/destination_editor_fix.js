@@ -225,7 +225,16 @@
     const status = document.getElementById("destination-provider-sharing");
     if (!sharedInput || !status) return;
 
-    status.textContent = sharedInput.checked ? "Shared" : "Private";
+    const shared = sharedInput.checked;
+    status.className = `button small destination-provider-sharing is-${shared ? "shared" : "private"}`;
+    const icon = document.createElement("span");
+    icon.className = "destination-share-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = '<svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><circle cx="18" cy="5" r="2"></circle><circle cx="6" cy="12" r="2"></circle><circle cx="18" cy="19" r="2"></circle><path d="m8 11 8-5M8 13l8 5"></path></svg>';
+    const label = document.createElement("span");
+    label.className = "destination-sharing-label";
+    label.textContent = shared ? "Shared" : "Private";
+    status.replaceChildren(icon, label);
     status.classList.toggle("is-private", !sharedInput.checked);
     status.setAttribute("aria-pressed", sharedInput.checked ? "true" : "false");
     status.title = sharedInput.checked
@@ -256,7 +265,7 @@
     if (!sharing) {
       sharing = document.createElement("button");
       sharing.id = "destination-provider-sharing";
-      sharing.className = "destination-provider-sharing";
+      sharing.className = "button small destination-provider-sharing";
       sharing.type = "button";
       sharing.addEventListener("click", () => {
         sharedInput.checked = !sharedInput.checked;

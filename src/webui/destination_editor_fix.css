@@ -56,21 +56,84 @@
 }
 
 .destination-provider-sharing {
-  background: rgba(244, 197, 66, 0.10);
-  border: 1px solid rgba(244, 197, 66, 0.34);
-  border-radius: 999px;
-  color: #f4c542;
-  cursor: pointer;
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1;
-  padding: 5px 9px;
+  align-items: center;
+  appearance: none;
+  border-radius: 0.65rem;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.64rem;
+  font-weight: 750;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.32rem 0.6rem;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.destination-provider-sharing.is-private {
-  background: rgba(255, 255, 255, 0.035);
-  border-color: var(--destination-border);
-  color: var(--destination-muted);
+.destination-provider-status {
+  align-items: center;
+  display: inline-flex;
+  font-size: 0.64rem;
+  font-weight: 750;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.32rem 0.6rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.destination-provider-sharing.is-shared {
+  background: rgba(45, 104, 220, 0.1);
+  border-color: #4c7fe7;
+  color: #a8c7ff;
+}
+
+.destination-provider-sharing.is-private,
+.destination-provider-status.is-disabled {
+  background: rgba(241, 196, 95, 0.08);
+  border-color: rgba(241, 196, 95, 0.42);
+  color: #f1c45f;
+}
+
+.destination-provider-status.is-active {
+  background: rgba(77, 211, 126, 0.12);
+  border-color: rgba(77, 211, 126, 0.28);
+  color: #8fe47b;
+  text-transform: uppercase;
+}
+
+.destination-provider-status,
+.destination-provider-sharing {
+  cursor: pointer;
+}
+
+.destination-provider-status .destination-status-dot {
+  border-radius: 999px;
+  box-shadow: 0 0 8px color-mix(in srgb, currentColor 75%, transparent);
+  flex: 0 0 auto;
+  height: 0.65rem;
+  width: 0.65rem;
+}
+
+.destination-provider-sharing .destination-share-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 0.65rem;
+  justify-content: center;
+  width: 0.65rem;
+}
+
+.destination-provider-sharing .destination-share-icon svg {
+  fill: none;
+  height: 100%;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 100%;
 }
 
 /* Long destination forms scroll in the editor body while actions remain anchored. */

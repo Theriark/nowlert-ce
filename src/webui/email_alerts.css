@@ -853,7 +853,7 @@
 
 #view-email-alerts#view-email-alerts .email-rules-table th:last-child {
   text-align: left !important;
-  text-indent: 3.25rem;
+  text-indent: clamp(3.25rem, calc(100% - 21rem), 13.5rem);
 }
 
 #view-email-alerts#view-email-alerts .email-rules-table td:last-child {
