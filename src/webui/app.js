@@ -1303,10 +1303,11 @@ async function loadWorkspace() {
       failures: state.workspaceErrors.map((item) => item.component),
     },
   }));
-  renderAll();
   const requestedView = requestedAppView();
   if (state.currentView !== requestedView) {
     navigate(requestedView, "replace");
+  } else {
+    renderCurrentView();
   }
   if (state.currentView === "backups" && isAdmin()) {
     void loadExternalBackups({ silent: true });
@@ -1335,6 +1336,58 @@ function renderAll() {
   applyLanguage();
 }
 
+function renderCurrentView(view = state.currentView) {
+  renderWorkspaceErrors();
+  switch (view) {
+    case "dashboard":
+      renderDashboard();
+      break;
+    case "sources":
+      renderSources();
+      break;
+    case "destinations":
+      renderDestinations();
+      break;
+    case "routes":
+      renderRoutes();
+      break;
+    case "tokens":
+      renderTokens();
+      break;
+    case "deliveries":
+      renderDeliveries();
+      break;
+    case "audit":
+      renderHealthChecks();
+      renderAudit();
+      break;
+    case "users":
+      renderUsers();
+      break;
+    case "settings":
+      renderPreferences();
+      renderIntegrationSettings();
+      renderHousekeepingSettings();
+      break;
+    case "inputs":
+      renderConfiguration();
+      break;
+    case "backups":
+      renderBackupTargets();
+      renderBackupSettings();
+      renderHousekeepingSettings();
+      renderBackups();
+      break;
+    case "updates":
+      renderUpdates();
+      break;
+    default:
+      break;
+  }
+  const page = document.querySelector(`.view[data-page="${view}"]`);
+  applyLanguage(page || document.body);
+}
+
 function renderWorkspaceErrors() {
   const alert = byId("workspace-alert");
   const list = byId("workspace-alert-list");
@@ -1352,9 +1405,9 @@ function renderWorkspaceErrors() {
   alert.hidden = failures.length === 0;
 }
 
-function applyLanguage() {
+function applyLanguage(root = document.body) {
   document.documentElement.lang = state.preferences.language || "en-GB";
-  for (const item of document.querySelectorAll("body *")) {
+  for (const item of root.querySelectorAll("*")) {
     if (item.children.length || ["SCRIPT", "STYLE", "CODE", "PRE"].includes(item.tagName)) continue;
     const current = item.textContent.trim();
     if (!item.dataset.i18nSource && !Object.hasOwn(PT_TRANSLATIONS, current)) continue;
@@ -1370,6 +1423,7 @@ function navigate(view, historyMode = "push") {
   for (const section of document.querySelectorAll(".view")) {
     section.hidden = section.dataset.page !== view;
   }
+  if (state.user) renderCurrentView(view);
   for (const button of document.querySelectorAll("[data-view]")) {
     const active = button.dataset.view === view && button.classList.contains("nav-item");
     button.classList.toggle("active", active);
@@ -1390,6 +1444,7 @@ function navigate(view, historyMode = "push") {
   byId("app-shell").classList.remove("nav-open");
   byId("mobile-menu").setAttribute("aria-expanded", "false");
   byId("main-content").focus({ preventScroll: true });
+  document.dispatchEvent(new CustomEvent("nowlert:view-changed", { detail: { view } }));
   if (view === "backups" && isAdmin()) {
     queueMicrotask(() => {
       loadExternalBackups({ silent: true }).catch((error) => {
@@ -2035,10 +2090,17 @@ async function saveSourceCategory(event) {
   }
 }
 
+const destinationCardSignatures = new WeakMap();
+
 function renderDestinations() {
   const container = byId("destination-list");
-  container.replaceChildren();
+  const nextCards = [];
+  const existingCards = new Map(
+    [...container.querySelectorAll(":scope > .resource-card[data-destination-id]")]
+      .map(card => [card.dataset.destinationId, card]),
+  );
   if (!state.destinations.length) {
+    container.replaceChildren();
     empty(container, "No destinations", "Add an output to preview payloads and receive routed events.");
     return;
   }
@@ -2109,7 +2171,10 @@ function renderDestinations() {
           text: destinationTestDetail(testResult),
         })
       : null;
-    container.append(element("article", { className: "resource-card" }, [
+    const card = element("article", {
+      className: "resource-card",
+      dataset: { destinationId: item.id },
+    }, [
       element("div", { className: "resource-heading" }, [
         element("div", { className: "resource-identity" }, [
           element("span", { className: "resource-icon" }, outputIcon(item.output_type)),
@@ -2119,8 +2184,26 @@ function renderDestinations() {
       meta,
       testFailure,
       actions,
-    ]));
+    ]);
+    const signature = JSON.stringify({ item, testResult, editable, canTest, ownerUsername });
+    const existing = existingCards.get(item.id);
+    if (existing) {
+      if (destinationCardSignatures.get(existing) !== signature) {
+        existing.replaceChildren(...card.childNodes);
+        destinationCardSignatures.set(existing, signature);
+      }
+      existingCards.delete(item.id);
+      nextCards.push(existing);
+    } else {
+      destinationCardSignatures.set(card, signature);
+      nextCards.push(card);
+    }
   }
+  for (const obsolete of existingCards.values()) obsolete.remove();
+  nextCards.forEach((card, index) => {
+    const current = container.children[index];
+    if (current !== card) container.insertBefore(card, current || null);
+  });
 }
 
 function destinationName(id) {

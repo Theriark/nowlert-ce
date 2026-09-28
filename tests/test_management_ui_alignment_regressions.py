@@ -32,6 +32,20 @@ def test_destination_editor_uses_the_list_badge_states_and_icons():
     assert "padding: 3px 6px" in style
 
 
+def test_destination_route_active_matches_the_provider_active_green_treatment():
+    style = _read("src/webui/destination_editor_fix.css")
+
+    active_rule = style.split(".destination-route-pill-status.enabled", 1)[1].split("}", 1)[0]
+    provider_active_rule = style.split(".destination-provider-status.is-active", 1)[1].split("}", 1)[0]
+    for declaration in (
+        "background: rgba(77, 211, 126, 0.12)",
+        "border-color: rgba(77, 211, 126, 0.28)",
+        "color: #8fe47b",
+    ):
+        assert declaration in active_rule
+        assert declaration in provider_active_rule
+
+
 def test_filtering_actions_heading_aligns_with_first_row_action():
     script = _read("src/webui/filtering.js")
     sync = _read("src/webui/filtering_ownership_sync.js")
@@ -41,6 +55,26 @@ def test_filtering_actions_heading_aligns_with_first_row_action():
     assert 'querySelector(".filtering-actions-cell button")' in sync
     assert "--filtering-actions-heading-offset" in sync
     assert "text-indent: var(--filtering-actions-heading-offset" in style
+    assert 'removeProperty("--filtering-actions-heading-offset")' in sync
+    assert 'addEventListener("nowlert:view-changed"' in sync
+
+
+def test_workspace_refresh_only_renders_the_visible_view_and_destination_cards_keep_identity():
+    app = _read("src/webui/app.js")
+    destination_render = app.split("function renderDestinations()", 1)[1].split(
+        "function destinationName(", 1
+    )[0]
+    load_workspace = app.split("async function loadWorkspace()", 1)[1].split(
+        "function renderAll()", 1
+    )[0]
+
+    assert "renderCurrentView();" in load_workspace
+    assert "renderAll();" not in load_workspace
+    assert "function renderCurrentView(" in app
+    assert "data-destination-id" in destination_render
+    assert "existingCards" in destination_render
+    assert "container.replaceChildren();\n  if (!state.destinations.length)" not in destination_render
+    assert 'new CustomEvent("nowlert:view-changed"' in app
 
 
 def test_email_rules_actions_heading_aligns_with_edit_button():

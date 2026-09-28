@@ -264,11 +264,17 @@
       return;
     }
 
+    const previousOffset = cell.style.getPropertyValue("--filtering-actions-heading-offset");
+    cell.style.removeProperty("--filtering-actions-heading-offset");
     const range = document.createRange();
     range.selectNodeContents(cell);
     const headingRect = range.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
     const actionRect = action.getBoundingClientRect();
-    if (!headingRect.width || !actionRect.width) return;
+    if (!cellRect.width || !headingRect.width || !actionRect.width) {
+      if (previousOffset) cell.style.setProperty("--filtering-actions-heading-offset", previousOffset);
+      return;
+    }
     const offset = actionRect.left + actionRect.width / 2 - (headingRect.left + headingRect.width / 2);
     cell.style.setProperty("--filtering-actions-heading-offset", `${offset}px`);
   }
@@ -642,6 +648,9 @@
     observeProfileIdentity();
     normalizeRoutingHeadings();
     ensureSharingColumn();
+    document.addEventListener("nowlert:view-changed", event => {
+      if (event.detail?.view === FILTER_VIEW) scheduleFilteringActionsHeadingSync();
+    });
     window.addEventListener("resize", scheduleFilteringActionsHeadingSync, { passive: true });
     const graph = document.getElementById("rf-graph");
     if (graph) {
