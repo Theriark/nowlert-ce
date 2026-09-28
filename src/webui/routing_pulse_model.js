@@ -29,5 +29,13 @@
     });
   }
 
-  window.NowlertRoutingPulseModel = Object.freeze({ resolveNodeModes });
+  function animationPhaseDelay(periodMs, nowMs = Date.now()) {
+    const period = Number(periodMs);
+    const now = Number(nowMs);
+    if (!Number.isFinite(period) || period <= 0 || !Number.isFinite(now)) return "0ms";
+    const phase = ((now % period) + period) % period;
+    return phase === 0 ? "0ms" : `-${phase}ms`;
+  }
+
+  window.NowlertRoutingPulseModel = Object.freeze({ resolveNodeModes, animationPhaseDelay });
 })();
