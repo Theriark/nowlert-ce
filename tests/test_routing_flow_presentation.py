@@ -99,6 +99,22 @@ def test_route_and_destination_pulse_layers_are_not_hidden_by_theme_rules():
     assert "border-color: rgba(148, 163, 184, 0.18) !important;" not in theme.split(".rf-page .rf-node:not(.rf-filter-card),", 1)[1].split("}", 1)[0]
 
 
+def test_endpoint_tracer_fades_in_without_a_bright_dot_at_its_start():
+    yellow_trace = CSS.split(
+        "#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,\n"
+        "#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::before {", 1
+    )[1].split("}", 1)[0]
+    gray_trace = CSS.split(
+        "#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::before,\n"
+        "#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before {", 1
+    )[1].split("}", 1)[0]
+
+    assert "conic-gradient(from var(--rf-node-trace-forward), transparent 0deg," in yellow_trace
+    assert "#ffda32 0deg" not in yellow_trace
+    assert "conic-gradient(from var(--rf-node-trace-forward), transparent 0deg," in gray_trace
+    assert "#ded7ca 0deg" not in gray_trace
+
+
 def test_routing_pulse_keeps_filter_geometry_and_metric_exceptions():
     assert ".rf-filter { min-height:66px; padding:10px; gap:10px; }" in CSS
     assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in CSS
