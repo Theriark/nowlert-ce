@@ -1531,6 +1531,13 @@
   max-width: 44rem;
 }
 
+.email-activity-scope-note {
+  color: #8f99a3;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  margin: 12px 2px 0;
+}
+
 #view-email-alerts#view-email-alerts .email-classification-card::before,
 #view-email-alerts#view-email-alerts .email-metric-card::before,
 #view-email-alerts#view-email-alerts .email-resource-card::before,

@@ -1016,6 +1016,10 @@ function emailRenderActivityTable() {
   panel.append(
     element("div", { className: "email-activity-toolbar" }, [filters, search]),
     emailRenderActivityItems(),
+    element("p", {
+      className: "email-activity-scope-note",
+      text: "Activity contains only messages that participated in Nowlert processing. Message previews are sanitized and attachments are never retained. This is not a mailbox replica.",
+    }),
   );
   return panel;
 }
