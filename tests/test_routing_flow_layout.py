@@ -60,7 +60,8 @@ def test_particles_survive_dynamic_edge_redraw_and_follow_current_paths():
     assert "edgeLayer.replaceChildren()" in draw_edges
     assert "edgeLayer.append(path)" in draw_edges
     assert '$("rf-particle-layer").append(circle)' in animate
-    assert "pulses.push({dot: circle, key, source, filtered, started: null});" in animate
+    assert "return {dot: circle, key, source, filtered, started: now};" in animate
+    assert "pulses.push(particle);" in animate
     assert "const bundle = edgePaths.get(p.key);" in animate
     assert "p.paths" not in animate
 
@@ -70,8 +71,22 @@ def test_particle_animation_uses_first_raf_timestamp_as_clock_origin():
     animate = script.split("function animateAttempts(items)", 1)[1]
 
     assert "const started = performance.now();" not in animate
-    assert "pulses.push({dot: circle, key, source, filtered, started: null});" in animate
-    assert "if (p.started === null) p.started = now;" in animate
+    assert "started: now" in animate
+    assert "const elapsed = (now - p.started) / 2800;" in animate
+
+
+def test_notification_particles_launch_immediately_and_are_spaced_by_half_a_second():
+    script = ROUTING_FLOW.read_text(encoding="utf-8")
+    animate = script.split("function animateAttempts(items)", 1)[1].split(
+        "function invalidate()", 1
+    )[0]
+
+    assert "const PARTICLE_LAUNCH_INTERVAL_MS = 500;" in script
+    assert "pendingParticleAttempts.push(...items)" in animate
+    assert "now - lastParticleLaunch >= PARTICLE_LAUNCH_INTERVAL_MS" in animate
+    assert "started: now" in animate
+    assert "items.slice(0,12)" not in animate
+    assert "(now - p.started) / 2800" in animate
 
 
 def test_routing_flow_frontend_hides_stale_inactive_filter_snapshots():
