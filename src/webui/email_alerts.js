@@ -10,6 +10,9 @@ function emailInitialTab() {
 const emailAlertsState = {
   tab: emailInitialTab(),
   loading: false,
+  loadingTabs: new Set(),
+  loadedTabs: new Set(),
+  pendingResources: new Map(),
   loaded: false,
   activityRefreshing: false,
   activityNeedsRender: false,
@@ -48,6 +51,12 @@ const EMAIL_RULE_OPERATORS = [
 
 function emailOption(value, label) {
   return element("option", { value, text: label });
+}
+
+function emailInvalidateOtherTabs() {
+  for (const tab of emailAlertsState.loadedTabs) {
+    if (tab !== emailAlertsState.tab) emailAlertsState.loadedTabs.delete(tab);
+  }
 }
 
 function emailBadge(label, tone = "") {
@@ -190,6 +199,7 @@ function emailSetTab(tab) {
     else button.removeAttribute("aria-current");
   }
   emailRender();
+  void emailLoad();
   if (tab === "activity") void emailRefreshActivity();
 }
 
@@ -228,45 +238,69 @@ function emailToggleNavigation() {
 }
 
 async function emailLoad(force = false) {
-  if (emailAlertsState.loading) return;
-  if (emailAlertsState.loaded && !force) {
+  const tab = emailAlertsState.tab;
+  if (emailAlertsState.loadingTabs.has(tab)) return;
+  if (force) emailInvalidateOtherTabs();
+  if (emailAlertsState.loadedTabs.has(tab) && !force) {
     emailRender();
     return;
   }
+  const resourcesByTab = {
+    rules: ["overview", "groups", "rules"],
+    groups: ["groups", "rules"],
+    mailboxes: ["mailboxes", "providers"],
+    activity: ["groups", "rules", "mailboxes", "activity"],
+  };
+  const resources = {
+    overview: ["/email-overview", (value) => { emailAlertsState.overview = value.overview || {}; }],
+    groups: ["/email-groups", (value) => { emailAlertsState.groups = value.groups || []; }],
+    rules: ["/email-rules", (value) => { emailAlertsState.rules = value.rules || []; }],
+    mailboxes: ["/email-mailboxes", (value) => { emailAlertsState.mailboxes = value.mailboxes || []; }],
+    providers: ["/email-mailbox-providers", (value) => { emailAlertsState.providers = value.providers || {}; }],
+    activity: ["/email-activity", (value) => { emailAlertsState.activity = value || { messages: [], processing: [] }; }],
+  };
+  const loadResource = (name) => {
+    if (!emailAlertsState.pendingResources.has(name)) {
+      const [path] = resources[name];
+      const pending = (name === "providers"
+        ? request("/email-mailbox-providers")
+        : request(path)).finally(() => {
+        emailAlertsState.pendingResources.delete(name);
+      });
+      emailAlertsState.pendingResources.set(name, pending);
+    }
+    return emailAlertsState.pendingResources.get(name);
+  };
+
+  emailAlertsState.loadingTabs.add(tab);
   emailAlertsState.loading = true;
+  emailRender();
   byId("email-alerts-loading").hidden = false;
   byId("email-alerts-error").hidden = true;
   try {
-    const [overview, groups, rules, mailboxes, providers, activity] = await Promise.all([
-      request("/email-overview"),
-      request("/email-groups"),
-      request("/email-rules"),
-      request("/email-mailboxes"),
-      request("/email-mailbox-providers"),
-      request("/email-activity"),
-    ]);
-    emailAlertsState.overview = overview.overview || {};
-    emailAlertsState.groups = groups.groups || [];
-    emailAlertsState.rules = rules.rules || [];
-    emailAlertsState.mailboxes = mailboxes.mailboxes || [];
-    emailAlertsState.providers = providers.providers || {};
-    emailAlertsState.activity = activity || { messages: [], processing: [] };
+    const names = resourcesByTab[tab] || resourcesByTab.rules;
+    const values = await Promise.all(names.map(loadResource));
+    names.forEach((name, index) => resources[name][1](values[index]));
+    emailAlertsState.loadedTabs.add(tab);
     emailAlertsState.loaded = true;
-    emailRender();
+    if (emailAlertsState.tab === tab) emailRender();
   } catch (error) {
     const box = byId("email-alerts-error");
-    box.textContent = error.message || "Email Alerts could not be loaded.";
+    box.textContent = error instanceof APIError && error.status === 429
+      ? "Email Alerts is temporarily rate limited after repeated refreshes. Wait up to one minute, then refresh once."
+      : error.message || "Email Alerts could not be loaded.";
     box.hidden = false;
   } finally {
-    emailAlertsState.loading = false;
-    byId("email-alerts-loading").hidden = true;
+    emailAlertsState.loadingTabs.delete(tab);
+    emailAlertsState.loading = emailAlertsState.loadingTabs.size > 0;
+    byId("email-alerts-loading").hidden = !emailAlertsState.loading;
   }
 }
 
 async function emailRefreshActivity() {
   if (
-    !emailAlertsState.loaded
-    || emailAlertsState.loading
+    !emailAlertsState.loadedTabs.has("activity")
+    || emailAlertsState.loadingTabs.has("activity")
     || emailAlertsState.activityRefreshing
     || state.currentView !== "email-alerts"
     || emailAlertsState.tab !== "activity"
@@ -298,8 +332,18 @@ function emailRender() {
   emailSyncRulesHeader();
   const root = byId("email-alerts-root");
   if (!root) return;
-  if (!emailAlertsState.loaded) {
-    root.replaceChildren();
+  if (!emailAlertsState.loadedTabs.has(emailAlertsState.tab)) {
+    const labels = {
+      rules: "Loading Email Alert rules…",
+      groups: "Loading Email Alert groups…",
+      mailboxes: "Loading mailboxes…",
+      activity: "Loading Email Alert activity…",
+    };
+    root.replaceChildren(element("div", {
+      className: "email-tab-loading",
+      attributes: { role: "status" },
+      text: labels[emailAlertsState.tab] || "Loading Email Alerts…",
+    }));
     return;
   }
   const renderers = {
@@ -434,7 +478,7 @@ function emailRenderRuleTable() {
   head.append(headRow);
   const body = element("tbody");
   for (const rule of emailAlertsState.rules) {
-    const row = element("tr");
+    const row = element("tr", { dataset: { emailRuleId: rule.id } });
     row.append(
       element("td", {}, [element("strong", { text: rule.name })]),
       element("td", { text: emailGroupName(rule.group_id) }),
@@ -460,6 +504,21 @@ function emailRenderRuleTable() {
   table.append(head, body);
   panel.append(element("div", { className: "table-scroll" }, [table]));
   return panel;
+}
+
+function emailUpdateRuleRow(id, enabled) {
+  const row = [...document.querySelectorAll("[data-email-rule-id]")]
+    .find((candidate) => candidate.dataset.emailRuleId === id);
+  if (!row) return;
+  const status = row.querySelector(".email-rule-status");
+  if (status) {
+    status.replaceWith(emailBadge(
+      enabled ? "Active" : "Disabled",
+      `${enabled ? "state-healthy" : "state-disabled"} email-rule-status`,
+    ));
+  }
+  const toggle = row.querySelector(".email-rule-action-toggle");
+  if (toggle) toggle.textContent = enabled ? "Disable" : "Enable";
 }
 
 function emailRenderGroupsSection() {
@@ -1095,9 +1154,9 @@ function emailEnsureDialogs() {
       className: "modal email-dialog",
       attributes: { id: "email-group-dialog" },
     });
-    const form = element("form", { className: "stack", attributes: { id: "email-group-form" } }, [
+    const form = element("form", { className: "stack", attributes: { id: "email-group-form", autocomplete: "off" } }, [
       emailDialogHeading("Email Alert group", "Organise related classification rules and optionally suppress repeats for a quiet window.", "email-group-dialog"),
-      emailLabel("Name", element("input", { attributes: { id: "email-group-name", required: "", maxlength: "160" } })),
+      emailLabel("Name", element("input", { attributes: { id: "email-group-name", autocomplete: "off", required: "", maxlength: "160" } })),
       emailLabel("Description", element("textarea", { attributes: { id: "email-group-description", rows: "3", maxlength: "1000" } })),
       emailLabel("Quiet window (minutes)", element("input", { type: "number", value: "0", attributes: { id: "email-group-quiet", min: "0", max: "10080", step: "1" } })),
       emailLabel("Status", (() => {
@@ -1932,8 +1991,10 @@ async function emailAction(action, id, node) {
     }
     if (action === "toggle-rule") {
       const item = emailAlertsState.rules.find((rule) => rule.id === id);
-      await request(`/email-rules/${id}`, { method: "PATCH", body: { enabled: !item.enabled } });
-      await emailLoad(true);
+      const response = await request(`/email-rules/${id}`, { method: "PATCH", body: { enabled: !item.enabled } });
+      item.enabled = response.rule?.enabled ?? !item.enabled;
+      emailInvalidateOtherTabs();
+      emailUpdateRuleRow(id, item.enabled);
       return;
     }
     if (action === "delete-rule") {

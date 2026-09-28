@@ -491,8 +491,6 @@ saveDestination = async function saveDestinationWithRoutes(event) {
   clearError("destination-error");
   const id = byId("destination-id").value;
   const submit = byId("destination-submit");
-  const done = byId("destination-routes-done");
-  const saveAndStayOpen = event.submitter?.value === "routes-done" && Boolean(id);
   const name = byId("destination-name").value.trim();
   const duplicate = state.destinations.find((item) => item.id !== id && item.name.trim().toLowerCase() === name.toLowerCase());
   if (duplicate) {
@@ -500,7 +498,6 @@ saveDestination = async function saveDestinationWithRoutes(event) {
     return;
   }
   submit.disabled = true;
-  if (done) done.disabled = true;
   try {
     const settings = collectFields(byId("destination-settings"));
     const secret = collectFields(byId("destination-secrets"));
@@ -513,22 +510,49 @@ saveDestination = async function saveDestinationWithRoutes(event) {
     };
     if (isAdmin()) payload.shared = byId("destination-shared").checked;
     if (Object.keys(secret).length) payload.secret = secret;
-    await request(id ? `/destinations/${id}` : "/destinations", {
+    const response = await request(id ? `/destinations/${id}` : "/destinations", {
       method: id ? "PATCH" : "POST",
       body: payload,
     });
-    if (saveAndStayOpen) {
-      byId("destination-routes-close")?.click();
+    const savedDestination = response.destination;
+    const destinationIndex = state.destinations.findIndex((item) => item.id === id);
+    if (savedDestination) {
+      const destinationId = String(savedDestination.id || id);
+      const assignedRouteIds = new Set(
+        Array.isArray(savedDestination.route_ids)
+          ? savedDestination.route_ids.map(String)
+          : [...routeAssignmentSelection].map(String),
+      );
+      const nextDestination = {
+        ...(destinationIndex >= 0 ? state.destinations[destinationIndex] : {}),
+        ...savedDestination,
+        route_ids: [...assignedRouteIds],
+      };
+      if (destinationIndex >= 0) state.destinations[destinationIndex] = nextDestination;
+      else state.destinations.push(nextDestination);
+      state.routes = state.routes.map((route) => {
+        const destinationIds = new Set((route.destination_ids || []).map(String));
+        if (assignedRouteIds.has(String(route.id))) destinationIds.add(destinationId);
+        else destinationIds.delete(destinationId);
+        return {
+          ...route,
+          destination_ids: [...destinationIds],
+          destination_count: destinationIds.size,
+        };
+      });
+      renderDestinations();
+      renderFlow();
+      document.dispatchEvent(new CustomEvent("nowlert:filtering-state-invalidated"));
+      document.dispatchEvent(new CustomEvent("nowlert:routing-topology-changed"));
     } else {
-      byId("destination-dialog").close();
+      await refreshDestinationState();
     }
-    await loadWorkspace();
+    byId("destination-dialog").close();
     toast(id ? "Destination updated." : "Destination added.");
   } catch (error) {
     showError("destination-error", error);
   } finally {
     submit.disabled = false;
-    if (done) done.disabled = false;
   }
 };
 
