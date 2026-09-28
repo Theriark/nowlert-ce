@@ -60,10 +60,10 @@ def test_routing_flow_uses_the_approved_live_filter_card_without_fake_metrics():
     assert "destination.name" in script
 
 
-def test_routing_flow_filter_card_keeps_coloured_tags_and_travelling_yellow_border():
+def test_routing_flow_filter_card_keeps_coloured_tags_and_static_prototype_surface():
     style = (ROOT / "src/webui/routing_flow.css").read_text(encoding="utf-8")
 
-    assert "/* 2026-09-18 approved compact Routing Flow filter card. */" in style
+    assert "/* Preserve the prototype's static filter card styling. */" in style
     assert ".rf-filter-card {" in style
     assert "min-height: 168px !important;" in style
     assert ".rf-filter-rule-tag-yellow" in style
@@ -72,9 +72,7 @@ def test_routing_flow_filter_card_keeps_coloured_tags_and_travelling_yellow_bord
     assert ".rf-filter-card-stat-yellow strong" in style
     assert ".rf-filter-card-stat-cyan strong" in style
     assert ".rf-filter-card-stat-green strong" in style
-    assert "@keyframes rf-filter-border-travel" in style
-    assert "conic-gradient(" in style
-    assert "#ffd13a" in style
-    assert "animation: rf-filter-border-travel 3.2s linear infinite;" in style
+    assert "@keyframes rf-filter-border-travel" not in style
+    assert "animation: rf-filter-border-travel 3.2s linear infinite;" not in style
     assert "nfc-bars" not in style
     assert "nfc-ring" not in style
