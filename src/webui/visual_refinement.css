@@ -1913,6 +1913,14 @@ body {
   padding: 8px 10px !important;
 }
 
+/* Keep the settings panels and update versions readable on compact screens. */
+@media (max-width: 1180px) {
+  #view-settings#view-settings .reference-settings-grid,
+  #view-settings#view-settings .reference-updates-card .reference-update-version-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
 #view-settings#view-settings .reference-updates-card .reference-update-checked-icon {
   background: transparent !important;
   border-color: rgba(244, 197, 66, 0.62) !important;

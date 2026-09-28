@@ -16,6 +16,18 @@ from webui.service import WebUIService
 
 
 ROOT = Path(__file__).resolve().parents[1]
+EMAIL_ALERTS_JS = ROOT / "src/webui/email_alerts.js"
+
+
+def test_activity_refresh_keeps_pending_renders_deferred_while_user_is_interacting():
+    script = EMAIL_ALERTS_JS.read_text(encoding="utf-8")
+    refresh_start = script.index("async function emailRefreshActivity()")
+    refresh_end = script.index("\nfunction emailRender()", refresh_start)
+    refresh = script[refresh_start:refresh_end]
+
+    assert "if (userIsInteractingWithActivity) {" in refresh
+    assert "if (changed) emailAlertsState.activityNeedsRender = true;" in refresh
+    assert "} else if (changed || emailAlertsState.activityNeedsRender) {" in refresh
 
 
 class Configuration:

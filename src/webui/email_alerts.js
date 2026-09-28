@@ -281,8 +281,8 @@ async function emailRefreshActivity() {
     emailAlertsState.activity = latestActivity;
     const root = byId("email-alerts-root");
     const userIsInteractingWithActivity = root?.contains(document.activeElement);
-    if (changed && userIsInteractingWithActivity) {
-      emailAlertsState.activityNeedsRender = true;
+    if (userIsInteractingWithActivity) {
+      if (changed) emailAlertsState.activityNeedsRender = true;
     } else if (changed || emailAlertsState.activityNeedsRender) {
       emailAlertsState.activityNeedsRender = false;
       emailRender();
