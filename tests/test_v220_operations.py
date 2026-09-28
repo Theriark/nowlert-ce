@@ -143,6 +143,32 @@ def test_health_checks_report_missing_destination_credentials(operations):
     assert "Unconfigured Discord" in credentials["detail"]
 
 
+def test_health_checks_keep_routes_healthy_when_destination_is_disabled(operations):
+    database, _users, admin, _user = operations
+    destinations = DestinationStore(database)
+    destination = destinations.create(
+        admin.actor,
+        admin.id,
+        "Paused Discord",
+        "discord",
+        settings={"channel_name": "alerts"},
+        shared=True,
+    )
+    RouteStore(database).create(
+        admin.actor,
+        admin.id,
+        "Critical cameras",
+        "home_assistant",
+        destination.id,
+    )
+    destinations.set_enabled(admin.actor, destination.id, False)
+
+    checks = HealthCheckService(database, None, clock=lambda: 1_700_000_000).run()
+    routes = next(item for item in checks if item["key"] == "routes")
+
+    assert routes["status"] == "healthy"
+
+
 def test_health_checks_require_email_secret_only_when_smtp_auth_is_configured(operations):
     database, _users, admin, _user = operations
     destinations = DestinationStore(database)

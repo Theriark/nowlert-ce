@@ -64,7 +64,7 @@ class HealthCheckService:
                 LEFT JOIN destinations
                   ON destinations.id = route_destinations.destination_id
                 WHERE routes.enabled = 1
-                  AND (destinations.id IS NULL OR destinations.enabled = 0)
+                  AND destinations.id IS NULL
                 ORDER BY routes.name_normalized
                 """
             ).fetchall()
