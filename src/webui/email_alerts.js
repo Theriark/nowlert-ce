@@ -1156,11 +1156,11 @@ function emailEnsureDialogs() {
     });
     const form = element("form", { className: "stack", attributes: { id: "email-group-form", autocomplete: "off" } }, [
       emailDialogHeading("Email Alert group", "Organise related classification rules and optionally suppress repeats for a quiet window.", "email-group-dialog"),
-      emailLabel("Name", element("input", { attributes: { id: "email-group-name", autocomplete: "off", required: "", maxlength: "160" } })),
-      emailLabel("Description", element("textarea", { attributes: { id: "email-group-description", rows: "3", maxlength: "1000" } })),
-      emailLabel("Quiet window (minutes)", element("input", { type: "number", value: "0", attributes: { id: "email-group-quiet", min: "0", max: "10080", step: "1" } })),
+      emailLabel("Name", element("input", { attributes: { id: "email-group-name", autocomplete: "off", "data-bwignore": "true", required: "", maxlength: "160" } })),
+      emailLabel("Description", element("textarea", { attributes: { id: "email-group-description", rows: "3", maxlength: "1000", "data-bwignore": "true" } })),
+      emailLabel("Quiet window (minutes)", element("input", { type: "number", value: "0", attributes: { id: "email-group-quiet", min: "0", max: "10080", step: "1", "data-bwignore": "true" } })),
       emailLabel("Status", (() => {
-        const select = element("select", { attributes: { id: "email-group-enabled" } });
+        const select = element("select", { attributes: { id: "email-group-enabled", "data-bwignore": "true" } });
         select.append(emailOption("true", "Enabled"), emailOption("false", "Disabled"));
         return select;
       })()),
@@ -1179,23 +1179,23 @@ function emailEnsureDialogs() {
       className: "modal email-dialog email-rule-dialog",
       attributes: { id: "email-rule-dialog" },
     });
-    const groupSelect = element("select", { attributes: { id: "email-rule-group", required: "" } });
-    const classification = element("select", { attributes: { id: "email-rule-classification" } });
+    const groupSelect = element("select", { attributes: { id: "email-rule-group", required: "", "data-bwignore": "true" } });
+    const classification = element("select", { attributes: { id: "email-rule-classification", "data-bwignore": "true" } });
     for (const [key, label] of EMAIL_CLASSIFICATIONS) classification.append(emailOption(key, label));
-    const matchMode = element("select", { attributes: { id: "email-rule-match-mode" } }, [
+    const matchMode = element("select", { attributes: { id: "email-rule-match-mode", "data-bwignore": "true" } }, [
       emailOption("all", "All conditions (AND)"),
       emailOption("any", "Any condition (OR)"),
     ]);
-    const form = element("form", { className: "stack", attributes: { id: "email-rule-form" } }, [
+    const form = element("form", { className: "stack", attributes: { id: "email-rule-form", autocomplete: "off" } }, [
       emailDialogHeading("Email Alert rule", "Classify matching email metadata with simple, deterministic conditions.", "email-rule-dialog"),
       element("div", { className: "form-grid email-rule-grid" }, [
-        emailLabel("Name", element("input", { attributes: { id: "email-rule-name", required: "", maxlength: "160" } })),
+        emailLabel("Name", element("input", { attributes: { id: "email-rule-name", "data-bwignore": "true", required: "", maxlength: "160" } })),
         emailLabel("Group", groupSelect),
         emailLabel("Classification", classification),
         emailLabel("Match mode", matchMode),
-        emailLabel("Priority", element("input", { type: "number", value: "100", attributes: { id: "email-rule-priority", min: "0", max: "100000", step: "1" } })),
+        emailLabel("Priority", element("input", { type: "number", value: "100", attributes: { id: "email-rule-priority", min: "0", max: "100000", step: "1", "data-bwignore": "true" } })),
         emailLabel("Status", (() => {
-          const select = element("select", { attributes: { id: "email-rule-enabled" } });
+          const select = element("select", { attributes: { id: "email-rule-enabled", "data-bwignore": "true" } });
           select.append(emailOption("true", "Enabled"), emailOption("false", "Disabled"));
           return select;
         })()),
@@ -1602,13 +1602,13 @@ function emailRefreshRuleGroupOptions(selected = "") {
 function emailAddCondition(condition = null) {
   const container = byId("email-rule-conditions");
   const row = element("div", { className: "email-condition-row" });
-  const field = element("select", { dataset: { emailCondition: "field" } });
+  const field = element("select", { dataset: { emailCondition: "field" }, attributes: { "data-bwignore": "true" } });
   for (const [key, label] of EMAIL_RULE_FIELDS) field.append(emailOption(key, label));
-  const operator = element("select", { dataset: { emailCondition: "operator" } });
+  const operator = element("select", { dataset: { emailCondition: "operator" }, attributes: { "data-bwignore": "true" } });
   for (const [key, label] of EMAIL_RULE_OPERATORS) operator.append(emailOption(key, label));
   const value = element("input", {
     dataset: { emailCondition: "value" },
-    attributes: { required: "", maxlength: "2000", placeholder: "Value" },
+    attributes: { required: "", maxlength: "2000", placeholder: "Value", "data-bwignore": "true" },
   });
   const remove = element("button", {
     className: "icon-button",

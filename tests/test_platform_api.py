@@ -832,6 +832,26 @@ def test_owned_event_submission_routes_through_platform_adapters(platform_api):
     )
 
 
+def test_delivery_history_includes_the_matched_route_name(platform_api):
+    headers = login(platform_api)
+    destination = create_destination(platform_api, headers)
+    route = create_route(platform_api, headers, destination["id"])
+    credentials = create_token(platform_api, headers)
+    call(
+        platform_api,
+        "POST",
+        "/api/v2/events",
+        event(),
+        {"Authorization": f"Bearer {credentials['value']}"},
+    )
+
+    history = call(platform_api, "GET", "/api/v2/deliveries/page/1", headers=headers)
+
+    assert history.status == 200
+    assert history.payload["deliveries"][0]["route_id"] == route["id"]
+    assert history.payload["deliveries"][0]["route_name"] == route["name"]
+
+
 def test_platform_event_tokens_apply_source_and_client_rate_limits(platform_api):
     headers = login(platform_api)
     created = call(

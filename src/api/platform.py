@@ -1814,7 +1814,16 @@ class PlatformAPI:
         if method != "GET":
             return self._method_not_allowed("GET")
         attempts = self.history.list_visible(actor, limit=100)
-        return APIResponse(200, {"deliveries": [self._delivery(item) for item in attempts]})
+        route_names = self._delivery_route_names(attempts)
+        return APIResponse(
+            200,
+            {
+                "deliveries": [
+                    self._delivery(item, route_names.get(item.route_id))
+                    for item in attempts
+                ]
+            },
+        )
 
     _DELIVERY_PAGE_SIZES = (25, 50, 100, 150, 250, 500)
 
@@ -1832,10 +1841,14 @@ class PlatformAPI:
             limit=page_size,
             offset=(current - 1) * page_size,
         )
+        route_names = self._delivery_route_names(attempts)
         return APIResponse(
             200,
             {
-                "deliveries": [self._delivery(item) for item in attempts],
+                "deliveries": [
+                    self._delivery(item, route_names.get(item.route_id))
+                    for item in attempts
+                ],
                 "pagination": {
                     "page": current,
                     "page_size": page_size,
@@ -3222,13 +3235,28 @@ class PlatformAPI:
             "updated_at": item.updated_at,
         }
 
+    def _delivery_route_names(self, attempts):
+        route_ids = tuple(
+            dict.fromkeys(item.route_id for item in attempts if item.route_id)
+        )
+        if not route_ids:
+            return {}
+        placeholders = ", ".join("?" for _ in route_ids)
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                f"SELECT id, name FROM routes WHERE id IN ({placeholders})",
+                route_ids,
+            ).fetchall()
+        return {str(row["id"]): str(row["name"]) for row in rows}
+
     @staticmethod
-    def _delivery(item):
+    def _delivery(item, route_name=None):
         return {
             "id": item.id,
             "delivery_id": item.delivery_id,
             "owner_user_id": item.owner_user_id,
             "route_id": item.route_id,
+            "route_name": route_name,
             "destination_id": item.destination_id,
             "source": item.source,
             "title": item.title,

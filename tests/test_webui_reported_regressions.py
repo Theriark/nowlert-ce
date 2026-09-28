@@ -64,18 +64,31 @@ def test_destination_route_save_reconciles_new_destination_without_refresh():
     assert "if (savedDestination) {" in save
 
 
+def test_email_rule_fields_opt_out_of_password_manager_autofill():
+    script = source("src/webui/email_alerts.js")
+    rule_form = script[script.index('if (!byId("email-rule-dialog"))'):script.index('if (!byId("email-mailbox-dialog"))')]
+
+    assert 'id: "email-rule-name", "data-bwignore": "true"' in rule_form
+    assert 'id: "email-rule-priority", min: "0", max: "100000", step: "1", "data-bwignore": "true"' in rule_form
+    assert 'id: "email-rule-group", required: "", "data-bwignore": "true"' in rule_form
+    conditions = script[script.index("function emailAddCondition("):script.index("function emailOpenRule(")]
+    assert 'attributes: { "data-bwignore": "true" }' in conditions
+
+
 def test_group_fields_opt_out_of_password_manager_autofill():
     script = source("src/webui/email_alerts.js")
-    group_form = script[script.index('attributes: { id: "email-group-form"'):script.index('if (!byId("email-rule-dialog"))')]
+    group_form = script[script.index('if (!byId("email-group-dialog"))'):script.index('if (!byId("email-rule-dialog"))')]
 
-    assert 'autocomplete: "off"' in group_form
+    assert 'id: "email-group-name", autocomplete: "off", "data-bwignore": "true"' in group_form
+    assert 'id: "email-group-description", rows: "3", maxlength: "1000", "data-bwignore": "true"' in group_form
 
 
 def test_email_preview_separates_security_notice_from_message_body():
     styles = source("src/webui/email_alerts.css")
-    preview = styles[styles.index(".email-preview-security {"):styles.index(".email-preview-frame {")]
+    preview_dialog = styles[styles.index(".email-preview-dialog {"):styles.index(".email-preview-security {")]
 
-    assert "margin-bottom:" in preview
+    assert "display: grid;" in preview_dialog
+    assert "row-gap:" in preview_dialog
 
 
 def test_destination_route_done_closes_picker_without_saving_destination():
@@ -92,11 +105,10 @@ def test_destination_route_done_closes_picker_without_saving_destination():
     assert "route_ids: [...routeAssignmentSelection]" in save
 
 
-def test_delivery_history_resolves_route_name_with_short_id_fallback():
+def test_delivery_history_prefers_route_name_from_delivery_payload():
     script = source("src/webui/destination_overview_acceptance.js")
 
-    assert '(state.routes || []).find((candidate) => String(candidate.id) === String(item.route_id))' in script
-    assert 'deliveryTag("Route", route?.name || shortId(item.route_id), "route")' in script
+    assert 'item.route_name || route?.name || shortId(item.route_id)' in script
 
 
 def test_email_tab_loading_uses_a_visible_status_instead_of_an_empty_panel():
