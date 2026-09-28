@@ -34,17 +34,17 @@ def test_surface_accent_pulses_but_excludes_dashboard_kpis_and_routing_metrics()
         assert f"#view-{view}#view-{view}" in THEME
 
 
-def test_filter_cards_keep_geometry_content_semantics_and_approved_pulse():
+def test_filter_cards_keep_prototype_geometry_and_static_card_surface():
     assert ".rf-filter { min-height:66px; padding:10px; gap:10px; }" in ROUTING
     assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in ROUTING
     assert ".rf-filter-card-tags" in ROUTING and ".rf-filter-rule-tag-blue { color: #12bce9" in ROUTING
-    assert "/* 2026-09-18 approved compact Routing Flow filter card. */" in ROUTING
-    assert "animation: rf-filter-border-travel 3.2s linear infinite;" in ROUTING
-    assert "@keyframes rf-filter-border-travel" in ROUTING
+    assert "/* Preserve the prototype's static filter card styling. */" in ROUTING
+    assert "animation:rf-filter-border-travel 3.2s linear infinite;" not in ROUTING
+    assert "@keyframes rf-filter-border-travel" not in ROUTING
     assert "rf-node.rf-filter.rf-pulse-dual::before" in ROUTING
     assert "@keyframes rf-trace-forward" in ROUTING
     assert "#view-routing-flow#view-routing-flow .rf-filter-card" in THEME
-    assert "):not(button):not(input):not(select):not(textarea):not(.rf-filter-card):not(.rf-filter-card *)" in THEME
+    assert "):not(.rf-filter-card):not(.rf-filter-card *)" in THEME
 
 
 def test_semantic_colors_and_reduced_motion_remain_intact():

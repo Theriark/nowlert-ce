@@ -76,7 +76,7 @@ def test_dialog_icons_have_scoped_sizes():
 
 def test_routing_node_pulse_modes_follow_active_direct_and_filtered_links():
     assert "NowlertRoutingPulseModel?.resolveNodeModes(current)" in SCRIPT
-    assert 'classList.remove("rf-pulse-single", "rf-pulse-dual", "rf-pulse-mixed")' in SCRIPT
+    assert 'classList.remove("rf-pulse-single", "rf-pulse-dual", "rf-pulse-mixed", "rf-filter-connected")' in SCRIPT
     assert 'classList.add(`rf-pulse-${item.mode}`)' in SCRIPT
     assert "rf-node.rf-route.rf-pulse-single" in CSS
     assert "rf-node.rf-destination.rf-pulse-dual" in CSS
@@ -91,3 +91,12 @@ def test_routing_pulse_keeps_filter_geometry_and_metric_exceptions():
     assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in CSS
     assert "#view-routing-flow .rf-metric::before { content:none !important; display:none !important; }" in CSS
     assert "@media(prefers-reduced-motion:reduce)" in CSS
+
+
+def test_filter_connected_routes_use_muted_edges_and_flow_particles():
+    assert ".rf-page .rf-edge.rf-edge-filter-connected { stroke:#81909a; }" in CSS
+    assert ".rf-node.rf-filter-connected > .rf-socket-left" in CSS
+    assert "@keyframes rf-socket-pulse-gray" in CSS
+    assert ".rf-page .rf-particle.rf-filter-flow-particle" in CSS
+    assert '"rf-filter-connected"' in SCRIPT
+    assert "rf-filter-flow-particle" in SCRIPT
