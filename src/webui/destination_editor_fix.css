@@ -84,6 +84,17 @@
   white-space: nowrap;
 }
 
+.button.destination-provider-sharing,
+.button.destination-provider-status {
+  border-radius: 999px;
+  box-sizing: border-box;
+  font-size: 0.58rem;
+  gap: 4px;
+  line-height: 1;
+  min-height: 0;
+  padding: 3px 6px;
+}
+
 .destination-provider-sharing.is-shared {
   background: rgba(45, 104, 220, 0.1);
   border-color: #4c7fe7;
@@ -104,6 +115,10 @@
   text-transform: uppercase;
 }
 
+.button.destination-provider-status.is-active {
+  gap: 4px;
+}
+
 .destination-provider-status,
 .destination-provider-sharing {
   cursor: pointer;
@@ -113,17 +128,17 @@
   border-radius: 999px;
   box-shadow: 0 0 8px color-mix(in srgb, currentColor 75%, transparent);
   flex: 0 0 auto;
-  height: 0.65rem;
-  width: 0.65rem;
+  height: 0.45rem;
+  width: 0.45rem;
 }
 
 .destination-provider-sharing .destination-share-icon {
   align-items: center;
   display: inline-flex;
   flex: 0 0 auto;
-  height: 0.65rem;
+  height: 0.58rem;
   justify-content: center;
-  width: 0.65rem;
+  width: 0.58rem;
 }
 
 .destination-provider-sharing .destination-share-icon svg {

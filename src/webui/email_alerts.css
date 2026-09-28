@@ -852,8 +852,17 @@
 }
 
 #view-email-alerts#view-email-alerts .email-rules-table th:last-child {
+  position: relative;
   text-align: left !important;
-  text-indent: clamp(3.25rem, calc(100% - 21rem), 13.5rem);
+  text-indent: 0;
+}
+
+#view-email-alerts#view-email-alerts .email-rule-actions-heading {
+  left: var(--email-rule-actions-heading-left, 0px);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
 }
 
 #view-email-alerts#view-email-alerts .email-rules-table td:last-child {

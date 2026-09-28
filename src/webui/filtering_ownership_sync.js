@@ -11,6 +11,7 @@
   let authenticatedUsername = "";
   let profileIdentityObserver = null;
   let dialogPatchQueued = false;
+  let actionsHeadingFrame = 0;
 
   const previousRequest = request;
   request = async function filteringOwnershipRequest(path, options = {}) {
@@ -254,6 +255,32 @@
     cell.replaceChildren(actions);
   }
 
+  function syncFilteringActionsHeading() {
+    const table = document.querySelector("#view-filtering .filtering-table");
+    const cell = table?.querySelector("thead th:last-child");
+    const action = table?.querySelector(".filtering-actions-cell button");
+    if (!cell || !action || !cell.firstChild) {
+      cell?.style.removeProperty("--filtering-actions-heading-offset");
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(cell);
+    const headingRect = range.getBoundingClientRect();
+    const actionRect = action.getBoundingClientRect();
+    if (!headingRect.width || !actionRect.width) return;
+    const offset = actionRect.left + actionRect.width / 2 - (headingRect.left + headingRect.width / 2);
+    cell.style.setProperty("--filtering-actions-heading-offset", `${offset}px`);
+  }
+
+  function scheduleFilteringActionsHeadingSync() {
+    if (actionsHeadingFrame) return;
+    actionsHeadingFrame = window.requestAnimationFrame(() => {
+      actionsHeadingFrame = 0;
+      syncFilteringActionsHeading();
+    });
+  }
+
   function decorateRow(row, policy) {
     const sharingCell = sharingCellFor(row);
     const summary = row.querySelector(".filtering-overview-header strong");
@@ -316,6 +343,7 @@
       policies.forEach((policy, index) => {
         if (rows[index]) decorateRow(rows[index], policy);
       });
+      scheduleFilteringActionsHeadingSync();
       configureAddButton(payload);
       patchDialog();
     } finally {
@@ -614,6 +642,7 @@
     observeProfileIdentity();
     normalizeRoutingHeadings();
     ensureSharingColumn();
+    window.addEventListener("resize", scheduleFilteringActionsHeadingSync, { passive: true });
     const graph = document.getElementById("rf-graph");
     if (graph) {
       new MutationObserver(normalizeRoutingHeadings).observe(graph, { childList: true });

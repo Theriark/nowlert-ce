@@ -309,7 +309,31 @@ function emailRender() {
     activity: emailRenderActivity,
   };
   root.replaceChildren(renderers[emailAlertsState.tab]());
+  if (emailAlertsState.tab === "rules") {
+    window.requestAnimationFrame(emailAlignRulesActionsHeading);
+  }
 }
+
+function emailAlignRulesActionsHeading() {
+  const table = document.querySelector("#view-email-alerts .email-rules-table");
+  const heading = table?.querySelector(".email-rule-actions-heading");
+  const edit = table?.querySelector(".email-rule-action-edit");
+  const cell = heading?.closest("th");
+  if (!heading || !edit || !cell) return;
+
+  const cellRect = cell.getBoundingClientRect();
+  const headingRect = heading.getBoundingClientRect();
+  const editRect = edit.getBoundingClientRect();
+  if (!cellRect.width || !editRect.width) return;
+  const left = editRect.left + editRect.width / 2 - cellRect.left - headingRect.width / 2;
+  heading.style.setProperty("--email-rule-actions-heading-left", `${Math.max(0, left)}px`);
+}
+
+window.addEventListener("resize", () => {
+  if (emailAlertsState.tab === "rules") {
+    window.requestAnimationFrame(emailAlignRulesActionsHeading);
+  }
+});
 
 function emailSyncRulesHeader() {
   const primaryAction = byId("email-primary-action");
@@ -401,7 +425,11 @@ function emailRenderRuleTable() {
   const head = element("thead");
   const headRow = element("tr");
   for (const label of ["RULE", "GROUP", "CLASSIFICATION", "MATCH", "CONDITIONS", "PRIORITY", "STATUS", "ACTIONS"]) {
-    headRow.append(element("th", { text: label }));
+    headRow.append(element("th", {}, [
+      label === "ACTIONS"
+        ? element("span", { className: "email-rule-actions-heading", text: label })
+        : element("span", { text: label }),
+    ]));
   }
   head.append(headRow);
   const body = element("tbody");

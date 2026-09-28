@@ -25,20 +25,34 @@ def test_destination_editor_uses_the_list_badge_states_and_icons():
     assert ".destination-provider-sharing.is-private" in style
     assert ".destination-provider-status.is-active" in style
     assert ".destination-provider-status.is-disabled" in style
+    assert ".button.destination-provider-sharing," in style
+    assert "border-radius: 999px" in style
+    assert "font-size: 0.58rem" in style
+    assert "min-height: 0" in style
+    assert "padding: 3px 6px" in style
 
 
 def test_filtering_actions_heading_aligns_with_first_row_action():
+    script = _read("src/webui/filtering.js")
+    sync = _read("src/webui/filtering_ownership_sync.js")
     style = _read("src/webui/filtering_ownership_sync.css")
 
-    assert ".filtering-table th:last-child" in style
-    assert "text-indent: clamp(0rem, calc(100% - 14rem), 25rem)" in style
+    assert "function syncFilteringActionsHeading()" in sync
+    assert 'querySelector(".filtering-actions-cell button")' in sync
+    assert "--filtering-actions-heading-offset" in sync
+    assert "text-indent: var(--filtering-actions-heading-offset" in style
 
 
 def test_email_rules_actions_heading_aligns_with_edit_button():
+    script = _read("src/webui/email_alerts.js")
     style = _read("src/webui/email_alerts.css")
 
-    assert "#view-email-alerts#view-email-alerts .email-rules-table th:last-child" in style
-    assert "text-indent: clamp(3.25rem, calc(100% - 21rem), 13.5rem)" in style
+    assert 'className: "email-rule-actions-heading"' in script
+    assert "function emailAlignRulesActionsHeading()" in script
+    assert 'querySelector(".email-rule-actions-heading")' in script
+    assert 'querySelector(".email-rule-action-edit")' in script
+    assert "--email-rule-actions-heading-left" in script
+    assert ".email-rule-actions-heading" in style
 
 
 def test_audit_log_event_details_stretch_to_match_event_list():
@@ -50,3 +64,5 @@ def test_audit_log_event_details_stretch_to_match_event_list():
     assert "align-self: stretch !important" in alignment
     assert "height: auto !important" in alignment
     assert "overflow: auto !important" in alignment
+    assert "align-content: start !important" in alignment
+    assert "grid-auto-rows: max-content !important" in alignment
