@@ -173,13 +173,12 @@ def test_filtering_dialog_has_filter_name_and_visible_nonconfigurable_fallback()
     assert ".filtering-filter-name" in style
 
 
-def test_destination_route_done_submits_and_persists_current_destination_form():
+def test_destination_route_done_keeps_changes_for_destination_save():
     routes = read("src/webui/destination_routes.js")
     dashboard = read("src/webui/dashboard.js")
 
     assert 'text: "Done"' in routes
-    assert 'type: "submit"' in routes
-    assert 'value: "routes-done"' in routes
-    assert 'const saveAndStayOpen = event.submitter?.value === "routes-done" && Boolean(id);' in dashboard
+    assert 'type: "button"' in routes
+    assert 'done.addEventListener("click", routeAssignmentCloseDrawer);' in routes
+    assert 'event.submitter?.value === "routes-done"' not in dashboard
     assert "route_ids: [...routeAssignmentSelection]" in dashboard
-    assert 'byId("destination-routes-close")?.click();' in dashboard

@@ -1341,6 +1341,15 @@
   border-radius: 10px;
   background: rgba(73, 194, 108, 0.055);
   color: #9ba4ad;
+  margin-bottom: 14px;
+}
+
+.email-tab-loading {
+  display: flex;
+  min-height: 120px;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted, #9ba4ad);
 }
 
 .email-preview-frame {

@@ -1281,6 +1281,7 @@ async function loadWorkspace() {
     state.workspaceErrors.push({
       component: label,
       message: result.reason && result.reason.message ? result.reason.message : "Request failed",
+      status: result.reason?.status || 0,
     });
   }
   if (!isAdmin()) {
@@ -1397,9 +1398,15 @@ function renderWorkspaceErrors() {
     ...state.destinationErrors.map((item) => ({ component: "Destinations", message: item.message })),
     ...state.routeErrors.map((item) => ({ component: "Routes", message: item.message })),
   ];
-  for (const failure of failures) {
+  const isRateLimited = failures.some((failure) => failure.status === 429);
+  for (const failure of failures.filter((item) => item.status !== 429)) {
     list.append(element("li", {
       text: `${failure.component}: ${failure.message}`,
+    }));
+  }
+  if (isRateLimited) {
+    list.append(element("li", {
+      text: "Nowlert is temporarily rate limited after repeated refreshes. Wait up to one minute, then refresh once.",
     }));
   }
   alert.hidden = failures.length === 0;
@@ -1433,13 +1440,15 @@ function navigate(view, historyMode = "push") {
   byId("page-title").textContent = VIEW_TITLES[view];
   closeProfileMenu();
   const targetHash = `#${view}`;
+  const targetUrl = new URL(window.location.href);
+  targetUrl.hash = targetHash;
   if (
     historyMode === "replace"
     || (historyMode === "none" && window.location.hash !== targetHash)
   ) {
-    window.history.replaceState({ nowlertView: view }, "", targetHash);
+    window.history.replaceState({ ...window.history.state, nowlertView: view }, "", targetUrl);
   } else if (historyMode === "push" && window.location.hash !== targetHash) {
-    window.history.pushState({ nowlertView: view }, "", targetHash);
+    window.history.pushState({ nowlertView: view }, "", targetUrl);
   }
   byId("app-shell").classList.remove("nav-open");
   byId("mobile-menu").setAttribute("aria-expanded", "false");

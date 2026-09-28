@@ -642,6 +642,9 @@
     const lower = element("div", { className: "delivery-history-detail-grid" }, [transport, timeline]);
 
     const inputType = item.input_type || sourceInputType(item.source) || "";
+    const route = item.route_id
+      ? (state.routes || []).find((candidate) => String(candidate.id) === String(item.route_id))
+      : null;
     const responseStatus = Number(item.response_status || 0);
     const responseTone = responseStatus >= 200 && responseStatus < 300
       ? "success"
@@ -660,7 +663,7 @@
       item.response_status
         ? deliveryTag("HTTP", item.response_status, "response", responseTone)
         : null,
-      item.route_id ? deliveryTag("Route", shortId(item.route_id), "route") : null,
+      item.route_id ? deliveryTag("Route", route?.name || shortId(item.route_id), "route") : null,
     ].filter(Boolean);
     const tagCard = element("section", {
       className: "delivery-history-detail-card delivery-history-tags-card",
