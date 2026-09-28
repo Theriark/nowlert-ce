@@ -85,7 +85,7 @@
       <div class="table-panel filtering-table-panel">
         <div class="table-scroll">
           <table class="filtering-table">
-            <thead><tr><th>Destination</th><th>Name</th><th>Filters</th><th>Status</th><th data-filter-sync-column="sharing">Sharing</th><th><span class="filtering-actions-heading">Actions</span></th></tr></thead>
+            <thead><tr><th>Destination</th><th>Name</th><th>Filters</th><th>Status</th><th data-filter-sync-column="sharing">Sharing</th><th>Actions</th></tr></thead>
             <tbody id="filter-table"></tbody>
           </table>
         </div>

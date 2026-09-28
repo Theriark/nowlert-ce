@@ -258,19 +258,19 @@
   function syncFilteringActionsHeading() {
     const table = document.querySelector("#view-filtering .filtering-table");
     const cell = table?.querySelector("thead th:last-child");
-    const heading = cell?.querySelector(".filtering-actions-heading");
     const action = table?.querySelector(".filtering-actions-cell button");
-    if (!cell || !heading || !action) {
-      heading?.style.removeProperty("--filtering-actions-heading-left");
+    if (!cell || !action || !cell.firstChild) {
+      cell?.style.removeProperty("--filtering-actions-heading-offset");
       return;
     }
 
-    const cellRect = cell.getBoundingClientRect();
-    const headingRect = heading.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(cell);
+    const headingRect = range.getBoundingClientRect();
     const actionRect = action.getBoundingClientRect();
-    if (!cellRect.width || !actionRect.width) return;
-    const left = actionRect.left + actionRect.width / 2 - cellRect.left - headingRect.width / 2;
-    heading.style.setProperty("--filtering-actions-heading-left", `${Math.max(0, left)}px`);
+    if (!headingRect.width || !actionRect.width) return;
+    const offset = actionRect.left + actionRect.width / 2 - (headingRect.left + headingRect.width / 2);
+    cell.style.setProperty("--filtering-actions-heading-offset", `${offset}px`);
   }
 
   function scheduleFilteringActionsHeadingSync() {

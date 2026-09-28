@@ -37,12 +37,10 @@ def test_filtering_actions_heading_aligns_with_first_row_action():
     sync = _read("src/webui/filtering_ownership_sync.js")
     style = _read("src/webui/filtering_ownership_sync.css")
 
-    assert 'class="filtering-actions-heading"' in script
     assert "function syncFilteringActionsHeading()" in sync
-    assert 'querySelector(".filtering-actions-heading")' in sync
     assert 'querySelector(".filtering-actions-cell button")' in sync
-    assert "--filtering-actions-heading-left" in sync
-    assert ".filtering-actions-heading" in style
+    assert "--filtering-actions-heading-offset" in sync
+    assert "text-indent: var(--filtering-actions-heading-offset" in style
 
 
 def test_email_rules_actions_heading_aligns_with_edit_button():

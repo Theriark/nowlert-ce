@@ -1,15 +1,8 @@
 /* Ownership/status alignment layered after Filtering and Routing Flow styles. */
 .filtering-table-panel { overflow-x: hidden !important; }
 .filtering-table th:last-child {
-  position: relative;
   text-align: left !important;
-}
-.filtering-actions-heading {
-  left: var(--filtering-actions-heading-left, 0px);
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  white-space: nowrap;
+  text-indent: var(--filtering-actions-heading-offset, 0px);
 }
 .filtering-table th:nth-child(2) {
   padding-left: 0.75rem;
