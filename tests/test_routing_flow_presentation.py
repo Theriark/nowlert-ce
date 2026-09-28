@@ -83,36 +83,42 @@ def test_routing_node_pulse_modes_follow_active_direct_and_filtered_links():
     assert "rf-node.rf-route.rf-pulse-mixed" in CSS
     assert "rf-card-highlight-yellow" in CSS
     assert "rf-card-highlight-gray" in CSS
-    assert "rf-node.rf-route.rf-pulse-single::before" in CSS
-    assert "rf-node.rf-route.rf-pulse-dual::before" in CSS
-    assert "rf-node.rf-destination.rf-pulse-single::before" in CSS
-    assert "rf-node.rf-destination.rf-pulse-dual::before" in CSS
 
 
-def test_route_and_destination_pulse_layers_are_not_hidden_by_theme_rules():
+def test_route_and_destination_pulses_keep_the_border_effect_and_hide_endpoint_markers():
     theme = (ROOT / "src/webui/visual_refinement.css").read_text(encoding="utf-8")
-    endpoint_reset = CSS.split("#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,", 1)[1]
-    endpoint_reset = endpoint_reset.split("@keyframes rf-card-highlight-yellow", 1)[0]
+    endpoint_reset = (
+        "#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,\n"
+        "#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::after,\n"
+        "#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::before,\n"
+        "#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::after,\n"
+        "#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::before,\n"
+        "#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::after,\n"
+        "#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before,\n"
+        "#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::after {\n"
+        "  content: none !important;\n  display: none !important;\n}"
+    )
 
-    assert "content:none !important; display:none !important;" not in endpoint_reset
+    assert endpoint_reset in CSS
+    assert "animation:rf-card-highlight-yellow 2.2s ease-in-out infinite;" in CSS
+    assert "animation:rf-card-highlight-gray 2.2s ease-in-out infinite;" in CSS
     assert ".rf-node:not(.rf-filter-card):not(.rf-pulse-single):not(.rf-pulse-dual):not(.rf-pulse-mixed)::before" in theme
     assert "border-color: rgba(148, 163, 184, 0.18) !important;" not in theme.split(".rf-page .rf-node:not(.rf-filter-card),", 1)[1].split("}", 1)[0]
 
 
-def test_endpoint_tracer_fades_in_without_a_bright_dot_at_its_start():
-    yellow_trace = CSS.split(
+def test_route_and_destination_pulses_have_no_perimeter_tracer_segments():
+    assert (
         "#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,\n"
-        "#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::before {", 1
-    )[1].split("}", 1)[0]
-    gray_trace = CSS.split(
+        "#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::before {\n"
+        "  color: #ffda32;\n"
+        "  background: conic-gradient"
+    ) not in CSS
+    assert (
         "#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::before,\n"
-        "#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before {", 1
-    )[1].split("}", 1)[0]
-
-    assert "conic-gradient(from var(--rf-node-trace-forward), transparent 0deg," in yellow_trace
-    assert "#ffda32 0deg" not in yellow_trace
-    assert "conic-gradient(from var(--rf-node-trace-forward), transparent 0deg," in gray_trace
-    assert "#ded7ca 0deg" not in gray_trace
+        "#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before {\n"
+        "  color: #ded7ca;\n"
+        "  background: conic-gradient"
+    ) not in CSS
 
 
 def test_routing_pulse_keeps_filter_geometry_and_metric_exceptions():

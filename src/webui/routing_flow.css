@@ -152,8 +152,7 @@
   #view-routing-flow#view-routing-flow .rf-history > .rf-history-heading::before { animation:none !important; }
 }
 
-/* Add route-aware tracer segments over active nodes without changing their face or layout. */
-#view-routing-flow#view-routing-flow .rf-node { --rf-node-trace-core:14deg; --rf-node-trace-sweep:44deg; }
+/* Keep perimeter tracers limited to filters; route and destination cards use a full border pulse. */
 #view-routing-flow#view-routing-flow .rf-node.rf-filter { --rf-node-trace-core:14deg; --rf-node-trace-sweep:44deg; }
 
 @property --rf-node-trace-forward {
@@ -178,6 +177,13 @@
 #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::after,
 #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before,
 #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::after {
+  content: none !important;
+  display: none !important;
+}
+
+#view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-single::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-dual::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-dual::after {
   content: "" !important;
   display: block !important;
   position: absolute;
@@ -202,27 +208,6 @@
 #view-routing-flow#view-routing-flow .rf-node.rf-filter.rf-pulse-dual::after {
   color: #ded7ca;
   background: conic-gradient(from var(--rf-node-trace-secondary), #ded7ca 0deg, rgba(183, 172, 154, .72) 14deg, transparent 44deg 360deg);
-  animation: rf-trace-secondary 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
-}
-
-#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,
-#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::before {
-  color: #ffda32;
-  background: conic-gradient(from var(--rf-node-trace-forward), transparent 0deg, rgba(255, 218, 50, .18) 10deg, rgba(255, 218, 50, .72) 22deg, rgba(255, 218, 50, .3) 34deg, transparent 52deg 360deg);
-  animation: rf-trace-forward 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
-}
-
-#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::before,
-#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before {
-  color: #ded7ca;
-  background: conic-gradient(from var(--rf-node-trace-forward), transparent 0deg, rgba(222, 215, 202, .18) 10deg, rgba(222, 215, 202, .72) 22deg, rgba(222, 215, 202, .3) 34deg, transparent 52deg 360deg);
-  animation: rf-trace-forward 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
-}
-
-#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::after,
-#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::after {
-  color: #ded7ca;
-  background: conic-gradient(from var(--rf-node-trace-secondary), transparent 0deg, rgba(222, 215, 202, .18) 10deg, rgba(222, 215, 202, .72) 22deg, rgba(222, 215, 202, .3) 34deg, transparent 52deg 360deg);
   animation: rf-trace-secondary 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
 }
 
