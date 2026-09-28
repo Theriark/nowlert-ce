@@ -694,8 +694,8 @@ def test_reprocess_api_and_webui_expose_controlled_replay(tmp_path):
     )
     app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
     assert '/email-messages/${id}/reprocess' in script
-    assert 'emailAction: "reprocess-message"' in script
-    assert 'emailAction: "force-reprocess-message"' in script
+    assert '["Reprocess", "reprocess-message"]' in script
+    assert '["Force replay", "force-reprocess-message"]' in script
     assert "bypass_quiet_window: force" in script
     assert "Force replay bypasses the Email Alert group quiet window." in script
     assert "Attachments are never used for matching." in script

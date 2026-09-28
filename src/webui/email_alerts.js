@@ -1,9 +1,20 @@
 "use strict";
 
+const EMAIL_ACTIVITY_REFRESH_MS = 30_000;
+
+function emailInitialTab() {
+  const requested = new URLSearchParams(window.location.search).get("emailTab");
+  return ["rules", "groups", "mailboxes", "activity"].includes(requested) ? requested : "rules";
+}
+
 const emailAlertsState = {
-  tab: "rules",
+  tab: emailInitialTab(),
   loading: false,
   loaded: false,
+  activityRefreshing: false,
+  activityNeedsRender: false,
+  activityFilter: "all",
+  activitySearch: "",
   overview: null,
   groups: [],
   rules: [],
@@ -46,10 +57,97 @@ function emailBadge(label, tone = "") {
   });
 }
 
+function emailGroupStatus(enabled) {
+  const status = element("span", {
+    className: `ops-config-status ${enabled ? "is-healthy" : "is-neutral"} email-group-card-status`,
+  });
+  status.append(
+    element("i", { className: "ops-config-status-dot", attributes: { "aria-hidden": "true" } }),
+    document.createTextNode(enabled ? "Active" : "Disabled"),
+  );
+  return status;
+}
+
+function emailGroupsTitleIcon() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "email-groups-title-icon");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.8");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  for (const d of [
+    "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
+    "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z",
+    "M22 21v-2a4 4 0 0 0-3-3.87",
+    "M16 3.13a4 4 0 0 1 0 7.75",
+  ]) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  return svg;
+}
+
+function emailGroupContentIcon(name, className = "email-group-stat-icon") {
+  const paths = {
+    rules: ["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z", "M14 2v6h6", "M8 13h8", "M8 17h8"],
+    mailboxes: ["M3 6.5h18v11H3z", "m3.5 7 8.5 6.5L20.5 7"],
+    activity: ["M22 12h-4l-3 9L9 3l-3 9H2"],
+    active: ["M5 4v16l14-8z"],
+    quiet: ["M12 8v4l3 2", "M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"],
+    edit: ["M12 20h9", "M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"],
+    disable: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z", "m4.9 4.9 14.2 14.2"],
+    enable: ["M5 4v16l14-8z"],
+    delete: ["M3 6h18", "M8 6V4h8v2", "m19 6-1 14H6L5 6", "M10 11v5", "M14 11v5"],
+  };
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", className);
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.8");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  for (const d of paths[name] || []) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  return svg;
+}
+
+function emailGroupDetail(icon, label, value) {
+  return element("div", { className: "email-group-detail" }, [
+    emailGroupContentIcon(icon),
+    element("span", { className: "email-group-detail-label", text: label }),
+    element("span", { className: "email-group-detail-value", text: value }),
+  ]);
+}
+
+function emailGroupActionButton(label, icon, action, id, style = "secondary") {
+  return element("button", {
+    className: `button small ${style} email-group-action`,
+    type: "button",
+    dataset: { emailAction: action, id },
+  }, [
+    emailGroupContentIcon(icon, "email-group-action-icon"),
+    element("span", { text: label }),
+  ]);
+}
+
 function emailClassificationBadge(value) {
-  const label = EMAIL_CLASSIFICATIONS.find(([key]) => key === value)?.[1]
+  return emailBadge(emailClassificationLabel(value), `classification-${value || "none"}`);
+}
+
+function emailClassificationLabel(value) {
+  return EMAIL_CLASSIFICATIONS.find(([key]) => key === value)?.[1]
     || "Unclassified";
-  return emailBadge(label, `classification-${value || "none"}`);
 }
 
 function emailConnectionBadge(value, enabled = true) {
@@ -78,16 +176,55 @@ function emailRuleName(id) {
 }
 
 function emailSetTab(tab) {
-  if (!["rules", "mailboxes", "activity"].includes(tab)) {
+  if (!["rules", "groups", "mailboxes", "activity"].includes(tab)) {
     tab = "rules";
   }
   emailAlertsState.tab = tab;
+  const currentUrl = new URL(window.location.href);
+  currentUrl.searchParams.set("emailTab", tab);
+  window.history.replaceState({ ...window.history.state, nowlertEmailTab: tab }, "", currentUrl);
   for (const button of document.querySelectorAll("[data-email-tab]")) {
     const active = button.dataset.emailTab === tab;
     button.classList.toggle("active", active);
-    button.setAttribute("aria-selected", String(active));
+    if (active) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
   }
   emailRender();
+  if (tab === "activity") void emailRefreshActivity();
+}
+
+function emailSyncNavigation(view) {
+  const group = byId("email-alerts-nav-group");
+  const toggle = byId("email-alerts-nav");
+  const submenu = byId("email-alerts-subnav");
+  if (!group || !toggle || !submenu) return;
+  const active = view === "email-alerts";
+  group.classList.toggle("expanded", active);
+  submenu.hidden = !active;
+  toggle.setAttribute("aria-expanded", String(active));
+  toggle.classList.toggle("active", active);
+  if (active) toggle.setAttribute("aria-current", "page");
+  else toggle.removeAttribute("aria-current");
+  for (const item of submenu.querySelectorAll("[data-email-tab]")) {
+    const selected = active && item.dataset.emailTab === emailAlertsState.tab;
+    item.classList.toggle("active", selected);
+    if (selected) item.setAttribute("aria-current", "page");
+    else item.removeAttribute("aria-current");
+  }
+}
+
+function emailToggleNavigation() {
+  const toggle = byId("email-alerts-nav");
+  const group = byId("email-alerts-nav-group");
+  const submenu = byId("email-alerts-subnav");
+  if (!toggle || !group || !submenu) return;
+  const expanded = toggle.getAttribute("aria-expanded") !== "true";
+  if (expanded && byId("app-shell")?.classList.contains("sidebar-collapsed")) {
+    setSidebarCollapsed(false);
+  }
+  toggle.setAttribute("aria-expanded", String(expanded));
+  group.classList.toggle("expanded", expanded);
+  submenu.hidden = !expanded;
 }
 
 async function emailLoad(force = false) {
@@ -126,7 +263,39 @@ async function emailLoad(force = false) {
   }
 }
 
+async function emailRefreshActivity() {
+  if (
+    !emailAlertsState.loaded
+    || emailAlertsState.loading
+    || emailAlertsState.activityRefreshing
+    || state.currentView !== "email-alerts"
+    || emailAlertsState.tab !== "activity"
+    || document.hidden
+  ) return;
+
+  emailAlertsState.activityRefreshing = true;
+  try {
+    const activity = await request("/email-activity");
+    const latestActivity = activity || { messages: [], processing: [] };
+    const changed = JSON.stringify(latestActivity) !== JSON.stringify(emailAlertsState.activity);
+    emailAlertsState.activity = latestActivity;
+    const root = byId("email-alerts-root");
+    const userIsInteractingWithActivity = root?.contains(document.activeElement);
+    if (changed && userIsInteractingWithActivity) {
+      emailAlertsState.activityNeedsRender = true;
+    } else if (changed || emailAlertsState.activityNeedsRender) {
+      emailAlertsState.activityNeedsRender = false;
+      emailRender();
+    }
+  } catch (_error) {
+    // Keep the last successful Activity data visible during transient API errors.
+  } finally {
+    emailAlertsState.activityRefreshing = false;
+  }
+}
+
 function emailRender() {
+  emailSyncRulesHeader();
   const root = byId("email-alerts-root");
   if (!root) return;
   if (!emailAlertsState.loaded) {
@@ -135,10 +304,41 @@ function emailRender() {
   }
   const renderers = {
     rules: emailRenderRules,
+    groups: emailRenderGroupsSection,
     mailboxes: emailRenderMailboxes,
     activity: emailRenderActivity,
   };
   root.replaceChildren(renderers[emailAlertsState.tab]());
+}
+
+function emailSyncRulesHeader() {
+  const primaryAction = byId("email-primary-action");
+  const subtitle = byId("email-alerts-subtitle");
+  const rulesActive = emailAlertsState.tab === "rules";
+  const groupsActive = emailAlertsState.tab === "groups";
+  const mailboxesActive = emailAlertsState.tab === "mailboxes";
+  if (primaryAction) {
+    primaryAction.hidden = !rulesActive && !groupsActive && !mailboxesActive;
+    primaryAction.disabled = rulesActive && emailAlertsState.groups.length === 0;
+    primaryAction.dataset.emailAction = mailboxesActive
+      ? "new-mailbox"
+      : groupsActive
+        ? "new-group"
+        : "new-rule";
+    primaryAction.textContent = mailboxesActive
+      ? "+ Connect mailbox"
+      : groupsActive
+        ? "+ Add group"
+        : "+ Add rule";
+    primaryAction.title = mailboxesActive
+      ? "Connect Email Alert mailbox"
+      : groupsActive
+        ? "Add Email Alert group"
+        : emailAlertsState.groups.length
+          ? "Add Email Alert rule"
+          : "Add a group before creating a rule";
+  }
+  if (subtitle) subtitle.hidden = rulesActive;
 }
 
 function emailMetric(label, value, copy) {
@@ -150,7 +350,7 @@ function emailMetric(label, value, copy) {
 }
 
 function emailRenderGroups() {
-  const container = element("div", { className: "email-card-grid" });
+  const container = element("div", { className: "email-card-grid email-groups-grid" });
   if (!emailAlertsState.groups.length) {
     empty(container, "No Email Alert groups", "Groups organise related rules and control the quiet window for repeated email alerts.");
     return container;
@@ -158,39 +358,25 @@ function emailRenderGroups() {
   for (const group of emailAlertsState.groups) {
     const rules = emailAlertsState.rules.filter((rule) => rule.group_id === group.id);
     const enabledRules = rules.filter((rule) => rule.enabled).length;
-    const actions = element("div", { className: "email-card-actions" }, [
-      element("button", {
-        className: "button small secondary",
-        text: "Edit",
-        type: "button",
-        dataset: { emailAction: "edit-group", id: group.id },
-      }),
-      element("button", {
-        className: "button small secondary",
-        text: group.enabled ? "Disable" : "Enable",
-        type: "button",
-        dataset: { emailAction: "toggle-group", id: group.id },
-      }),
-      element("button", {
-        className: "button small danger",
-        text: "Delete",
-        type: "button",
-        dataset: { emailAction: "delete-group", id: group.id },
-      }),
+    const quietWindow = group.quiet_window_seconds
+      ? `${Math.round(group.quiet_window_seconds / 60)} min`
+      : "Off";
+    const actions = element("div", { className: "email-card-actions email-group-card-actions" }, [
+      emailGroupActionButton("Edit", "edit", "edit-group", group.id),
+      emailGroupActionButton(group.enabled ? "Disable" : "Enable", group.enabled ? "disable" : "enable", "toggle-group", group.id),
+      emailGroupActionButton("Delete", "delete", "delete-group", group.id, "danger"),
     ]);
     container.append(
-      element("article", { className: "panel email-resource-card" }, [
-        element("div", { className: "email-resource-heading" }, [
-          element("div", {}, [
-            element("h3", { text: group.name }),
-            element("p", { text: group.description || "No description" }),
-          ]),
-          emailBadge(group.enabled ? "Enabled" : "Disabled", group.enabled ? "state-healthy" : "state-disabled"),
+      element("article", { className: "panel email-resource-card email-group-card" }, [
+        element("div", { className: "email-group-card-heading" }, [
+          element("h3", { text: group.name }),
+          emailGroupStatus(group.enabled),
         ]),
-        element("div", { className: "email-resource-meta" }, [
-          element("span", { text: `${rules.length} rule${rules.length === 1 ? "" : "s"}` }),
-          element("span", { text: `${enabledRules} active` }),
-          element("span", { text: group.quiet_window_seconds ? `${Math.round(group.quiet_window_seconds / 60)} min quiet window` : "No quiet window" }),
+        element("div", { className: "email-group-card-divider", attributes: { "aria-hidden": "true" } }),
+        element("div", { className: "email-group-details" }, [
+          emailGroupDetail("rules", "Rules", rules.length),
+          emailGroupDetail("active", "Active", enabledRules),
+          emailGroupDetail("quiet", "Quiet window", quietWindow),
         ]),
         actions,
       ]),
@@ -206,7 +392,7 @@ function emailConditionSummary(condition) {
 }
 
 function emailRenderRuleTable() {
-  const panel = element("div", { className: "table-panel email-table-panel" });
+  const panel = element("div", { className: "table-panel email-table-panel email-rules-panel" });
   if (!emailAlertsState.rules.length) {
     empty(panel, "No Email Alert rules", "Create a rule to classify mailbox messages as Urgent, Warning, Information, or Ignore.");
     return panel;
@@ -214,7 +400,7 @@ function emailRenderRuleTable() {
   const table = element("table", { className: "email-rules-table" });
   const head = element("thead");
   const headRow = element("tr");
-  for (const label of ["Rule", "Group", "Classification", "Match", "Conditions", "Priority", "Status", "Actions"]) {
+  for (const label of ["RULE", "GROUP", "CLASSIFICATION", "MATCH", "CONDITIONS", "PRIORITY", "STATUS", "ACTIONS"]) {
     headRow.append(element("th", { text: label }));
   }
   head.append(headRow);
@@ -232,12 +418,12 @@ function emailRenderRuleTable() {
         ),
       ]),
       element("td", { text: rule.priority }),
-      element("td", {}, [emailBadge(rule.enabled ? "Enabled" : "Disabled", rule.enabled ? "state-healthy" : "state-disabled")]),
+      element("td", {}, [emailBadge(rule.enabled ? "Active" : "Disabled", `${rule.enabled ? "state-healthy" : "state-disabled"} email-rule-status`)]),
       element("td", {}, [
-        element("div", { className: "row-actions email-row-actions" }, [
-          element("button", { className: "text-button", text: "Edit", type: "button", dataset: { emailAction: "edit-rule", id: rule.id } }),
-          element("button", { className: "text-button", text: rule.enabled ? "Disable" : "Enable", type: "button", dataset: { emailAction: "toggle-rule", id: rule.id } }),
-          element("button", { className: "text-button danger-text", text: "Delete", type: "button", dataset: { emailAction: "delete-rule", id: rule.id } }),
+        element("div", { className: "row-actions email-row-actions email-rule-actions" }, [
+          element("button", { className: "button small primary email-rule-action email-rule-action-edit", text: "Edit", type: "button", dataset: { emailAction: "edit-rule", id: rule.id } }),
+          element("button", { className: "button small secondary email-rule-action email-rule-action-toggle", text: rule.enabled ? "Disable" : "Enable", type: "button", dataset: { emailAction: "toggle-rule", id: rule.id } }),
+          element("button", { className: "button small danger email-rule-action email-rule-action-delete", text: "Delete", type: "button", dataset: { emailAction: "delete-rule", id: rule.id } }),
         ]),
       ]),
     );
@@ -248,67 +434,43 @@ function emailRenderRuleTable() {
   return panel;
 }
 
-function emailRenderRules() {
-  const stats = emailAlertsState.overview || {};
-  const classifications = stats.classifications || {};
-  const enabledGroups = emailAlertsState.groups.filter((group) => group.enabled).length;
-  const enabledRules = emailAlertsState.rules.filter((rule) => rule.enabled).length;
+function emailRenderGroupsSection() {
+  return element("div", { className: "email-workspace-stack" }, [
+    element("article", { className: "panel email-panel email-config-panel email-groups-panel" }, [
+      element("div", { className: "panel-heading" }, [
+        element("div", {}, [
+          element("div", { className: "email-groups-title" }, [
+            emailGroupsTitleIcon(),
+            element("h3", { text: "Groups" }),
+          ]),
+        ]),
+      ]),
+      emailRenderGroups(),
+    ]),
+  ]);
+}
 
+function emailRenderRules() {
+  const classifications = emailAlertsState.overview?.classifications || {};
   const classificationRows = element("div", { className: "email-classification-grid" });
   for (const [key] of EMAIL_CLASSIFICATIONS) {
     classificationRows.append(
       element("div", { className: "email-classification-card" }, [
-        emailClassificationBadge(key),
-        element("strong", { text: classifications[key] || 0 }),
-        element("small", { text: "Recent processing records" }),
+        element("span", {
+          className: `email-classification-indicator classification-${key}`,
+          attributes: { "aria-hidden": "true" },
+        }),
+        element("div", { className: "email-classification-copy" }, [
+          element("strong", { text: classifications[key] || 0 }),
+          element("span", { className: "email-classification-label", text: emailClassificationLabel(key) }),
+        ]),
       ]),
     );
   }
 
   return element("div", { className: "email-workspace-stack" }, [
-    element("article", { className: "panel email-panel email-config-panel" }, [
-      element("div", { className: "panel-heading" }, [
-        element("div", {}, [
-          element("p", { className: "eyebrow", text: "Organisation" }),
-          element("h3", { text: "Groups" }),
-          element("p", {
-            text: `${emailAlertsState.groups.length} group${emailAlertsState.groups.length === 1 ? "" : "s"} · ${enabledGroups} enabled. Groups organise related rules and their quiet windows.`,
-          }),
-        ]),
-        element("button", {
-          className: "button primary",
-          text: "+ Add group",
-          type: "button",
-          dataset: { emailAction: "new-group" },
-        }),
-      ]),
-      emailRenderGroups(),
-    ]),
-    element("article", { className: "panel email-panel email-config-panel" }, [
-      element("div", { className: "panel-heading" }, [
-        element("div", {}, [
-          element("p", { className: "eyebrow", text: "Classification" }),
-          element("h3", { text: "Rules" }),
-          element("p", {
-            text: `${emailAlertsState.rules.length} rule${emailAlertsState.rules.length === 1 ? "" : "s"} · ${enabledRules} enabled. Classify matching email as Urgent, Warning, Information, or Ignore.`,
-          }),
-        ]),
-        element("button", {
-          className: "button primary",
-          text: "+ Add rule",
-          type: "button",
-          dataset: { emailAction: "new-rule" },
-          disabled: emailAlertsState.groups.length === 0,
-          attributes: {
-            title: emailAlertsState.groups.length
-              ? "Add Email Alert rule"
-              : "Add a group before creating a rule",
-          },
-        }),
-      ]),
-      classificationRows,
-      emailRenderRuleTable(),
-    ]),
+    classificationRows,
+    emailRenderRuleTable(),
   ]);
 }
 
@@ -374,8 +536,109 @@ function emailMailboxEmptyState(compact = false) {
   ]);
 }
 
+function emailMailboxSharingIcon() {
+  const wrapper = element("span", {
+    className: "destination-share-icon",
+    attributes: { "aria-hidden": "true" },
+  });
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("focusable", "false");
+  svg.setAttribute("aria-hidden", "true");
+  for (const [cx, cy] of [[18, 5], [6, 12], [18, 19]]) {
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", cx);
+    circle.setAttribute("cy", cy);
+    circle.setAttribute("r", "2");
+    svg.append(circle);
+  }
+  const links = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  links.setAttribute("d", "m8 11 8-5M8 13l8 5");
+  svg.append(links);
+  wrapper.append(svg);
+  return wrapper;
+}
+
+function emailMailboxProviderIcon(provider) {
+  const normalized = ["gmail", "imap", "microsoft_365"].includes(provider) ? provider : "imap";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "email-mailbox-provider-svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.setAttribute("fill", "none");
+  if (normalized === "gmail") {
+    const segments = [
+      ["M4 7v11", "#4285f4"],
+      ["M4 7l8 6", "#ea4335"],
+      ["M12 13l8-6", "#fbbc04"],
+      ["M20 7v11", "#34a853"],
+    ];
+    for (const [d, color] of segments) {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", d);
+      path.setAttribute("stroke", color);
+      path.setAttribute("stroke-width", "2.8");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      svg.append(path);
+    }
+  } else if (normalized === "microsoft_365") {
+    const colors = ["#f35325", "#81bc06", "#05a6f0", "#ffba08"];
+    [[3, 3], [13, 3], [3, 13], [13, 13]].forEach(([x, y], index) => {
+      const tile = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      tile.setAttribute("x", String(x));
+      tile.setAttribute("y", String(y));
+      tile.setAttribute("width", "8");
+      tile.setAttribute("height", "8");
+      tile.setAttribute("fill", colors[index]);
+      svg.append(tile);
+    });
+  } else {
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2.2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    const paths = ["M3 6.5h18v11H3z", "m3.5 7 8.5 6.5L20.5 7"];
+    for (const d of paths) {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", d);
+      svg.append(path);
+    }
+  }
+  return element("span", {
+    className: `email-mailbox-provider-icon is-${normalized}`,
+    attributes: { "aria-label": emailProviderLabel(normalized), role: "img" },
+  }, [svg]);
+}
+
+function emailMailboxMetricIcon(type) {
+  const shapes = {
+    mailboxes: ["M3 6.5h18v11H3z", "m3.5 7 8.5 6.5L20.5 7"],
+    healthy: ["M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z", "m8 12 2.5 2.5L16.5 9"],
+    attention: ["M12 3 22 20H2L12 3Z", "M12 9v4", "M12 16.5h.01"],
+    shared: ["M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20", "M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z", "M17 4.3a3.5 3.5 0 0 1 0 6.8", "M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35"],
+  };
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "email-mailbox-metric-icon");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.8");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  for (const d of shapes[type] || []) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  return element("span", { className: `email-mailbox-metric-icon-wrap is-${type}` }, [svg]);
+}
+
 function emailRenderMailboxCards() {
-  const container = element("div", { className: "email-card-grid" });
+  const container = element("div", { className: "email-card-grid email-mailboxes-grid" });
   if (!emailAlertsState.mailboxes.length) {
     container.classList.add("email-mailbox-connect-grid");
     container.replaceChildren(emailMailboxEmptyState(false));
@@ -446,38 +709,47 @@ function emailRenderMailboxCards() {
       : null;
 
     container.append(
-      element("article", { className: "panel email-resource-card" }, [
-        element("div", { className: "email-resource-heading" }, [
-          element("div", {}, [
-            element("p", { className: "eyebrow", text: emailProviderLabel(mailbox.provider) }),
-            element("h3", { text: mailbox.name || mailbox.address }),
-            element("p", { text: mailbox.address }),
+      element("article", { className: "panel email-resource-card email-mailbox-card" }, [
+        element("div", { className: "email-resource-heading email-mailbox-card-heading" }, [
+          element("div", { className: "email-mailbox-main" }, [
+            emailMailboxProviderIcon(mailbox.provider),
+            element("div", { className: "email-mailbox-card-identity" }, [
+              element("p", { className: "eyebrow", text: emailProviderLabel(mailbox.provider) }),
+              element("h3", { text: mailbox.name || mailbox.address }),
+              element("div", { className: "email-mailbox-details" }, [
+                editable
+                  ? element("span", { text: mailbox.secret_configured ? "Credentials configured" : "Credentials missing" })
+                  : null,
+                element("span", { text: mailbox.last_sync_at ? `Last sync ${relativeTime(mailbox.last_sync_at)}` : "Never synchronized" }),
+              ]),
+            ]),
           ]),
-          emailConnectionBadge(mailbox.connection_state, mailbox.enabled),
-        ]),
-        element("div", { className: "email-resource-meta" }, [
-          element("button", {
-            className: `badge status-button ${mailbox.shared ? "success" : "warning"}`,
-            text: mailbox.shared ? "Shared" : "Private",
+          element("div", { className: "email-mailbox-status-column" }, [
+            emailConnectionBadge(mailbox.connection_state, mailbox.enabled),
+            element("button", {
+            className: `button small destination-sharing-control email-mailbox-sharing-control is-${mailbox.shared ? "shared" : "private"}`,
             type: "button",
             disabled: !owned,
-            dataset: owned
-              ? { emailAction: "toggle-mailbox-shared", id: mailbox.id }
-              : {},
             attributes: {
+              "aria-label": mailbox.shared
+                ? (owned ? "Shared mailbox. Click to make private." : "Shared mailbox. View only.")
+                : (owned ? "Private mailbox. Click to share." : "Private mailbox. View only."),
               title: owned
                 ? (mailbox.shared ? "Make this mailbox private" : "Share this mailbox with other users")
                 : "Only the mailbox owner can change visibility",
             },
-          }),
-          !editable ? emailBadge("View only", "state-disabled") : null,
-          editable
-            ? element("span", { text: mailbox.secret_configured ? "Credentials configured" : "Credentials missing" })
-            : null,
-          element("span", { text: mailbox.last_sync_at ? `Last sync ${relativeTime(mailbox.last_sync_at)}` : "Never synchronized" }),
+            dataset: owned
+              ? { emailAction: "toggle-mailbox-shared", id: mailbox.id }
+              : {},
+            }, [
+              emailMailboxSharingIcon(),
+              element("span", { className: "destination-sharing-label", text: mailbox.shared ? "Shared" : "Private" }),
+            ]),
+            !editable ? emailBadge("View only", "state-disabled") : null,
+          ]),
         ]),
         error,
-        element("div", { className: "email-card-actions" }, actions),
+        element("div", { className: "email-card-actions email-mailbox-card-actions" }, actions),
       ]),
     );
   }
@@ -494,46 +766,35 @@ function emailRenderMailboxes() {
   ).length;
   const shared = mailboxes.filter((mailbox) => mailbox.shared).length;
 
-  const metrics = element("div", { className: "email-metric-grid" }, [
-    emailMetric(
-      "Mailboxes",
-      mailboxes.length,
-      "Visible to this account",
-    ),
-    emailMetric(
-      "Healthy",
-      healthy,
-      "Background synchronization operating",
-    ),
-    emailMetric(
-      "Needs attention",
-      attention,
-      "Enabled mailbox connections not healthy",
-    ),
-    emailMetric(
-      "Shared",
-      shared,
-      "Visible to other Nowlert users",
-    ),
-  ]);
+  const metrics = element("div", { className: "email-classification-grid email-mailbox-metric-grid" });
+  for (const [key, label, value, detail] of [
+    ["mailboxes", "Mailboxes", mailboxes.length, "Available to this account"],
+    ["healthy", "Healthy", healthy, "Connections operating normally"],
+    ["attention", "Needs attention", attention, "Enabled mailboxes needing a check"],
+    ["shared", "Shared", shared, "Visible to other Nowlert users"],
+  ]) {
+    metrics.append(
+      element("article", { className: `email-classification-card email-mailbox-metric-card is-${key}` }, [
+        emailMailboxMetricIcon(key),
+        element("div", { className: "email-classification-copy email-mailbox-metric-copy" }, [
+          element("span", { className: "email-classification-label", text: label }),
+          element("strong", { text: value }),
+          element("small", { text: detail }),
+        ]),
+      ]),
+    );
+  }
 
   return element("div", { className: "email-workspace-stack" }, [
     metrics,
-    element("article", { className: "panel email-panel email-config-panel" }, [
+    element("article", { className: "panel email-panel email-config-panel email-mailboxes-panel" }, [
       element("div", { className: "panel-heading" }, [
         element("div", {}, [
-          element("p", { className: "eyebrow", text: "Connections" }),
-          element("h3", { text: "Mailboxes" }),
-          element("p", {
-            text: "Connection health, synchronization state, credentials, and Private/Shared visibility are managed here.",
-          }),
+          element("div", { className: "email-groups-title" }, [
+            emailGroupContentIcon("mailboxes", "email-mailbox-title-icon"),
+            element("h3", { text: "Mailboxes" }),
+          ]),
         ]),
-        element("button", {
-          className: "button primary",
-          text: "+ Connect mailbox",
-          type: "button",
-          dataset: { emailAction: "new-mailbox" },
-        }),
       ]),
       emailRenderMailboxCards(),
     ]),
@@ -621,144 +882,153 @@ function emailOpenRuleFromActivity(message) {
   });
 }
 
-function emailRenderActivityTable() {
-  const messages = emailAlertsState.activity.messages || [];
-  const panel = element("div", { className: "table-panel email-table-panel" });
+function emailFilterActivityMessages() {
+  const filter = emailAlertsState.activityFilter;
+  const search = emailAlertsState.activitySearch.trim().toLocaleLowerCase();
+  return (emailAlertsState.activity.messages || []).filter((message) => {
+    const processing = message.processing || {};
+    if (filter !== "all" && processing.classification !== filter) return false;
+    if (!search) return true;
+    const searchable = [
+      message.sender,
+      message.subject,
+      emailMailboxName(message.mailbox_id),
+      processing.group_name,
+      processing.rule_name,
+      processing.reason,
+      processing.classification,
+    ].filter(Boolean).join(" ").toLocaleLowerCase();
+    return searchable.includes(search);
+  });
+}
+
+function emailActivityTime(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return { time: "Time unavailable", date: "" };
+  const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+  const today = new Date();
+  const sameDay = date.getFullYear() === today.getFullYear()
+    && date.getMonth() === today.getMonth()
+    && date.getDate() === today.getDate();
+  const day = sameDay
+    ? "Today"
+    : new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: date.getFullYear() === today.getFullYear() ? undefined : "numeric" }).format(date);
+  return { time, date: day };
+}
+
+function emailRenderActivityItems() {
+  const list = element("div", { className: "email-activity-timeline" });
+  const messages = emailFilterActivityMessages();
   if (!messages.length) {
+    const isFiltered = (emailAlertsState.activity.messages || []).length > 0;
     empty(
-      panel,
-      "No Email Alert activity",
-      "Only email that Nowlert evaluated, suppressed, ignored, promoted, replayed, or failed is shown here. This is not a mailbox replica.",
+      list,
+      isFiltered ? "No matching activity" : "No Email Alert activity",
+      isFiltered ? "Try another severity or search term." : "Only email evaluated by Nowlert appears here.",
     );
-    return panel;
+    return list;
   }
 
-  const table = element("table", { className: "email-activity-table" });
-  const head = element("thead");
-  const headRow = element("tr");
-  for (const label of ["Received", "Mailbox", "Sender", "Subject", "Classification", "Why Nowlert reacted", "Original", "Actions"]) {
-    headRow.append(element("th", { text: label }));
-  }
-  head.append(headRow);
-  const body = element("tbody");
   for (const message of messages) {
-    const processing = message.processing;
-    const row = element("tr");
-    const original = message.provider_deep_link
-      ? element("a", {
-          className: "text-button email-original-link",
-          text: "Open Original Email",
-          attributes: {
-            href: message.provider_deep_link,
-            target: "_blank",
-            rel: "noopener noreferrer",
-          },
-        })
-      : element("span", { className: "muted", text: "Unavailable" });
-
+    const processing = message.processing || {};
+    const classification = processing.classification || "none";
+    const time = emailActivityTime(message.received_at);
+    const event = element("article", { className: `email-activity-card classification-${classification}` });
     const actions = [
-      element("button", {
-        className: "text-button",
-        text: "Preview",
-        type: "button",
-        dataset: { emailAction: "preview-message", id: message.id },
-      }),
-      processing?.rule_id
-        ? element("button", {
-            className: "text-button",
-            text: "Edit Rule",
-            type: "button",
-            dataset: { emailAction: "edit-activity-rule", id: message.id },
-          })
-        : null,
-      element("button", {
-        className: "text-button",
-        text: "Alert me like this",
-        type: "button",
-        dataset: { emailAction: "alert-like-this", id: message.id },
-      }),
-      element("button", {
-        className: "text-button",
-        text: "Mute Similar",
-        type: "button",
-        dataset: { emailAction: "mute-similar", id: message.id },
-      }),
-      message.sender
-        ? element("button", {
-            className: "text-button",
-            text: "Ignore Sender",
-            type: "button",
-            dataset: { emailAction: "ignore-sender", id: message.id },
-          })
-        : null,
-      processing?.rule_id
-        ? element("button", {
-            className: "text-button",
-            text: "Change Severity",
-            type: "button",
-            dataset: { emailAction: "change-severity", id: message.id },
-          })
-        : null,
-      element("button", {
-        className: "text-button",
-        text: "Reprocess",
-        type: "button",
-        dataset: { emailAction: "reprocess-message", id: message.id },
-      }),
-      element("button", {
-        className: "text-button",
-        text: "Force replay",
-        type: "button",
-        dataset: { emailAction: "force-reprocess-message", id: message.id },
-      }),
-    ].filter(Boolean);
+      ["Preview", "preview-message"],
+      ...(processing.rule_id ? [["Edit Rule", "edit-activity-rule"]] : []),
+      ["Alert me like this", "alert-like-this"],
+      ["Mute Similar", "mute-similar"],
+      ...(message.sender ? [["Ignore Sender", "ignore-sender"]] : []),
+      ...(processing.rule_id ? [["Change Severity", "change-severity"]] : []),
+      ["Reprocess", "reprocess-message"],
+      ["Force replay", "force-reprocess-message"],
+    ].map(([label, action]) => element("button", {
+      className: "text-button email-activity-menu-action",
+      type: "button",
+      text: label,
+      dataset: { emailAction: action, id: message.id },
+    }));
+    if (message.provider_deep_link) {
+      actions.unshift(element("a", {
+        className: "text-button email-activity-menu-action",
+        text: "Open Original Email",
+        attributes: { href: message.provider_deep_link, target: "_blank", rel: "noopener noreferrer" },
+      }));
+    }
 
-    row.append(
-      element("td", { text: formatTime(message.received_at) }),
-      element("td", { text: emailMailboxName(message.mailbox_id) }),
-      element("td", { text: message.sender || "Unknown sender" }),
-      element("td", {}, [
-        element("strong", { text: message.subject || "(No subject)" }),
-        message.labels?.length
-          ? element("small", { className: "email-labels", text: message.labels.join(" · ") })
-          : null,
+    const menu = element("details", { className: "email-activity-overflow" }, [
+      element("summary", { text: "…", attributes: { "aria-label": "Activity actions" } }),
+      element("div", { className: "email-activity-menu" }, actions),
+    ]);
+    const timeColumn = element("div", { className: "email-activity-time" }, [
+      element("strong", { text: time.time }),
+      time.date ? element("span", { text: time.date }) : null,
+      element("span", { className: "email-activity-mailbox" }, [
+        emailGroupContentIcon("mailboxes", "email-activity-mailbox-icon"),
+        element("span", { text: emailMailboxName(message.mailbox_id) }),
       ]),
-      element("td", {}, [emailClassificationBadge(processing?.classification || "")]),
-      element("td", {}, [emailWhyExplanation(processing)]),
-      element("td", {}, [original]),
-      element("td", {}, [
-        element("div", { className: "row-actions email-row-actions email-activity-actions" }, actions),
+    ]);
+    const content = element("div", { className: "email-activity-card-content" }, [
+      element("span", { className: "email-activity-sender", text: message.sender || "Unknown sender" }),
+      element("strong", { className: "email-activity-subject", text: message.subject || "(No subject)" }),
+      element("div", { className: "email-activity-context" }, [
+        emailClassificationBadge(classification),
+        element("span", { className: "email-activity-matched" }, [
+          element("span", { text: "Matched:" }),
+          element("strong", { text: processing.group_name || emailGroupName(processing.group_id) }),
+          element("span", { text: "·" }),
+          element("span", { text: processing.rule_name || "Alert rule" }),
+        ]),
       ]),
+      emailWhyExplanation(processing),
+    ]);
+    event.append(
+      element("span", { className: "email-activity-timeline-marker", attributes: { "aria-hidden": "true" } }),
+      timeColumn,
+      content,
+      menu,
     );
-    body.append(row);
+    list.append(event);
   }
-  table.append(head, body);
+  return list;
+}
+
+function emailRenderActivityTable() {
+  const panel = element("div", { className: "email-activity-table-panel" });
+  const filters = element("div", { className: "email-activity-filters", attributes: { "aria-label": "Filter activity by severity" } });
+  for (const [value, label] of [["all", "All"], ...EMAIL_CLASSIFICATIONS]) {
+    const selected = emailAlertsState.activityFilter === value;
+    filters.append(element("button", {
+      className: `email-activity-filter${selected ? " is-selected" : ""}${value === "all" ? " is-all" : ` is-${value}`}`,
+      type: "button",
+      text: label,
+      attributes: { "aria-pressed": String(selected) },
+      dataset: { activityFilter: value },
+    }));
+  }
+  const search = element("input", {
+    className: "email-activity-search",
+    type: "search",
+    value: emailAlertsState.activitySearch,
+    attributes: { "aria-label": "Search activity", placeholder: "Search activity...", "data-activity-search": "true" },
+  });
   panel.append(
-    element("p", {
-      className: "email-activity-scope-note",
-      text: "Activity contains only messages that participated in Nowlert processing. Message previews are sanitized and attachments are never retained.",
-    }),
-    element("div", { className: "table-scroll" }, [table]),
+    element("div", { className: "email-activity-toolbar" }, [filters, search]),
+    emailRenderActivityItems(),
   );
   return panel;
 }
 
 function emailRenderActivity() {
-  return element("article", { className: "panel email-panel email-config-panel" }, [
+  return element("article", { className: "panel email-panel email-config-panel email-activity-config-panel" }, [
     element("div", { className: "panel-heading" }, [
       element("div", {}, [
-        element("p", { className: "eyebrow", text: "Processing" }),
-        element("h3", { text: "Activity" }),
-        element("p", {
-          text: "Review only email that participated in Nowlert processing; this is not a mailbox replica.",
-        }),
+        element("div", { className: "email-groups-title" }, [
+          emailGroupContentIcon("activity", "email-activity-title-icon"),
+          element("h3", { text: "Activity" }),
+        ]),
       ]),
-      element("button", {
-        className: "button secondary",
-        text: "Refresh",
-        type: "button",
-        dataset: { emailAction: "refresh" },
-      }),
     ]),
     emailRenderActivityTable(),
   ]);
@@ -1593,7 +1863,6 @@ async function emailAction(action, id, node) {
       await emailScanMailboxFolders({ manual: true });
       return;
     }
-    if (action === "refresh") return emailLoad(true);
     if (action === "close-dialog") {
       byId(node.dataset.dialog)?.close();
       return;
@@ -1796,6 +2065,24 @@ async function emailHandleOAuthReturn() {
 }
 
 document.addEventListener("click", (event) => {
+  const activityFilter = event.target.closest("[data-activity-filter]");
+  if (activityFilter) {
+    emailAlertsState.activityFilter = activityFilter.dataset.activityFilter;
+    const panel = activityFilter.closest(".email-activity-table-panel");
+    panel?.querySelectorAll("[data-activity-filter]").forEach((button) => {
+      const selected = button.dataset.activityFilter === emailAlertsState.activityFilter;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    panel?.querySelector(".email-activity-timeline")?.replaceWith(emailRenderActivityItems());
+    return;
+  }
+  const navToggle = event.target.closest("[data-email-nav-toggle]");
+  if (navToggle) {
+    event.preventDefault();
+    emailToggleNavigation();
+    return;
+  }
   const tab = event.target.closest("[data-email-tab]");
   if (tab) {
     emailSetTab(tab.dataset.emailTab);
@@ -1810,6 +2097,19 @@ document.addEventListener("click", (event) => {
 
 emailEnsureDialogs();
 emailEnsurePhase9Dialogs();
+window.setInterval(emailRefreshActivity, EMAIL_ACTIVITY_REFRESH_MS);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) void emailRefreshActivity();
+});
+
+document.addEventListener("input", (event) => {
+  const search = event.target.closest("[data-activity-search]");
+  if (!search) return;
+  emailAlertsState.activitySearch = search.value;
+  search.closest(".email-activity-table-panel")
+    ?.querySelector(".email-activity-timeline")
+    ?.replaceWith(emailRenderActivityItems());
+});
 byId("email-group-form")?.addEventListener("submit", emailSaveGroup);
 byId("email-rule-form")?.addEventListener("submit", emailSaveRule);
 byId("email-mailbox-form")?.addEventListener("submit", emailSaveMailbox);
@@ -1827,7 +2127,11 @@ byId("email-imap-port")?.addEventListener("input", () => {
 const emailOriginalNavigate = navigate;
 navigate = function navigateEmailAlerts(view, historyMode = "push") {
   const result = emailOriginalNavigate(view, historyMode);
-  if (state.currentView === "email-alerts") void emailLoad();
+  emailSyncNavigation(state.currentView);
+  if (state.currentView === "email-alerts") {
+    void emailLoad();
+    if (emailAlertsState.tab === "activity") void emailRefreshActivity();
+  }
   return result;
 };
 
