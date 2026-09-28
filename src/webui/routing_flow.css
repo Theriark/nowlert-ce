@@ -257,6 +257,11 @@
 #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual {
   animation-delay:var(--rf-motion-phase-2200, 0ms);
 }
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed {
+  animation:rf-card-highlight-mixed-glow 2.2s ease-in-out infinite;
+  animation-delay:var(--rf-motion-phase-2200, 0ms);
+}
 #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::before,
 #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::after,
 #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::before {
@@ -307,6 +312,14 @@
   0%,100% { border-color:rgba(222,215,202,.58); box-shadow:0 0 0 1px rgba(222,215,202,.3),0 0 8px rgba(222,215,202,.14); }
   50% { border-color:#ded7ca; box-shadow:0 0 0 1px rgba(222,215,202,.72),0 0 16px rgba(222,215,202,.3); }
 }
+@keyframes rf-card-highlight-mixed-glow {
+  0%,100% {
+    box-shadow:0 0 0 1px rgba(255,218,50,.35),0 0 0 1px rgba(222,215,202,.3),0 0 8px rgba(255,218,50,.18),0 0 8px rgba(222,215,202,.14);
+  }
+  50% {
+    box-shadow:0 0 0 1px rgba(255,218,50,.8),0 0 0 1px rgba(222,215,202,.72),0 0 16px rgba(255,218,50,.38),0 0 16px rgba(222,215,202,.3);
+  }
+}
 @keyframes rf-card-highlight-mixed-yellow {
   0%,100% { border-color:rgba(255,218,50,.62); box-shadow:0 0 0 1px rgba(255,218,50,.35),0 0 8px rgba(255,218,50,.18); }
   50% { border-color:#ffda32; box-shadow:0 0 0 1px rgba(255,218,50,.8),0 0 16px rgba(255,218,50,.38); }
@@ -322,8 +335,10 @@
   #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::after,
   #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single,
   #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual,
+  #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed,
   #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single,
-  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual { animation:none !important; }
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual,
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed { animation:none !important; }
 }
 
 /* Existing enhancement icons use !important globally; contain their dimensions. */
