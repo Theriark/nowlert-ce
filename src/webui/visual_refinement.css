@@ -2042,6 +2042,12 @@ body {
   width: 20px !important;
 }
 
+#view-users#view-users input[type="checkbox"]:focus:not(:focus-visible) {
+  box-shadow: none !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
 #view-account#view-account .reference-api-tokens thead {
   background: transparent !important;
 }

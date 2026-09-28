@@ -2158,6 +2158,10 @@ async function emailHandleOAuthReturn() {
 }
 
 document.addEventListener("click", (event) => {
+  document.querySelectorAll(".email-activity-overflow[open]").forEach((menu) => {
+    if (!menu.contains(event.target)) menu.open = false;
+  });
+
   const activityFilter = event.target.closest("[data-activity-filter]");
   if (activityFilter) {
     emailAlertsState.activityFilter = activityFilter.dataset.activityFilter;
@@ -2184,6 +2188,7 @@ document.addEventListener("click", (event) => {
   const action = event.target.closest("[data-email-action]");
   if (action) {
     event.preventDefault();
+    action.closest(".email-activity-overflow")?.removeAttribute("open");
     void emailAction(action.dataset.emailAction, action.dataset.id || "", action);
   }
 });

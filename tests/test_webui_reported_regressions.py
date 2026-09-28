@@ -126,3 +126,25 @@ def test_repeated_rate_limits_are_grouped_into_one_recoverable_workspace_message
     assert 'failure.status === 429' in errors
     assert "temporarily rate limited" in errors
     assert 'status: result.reason?.status || 0' in script
+
+
+def test_activity_overflow_menu_closes_on_outside_click_and_after_action():
+    script = source("src/webui/email_alerts.js")
+    handler_start = script.index('document.addEventListener("click", (event) => {')
+    click_handler = script[handler_start:script.index("emailEnsureDialogs();", handler_start)]
+
+    assert 'document.querySelectorAll(".email-activity-overflow[open]")' in click_handler
+    assert "menu.contains(event.target)" in click_handler
+    assert "menu.open = false" in click_handler
+    assert 'action.closest(".email-activity-overflow")?.removeAttribute("open")' in click_handler
+
+
+def test_users_checkbox_click_does_not_show_pointer_focus_box_but_keeps_keyboard_focus():
+    styles = source("src/webui/visual_refinement.css")
+    selector = "#view-users#view-users input[type=\"checkbox\"]:focus:not(:focus-visible)"
+    start = styles.index(selector)
+    end = styles.index("}", start)
+    pointer_focus = styles[start:end]
+
+    assert "outline: none !important;" in pointer_focus
+    assert "box-shadow: none !important;" in pointer_focus
