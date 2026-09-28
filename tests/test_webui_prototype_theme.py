@@ -52,3 +52,18 @@ def test_semantic_colors_and_reduced_motion_remain_intact():
     assert ".ops-severity.severity-warning" in THEME
     assert ".ops-config-status.is-shared { --status-rgb: 114, 180, 255; }" in THEME
     assert "@media (prefers-reduced-motion: reduce)" in THEME
+
+
+def test_audit_and_backup_headers_use_approved_bands_and_scoped_accents():
+    assert "#view-audit#view-audit .audit-health-panel-heading" in THEME
+    assert ".audit-log-detail-heading" in THEME and ")::before" in THEME
+    assert "#view-backups#view-backups :is(" in THEME
+    assert "#backup-schedule-panel > .panel-heading" in THEME
+    assert "#backup-recovery-panel" in THEME
+    assert "@media (prefers-reduced-motion: reduce)" in THEME
+
+
+def test_users_and_account_use_compact_shared_table_treatment():
+    assert "#view-users#view-users .reference-users-controls" in THEME
+    assert "#view-account#view-account .reference-token-search-bar" in THEME
+    assert "reference-user-row-last-visible" in THEME

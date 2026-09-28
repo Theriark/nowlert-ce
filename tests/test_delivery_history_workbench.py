@@ -58,3 +58,13 @@ def test_dashboard_refresh_hides_legacy_markup_until_operations_dashboard_is_rea
         "}" in style
     )
     assert 'section.dataset.operationsDashboard = "1";' in dashboard
+
+
+def test_delivery_history_panels_use_approved_header_bands_and_bottom_aligned_pager():
+    theme = (ROOT / "src" / "webui" / "visual_refinement.css").read_text(encoding="utf-8")
+
+    assert "#view-deliveries#view-deliveries .delivery-history-list-heading" in theme
+    assert "#view-deliveries#view-deliveries .delivery-history-tags-heading" in theme
+    assert "#view-deliveries#view-deliveries .delivery-history-list-panel::before" in theme
+    assert "#view-deliveries#view-deliveries .delivery-history-list-scroll" in theme
+    assert ".delivery-history-list-footer" in theme

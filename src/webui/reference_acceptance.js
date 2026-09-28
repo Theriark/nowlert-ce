@@ -339,11 +339,16 @@
     const chip = ref("span", "reference-preview-route-chip");
     if (typeof sourceIcon === "function") chip.append(sourceIcon(route.source));
     chip.append(ref("strong", "", routeLabel(route)));
-    chip.append(ref(
+    const status = ref(
       "span",
-      route.enabled === false ? "is-disabled" : "is-enabled",
-      route.enabled === false ? "Disabled" : "Enabled",
-    ));
+      `reference-preview-route-state ${route.enabled === false ? "is-disabled" : "is-active"}`,
+    );
+    if (route.enabled === false) status.textContent = "Disabled";
+    else status.append(
+      ref("span", "destination-status-dot"),
+      ref("span", "destination-status-label", "Active"),
+    );
+    chip.append(status);
     return chip;
   }
 
@@ -427,7 +432,11 @@
       const status = ref(
         "small",
         `route-assignment-option-state ${route.enabled === false ? "disabled" : "enabled"}`,
-        route.enabled === false ? "Disabled" : "Enabled",
+      );
+      if (route.enabled === false) status.textContent = "Disabled";
+      else status.append(
+        ref("span", "destination-status-dot"),
+        ref("span", "destination-status-label", "Active"),
       );
       check.addEventListener("change", () => {
         if (check.checked) previewRouteSelection.add(route.id);
@@ -816,7 +825,12 @@ function ensurePreviewReferenceLayout() {
     const matching = users.filter((item) => (userFilter === "all" || (userFilter === "admin" ? item.role === "admin" : item.role !== "admin")) && (!userQuery || `${item.username || ""} ${item.id || ""}`.toLowerCase().includes(userQuery)));
     const pages = Math.max(1, Math.ceil(matching.length / USER_PAGE_SIZE)); userPage = Math.min(Math.max(1, userPage), pages);
     const visible = new Set(matching.slice((userPage - 1) * USER_PAGE_SIZE, userPage * USER_PAGE_SIZE).map((item) => item.id));
-    rows.forEach((row) => { row.hidden = !visible.has(row.dataset.userId); });
+    const lastVisibleUserId = visible.size ? [...visible].at(-1) : null;
+    rows.forEach((row) => {
+      const isVisible = visible.has(row.dataset.userId);
+      row.hidden = !isVisible;
+      row.classList.toggle("reference-user-row-last-visible", isVisible && row.dataset.userId === lastVisibleUserId);
+    });
     const start = matching.length ? (userPage - 1) * USER_PAGE_SIZE + 1 : 0; const end = matching.length ? Math.min(userPage * USER_PAGE_SIZE, matching.length) : 0;
     if (byId("reference-users-range")) byId("reference-users-range").textContent = `Showing ${start}–${end} of ${matching.length} users`;
     const pageBox = byId("reference-users-pages");
@@ -866,7 +880,7 @@ function ensurePreviewReferenceLayout() {
       const statusCard = ref("section", "reference-update-status-card"); statusCard.innerHTML = '<span class="reference-update-status-icon">✓</span><div><strong id="reference-update-headline">Nowlert is up to date</strong></div>';
       if (status) statusCard.lastElementChild.append(status);
       const versions = ref("div", "reference-update-version-grid");
-      for (const [label, value, note, icon] of [["Running version", running, "Currently installed version.", "◇"], ["Available version", available, "Latest available version.", "☁"]]) {
+      for (const [label, value, note, icon] of [["Running version", running, "Currently installed version.", "↓"], ["Available version", available, "Latest available version.", "↑"]]) {
         const card = ref("article", "reference-update-version-card"); card.append(ref("span", "reference-version-icon", icon)); const box = ref("div"); box.append(ref("strong", "", label)); if (value) box.append(value); box.append(ref("small", "", note)); card.append(box); versions.append(card);
       }
       const checked = ref("div", "reference-update-checked"); checked.innerHTML = '<span class="reference-update-checked-icon">◷</span><div><span id="reference-update-last-checked">Last checked —</span><small>Automatic check every 6 hours</small></div>';
@@ -968,11 +982,10 @@ function ensurePreviewReferenceLayout() {
         oldHeading.innerHTML = '<div><h2>Password & sessions</h2><p>Change your password and view your active session information.</p></div>';
       }
       const main = ref("div", "reference-password-main");
-      if (oldHeading) main.append(oldHeading);
       if (form) main.append(form);
       const posture = ref("aside", "reference-security-posture");
       posture.innerHTML = '<div class="reference-posture-block"><span class="reference-posture-icon">▣</span><div><small>Active sessions</small><strong id="reference-active-sessions">1</strong></div></div><div class="reference-posture-divider"></div><div class="reference-posture-block"><span class="reference-posture-icon">◇</span><div><small>Security posture</small><strong class="reference-good">Good</strong></div></div><div class="reference-posture-divider"></div><ul><li>Password is set</li><li>Account is active</li><li id="reference-mfa-posture">MFA can be enabled</li></ul>';
-      password.replaceChildren(main, posture);
+      password.replaceChildren(...(oldHeading ? [oldHeading] : []), main, posture);
     }
 
     const tokens = byId("account-api-tokens");

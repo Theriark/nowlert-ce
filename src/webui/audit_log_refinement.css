@@ -22,13 +22,13 @@
 }
 
 .audit-run-checks-icon {
-  display: grid;
+  display: inline-grid;
   place-items: center;
-  width: 25px;
-  height: 25px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  font-size: 0.65rem;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  font-size: 1.2rem;
   line-height: 1;
 }
 

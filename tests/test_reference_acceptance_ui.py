@@ -61,6 +61,15 @@ def test_reference_acceptance_styles_contract():
     assert "#restart-header-button.reference-account-restart" in styles
 
 
+def test_account_and_users_render_the_prototype_status_and_security_layout():
+    script = JS.read_text(encoding="utf-8")
+
+    assert '`reference-preview-route-state ${route.enabled === false ? "is-disabled" : "is-active"}`' in script
+    assert '"reference-user-row-last-visible"' in script
+    assert '"↓"' in script and '"↑"' in script
+    assert "password.replaceChildren(...(oldHeading ? [oldHeading] : []), main, posture);" in script
+
+
 def test_managed_backup_override_targets_production_service_name():
     text = COMPOSE.read_text(encoding="utf-8")
 
