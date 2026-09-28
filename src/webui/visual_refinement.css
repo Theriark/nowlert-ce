@@ -1063,3 +1063,89 @@ body {
     animation: none !important;
   }
 }
+
+/* Destinations match the Dashboard's Top Integrations card face and gold pulse. */
+#view-destinations#view-destinations #destination-list > .resource-card {
+  background: linear-gradient(rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card::after {
+  content: none !important;
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card.destination-reference-card > .resource-heading {
+  box-sizing: border-box;
+  margin: -16px -16px 0;
+  padding: 16px 16px 12px;
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card.destination-reference-card > .resource-meta {
+  border-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-destinations#view-destinations #destination-list > .resource-card::before {
+    animation: none !important;
+  }
+}
+
+/* Filtering integration behavior uses the approved card face without the
+   generic gold corner stripe or radial tint. */
+#view-filtering#view-filtering #filtering-deterministic-processing .settings-resource-card {
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+}
+
+#view-filtering#view-filtering #filtering-deterministic-processing .settings-resource-card::before,
+#view-filtering#view-filtering #filtering-deterministic-processing .settings-resource-card::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Filtering's two content headers match the approved Dashboard card heading. */
+#view-filtering#view-filtering .filtering-table-panel::before,
+#view-filtering#view-filtering #filtering-deterministic-processing > .panel-heading::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  border-radius: 999px;
+  content: "";
+  height: 3px;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 52px;
+}
+
+#view-filtering#view-filtering #filtering-deterministic-processing::before {
+  content: none !important;
+  display: none !important;
+}
+
+#view-filtering#view-filtering .filtering-table-panel .filtering-table thead {
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%) !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+}
+
+#view-filtering#view-filtering .filtering-table-panel .filtering-table thead th {
+  background: transparent !important;
+}
+
+#view-filtering#view-filtering #filtering-deterministic-processing > .panel-heading {
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%) !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-filtering#view-filtering .filtering-table-panel::before,
+  #view-filtering#view-filtering #filtering-deterministic-processing > .panel-heading::before {
+    animation: none !important;
+  }
+}

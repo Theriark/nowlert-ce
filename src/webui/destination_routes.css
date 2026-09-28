@@ -618,3 +618,30 @@ button.destination-provider-status {
     z-index: 5;
   }
 }
+
+.destination-provider-status.is-active {
+  align-items: center;
+  background: rgba(77, 211, 126, 0.12);
+  border-color: rgba(77, 211, 126, 0.28);
+  color: #8fe47b;
+  display: inline-flex;
+  gap: 0.4rem;
+  text-transform: none;
+}
+
+.route-assignment-option-state.enabled {
+  align-items: center;
+  background: rgba(77, 211, 126, 0.12);
+  border: 1px solid rgba(77, 211, 126, 0.28);
+  border-radius: 999px;
+  color: #8fe47b;
+  display: inline-flex;
+  gap: 0.3rem;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.route-assignment-option-state.enabled .destination-status-dot {
+  height: 0.4rem;
+  width: 0.4rem;
+}
