@@ -83,7 +83,20 @@ def test_routing_node_pulse_modes_follow_active_direct_and_filtered_links():
     assert "rf-node.rf-route.rf-pulse-mixed" in CSS
     assert "rf-card-highlight-yellow" in CSS
     assert "rf-card-highlight-gray" in CSS
-    assert "rf-node-tracer" not in CSS
+    assert "rf-node.rf-route.rf-pulse-single::before" in CSS
+    assert "rf-node.rf-route.rf-pulse-dual::before" in CSS
+    assert "rf-node.rf-destination.rf-pulse-single::before" in CSS
+    assert "rf-node.rf-destination.rf-pulse-dual::before" in CSS
+
+
+def test_route_and_destination_pulse_layers_are_not_hidden_by_theme_rules():
+    theme = (ROOT / "src/webui/visual_refinement.css").read_text(encoding="utf-8")
+    endpoint_reset = CSS.split("#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,", 1)[1]
+    endpoint_reset = endpoint_reset.split("@keyframes rf-card-highlight-yellow", 1)[0]
+
+    assert "content:none !important; display:none !important;" not in endpoint_reset
+    assert ".rf-node:not(.rf-filter-card):not(.rf-pulse-single):not(.rf-pulse-dual):not(.rf-pulse-mixed)::before" in theme
+    assert "border-color: rgba(148, 163, 184, 0.18) !important;" not in theme.split(".rf-page .rf-node:not(.rf-filter-card),", 1)[1].split("}", 1)[0]
 
 
 def test_routing_pulse_keeps_filter_geometry_and_metric_exceptions():
