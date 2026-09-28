@@ -498,7 +498,9 @@
 }
 
 .destination-route-pill-status.enabled {
-  background: rgba(39, 212, 155, 0.11);
+  background: rgba(77, 211, 126, 0.12);
+  border-color: rgba(77, 211, 126, 0.28);
+  color: #8fe47b;
 }
 
 .destination-route-pill-status.disabled {
