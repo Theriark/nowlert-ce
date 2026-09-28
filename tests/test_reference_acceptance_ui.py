@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 JS = ROOT / "src/webui/reference_acceptance.js"
 CSS = ROOT / "src/webui/reference_acceptance.css"
+VISUAL_CSS = ROOT / "src/webui/visual_refinement.css"
 SERVICE = ROOT / "src/webui/service.py"
 PLATFORM_API = ROOT / "src/api/platform.py"
 OUTPUT_SERVICE = ROOT / "src/outputs/service.py"
@@ -59,6 +60,26 @@ def test_reference_acceptance_styles_contract():
     assert ".reference-settings-grid" in styles
     assert ".reference-account-grid" in styles
     assert "#restart-header-button.reference-account-restart" in styles
+
+
+def test_settings_grids_stack_at_the_existing_narrow_breakpoint():
+    styles = VISUAL_CSS.read_text(encoding="utf-8")
+    responsive_start = styles.rfind("@media (max-width: 1180px)")
+    responsive_styles = styles[responsive_start:]
+
+    assert responsive_start >= 0
+    assert "#view-settings#view-settings .reference-settings-grid" in responsive_styles
+    assert "grid-template-columns: minmax(0, 1fr) !important;" in responsive_styles
+    assert "#view-settings#view-settings .reference-updates-card .reference-update-version-grid" in responsive_styles
+
+
+def test_account_and_users_render_the_prototype_status_and_security_layout():
+    script = JS.read_text(encoding="utf-8")
+
+    assert '`reference-preview-route-state ${route.enabled === false ? "is-disabled" : "is-active"}`' in script
+    assert '"reference-user-row-last-visible"' in script
+    assert '"↓"' in script and '"↑"' in script
+    assert "password.replaceChildren(...(oldHeading ? [oldHeading] : []), main, posture);" in script
 
 
 def test_managed_backup_override_targets_production_service_name():

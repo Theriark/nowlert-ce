@@ -57,7 +57,7 @@ def test_routing_flow_owns_its_range_control_without_dashboard_rewrites():
         assert label in flow
 
 
-def test_routing_filter_keeps_outer_size_and_animation_but_uses_reference_interior():
+def test_routing_filter_keeps_outer_size_and_static_prototype_interior():
     script = read("src/webui/routing_flow.js")
     style = read("src/webui/routing_flow.css")
 
@@ -76,6 +76,6 @@ def test_routing_filter_keeps_outer_size_and_animation_but_uses_reference_interi
     assert "rf-filter-card-period" not in script
 
     assert "min-height: 168px !important;" in style
-    assert "animation: rf-filter-border-travel 3.2s linear infinite;" in style
-    assert "@keyframes rf-filter-border-travel" in style
+    assert "animation: rf-filter-border-travel 3.2s linear infinite;" not in style
+    assert "@keyframes rf-filter-border-travel" not in style
     assert "/* 2026-09-18 round-23 reference filter interior; outer card geometry unchanged. */" in style

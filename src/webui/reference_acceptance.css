@@ -169,17 +169,25 @@
 .reference-preview-route-chip strong {
   font-size: .72rem;
 }
-.reference-preview-route-chip .is-enabled {
-  background: rgba(45,212,191,.12);
-  border: 1px solid rgba(45,212,191,.3);
+.reference-preview-route-chip .reference-preview-route-state.is-active {
+  align-items: center;
+  background: rgba(77, 211, 126, 0.12);
+  border: 1px solid rgba(77, 211, 126, 0.28);
   border-radius: 999px;
-  color: #70e1ca;
+  color: #8fe47b;
+  display: inline-flex;
+  gap: 4px;
   font-size: .64rem;
   padding: 2px 6px;
+  white-space: nowrap;
 }
-.reference-preview-route-chip .is-disabled {
+.reference-preview-route-chip .reference-preview-route-state.is-disabled {
   color: #e3b341;
   font-size: .64rem;
+}
+.reference-preview-route-state .destination-status-dot {
+  height: .4rem;
+  width: .4rem;
 }
 .reference-preview-route-more-wrap {
   display: inline-flex;

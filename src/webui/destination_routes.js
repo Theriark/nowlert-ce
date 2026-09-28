@@ -167,8 +167,13 @@ if (typeof routeAssignmentInstallStyles === "function") {
     }
     if (description) description.textContent = meta.description;
     if (status && enabled) {
-      status.textContent = enabled.checked ? "Enabled" : "Disabled";
+      status.classList.toggle("is-active", enabled.checked);
       status.classList.toggle("is-disabled", !enabled.checked);
+      const label = enabled.checked ? "Active" : "Disabled";
+      status.replaceChildren(
+        element("span", { className: "destination-status-dot", attributes: { "aria-hidden": "true" } }),
+        element("span", { className: "destination-status-label", text: label }),
+      );
       status.setAttribute("aria-pressed", enabled.checked ? "true" : "false");
       status.title = enabled.checked ? "Disable this destination" : "Enable this destination";
     }
@@ -515,8 +520,12 @@ if (typeof routeAssignmentInstallStyles === "function") {
     const name = element("span", { className: "destination-route-pill-name", text: label });
     const status = element("span", {
       className: `destination-route-pill-status ${route.enabled === false ? "disabled" : "enabled"}`,
-      text: route.enabled === false ? "Disabled" : "Enabled",
     });
+    if (route.enabled === false) status.textContent = "Disabled";
+    else status.append(
+      element("span", { className: "destination-status-dot", attributes: { "aria-hidden": "true" } }),
+      element("span", { className: "destination-status-label", text: "Active" }),
+    );
     button.append(icon, name, status);
     button.addEventListener("click", () => {
       routeAssignmentSelection.delete(route.id);
@@ -715,8 +724,12 @@ if (typeof routeAssignmentInstallStyles === "function") {
       const icon = element("span", { className: "route-assignment-source-icon" }, sourceIcon(route.source));
       const status = element("small", {
         className: `route-assignment-option-state ${route.enabled ? "enabled" : "disabled"}`,
-        text: route.enabled ? "Enabled" : "Disabled",
       });
+      if (route.enabled) status.append(
+        element("span", { className: "destination-status-dot", attributes: { "aria-hidden": "true" } }),
+        element("span", { className: "destination-status-label", text: "Active" }),
+      );
+      else status.textContent = "Disabled";
       const leading = element("span", { className: "route-assignment-option-leading" }, [checkbox, icon]);
       const row = element("label", { className: "route-assignment-option" }, [
         leading,

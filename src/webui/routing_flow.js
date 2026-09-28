@@ -1051,7 +1051,9 @@
       if (dest) { const wrap = el("span", "rf-history-identity"); wrap.append(destinationLogo(dest), document.createTextNode(dest.name)); target.append(wrap); }
       else target.textContent = "Removed or unavailable";
       const label = { delivered: "Delivered", retry_scheduled: "Retry scheduled", failed: "Failed" }[item.outcome] || item.outcome;
-      const status = el("td", {delivered:"rf-green", retry_scheduled:"rf-amber", failed:"rf-red"}[item.outcome] || "", label);
+      const status = el("td", {delivered:"rf-green", retry_scheduled:"rf-amber", failed:"rf-red"}[item.outcome] || "");
+      if (item.outcome === "delivered") status.append(el("span", "ops-outcome delivered", label));
+      else status.textContent = label;
       row.append(time, source, target, status, el("td", "", item.attempt_number)); body.append(row);
     }
     $("rf-history-empty").hidden = Boolean(items.length);
@@ -1090,7 +1092,7 @@
     const graph = $("rf-graph"), edges = $("rf-edges");
     const edgeLayer = $("rf-edge-layer"); edgeLayer.replaceChildren(); edgePaths = new Map();
     const current = graphModel || activeFlowGraph();
-    graph.querySelectorAll(".rf-node").forEach(node => node.classList.remove("rf-pulse-single", "rf-pulse-dual", "rf-pulse-mixed"));
+    graph.querySelectorAll(".rf-node").forEach(node => node.classList.remove("rf-pulse-single", "rf-pulse-dual", "rf-pulse-mixed", "rf-filter-connected"));
     for (const item of window.NowlertRoutingPulseModel?.resolveNodeModes(current) || []) {
       nodeFor(item.kind, item.id)?.classList.add(`rf-pulse-${item.mode}`);
     }
@@ -1129,9 +1131,11 @@
         for (const [a, b] of [[route, filterNode], [filterNode, destination]]) {
           a.classList.add("rf-has-outgoing");
           b.classList.add("rf-has-incoming");
+          a.classList.add("rf-filter-connected");
+          b.classList.add("rf-filter-connected");
           const path = svg("path", {
             d: edgeCurve(a, b),
-            class: `rf-edge${relevant(link, filter.id) ? "" : " rf-dim"}`,
+            class: `rf-edge rf-edge-filter-connected${relevant(link, filter.id) ? "" : " rf-dim"}`,
           });
           edgeLayer.append(path);
           paths.push(path);
@@ -1167,10 +1171,11 @@
       const filterPaths = bundle?.filters?.get(source);
       const paths = filterPaths?.length ? filterPaths : bundle?.direct;
       if (!paths?.length) continue;
+      const usesFilter = Boolean(filterPaths?.length);
       const filtered = item.outcome === "filtered";
       const circle = svg("circle", {
         r: 3.2,
-        class: `rf-particle ${item.outcome === "failed" ? "rf-failed-particle" : filtered ? "rf-filtered-particle" : ""}`,
+        class: `rf-particle${usesFilter ? " rf-filter-flow-particle" : ""}${item.outcome === "failed" ? " rf-failed-particle" : filtered ? " rf-filtered-particle" : ""}`,
       });
       $("rf-particle-layer").append(circle);
       pulses.push({dot: circle, key, source, filtered, started: null});

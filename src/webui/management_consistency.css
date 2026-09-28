@@ -147,6 +147,17 @@
   color: #a8c7ff;
 }
 
+#view-destinations .destination-sharing-control.is-shared {
+  font-size: 0.56rem;
+  gap: 0.45rem;
+  padding-inline: 0.52rem;
+}
+
+#view-destinations .destination-sharing-control.is-shared .destination-share-icon {
+  height: 0.65rem;
+  width: 0.65rem;
+}
+
 #view-destinations .destination-status-control:hover,
 #view-destinations .destination-sharing-control:hover {
   filter: brightness(1.12);

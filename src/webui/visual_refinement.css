@@ -1063,3 +1063,1031 @@ body {
     animation: none !important;
   }
 }
+
+/* Destinations match the Dashboard's Top Integrations card face and gold pulse. */
+#view-destinations#view-destinations #destination-list > .resource-card {
+  background: linear-gradient(rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card::after {
+  content: none !important;
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card.destination-reference-card > .resource-heading {
+  box-sizing: border-box;
+  margin: -16px -16px 0;
+  padding: 16px 16px 12px;
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card.destination-reference-card > .resource-meta {
+  border-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-destinations#view-destinations #destination-list > .resource-card::before {
+    animation: none !important;
+  }
+}
+
+/* Filtering integration behavior uses the approved card face without the
+   generic gold corner stripe or radial tint. */
+#view-filtering#view-filtering #filtering-deterministic-processing .settings-resource-card {
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+}
+
+#view-filtering#view-filtering #filtering-deterministic-processing .settings-resource-card::before,
+#view-filtering#view-filtering #filtering-deterministic-processing .settings-resource-card::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Filtering's two content headers match the approved Dashboard card heading. */
+#view-filtering#view-filtering .filtering-table-panel::before,
+#view-filtering#view-filtering #filtering-deterministic-processing > .panel-heading::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  border-radius: 999px;
+  content: "";
+  height: 3px;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 52px;
+}
+
+#view-filtering#view-filtering #filtering-deterministic-processing::before {
+  content: none !important;
+  display: none !important;
+}
+
+#view-filtering#view-filtering .filtering-table-panel .filtering-table thead {
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%) !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+}
+
+#view-filtering#view-filtering .filtering-table-panel .filtering-table thead th {
+  background: transparent !important;
+}
+
+#view-filtering#view-filtering #filtering-deterministic-processing > .panel-heading {
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%) !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-filtering#view-filtering .filtering-table-panel::before,
+  #view-filtering#view-filtering #filtering-deterministic-processing > .panel-heading::before {
+    animation: none !important;
+  }
+}
+/* Delivery History uses the approved Dashboard header treatment on the event
+   list, selected-event identity, and Tags. Nested detail cards stay neutral. */
+#view-deliveries#view-deliveries .delivery-history-list-heading,
+#view-deliveries#view-deliveries .delivery-history-detail-heading,
+#view-deliveries#view-deliveries .delivery-history-tags-heading {
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%) !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+}
+
+#view-deliveries#view-deliveries .delivery-history-list-heading,
+#view-deliveries#view-deliveries .delivery-history-tags-heading {
+  position: relative;
+}
+
+#view-deliveries#view-deliveries .delivery-history-detail-heading {
+  box-sizing: border-box;
+  margin: -12px -12px 0;
+  min-height: 58px;
+  padding: 14px 12px 12px;
+  position: relative;
+}
+
+#view-deliveries#view-deliveries .delivery-history-tags-card {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+}
+
+#view-deliveries#view-deliveries .delivery-history-list-panel::before,
+#view-deliveries#view-deliveries .delivery-history-detail-heading::before,
+#view-deliveries#view-deliveries .delivery-history-tags-card::before {
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+  border-radius: 999px;
+  content: "";
+  height: 3px;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 52px;
+}
+
+#view-deliveries#view-deliveries .delivery-history-detail::before {
+  content: none !important;
+  display: none !important;
+}
+
+#view-deliveries#view-deliveries .delivery-history-detail-card:not(.delivery-history-tags-card)::before,
+#view-deliveries#view-deliveries .delivery-history-message::before {
+  content: none !important;
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-deliveries#view-deliveries .delivery-history-list-panel::before,
+  #view-deliveries#view-deliveries .delivery-history-detail-heading::before,
+  #view-deliveries#view-deliveries .delivery-history-tags-card::before {
+    animation: none !important;
+  }
+}
+
+/* Anchor Delivery Events' accent to its own card so its corner geometry matches
+   the Tags card; align the detail column with the list top as well. */
+#view-deliveries#view-deliveries .delivery-history-list-panel::before {
+  left: 0 !important;
+}
+
+#view-deliveries#view-deliveries .delivery-history-detail-heading::before {
+  left: 4px !important;
+}
+
+#view-deliveries#view-deliveries .delivery-history-detail {
+  position: static !important;
+  top: auto !important;
+}
+
+#view-deliveries#view-deliveries .delivery-history-list-heading,
+#view-deliveries#view-deliveries .delivery-history-detail-heading {
+  box-sizing: border-box;
+  min-height: 76px;
+}
+
+/* Let the event table take up spare panel height so its pagination footer sits
+   flush with the bottom edge of the Delivery Events card. */
+#view-deliveries#view-deliveries .delivery-history-list-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+#view-deliveries#view-deliveries .delivery-history-list-scroll {
+  flex: 1 1 auto !important;
+}
+
+#view-deliveries#view-deliveries .delivery-history-list-footer {
+  flex: 0 0 auto !important;
+  margin-top: auto !important;
+}
+
+/* Primary actions can be relocated from their page view into the global header.
+   Keep their hover treatment on-brand everywhere, including dialogs and menus. */
+.button.primary:hover:not(:disabled) {
+  background: #1d2228 !important;
+  background-image: none !important;
+  border-color: rgba(242, 235, 221, 0.19) !important;
+  color: #f2ebdd !important;
+  filter: none !important;
+}
+
+/* Audit log: remove the generic yellow card stripes called out in review. */
+#view-audit#view-audit :is(
+  .audit-log-summary-card,
+  .audit-health-card,
+  .audit-log-detail-identity
+)::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Match the approved Event details header on the health panels and column bar. */
+#view-audit#view-audit :is(
+  .audit-health-panel-heading,
+  .audit-health-latest-title,
+  .audit-log-columns
+) {
+  box-sizing: border-box;
+  min-height: 58px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%);
+}
+
+#view-audit#view-audit .audit-health-panel-heading {
+  margin: -15px -15px 13px;
+  padding: 14px 15px;
+  border-radius: 12px 12px 0 0;
+}
+
+#view-audit#view-audit .audit-health-latest-title {
+  display: flex;
+  align-items: center;
+  margin: -15px -15px 0;
+  padding: 14px 15px;
+  border-radius: 12px 12px 0 0;
+}
+
+#view-audit#view-audit .audit-log-columns {
+  padding: 14px 14px;
+}
+
+/* Match Filtering's Integration behavior accent on the three requested
+   Audit log title strips, keeping the lines above their header backgrounds. */
+#view-audit#view-audit :is(
+  .audit-health-panel-heading,
+  .audit-health-latest-title,
+  .audit-log-detail-heading
+) {
+  position: relative;
+}
+
+#view-audit#view-audit :is(
+  .audit-health-panel-heading,
+  .audit-health-latest-title,
+  .audit-log-detail-heading
+)::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  border-radius: 999px;
+  content: "";
+  height: 3px;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 52px;
+  z-index: 2;
+}
+
+/* The Time / Action / User event list already has its approved accent; pulse it. */
+#view-audit#view-audit .audit-log-list-panel::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-audit#view-audit :is(
+    .audit-health-panel-heading,
+    .audit-health-latest-title,
+    .audit-log-detail-heading
+  )::before {
+    animation: none !important;
+  }
+
+  #view-audit#view-audit .audit-log-list-panel::before {
+    animation: none !important;
+  }
+}
+
+/* Keep the details inspector level with the event list instead of offsetting it
+   by the sticky-header distance. */
+#view-audit#view-audit .audit-log-workbench {
+  align-items: start !important;
+}
+
+#view-audit#view-audit .audit-log-detail {
+  position: static !important;
+  top: auto !important;
+  align-self: start !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Put the three Audit pulses on the outer cards, exactly like the approved
+   Tags accent. The inner title strips have different padding/margins, so an
+   accent attached to them cannot line up consistently with the card corners. */
+#view-audit#view-audit :is(
+  .audit-health-checks-panel,
+  .audit-health-latest-panel,
+  .audit-log-detail
+) {
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+#view-audit#view-audit :is(
+  .audit-health-checks-panel,
+  .audit-health-latest-panel,
+  .audit-log-detail
+)::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  border-radius: 999px;
+  content: "";
+  height: 3px;
+  left: 0 !important;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 52px;
+  z-index: 2;
+}
+
+#view-audit#view-audit :is(
+  .audit-health-panel-heading,
+  .audit-health-latest-title,
+  .audit-log-detail-heading
+)::before {
+  animation: none !important;
+  content: none !important;
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-audit#view-audit :is(
+    .audit-health-checks-panel,
+    .audit-health-latest-panel,
+    .audit-log-detail
+  )::before {
+    animation: none !important;
+  }
+}
+
+/* Backups: remove only the three yellow accents marked in the reference. */
+.page-command-actions .backup-heading-status::before,
+#view-backups .backup-heading-status::before,
+#view-backups #backup-overview-strip::before,
+#view-backups #backup-data-tools-panel .data-tools-reference-card::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Backups: use the Delivery Performance title band while preserving each
+   panel's existing outer yellow accent. */
+#view-backups#view-backups :is(
+  #backup-destinations-panel > .panel-heading,
+  #backup-schedule-panel > .panel-heading,
+  #backup-data-tools-panel > .panel-heading,
+  #backup-recovery-panel > .panel-heading,
+  #backup-stored-panel > .panel-heading
+) {
+  align-items: center !important;
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+  box-sizing: border-box;
+  margin: -14px -14px 14px !important;
+  min-height: 58px !important;
+  padding: 14px !important;
+}
+
+#view-backups#view-backups #backup-destinations-panel .backup-destination-table th {
+  color: #c8bdab !important;
+  font-size: 0.68rem !important;
+  padding-block: 0.7rem !important;
+}
+
+#view-backups#view-backups :is(
+  #backup-destinations-panel > .panel-heading,
+  #backup-schedule-panel > .panel-heading,
+  #backup-data-tools-panel > .panel-heading,
+  #backup-recovery-panel > .panel-heading,
+  #backup-stored-panel > .panel-heading
+) .backup-section-title h3 {
+  color: #f5f7f8 !important;
+  font-size: 1.12rem !important;
+  font-weight: 760;
+  line-height: 1.15;
+}
+
+/* Backups: pulse the five section accents with the shared yellow rhythm. */
+#view-backups#view-backups :is(
+  #backup-destinations-panel,
+  #backup-schedule-panel,
+  #backup-data-tools-panel,
+  #backup-recovery-panel,
+  #backup-stored-panel
+)::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-backups#view-backups :is(
+    #backup-destinations-panel,
+    #backup-schedule-panel,
+    #backup-data-tools-panel,
+    #backup-recovery-panel,
+    #backup-stored-panel
+  )::before {
+    animation: none !important;
+  }
+}
+
+/* Users: suppress only the shared 52px top stripe on the four metric cards
+   and Recent activity. Preserve each card's existing fill, shadow, and hover. */
+#view-users#view-users .reference-user-metric::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Users: carry the Backup panel format through the overview and account table.
+   Keep the five previously removed metric/recent-activity stripes suppressed. */
+#view-users#view-users :is(
+  .reference-user-metric,
+  .reference-users-recent
+) {
+  background: linear-gradient(155deg, #202327, #171a1e) !important;
+  border: 1px solid rgba(242, 235, 221, 0.15) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(242, 235, 221, 0.018) !important;
+}
+
+#view-users#view-users .reference-users-recent {
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+#view-users#view-users .reference-users-recent::before {
+  background: linear-gradient(90deg, #f4c542, rgba(244, 197, 66, 0.12));
+  border-radius: 999px;
+  content: "";
+  height: 3px;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 52px;
+  z-index: 2;
+}
+
+#view-users#view-users .reference-users-recent-heading {
+  align-items: center;
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  box-sizing: border-box;
+  grid-template-columns: 1fr auto;
+  margin: 0 !important;
+  min-height: 58px;
+  padding: 14px 16px;
+}
+
+#view-users#view-users .reference-users-recent-heading strong {
+  color: #f5f7f8;
+  font-size: 1rem;
+  font-weight: 760;
+}
+
+#view-users#view-users .reference-users-recent-list {
+  margin: 0 !important;
+  padding: 12px 16px 16px;
+}
+
+#view-users#view-users > .table-panel {
+  background: linear-gradient(155deg, #202327, #171a1e) !important;
+  border: 1px solid rgba(242, 235, 221, 0.15) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(242, 235, 221, 0.018) !important;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 14px !important;
+}
+
+#view-users#view-users .reference-users-controls {
+  align-items: center;
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  box-sizing: border-box;
+  margin: -14px -14px 10px !important;
+  min-height: 58px;
+  padding: 10px 14px !important;
+}
+
+#view-users#view-users .reference-users-controls > input {
+  background: #14171b !important;
+  border-color: rgba(242, 235, 221, 0.2) !important;
+  color: #f2ebdd !important;
+}
+
+#view-users#view-users .reference-user-filter {
+  background: rgba(242, 235, 221, 0.035);
+  border-color: rgba(242, 235, 221, 0.16);
+  color: #c8bdab;
+}
+
+#view-users#view-users .reference-user-filter.is-active {
+  background: rgba(244, 197, 66, 0.1);
+  border-color: rgba(244, 197, 66, 0.42);
+  box-shadow: none;
+  color: #f4c542;
+}
+
+#view-users#view-users .table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+#view-users#view-users table {
+  width: 100%;
+}
+
+#view-users#view-users th {
+  background: rgba(244, 197, 66, 0.035);
+  color: #c8bdab;
+  font-size: 0.68rem;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+#view-users#view-users td,
+#view-users#view-users th {
+  border-color: rgba(242, 235, 221, 0.12);
+  padding-block: 0.7rem;
+}
+
+#view-users#view-users tbody tr {
+  border-top: 1px solid rgba(242, 235, 221, 0.12);
+}
+
+#view-users#view-users tbody tr:hover {
+  background: rgba(242, 235, 221, 0.035);
+}
+
+#view-users#view-users .reference-user-row-last-visible td {
+  border-bottom: 0 !important;
+}
+
+#view-users#view-users .reference-users-footer {
+  border-top-color: rgba(242, 235, 221, 0.12);
+  margin: 10px -14px -14px !important;
+  min-height: 58px;
+  padding: 8px 14px !important;
+}
+
+#view-users#view-users .reference-users-pager button,
+#view-users#view-users .reference-users-page-size {
+  background: #202327;
+  border-color: rgba(242, 235, 221, 0.16);
+  color: #f2ebdd;
+}
+
+#view-users#view-users .reference-users-pager button.is-current {
+  background: #eeb824;
+  border-color: #f2c644;
+  color: #17120a;
+}
+
+@media (max-width: 760px) {
+  #view-users#view-users .reference-users-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+#view-users#view-users .reference-users-recent::before,
+#view-users#view-users > .table-panel::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+#view-users#view-users .reference-users-recent::before,
+#view-users#view-users > .table-panel::before {
+  animation: none !important;
+}
+}
+
+/* Settings: remove only the marked yellow accents. */
+#view-settings#view-settings .reference-updates-card > .update-panel::before,
+#view-settings#view-settings .reference-updates-card .reference-update-status-card::before,
+#view-settings#view-settings .reference-updates-card .reference-update-status-card > div::before,
+#view-settings#view-settings .reference-updates-card .reference-update-version-card::before,
+#view-settings#view-settings .reference-updates-card .reference-update-version-card > div::before,
+#view-settings#view-settings .reference-updates-card .reference-update-checked::before,
+#view-settings#view-settings .reference-updates-card .reference-update-checked > div::before,
+#view-settings#view-settings .housekeeping-status-card::before,
+#view-settings#view-settings .housekeeping-recent-runs::before,
+#view-settings#view-settings .housekeeping-schedule-note::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Settings: match the Backups section header treatment on five headings. */
+#view-settings#view-settings .reference-regional-card > .panel-heading,
+#view-settings#view-settings .reference-updates-card > .section-toolbar,
+#view-settings#view-settings .housekeeping-workspace > .housekeeping-page-heading,
+#view-settings#view-settings .housekeeping-retention-panel > .housekeeping-panel-heading,
+#view-settings#view-settings .housekeeping-runs-panel > .housekeeping-panel-heading {
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%) !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+  box-sizing: border-box;
+  min-height: 58px;
+  position: relative;
+}
+
+#view-settings#view-settings .reference-regional-card > .panel-heading {
+  margin: -20px -20px 0 !important;
+  padding: 11px 20px !important;
+}
+
+#view-settings#view-settings .reference-updates-card > .section-toolbar {
+  margin: -12px -12px 0 !important;
+  padding: 11px 12px !important;
+}
+
+#view-settings#view-settings .housekeeping-workspace > .housekeeping-page-heading {
+  margin: -18px -18px 0 !important;
+  padding: 14px 18px !important;
+}
+
+#view-settings#view-settings .housekeeping-retention-panel > .housekeeping-panel-heading,
+#view-settings#view-settings .housekeeping-runs-panel > .housekeeping-panel-heading {
+  margin: -16px -16px 14px !important;
+  padding: 11px 16px !important;
+}
+
+#view-settings#view-settings :is(
+  .reference-regional-card,
+  .reference-updates-card,
+  .housekeeping-workspace,
+  .housekeeping-retention-panel,
+  .housekeeping-runs-panel
+)::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-settings#view-settings :is(
+    .reference-regional-card,
+    .reference-updates-card,
+    .housekeeping-workspace,
+    .housekeeping-retention-panel,
+    .housekeeping-runs-panel
+  )::before {
+    animation: none !important;
+  }
+}
+
+/* Settings: final title spacing and card alignment. */
+#view-settings#view-settings :is(
+  .reference-regional-card > .panel-heading,
+  .reference-updates-card > .section-toolbar
+) {
+  align-items: center !important;
+  box-sizing: border-box !important;
+  border-bottom: 0 !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+/* The two card headers have different inner padding, so draw their separator
+   from the shared card edge to keep both horizontal lines on the same row. */
+#view-settings#view-settings :is(
+  .reference-regional-card,
+  .reference-updates-card
+) {
+  position: relative !important;
+}
+
+#view-settings#view-settings :is(
+  .reference-regional-card,
+  .reference-updates-card
+)::after {
+  background: rgba(148, 163, 184, 0.12);
+  content: "";
+  height: 1px;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 56px;
+}
+
+#view-settings#view-settings .reference-settings-grid {
+  align-items: stretch !important;
+  gap: 14px !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+#view-settings#view-settings .reference-regional-card > .panel-heading {
+  margin-bottom: 14px !important;
+}
+
+#view-settings#view-settings :is(
+  .housekeeping-retention-panel > .housekeeping-panel-heading h3,
+  .housekeeping-runs-panel > .housekeeping-panel-heading h3
+) {
+  text-align: left !important;
+}
+
+#view-settings#view-settings .reference-regional-card > .panel-heading h2 {
+  text-align: left !important;
+}
+
+#view-settings#view-settings :is(
+  .reference-regional-card > .panel-heading > div,
+  .reference-update-heading-copy > div
+) {
+  align-self: center !important;
+}
+
+#view-settings#view-settings :is(
+  .housekeeping-retention-panel > .housekeeping-panel-heading,
+  .housekeeping-runs-panel > .housekeeping-panel-heading
+) {
+  align-items: center !important;
+  display: flex !important;
+  justify-content: flex-start !important;
+}
+
+#view-settings#view-settings :is(
+  .housekeeping-retention-panel > .housekeeping-panel-heading h3,
+  .housekeeping-runs-panel > .housekeeping-panel-heading h3
+) {
+  margin: 0 !important;
+}
+
+#view-settings#view-settings .reference-update-version-card:first-child {
+  margin-left: -16px !important;
+}
+
+/* Match Housekeeping's overflow clipping so each accent follows its rounded card corner. */
+#view-settings#view-settings :is(
+  .reference-updates-card,
+  .housekeeping-retention-panel,
+  .housekeeping-runs-panel
+) {
+  overflow: hidden !important;
+}
+/* These cards inherit the same accent geometry as the Housekeeping card. */
+#view-settings#view-settings :is(
+  .reference-updates-card,
+  .housekeeping-retention-panel,
+  .housekeeping-runs-panel
+)::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  #view-settings#view-settings :is(
+    .reference-updates-card,
+    .housekeeping-retention-panel,
+    .housekeeping-runs-panel
+  )::before {
+    animation: none !important;
+  }
+}
+
+/* Lower the Regional icon slightly because it sits too high beside its title. */
+#view-settings#view-settings .reference-regional-card .reference-settings-card-icon {
+  transform: translateY(2px);
+}
+
+/* Settings Updates body: match the supplied content layout; leave the header unchanged. */
+#view-settings#view-settings .reference-updates-card > .update-panel {
+  gap: 8px !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-status-card,
+#view-settings#view-settings .reference-updates-card .reference-update-version-card,
+#view-settings#view-settings .reference-updates-card .reference-update-checked {
+  background: linear-gradient(180deg, #111820, #0f151b) !important;
+  border: 1px solid #25303b !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-status-card {
+  gap: 12px !important;
+  grid-template-columns: 32px minmax(0, 1fr) !important;
+  min-height: 58px !important;
+  padding: 10px 12px !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-status-card > div,
+#view-settings#view-settings .reference-updates-card .reference-update-version-card > div,
+#view-settings#view-settings .reference-updates-card .reference-update-checked > div {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-status-card > div::before,
+#view-settings#view-settings .reference-updates-card .reference-update-version-card > div::before,
+#view-settings#view-settings .reference-updates-card .reference-update-checked > div::before {
+  content: none !important;
+  display: none !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-status-icon {
+  background: #23a455 !important;
+  border: 0 !important;
+  color: #fff !important;
+  font-size: 1rem !important;
+  height: 28px !important;
+  width: 28px !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-version-grid {
+  gap: 8px !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-version-card {
+  gap: 10px !important;
+  grid-template-columns: 30px minmax(0, 1fr) !important;
+  min-height: 70px !important;
+  padding: 9px 10px !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-version-icon {
+  background: transparent !important;
+  border: 1px solid rgba(244, 197, 66, 0.62) !important;
+  color: #f4c542 !important;
+  font-size: 0.88rem !important;
+  height: 28px !important;
+  width: 28px !important;
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-checked {
+  gap: 10px !important;
+  grid-template-columns: 30px minmax(0, 1fr) !important;
+  min-height: 48px !important;
+  padding: 8px 10px !important;
+}
+
+/* Keep the settings panels and update versions readable on compact screens. */
+@media (max-width: 1180px) {
+  #view-settings#view-settings .reference-settings-grid,
+  #view-settings#view-settings .reference-updates-card .reference-update-version-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+#view-settings#view-settings .reference-updates-card .reference-update-checked-icon {
+  background: transparent !important;
+  border-color: rgba(244, 197, 66, 0.62) !important;
+  color: #f4c542 !important;
+  font-size: 0.88rem !important;
+  height: 28px !important;
+  width: 28px !important;
+}
+
+/* Security: remove only the four top accents marked on the Profile cards. */
+#view-account#view-account :is(
+  .reference-profile-body,
+  .reference-access-status,
+  .reference-account-meta-role,
+  .reference-account-meta-member
+)::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Security title bands match Delivery Performance; keep the outer accents intact. */
+#view-account#view-account :is(
+  .reference-profile-card > .reference-account-card-heading,
+  .reference-password-card > .reference-password-heading
+) {
+  align-items: center !important;
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%) !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+  border-radius: 11px 11px 0 0 !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  grid-column: 1 / -1 !important;
+  height: 58px !important;
+  margin: -16px -16px 14px !important;
+  min-height: 58px !important;
+  padding: 14px 16px !important;
+  position: relative !important;
+}
+
+#view-account#view-account .reference-account-card-heading > span {
+  display: none !important;
+}
+
+#view-account#view-account .reference-account-card-heading h2,
+#view-account#view-account .reference-password-heading h2 {
+  color: #f5f7f8 !important;
+  font-size: 1.12rem !important;
+  font-weight: 760 !important;
+  line-height: 1.15 !important;
+  margin: 0 !important;
+}
+
+/* API Tokens reuse the Users search, table, and paging geometry. */
+#view-users#view-users .table-panel,
+#view-account#view-account .reference-api-tokens > .table-panel {
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+#view-users#view-users .reference-users-controls,
+#view-account#view-account .reference-token-search-bar {
+  align-items: center !important;
+  background: linear-gradient(120deg, rgba(238, 184, 36, 0.08), transparent 38%) !important;
+  border-bottom: 1px solid rgba(242, 235, 221, 0.12) !important;
+  display: flex !important;
+  gap: 16px !important;
+  justify-content: space-between !important;
+  min-height: 70px !important;
+  padding: 14px 18px !important;
+}
+
+#view-users#view-users .reference-users-controls > input,
+#view-account#view-account .reference-token-search {
+  max-width: 370px !important;
+  min-height: 42px !important;
+  width: 100% !important;
+}
+
+#view-users#view-users .table-scroll,
+#view-account#view-account .reference-api-tokens .table-scroll {
+  margin: 10px 14px 0 !important;
+  max-width: calc(100% - 28px) !important;
+  overflow-x: auto !important;
+}
+
+#view-users#view-users table,
+#view-account#view-account .reference-api-tokens table {
+  min-width: 900px !important;
+  width: 100% !important;
+}
+
+#view-users#view-users th {
+  background: rgba(244, 197, 66, 0.035) !important;
+}
+
+#view-users#view-users thead th.reference-user-check {
+  padding-block: 8px !important;
+}
+
+#view-users#view-users thead th.reference-user-check input[type="checkbox"] {
+  display: block !important;
+  height: 20px !important;
+  margin: 0 auto !important;
+  min-height: 20px !important;
+  padding: 0 !important;
+  width: 20px !important;
+}
+
+#view-account#view-account .reference-api-tokens thead {
+  background: transparent !important;
+}
+
+#view-account#view-account .reference-api-tokens th {
+  background: rgba(244, 197, 66, 0.035) !important;
+}
+
+#view-users#view-users th,
+#view-account#view-account .reference-api-tokens th {
+  color: #c8bdab !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.045em !important;
+  padding-block: 0.7rem !important;
+}
+
+#view-users#view-users td,
+#view-account#view-account .reference-api-tokens td {
+  border-color: rgba(242, 235, 221, 0.12) !important;
+  padding-block: 0.7rem !important;
+}
+
+#view-users#view-users tbody tr,
+#view-account#view-account .reference-api-tokens tbody tr {
+  border-top: 1px solid rgba(242, 235, 221, 0.12) !important;
+}
+
+#view-users#view-users .reference-users-footer,
+#view-account#view-account .reference-token-footer {
+  border-top: 1px solid rgba(242, 235, 221, 0.12) !important;
+  margin: 10px -14px -14px !important;
+  min-height: 58px !important;
+  padding: 8px 14px !important;
+}
+
+#view-account#view-account .reference-api-tokens .reference-token-footer {
+  margin: 10px 0 0 !important;
+}
+
+#view-account#view-account .reference-profile-card::before,
+#view-account#view-account .reference-password-card::before,
+#view-account#view-account .reference-api-tokens > .table-panel::before {
+  animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view-account#view-account .reference-profile-card::before,
+  #view-account#view-account .reference-password-card::before,
+  #view-account#view-account .reference-api-tokens > .table-panel::before {
+    animation: none !important;
+  }
+}
+
+#view-users#view-users .reference-users-pager button,
+#view-account#view-account .reference-token-pager button {
+  background: #202327 !important;
+  border-color: rgba(242, 235, 221, 0.16) !important;
+  color: #f2ebdd !important;
+  height: 38px !important;
+  min-width: 38px !important;
+}

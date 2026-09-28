@@ -139,3 +139,11 @@ def test_filtering_webui_matches_reference_controls_and_icons():
     assert "max-height: min(calc(100vh - 8rem), 860px);" in styles
     assert "max-height: min(92vh, 860px);" not in styles
     assert '{"rules", "enabled"}' in api
+
+
+def test_filtering_headers_match_prototype_without_nested_card_accents():
+    theme = (ROOT / "src" / "webui" / "visual_refinement.css").read_text(encoding="utf-8")
+
+    assert "#view-filtering#view-filtering #filtering-deterministic-processing .settings-resource-card::before" in theme
+    assert "#view-filtering#view-filtering .filtering-table-panel::before" in theme
+    assert "#view-filtering#view-filtering #filtering-deterministic-processing > .panel-heading::before" in theme

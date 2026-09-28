@@ -215,6 +215,7 @@
     const desired = new Set();
 
     if (view === "account") delete chrome.title.dataset.i18nSource;
+    else if (view === "email-alerts") chrome.title.dataset.i18nSource = "Email Alerts";
     chrome.title.textContent = expectedTitle(view);
     chrome.subtitle.textContent = expectedSubtitle(view, toolbar);
     chrome.subtitle.hidden = !chrome.subtitle.textContent;

@@ -100,3 +100,9 @@ def test_email_alerts_primary_action_is_promoted_to_unified_header():
     assert 'view === "email-alerts"' in script
     assert 'document.getElementById("email-primary-action")' in script
     assert '"email-alerts": "Connect mailboxes' in script
+
+
+def test_email_alerts_header_restores_its_translation_source():
+    script = (ROOT / "src" / "webui" / "page_headers.js").read_text(encoding="utf-8")
+
+    assert 'else if (view === "email-alerts") chrome.title.dataset.i18nSource = "Email Alerts";' in script

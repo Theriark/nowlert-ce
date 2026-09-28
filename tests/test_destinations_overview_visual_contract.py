@@ -44,3 +44,13 @@ def test_destinations_overview_keeps_private_metadata_card_read_only():
     assert 'badge("View only", "destination-view-only-badge")' in private_block
     assert "resource-actions" not in private_block
     assert "actionButton(" not in private_block
+
+
+def test_destination_cards_use_prototype_title_band_and_compact_active_status():
+    script = (ROOT / "src" / "webui" / "destination_routes.js").read_text(encoding="utf-8")
+    theme = (ROOT / "src" / "webui" / "visual_refinement.css").read_text(encoding="utf-8")
+
+    assert "#view-destinations#view-destinations #destination-list > .resource-card.destination-reference-card > .resource-heading" in theme
+    assert 'status.classList.toggle("is-active", enabled.checked)' in script
+    assert 'className: "destination-status-dot"' in script
+    assert 'enabled.checked ? "Active" : "Disabled"' in script

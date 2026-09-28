@@ -34,17 +34,17 @@ def test_surface_accent_pulses_but_excludes_dashboard_kpis_and_routing_metrics()
         assert f"#view-{view}#view-{view}" in THEME
 
 
-def test_filter_cards_keep_geometry_content_semantics_and_approved_pulse():
+def test_filter_cards_keep_prototype_geometry_and_static_card_surface():
     assert ".rf-filter { min-height:66px; padding:10px; gap:10px; }" in ROUTING
     assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in ROUTING
     assert ".rf-filter-card-tags" in ROUTING and ".rf-filter-rule-tag-blue { color: #12bce9" in ROUTING
-    assert "/* 2026-09-18 approved compact Routing Flow filter card. */" in ROUTING
-    assert "animation: rf-filter-border-travel 3.2s linear infinite;" in ROUTING
-    assert "@keyframes rf-filter-border-travel" in ROUTING
+    assert "/* Preserve the prototype's static filter card styling. */" in ROUTING
+    assert "animation:rf-filter-border-travel 3.2s linear infinite;" not in ROUTING
+    assert "@keyframes rf-filter-border-travel" not in ROUTING
     assert "rf-node.rf-filter.rf-pulse-dual::before" in ROUTING
     assert "@keyframes rf-trace-forward" in ROUTING
     assert "#view-routing-flow#view-routing-flow .rf-filter-card" in THEME
-    assert "):not(button):not(input):not(select):not(textarea):not(.rf-filter-card):not(.rf-filter-card *)" in THEME
+    assert "):not(.rf-filter-card):not(.rf-filter-card *)" in THEME
 
 
 def test_semantic_colors_and_reduced_motion_remain_intact():
@@ -52,3 +52,18 @@ def test_semantic_colors_and_reduced_motion_remain_intact():
     assert ".ops-severity.severity-warning" in THEME
     assert ".ops-config-status.is-shared { --status-rgb: 114, 180, 255; }" in THEME
     assert "@media (prefers-reduced-motion: reduce)" in THEME
+
+
+def test_audit_and_backup_headers_use_approved_bands_and_scoped_accents():
+    assert "#view-audit#view-audit .audit-health-panel-heading" in THEME
+    assert ".audit-log-detail-heading" in THEME and ")::before" in THEME
+    assert "#view-backups#view-backups :is(" in THEME
+    assert "#backup-schedule-panel > .panel-heading" in THEME
+    assert "#backup-recovery-panel" in THEME
+    assert "@media (prefers-reduced-motion: reduce)" in THEME
+
+
+def test_users_and_account_use_compact_shared_table_treatment():
+    assert "#view-users#view-users .reference-users-controls" in THEME
+    assert "#view-account#view-account .reference-token-search-bar" in THEME
+    assert "reference-user-row-last-visible" in THEME
