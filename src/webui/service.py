@@ -11,6 +11,7 @@ TEAMS_MODERN_CARD_ROUTE_PREFIX = "/ui/teams-modern-cards/"
 
 
 UI_BUILD = "20260926-r53"
+ROUTING_FLOW_CSS_BUILD = f"{UI_BUILD}-routing-flow-1"
 
 
 SECURITY_HEADERS = (
@@ -378,13 +379,14 @@ class WebUIService:
         if route in {"/", "/ui", "/ui/"}:
             text = body.decode("utf-8")
             version = f"?v={UI_BUILD}"
+            routing_flow_css_version = f"?v={ROUTING_FLOW_CSS_BUILD}"
             extension = (
                 f'  <link rel="stylesheet" href="/ui/email_alerts.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/filtering.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/destination_routes.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/destination_editor_fix.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/policy_simplification.css{version}">\n'
-                f'  <link rel="stylesheet" href="/ui/routing_flow.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/routing_flow.css{routing_flow_css_version}">\n'
                 f'  <link rel="stylesheet" href="/ui/filtering_ownership_sync.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/operations_dashboard.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/operations_acceptance.css{version}">\n'
@@ -393,7 +395,7 @@ class WebUIService:
                 f'  <link rel="stylesheet" href="/ui/audit_log_refinement.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/management_consistency.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/reference_acceptance.css{version}">\n'
-                f'  <link rel="stylesheet" href="/ui/visual_refinement.css{version}">\n'
+                f'  <link rel="stylesheet" href="/ui/visual_refinement.css{routing_flow_css_version}">\n'
                 f'  <script src="/ui/filtering.js{version}" defer></script>\n'
                 f'  <script src="/ui/email_alerts.js{version}" defer></script>\n'
                 f'  <script src="/ui/source_ui_retirement.js{version}" defer></script>\n'
