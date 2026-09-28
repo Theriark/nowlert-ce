@@ -274,6 +274,11 @@ class WebUIService:
                 "image/png",
                 "no-cache",
             ),
+            "/ui/brand/nowlert-favicon-v1.svg": (
+                "assets/brand/nowlert-favicon-v1.svg",
+                "image/svg+xml",
+                "public, max-age=31536000, immutable",
+            ),
             "/ui/brand/nowlert-owl-v3.1.0.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
