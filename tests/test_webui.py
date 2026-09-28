@@ -143,6 +143,7 @@ def test_routing_flow_css_has_a_fresh_cache_key_for_the_perimeter_effect_fix():
     assert f"/ui/routing_flow.css?v={ROUTING_FLOW_CSS_BUILD}" in markup
     assert f"/ui/visual_refinement.css?v={ROUTING_FLOW_CSS_BUILD}" in markup
     assert ROUTING_FLOW_CSS_BUILD != UI_BUILD
+    assert ROUTING_FLOW_CSS_BUILD == f"{UI_BUILD}-routing-flow-2"
 
 
 def test_webui_is_default_on_but_every_explicit_disable_is_authoritative():
