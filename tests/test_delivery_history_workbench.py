@@ -4,6 +4,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_delivery_history_restarts_at_newest_page_and_document_top():
+    script = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
+
+    assert 'window.history.scrollRestoration = "manual";' in script
+    hydration = script[
+        script.index("function qaHydrateWorkspaceCache("):
+        script.index("function qaClearWorkspaceCache(")
+    ]
+    assert "qaDeliveryPage = 1;" in hydration
+    assert "const savedPage = Math.max(1, Number(cached.delivery.page || 1));" in hydration
+    assert "savedPage === 1" in hydration
+    assert 'requestedView === "deliveries"' in hydration
+    assert "const size = Number(cached.delivery.page_size || qaDeliveryPageSize);" in hydration
+
+
 def test_selected_delivery_history_workbench_contract():
     script = (
         ROOT / "src" / "webui" / "destination_overview_acceptance.js"

@@ -1,5 +1,7 @@
 "use strict";
 
+if (window.history) window.history.scrollRestoration = "manual";
+
 const QA_PAGE_SIZE = 25;
 let qaRoutePage = 1;
 let qaDeliveryPage = 1;
@@ -290,9 +292,20 @@ function qaHydrateWorkspaceCache(session, { render = true } = {}) {
   if (cached.delivery && typeof cached.delivery === "object") {
     const size = Number(cached.delivery.page_size || qaDeliveryPageSize);
     if (QA_DELIVERY_PAGE_SIZES.includes(size)) qaDeliveryPageSize = size;
-    qaDeliveryPage = Math.max(1, Number(cached.delivery.page || 1));
-    if (cached.delivery.pagination) qaDeliveryPagination = cached.delivery.pagination;
-    if (requestedView === "deliveries" && Array.isArray(cached.delivery.rows)) {
+    const savedPage = Math.max(1, Number(cached.delivery.page || 1));
+    qaDeliveryPage = 1;
+    if (cached.delivery.pagination) {
+      qaDeliveryPagination = {
+        ...cached.delivery.pagination,
+        page: 1,
+        page_size: qaDeliveryPageSize,
+      };
+    }
+    if (
+      savedPage === 1
+      && requestedView === "deliveries"
+      && Array.isArray(cached.delivery.rows)
+    ) {
       state.deliveries = cached.delivery.rows;
     }
   }
