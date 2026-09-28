@@ -167,6 +167,7 @@ if (typeof routeAssignmentInstallStyles === "function") {
     }
     if (description) description.textContent = meta.description;
     if (status && enabled) {
+      status.className = "button small destination-provider-status";
       status.classList.toggle("is-active", enabled.checked);
       status.classList.toggle("is-disabled", !enabled.checked);
       const label = enabled.checked ? "Active" : "Disabled";
