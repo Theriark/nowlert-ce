@@ -46,6 +46,12 @@ def test_destination_route_active_matches_the_provider_active_green_treatment():
         assert declaration in provider_active_rule
 
 
+def test_management_ui_fixes_receive_a_fresh_asset_cache_key():
+    service = _read("src/webui/service.py")
+
+    assert 'UI_BUILD = "20260928-r54"' in service
+
+
 def test_filtering_actions_heading_aligns_with_first_row_action():
     script = _read("src/webui/filtering.js")
     sync = _read("src/webui/filtering_ownership_sync.js")

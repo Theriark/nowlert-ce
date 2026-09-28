@@ -112,7 +112,7 @@ def test_prototype_assets_are_allowlisted_and_loaded_in_dependency_order():
     service = WebUIService(enabled_config(), root=ROOT)
     markup = service.response("/").body.decode("utf-8")
 
-    assert UI_BUILD == "20260926-r53"
+    assert UI_BUILD == "20260928-r54"
     assert f'name="nowlert-ui-build" content="{UI_BUILD}"' in markup
     for asset in (
         "/ui/delivery_chart_model.js",
@@ -268,16 +268,16 @@ def test_webui_markup_is_semantic_external_and_complete():
     for retired in ("notice-console", "notice-composer", "notice-form", "notice-panel", "notice-list"):
         assert retired not in inspector.ids
     assert inspector.scripts == [
-        "/ui/app.js?v=20260926-r53",
+        "/ui/app.js?v=20260928-r54",
         "/ui/enhancements.js",
-        "/ui/qa_patch.js?v=20260926-r53",
+        "/ui/qa_patch.js?v=20260928-r54",
         "/ui/i18n.js",
         "/ui/dashboard.js",
     ]
     assert inspector.stylesheets == [
         "/ui/styles.css",
         "/ui/enhancements.css",
-        "/ui/qa_patch.css?v=20260926-r53",
+        "/ui/qa_patch.css?v=20260928-r54",
         "/ui/professional.css",
     ]
     assert inspector.inline_handlers == []
@@ -979,9 +979,9 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
     assert response is not None and response.status == 200
     markup = response.body.decode("utf-8")
 
-    assert 'name="nowlert-ui-build" content="20260926-r53"' in markup
-    assert "/ui/app.js?v=20260926-r53" in markup
-    assert "/ui/qa_patch.css?v=20260926-r53" in markup
+    assert 'name="nowlert-ui-build" content="20260928-r54"' in markup
+    assert "/ui/app.js?v=20260928-r54" in markup
+    assert "/ui/qa_patch.css?v=20260928-r54" in markup
 
     # Every runtime extension receives the same build key so a newly deployed
     # WebUI cannot keep executing an older extension bundle.
