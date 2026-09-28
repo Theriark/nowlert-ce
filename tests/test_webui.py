@@ -13,7 +13,7 @@ import inputs.http as http_module
 from dispatcher import Dispatcher
 from inputs.http import HTTPServer
 from storage.database import Database
-from webui.service import SECURITY_HEADERS, UI_BUILD, WebUIService
+from webui.service import ROUTING_FLOW_CSS_BUILD, SECURITY_HEADERS, UI_BUILD, WebUIService
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -131,9 +131,18 @@ def test_prototype_assets_are_allowlisted_and_loaded_in_dependency_order():
         f"/ui/routing_flow.js?v={UI_BUILD}"
     )
     assert markup.index(f"/ui/reference_acceptance.css?v={UI_BUILD}") < markup.index(
-        f"/ui/visual_refinement.css?v={UI_BUILD}"
+        f"/ui/visual_refinement.css?v={ROUTING_FLOW_CSS_BUILD}"
     )
     assert service.response("/ui/unknown.js").status == 404
+
+
+def test_routing_flow_css_has_a_fresh_cache_key_for_the_perimeter_effect_fix():
+    service = WebUIService(enabled_config(), root=ROOT)
+    markup = service.response("/").body.decode("utf-8")
+
+    assert f"/ui/routing_flow.css?v={ROUTING_FLOW_CSS_BUILD}" in markup
+    assert f"/ui/visual_refinement.css?v={ROUTING_FLOW_CSS_BUILD}" in markup
+    assert ROUTING_FLOW_CSS_BUILD != UI_BUILD
 
 
 def test_webui_is_default_on_but_every_explicit_disable_is_authoritative():
