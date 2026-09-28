@@ -662,7 +662,16 @@ body {
 .rf-page .rf-node:not(.rf-filter-card),
 .rf-page .rf-destination {
   background: linear-gradient(180deg, rgba(17, 24, 31, 0.98), rgba(12, 18, 24, 0.98)) !important;
+}
+
+.rf-page .rf-metric,
+.rf-page .rf-history {
   border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+.rf-page .rf-node:not(.rf-filter-card),
+.rf-page .rf-destination {
+  border-color: rgba(148, 163, 184, 0.18);
 }
 
 /* Recent Deliveries uses the same card face and inset as Dashboard panels. */
@@ -716,9 +725,10 @@ body {
   pointer-events: none;
 }
 
-/* Development Routing Flow integration and destination nodes have no top stripe. */
-.rf-page .rf-node:not(.rf-filter-card)::before,
-.rf-page .rf-destination::before {
+/* Keep the shared top stripe off inactive nodes; active nodes use this layer
+   for their route-aware perimeter tracer. */
+.rf-page .rf-node:not(.rf-filter-card):not(.rf-pulse-single):not(.rf-pulse-dual):not(.rf-pulse-mixed)::before,
+.rf-page .rf-destination:not(.rf-pulse-single):not(.rf-pulse-dual):not(.rf-pulse-mixed)::before {
   content: none !important;
   display: none !important;
 }

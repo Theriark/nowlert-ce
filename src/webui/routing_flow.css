@@ -205,6 +205,27 @@
   animation: rf-trace-secondary 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
 }
 
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::before {
+  color: #ffda32;
+  background: conic-gradient(from var(--rf-node-trace-forward), #ffda32 0deg, rgba(255, 218, 50, .68) 14deg, transparent 44deg 360deg);
+  animation: rf-trace-forward 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
+}
+
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::before,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before {
+  color: #ded7ca;
+  background: conic-gradient(from var(--rf-node-trace-forward), #ded7ca 0deg, rgba(222, 215, 202, .72) 14deg, transparent 44deg 360deg);
+  animation: rf-trace-forward 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
+}
+
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::after,
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::after {
+  color: #ded7ca;
+  background: conic-gradient(from var(--rf-node-trace-secondary), #ded7ca 0deg, rgba(222, 215, 202, .72) 14deg, transparent 44deg 360deg);
+  animation: rf-trace-secondary 4s linear infinite, rf-trace-glow 1.8s ease-in-out infinite;
+}
+
 @keyframes rf-trace-forward {
   to { --rf-node-trace-forward: 360deg; }
 }
@@ -223,7 +244,13 @@
   #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single,
   #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual,
   #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single,
-  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual {
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual,
+  #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,
+  #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::before,
+  #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::after,
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::before,
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before,
+  #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::after {
     animation: none !important;
   }
 }
@@ -275,16 +302,6 @@
   border-color: #ded7ca;
   clip-path: inset(50% 0 0 0);
   animation: rf-card-highlight-mixed-gray 2.2s ease-in-out infinite;
-}
-#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::before,
-#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-single::after,
-#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::before,
-#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-dual::after,
-#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::before,
-#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-single::after,
-#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::before,
-#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-dual::after {
-  content:none !important; display:none !important;
 }
 @keyframes rf-card-highlight-yellow {
   0%,100% { border-color:rgba(255,218,50,.62); box-shadow:0 0 0 1px rgba(255,218,50,.35),0 0 8px rgba(255,218,50,.18); }
