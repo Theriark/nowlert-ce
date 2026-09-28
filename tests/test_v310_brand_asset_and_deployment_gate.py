@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
+import re
 import struct
 from pathlib import Path
 
@@ -12,6 +14,7 @@ from webui.service import WebUIService
 
 ROOT = Path(__file__).resolve().parents[1]
 BRAND_ROUTE = "/ui/brand/nowlert-owl-v3.1.0.png"
+FAVICON_ROUTE = "/ui/brand/nowlert-favicon-v1.svg"
 BRAND_SHA256 = "684bda33be520811ab80057da41c34112ffc58ee7a559ffd66ba3f02b92f052a"
 
 
@@ -67,6 +70,33 @@ def test_webui_uses_cache_busted_approved_owl_everywhere():
     assert f'GENERIC_SOURCE_ICON = "{BRAND_ROUTE}"' in app
     assert f'const ICON_PATH = "{BRAND_ROUTE}"' in qa_patch
     assert f'icon.src = "{BRAND_ROUTE}"' in dashboard
+
+
+def test_browser_favicon_scales_the_approved_owl_without_changing_other_branding():
+    service = WebUIService(Configuration(), root=ROOT)
+    index = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
+    favicon = (ROOT / "assets" / "brand" / "nowlert-favicon-v1.svg").read_text(
+        encoding="utf-8"
+    )
+    embedded_png = re.search(r"data:image/png;base64,([A-Za-z0-9+/=]+)", favicon)
+
+    assert service.assets[FAVICON_ROUTE] == (
+        "assets/brand/nowlert-favicon-v1.svg",
+        "image/svg+xml",
+        "public, max-age=31536000, immutable",
+    )
+    assert f'href="{FAVICON_ROUTE}" type="image/svg+xml"' in index
+    assert f'href="{BRAND_ROUTE}" type="image/png"' in index
+    assert 'viewBox="0 0 256 256"' in favicon
+    assert 'x="-108.61" y="-101.39" width="462.34" height="462.34"' in favicon
+    assert embedded_png is not None
+    assert (
+        hashlib.sha256(base64.b64decode(embedded_png.group(1))).hexdigest()
+        == BRAND_SHA256
+    )
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "HTML scaled Nowlert favicon" in workflow
+    assert "Favicon embeds approved owl" in workflow
 
 
 def test_discord_generic_product_uses_versioned_owl_attachment():

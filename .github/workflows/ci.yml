@@ -290,6 +290,7 @@ jobs:
             require_contains "HTML build marker" "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\"" "${html}" || return 1
             require_contains "HTML qa_patch" "/ui/qa_patch.css?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML app" "/ui/app.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML scaled Nowlert favicon" "/ui/brand/nowlert-favicon-v1.svg" "${html}" || return 1
             require_contains "HTML Routing Flow" "/ui/routing_flow.js?v=${ROUTING_FLOW_JS_BUILD}" "${html}" || return 1
             require_contains "HTML Routing Flow CSS" "/ui/routing_flow.css?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML Filtering" "/ui/filtering.js?v=${UI_BUILD}" "${html}" || return 1
@@ -303,6 +304,14 @@ jobs:
             require_contains "HTML cleanup" "/ui/acceptance_cleanup.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML consistency layer" "/ui/management_consistency.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML retirement layer" "/ui/source_ui_retirement.js?v=${UI_BUILD}" "${html}" || return 1
+
+            favicon="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/brand/nowlert-favicon-v1.svg"
+            )" || { echo "WAIT: Nowlert favicon request failed"; return 1; }
+            require_contains "Favicon compact view box" 'viewBox="0 0 256 256"' "${favicon}" || return 1
+            require_contains "Favicon embeds approved owl" 'data:image/png;base64,' "${favicon}" || return 1
 
             css="$(
               curl --fail --silent --show-error \
