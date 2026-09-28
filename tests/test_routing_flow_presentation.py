@@ -155,3 +155,20 @@ def test_routing_graph_rebuild_resumes_css_effects_from_the_shared_clock():
     assert "animationPhaseDelay(period, now)" in SCRIPT
     assert "animation-delay:var(--rf-motion-phase-2200, 0ms)" in CSS
     assert "animation-delay:var(--rf-motion-phase-4000, 0ms),var(--rf-motion-phase-1800, 0ms)" in CSS
+
+
+def test_mixed_route_and_destination_states_keep_both_colors_and_full_card_glow():
+    mixed_glow = CSS.split("@keyframes rf-card-highlight-mixed-glow", 1)
+    assert len(mixed_glow) == 2
+    reduced_motion = CSS.split("@media(prefers-reduced-motion:reduce)", 1)[1]
+
+    assert "rf-node.rf-route.rf-pulse-mixed," in CSS
+    assert "rf-node.rf-destination.rf-pulse-mixed {" in CSS
+    assert "animation:rf-card-highlight-mixed-glow 2.2s ease-in-out infinite;" in CSS
+    assert "animation-delay:var(--rf-motion-phase-2200, 0ms);" in CSS
+    assert "rgba(255,218,50,.8)" in mixed_glow[1]
+    assert "rgba(222,215,202,.72)" in mixed_glow[1]
+    assert "0 0 16px rgba(255,218,50,.38)" in mixed_glow[1]
+    assert "0 0 16px rgba(222,215,202,.3)" in mixed_glow[1]
+    assert "rf-node.rf-route.rf-pulse-mixed," in reduced_motion
+    assert "rf-node.rf-destination.rf-pulse-mixed { animation:none !important; }" in reduced_motion
