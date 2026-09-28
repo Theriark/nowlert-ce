@@ -43,6 +43,26 @@ function destinationRouteSelectionForItem(item, routes) {
   return selected;
 }
 
+function destinationRouteSourcesForItem(item, routes, canonicalizeSource = (source) => source) {
+  const destinationId = String(item && item.id ? item.id : "");
+  const assignedRouteIds = new Set(
+    item && Array.isArray(item.route_ids) ? item.route_ids.map(String) : [],
+  );
+  const sources = new Map();
+  for (const route of Array.isArray(routes) ? routes : []) {
+    if (!route || !route.id) continue;
+    const routeDestinationIds = [
+      ...(Array.isArray(route.destination_ids) ? route.destination_ids : []),
+      route.destination_id,
+    ].filter((id) => id !== undefined && id !== null).map(String);
+    if (!assignedRouteIds.has(String(route.id)) && !routeDestinationIds.includes(destinationId)) continue;
+    const source = String(route.source || "*").toLowerCase();
+    const key = String(canonicalizeSource(source) || source);
+    if (!sources.has(key)) sources.set(key, { source, key });
+  }
+  return [...sources.values()];
+}
+
 function destinationRouteSummaryModel(routes, selectedIds, limit = DESTINATION_ROUTE_SUMMARY_PILL_LIMIT) {
   const allRoutes = Array.isArray(routes) ? routes : [];
   const selectedRoutes = destinationRouteSelectedItems(allRoutes, selectedIds);
@@ -63,6 +83,7 @@ if (typeof module !== "undefined" && module.exports) {
     destinationRouteSelectedItems,
     destinationRouteVisibleItems,
     destinationRouteSelectionForItem,
+    destinationRouteSourcesForItem,
     destinationRouteSummaryModel,
   };
 }
