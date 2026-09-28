@@ -98,7 +98,8 @@ def test_development_acceptance_checks_the_live_changed_assets():
     workflow = read(".github/workflows/ci.yml")
 
     assert "from webui.service import UI_BUILD" in workflow
-    assert "/ui/routing_flow.js?v=${UI_BUILD}" in workflow
+    assert 'ROUTING_FLOW_JS_BUILD="$(PYTHONPATH=src python -c \'from webui.service import ROUTING_FLOW_JS_BUILD;' in workflow
+    assert "/ui/routing_flow.js?v=${ROUTING_FLOW_JS_BUILD}" in workflow
     assert "/ui/filtering.js?v=${UI_BUILD}" in workflow
     assert "/ui/filtering_ownership_sync.css?v=${UI_BUILD}" in workflow
     assert "function sortLayerByDesired(items, desired)" in workflow

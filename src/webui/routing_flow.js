@@ -5,6 +5,7 @@
   const NS = "http://www.w3.org/2000/svg";
   const PAGE = "routing-flow";
   const POLL_MS = 5000;
+  const PARTICLE_LAUNCH_INTERVAL_MS = 500;
   const OUTPUT_LOGOS = {
     teams: "/ui/icons/routing-teams.svg",
     slack: "/ui/icons/routing-slack.svg",
@@ -20,7 +21,7 @@
   let data = null, signature = "", timer = null, controller = null;
   let generation = 0, range = "1d", zoom = 1, busy = false;
   let owner = null, selected = null, seen = new Set(), allHistory = false;
-  let pulseFrame = null, pulses = [], edgePaths = new Map(), resizeFrame = null;
+  let pulseFrame = null, pulses = [], pendingParticleAttempts = [], lastParticleLaunch = null, edgePaths = new Map(), resizeFrame = null;
   let graphModel = null, pendingRefreshOptions = null;
   let warmTimer = null, warmController = null;
 
@@ -1169,17 +1170,18 @@
   }
   function stopPulses() {
     if (pulseFrame !== null) cancelAnimationFrame(pulseFrame);
-    pulseFrame = null; pulses.forEach(p=>p.dot.remove()); pulses=[];
+    pulseFrame = null; pulses.forEach(p=>p.dot.remove()); pulses=[]; pendingParticleAttempts=[]; lastParticleLaunch=null;
   }
   function animateAttempts(items) {
     if (!active() || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    for (const item of items.slice(0,12)) {
+    pendingParticleAttempts.push(...items);
+    function createParticle(item, now) {
       const key = linkKey(item.route_id,item.destination_id);
       const bundle = edgePaths.get(key);
       const source = String(item.source || "");
       const filterPaths = bundle?.filters?.get(source);
       const paths = filterPaths?.length ? filterPaths : bundle?.direct;
-      if (!paths?.length) continue;
+      if (!paths?.length) return null;
       const usesFilter = Boolean(filterPaths?.length);
       const filtered = item.outcome === "filtered";
       const circle = svg("circle", {
@@ -1187,12 +1189,19 @@
         class: `rf-particle${usesFilter ? " rf-filter-flow-particle" : ""}${item.outcome === "failed" ? " rf-failed-particle" : filtered ? " rf-filtered-particle" : ""}`,
       });
       $("rf-particle-layer").append(circle);
-      pulses.push({dot: circle, key, source, filtered, started: null});
+      return {dot: circle, key, source, filtered, started: now};
     }
     function frame(now) {
       if (!active()) { stopPulses(); return; }
+      if (pendingParticleAttempts.length && (lastParticleLaunch === null || now - lastParticleLaunch >= PARTICLE_LAUNCH_INTERVAL_MS)) {
+        let particle = null;
+        while (!particle && pendingParticleAttempts.length) particle = createParticle(pendingParticleAttempts.shift(), now);
+        if (particle) {
+          pulses.push(particle);
+          lastParticleLaunch = now;
+        }
+      }
       pulses = pulses.filter(p => {
-        if (p.started === null) p.started = now;
         const elapsed = (now - p.started) / 2800;
         if (elapsed >= 1) { p.dot.remove(); return false; }
         const bundle = edgePaths.get(p.key);
@@ -1210,9 +1219,9 @@
         p.dot.setAttribute("cy", pt.y);
         return true;
       });
-      pulseFrame = pulses.length ? requestAnimationFrame(frame) : null;
+      pulseFrame = pulses.length || pendingParticleAttempts.length ? requestAnimationFrame(frame) : null;
     }
-    if (pulses.length && pulseFrame===null) pulseFrame=requestAnimationFrame(frame);
+    if ((pulses.length || pendingParticleAttempts.length) && pulseFrame===null) pulseFrame=requestAnimationFrame(frame);
   }
   function invalidate() {
     generation++; clearTimeout(timer); timer=null;

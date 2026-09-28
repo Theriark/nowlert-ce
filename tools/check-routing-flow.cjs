@@ -18,7 +18,7 @@ const fixture=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/routing_
  options.args=['--no-sandbox','--disable-dev-shm-usage','--disable-gpu'];
  const browser=await chromium.launch(options);
  const page=await browser.newPage({viewport:{width:1600,height:1100},reducedMotion:'reduce'});
- const errors=[],writes=[],requests=[];let fail=false,requestCount=0,authFail=false,delay=0;
+ const errors=[],writes=[],requests=[];let fail=false,requestCount=0,authFail=false,delay=0,burstCount=0;
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('http://nowlert.test/**',async route=>{
   const req=route.request(),url=new URL(req.url()),p=url.pathname;
@@ -32,7 +32,9 @@ const fixture=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/routing_
    if(authFail)return route.fulfill({status:401,json:{error:'session expired'}});
    if(fail)return route.fulfill({status:503,json:{error:'unavailable'}});
    value=structuredClone(fixture);value.generated_at=Math.floor(Date.now()/1000);value.range=p.split('/').pop();
-   value.metrics.delivered+=requestCount;value.history[0].id='fresh-'+requestCount;value.history[0].completed_at=value.generated_at;
+   value.metrics.delivered+=requestCount;
+   if(burstCount){const count=burstCount;burstCount=0;value.history=Array.from({length:count},(_,i)=>({...fixture.history[i],id:`burst-${requestCount}-${i}`,completed_at:value.generated_at}));}
+   else{value.history[0].id='fresh-'+requestCount;value.history[0].completed_at=value.generated_at;}
   }else if(p.endsWith('/bootstrap'))value={required:false};
   else if(p.endsWith('/session'))value={user:{id:'browser-user',username:'ruben',role:'user'},csrf_token:'fixture',expires_at:Math.floor(Date.now()/1000)+3600};
   else if(p.endsWith('/integrations'))value={integrations:fixture.routes.map(r=>({source:r.source,name:r.integration_name,inputs:[{key:r.input_type,name:r.input_type}],enabled:true})),route_options:[]};
@@ -85,7 +87,15 @@ const fixture=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/routing_
  await page.emulateMedia({reducedMotion:'no-preference'});
  await page.locator('#rf-pause').click();
  await page.locator('.rf-particle').first().waitFor({state:'attached'});
- await page.waitForTimeout(1800);assert.equal(await page.locator('.rf-particle').count(),0,'Particles expire');
+ await page.waitForTimeout(2900);assert.equal(await page.locator('.rf-particle').count(),0,'Particles expire after the full circuit');
+ await page.locator('#rf-pause').click();assert.equal(await page.locator('.rf-particle').count(),0,'Pause clears particles');
+ await page.evaluate(()=>{window.__particleStarts=[];new MutationObserver(records=>records.flatMap(record=>Array.from(record.addedNodes)).filter(node=>node.matches?.('.rf-particle')).forEach(()=>window.__particleStarts.push(performance.now()))).observe(document.querySelector('#rf-particle-layer'),{childList:true});});
+ burstCount=4;const burstRequestedAt=await page.evaluate(()=>performance.now());await page.locator('#rf-pause').click();
+ await page.waitForFunction(()=>window.__particleStarts.length===4,{timeout:3500});
+ const particleTiming=await page.evaluate(requestedAt=>({firstDelay:window.__particleStarts[0]-requestedAt,gaps:window.__particleStarts.slice(1).map((time,i)=>time-window.__particleStarts[i])}),burstRequestedAt);
+ assert.ok(particleTiming.firstDelay<500,'First particle launches immediately after detection');
+ assert.ok(particleTiming.gaps.every(gap=>gap>=400&&gap<=800),'Each notification launches about 0.5 seconds after the previous one');
+ assert.equal(await page.locator('.rf-particle').count(),4,'Particles overlap in transit instead of waiting for the previous circuit to finish');
  await page.locator('#rf-pause').click();assert.equal(await page.locator('.rf-particle').count(),0,'Pause clears particles');
  await page.emulateMedia({reducedMotion:'reduce'});
  await page.locator('#rf-pause').click();await page.waitForTimeout(200);

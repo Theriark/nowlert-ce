@@ -12,6 +12,7 @@ TEAMS_MODERN_CARD_ROUTE_PREFIX = "/ui/teams-modern-cards/"
 
 UI_BUILD = "20260928-r55"
 ROUTING_FLOW_CSS_BUILD = f"{UI_BUILD}-routing-flow-4"
+ROUTING_FLOW_JS_BUILD = f"{UI_BUILD}-routing-flow-5"
 
 
 SECURITY_HEADERS = (
@@ -380,6 +381,7 @@ class WebUIService:
             text = body.decode("utf-8")
             version = f"?v={UI_BUILD}"
             routing_flow_css_version = f"?v={ROUTING_FLOW_CSS_BUILD}"
+            routing_flow_js_version = f"?v={ROUTING_FLOW_JS_BUILD}"
             extension = (
                 f'  <link rel="stylesheet" href="/ui/email_alerts.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/filtering.css{version}">\n'
@@ -404,7 +406,7 @@ class WebUIService:
                 f'  <script src="/ui/policy_simplification.js{version}" defer></script>\n'
                 f'  <script src="/ui/acceptance_cleanup.js{version}" defer></script>\n'
                 f'  <script src="/ui/routing_pulse_model.js{version}" defer></script>\n'
-                f'  <script src="/ui/routing_flow.js{version}" defer></script>\n'
+                f'  <script src="/ui/routing_flow.js{routing_flow_js_version}" defer></script>\n'
                 f'  <script src="/ui/filtering_ownership_sync.js{version}" defer></script>\n'
                 f'  <script src="/ui/delivery_chart_model.js{version}" defer></script>\n'
                 f'  <script src="/ui/operations_dashboard.js{version}" defer></script>\n'

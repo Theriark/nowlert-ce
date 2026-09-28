@@ -238,6 +238,7 @@ jobs:
         run: |
           set -euo pipefail
           UI_BUILD="$(PYTHONPATH=src python -c 'from webui.service import UI_BUILD; print(UI_BUILD)')"
+          ROUTING_FLOW_JS_BUILD="$(PYTHONPATH=src python -c 'from webui.service import ROUTING_FLOW_JS_BUILD; print(ROUTING_FLOW_JS_BUILD)')"
           BASE_URL="https://ce-dev-nowlert.theriark.dev"
           ACCESS_HEADERS=(
             -H "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}"
@@ -289,7 +290,7 @@ jobs:
             require_contains "HTML build marker" "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\"" "${html}" || return 1
             require_contains "HTML qa_patch" "/ui/qa_patch.css?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML app" "/ui/app.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML Routing Flow" "/ui/routing_flow.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML Routing Flow" "/ui/routing_flow.js?v=${ROUTING_FLOW_JS_BUILD}" "${html}" || return 1
             require_contains "HTML Routing Flow CSS" "/ui/routing_flow.css?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML Filtering" "/ui/filtering.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML Filtering CSS" "/ui/filtering_ownership_sync.css?v=${UI_BUILD}" "${html}" || return 1
@@ -341,7 +342,7 @@ jobs:
             routing="$(
               curl --fail --silent --show-error \
                 "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/routing_flow.js?v=${UI_BUILD}"
+                "${BASE_URL}/ui/routing_flow.js?v=${ROUTING_FLOW_JS_BUILD}"
             )" || { echo "WAIT: routing_flow.js request failed"; return 1; }
             require_contains "Routing Flow adaptive layout" "function sortLayerByDesired(items, desired)" "${routing}" || return 1
             require_contains "Routing Flow captured range" 'const routingRangeSelect = section.querySelector("#rf-range");' "${routing}" || return 1
