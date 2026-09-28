@@ -192,6 +192,18 @@ const all = helpers.destinationRouteSummaryModel(routes, new Set(routes.map((ite
 assert.equal(all.label, "All routes assigned");
 assert.deepEqual(all.overflow.map((item) => item.id), ["d", "e"]);
 assert.equal(all.showPills, false);
+
+const routeSources = helpers.destinationRouteSourcesForItem(
+  {id:"destination-1", route_ids:["legacy-route"]},
+  [
+    {id:"legacy-route", source:"home_assistant", destination_ids:[]},
+    {id:"alias-route", source:"ha", destination_ids:["destination-1"]},
+    {id:"fallback-route", source:"*", destination_id:"destination-1"},
+    {id:"unassigned-route", source:"slack", destination_ids:["other-destination"]},
+  ],
+  source => ({home_assistant:"ha", ha:"ha"}[source] || source),
+);
+assert.deepEqual(routeSources.map(item => item.source), ["home_assistant", "*"]);
 '''
     result = subprocess.run(
         ["node", "-e", program],

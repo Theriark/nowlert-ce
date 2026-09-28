@@ -461,6 +461,24 @@
   min-width: 0;
 }
 
+#view-destinations .destination-assigned-route-icons {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 5px;
+  margin-left: auto;
+}
+
+#view-destinations .destination-assigned-route-icons .source-product-icon {
+  display: block;
+  flex: 0 0 18px;
+  height: 18px;
+  max-height: 18px;
+  max-width: 18px;
+  object-fit: contain;
+  width: 18px;
+}
+
 #view-destinations .resource-identity strong {
   display: block;
   font-size: 0.73rem;

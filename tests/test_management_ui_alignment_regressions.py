@@ -49,7 +49,7 @@ def test_destination_route_active_matches_the_provider_active_green_treatment():
 def test_management_ui_fixes_receive_a_fresh_asset_cache_key():
     service = _read("src/webui/service.py")
 
-    assert 'UI_BUILD = "20260928-r54"' in service
+    assert 'UI_BUILD = "20260928-r55"' in service
 
 
 def test_filtering_actions_heading_aligns_with_first_row_action():
@@ -106,3 +106,23 @@ def test_audit_log_event_details_stretch_to_match_event_list():
     assert "overflow: auto !important" in alignment
     assert "align-content: start !important" in alignment
     assert "grid-auto-rows: max-content !important" in alignment
+
+
+def test_destination_assigned_integration_icons_share_title_row_and_align_right():
+    app = _read("src/webui/app.js")
+    route_model = _read("src/webui/destination_routes.js")
+    style = _read("src/webui/operations_acceptance.css")
+    destination_render = app.split("function renderDestinations()", 1)[1].split(
+        "function destinationName(", 1
+    )[0]
+    heading = destination_render.split('className: "resource-heading"', 1)[1].split(
+        "meta,", 1
+    )[0]
+
+    assert 'className: "destination-assigned-route-icons"' in destination_render
+    assert "routeIcons," in heading
+    assert "destinationRouteSourcesForItem(" in destination_render
+    assert "state.routes || []" in destination_render
+    assert "function destinationRouteSourcesForItem(" in route_model
+    assert ".destination-assigned-route-icons" in style
+    assert "margin-left: auto" in style

@@ -2107,6 +2107,21 @@ function renderDestinations() {
   for (const item of state.destinations) {
     const editable = ownResource(item);
     const canTest = editable || isAdmin() || item.shared;
+    const assignedSources = destinationRouteSourcesForItem(
+      item,
+      state.routes || [],
+      (source) => integrationBySource(source)?.id || source,
+    );
+    const routeIcons = element("div", {
+      className: "destination-assigned-route-icons",
+      attributes: { "aria-label": "Assigned integrations", role: "group" },
+    }, assignedSources.map(({ source }) => {
+      const icon = sourceIcon(source);
+      const label = routeSourceDescriptor(source).integration;
+      icon.alt = label;
+      icon.title = label;
+      return icon;
+    }));
     const actions = element("div", { className: "resource-actions" });
     if (editable) {
       actions.append(
@@ -2180,6 +2195,7 @@ function renderDestinations() {
           element("span", { className: "resource-icon" }, outputIcon(item.output_type)),
           element("div", {}, [element("strong", { text: item.name }), element("small", { text: `${OUTPUT_NAMES[item.output_type] || friendlyName(item.output_type)} · ${item.settings.channel_name || "Channel not labelled"}` })]),
         ]),
+        routeIcons,
       ]),
       meta,
       testFailure,
