@@ -663,7 +663,9 @@
       item.response_status
         ? deliveryTag("HTTP", item.response_status, "response", responseTone)
         : null,
-      item.route_id ? deliveryTag("Route", route?.name || shortId(item.route_id), "route") : null,
+      item.route_id
+        ? deliveryTag("Route", item.route_name || route?.name || shortId(item.route_id), "route")
+        : null,
     ].filter(Boolean);
     const tagCard = element("section", {
       className: "delivery-history-detail-card delivery-history-tags-card",

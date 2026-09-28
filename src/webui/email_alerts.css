@@ -1328,6 +1328,8 @@
 }
 
 .email-preview-dialog {
+  display: grid;
+  row-gap: 18px;
   width: min(960px, calc(100vw - 32px));
 }
 
@@ -1341,7 +1343,7 @@
   border-radius: 10px;
   background: rgba(73, 194, 108, 0.055);
   color: #9ba4ad;
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 
 .email-tab-loading {
