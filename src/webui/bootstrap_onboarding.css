@@ -45,10 +45,10 @@
 }
 
 #bootstrap-view .bootstrap-brand .brand-mark {
-  flex: 0 0 3.5rem;
-  height: 3.5rem;
+  flex: 0 0 8rem;
+  height: 8rem;
   margin: 0;
-  width: 3.5rem;
+  width: 8rem;
 }
 
 #bootstrap-view .bootstrap-brand .brand-mark img {
@@ -246,9 +246,9 @@
   }
 
   #bootstrap-view .bootstrap-brand .brand-mark {
-    flex-basis: 2.8rem;
-    height: 2.8rem;
-    width: 2.8rem;
+    flex-basis: 6.5rem;
+    height: 6.5rem;
+    width: 6.5rem;
   }
 
   #bootstrap-view .bootstrap-intro-copy h1 {
@@ -294,6 +294,12 @@
 
   #bootstrap-view .bootstrap-steps {
     gap: 0.25rem;
+  }
+
+  #bootstrap-view .bootstrap-brand .brand-mark {
+    flex-basis: 5.5rem;
+    height: 5.5rem;
+    width: 5.5rem;
   }
 
   #bootstrap-view .bootstrap-step {
