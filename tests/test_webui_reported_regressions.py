@@ -91,6 +91,13 @@ def test_email_preview_separates_security_notice_from_message_body():
     assert "row-gap:" in preview_dialog
 
 
+def test_email_preview_dialog_is_closed_when_page_initializes():
+    script = source("src/webui/email_alerts.js")
+    startup = script[script.rindex("emailEnsurePhase9Dialogs();"):]
+
+    assert 'emailEnsurePhase9Dialogs();\nbyId("email-preview-dialog")?.close();' in startup
+
+
 def test_destination_route_done_closes_picker_without_saving_destination():
     dashboard = source("src/webui/dashboard.js")
     routes = source("src/webui/destination_routes.js")
