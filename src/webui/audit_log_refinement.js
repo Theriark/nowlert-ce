@@ -815,6 +815,8 @@
     return healthPromise;
   }
 
+  window.nowlertEnsureHealthSnapshot = ensureHealthSnapshot;
+
   function refineAudit() {
     refineRunChecks();
     refineRows();

@@ -1327,7 +1327,7 @@
   .email-activity-matched { padding-left: 0; border-left: 0; }
 }
 
-.email-preview-dialog {
+.email-preview-dialog[open] {
   display: grid;
   row-gap: 18px;
   width: min(960px, calc(100vw - 32px));

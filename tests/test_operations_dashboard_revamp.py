@@ -53,6 +53,14 @@ def test_dashboard_does_not_report_storage_warning_before_health_data_exists():
 
     assert 'status: storageCheck ? normalizedHealthStatus(storageCheck.status) : "unknown"' in dashboard
     assert 'item.status === "unknown" ? "Checking"' in dashboard
+    assert "function ensureDashboardHealthSnapshot()" in dashboard
+    assert "ensureDashboardHealthSnapshot();" in dashboard
+
+
+def test_dashboard_can_load_a_health_snapshot_without_entering_audit_view():
+    audit = _read("src/webui/audit_log_refinement.js")
+
+    assert "window.nowlertEnsureHealthSnapshot = ensureHealthSnapshot;" in audit
 
 
 def test_routing_flow_keeps_backend_3h_6h_but_ui_owns_supported_windows():

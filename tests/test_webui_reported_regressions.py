@@ -85,17 +85,21 @@ def test_group_fields_opt_out_of_password_manager_autofill():
 
 def test_email_preview_separates_security_notice_from_message_body():
     styles = source("src/webui/email_alerts.css")
-    preview_dialog = styles[styles.index(".email-preview-dialog {"):styles.index(".email-preview-security {")]
+    preview_dialog = styles[styles.index(".email-preview-dialog[open] {"):styles.index(".email-preview-security {")]
 
     assert "display: grid;" in preview_dialog
     assert "row-gap:" in preview_dialog
 
 
-def test_email_preview_dialog_is_closed_when_page_initializes():
+def test_email_preview_dialog_is_hidden_until_opened_and_created_on_demand():
     script = source("src/webui/email_alerts.js")
-    startup = script[script.rindex("emailEnsurePhase9Dialogs();"):]
+    startup = script[script.rindex("emailEnsureDialogs();"):]
+    styles = source("src/webui/email_alerts.css")
 
-    assert 'emailEnsurePhase9Dialogs();\nbyId("email-preview-dialog")?.close();' in startup
+    assert "emailEnsurePhase9Dialogs();" not in startup
+    assert 'emailEnsurePhase9Dialogs();\n  const dialog = byId("email-preview-dialog");' in script
+    assert ".email-preview-dialog[open] {" in styles
+    assert ".email-preview-dialog {\n  display: grid;" not in styles
 
 
 def test_destination_route_done_closes_picker_without_saving_destination():

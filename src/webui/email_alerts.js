@@ -2194,8 +2194,6 @@ document.addEventListener("click", (event) => {
 });
 
 emailEnsureDialogs();
-emailEnsurePhase9Dialogs();
-byId("email-preview-dialog")?.close();
 window.setInterval(emailRefreshActivity, EMAIL_ACTIVITY_REFRESH_MS);
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) void emailRefreshActivity();

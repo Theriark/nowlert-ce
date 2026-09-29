@@ -766,6 +766,14 @@
     updateLiveAge();
   }
 
+  function ensureDashboardHealthSnapshot() {
+    const ensureHealthSnapshot = window.nowlertEnsureHealthSnapshot;
+    if (typeof ensureHealthSnapshot !== "function") return;
+    void ensureHealthSnapshot().then(() => {
+      if (state.currentView === DASHBOARD_VIEW) renderOperationsDashboard();
+    });
+  }
+
   async function refreshDashboardData(force = false) {
     if (!state.user || (!force && state.currentView !== DASHBOARD_VIEW)) return;
     if (refreshBusy) {
@@ -831,6 +839,7 @@
     syncDashboardChrome();
     if (view === DASHBOARD_VIEW && Number(state.workspaceLoadedAt || 0) > 0) {
       refreshDashboardData(false);
+      ensureDashboardHealthSnapshot();
     }
     return result;
   };
@@ -853,7 +862,10 @@
     if (state.metrics && typeof state.metrics === "object") {
       saveDashboardSnapshot(state.historyRange);
     }
-    if (state.currentView === DASHBOARD_VIEW) renderOperationsDashboard();
+    if (state.currentView === DASHBOARD_VIEW) {
+      renderOperationsDashboard();
+      ensureDashboardHealthSnapshot();
+    }
   });
 
   const previousExpireSession = expireSession;
