@@ -18,7 +18,7 @@ def test_round20_backup_columns_align_at_compact_equal_height():
 
     assert ".backup-dashboard-grid-top {" in final
     assert "align-items: stretch !important;" in final
-    assert "#backup-schedule-panel," in final
+    assert "#backup-schedule-panel {" in final
     assert "#backup-data-tools-panel {" in final
     assert "height: 300px !important;" in final
     assert "max-height: 300px !important;" in final

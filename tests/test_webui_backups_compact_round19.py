@@ -16,7 +16,7 @@ def test_round19_backup_top_row_uses_natural_height_instead_of_vertical_stretch(
 
     assert ".backup-dashboard-grid-top {" in final
     assert "align-items: start !important;" in final
-    assert "#backup-schedule-panel," in final
+    assert "#backup-schedule-panel {" in final
     assert "#backup-data-tools-panel {" in final
     assert "align-self: start !important;" in final
     assert "height: auto !important;" in final
