@@ -333,11 +333,13 @@
 
 @media (max-width: 1180px) {
   #view-dashboard .ops-configuration {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: stretch;
   }
 
   #view-dashboard .ops-workspace-summary {
     grid-column: 1 / -1;
+    grid-template-columns: 52px minmax(0, 1fr);
     padding: 2px 0 14px;
     border-bottom: 1px solid rgba(244, 197, 66, .12);
   }
@@ -497,6 +499,34 @@
   text-overflow: ellipsis;
   text-transform: none;
   white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  #view-destinations .resource-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: 0.45rem;
+  }
+
+  #view-destinations .resource-identity {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  #view-destinations .destination-assigned-route-icons {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    margin-left: 46px;
+    max-width: calc(100% - 46px);
+    min-width: 0;
+  }
+
+  #view-destinations .resource-identity strong {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
+  }
 }
 
 #view-destinations .resource-meta {

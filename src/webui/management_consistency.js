@@ -907,6 +907,7 @@
   document.addEventListener("change", (event) => {
     if (event.target?.id === "destination-type") window.requestAnimationFrame(syncDestinationChannelField);
   });
+  document.addEventListener("nowlert:integration-behavior-updated", scheduleSync);
 
   const observer = new MutationObserver(scheduleSync);
   const shell = document.getElementById("app-shell");

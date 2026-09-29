@@ -58,8 +58,7 @@
   function ownedChoices(payload) {
     return (Array.isArray(payload?.destinations) ? payload.destinations : [])
       .filter(item => (
-        item.owned
-        && item.can_manage_filters
+        item.can_manage_filters
         && Number(item.available_integration_count || 0) > 0
       ));
   }
@@ -419,9 +418,21 @@
     return dialog;
   }
 
-  function openOwnerPicker() {
-    const choices = ownedChoices(latest);
-    if (!choices.length) return;
+  async function openOwnerPicker() {
+    let payload;
+    try {
+      payload = await request("/filters");
+      document.dispatchEvent(new CustomEvent("nowlert:filtering-overview-updated", { detail: payload }));
+      decorate(payload);
+    } catch (error) {
+      toast(error.message || "Your destinations could not be loaded. Try again.", "error");
+      return;
+    }
+    const choices = ownedChoices(payload);
+    if (!choices.length) {
+      toast("You need a destination you can manage with at least one enabled integration before adding a filter.", "warning");
+      return;
+    }
     if (choices.length === 1) {
       openCoreDestination(choices[0].id);
       return;
@@ -629,6 +640,10 @@
   navigate = function filteringOwnershipNavigate(view, historyMode = "push") {
     const result = previousNavigate(view, historyMode);
     syncProfileIdentity();
+    if (state.currentView === FILTER_VIEW) {
+      const tableScroll = document.querySelector("#view-filtering .table-scroll");
+      if (tableScroll) tableScroll.scrollLeft = 0;
+    }
     if (state.currentView === FILTER_VIEW) schedule();
     if (state.currentView === "destinations") {
       refreshDestinationsState().catch(() => {

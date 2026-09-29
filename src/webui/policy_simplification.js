@@ -178,7 +178,10 @@
   function syncShell(view = state.currentView) {
     syncProfile();
     syncAdmin(view);
-    if (view === "settings") renderSimpleSettings();
+    if (view === "settings" || view === "filtering") {
+      renderSimpleSettings();
+      document.dispatchEvent(new CustomEvent("nowlert:integration-behavior-updated"));
+    }
   }
 
   const oldShowApp = showApp;

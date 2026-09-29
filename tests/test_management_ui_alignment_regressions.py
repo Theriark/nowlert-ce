@@ -49,7 +49,7 @@ def test_destination_route_active_matches_the_provider_active_green_treatment():
 def test_management_ui_fixes_receive_a_fresh_asset_cache_key():
     service = _read("src/webui/service.py")
 
-    assert 'UI_BUILD = "20260929-r56"' in service
+    assert 'UI_BUILD = "20260929-r57"' in service
 
 
 def test_filtering_actions_heading_aligns_with_first_row_action():

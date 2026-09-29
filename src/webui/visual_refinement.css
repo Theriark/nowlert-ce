@@ -1497,12 +1497,14 @@ body {
   #view-filtering .filtering-table-panel > .table-scroll {
     max-width: 100%;
     overflow-x: auto !important;
+    overflow-y: visible !important;
     overscroll-behavior-x: contain;
     scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
   }
 
   #view-filtering .filtering-table {
-    min-width: 1080px !important;
+    min-width: 1240px !important;
     table-layout: fixed;
   }
 
@@ -1515,6 +1517,16 @@ body {
   #view-filtering .filtering-actions-cell > .filtering-table-actions,
   #view-filtering .filtering-actions-cell > .table-actions {
     justify-content: flex-start;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  #view-filtering#view-filtering #filtering-deterministic-processing .simplified-settings-groups {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  #view-filtering#view-filtering #filtering-deterministic-processing .settings-resource-card {
+    min-height: 150px;
   }
 
   #view-backups .backup-dashboard-grid {
