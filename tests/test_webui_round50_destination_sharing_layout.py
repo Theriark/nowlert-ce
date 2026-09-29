@@ -39,6 +39,7 @@ def test_destination_owner_control_uses_authoritative_ownership_and_shared_viewe
 
 def test_private_admin_destination_has_one_owner_badge_and_view_only_badge():
     cleanup = read("src/webui/acceptance_cleanup.js")
+    destination_css = read("src/webui/destination_overview_acceptance.css")
     consistency = read("src/webui/management_consistency.js")
 
     start = cleanup.index("function appendPrivateDestinationMetadata(items)")
@@ -54,7 +55,7 @@ def test_private_admin_destination_has_one_owner_badge_and_view_only_badge():
 
 def test_destination_metadata_row_uses_equal_dynamic_columns_at_action_height():
     styles = read("src/webui/management_consistency.css")
-    cleanup = read("src/webui/acceptance_cleanup.js")
+    destination_css = read("src/webui/destination_overview_acceptance.css")
 
     start = styles.index("#view-destinations .destination-reference-card .resource-meta,")
     end = styles.index("#view-destinations .destination-reference-card .resource-actions", start)
@@ -68,7 +69,7 @@ def test_destination_metadata_row_uses_equal_dynamic_columns_at_action_height():
     assert "min-height: 34px;" in block
     assert "grid-template-columns: repeat(4" not in styles
 
-    actions_start = cleanup.index("#view-destinations .resource-actions .button {")
-    actions_end = cleanup.index("}", actions_start)
-    actions = cleanup[actions_start:actions_end]
+    actions_start = destination_css.index("#view-destinations .resource-actions .button {")
+    actions_end = destination_css.index("}", actions_start)
+    actions = destination_css[actions_start:actions_end]
     assert "min-height: 34px;" in actions

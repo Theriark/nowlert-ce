@@ -46,10 +46,8 @@ def test_destination_route_picker_styles_are_external_and_scrollable():
     assert "grid-template-columns: auto minmax(0, 1fr) auto" in stylesheet
     assert "width: auto" in stylesheet
     assert "height: auto" in stylesheet
-    assert (
-        "routeAssignmentInstallStyles = function routeAssignmentUseExternalStyles() {};"
-        in script
-    )
+    assert ".destination-route-more-menu" in stylesheet
+    assert 'document.createElement("style")' not in script
 
 
 def test_destination_route_picker_uses_stable_dom_anchor_and_idempotent_binding():

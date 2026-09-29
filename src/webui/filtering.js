@@ -57,6 +57,7 @@
     const button = element("button", {
       className: "nav-item",
       type: "button",
+      attributes: { id: "filtering-nav" },
       dataset: { view: "filtering" },
     }, [
       element("span", { className: "nav-icon", text: "⊙", attributes: { "aria-hidden": "true" } }),

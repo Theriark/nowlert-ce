@@ -1492,6 +1492,82 @@ body {
   }
 }
 
+/* Tablet layouts: keep narrow tables scrollable and let panel headings wrap. */
+@media (max-width: 1180px) {
+  #view-filtering .filtering-table-panel > .table-scroll {
+    max-width: 100%;
+    overflow-x: auto !important;
+    overscroll-behavior-x: contain;
+    scrollbar-gutter: stable;
+  }
+
+  #view-filtering .filtering-table {
+    min-width: 1080px !important;
+    table-layout: fixed;
+  }
+
+  #view-filtering .filtering-table th:last-child,
+  #view-filtering .filtering-table td.filtering-actions-cell {
+    min-width: 260px;
+  }
+
+  #view-filtering .filtering-actions-cell > div,
+  #view-filtering .filtering-actions-cell > .filtering-table-actions,
+  #view-filtering .filtering-actions-cell > .table-actions {
+    justify-content: flex-start;
+  }
+
+  #view-backups .backup-dashboard-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  #view-backups .backup-dashboard-panel .table-scroll {
+    max-width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-gutter: stable;
+  }
+
+  #view-backups .backup-destination-table {
+    min-width: 920px !important;
+    table-layout: auto !important;
+  }
+
+  #view-backups .backup-recovery-table,
+  #view-backups .backup-stored-table {
+    min-width: 760px !important;
+    table-layout: auto !important;
+  }
+
+  #view-backups :is(.backup-panel-heading, .data-tools-reference-heading) {
+    align-items: flex-start !important;
+    flex-wrap: wrap;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  #view-backups .backup-section-title,
+  #view-backups .backup-section-title h3 {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  #view-backups .backup-heading-actions {
+    min-width: 0;
+  }
+
+  #view-backups .data-tools-reference-heading {
+    margin-inline: 0 !important;
+    padding-inline: 0 !important;
+  }
+
+  #view-backups .backup-data-tools-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
 /* Users: suppress only the shared 52px top stripe on the four metric cards
    and Recent activity. Preserve each card's existing fill, shadow, and hover. */
 #view-users#view-users .reference-user-metric::before {

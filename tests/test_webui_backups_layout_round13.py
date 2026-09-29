@@ -58,7 +58,7 @@ def test_backup_reference_controls_and_tables_use_icons_and_fit_classes():
     assert "table-layout: fixed;" in styles
     assert ".backup-recovery-table" in styles
     assert ".backup-stored-table" in styles
-    assert "overflow-x: clip;" in styles
+    assert "overflow-x: auto;" in styles
 
 
 def test_workspace_uses_available_width_and_expands_when_sidebar_collapses():

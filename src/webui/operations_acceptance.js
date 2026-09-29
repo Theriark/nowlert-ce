@@ -30,6 +30,7 @@
     const item = document.createElement(tag);
     if (className) item.className = className;
     if (text !== "") item.textContent = String(text);
+    if (typeof ensureFormFieldIdentity === "function") ensureFormFieldIdentity(item);
     return item;
   }
 

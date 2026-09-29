@@ -19,7 +19,7 @@ def test_served_html_versions_every_runtime_webui_extension():
     assert response is not None and response.status == 200
     markup = response.body.decode("utf-8")
 
-    assert UI_BUILD == "20260928-r55"
+    assert UI_BUILD == "20260929-r56"
     assert f'name="nowlert-ui-build" content="{UI_BUILD}"' in markup
     for asset in (
         "/ui/filtering.css",
@@ -59,7 +59,7 @@ def test_filtering_core_owns_name_sharing_and_final_six_column_geometry():
         ("6", "24%"),
     ):
         assert f".filtering-table th:nth-child({selector}) {{ width: {width}; }}" in styles
-    assert "overflow-x: hidden !important;" in styles
+    assert "overflow-x: hidden !important;" not in styles
     assert ".filtering-table th:nth-child(6) { width: 17%; }" not in ownership_styles
 
 

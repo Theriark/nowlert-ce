@@ -88,10 +88,6 @@ if (typeof module !== "undefined" && module.exports) {
   };
 }
 
-if (typeof routeAssignmentInstallStyles === "function") {
-  routeAssignmentInstallStyles = function routeAssignmentUseExternalStyles() {};
-}
-
 (() => {
   if (typeof routeAssignmentRenderOptions !== "function") return;
 
@@ -434,64 +430,6 @@ if (typeof routeAssignmentInstallStyles === "function") {
     return routeSourceDescriptor(route.source, route.input_type).integration;
   }
 
-  function routeAssignmentInstallMoreMenuStyles() {
-    if (byId("destination-route-more-menu-style")) return;
-    const style = document.createElement("style");
-    style.id = "destination-route-more-menu-style";
-    style.textContent = `
-      .destination-route-more-wrap {
-        display: inline-flex;
-        position: relative;
-      }
-
-      button.destination-route-pill-more {
-        cursor: pointer;
-        font: inherit;
-      }
-
-      button.destination-route-pill-more:hover,
-      button.destination-route-pill-more:focus-visible {
-        border-color: rgba(244, 197, 66, 0.58);
-        box-shadow: 0 0 0 2px rgba(244, 197, 66, 0.08);
-        color: var(--text, #f2ebdd);
-        outline: 0;
-      }
-
-      .destination-route-more-menu {
-        background: var(--destination-surface-raised, #151d25);
-        border: 1px solid var(--destination-border);
-        border-radius: 9px;
-        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.38);
-        display: grid;
-        gap: 4px;
-        max-height: min(280px, 45vh);
-        min-width: 250px;
-        overflow-y: auto;
-        padding: 6px;
-        position: absolute;
-        right: 0;
-        top: calc(100% + 7px);
-        z-index: 30;
-      }
-
-      .destination-route-more-menu[hidden] {
-        display: none !important;
-      }
-
-      .destination-route-more-menu .destination-route-pill {
-        justify-content: flex-start;
-        max-width: none;
-        width: 100%;
-      }
-
-      .destination-route-more-menu .destination-route-pill-name {
-        flex: 1 1 auto;
-        text-align: left;
-      }
-    `;
-    document.head.append(style);
-  }
-
   function routeAssignmentCloseMoreMenu(restoreFocus = false) {
     routeAssignmentMoreMenuOpen = false;
     const menu = byId("destination-route-more-menu");
@@ -557,7 +495,6 @@ if (typeof routeAssignmentInstallStyles === "function") {
   }
 
   function routeAssignmentSummaryMoreMenu(model) {
-    routeAssignmentInstallMoreMenuStyles();
     routeAssignmentBindMoreMenuDismissal();
 
     const wrapper = element("span", { className: "destination-route-more-wrap" });

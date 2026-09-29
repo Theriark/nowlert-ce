@@ -240,6 +240,37 @@ let reauthUserId = "";
 let destinationStateSyncPromise = null;
 
 const byId = (id) => document.getElementById(id);
+let generatedFormFieldId = 0;
+let formFieldIdentityObserver = null;
+
+function ensureFormFieldIdentity(item) {
+  if (!item || !["INPUT", "SELECT", "TEXTAREA"].includes(item.tagName)) return item;
+  if (!item.id && !item.getAttribute("name")) {
+    generatedFormFieldId += 1;
+    item.id = `nowlert-form-field-${generatedFormFieldId}`;
+  }
+  return item;
+}
+
+function ensureFormFieldIdentities(root = document) {
+  if (!root) return;
+  if (root.nodeType === Node.ELEMENT_NODE) ensureFormFieldIdentity(root);
+  root.querySelectorAll?.("input, select, textarea").forEach(ensureFormFieldIdentity);
+}
+
+function observeFormFieldIdentities() {
+  ensureFormFieldIdentities(document.body);
+  if (formFieldIdentityObserver || !document.body) return;
+  formFieldIdentityObserver = new MutationObserver((records) => {
+    for (const record of records) {
+      for (const node of record.addedNodes) ensureFormFieldIdentities(node);
+    }
+  });
+  formFieldIdentityObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+document.addEventListener("DOMContentLoaded", observeFormFieldIdentities, { once: true });
+if (document.readyState !== "loading") observeFormFieldIdentities();
 
 function element(tag, options = {}, children = []) {
   const item = document.createElement(tag);
@@ -253,6 +284,7 @@ function element(tag, options = {}, children = []) {
   for (const [name, value] of Object.entries(options.attributes || {})) {
     item.setAttribute(name, String(value));
   }
+  ensureFormFieldIdentity(item);
   for (const [name, value] of Object.entries(options.dataset || {})) {
     item.dataset[name] = String(value);
   }
@@ -840,6 +872,7 @@ function showApp(session) {
   byId("login-view").hidden = true;
   if (byId("audit-nav")) byId("audit-nav").hidden = !isAdmin();
   if (byId("users-nav")) byId("users-nav").hidden = !isAdmin();
+  if (byId("filtering-nav")) byId("filtering-nav").hidden = false;
   if (byId("settings-nav")) byId("settings-nav").hidden = false;
   if (byId("inputs-nav")) byId("inputs-nav").hidden = !isAdmin();
   if (byId("backups-nav")) byId("backups-nav").hidden = !isAdmin();

@@ -23,7 +23,7 @@
 }
 
 .filtering-toolbar { padding-block: 1rem; }
-.filtering-table-panel { overflow: hidden; overflow-x: hidden !important; }
+.filtering-table-panel { overflow: hidden; }
 .filtering-table { table-layout: fixed; width: 100%; }
 .filtering-table th:nth-child(1) { width: 17%; }
 .filtering-table th:nth-child(2) { width: 18%; }

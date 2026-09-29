@@ -20,8 +20,17 @@
     const node = document.createElement(tag);
     if (className) node.className = className;
     if (text !== "") node.textContent = text;
+    if (typeof ensureFormFieldIdentity === "function") ensureFormFieldIdentity(node);
     return node;
   };
+
+  function forceSecurityTitle() {
+    if (state.currentView !== "account") return;
+    const title = byId("page-title");
+    if (!title || title.textContent === "Security") return;
+    title.textContent = "Security";
+    title.removeAttribute("data-i18n-source");
+  }
 
   function destinationForPreview() {
     const id = byId("preview-destination-id")?.value || previewDestinationId;

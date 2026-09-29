@@ -333,7 +333,7 @@
 
 @media (max-width: 1180px) {
   #view-dashboard .ops-configuration {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr !important;
   }
 
   #view-dashboard .ops-workspace-summary {

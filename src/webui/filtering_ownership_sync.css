@@ -1,5 +1,4 @@
 /* Ownership/status alignment layered after Filtering and Routing Flow styles. */
-.filtering-table-panel { overflow-x: hidden !important; }
 .filtering-table th:last-child {
   text-align: left !important;
   text-indent: var(--filtering-actions-heading-offset, 0px);

@@ -329,30 +329,6 @@ function routeAssignmentSummary(count) {
   return count === 1 ? "1 route selected" : `${count} routes selected`;
 }
 
-function routeAssignmentInstallStyles() {
-  if (byId("route-assignment-style")) return;
-  const style = document.createElement("style");
-  style.id = "route-assignment-style";
-  style.textContent = `
-    .route-assignment-picker { position: relative; }
-    .route-assignment-toggle { width: 100%; justify-content: space-between; min-height: 44px; }
-    .route-assignment-popover { margin-top: .55rem; padding: .7rem; border: 1px solid var(--border, #3d3b30); border-radius: 10px; background: var(--surface-2, #161b20); }
-    .route-assignment-popover[hidden] { display: none !important; }
-    .route-assignment-toolbar { display: flex; gap: .55rem; align-items: center; margin-bottom: .6rem; }
-    .route-assignment-toolbar input { flex: 1; }
-    .route-assignment-actions { display: flex; gap: .45rem; }
-    .route-assignment-options { display: grid; gap: .35rem; max-height: 19rem; overflow: auto; padding-right: .2rem; }
-    .route-assignment-option { display: grid; grid-template-columns: auto 1fr auto; gap: .6rem; align-items: center; padding: .55rem .65rem; border: 1px solid var(--border, #3d3b30); border-radius: 8px; background: rgba(255,255,255,.018); cursor: pointer; }
-    .route-assignment-option:hover { border-color: rgba(244,183,39,.55); }
-    .route-assignment-option input { margin: 0; }
-    .route-assignment-option-copy { display: flex; flex-direction: column; gap: .12rem; min-width: 0; }
-    .route-assignment-option-copy strong, .route-assignment-option-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .route-assignment-empty { padding: .7rem; color: var(--muted, #aaa); }
-    .route-assignment-fieldset { margin-top: .15rem; }
-  `;
-  document.head.append(style);
-}
-
 function routeAssignmentEnsureDestinationPicker() {
   if (byId("destination-routes")) return;
   const form = byId("destination-form");
@@ -755,7 +731,6 @@ cardSampleEvent = function assignmentAwareCardSampleEvent(destination) {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  routeAssignmentInstallStyles();
   routeAssignmentEnsureDestinationPicker();
   routeAssignmentInstallRouteDefinitionUi();
 });

@@ -2687,7 +2687,7 @@ textarea:focus {
 
 .backup-dashboard-panel .table-scroll {
   max-width: 100%;
-  overflow-x: clip;
+  overflow-x: auto;
 }
 
 .backup-dashboard-panel table {
@@ -3039,7 +3039,7 @@ textarea:focus {
   border-radius: 8px;
   box-sizing: border-box;
   flex: 0 0 auto;
-  overflow-x: clip;
+  overflow-x: auto;
   overflow-y: hidden;
   width: 100%;
 }

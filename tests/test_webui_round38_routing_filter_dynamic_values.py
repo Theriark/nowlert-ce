@@ -33,15 +33,15 @@ def test_filter_value_fitting_uses_available_width_without_a_fixed_cap():
 
 
 def test_round38_build_and_live_gate_track_dynamic_value_fitting():
-    assert UI_BUILD == "20260928-r55"
+    assert UI_BUILD == "20260929-r56"
 
     index = read("src/webui/index.html")
     workflow = read(".github/workflows/ci.yml")
 
-    assert 'name="nowlert-ui-build" content="20260928-r55"' in index
-    assert "/ui/app.js?v=20260928-r55" in index
-    assert "/ui/qa_patch.css?v=20260928-r55" in index
-    assert "/ui/qa_patch.js?v=20260928-r55" in index
+    assert 'name="nowlert-ui-build" content="20260929-r56"' in index
+    assert "/ui/app.js?v=20260929-r56" in index
+    assert "/ui/qa_patch.css?v=20260929-r56" in index
+    assert "/ui/qa_patch.js?v=20260929-r56" in index
 
     assert "Routing Flow dynamic value fitting" in workflow
     assert '"const visibleNodes = valueNodes;"' in workflow

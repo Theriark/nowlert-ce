@@ -161,4 +161,4 @@ def test_filtering_table_uses_name_and_native_balanced_six_column_widths():
         ("6", "24%"),
     ):
         assert f".filtering-table th:nth-child({selector}) {{ width: {width}; }}" in style
-    assert "overflow-x: hidden !important;" in style
+    assert "overflow-x: hidden !important;" not in style

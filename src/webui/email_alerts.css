@@ -371,6 +371,15 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.email-groups-grid > .empty-state:not([hidden]) {
+  align-self: stretch;
+  display: grid;
+  grid-column: 1 / -1;
+  min-height: 250px;
+  place-content: center;
+  text-align: center;
+}
+
 .email-card-grid.email-mailboxes-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
