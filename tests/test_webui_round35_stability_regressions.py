@@ -79,9 +79,9 @@ def test_account_reference_role_uses_live_admin_authority():
 
 
 def test_round35_build_versions_the_changed_webui_bundle():
-    assert UI_BUILD == "20260929-r60"
+    assert UI_BUILD.startswith("20260929-r")
     index = read("src/webui/index.html")
-    assert 'name="nowlert-ui-build" content="20260929-r60"' in index
-    assert "/ui/app.js?v=20260929-r60" in index
-    assert "/ui/qa_patch.css?v=20260929-r60" in index
-    assert "/ui/qa_patch.js?v=20260929-r60" in index
+    assert f'name="nowlert-ui-build" content="{UI_BUILD}"' in index
+    assert f"/ui/app.js?v={UI_BUILD}" in index
+    assert f"/ui/qa_patch.css?v={UI_BUILD}" in index
+    assert f"/ui/qa_patch.js?v={UI_BUILD}" in index

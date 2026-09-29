@@ -51,6 +51,21 @@ def test_destinations_overview_keeps_private_metadata_card_read_only():
     assert "actionButton(" not in private_block
 
 
+def test_destination_name_gets_its_own_row_before_assigned_route_icons():
+    theme = (ROOT / "src" / "webui" / "visual_refinement.css").read_text(encoding="utf-8")
+    marker = "/* Destination headers keep names readable beside many route icons. */"
+    assert marker in theme
+    layout = theme.split(marker, 1)[1]
+
+    assert ".destination-reference-card > .resource-heading" in layout
+    assert "flex-wrap: wrap !important;" in layout
+    assert ".resource-identity" in layout
+    assert "flex: 1 1 100% !important;" in layout
+    assert ".destination-assigned-route-icons" in layout
+    assert "flex-wrap: wrap !important;" in layout
+    assert "overflow-wrap: normal !important;" in layout
+
+
 def test_destination_cards_use_prototype_title_band_and_compact_active_status():
     script = (ROOT / "src" / "webui" / "destination_routes.js").read_text(encoding="utf-8")
     theme = (ROOT / "src" / "webui" / "visual_refinement.css").read_text(encoding="utf-8")

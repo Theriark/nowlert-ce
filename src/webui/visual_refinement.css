@@ -1104,6 +1104,34 @@ body {
   animation: ops-dashboard-accent-pulse 2s ease-in-out infinite;
 }
 
+/* Destination headers keep names readable beside many route icons. */
+#view-destinations#view-destinations #destination-list > .resource-card.destination-reference-card > .resource-heading {
+  align-items: flex-start !important;
+  flex-wrap: wrap !important;
+  row-gap: 8px !important;
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card.destination-reference-card .resource-identity {
+  flex: 1 1 100% !important;
+  width: 100% !important;
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card.destination-reference-card .destination-assigned-route-icons {
+  flex: 1 1 100% !important;
+  flex-wrap: wrap !important;
+  margin-left: 46px !important;
+  max-width: calc(100% - 46px) !important;
+  min-width: 0 !important;
+}
+
+#view-destinations#view-destinations #destination-list > .resource-card.destination-reference-card .resource-identity strong {
+  overflow: visible !important;
+  overflow-wrap: normal !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+  word-break: normal !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   #view-destinations#view-destinations #destination-list > .resource-card::before {
     animation: none !important;

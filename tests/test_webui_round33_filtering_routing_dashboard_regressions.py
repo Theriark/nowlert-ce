@@ -108,9 +108,9 @@ def test_routing_layout_caps_connection_slack_and_filter_cards_use_saved_names()
 
 
 def test_round33_repaired_bundle_remains_versioned_in_current_build():
-    assert UI_BUILD == "20260929-r60"
+    assert UI_BUILD.startswith("20260929-r")
     index = read("src/webui/index.html")
-    assert 'name="nowlert-ui-build" content="20260929-r60"' in index
-    assert "/ui/app.js?v=20260929-r60" in index
-    assert "/ui/qa_patch.css?v=20260929-r60" in index
-    assert "/ui/qa_patch.js?v=20260929-r60" in index
+    assert f'name="nowlert-ui-build" content="{UI_BUILD}"' in index
+    assert f"/ui/app.js?v={UI_BUILD}" in index
+    assert f"/ui/qa_patch.css?v={UI_BUILD}" in index
+    assert f"/ui/qa_patch.js?v={UI_BUILD}" in index

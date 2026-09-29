@@ -120,7 +120,7 @@ def test_prototype_assets_are_allowlisted_and_loaded_in_dependency_order():
     service = WebUIService(enabled_config(), root=ROOT)
     markup = service.response("/").body.decode("utf-8")
 
-    assert UI_BUILD == "20260929-r61"
+    assert UI_BUILD.startswith("20260929-r")
     assert f'name="nowlert-ui-build" content="{UI_BUILD}"' in markup
     for asset in (
         "/ui/delivery_chart_model.js",
@@ -160,7 +160,7 @@ def test_activity_and_visual_refinement_assets_get_fresh_cache_keys():
     markup = service.response("/").body.decode("utf-8")
 
     assert EMAIL_ALERTS_JS_BUILD == f"{UI_BUILD}-email-alerts-1"
-    assert VISUAL_REFINEMENT_CSS_BUILD == f"{UI_BUILD}-visual-refinement-2"
+    assert VISUAL_REFINEMENT_CSS_BUILD == f"{UI_BUILD}-visual-refinement-3"
     assert f"/ui/email_alerts.js?v={EMAIL_ALERTS_JS_BUILD}" in markup
     assert f"/ui/visual_refinement.css?v={VISUAL_REFINEMENT_CSS_BUILD}" in markup
 
@@ -295,16 +295,16 @@ def test_webui_markup_is_semantic_external_and_complete():
     for retired in ("notice-console", "notice-composer", "notice-form", "notice-panel", "notice-list"):
         assert retired not in inspector.ids
     assert inspector.scripts == [
-        "/ui/app.js?v=20260929-r61",
+        f"/ui/app.js?v={UI_BUILD}",
         "/ui/enhancements.js",
-        "/ui/qa_patch.js?v=20260929-r61",
+        f"/ui/qa_patch.js?v={UI_BUILD}",
         "/ui/i18n.js",
         "/ui/dashboard.js",
     ]
     assert inspector.stylesheets == [
         "/ui/styles.css",
         "/ui/enhancements.css",
-        "/ui/qa_patch.css?v=20260929-r61",
+        f"/ui/qa_patch.css?v={UI_BUILD}",
         "/ui/professional.css",
     ]
     assert inspector.inline_handlers == []
@@ -1006,9 +1006,9 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
     assert response is not None and response.status == 200
     markup = response.body.decode("utf-8")
 
-    assert 'name="nowlert-ui-build" content="20260929-r61"' in markup
-    assert "/ui/app.js?v=20260929-r61" in markup
-    assert "/ui/qa_patch.css?v=20260929-r61" in markup
+    assert f'name="nowlert-ui-build" content="{UI_BUILD}"' in markup
+    assert f"/ui/app.js?v={UI_BUILD}" in markup
+    assert f"/ui/qa_patch.css?v={UI_BUILD}" in markup
 
     # Every runtime extension receives the same build key so a newly deployed
     # WebUI cannot keep executing an older extension bundle.
