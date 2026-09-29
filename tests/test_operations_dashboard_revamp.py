@@ -40,6 +40,21 @@ def test_operations_dashboard_has_two_synchronized_dashboard_range_controls():
     assert 'syncRangeControls();' in script
 
 
+def test_dashboard_audit_health_uses_the_same_recent_page_as_workspace_load():
+    dashboard = _read("src/webui/operations_dashboard.js")
+    acceptance = _read("src/webui/operations_acceptance.js")
+
+    assert 'request("/audit-events/page/1/size/25", { dashboardFeed: true })' in dashboard
+    assert 'if (value === "/audit-events" || value.startsWith("/audit-events/page/")) return "audit";' in acceptance
+
+
+def test_dashboard_does_not_report_storage_warning_before_health_data_exists():
+    dashboard = _read("src/webui/operations_dashboard.js")
+
+    assert 'status: storageCheck ? normalizedHealthStatus(storageCheck.status) : "unknown"' in dashboard
+    assert 'item.status === "unknown" ? "Checking"' in dashboard
+
+
 def test_routing_flow_keeps_backend_3h_6h_but_ui_owns_supported_windows():
     api = _read("src/api/routing_flow.py")
     dashboard = _read("src/webui/operations_dashboard.js")

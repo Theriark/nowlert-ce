@@ -713,7 +713,7 @@
       { icon: "api", name: "API", detail: workspaceIssues ? `${workspaceIssues} workspace request issue${workspaceIssues === 1 ? "" : "s"}` : "API service is running normally", status: workspaceIssues ? "warning" : "healthy" },
       { icon: "delivery", name: "Deliveries", detail: failures ? `${failures} terminal failure${failures === 1 ? "" : "s"} in range` : "Alert delivery pipeline is operational", status: failures ? "warning" : "healthy" },
       { icon: "audit", name: "Audit", detail: auditIssues ? `${auditIssues} recorded issue${auditIssues === 1 ? "" : "s"}` : "No recorded audit issues", status: auditIssues ? "warning" : "healthy" },
-      { icon: "storage", name: "Storage", detail: storageCheck?.detail || (storageCheck ? "Storage check completed" : "Run health checks for storage detail"), status: storageCheck ? normalizedHealthStatus(storageCheck.status) : "warning" },
+      { icon: "storage", name: "Storage", detail: storageCheck?.detail || (storageCheck ? "Storage check completed" : "Waiting for the latest health check"), status: storageCheck ? normalizedHealthStatus(storageCheck.status) : "unknown" },
     ];
   }
 
@@ -725,7 +725,7 @@
       const row = node("div", "ops-health-row");
       const visual = node("span", "ops-health-icon"); visual.append(svgIcon(item.icon));
       const copy = node("div", "ops-health-copy"); copy.append(node("strong", "", item.name), node("small", "", item.detail));
-      const status = node("span", `ops-health-status ${item.status}`, item.status === "healthy" ? "Healthy" : item.status === "error" ? "Error" : "Warning");
+      const status = node("span", `ops-health-status ${item.status}`, item.status === "healthy" ? "Healthy" : item.status === "error" ? "Error" : item.status === "unknown" ? "Checking" : "Warning");
       status.prepend(node("i", "ops-health-dot"));
       row.append(visual, copy, status);
       container.append(row);
@@ -780,7 +780,7 @@
         request(`/metrics/${requestedRange}`, { dashboardFeed: true }),
         request("/deliveries", { dashboardFeed: true }),
         request("/filters", { dashboardFeed: true }),
-        request("/audit-events", { dashboardFeed: true }),
+        request("/audit-events/page/1/size/25", { dashboardFeed: true }),
       ]);
 
       // A range change can happen while this batch is in flight. Never paint
