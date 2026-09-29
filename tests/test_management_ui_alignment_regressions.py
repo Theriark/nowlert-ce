@@ -49,7 +49,7 @@ def test_destination_route_active_matches_the_provider_active_green_treatment():
 def test_management_ui_fixes_receive_a_fresh_asset_cache_key():
     service = _read("src/webui/service.py")
 
-    assert 'UI_BUILD = "20260929-r58"' in service
+    assert 'UI_BUILD = "20260929-r59"' in service
 
 
 def test_user_role_can_manage_owned_routes_and_filtering_survives_refresh():
@@ -66,6 +66,19 @@ def test_user_role_can_manage_owned_routes_and_filtering_survives_refresh():
     assert "window.nowlertDestinationRouteIds" in route_editor
     assert 'text: "+ Add route"' in route_editor
     assert 'QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v2"' in cache
+
+
+def test_users_can_see_and_assign_routes_they_can_access_to_managed_destinations():
+    route_editor = _read("src/webui/destination_routes.js")
+    picker = route_editor.split(
+        "routeAssignmentRenderOptions = function routeAssignmentRenderDrawerOptions()",
+        1,
+    )[1].split("const destinationEditorBaseRenderDestinationFields", 1)[0]
+
+    assert "if (!isAdmin() && !ownResource(item)) return false;" not in picker
+    assert "state.routes || []" in picker
+    assert "routeAssignmentSelection = new Set((state.routes || []).map((item) => item.id));" in route_editor
+    assert "routeAssignmentSelection.clear();" in route_editor
 
 
 def test_backup_data_tools_are_not_clipped_by_fixed_height():

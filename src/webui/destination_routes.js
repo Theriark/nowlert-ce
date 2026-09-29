@@ -665,15 +665,11 @@ if (typeof module !== "undefined" && module.exports) {
     picker.dataset.routeAssignmentBound = "true";
     search.addEventListener("input", routeAssignmentRenderOptions);
     selectAll.addEventListener("click", () => {
-      routeAssignmentSelection = new Set((state.routes || [])
-        .filter((item) => isAdmin() || ownResource(item))
-        .map((item) => item.id));
+      routeAssignmentSelection = new Set((state.routes || []).map((item) => item.id));
       routeAssignmentRenderOptions();
     });
     clear.addEventListener("click", () => {
-      for (const route of state.routes || []) {
-        if (isAdmin() || ownResource(route)) routeAssignmentSelection.delete(route.id);
-      }
+      routeAssignmentSelection.clear();
       routeAssignmentRenderOptions();
     });
   };
@@ -684,7 +680,6 @@ if (typeof module !== "undefined" && module.exports) {
     if (!options) return;
     const query = String(byId("destination-route-search")?.value || "").trim().toLowerCase();
     const routes = (state.routes || []).filter((item) => {
-      if (!isAdmin() && !ownResource(item)) return false;
       if (!query) return true;
       const descriptor = routeSourceDescriptor(item.source, item.input_type);
       return `${item.name} ${descriptor.integration} ${descriptor.input} ${item.priority_name || ""}`.toLowerCase().includes(query);

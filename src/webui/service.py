@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 TEAMS_MODERN_CARD_ROUTE_PREFIX = "/ui/teams-modern-cards/"
 
 
-UI_BUILD = "20260929-r58"
+UI_BUILD = "20260929-r59"
 ROUTING_FLOW_CSS_BUILD = f"{UI_BUILD}-routing-flow-4"
 ROUTING_FLOW_JS_BUILD = f"{UI_BUILD}-routing-flow-5"
 EMAIL_ALERTS_JS_BUILD = f"{UI_BUILD}-email-alerts-1"
