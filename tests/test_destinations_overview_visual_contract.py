@@ -20,7 +20,12 @@ def test_destinations_overview_is_delivered_as_csp_safe_static_css():
     assert '"/ui/operations_acceptance.css"' in service
     assert 'href="/ui/operations_acceptance.css{version}"' in service
     assert "#view-destinations #destination-list {" in destination_css
-    assert "grid-template-columns: repeat(4, minmax(0, 1fr));" in destination_css
+    consistency = (ROOT / "src" / "webui" / "management_consistency.css").read_text(encoding="utf-8")
+    refinement = (ROOT / "src" / "webui" / "visual_refinement.css").read_text(encoding="utf-8")
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in consistency
+    assert "@media (max-width: 1100px)" in refinement
+    assert "#view-destinations #destination-list.resource-grid {\n    grid-template-columns: 1fr !important;" in refinement
+    assert "@media (max-width: 1500px) {\n  #view-destinations #destination-list.resource-grid" not in refinement
     assert "@media (max-width: 980px)" in destination_css
     assert "@media (max-width: 1280px)" not in destination_css
     assert "#view-destinations .resource-icon" in destination_css

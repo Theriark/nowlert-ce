@@ -263,8 +263,7 @@
   animation-delay:var(--rf-motion-phase-2200, 0ms);
 }
 #view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::before,
-#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::after,
-#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::before {
+#view-routing-flow#view-routing-flow .rf-node.rf-route.rf-pulse-mixed::after {
   content: "" !important;
   display: block !important;
   position: absolute;
@@ -277,6 +276,7 @@
   pointer-events: none;
   z-index: 3;
 }
+#view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::before,
 #view-routing-flow#view-routing-flow .rf-node.rf-destination.rf-pulse-mixed::after {
   content: "" !important;
   display: block !important;

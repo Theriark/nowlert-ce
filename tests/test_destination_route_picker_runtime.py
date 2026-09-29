@@ -85,6 +85,38 @@ def test_add_route_shortcut_is_hidden_for_user_destination_editors():
     assert "createRoute.hidden = !isAdmin();" in source
 
 
+def test_first_destination_can_open_an_empty_route_manager_and_explains_first_route():
+    source = (ROOT / "src" / "webui" / "destination_routes.js").read_text(
+        encoding="utf-8"
+    )
+    summary = source.split("function routeAssignmentRefreshSummary()", 1)[1].split(
+        "routeAssignmentEnsureDestinationPicker =", 1
+    )[0]
+    render = source.split(
+        "routeAssignmentRenderOptions = function routeAssignmentRenderDrawerOptions()",
+        1,
+    )[1].split("const destinationEditorBaseRenderDestinationFields", 1)[0]
+
+    assert "toggle.disabled = allRoutes.length === 0" not in summary
+    assert '"No routes yet. Save this destination, then add a route here."' in render
+    assert '"No routes yet. Use Add route to create and assign the first route."' in render
+    assert "routeAssignmentPendingDestinationId" in source
+
+
+def test_first_route_created_from_destination_is_attached_before_workspace_refresh():
+    source = (ROOT / "src" / "webui" / "dashboard.js").read_text(
+        encoding="utf-8"
+    )
+    save_route = source.split("saveRoute = async function saveIndependentRoute", 1)[1].split(
+        "\n};", 1
+    )[0]
+
+    assert "routeAssignmentPendingDestinationId" in save_route
+    assert 'response?.route?.id' in save_route
+    assert 'request(`/destinations/${pendingDestinationId}`' in save_route
+    assert "route_ids:" in save_route
+
+
 
 def test_email_destination_icon_is_used_by_destination_and_routing_surfaces():
     app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")

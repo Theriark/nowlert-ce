@@ -563,7 +563,6 @@ if (typeof module !== "undefined" && module.exports) {
       }
     }
     if (detail) detail.textContent = "";
-    if (toggle) toggle.disabled = allRoutes.length === 0;
   }
 
   routeAssignmentEnsureDestinationPicker = function routeAssignmentEnsureDestinationPickerStable() {
@@ -604,10 +603,9 @@ if (typeof module !== "undefined" && module.exports) {
       createRoute.addEventListener("click", () => {
         const destinationId = byId("destination-id")?.value || "";
         if (!destinationId) return;
+        window.routeAssignmentPendingDestinationId = destinationId;
         byId("destination-dialog")?.close();
         openRoute();
-        const destinationSelect = byId("route-destination");
-        if (destinationSelect) destinationSelect.value = destinationId;
       });
       drawerHeading.append(createRoute);
 
@@ -690,9 +688,15 @@ if (typeof module !== "undefined" && module.exports) {
 
     options.replaceChildren();
     if (!routes.length) {
+      const destinationId = byId("destination-id")?.value || "";
+      const emptyMessage = !state.routes?.length
+        ? (destinationId
+          ? "No routes yet. Use Add route to create and assign the first route."
+          : "No routes yet. Save this destination, then add a route here.")
+        : "No matching routes.";
       options.append(element("div", {
         className: "route-assignment-empty",
-        text: (state.routes || []).length ? "No matching routes." : "No routes are available yet.",
+        text: emptyMessage,
       }));
     }
 
@@ -761,5 +765,8 @@ if (typeof module !== "undefined" && module.exports) {
       "route-form",
       (event) => saveRoute(event),
     );
+    byId("route-dialog")?.addEventListener("close", () => {
+      if (!byId("route-id")?.value) window.routeAssignmentPendingDestinationId = "";
+    });
   });
 })();

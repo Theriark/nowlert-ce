@@ -643,9 +643,10 @@ saveRoute = async function saveIndependentRoute(event) {
   }
   clearError("route-error");
   const id = byId("route-id").value;
+  const pendingDestinationId = window.routeAssignmentPendingDestinationId || "";
   const [source, inputType] = byId("route-source").value.split("::", 2);
   try {
-    await request(id ? `/routes/${id}` : "/routes", {
+    const response = await request(id ? `/routes/${id}` : "/routes", {
       method: id ? "PATCH" : "POST",
       body: {
         name: byId("route-name").value.trim(),
@@ -655,9 +656,30 @@ saveRoute = async function saveIndependentRoute(event) {
         enabled: byId("route-enabled").checked,
       },
     });
+    const routeId = String(response?.route?.id || id || "");
+    if (pendingDestinationId) {
+      if (!routeId) throw new Error("The route was saved, but its ID was not returned for assignment.");
+      byId("route-id").value = routeId;
+      const destination = (state.destinations || []).find(
+        (item) => String(item.id) === String(pendingDestinationId),
+      );
+      if (!destination) throw new Error("The destination is no longer available for route assignment.");
+      const routeIds = new Set((destination.route_ids || []).map(String));
+      routeIds.add(routeId);
+      await request(`/destinations/${pendingDestinationId}`, {
+        method: "PATCH",
+        body: { route_ids: [...routeIds] },
+      });
+    }
     byId("route-dialog").close();
     await loadWorkspace();
-    toast(id ? "Route updated." : "Route added.");
+    if (pendingDestinationId) {
+      window.routeAssignmentPendingDestinationId = "";
+      openDestination(pendingDestinationId);
+      toast("Route added and assigned to the destination.");
+    } else {
+      toast(id ? "Route updated." : "Route added.");
+    }
   } catch (error) {
     showError("route-error", error);
   }

@@ -172,3 +172,11 @@ def test_mixed_route_and_destination_states_keep_both_colors_and_full_card_glow(
     assert "0 0 16px rgba(222,215,202,.3)" in mixed_glow[1]
     assert "rf-node.rf-route.rf-pulse-mixed," in reduced_motion
     assert "rf-node.rf-destination.rf-pulse-mixed { animation:none !important; }" in reduced_motion
+
+
+def test_mixed_destination_border_layers_share_the_same_inset():
+    before_rule = CSS.split(".rf-node.rf-destination.rf-pulse-mixed::before", 1)[1].split("}", 1)[0]
+    after_rule = CSS.split(".rf-node.rf-destination.rf-pulse-mixed::after", 1)[1].split("}", 1)[0]
+
+    assert "inset: -1px;" in before_rule
+    assert "inset: -1px;" in after_rule
