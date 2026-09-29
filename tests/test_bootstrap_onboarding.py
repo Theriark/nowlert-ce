@@ -26,7 +26,7 @@ def test_first_run_setup_serves_the_guided_layout_and_responsive_styles():
     assert "Create routes" in markup
     assert 'id="bootstrap-form"' in markup
     assert 'id="bootstrap-password-help"' in markup
-    assert 'href="/ui/bootstrap_onboarding.css?v=20260929-bootstrap-onboarding-2"' in markup
+    assert 'href="/ui/bootstrap_onboarding.css?v=20260929-bootstrap-onboarding-3"' in markup
 
     stylesheet = service.response("/ui/bootstrap_onboarding.css")
     assert stylesheet is not None and stylesheet.status == 200
@@ -50,3 +50,5 @@ def test_first_run_owl_mark_stays_prominent_at_desktop_and_phone_widths():
     assert "flex-basis: 5.5rem;" in css
     assert "height: 5.5rem;" in css
     assert "width: 5.5rem;" in css
+    assert "transform: scale(2);" in css
+    assert "transform-origin: center;" in css

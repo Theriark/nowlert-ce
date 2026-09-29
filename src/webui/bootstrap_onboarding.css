@@ -52,7 +52,12 @@
 }
 
 #bootstrap-view .bootstrap-brand .brand-mark img {
+  display: block;
   height: 100%;
+  max-height: none;
+  max-width: none;
+  transform: scale(2);
+  transform-origin: center;
   width: 100%;
 }
 
