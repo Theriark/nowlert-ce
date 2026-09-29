@@ -61,7 +61,7 @@ def test_round_six_workspace_cache_hydrates_after_session_and_refreshes_in_backg
     assert restore > initialize_start
     assert "async function restoreSession(prefetchedSession = null)" in app
 
-    assert 'const QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v1";' in patch
+    assert 'const QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v2";' in patch
     assert "QA_WORKSPACE_CACHE_TTL_MS" not in patch
     assert "Date.now() - Number(cached.saved_at)" not in patch
     assert "function qaSaveWorkspaceCache()" in patch

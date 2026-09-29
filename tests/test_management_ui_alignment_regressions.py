@@ -49,7 +49,32 @@ def test_destination_route_active_matches_the_provider_active_green_treatment():
 def test_management_ui_fixes_receive_a_fresh_asset_cache_key():
     service = _read("src/webui/service.py")
 
-    assert 'UI_BUILD = "20260929-r57"' in service
+    assert 'UI_BUILD = "20260929-r58"' in service
+
+
+def test_user_role_can_manage_owned_routes_and_filtering_survives_refresh():
+    app = _read("src/webui/app.js")
+    filtering = _read("src/webui/filtering.js")
+    route_editor = _read("src/webui/destination_routes.js")
+    cache = _read("src/webui/qa_patch.js")
+
+    assert 'filtering: "Filtering"' in app
+    assert 'byId("add-route-button").hidden = !isAdmin()' not in app
+    assert "const canManage = isAdmin() || ownResource(item);" in app
+    assert 'payload.route_ids = window.nowlertDestinationRouteIds()' in app
+    assert 'if (state.currentView === "filtering") navigate("filtering", "replace")' in filtering
+    assert "window.nowlertDestinationRouteIds" in route_editor
+    assert 'text: "+ Add route"' in route_editor
+    assert 'QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v2"' in cache
+
+
+def test_backup_data_tools_are_not_clipped_by_fixed_height():
+    styles = _read("src/webui/qa_patch.css")
+    desktop_backup_rules = styles.split("/* 2026-09-18 round-20", 1)[1]
+    final_data_tools_rules = styles.split("/* Keep every data-tool card", 1)[1]
+
+    assert "#backup-schedule-panel,\n  #backup-data-tools-panel" not in desktop_backup_rules
+    assert "#backup-data-tools-panel {\n  height: auto !important" in final_data_tools_rules
 
 
 def test_filtering_actions_heading_aligns_with_first_row_action():

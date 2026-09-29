@@ -928,5 +928,6 @@
   normalizeRoutingFlowCopy();
   bindFilteringEvents();
   wrapNavigation();
+  if (state.currentView === "filtering") navigate("filtering", "replace");
   if (state.currentView === "routes") navigate("destinations", "replace");
 })();

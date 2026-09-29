@@ -174,6 +174,7 @@ class PlatformAPI:
         self.login_limiter = RateLimiter()
         self.bootstrap_limiter = RateLimiter()
         self.session_limiter = RateLimiter()
+        self.session_read_limiter = RateLimiter()
 
     @property
     def secure_cookies(self) -> bool:
@@ -213,13 +214,15 @@ class PlatformAPI:
         # a burst of safe GETs can make a valid session look signed out.
         if path == "/api/v2/session" and method == "GET":
             return self._session_endpoint(method, principal)
+        is_safe_method = method in _SAFE_METHODS
         session_rate = Principal(
             name=f"platform-session:{principal.session_id}",
             role=principal.role,
             sources=frozenset(),
-            rate_limit_per_minute=240,
+            rate_limit_per_minute=600 if is_safe_method else 240,
         )
-        if not self.session_limiter.allow(session_rate, str(client)):
+        limiter = self.session_read_limiter if is_safe_method else self.session_limiter
+        if not limiter.allow(session_rate, str(client)):
             return APIResponse(429, {"error": "rate limit exceeded"})
         actor = principal.actor
 

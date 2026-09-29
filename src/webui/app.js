@@ -4,6 +4,7 @@ const API = "/api/v2";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const VIEW_TITLES = {
   dashboard: "Dashboard",
+  filtering: "Filtering",
   sources: "Sources",
   destinations: "Destinations",
   routes: "Routes",
@@ -534,6 +535,16 @@ function ownResource(item) {
   return String(item.owner_user_id || "") === String(state.user.id || "");
 }
 
+function canManageRoutingDestination(item) {
+  return isAdmin() || ownResource(item) || item?.can_edit_destination === true;
+}
+
+function syncRouteControls() {
+  const button = byId("add-route-button");
+  if (!button) return;
+  button.hidden = !isAdmin() && !state.destinations.some(canManageRoutingDestination);
+}
+
 function ensureSessionResilienceUi() {
   if (byId("session-warning") && byId("reauth-dialog")) return;
 
@@ -878,7 +889,7 @@ function showApp(session) {
   if (byId("backups-nav")) byId("backups-nav").hidden = !isAdmin();
   if (byId("data-nav")) byId("data-nav").hidden = !isAdmin();
   byId("add-destination-button").hidden = !isAdmin();
-  byId("add-route-button").hidden = !isAdmin();
+  syncRouteControls();
   byId("restart-header-button").hidden = !isAdmin();
   const name = state.user.username;
   const admin = isAdmin();
@@ -1331,6 +1342,7 @@ async function loadWorkspace() {
     state.externalBackupErrors = [];
   }
   state.workspaceLoadedAt = Date.now();
+  syncRouteControls();
   document.dispatchEvent(new CustomEvent("nowlert:workspace-loaded", {
     detail: {
       loadedAt: state.workspaceLoadedAt,
@@ -2638,15 +2650,16 @@ function renderRoutes() {
     return;
   }
   for (const item of state.routes) {
+    const canManage = isAdmin() || ownResource(item);
     const descriptor = routeSourceDescriptor(item.source, item.input_type);
-    const name = isAdmin()
+    const name = canManage
       ? element("button", { className: "route-name-button", text: item.name, type: "button", dataset: { action: "edit-route", id: item.id } })
       : element("strong", { text: item.name });
     const status = element("button", {
       className: `badge status-button ${item.enabled ? "success" : "warning"}`,
       text: item.enabled ? "Enabled" : "Disabled",
       type: "button",
-      disabled: !isAdmin(),
+      disabled: !canManage,
       dataset: { action: "toggle-route", id: item.id },
     });
     body.append(element("tr", {}, [
@@ -2657,7 +2670,7 @@ function renderRoutes() {
       element("td", {}, element("small", { text: filterSummary(item.filters, item.source) })),
       element("td", { text: capitalize(item.priority_name || "normal") }),
       element("td", {}, status),
-      element("td", {}, isAdmin() ? actionButton("Delete", "delete-route", item.id, "danger") : null),
+      element("td", {}, canManage ? actionButton("Delete", "delete-route", item.id, "danger") : null),
     ]));
   }
 }
@@ -4325,6 +4338,9 @@ async function saveDestination(event) {
       payload.shared = byId("destination-shared").checked;
     }
     if (Object.keys(secret).length) payload.secret = secret;
+    if (typeof window.nowlertDestinationRouteIds === "function") {
+      payload.route_ids = window.nowlertDestinationRouteIds();
+    }
     await request(id ? `/destinations/${id}` : "/destinations", { method: id ? "PATCH" : "POST", body: payload });
     byId("destination-dialog").close();
     await loadWorkspace();
@@ -4343,7 +4359,10 @@ function splitList(value) {
 function setRouteOptions(selected = "") {
   const select = byId("route-destination");
   select.replaceChildren();
-  for (const item of state.destinations.filter((candidate) => candidate.enabled || candidate.id === selected)) {
+  for (const item of state.destinations.filter((candidate) => (
+    canManageRoutingDestination(candidate)
+    && (candidate.enabled || candidate.id === selected)
+  ))) {
     select.append(element("option", { value: item.id, text: `${item.name} (${OUTPUT_NAMES[item.output_type] || item.output_type})` }));
   }
   if (selected) select.value = selected;
@@ -4408,12 +4427,16 @@ function setRouteSourceOptions(
 }
 
 function openRoute(id = "") {
-  if (!state.destinations.length) {
-    toast("Add a destination before creating a route.", "error");
+  if (!state.destinations.some(canManageRoutingDestination)) {
+    toast("You need an owned destination or destination edit access before creating a route.", "error");
     navigate("destinations");
     return;
   }
   const item = state.routes.find((candidate) => candidate.id === id);
+  if (item && !isAdmin() && !ownResource(item)) {
+    toast("You can only edit routes owned by your account.", "error");
+    return;
+  }
   byId("route-form").reset();
   clearError("route-error");
   byId("route-id").value = item ? item.id : "";

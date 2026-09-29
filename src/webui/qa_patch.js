@@ -105,7 +105,7 @@ let qaDeliveryPageSize = qaReadDeliveryPageSize();
 let qaDeliveryPagination = { page: 1, page_size: qaDeliveryPageSize, total: 0, total_pages: 1 };
 let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 
-const QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v1";
+const QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v2";
 const QA_BACKUP_OVERVIEW_CACHE_KEY = "nowlert.backup-overview.v1";
 const QA_BACKUP_OVERVIEW_IDS = [
   "backup-last-backup",

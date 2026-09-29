@@ -267,10 +267,68 @@ def test_normal_user_can_manage_private_destination_filter_without_admin_visibil
     assert any(item["id"] == private.id for item in owner_flow["destinations"])
     owner_link = next(item for item in owner_flow["links"] if item["destination_id"] == private.id)
     assert any(item["configured"] and item["enabled"] for item in owner_link["policies"])
-
     admin_flow = call(api, "GET", "/api/v2/routing-flow/15m", headers=admin_headers).payload
     assert private.id not in json.dumps(admin_flow)
 
+
+def test_normal_user_can_create_manage_and_assign_routes_to_owned_destination(api):
+    platform = api["service"].platform
+    owner = platform.users.create("route-owner", USER_PASSWORD)
+    owner_headers = login_as(api, owner.username, USER_PASSWORD)
+    destination = platform.destinations.create(
+        owner.actor,
+        owner.id,
+        "Owner webhook",
+        "webhook",
+        settings={"method": "POST"},
+        shared=False,
+    )
+
+    created = call(
+        api,
+        "POST",
+        "/api/v2/routes",
+        {
+            "name": "My Slack route",
+            "source": "slack",
+            "input_type": "HTTP",
+            "destination_id": destination.id,
+            "enabled": True,
+            "filters": {},
+        },
+        owner_headers,
+    )
+    assert created.status == 201
+    route = created.payload["route"]
+    assert route["owner_user_id"] == owner.id
+
+    assigned = call(
+        api,
+        "PATCH",
+        f"/api/v2/destinations/{destination.id}",
+        {"route_ids": [route["id"]]},
+        owner_headers,
+    )
+    assert assigned.status == 200
+    assert assigned.payload["destination"]["route_ids"] == [route["id"]]
+
+    updated = call(
+        api,
+        "PATCH",
+        f"/api/v2/routes/{route['id']}",
+        {"enabled": False},
+        owner_headers,
+    )
+    assert updated.status == 200
+    assert updated.payload["route"]["enabled"] is False
+
+    deleted = call(
+        api,
+        "DELETE",
+        f"/api/v2/routes/{route['id']}",
+        headers=owner_headers,
+    )
+    assert deleted.status == 204
 
 def test_sharing_state_is_single_destination_source_of_truth(api):
     headers = login(api)

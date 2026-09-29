@@ -4333,8 +4333,7 @@ textarea:focus {
     align-items: start !important;
   }
 
-  #backup-schedule-panel,
-  #backup-data-tools-panel {
+  #backup-schedule-panel {
     align-self: start !important;
     height: auto !important;
     min-height: 0 !important;
@@ -4445,8 +4444,7 @@ textarea:focus {
     align-items: stretch !important;
   }
 
-  #backup-schedule-panel,
-  #backup-data-tools-panel {
+  #backup-schedule-panel {
     align-self: stretch !important;
     box-sizing: border-box;
     height: 300px !important;
@@ -4565,14 +4563,14 @@ textarea:focus {
 
 /* 2026-09-18 round-21 profile, backups, and routing metrics. */
 @media (min-width: 901px) {
-  #backup-schedule-panel,
-  #backup-data-tools-panel {
+  #backup-schedule-panel {
     height: 350px !important;
     max-height: 350px !important;
     min-height: 350px !important;
   }
   #backup-data-tools-panel > .backup-data-tools-grid {
-    grid-auto-rows: minmax(0, 1fr) !important;
+    grid-auto-rows: auto !important;
+    flex: 0 0 auto !important;
     overflow: visible !important;
   }
   #backup-data-tools-panel .data-tools-reference-card { overflow: visible !important; }
@@ -4583,4 +4581,25 @@ textarea:focus {
   }
   #backup-data-tools-panel .data-tools-reference-file,
   #backup-data-tools-panel .data-tools-reference-preview { width: 100% !important; }
+}
+
+/* Keep every data-tool card in normal page flow so the full section is reachable. */
+#backup-data-tools-panel {
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+#backup-data-tools-panel > .backup-data-tools-grid {
+  flex: 0 0 auto !important;
+  grid-auto-rows: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+#backup-data-tools-panel .data-tools-reference-card {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
 }

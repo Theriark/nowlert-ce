@@ -224,6 +224,7 @@ def test_session_refresh_is_not_consumed_by_workspace_rate_limit(platform_api):
             return False
 
     platform_api["service"].platform.session_limiter = DenyAll()
+    platform_api["service"].platform.session_read_limiter = DenyAll()
 
     current = call(platform_api, "GET", "/api/v2/session", headers=headers)
     limited = call(platform_api, "GET", "/api/v2/users", headers=headers)
@@ -232,6 +233,31 @@ def test_session_refresh_is_not_consumed_by_workspace_rate_limit(platform_api):
     assert current.payload["user"]["role"] == "admin"
     assert limited.status == 429
     assert limited.payload == {"error": "rate limit exceeded"}
+
+
+def test_safe_workspace_reads_have_a_separate_refresh_budget(platform_api):
+    headers = login(platform_api)
+
+    class Capture:
+        def __init__(self):
+            self.limit = None
+
+        def allow(self, principal, _client):
+            self.limit = principal.rate_limit_per_minute
+            return True
+
+    reads = Capture()
+    writes = Capture()
+    platform_api["service"].platform.session_read_limiter = reads
+    platform_api["service"].platform.session_limiter = writes
+
+    read = call(platform_api, "GET", "/api/v2/users", headers=headers)
+    write = call(platform_api, "POST", "/api/v2/health-checks", {}, headers)
+
+    assert read.status == 200
+    assert reads.limit == 600
+    assert write.status == 405
+    assert writes.limit == 240
 
 
 def test_login_session_cookie_and_csrf_boundary(platform_api):

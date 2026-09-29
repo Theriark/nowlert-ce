@@ -132,6 +132,7 @@ if (typeof module !== "undefined" && module.exports) {
   const REQUIRED_CREDENTIAL_TYPES = new Set(["discord", "teams", "slack", "webhook"]);
   let routeAssignmentMoreMenuOpen = false;
   let routeAssignmentMoreMenuDismissalBound = false;
+  window.nowlertDestinationRouteIds = () => [...routeAssignmentSelection];
 
   function routeAssignmentBindCurrentSubmit(formId, submitHandler) {
     const form = byId(formId);
@@ -422,6 +423,8 @@ if (typeof module !== "undefined" && module.exports) {
     if (popover) popover.hidden = false;
     form.classList.add("routes-open");
     if (toggle) toggle.setAttribute("aria-expanded", "true");
+    const createRoute = byId("destination-create-route");
+    if (createRoute) createRoute.disabled = !byId("destination-id")?.value;
     routeAssignmentRenderOptions();
     window.requestAnimationFrame(() => byId("destination-route-search")?.focus());
   }
@@ -589,6 +592,21 @@ if (typeof module !== "undefined" && module.exports) {
       });
       close.addEventListener("click", routeAssignmentCloseDrawer);
       drawerHeading.append(drawerCopy, close);
+      const createRoute = element("button", {
+        className: "button secondary small destination-create-route",
+        text: "+ Add route",
+        type: "button",
+        attributes: { id: "destination-create-route" },
+      });
+      createRoute.addEventListener("click", () => {
+        const destinationId = byId("destination-id")?.value || "";
+        if (!destinationId) return;
+        byId("destination-dialog")?.close();
+        openRoute();
+        const destinationSelect = byId("route-destination");
+        if (destinationSelect) destinationSelect.value = destinationId;
+      });
+      drawerHeading.append(createRoute);
 
       const count = element("strong", { className: "route-assignment-count", text: "0 of 0 selected" });
       count.id = "destination-routes-count";
@@ -647,11 +665,15 @@ if (typeof module !== "undefined" && module.exports) {
     picker.dataset.routeAssignmentBound = "true";
     search.addEventListener("input", routeAssignmentRenderOptions);
     selectAll.addEventListener("click", () => {
-      routeAssignmentSelection = new Set((state.routes || []).map((item) => item.id));
+      routeAssignmentSelection = new Set((state.routes || [])
+        .filter((item) => isAdmin() || ownResource(item))
+        .map((item) => item.id));
       routeAssignmentRenderOptions();
     });
     clear.addEventListener("click", () => {
-      routeAssignmentSelection.clear();
+      for (const route of state.routes || []) {
+        if (isAdmin() || ownResource(route)) routeAssignmentSelection.delete(route.id);
+      }
       routeAssignmentRenderOptions();
     });
   };
@@ -662,6 +684,7 @@ if (typeof module !== "undefined" && module.exports) {
     if (!options) return;
     const query = String(byId("destination-route-search")?.value || "").trim().toLowerCase();
     const routes = (state.routes || []).filter((item) => {
+      if (!isAdmin() && !ownResource(item)) return false;
       if (!query) return true;
       const descriptor = routeSourceDescriptor(item.source, item.input_type);
       return `${item.name} ${descriptor.integration} ${descriptor.input} ${item.priority_name || ""}`.toLowerCase().includes(query);

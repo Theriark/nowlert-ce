@@ -26,7 +26,7 @@ def test_destination_layout_uses_external_styles_under_the_strict_csp():
     assert "#view-destinations .resource-identity strong" in destination_css
     assert "style-src 'self'" in service
     assert "unsafe-inline" not in service
-    assert 'UI_BUILD = "20260929-r57"' in service
+    assert 'UI_BUILD = "20260929-r58"' in service
 
 
 def test_reference_title_observer_never_calls_a_missing_function():

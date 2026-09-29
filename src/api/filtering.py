@@ -106,7 +106,7 @@ class PlatformAPI(BasePlatformAPI):
                 200,
                 {"routes": [self._route(item) for item in routes], "errors": errors},
             )
-        if method != "GET":
+        if method != "GET" and self.yaml_resource_authority:
             self._require_admin(actor)
         requested_enabled = None
         if method == "POST" and isinstance(payload, dict):
@@ -124,7 +124,7 @@ class PlatformAPI(BasePlatformAPI):
         return response
 
     def _route_resource(self, method, payload, actor, route_id):
-        if method in {"PATCH", "DELETE"}:
+        if method in {"PATCH", "DELETE"} and self.yaml_resource_authority:
             self._require_admin(actor)
         legacy_filters = None
         requested_enabled = None
