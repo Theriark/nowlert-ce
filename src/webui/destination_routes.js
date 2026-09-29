@@ -424,7 +424,10 @@ if (typeof module !== "undefined" && module.exports) {
     form.classList.add("routes-open");
     if (toggle) toggle.setAttribute("aria-expanded", "true");
     const createRoute = byId("destination-create-route");
-    if (createRoute) createRoute.disabled = !byId("destination-id")?.value;
+    if (createRoute) {
+      createRoute.hidden = !isAdmin();
+      createRoute.disabled = !byId("destination-id")?.value;
+    }
     routeAssignmentRenderOptions();
     window.requestAnimationFrame(() => byId("destination-route-search")?.focus());
   }

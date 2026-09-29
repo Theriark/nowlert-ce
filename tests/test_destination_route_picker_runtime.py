@@ -77,6 +77,14 @@ def test_route_assignment_submit_uses_current_destination_and_route_handlers():
     assert "      true,\n    );" in source
 
 
+def test_add_route_shortcut_is_hidden_for_user_destination_editors():
+    source = (ROOT / "src" / "webui" / "destination_routes.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "createRoute.hidden = !isAdmin();" in source
+
+
 
 def test_email_destination_icon_is_used_by_destination_and_routing_surfaces():
     app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
