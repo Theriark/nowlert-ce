@@ -15,6 +15,7 @@ ROUTING_FLOW_CSS_BUILD = f"{UI_BUILD}-routing-flow-4"
 ROUTING_FLOW_JS_BUILD = f"{UI_BUILD}-routing-flow-5"
 EMAIL_ALERTS_JS_BUILD = f"{UI_BUILD}-email-alerts-1"
 VISUAL_REFINEMENT_CSS_BUILD = f"{UI_BUILD}-visual-refinement-1"
+BOOTSTRAP_ONBOARDING_CSS_BUILD = "20260929-bootstrap-onboarding-1"
 
 
 SECURITY_HEADERS = (
@@ -98,6 +99,11 @@ class WebUIService:
             ),
             "/ui/professional.css": (
                 "src/webui/professional.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
+            "/ui/bootstrap_onboarding.css": (
+                "src/webui/bootstrap_onboarding.css",
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
@@ -405,6 +411,7 @@ class WebUIService:
                 f'  <link rel="stylesheet" href="/ui/management_consistency.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/reference_acceptance.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/visual_refinement.css?v={VISUAL_REFINEMENT_CSS_BUILD}">\n'
+                f'  <link rel="stylesheet" href="/ui/bootstrap_onboarding.css?v={BOOTSTRAP_ONBOARDING_CSS_BUILD}">\n'
                 f'  <script src="/ui/filtering.js{version}" defer></script>\n'
                 f'  <script src="/ui/email_alerts.js?v={EMAIL_ALERTS_JS_BUILD}" defer></script>\n'
                 f'  <script src="/ui/source_ui_retirement.js{version}" defer></script>\n'

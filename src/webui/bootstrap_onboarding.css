@@ -1,0 +1,314 @@
+#bootstrap-view.bootstrap-onboarding {
+  align-content: center;
+  align-items: stretch;
+  justify-items: center;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: clamp(1.25rem, 4vw, 3rem);
+}
+
+#bootstrap-view.bootstrap-onboarding > .login-atmosphere {
+  pointer-events: none;
+}
+
+#bootstrap-view.bootstrap-onboarding::before,
+#bootstrap-view.bootstrap-onboarding::after {
+  pointer-events: none;
+}
+
+#bootstrap-view .bootstrap-layout {
+  align-items: center;
+  display: grid;
+  gap: clamp(2rem, 6vw, 5rem);
+  grid-template-columns: minmax(15rem, 0.82fr) minmax(0, 1.18fr);
+  margin-inline: auto;
+  max-width: 1160px;
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+#bootstrap-view .bootstrap-intro {
+  min-width: 0;
+  padding: 0.5rem 0;
+}
+
+#bootstrap-view .brand-login.bootstrap-brand {
+  align-items: center;
+  flex-direction: row;
+  gap: 0.85rem;
+  justify-content: flex-start;
+  margin: 0 0 clamp(2rem, 5vh, 3.5rem);
+  text-align: left;
+}
+
+#bootstrap-view .bootstrap-brand .brand-mark {
+  flex: 0 0 3.5rem;
+  height: 3.5rem;
+  margin: 0;
+  width: 3.5rem;
+}
+
+#bootstrap-view .bootstrap-brand .brand-mark img {
+  height: 100%;
+  width: 100%;
+}
+
+#bootstrap-view .bootstrap-brand strong {
+  color: #f3eee4;
+  font-size: 1.2rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+#bootstrap-view .bootstrap-brand small {
+  color: #aaa398;
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  margin-top: 0.2rem;
+  text-transform: uppercase;
+}
+
+#bootstrap-view .bootstrap-intro-copy .eyebrow,
+#bootstrap-view .bootstrap-form-header .eyebrow {
+  color: #f4c542;
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  margin: 0 0 0.65rem;
+  text-transform: uppercase;
+}
+
+#bootstrap-view .bootstrap-intro-copy h1 {
+  color: #f3eee4;
+  font-size: clamp(2.2rem, 3.6vw, 3.35rem);
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  margin: 0 0 1rem;
+  max-width: 12ch;
+}
+
+#bootstrap-view .bootstrap-intro-copy > p:last-child {
+  color: #c4bdb1;
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 38ch;
+}
+
+#bootstrap-view .bootstrap-steps {
+  display: grid;
+  gap: 0.9rem;
+  list-style: none;
+  margin: clamp(2rem, 5vh, 3.5rem) 0 0;
+  padding: 0;
+}
+
+#bootstrap-view .bootstrap-step {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: 2.85rem minmax(0, 1fr);
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+}
+
+#bootstrap-view .bootstrap-step[aria-current="step"] {
+  background: rgba(244, 197, 66, 0.075);
+  border-color: rgba(244, 197, 66, 0.24);
+}
+
+#bootstrap-view .bootstrap-step-number {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(190, 182, 165, 0.3);
+  border-radius: 50%;
+  color: #bdb6aa;
+  display: flex;
+  font-size: 0.88rem;
+  font-weight: 800;
+  height: 2.35rem;
+  justify-content: center;
+  width: 2.35rem;
+}
+
+#bootstrap-view .bootstrap-step[aria-current="step"] .bootstrap-step-number {
+  background: #f4c542;
+  border-color: #f4c542;
+  box-shadow: 0 0 0 4px rgba(244, 197, 66, 0.12);
+  color: #17140b;
+}
+
+#bootstrap-view .bootstrap-step-copy strong,
+#bootstrap-view .bootstrap-step-copy small {
+  display: block;
+}
+
+#bootstrap-view .bootstrap-step-copy strong {
+  color: #eee8de;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+#bootstrap-view .bootstrap-step-copy small {
+  color: #a9a397;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  margin-top: 0.22rem;
+}
+
+#bootstrap-view .bootstrap-card {
+  justify-self: stretch;
+  max-width: 650px;
+  padding: clamp(1.4rem, 3vw, 2.35rem);
+}
+
+#bootstrap-view .bootstrap-form-header {
+  margin: 0 0 1.4rem;
+}
+
+#bootstrap-view .bootstrap-form-header h2 {
+  color: #f3eee4;
+  font-size: clamp(1.45rem, 2.4vw, 1.9rem);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0 0 0.55rem;
+}
+
+#bootstrap-view .bootstrap-form-header > p:last-child {
+  color: #b9b3a9;
+  font-size: 0.87rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+#bootstrap-view .bootstrap-form {
+  gap: 0.95rem;
+}
+
+#bootstrap-view .bootstrap-form label {
+  min-width: 0;
+}
+
+#bootstrap-view .bootstrap-form input {
+  background: rgba(9, 12, 15, 0.72);
+  border-color: rgba(179, 171, 155, 0.24);
+  color: #f3eee4;
+  min-height: 47px;
+}
+
+#bootstrap-view .bootstrap-form input:focus {
+  border-color: #f4c542;
+  box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.14);
+}
+
+#bootstrap-view .bootstrap-form label > small {
+  color: #a9a397;
+  font-size: 0.73rem;
+  line-height: 1.45;
+  margin-top: 0.35rem;
+}
+
+#bootstrap-view #bootstrap-expiry {
+  margin: 0.15rem 0 0;
+  padding-top: 0.8rem;
+}
+
+#bootstrap-view .bootstrap-form .button.primary {
+  min-height: 50px;
+}
+
+#bootstrap-view .bootstrap-security-note {
+  font-size: 0.72rem;
+  line-height: 1.5;
+  margin-top: 1.1rem;
+  padding-top: 0.85rem;
+}
+
+@media (max-width: 760px) {
+  #bootstrap-view.bootstrap-onboarding {
+    padding: 1.25rem;
+  }
+
+  #bootstrap-view .bootstrap-layout {
+    gap: 1.5rem;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 640px;
+  }
+
+  #bootstrap-view .brand-login.bootstrap-brand {
+    margin-bottom: 1.35rem;
+  }
+
+  #bootstrap-view .bootstrap-brand .brand-mark {
+    flex-basis: 2.8rem;
+    height: 2.8rem;
+    width: 2.8rem;
+  }
+
+  #bootstrap-view .bootstrap-intro-copy h1 {
+    font-size: clamp(1.85rem, 7vw, 2.5rem);
+    max-width: none;
+  }
+
+  #bootstrap-view .bootstrap-intro-copy > p:last-child {
+    font-size: 0.9rem;
+  }
+
+  #bootstrap-view .bootstrap-steps {
+    gap: 0.5rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 1.25rem;
+  }
+
+  #bootstrap-view .bootstrap-step {
+    align-content: start;
+    gap: 0.45rem;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0.55rem;
+  }
+
+  #bootstrap-view .bootstrap-step-number {
+    height: 1.9rem;
+    width: 1.9rem;
+  }
+
+  #bootstrap-view .bootstrap-step-copy strong {
+    font-size: 0.76rem;
+  }
+
+  #bootstrap-view .bootstrap-step-copy small {
+    font-size: 0.68rem;
+  }
+}
+
+@media (max-width: 420px) {
+  #bootstrap-view.bootstrap-onboarding {
+    padding: 0.9rem;
+  }
+
+  #bootstrap-view .bootstrap-steps {
+    gap: 0.25rem;
+  }
+
+  #bootstrap-view .bootstrap-step {
+    padding: 0.4rem 0.3rem;
+  }
+
+  #bootstrap-view .bootstrap-step-copy strong {
+    font-size: 0.7rem;
+  }
+
+  #bootstrap-view .bootstrap-step-copy small {
+    font-size: 0.63rem;
+  }
+
+  #bootstrap-view .bootstrap-card {
+    padding: 1.15rem;
+  }
+}

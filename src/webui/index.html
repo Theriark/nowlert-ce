@@ -22,40 +22,65 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
 
-  <section id="bootstrap-view" class="login-view" aria-labelledby="bootstrap-title" hidden>
+  <section id="bootstrap-view" class="login-view bootstrap-onboarding" aria-labelledby="bootstrap-title" hidden>
     <div class="login-atmosphere" aria-hidden="true"></div>
-    <div class="login-card">
-      <div class="brand brand-login">
-        <span class="brand-mark"><img src="/ui/brand/nowlert-owl-v3.1.0.png" alt=""></span>
-        <span><strong>Nowlert</strong><small>Secure first-run setup</small></span>
-      </div>
-      <div class="login-copy">
-        <p class="eyebrow">Create the first administrator</p>
-        <h1 id="bootstrap-title">Welcome to Nowlert</h1>
-        <p>Copy the single-use setup token from the container output, then choose your administrator credentials.</p>
-      </div>
-      <form id="bootstrap-form" class="stack" autocomplete="off">
-        <label>
-          <span>Setup token</span>
-          <input id="bootstrap-token" name="token" type="password" autocomplete="off" required>
-        </label>
-        <label>
-          <span>Administrator username</span>
-          <input id="bootstrap-username" name="username" value="administrator" autocomplete="username" required maxlength="64">
-        </label>
-        <label>
-          <span>Password</span>
-          <input id="bootstrap-password" name="password" type="password" autocomplete="new-password" minlength="12" required>
-        </label>
-        <label>
-          <span>Confirm password</span>
-          <input id="bootstrap-confirm" name="confirm_password" type="password" autocomplete="new-password" minlength="12" required>
-        </label>
-        <p id="bootstrap-expiry" class="login-note"></p>
-        <p id="bootstrap-error" class="form-error" role="alert" hidden></p>
-        <button class="button primary full" type="submit">Create administrator</button>
-      </form>
-      <p class="login-note">The token is stored only as a SHA-256 digest, expires after 30 minutes, and becomes unusable immediately after setup.</p>
+    <div class="bootstrap-layout">
+      <aside class="bootstrap-intro" aria-labelledby="bootstrap-title">
+        <div class="brand brand-login bootstrap-brand">
+          <span class="brand-mark"><img src="/ui/brand/nowlert-owl-v3.1.0.png" alt=""></span>
+          <span><strong>Nowlert</strong><small>Community Edition</small></span>
+        </div>
+        <div class="bootstrap-intro-copy">
+          <p class="eyebrow">Secure your instance</p>
+          <h1 id="bootstrap-title">Welcome to Nowlert</h1>
+          <p>Create your administrator account to get started. You’ll connect your integrations and set up alert routes next.</p>
+        </div>
+        <ol class="bootstrap-steps" aria-label="Getting started">
+          <li class="bootstrap-step is-current" aria-current="step">
+            <span class="bootstrap-step-number" aria-hidden="true">1</span>
+            <span class="bootstrap-step-copy"><strong>Create administrator</strong><small>Secure this Nowlert instance.</small></span>
+          </li>
+          <li class="bootstrap-step">
+            <span class="bootstrap-step-number" aria-hidden="true">2</span>
+            <span class="bootstrap-step-copy"><strong>Connect integrations</strong><small>Add the systems that send alerts.</small></span>
+          </li>
+          <li class="bootstrap-step">
+            <span class="bootstrap-step-number" aria-hidden="true">3</span>
+            <span class="bootstrap-step-copy"><strong>Create routes</strong><small>Send alerts to your destinations.</small></span>
+          </li>
+        </ol>
+      </aside>
+      <section class="login-card bootstrap-card" aria-labelledby="bootstrap-form-title">
+        <header class="bootstrap-form-header">
+          <p class="eyebrow">Step 1 of 3</p>
+          <h2 id="bootstrap-form-title">Create the first administrator</h2>
+          <p>Enter the single-use setup token from the container output, then choose your credentials.</p>
+        </header>
+        <form id="bootstrap-form" class="stack bootstrap-form" autocomplete="off">
+          <label>
+            <span>Setup token</span>
+            <input id="bootstrap-token" name="token" type="password" autocomplete="off" aria-describedby="bootstrap-token-help" required>
+            <small id="bootstrap-token-help">Paste the token printed when Nowlert started.</small>
+          </label>
+          <label>
+            <span>Administrator username</span>
+            <input id="bootstrap-username" name="username" value="administrator" autocomplete="username" required maxlength="64">
+          </label>
+          <label>
+            <span>Password</span>
+            <input id="bootstrap-password" name="password" type="password" autocomplete="new-password" minlength="12" aria-describedby="bootstrap-password-help" required>
+            <small id="bootstrap-password-help">Use at least 12 characters.</small>
+          </label>
+          <label>
+            <span>Confirm password</span>
+            <input id="bootstrap-confirm" name="confirm_password" type="password" autocomplete="new-password" minlength="12" required>
+          </label>
+          <p id="bootstrap-expiry" class="login-note" role="status" aria-live="polite"></p>
+          <p id="bootstrap-error" class="form-error" role="alert" hidden></p>
+          <button class="button primary full" type="submit">Create administrator</button>
+        </form>
+        <p class="login-note bootstrap-security-note">The token is stored only as a SHA-256 digest, expires after 30 minutes, and becomes unusable immediately after setup.</p>
+      </section>
     </div>
   </section>
 

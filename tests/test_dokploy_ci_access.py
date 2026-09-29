@@ -116,6 +116,16 @@ def test_development_live_webui_acceptance_uses_cloudflare_service_token():
     assert 'app.js?v=${UI_BUILD}' in live_check
 
 
+def test_development_live_webui_acceptance_checks_first_run_onboarding_styles():
+    workflow = WORKFLOWS["development"].read_text(encoding="utf-8")
+    marker = "- name: Verify deployed WebUI acceptance bundle"
+    live_check = workflow[workflow.index(marker):]
+
+    assert "BOOTSTRAP_ONBOARDING_CSS_BUILD" in live_check
+    assert "/ui/bootstrap_onboarding.css?v=${BOOTSTRAP_ONBOARDING_CSS_BUILD}" in live_check
+    assert "#bootstrap-view.bootstrap-onboarding" in live_check
+
+
 
 def test_live_webui_acceptance_does_not_pipe_large_assets_into_grep_q():
     workflow = WORKFLOWS["development"].read_text(encoding="utf-8")

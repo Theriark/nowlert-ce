@@ -239,6 +239,7 @@ jobs:
           set -euo pipefail
           UI_BUILD="$(PYTHONPATH=src python -c 'from webui.service import UI_BUILD; print(UI_BUILD)')"
           ROUTING_FLOW_JS_BUILD="$(PYTHONPATH=src python -c 'from webui.service import ROUTING_FLOW_JS_BUILD; print(ROUTING_FLOW_JS_BUILD)')"
+          BOOTSTRAP_ONBOARDING_CSS_BUILD="$(PYTHONPATH=src python -c 'from webui.service import BOOTSTRAP_ONBOARDING_CSS_BUILD; print(BOOTSTRAP_ONBOARDING_CSS_BUILD)')"
           BASE_URL="https://ce-dev-nowlert.theriark.dev"
           ACCESS_HEADERS=(
             -H "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}"
@@ -280,7 +281,7 @@ jobs:
           }
 
           verify_live_bundle() {
-            local html css app ownership routing routing_css filtering filter_sync filter_sync_css filter_css qa_patch dashboard acceptance cleanup reference
+            local html css app ownership routing routing_css filtering filter_sync filter_sync_css filter_css qa_patch dashboard acceptance cleanup reference bootstrap_css
 
             html="$(
               curl --fail --silent --show-error \
@@ -304,6 +305,7 @@ jobs:
             require_contains "HTML cleanup" "/ui/acceptance_cleanup.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML consistency layer" "/ui/management_consistency.js?v=${UI_BUILD}" "${html}" || return 1
             require_contains "HTML retirement layer" "/ui/source_ui_retirement.js?v=${UI_BUILD}" "${html}" || return 1
+            require_contains "HTML bootstrap onboarding" "/ui/bootstrap_onboarding.css?v=${BOOTSTRAP_ONBOARDING_CSS_BUILD}" "${html}" || return 1
 
             favicon="$(
               curl --fail --silent --show-error \
@@ -331,6 +333,14 @@ jobs:
             )" || { echo "WAIT: visual_refinement.css request failed"; return 1; }
             require_contains "Shared theme dashboard surfaces" "#view-dashboard#view-dashboard" "${visual_theme}" || return 1
             require_contains "Shared theme source surfaces" "#view-sources#view-sources" "${visual_theme}" || return 1
+
+            bootstrap_css="$(
+              curl --fail --silent --show-error \
+                "${ACCESS_HEADERS[@]}" \
+                "${BASE_URL}/ui/bootstrap_onboarding.css?v=${BOOTSTRAP_ONBOARDING_CSS_BUILD}"
+            )" || { echo "WAIT: bootstrap onboarding stylesheet request failed"; return 1; }
+            require_contains "Bootstrap onboarding layout" "#bootstrap-view.bootstrap-onboarding" "${bootstrap_css}" || return 1
+            require_contains "Bootstrap onboarding mobile layout" "@media (max-width: 760px)" "${bootstrap_css}" || return 1
 
             app="$(
               curl --fail --silent --show-error \
