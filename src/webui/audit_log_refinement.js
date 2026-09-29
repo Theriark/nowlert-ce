@@ -628,6 +628,16 @@
     }
   }
 
+  function restoreHealthSnapshot() {
+    const snapshot = state.auditHealthSnapshot || readHealthSnapshot();
+    if (!snapshot) return null;
+    state.auditHealthSnapshot = snapshot;
+    if (!Array.isArray(state.healthChecks) || !state.healthChecks.length) {
+      state.healthChecks = snapshot.checks;
+    }
+    return snapshot;
+  }
+
   function persistHealthSnapshot(snapshot) {
     if (!snapshot) return;
     state.auditHealthSnapshot = snapshot;
@@ -665,13 +675,7 @@
     strip.removeAttribute("hidden");
     strip.classList.add("audit-health-dashboard-host");
 
-    const snapshot = state.auditHealthSnapshot || readHealthSnapshot();
-    if (snapshot && !state.auditHealthSnapshot) {
-      state.auditHealthSnapshot = snapshot;
-      if (!Array.isArray(state.healthChecks) || !state.healthChecks.length) {
-        state.healthChecks = snapshot.checks;
-      }
-    }
+    const snapshot = restoreHealthSnapshot();
 
     const legacyHealthList = document.getElementById("health-check-list");
     const dashboard = make("div", "audit-health-dashboard");
@@ -775,12 +779,8 @@
   }
 
   async function ensureHealthSnapshot() {
-    const existing = state.auditHealthSnapshot || readHealthSnapshot();
+    const existing = restoreHealthSnapshot();
     if (existing) {
-      state.auditHealthSnapshot = existing;
-      if (!Array.isArray(state.healthChecks) || !state.healthChecks.length) {
-        state.healthChecks = existing.checks;
-      }
       renderHealthDashboard();
       return existing;
     }
@@ -816,6 +816,7 @@
   }
 
   window.nowlertEnsureHealthSnapshot = ensureHealthSnapshot;
+  window.nowlertReadHealthSnapshot = restoreHealthSnapshot;
 
   function refineAudit() {
     refineRunChecks();
