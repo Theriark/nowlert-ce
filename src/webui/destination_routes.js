@@ -426,7 +426,7 @@ if (typeof module !== "undefined" && module.exports) {
     const createRoute = byId("destination-create-route");
     if (createRoute) {
       createRoute.hidden = !isAdmin();
-      createRoute.disabled = !byId("destination-id")?.value;
+      createRoute.disabled = !isAdmin();
     }
     routeAssignmentRenderOptions();
     window.requestAnimationFrame(() => byId("destination-route-search")?.focus());
@@ -602,7 +602,7 @@ if (typeof module !== "undefined" && module.exports) {
       });
       createRoute.addEventListener("click", () => {
         const destinationId = byId("destination-id")?.value || "";
-        if (!destinationId) return;
+        window.routeAssignmentPendingNewDestination = !destinationId;
         window.routeAssignmentPendingDestinationId = destinationId;
         byId("destination-dialog")?.close();
         openRoute();
@@ -688,11 +688,10 @@ if (typeof module !== "undefined" && module.exports) {
 
     options.replaceChildren();
     if (!routes.length) {
-      const destinationId = byId("destination-id")?.value || "";
       const emptyMessage = !state.routes?.length
-        ? (destinationId
-          ? "No routes yet. Use Add route to create and assign the first route."
-          : "No routes yet. Save this destination, then add a route here.")
+        ? (isAdmin()
+          ? "No routes yet. Use Add route to create the first route."
+          : "No routes yet. Ask an administrator to create a route.")
         : "No matching routes.";
       options.append(element("div", {
         className: "route-assignment-empty",
@@ -766,7 +765,17 @@ if (typeof module !== "undefined" && module.exports) {
       (event) => saveRoute(event),
     );
     byId("route-dialog")?.addEventListener("close", () => {
-      if (!byId("route-id")?.value) window.routeAssignmentPendingDestinationId = "";
+      if (byId("route-id")?.value) return;
+      const returnToDestination = Boolean(
+        window.routeAssignmentPendingNewDestination
+        || window.routeAssignmentPendingDestinationId,
+      );
+      window.routeAssignmentPendingNewDestination = false;
+      window.routeAssignmentPendingDestinationId = "";
+      const destinationDialog = byId("destination-dialog");
+      if (returnToDestination && destinationDialog && !destinationDialog.open) {
+        destinationDialog.showModal();
+      }
     });
   });
 })();

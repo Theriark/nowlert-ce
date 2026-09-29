@@ -644,6 +644,7 @@ saveRoute = async function saveIndependentRoute(event) {
   clearError("route-error");
   const id = byId("route-id").value;
   const pendingDestinationId = window.routeAssignmentPendingDestinationId || "";
+  const pendingNewDestination = Boolean(window.routeAssignmentPendingNewDestination);
   const [source, inputType] = byId("route-source").value.split("::", 2);
   try {
     const response = await request(id ? `/routes/${id}` : "/routes", {
@@ -657,9 +658,11 @@ saveRoute = async function saveIndependentRoute(event) {
       },
     });
     const routeId = String(response?.route?.id || id || "");
+    if ((pendingDestinationId || pendingNewDestination) && !routeId) {
+      throw new Error("The route was saved, but its ID was not returned for assignment.");
+    }
+    if (routeId) byId("route-id").value = routeId;
     if (pendingDestinationId) {
-      if (!routeId) throw new Error("The route was saved, but its ID was not returned for assignment.");
-      byId("route-id").value = routeId;
       const destination = (state.destinations || []).find(
         (item) => String(item.id) === String(pendingDestinationId),
       );
@@ -675,8 +678,16 @@ saveRoute = async function saveIndependentRoute(event) {
     await loadWorkspace();
     if (pendingDestinationId) {
       window.routeAssignmentPendingDestinationId = "";
+      window.routeAssignmentPendingNewDestination = false;
       openDestination(pendingDestinationId);
       toast("Route added and assigned to the destination.");
+    } else if (pendingNewDestination) {
+      window.routeAssignmentPendingNewDestination = false;
+      routeAssignmentSelection.add(routeId);
+      routeAssignmentRenderOptions();
+      const destinationDialog = byId("destination-dialog");
+      if (destinationDialog && !destinationDialog.open) destinationDialog.showModal();
+      toast("Route created. Save this destination to assign it.");
     } else {
       toast(id ? "Route updated." : "Route added.");
     }

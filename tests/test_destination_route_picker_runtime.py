@@ -98,9 +98,37 @@ def test_first_destination_can_open_an_empty_route_manager_and_explains_first_ro
     )[1].split("const destinationEditorBaseRenderDestinationFields", 1)[0]
 
     assert "toggle.disabled = allRoutes.length === 0" not in summary
-    assert '"No routes yet. Save this destination, then add a route here."' in render
-    assert '"No routes yet. Use Add route to create and assign the first route."' in render
+    assert '"No routes yet. Use Add route to create the first route."' in render
     assert "routeAssignmentPendingDestinationId" in source
+
+
+def test_route_can_be_created_and_queued_while_destination_is_still_unsaved():
+    route_source = (ROOT / "src" / "webui" / "destination_routes.js").read_text(
+        encoding="utf-8"
+    )
+    dashboard = (ROOT / "src" / "webui" / "dashboard.js").read_text(
+        encoding="utf-8"
+    )
+    drawer = route_source.split("function routeAssignmentOpenDrawer()", 1)[1].split(
+        "function routeAssignmentIntegrationName", 1
+    )[0]
+    create = route_source.split('createRoute.addEventListener("click", () => {', 1)[1].split(
+        "});", 1
+    )[0]
+    save_route = dashboard.split("saveRoute = async function saveIndependentRoute", 1)[1].split(
+        "\n};", 1
+    )[0]
+    save_destination = dashboard.split("saveDestination = async function saveDestinationWithRoutes", 1)[1].split(
+        "\n};", 1
+    )[0]
+
+    assert "createRoute.disabled = !byId(\"destination-id\")?.value;" not in drawer
+    assert "createRoute.disabled = !isAdmin();" in drawer
+    assert "window.routeAssignmentPendingNewDestination = !destinationId;" in create
+    assert "routeAssignmentSelection.add(routeId);" in save_route
+    assert "destinationDialog.showModal();" in save_route
+    assert "(pendingDestinationId || pendingNewDestination) && !routeId" in save_route
+    assert "route_ids: [...routeAssignmentSelection]" in save_destination
 
 
 def test_first_route_created_from_destination_is_attached_before_workspace_refresh():
