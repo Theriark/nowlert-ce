@@ -702,13 +702,17 @@
   }
 
   function currentHealth(attempts) {
+    const savedHealthSnapshot = window.nowlertReadHealthSnapshot?.();
+    const healthChecks = Array.isArray(state.healthChecks) && state.healthChecks.length
+      ? state.healthChecks
+      : savedHealthSnapshot?.checks || [];
     const failures = successStats(attempts).failed;
     const workspaceIssues = (state.workspaceErrors || []).length;
     const auditIssues = (state.audit || []).filter(item => {
       const outcome = String(item.outcome || item.status || "").toLowerCase();
       return ["error", "failed", "failure", "warning"].includes(outcome);
     }).length;
-    const storageCheck = (state.healthChecks || []).find(item => /storage|disk|database/i.test(`${item.key || ""} ${item.name || ""}`));
+    const storageCheck = healthChecks.find(item => /storage|disk|database/i.test(`${item.key || ""} ${item.name || ""}`));
     return [
       { icon: "api", name: "API", detail: workspaceIssues ? `${workspaceIssues} workspace request issue${workspaceIssues === 1 ? "" : "s"}` : "API service is running normally", status: workspaceIssues ? "warning" : "healthy" },
       { icon: "delivery", name: "Deliveries", detail: failures ? `${failures} terminal failure${failures === 1 ? "" : "s"} in range` : "Alert delivery pipeline is operational", status: failures ? "warning" : "healthy" },

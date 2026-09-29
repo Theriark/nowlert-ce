@@ -61,6 +61,18 @@ def test_dashboard_can_load_a_health_snapshot_without_entering_audit_view():
     audit = _read("src/webui/audit_log_refinement.js")
 
     assert "window.nowlertEnsureHealthSnapshot = ensureHealthSnapshot;" in audit
+    assert "window.nowlertReadHealthSnapshot = restoreHealthSnapshot;" in audit
+
+
+def test_dashboard_restores_cached_health_before_first_paint():
+    dashboard = _read("src/webui/operations_dashboard.js")
+    health = dashboard[
+        dashboard.index("function currentHealth(attempts)"):
+        dashboard.index("function renderHealth(attempts)")
+    ]
+
+    assert "window.nowlertReadHealthSnapshot?.()" in health
+    assert "savedHealthSnapshot?.checks" in health
 
 
 def test_routing_flow_keeps_backend_3h_6h_but_ui_owns_supported_windows():
