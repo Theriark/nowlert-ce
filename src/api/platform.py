@@ -54,6 +54,7 @@ from storage.mfa import (
 )
 from storage.backup_scheduler import BackupScheduler
 from storage.backup_targets import BackupTargetStore
+from storage.default_routes import seed_default_routes
 from version import VERSION
 
 
@@ -628,6 +629,7 @@ class PlatformAPI:
                 data.get("password"),
                 data.get("role", "user"),
             )
+            seed_default_routes(self.database, user.id, user.role)
             self.audit.write(actor, "user.create", "user", user.id, "success")
             return APIResponse(201, {"user": self._user(user)})
         return self._method_not_allowed("GET, POST")

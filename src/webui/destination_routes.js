@@ -423,11 +423,6 @@ if (typeof module !== "undefined" && module.exports) {
     if (popover) popover.hidden = false;
     form.classList.add("routes-open");
     if (toggle) toggle.setAttribute("aria-expanded", "true");
-    const createRoute = byId("destination-create-route");
-    if (createRoute) {
-      createRoute.hidden = !isAdmin();
-      createRoute.disabled = !isAdmin();
-    }
     routeAssignmentRenderOptions();
     window.requestAnimationFrame(() => byId("destination-route-search")?.focus());
   }
@@ -594,21 +589,6 @@ if (typeof module !== "undefined" && module.exports) {
       });
       close.addEventListener("click", routeAssignmentCloseDrawer);
       drawerHeading.append(drawerCopy, close);
-      const createRoute = element("button", {
-        className: "button secondary small destination-create-route",
-        text: "+ Add route",
-        type: "button",
-        attributes: { id: "destination-create-route" },
-      });
-      createRoute.addEventListener("click", () => {
-        const destinationId = byId("destination-id")?.value || "";
-        window.routeAssignmentPendingNewDestination = !destinationId;
-        window.routeAssignmentPendingDestinationId = destinationId;
-        byId("destination-dialog")?.close();
-        openRoute();
-      });
-      drawerHeading.append(createRoute);
-
       const count = element("strong", { className: "route-assignment-count", text: "0 of 0 selected" });
       count.id = "destination-routes-count";
 
@@ -689,9 +669,7 @@ if (typeof module !== "undefined" && module.exports) {
     options.replaceChildren();
     if (!routes.length) {
       const emptyMessage = !state.routes?.length
-        ? (isAdmin()
-          ? "No routes yet. Use Add route to create the first route."
-          : "No routes yet. Ask an administrator to create a route.")
+        ? "No routes available. Add routes in Routing Flow, then assign them here."
         : "No matching routes.";
       options.append(element("div", {
         className: "route-assignment-empty",
@@ -764,18 +742,5 @@ if (typeof module !== "undefined" && module.exports) {
       "route-form",
       (event) => saveRoute(event),
     );
-    byId("route-dialog")?.addEventListener("close", () => {
-      if (byId("route-id")?.value) return;
-      const returnToDestination = Boolean(
-        window.routeAssignmentPendingNewDestination
-        || window.routeAssignmentPendingDestinationId,
-      );
-      window.routeAssignmentPendingNewDestination = false;
-      window.routeAssignmentPendingDestinationId = "";
-      const destinationDialog = byId("destination-dialog");
-      if (returnToDestination && destinationDialog && !destinationDialog.open) {
-        destinationDialog.showModal();
-      }
-    });
   });
 })();

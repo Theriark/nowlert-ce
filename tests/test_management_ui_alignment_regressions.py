@@ -58,6 +58,7 @@ def test_user_role_can_manage_owned_routes_and_filtering_survives_refresh():
     app = _read("src/webui/app.js")
     filtering = _read("src/webui/filtering.js")
     route_editor = _read("src/webui/destination_routes.js")
+    index = _read("src/webui/index.html")
     cache = _read("src/webui/qa_patch.js")
 
     assert 'filtering: "Filtering"' in app
@@ -66,7 +67,8 @@ def test_user_role_can_manage_owned_routes_and_filtering_survives_refresh():
     assert 'payload.route_ids = window.nowlertDestinationRouteIds()' in app
     assert 'if (state.currentView === "filtering") navigate("filtering", "replace")' in filtering
     assert "window.nowlertDestinationRouteIds" in route_editor
-    assert 'text: "+ Add route"' in route_editor
+    assert 'id="add-route-button"' in index
+    assert "destination-create-route" not in route_editor
     assert 'QA_WORKSPACE_CACHE_KEY = "nowlert.workspace-cache.v2"' in cache
 
 

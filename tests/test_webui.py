@@ -160,7 +160,7 @@ def test_activity_and_visual_refinement_assets_get_fresh_cache_keys():
     markup = service.response("/").body.decode("utf-8")
 
     assert EMAIL_ALERTS_JS_BUILD == f"{UI_BUILD}-email-alerts-1"
-    assert VISUAL_REFINEMENT_CSS_BUILD == f"{UI_BUILD}-visual-refinement-4"
+    assert VISUAL_REFINEMENT_CSS_BUILD == f"{UI_BUILD}-visual-refinement-5"
     assert f"/ui/email_alerts.js?v={EMAIL_ALERTS_JS_BUILD}" in markup
     assert f"/ui/visual_refinement.css?v={VISUAL_REFINEMENT_CSS_BUILD}" in markup
 

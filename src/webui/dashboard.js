@@ -643,8 +643,6 @@ saveRoute = async function saveIndependentRoute(event) {
   }
   clearError("route-error");
   const id = byId("route-id").value;
-  const pendingDestinationId = window.routeAssignmentPendingDestinationId || "";
-  const pendingNewDestination = Boolean(window.routeAssignmentPendingNewDestination);
   const [source, inputType] = byId("route-source").value.split("::", 2);
   try {
     const response = await request(id ? `/routes/${id}` : "/routes", {
@@ -657,40 +655,9 @@ saveRoute = async function saveIndependentRoute(event) {
         enabled: byId("route-enabled").checked,
       },
     });
-    const routeId = String(response?.route?.id || id || "");
-    if ((pendingDestinationId || pendingNewDestination) && !routeId) {
-      throw new Error("The route was saved, but its ID was not returned for assignment.");
-    }
-    if (routeId) byId("route-id").value = routeId;
-    if (pendingDestinationId) {
-      const destination = (state.destinations || []).find(
-        (item) => String(item.id) === String(pendingDestinationId),
-      );
-      if (!destination) throw new Error("The destination is no longer available for route assignment.");
-      const routeIds = new Set((destination.route_ids || []).map(String));
-      routeIds.add(routeId);
-      await request(`/destinations/${pendingDestinationId}`, {
-        method: "PATCH",
-        body: { route_ids: [...routeIds] },
-      });
-    }
     byId("route-dialog").close();
     await loadWorkspace();
-    if (pendingDestinationId) {
-      window.routeAssignmentPendingDestinationId = "";
-      window.routeAssignmentPendingNewDestination = false;
-      openDestination(pendingDestinationId);
-      toast("Route added and assigned to the destination.");
-    } else if (pendingNewDestination) {
-      window.routeAssignmentPendingNewDestination = false;
-      routeAssignmentSelection.add(routeId);
-      routeAssignmentRenderOptions();
-      const destinationDialog = byId("destination-dialog");
-      if (destinationDialog && !destinationDialog.open) destinationDialog.showModal();
-      toast("Route created. Save this destination to assign it.");
-    } else {
-      toast(id ? "Route updated." : "Route added.");
-    }
+    toast(id ? "Route updated." : "Route added.");
   } catch (error) {
     showError("route-error", error);
   }

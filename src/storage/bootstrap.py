@@ -13,6 +13,7 @@ from typing import Callable
 
 from api.security import hash_token
 from storage.database import Database
+from storage.default_routes import seed_default_routes
 from storage.users import User, UserStore
 
 
@@ -116,6 +117,7 @@ class BootstrapStore:
             if not valid:
                 raise PermissionError("bootstrap token is invalid or expired")
             user = self.users.bootstrap_admin(username, password)
+            seed_default_routes(self.database, user.id, user.role, clock=self.clock)
             with self.database.transaction() as connection:
                 connection.execute(
                     "UPDATE bootstrap_tokens SET consumed_at = ? WHERE id = ?",

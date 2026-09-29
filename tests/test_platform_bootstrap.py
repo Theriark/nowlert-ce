@@ -7,6 +7,7 @@ import pytest
 from api.security import hash_password, hash_token
 from storage.bootstrap import BootstrapStore
 from storage.database import Database
+from storage.routes import RouteStore
 from storage.users import UserStore
 
 
@@ -70,6 +71,7 @@ def test_startup_token_is_digest_only_rotated_and_single_use(tmp_path):
         "correct horse battery staple",
     )
     assert admin.role == "admin"
+    assert len(RouteStore(database).list_visible(admin.actor)) == 22
     assert users.authenticate(
         "administrator",
         "correct horse battery staple",

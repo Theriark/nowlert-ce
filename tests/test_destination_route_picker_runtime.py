@@ -77,12 +77,13 @@ def test_route_assignment_submit_uses_current_destination_and_route_handlers():
     assert "      true,\n    );" in source
 
 
-def test_add_route_shortcut_is_hidden_for_user_destination_editors():
+def test_destination_route_picker_does_not_offer_route_creation():
     source = (ROOT / "src" / "webui" / "destination_routes.js").read_text(
         encoding="utf-8"
     )
 
-    assert "createRoute.hidden = !isAdmin();" in source
+    assert "destination-create-route" not in source
+    assert "+ Add route" not in source
 
 
 def test_first_destination_can_open_an_empty_route_manager_and_explains_first_route():
@@ -98,40 +99,15 @@ def test_first_destination_can_open_an_empty_route_manager_and_explains_first_ro
     )[1].split("const destinationEditorBaseRenderDestinationFields", 1)[0]
 
     assert "toggle.disabled = allRoutes.length === 0" not in summary
-    assert '"No routes yet. Use Add route to create the first route."' in render
-    assert "routeAssignmentPendingDestinationId" in source
+    assert '"No routes available. Add routes in Routing Flow, then assign them here."' in render
+    assert "destination-create-route" not in source
+    assert "+ Add route" not in source
 
 
-def test_route_can_be_created_and_queued_while_destination_is_still_unsaved():
+def test_routes_are_created_in_routing_flow_not_from_destination_drawer():
     route_source = (ROOT / "src" / "webui" / "destination_routes.js").read_text(
         encoding="utf-8"
     )
-    dashboard = (ROOT / "src" / "webui" / "dashboard.js").read_text(
-        encoding="utf-8"
-    )
-    drawer = route_source.split("function routeAssignmentOpenDrawer()", 1)[1].split(
-        "function routeAssignmentIntegrationName", 1
-    )[0]
-    create = route_source.split('createRoute.addEventListener("click", () => {', 1)[1].split(
-        "});", 1
-    )[0]
-    save_route = dashboard.split("saveRoute = async function saveIndependentRoute", 1)[1].split(
-        "\n};", 1
-    )[0]
-    save_destination = dashboard.split("saveDestination = async function saveDestinationWithRoutes", 1)[1].split(
-        "\n};", 1
-    )[0]
-
-    assert "createRoute.disabled = !byId(\"destination-id\")?.value;" not in drawer
-    assert "createRoute.disabled = !isAdmin();" in drawer
-    assert "window.routeAssignmentPendingNewDestination = !destinationId;" in create
-    assert "routeAssignmentSelection.add(routeId);" in save_route
-    assert "destinationDialog.showModal();" in save_route
-    assert "(pendingDestinationId || pendingNewDestination) && !routeId" in save_route
-    assert "route_ids: [...routeAssignmentSelection]" in save_destination
-
-
-def test_first_route_created_from_destination_is_attached_before_workspace_refresh():
     source = (ROOT / "src" / "webui" / "dashboard.js").read_text(
         encoding="utf-8"
     )
@@ -139,10 +115,9 @@ def test_first_route_created_from_destination_is_attached_before_workspace_refre
         "\n};", 1
     )[0]
 
-    assert "routeAssignmentPendingDestinationId" in save_route
-    assert 'response?.route?.id' in save_route
-    assert 'request(`/destinations/${pendingDestinationId}`' in save_route
-    assert "route_ids:" in save_route
+    assert '"No routes available. Add routes in Routing Flow, then assign them here."' in route_source
+    assert 'toast(id ? "Route updated." : "Route added.")' in save_route
+    assert "routeAssignmentPendingDestinationId" not in save_route
 
 
 

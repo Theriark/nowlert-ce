@@ -14,6 +14,7 @@ from dispatcher import Dispatcher
 from outputs.platform import OutputPreview, PlatformOutputAdapter, PlatformOutputRegistry
 from storage.database import Database
 from storage.delivery import DeliveryResult
+from storage.routes import RouteStore
 from storage.users import UserStore
 
 
@@ -1646,6 +1647,27 @@ def test_resource_list_errors_are_isolated_per_destination_and_route(platform_ap
     assert routes.payload["errors"][0]["resource_id"] == broken_route["id"]
 
 
+def test_new_user_receives_default_assignable_routes(platform_api):
+    admin_headers = login(platform_api)
+    created = call(
+        platform_api,
+        "POST",
+        "/api/v2/users",
+        {
+            "username": "routes-user",
+            "password": "routes user secure password",
+            "role": "user",
+        },
+        admin_headers,
+    )
+    assert created.status == 201
+    user_id = created.payload["user"]["id"]
+    user = UserStore(platform_api["database"], password_hasher=fast_hash).get(user_id)
+    routes = RouteStore(platform_api["database"]).list_for_owner(user.actor, user_id)
+    assert len(routes) == 19
+    assert all(route.source != "*" for route in routes)
+
+
 def test_admin_can_delete_users_and_state_backups(platform_api):
     admin_headers = login(platform_api)
 
@@ -1662,6 +1684,8 @@ def test_admin_can_delete_users_and_state_backups(platform_api):
     )
     assert created.status == 201
     user_id = created.payload["user"]["id"]
+    created_user = UserStore(platform_api["database"], password_hasher=fast_hash).get(user_id)
+    assert len(RouteStore(platform_api["database"]).list_for_owner(created_user.actor, user_id)) == 19
 
     user_headers = login(
         platform_api,
