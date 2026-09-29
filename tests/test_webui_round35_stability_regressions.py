@@ -57,7 +57,7 @@ def test_dashboard_uses_dedicated_delivery_feed_and_only_marks_dashboard_refresh
     assert 'request("/deliveries", { dashboardFeed: true })' in dashboard
     assert 'request(`/metrics/${requestedRange}`, { dashboardFeed: true })' in dashboard
     assert 'request("/filters", { dashboardFeed: true })' in dashboard
-    assert 'request("/audit-events", { dashboardFeed: true })' in dashboard
+    assert 'request("/audit-events/page/1/size/25", { dashboardFeed: true })' in dashboard
 
     assert 'data-live-contract="data-feed"' in dashboard
     assert 'id="ops-feed-state">Connecting</strong>' in dashboard

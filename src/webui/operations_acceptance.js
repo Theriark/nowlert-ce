@@ -241,7 +241,7 @@
     if (value.startsWith("/metrics/")) return "metrics";
     if (value === "/deliveries") return "deliveries";
     if (value === "/filters") return "filters";
-    if (value === "/audit-events") return "audit";
+    if (value === "/audit-events" || value.startsWith("/audit-events/page/")) return "audit";
     return "";
   }
 

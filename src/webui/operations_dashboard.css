@@ -668,6 +668,7 @@
 
 .ops-health-status.warning { color: #f4c542; }
 .ops-health-status.error { color: #ff6868; }
+.ops-health-status.unknown { color: var(--muted, #98a2ad); }
 
 .ops-health-dot {
   width: 20px;
@@ -699,9 +700,19 @@
   background: #ff6868;
 }
 
+.ops-health-status.unknown .ops-health-dot {
+  background: #89949f;
+  box-shadow: none;
+}
+
 .ops-health-status.error .ops-health-dot::before {
   content: "×";
   color: #3d0b0b;
+}
+
+.ops-health-status.unknown .ops-health-dot::before {
+  content: "·";
+  color: #27313a;
 }
 
 .ops-configuration {
