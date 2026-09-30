@@ -83,6 +83,13 @@ def test_group_fields_opt_out_of_password_manager_autofill():
     assert 'id: "email-group-description", rows: "3", maxlength: "1000", "data-bwignore": "true"' in group_form
 
 
+def test_destination_secret_fields_opt_out_of_bitwarden_inline_menu():
+    script = source("src/webui/app.js")
+    form_field = script[script.index("function formField("):script.index("function destinationDefinition(")]
+
+    assert '...(definition.kind === "password" ? { autocomplete: "off", "data-bwignore": "true" } : {})' in form_field
+
+
 def test_email_preview_separates_security_notice_from_message_body():
     styles = source("src/webui/email_alerts.css")
     preview_dialog = styles[styles.index(".email-preview-dialog[open] {"):styles.index(".email-preview-security {")]

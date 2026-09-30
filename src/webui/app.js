@@ -4111,7 +4111,10 @@ function formField(definition, value) {
     input = element("input", {
       type: definition.kind === "password" ? "password" : definition.kind === "number" ? "number" : "text",
       dataset: { field: definition.key, valueType: definition.valueType || "string" },
-      attributes: definition.attributes || {},
+      attributes: {
+        ...(definition.attributes || {}),
+        ...(definition.kind === "password" ? { autocomplete: "off", "data-bwignore": "true" } : {}),
+      },
     });
   }
   if (definition.kind === "checkbox") {
