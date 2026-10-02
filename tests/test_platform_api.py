@@ -11,6 +11,7 @@ import api.platform as platform_module
 from api.security import hash_password, hash_token
 from api.service import APIService
 from dispatcher import Dispatcher
+from integrations.catalog import route_options
 from outputs.platform import OutputPreview, PlatformOutputAdapter, PlatformOutputRegistry
 from storage.database import Database
 from storage.delivery import DeliveryResult
@@ -1664,7 +1665,7 @@ def test_new_user_receives_default_assignable_routes(platform_api):
     user_id = created.payload["user"]["id"]
     user = UserStore(platform_api["database"], password_hasher=fast_hash).get(user_id)
     routes = RouteStore(platform_api["database"]).list_for_owner(user.actor, user_id)
-    assert len(routes) == 19
+    assert len(routes) == sum(item["source"] != "*" for item in route_options())
     assert all(route.source != "*" for route in routes)
 
 
@@ -1685,7 +1686,7 @@ def test_admin_can_delete_users_and_state_backups(platform_api):
     assert created.status == 201
     user_id = created.payload["user"]["id"]
     created_user = UserStore(platform_api["database"], password_hasher=fast_hash).get(user_id)
-    assert len(RouteStore(platform_api["database"]).list_for_owner(created_user.actor, user_id)) == 19
+    assert len(RouteStore(platform_api["database"]).list_for_owner(created_user.actor, user_id)) == sum(item["source"] != "*" for item in route_options())
 
     user_headers = login(
         platform_api,
