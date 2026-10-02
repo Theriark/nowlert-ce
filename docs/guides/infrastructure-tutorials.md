@@ -24,7 +24,7 @@ image recorded in that guide.
 
 | Tutorial | Native configuration | Validation |
 |---|---|---|
-| [Checkmk](checkmk-to-nowlert.md) | Site-local script, one recipient, broad notification rule | Real host/service events delivered. Rule-page screenshot pending. |
+| [Checkmk](checkmk-to-nowlert.md) | Site-local script, one recipient, broad notification rule | Real host/service events delivered; saved rule screenshots included. |
 | [Semaphore](semaphore-to-nowlert.md) | Native Slack provider, project alerts, success suppression off | Read-only task #30 success and native notification delivered. |
 | [Sonarr](sonarr-to-nowlert.md) | Native POST webhook, scoped header, all 13 triggers | Native tests delivered; enabled-trigger screenshot included. |
 | [Radarr](radarr-to-nowlert.md) | Native POST webhook, scoped header, all 12 triggers | Native tests delivered; enabled-trigger screenshot included. |
@@ -35,6 +35,7 @@ image recorded in that guide.
 
 | Page or configuration step | Capture |
 |---|---|
+| Checkmk saved native notification rule | [All events/method](../images/application-setup/checkmk-all-events.jpg), [recipient](../images/application-setup/checkmk-single-recipient.jpg), [conditions/save behavior](../images/application-setup/checkmk-sending-conditions.jpg) |
 | Sonarr saved connection and all native triggers | [Connections](../images/application-setup/sonarr-all-events.jpg) |
 | Radarr saved connection and all native triggers | [Connections](../images/application-setup/radarr-all-events.jpg) |
 | Semaphore native task success and notification log | [Task #30](../images/application-setup/semaphore-native-test.jpg) |

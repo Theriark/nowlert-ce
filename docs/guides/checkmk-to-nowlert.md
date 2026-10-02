@@ -47,6 +47,14 @@ Open **Setup → Events → Notifications** and add a rule:
 | Asynchronous spooling | Enabled |
 | Host/service, state and type restrictions | No restrictions for broad native coverage |
 
+The saved rule selects **All events** and the native Nowlert method:
+
+![Checkmk all events and Nowlert notification method](../images/application-setup/checkmk-all-events.jpg)
+
+It sends once to the explicit recipient:
+
+![Checkmk single explicit recipient](../images/application-setup/checkmk-single-recipient.jpg)
+
 Save. Activate changes **only if Checkmk shows pending changes**. On the tested
 2.5 site, notification-rule saves were immediate and activation correctly
 reported no changes. Existing email rules can remain enabled.
@@ -71,11 +79,16 @@ Filter centrally by host, service, check state or notification type. Problem,
 recovery, acknowledgement, downtime, flapping and custom notification contexts
 remain distinguishable.
 
-## Evidence and screenshot status
+## Saved rule and verification status
 
-Native host/service delivery was verified on the local installation. A current
-Checkmk rule-page screenshot is still pending because Chrome control disconnected
-during documentation capture. No mock screenshot is presented as a native rule.
+The sending-condition screenshot shows no upstream rate/time/output restriction,
+the enabled rule, and Checkmk's immediate-save behavior:
+
+![Checkmk sending conditions and immediate-save note](../images/application-setup/checkmk-sending-conditions.jpg)
+
+These are captures of the actual saved rule. Native host/service delivery was
+verified separately on the local installation; an edit-form capture alone does
+not prove callback delivery.
 
 Reference: [Checkmk notification scripts](https://docs.checkmk.com/latest/en/notifications.html#scripts).
 
