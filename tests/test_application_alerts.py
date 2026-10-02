@@ -80,6 +80,15 @@ def test_github_job_and_ping():
     assert Parser("github_actions").parse({"zen": "Keep it logically awesome.", "hook": {"id": 12}})[0].metadata["state"] == "test"
 
 
+def test_application_context_survives_classic_and_modern_image_preparation():
+    item = Parser("github_actions").parse(payload("github_actions"))[0]
+    rendered = json.dumps(DiscordOutput().source_formatters["github_actions"].format(item))
+    assert "development" in rendered and "abcd" in rendered and "123" in rendered
+    item = Parser("metabase").parse(payload("metabase"))[0]
+    rendered = json.dumps(DiscordOutput().source_formatters["metabase"].format(item))
+    assert "108" in rendered and "Result rows" in rendered
+
+
 def test_native_semaphore_smtp_failure_requires_application_identity():
     message = EmailMessage()
     message["From"] = "automation@example.com"

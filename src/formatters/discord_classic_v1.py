@@ -2557,7 +2557,59 @@ def _render_generic(notification, payload, normalized, metadata):
     )
 
 
+def _render_application(notification, payload, normalized, metadata):
+    """Keep native application context in Classic and shared image cards."""
+    from parsers.application_alerts import NAMES
+
+    source = str(normalized.get("source") or "")
+    color, icon, lifecycle = _lifecycle(
+        normalized.get("status"), metadata.get("severity"), state=metadata.get("state")
+    )
+    context = _rows_field(
+        f"📋 {NAMES[source]}",
+        [
+            ("State", metadata.get("state")),
+            ("Event type", metadata.get("event_type")),
+            ("Instance", metadata.get("instance")),
+            ("Template", metadata.get("template")),
+            ("Repository", metadata.get("repository")),
+            ("Workflow / job", metadata.get("workflow")),
+            ("Branch", metadata.get("branch")),
+            ("Commit", metadata.get("commit")),
+            ("Run ID", normalized.get("run_id")),
+            ("Actor", metadata.get("actor")),
+            ("Version", metadata.get("version")),
+            ("Media", metadata.get("media_title")),
+            ("Download client", metadata.get("download_client")),
+            ("Question", metadata.get("question")),
+            ("Question ID", metadata.get("question_id")),
+            ("Alert ID", metadata.get("alert_id")),
+            ("Creator", metadata.get("creator")),
+            ("Result rows", str(metadata["row_count"]) if "row_count" in metadata else ""),
+        ],
+    )
+    fields = [
+        _rows_field(f"{icon} Alert", [("Severity", metadata.get("severity"))]),
+        context,
+        _rows_field("⏱️ Timing", [("Started", normalized.get("start_time")), ("Completed", normalized.get("end_time"))]),
+    ]
+    return _finish(
+        {
+            "title": f"{icon} {normalized.get('title') or NAMES[source]} — {lifecycle}"[:256],
+            "description": str(normalized.get("body") or "")[:4096],
+            "color": color,
+            "fields": [field for field in fields if field],
+        },
+        payload,
+    )
+
+
 _RENDERERS = {
+    "semaphore": _render_application,
+    "sonarr": _render_application,
+    "radarr": _render_application,
+    "metabase": _render_application,
+    "github_actions": _render_application,
     "xo": _render_xo,
     "zabbix": _render_zabbix,
     "grafana": _render_grafana,
