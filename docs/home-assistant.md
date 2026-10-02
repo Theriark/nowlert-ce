@@ -1,5 +1,8 @@
 # Home Assistant
 
+For the current WebUI setup, broad alert automations, screenshots, and a verified
+native notification test, see [Home Assistant to Discord](guides/home-assistant-to-discord.md).
+
 Home Assistant automations can submit authenticated events to
 `POST /home-assistant/events`. The request must follow the
 `nowlert.home_assistant.v1` schema and use either the global HTTP secret or a

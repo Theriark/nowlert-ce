@@ -1,5 +1,9 @@
 # TrueNAS 26 integration
 
+For the current WebUI routing model and a verified TrueNAS 25.04.2.6 deployment,
+see [TrueNAS to Discord](guides/truenas-to-discord.md). The historical YAML routing
+examples below are not required for that current WebUI-managed flow.
+
 TrueNAS support is provisional in Nowlert `1.4.0`. It follows the public
 TrueNAS 26 middleware alert-service layout. Private test-email and test-alert
 samples, plus a fresh live Send Test Alert, have been validated on NOWLERT-HOST.

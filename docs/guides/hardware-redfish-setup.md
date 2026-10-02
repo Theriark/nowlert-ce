@@ -282,3 +282,8 @@ Alert/StatusChange setup. On 2 October 2026, the subscriptions were expanded
 to all five event types advertised by these controllers. The examples now use
 that full list. See the [coverage audit](centralized-event-coverage.md) for the
 accepted changes, observed iLO deliveries, and outstanding readback/TLS checks.
+
+For repeated iLO ResourceAdded/ResourceRemoved messages, keep broad source intake
+and use a narrow destination block rule. The [coverage audit](centralized-event-coverage.md#keep-broad-ilo-intake-without-flooding-a-destination)
+shows the saved rule and actual filtered outcomes. Avoid filtering every Ok event,
+which can also suppress useful hardware recovery notifications.

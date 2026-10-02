@@ -7,6 +7,8 @@ replace its addresses and channel labels with your own.
 
 | Tutorial | What it demonstrates | Validation |
 |---|---|---|
+| [Home Assistant to Discord](home-assistant-to-discord.md) | Scoped secret, broad alert automations, native notification test | Native notification and real integration errors delivered, HTTP 200. |
+| [TrueNAS to Discord](truenas-to-discord.md) | SMTP transport, Info-level Email service, native alert test | Native TrueNAS test delivered, HTTP 200. |
 | [Portainer to Discord](portainer-to-discord.md) | Scoped URL token, native webhook channel, all alert rules, and delivery checks | Configuration saved; delivery verification described in the guide. |
 | [Centralized event coverage](centralized-event-coverage.md) | Broad source subscriptions and backup-report policies | Audit lists accepted changes and remaining validation limits. |
 | [Xen Orchestra to Discord](xen-orchestra-to-discord.md) | SMTP transport, backup-report recipient, built-in route, Discord destination, and Delivery history | Real backup report delivered. |
@@ -17,6 +19,12 @@ replace its addresses and channel labels with your own.
 
 | Page or configuration step | Capture |
 |---|---|
+| Home Assistant enabled alert automations | [Automation entities](../images/home-assistant-setup/enabled-automations.jpg) |
+| Home Assistant native notification test | [Action](../images/home-assistant-setup/native-test.jpg), [delivery proof](../images/home-assistant-setup/native-delivery-proof.jpg) |
+| Home Assistant authenticated receiver acceptance | [HTTP 204 response](../images/home-assistant-setup/transport-response.jpg) |
+| TrueNAS saved Info Email service | [Service](../images/truenas-setup/info-alert-service.jpg) |
+| TrueNAS native alert delivery | [Delivery proof](../images/truenas-setup/delivery-proof.jpg) |
+| iLO resource noise suppressed centrally | [Rule](../images/hardware-setup/ilo-resource-filter.jpg), [filtered outcomes](../images/hardware-setup/ilo-resource-filter-proof.jpg) |
 | Hardware token scope selection | [Token form](../images/hardware-setup/nowlert-token-scope.png) |
 | Issued token list, credential value excluded | [Token list](../images/hardware-setup/nowlert-token-list.png) |
 | Configured destination list | [Destinations](../images/hardware-setup/nowlert-destinations.jpg) |
