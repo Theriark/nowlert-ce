@@ -30,6 +30,12 @@ Chunked request support does not require a buffering proxy. Older controllers
 can still require a separately configured HTTPS listener for firmware-specific
 TLS or SNI compatibility; this HTTP fix does not change website TLS settings.
 
+The dedicated `/redfish/hpe` endpoint acknowledges accepted events with an empty
+HTTP 200 response for older iLO event clients. This also applies to deduplicated
+events and acknowledgements while the Redfish input is disabled. Other webhook
+endpoints retain their HTTP 204 acknowledgement. Neither response guarantees
+successful destination delivery; verify Delivery history separately.
+
 ```yaml
 http:
   enabled: true

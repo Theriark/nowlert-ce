@@ -59,12 +59,28 @@ def test_controller_chunked_envelope_routes_and_deduplicates(receiver, vendor, f
     chunks = [body[:19], body[19:53], body[53:]]
     framed = b"".join(f"{len(chunk):X};controller=test\r\n".encode() + chunk + b"\r\n" for chunk in chunks)
     framed += b"0\r\nX-Test-Trailer: complete\r\n\r\n"
-    assert raw_post(receiver, framed, path=f"/redfish/{vendor}") == 204
-    assert raw_post(receiver, framed, path=f"/redfish/{vendor}") == 204
+    acknowledgement = 200 if vendor == "hpe" else 204
+    assert raw_post(receiver, framed, path=f"/redfish/{vendor}") == acknowledgement
+    assert raw_post(receiver, framed, path=f"/redfish/{vendor}") == acknowledgement
     notifications = receiver[1].notifications
     assert len(notifications) == 1
     assert notifications[0].source == source
     assert notifications[0].metadata["_input_type"] == "Redfish"
+
+
+def test_ilo_content_length_acknowledgement_is_explicit_200(receiver):
+    value = json.loads((Path(__file__).parent / "fixtures" / "redfish" / "hpe_memory.json").read_text())
+    body = json.dumps(value).encode()
+    assert raw_post(receiver, body, headers=f"Content-Length: {len(body)}\r\n") == 200
+    assert len(receiver[1].notifications) == 1
+
+
+def test_disabled_ilo_acknowledges_without_routing(receiver, monkeypatch):
+    import inputs.http as http_module
+
+    monkeypatch.setitem(http_module.config._data, "redfish", {"enabled": False})
+    assert raw_post(receiver, b"", headers="") == 200
+    assert receiver[1].notifications == []
 
 
 @pytest.mark.parametrize(("body", "headers", "status"), [

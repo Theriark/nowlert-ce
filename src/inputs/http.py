@@ -126,6 +126,10 @@ class HTTPHandler(BaseHTTPRequestHandler):
             self._respond(404)
             return
 
+        # Older iLO event clients require an explicit 200 acknowledgement.
+        # Use it for duplicates and disabled-input acknowledgements too.
+        acknowledgement = 200 if application == "hpe" else 204
+
         if not self._authenticated_application(
             application,
             request_url.path,
@@ -142,7 +146,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
             # acknowledges subscriptions without routing or triggering retry
             # storms from management controllers.
             log.info("Redfish input disabled; event acknowledged without delivery")
-            self._respond(204)
+            self._respond(acknowledgement)
             return
 
         content_type = self.headers.get("Content-Type", "")
@@ -208,7 +212,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
             self._respond(500)
             return
 
-        self._respond(204)
+        self._respond(acknowledgement)
 
     def do_GET(self) -> None:  # noqa: N802
         request_url = urlsplit(self.path)
