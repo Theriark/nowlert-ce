@@ -10,6 +10,45 @@ from integrations.catalog import canonical_source, integration, integrations
 # Only stable Notification attributes and normalized parser metadata are exposed.
 # Raw parser payloads/source_fields are deliberately excluded from Filtering.
 _TEXT_FIELDS = {
+    "semaphore": (
+        ("template", "Template", ("metadata.template",)),
+        ("actor", "Actor", ("metadata.actor",)),
+        ("version", "Version", ("metadata.version",)),
+        ("run_id", "Run Id", ("run_id",)),
+    ),
+    "sonarr": (
+        ("event_type", "Event Type", ("metadata.event_type",)),
+        ("instance", "Instance", ("metadata.instance",)),
+        ("media_title", "Media Title", ("metadata.media_title",)),
+        ("download_client", "Download Client", ("metadata.download_client",)),
+        ("health_type", "Health Type", ("metadata.health_type",)),
+        ("message", "Message", ("metadata.message",)),
+    ),
+    "radarr": (
+        ("event_type", "Event Type", ("metadata.event_type",)),
+        ("instance", "Instance", ("metadata.instance",)),
+        ("media_title", "Media Title", ("metadata.media_title",)),
+        ("download_client", "Download Client", ("metadata.download_client",)),
+        ("health_type", "Health Type", ("metadata.health_type",)),
+        ("message", "Message", ("metadata.message",)),
+    ),
+    "metabase": (
+        ("question", "Question", ("metadata.question",)),
+        ("question_id", "Question Id", ("metadata.question_id",)),
+        ("alert_id", "Alert Id", ("metadata.alert_id",)),
+        ("creator", "Creator", ("metadata.creator",)),
+    ),
+    "github_actions": (
+        ("repository", "Repository", ("metadata.repository",)),
+        ("workflow", "Workflow", ("metadata.workflow",)),
+        ("branch", "Branch", ("metadata.branch",)),
+        ("commit", "Commit", ("metadata.commit",)),
+        ("actor", "Actor", ("metadata.actor",)),
+        ("event_type", "Event Type", ("metadata.event_type",)),
+        ("action", "Action", ("metadata.action",)),
+        ("run_id", "Run Id", ("run_id",)),
+    ),
+
     "xo": (
         ("job_name", "Job name", ("job_name", "title")),
         ("job_id", "Job ID", ("job_id",)),

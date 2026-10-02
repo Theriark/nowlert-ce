@@ -17,6 +17,7 @@ from bs4 import BeautifulSoup
 
 from logger import log
 
+from parsers.application_alerts import Parser as ApplicationAlertParser, NAMES as APPLICATION_NAMES
 from parsers.grafana import Parser as GrafanaParser
 from parsers.generic import Parser as GenericParser
 from parsers.dell_idrac import Parser as DellIDRACParser
@@ -42,6 +43,7 @@ class Dispatcher:
 
     def __init__(self):
 
+        self.application_parsers = {source: ApplicationAlertParser(source) for source in APPLICATION_NAMES}
         self.generic_parser = GenericParser()
 
         self.xo_parser = XOParser()
@@ -102,6 +104,22 @@ class Dispatcher:
         )
 
         sender_lower = sender.lower()
+
+        # Semaphore's native SMTP template is a task failure report. Require
+        # an explicit application identity as well as that body signature.
+        semaphore_identity = " ".join(str(message.get(key, "")) for key in ("From", "To", "Cc")).casefold()
+        semaphore_body = self._detection_body(message) if "semaphore" in semaphore_identity else ""
+        if "semaphore" in semaphore_identity and re.search(r"Task\s+\d+\s+with template\s+.+has failed", semaphore_body, re.I):
+            notification = self.generic_parser.parse(message)
+            notification.source = "semaphore"
+            notification.category = "automation"
+            notification.status = "failure"
+            notification.metadata.update({"provider": "Semaphore", "event_type": "task_result", "state": "failure", "severity": "error", "parser_confidence": "high"})
+            match = re.search(r"Task\s+(\d+)\s+with template\s+['\"](.+?)['\"]", semaphore_body, re.I)
+            if match:
+                notification.run_id = match.group(1)
+                notification.metadata["template"] = match.group(2)
+            return notification
 
         unifi_drive_candidate = self.unifi_drive_parser.is_message(
             message,
@@ -292,6 +310,10 @@ class Dispatcher:
     def parse_webhook(self, application: str, payload):
         """Validate and parse a supported webhook into the shared model."""
         parsers = {
+            source: (parser.is_envelope, parser.parse, f"Detected {APPLICATION_NAMES[source]} notification")
+            for source, parser in self.application_parsers.items()
+        }
+        parsers.update({
             "network": (
                 self.unifi_network_parser.is_envelope,
                 self.unifi_network_parser.parse,
@@ -357,7 +379,7 @@ class Dispatcher:
                 self.event_api_parser.parse,
                 "Detected authenticated event submission",
             ),
-        }
+        })
         selected = parsers.get(str(application).casefold())
         if selected is None:
             return None

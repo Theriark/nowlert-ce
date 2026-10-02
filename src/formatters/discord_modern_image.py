@@ -51,6 +51,12 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
     }
 
     INTEGRATION_NAMES = {
+        "semaphore": "Semaphore",
+        "sonarr": "Sonarr",
+        "radarr": "Radarr",
+        "metabase": "Metabase",
+        "github_actions": "GitHub Actions",
+
         "xo": "Xen Orchestra",
         "nowlert": "Nowlert",
         "zabbix": "Zabbix",

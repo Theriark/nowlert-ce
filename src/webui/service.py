@@ -330,6 +330,12 @@ class WebUIService:
             "grafana.png",
             "prometheus.png",
             "portainer.png",
+            "semaphore.png",
+            "sonarr.png",
+            "radarr.png",
+            "metabase.png",
+            "github-actions.png",
+
             "proxmox.png",
             "qnap.png",
             "synology.png",

@@ -4,6 +4,18 @@ These guides show complete, practical event flows using the current Nowlert CE
 platform model. They are written for operators evaluating or deploying Nowlert
 rather than for historical release compatibility.
 
+## Native application notification setup
+
+- [Semaphore](../semaphore.md)
+- [Sonarr](../sonarr.md)
+- [Radarr](../radarr.md)
+- [Metabase](../metabase.md)
+- [GitHub Actions](../github-actions.md)
+
+These integrations include automated receiver tests. The guides describe native
+application tests; live delivery is verified separately when configuring each
+installation.
+
 ## Guides
 
 - [Illustrated infrastructure tutorials and screenshot index](infrastructure-tutorials.md)

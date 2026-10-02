@@ -8,6 +8,9 @@ Discord output.
 
 from __future__ import annotations
 
+from formatters.discord_applications import ApplicationDiscordFormatter
+from parsers.application_alerts import NAMES as APPLICATION_NAMES
+
 import json
 from pathlib import Path
 from urllib.parse import (
@@ -128,6 +131,7 @@ class DiscordOutput:
         )
 
         self.source_formatters = {
+            **{source: ApplicationDiscordFormatter() for source in APPLICATION_NAMES},
             "xo": DiscordFormatter(),
             "grafana": GrafanaDiscordFormatter(),
             "portainer": PortainerDiscordFormatter(),

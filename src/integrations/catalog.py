@@ -28,6 +28,12 @@ _INPUT_NAMES = {
 # Display names and input names are deliberately separate from those internal
 # identifiers so the WebUI never needs to expose values such as dell_idrac.
 _CATALOGUE = (
+    {"source": "semaphore", "name": "Semaphore", "category": "automation", "icon_key": "semaphore", "inputs": ("smtp", "http"), "aliases": ()},
+    {"source": "sonarr", "name": "Sonarr", "category": "automation", "icon_key": "sonarr", "inputs": ("http",), "aliases": ()},
+    {"source": "radarr", "name": "Radarr", "category": "automation", "icon_key": "radarr", "inputs": ("http",), "aliases": ()},
+    {"source": "metabase", "name": "Metabase", "category": "monitoring", "icon_key": "metabase", "inputs": ("http",), "aliases": ()},
+    {"source": "github_actions", "name": "GitHub Actions", "category": "automation", "icon_key": "github_actions", "inputs": ("http",), "aliases": ()},
+
     {
         "source": "xo",
         "name": "Xen Orchestra",
@@ -174,6 +180,12 @@ _CATALOGUE = (
 #
 # Empty tuples mean that dimension is not exposed by that integration.
 _ROUTE_FILTERS = {
+    "semaphore": {"severities": ("information", "warning", "error", "critical"), "statuses": ("success", "failure", "failed", "waiting", "running", "stopped", "queued", "in_progress", "cancelled", "skipped", "neutral", "timed_out", "action_required", "startup_failure", "test")},
+    "sonarr": {"severities": ("information", "warning", "error", "critical"), "statuses": ("firing", "resolved", "test", "information")},
+    "radarr": {"severities": ("information", "warning", "error", "critical"), "statuses": ("firing", "resolved", "test", "information")},
+    "metabase": {"severities": ("information", "warning", "error", "critical"), "statuses": ("firing", "resolved", "test", "information")},
+    "github_actions": {"severities": ("information", "warning", "error", "critical"), "statuses": ("success", "failure", "failed", "waiting", "running", "stopped", "queued", "in_progress", "cancelled", "skipped", "neutral", "timed_out", "action_required", "startup_failure", "test")},
+
     "xo": {
         "severities": (),
         "statuses": (

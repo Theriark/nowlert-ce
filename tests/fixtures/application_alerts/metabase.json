@@ -1,0 +1,23 @@
+{
+  "type": "alert",
+  "alert_id": 12,
+  "alert_creator_name": "operator",
+  "data": {
+    "type": "question",
+    "question_id": 108,
+    "question_name": "Failed deployments",
+    "question_url": "https://metabase.example/question/108",
+    "raw_data": {
+      "cols": [
+        "count"
+      ],
+      "rows": [
+        [
+          3
+        ]
+      ]
+    },
+    "visualization": "data:image/png;base64,SYNTHETIC"
+  },
+  "sent_at": "2026-10-02T12:00:00Z"
+}

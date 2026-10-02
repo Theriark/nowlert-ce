@@ -12,6 +12,12 @@ _GRAFANA_ENDPOINT = "/grafana/alerts"
 _GRAFANA_APPLICATION = "grafana"
 
 _MATRIX_SCOPED_SOURCES = {
+    "semaphore": "semaphore",
+    "sonarr": "sonarr",
+    "radarr": "radarr",
+    "metabase": "metabase",
+    "github_actions": "github_actions",
+
     "network": "unifi_network",
     "protect": "unifi_protect",
     "drive": "unifi_drive",

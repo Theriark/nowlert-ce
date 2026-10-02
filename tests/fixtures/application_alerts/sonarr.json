@@ -1,0 +1,8 @@
+{
+  "eventType": "HealthIssue",
+  "instanceName": "Sonarr",
+  "level": "Error",
+  "message": "Download client unavailable",
+  "type": "DownloadClientCheck",
+  "wikiUrl": "https://wiki.servarr.com/sonarr/system"
+}

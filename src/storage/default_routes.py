@@ -12,7 +12,8 @@ from storage.validation import normalized_name
 
 
 _SEED_NAMESPACE = "platform.default_routes"
-_SEED_VERSION = 1
+_SEED_VERSION = 2
+_ADDED_SOURCES = frozenset({"semaphore", "sonarr", "radarr", "metabase", "github_actions"})
 
 
 def seed_default_routes(
@@ -39,6 +40,7 @@ def seed_default_routes(
             "WHERE namespace = ? AND setting_key = ?",
             (_SEED_NAMESPACE, owner_user_id),
         ).fetchone()
+        version = 0
         if marker is not None:
             try:
                 version = int(json.loads(str(marker["value_json"])).get("version", 0))
@@ -51,8 +53,15 @@ def seed_default_routes(
             "SELECT COUNT(*) FROM routes WHERE owner_user_id = ?",
             (owner_user_id,),
         ).fetchone()[0]
-        if not existing:
+        if not existing or version == 1:
             for option in route_options():
+                if existing and option["source"] not in _ADDED_SOURCES:
+                    continue
+                if connection.execute(
+                    "SELECT 1 FROM routes WHERE owner_user_id = ? AND source = ? AND input_type = ?",
+                    (owner_user_id, str(option["source"]), str(option["input_type"])),
+                ).fetchone():
+                    continue
                 source = str(option["source"])
                 if source == "*" and normalized_role != "admin":
                     continue
@@ -60,6 +69,16 @@ def seed_default_routes(
                 input_name = str(option["input_name"])
                 name = integration if integration == input_name else f"{integration} {input_name}"
                 display, normalized = normalized_name(name, "route name")
+                if connection.execute(
+                    "SELECT 1 FROM routes WHERE owner_user_id = ? AND name_normalized = ?",
+                    (owner_user_id, normalized),
+                ).fetchone():
+                    display, normalized = normalized_name(name + " (built-in)", "route name")
+                    if connection.execute(
+                        "SELECT 1 FROM routes WHERE owner_user_id = ? AND name_normalized = ?",
+                        (owner_user_id, normalized),
+                    ).fetchone():
+                        continue
                 connection.execute(
                     """
                     INSERT INTO routes(

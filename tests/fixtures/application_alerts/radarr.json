@@ -1,0 +1,7 @@
+{
+  "eventType": "HealthRestored",
+  "instanceName": "Radarr",
+  "level": "Warning",
+  "message": "Indexer available again",
+  "type": "IndexerCheck"
+}

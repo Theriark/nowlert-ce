@@ -45,6 +45,12 @@ const SOURCE_ICONS = {
   grafana: "/ui/source-icons/grafana.png",
   prometheus: "/ui/source-icons/prometheus.png",
   portainer: "/ui/source-icons/portainer.png",
+  semaphore: "/ui/source-icons/semaphore.png",
+  sonarr: "/ui/source-icons/sonarr.png",
+  radarr: "/ui/source-icons/radarr.png",
+  metabase: "/ui/source-icons/metabase.png",
+  github_actions: "/ui/source-icons/github-actions.png",
+
   proxmox: "/ui/source-icons/proxmox.png",
   qnap: "/ui/source-icons/qnap.png",
   synology: "/ui/source-icons/synology.png",
@@ -1580,7 +1586,7 @@ function routeSourceDescriptor(source, inputType = "") {
 function friendlyName(value) {
   const item = integrationBySource(value);
   if (item) return item.name;
-  const special = { home_assistant: "Home Assistant", hpe_ilo: "HPE iLO", dell_idrac: "Dell iDRAC", xen_orchestra: "Xen Orchestra", xo: "Xen Orchestra", xenorchestra: "Xen Orchestra", redfish: "Redfish", restful: "RESTful API", rest_api: "REST API", unifi_network: "UniFi Network", unifi_protect: "UniFi Protect", unifi_drive: "UniFi Drive" };
+  const special = { semaphore: "Semaphore", sonarr: "Sonarr", radarr: "Radarr", metabase: "Metabase", github_actions: "GitHub Actions", home_assistant: "Home Assistant", hpe_ilo: "HPE iLO", dell_idrac: "Dell iDRAC", xen_orchestra: "Xen Orchestra", xo: "Xen Orchestra", xenorchestra: "Xen Orchestra", redfish: "Redfish", restful: "RESTful API", rest_api: "REST API", unifi_network: "UniFi Network", unifi_protect: "UniFi Protect", unifi_drive: "UniFi Drive" };
   const key = String(value || "").toLowerCase();
   return special[key] || String(value || "Unknown").replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

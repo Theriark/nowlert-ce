@@ -14,6 +14,11 @@ transport types: **SMTP**, **HTTP**, and **Redfish**.
 | Grafana | `grafana` | HTTP | Monitoring |
 | Prometheus | `prometheus` | HTTP | Monitoring |
 | Portainer | `portainer` | HTTP | Containers |
+| Semaphore | `semaphore` | SMTP, HTTP | Automation |
+| Sonarr | `sonarr` | HTTP | Automation |
+| Radarr | `radarr` | HTTP | Automation |
+| Metabase | `metabase` | HTTP | Monitoring |
+| GitHub Actions | `github_actions` | HTTP | Automation |
 | Proxmox | `proxmox` | HTTP | Virtualization |
 | QNAP | `qnap` | SMTP | Storage |
 | Synology | `synology` | HTTP | Storage |

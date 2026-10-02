@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hmac
+import hashlib
 import json
 import threading
 import time
@@ -23,6 +24,12 @@ from webui.service import SECURITY_HEADERS, WebUIService
 
 
 ENDPOINTS = {
+    "/semaphore/events": "semaphore",
+    "/sonarr/events": "sonarr",
+    "/radarr/events": "radarr",
+    "/metabase/alerts": "metabase",
+    "/github/actions": "github_actions",
+
     "/unifi/network": "network",
     "/unifi/protect": "protect",
     "/unifi/drive": "drive",
@@ -38,6 +45,12 @@ ENDPOINTS = {
 }
 
 SCOPED_SOURCES = {
+    "semaphore": "semaphore",
+    "sonarr": "sonarr",
+    "radarr": "radarr",
+    "metabase": "metabase",
+    "github_actions": "github_actions",
+
     "redfish": "redfish",
     "supermicro": "supermicro",
     "hpe": "hpe_ilo",
@@ -45,6 +58,9 @@ SCOPED_SOURCES = {
     "home_assistant": "home_assistant",
     "prometheus": "prometheus",
 }
+
+
+QUERY_TOKEN_ENDPOINTS = frozenset({"/portainer/alerts", "/synology/events", "/semaphore/events", "/sonarr/events", "/radarr/events", "/github/actions"})
 
 
 def is_json_content_type(value: str) -> bool:
@@ -164,6 +180,22 @@ class HTTPHandler(BaseHTTPRequestHandler):
         except BodyError as error:
             self._respond(error.status)
             return
+        if application == "github_actions":
+            # GitHub cannot set custom authorization headers. Authenticate the
+            # URL token through the ordinary source scope and also require its
+            # SHA-256 body signature, using that same token as webhook secret.
+            values = parse_qs(request_url.query, keep_blank_values=True).get("token", [])
+            token = self.headers.get("X-Nowlert-Token", "")
+            authorization = self.headers.get("Authorization", "")
+            if not token and authorization.lower().startswith("bearer "):
+                token = authorization[7:].strip()
+            if not token and len(values) == 1:
+                token = values[0]
+            signature = self.headers.get("X-Hub-Signature-256", "")
+            expected_signature = "sha256=" + hmac.new(str(token).encode("utf-8"), body, hashlib.sha256).hexdigest()
+            if not token or not hmac.compare_digest(signature.encode("utf-8"), expected_signature.encode("utf-8")):
+                self._respond(401)
+                return
         try:
             if form_encoded:
                 values = parse_qs(
@@ -351,7 +383,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
         if not expected:
             return True
         supplied = self.headers.get("X-Nowlert-Token", "")
-        if path in {"/portainer/alerts", "/synology/events"} and not supplied:
+        if path in QUERY_TOKEN_ENDPOINTS and not supplied:
             values = parse_qs(query, keep_blank_values=True).get("token", [])
             supplied = values[0] if len(values) == 1 else ""
         return hmac.compare_digest(
@@ -370,7 +402,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
             return True
         source_headers = self.headers
         if (
-            path in {"/portainer/alerts", "/synology/events"}
+            path in QUERY_TOKEN_ENDPOINTS
             and not self.headers.get("Authorization", "")
             and not self.headers.get("X-Nowlert-Token", "")
         ):

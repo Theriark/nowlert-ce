@@ -8,6 +8,9 @@ Microsoft Teams output.
 
 from __future__ import annotations
 
+from formatters.teams_applications import ApplicationTeamsFormatter
+from parsers.application_alerts import NAMES as APPLICATION_NAMES
+
 import json
 
 import requests
@@ -106,6 +109,7 @@ class TeamsOutput:
         """Build isolated native formatter instances for one Teams style."""
 
         return {
+            **{source: ApplicationTeamsFormatter(card_style=card_style) for source in APPLICATION_NAMES},
             "xo": TeamsFormatter(card_style=card_style),
             "grafana": GrafanaTeamsFormatter(card_style=card_style),
             "portainer": PortainerTeamsFormatter(card_style=card_style),

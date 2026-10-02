@@ -46,3 +46,11 @@ For complete operator-facing flows that include destination and route setup, see
 The built-in integration catalogue remains authoritative for which normalized
 inputs are supported by each integration. See
 [Integrations and inputs](../integrations-and-inputs.md).
+
+## Application notifications
+
+- [Semaphore](../semaphore.md)
+- [Sonarr](../sonarr.md)
+- [Radarr](../radarr.md)
+- [Metabase](../metabase.md)
+- [GitHub Actions](../github-actions.md)
