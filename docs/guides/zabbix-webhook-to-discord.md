@@ -1,207 +1,137 @@
-# Send Zabbix webhooks to Discord with Nowlert CE
+# Zabbix native webhooks to Nowlert CE
 
-Nowlert CE can accept Zabbix events over the authenticated Event API and route
-them to Discord through the same destination/routing model used by the rest of
-the platform.
+Configure Zabbix's notification media to send problems and recoveries to Nowlert,
+then apply delivery filters centrally. This walkthrough was tested on **Zabbix
+7.4.11** on 2 October 2026, using Nowlert development image
+`sha-abdc92887fc508bf1f105697eb48772acda78b08`.
 
-```text
-Zabbix
-  |
-  | HTTPS/HTTP webhook
-  v
-POST /api/v2/events
-  |
-  | source = zabbix
-  v
-Nowlert CE route
-  |
-  v
-Discord
-```
+## 1. Prepare Nowlert
 
-The Event API is preferred for a webhook-style integration because tokens are
-source-scoped, rate-limited, returned only at creation/rotation, and stored only
-as digests.
+1. Create or edit your destination in **Destinations** and test it.
+2. Open **Manage routes**, select the built-in **Zabbix HTTP** route, click
+   **Done**, then **Save changes**. Do not create duplicate routes.
+3. In **Settings → API Access**, issue an application token scoped only to
+   `zabbix`. Choose a rate limit suited to your alert volume; this deployment
+   uses 300 events/minute. Copy the value privately when issued.
 
-## 1. Create a source-scoped Event API token
+The Zabbix server must reach your Nowlert HTTPS address. A private address works
+when both servers can reach the same LAN; it does not require a public callback.
+The recipient used in this deployment is the existing **Criticals** destination.
 
-In the Nowlert WebUI, open **API Access / Event API Tokens** and create a token
-for the Zabbix integration.
+## 2. Import the webhook
 
-Use a source scope containing:
+Download [the Zabbix 7.4 media template](../examples/zabbix/nowlert-media-7.4.json).
+In Zabbix, open **Alerts → Media types → Import**, select that JSON file, and
+import it. It creates the **Nowlert CE** Webhook media type and message templates.
 
-```text
-zabbix
-```
+Open the new media type and replace these two parameter values:
 
-Copy the plaintext token when it is shown. Nowlert will not display that value
-again.
-
-## 2. Create the Discord destination
-
-In **Destinations**:
-
-1. create a destination;
-2. choose **Discord**;
-3. enter a clear display name such as `Monitoring - Discord`;
-4. store the Discord webhook URL in the write-only secret field;
-5. save the destination; and
-6. run the built-in destination test.
-
-## 3. Create the Zabbix HTTP route
-
-In **Routes**, create a route with:
-
-- Integration: **Zabbix**;
-- Input: **HTTP**;
-- Destination: the Discord destination;
-- Enabled: yes.
-
-Use host/event/severity/status filters if only a subset of Zabbix events should
-reach this destination.
-
-Dedicated Zabbix routes are evaluated before fallback routes. A wildcard
-fallback does not fan out a second copy when a dedicated Zabbix route already
-matched.
-
-## 4. Send the Nowlert event envelope
-
-The endpoint is:
-
-```text
-POST https://nowlert.example.com/api/v2/events
-```
-
-Authenticate with:
-
-```http
-Authorization: Bearer YOUR_EVENT_API_TOKEN
-Content-Type: application/json
-```
-
-A representative event is:
-
-```json
-{
-  "schema": "nowlert.event.v1",
-  "source": "zabbix",
-  "provider": "Zabbix",
-  "category": "monitoring",
-  "title": "High CPU load on pve-01",
-  "message": "CPU load is above the configured trigger threshold.",
-  "severity": "warning",
-  "status": "active",
-  "host": "pve-01",
-  "metadata": {
-    "event_id": "123456",
-    "trigger": "High CPU load"
-  }
-}
-```
-
-The supported event schema is intentionally bounded. `source`, `title` and
-`message` are required. Severity accepts the current Nowlert event levels such
-as `information`, `warning`, `error` and `critical`; status accepts values such
-as `active`, `firing`, `resolved`, `ok` and `success`.
-
-For a recovery event, send the same event identity/context with for example:
-
-```json
-{
-  "schema": "nowlert.event.v1",
-  "source": "zabbix",
-  "provider": "Zabbix",
-  "category": "monitoring",
-  "title": "High CPU load on pve-01",
-  "message": "CPU load returned below the configured trigger threshold.",
-  "severity": "success",
-  "status": "resolved",
-  "host": "pve-01"
-}
-```
-
-## 5. Map Zabbix macros into the payload
-
-In a Zabbix Webhook media type, map the event values you already use into the
-Nowlert envelope. A practical mapping is:
-
-| Nowlert field | Zabbix value |
+| Parameter | Value |
 |---|---|
-| `source` | constant `zabbix` |
-| `provider` | constant `Zabbix` |
-| `title` | trigger/event name |
-| `message` | problem or recovery description |
-| `host` | affected host name |
-| `severity` | mapped Zabbix severity |
-| `status` | `active`/`firing` for problems, `resolved` for recovery |
-| `metadata.event_id` | Zabbix event ID |
+| `url` | Your Nowlert HTTPS origin, for example `https://nowlert.example.com` |
+| `token` | Your Zabbix-scoped application token |
 
-Do not send the Nowlert token inside the JSON body. Keep it in the HTTP
-`Authorization` header configured by the webhook/media type.
+Keep the other parameters as Zabbix macros. Save with the media type enabled.
+The webhook adds the bearer token to the Authorization header and posts the
+`nowlert.event.v1` envelope to `/api/v2/events`. It has a 15-second timeout and
+three attempts, 30 seconds apart. Tokens are never included in the event body.
+Do not publish a configured export: its media parameters contain the token.
 
-## 6. Validate with curl before enabling the Zabbix action
+![Enabled native Webhook media](../images/zabbix-setup/media-enabled.jpg)
 
-A direct request helps separate Nowlert configuration from Zabbix media-type
-configuration:
+## 3. Enable recipient media
 
-```bash
-curl --fail-with-body \
-  --header 'Authorization: Bearer REPLACE_WITH_TOKEN' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "schema":"nowlert.event.v1",
-    "source":"zabbix",
-    "provider":"Zabbix",
-    "category":"monitoring",
-    "title":"Nowlert Zabbix test",
-    "message":"Synthetic validation event from the Zabbix integration guide.",
-    "severity":"warning",
-    "status":"active",
-    "host":"zabbix-test"
-  }' \
-  https://nowlert.example.com/api/v2/events
-```
+Open **Users → Users → your notification recipient → Media → Add**:
 
-Then confirm the event appears in **Delivery History** and reaches Discord.
+- Type: **Nowlert CE**.
+- Send to: `Nowlert`. This is a required Zabbix recipient label; the actual
+  callback address comes from the media type's `url` parameter.
+- When active: `1-7,00:00-24:00`.
+- Use if severity: select all six severities.
+- Enabled: checked.
 
-Current presentation example:
+Click **Add**, then **Update** on the user form. Reopen it to confirm persistence.
+An IdP-managed profile may require editing through the administrator's Users page.
+Existing email media can remain enabled.
 
-![Nowlert Discord Zabbix notification](../images/v2.5.2-discord-zabbix.png)
+![Persisted all-severity recipient media](../images/zabbix-setup/recipient-media.jpg)
 
-The screenshot is an existing packaged presentation example; the current
-routing/token model is the v3.1.x database-authoritative platform model
-described in this guide.
+## 4. Check the notification action
 
-## Security notes
+Open **Alerts → Actions → Trigger actions**. Use one action that sends to your
+recipient through **Nowlert CE** or **all media**, with conditions covering the
+hosts/events you intend to forward. Add a recovery operation such as **Notify
+all involved**. Avoid a second overlapping action, which duplicates delivery.
 
-- Prefer HTTPS through a trusted reverse proxy when Zabbix and Nowlert do not
-  communicate entirely inside a trusted private network.
-- Scope the token to `zabbix` only.
-- Set a sensible token rate limit for the expected event volume.
-- Revoke/rotate the token if it is exposed.
-- Do not reuse WebUI login credentials as Event API credentials.
+In the tested deployment, the existing enabled action **Report problems to
+rdkappa** has no narrowing conditions, sends problems via all media, and notifies
+all involved on recovery. Its existing suppression/symptom pause settings were
+retained. It has no update operation: acknowledgements and comments are not
+forwarded unless an update operation is added. Internal-event actions are
+separate from trigger actions; inspect their conditions and recipients too.
+
+![Existing problem and recovery operations](../images/zabbix-setup/action-operations.jpg)
+
+## 5. Test from Zabbix
+
+In **Alerts → Media types**, click **Test** for Nowlert CE. Replace unresolved
+macros in the test form with controlled values:
+
+| Parameter | Problem test | Recovery test |
+|---|---|---|
+| `subject` | `[SIMULATED CONDITION] Zabbix native webhook problem` | `[SIMULATED CONDITION] Zabbix native webhook recovery` |
+| `message` | `Controlled notification test; no host fault introduced.` | `Controlled notification recovery; no host fault introduced.` |
+| `host_name` | `SIMULATION-ZABBIX` | `SIMULATION-ZABBIX` |
+| `event_id` | A unique test identifier | The same test identifier |
+| `event_name` | `Nowlert native webhook test` | `Nowlert native webhook test` |
+| `event_value` | `1` | `0` |
+| `event_nseverity` | `4` | `4` |
+| `event_source` | `0` | `0` |
+
+Keep the configured URL/token private. Run each test. Both should show **Media
+type test successful**, HTTP **202**, and lifecycle `firing` or `resolved`.
+Then check **Nowlert → Delivery history** and the destination itself. Acceptance
+by Nowlert alone does not prove delivery.
+
+![Native problem test accepted](../images/zabbix-setup/native-problem-accepted.jpg)
+
+![Native recovery test accepted](../images/zabbix-setup/native-recovery-accepted.jpg)
+
+Both tests in this deployment reached Discord: problem displayed **Failure**,
+recovery displayed **Successful**, with delivery HTTP **200** and no error code.
+The [token-free delivery records](../examples/integration-validation-2026-10-02.json)
+include both results. These are requests emitted by Zabbix's native media test
+with simulated conditions. They verify its transport, parsing, routing and
+Discord delivery; they do not prove a real trigger/action lifecycle. To verify
+that last step, use a dedicated disposable test item/trigger and drive it through
+problem and recovery without changing production device checks.
+
+## Lifecycle and severity
+
+The webhook maps event value `1` to `firing` and `0` to `resolved`. Zabbix
+Not classified/Information map to Nowlert information, Warning/Average to warning,
+and High/Disaster to critical. Recovery status drives the successful notification
+presentation even when the original problem severity is retained. A media test
+must use literal values because Zabbix does not resolve event macros there.
 
 ## Troubleshooting
 
-### HTTP 401/403
+- **401/403:** check the token, expiry/revocation, enabled owner, and `zabbix` scope.
+- **400:** check required text and envelope fields; use literal test macro values.
+- **Timeout/TLS error:** test connectivity from the Zabbix server, DNS and trusted
+  certificates. Do not disable verification to conceal an invalid certificate.
+- **202 but no destination message:** confirm the selected Zabbix HTTP route,
+  destination enabled state, central filtering and Delivery history outcome.
+- **Media test passes but real alerts do not:** check recipient media, active
+  hours, severities, host permissions, action conditions, suppression and recovery
+  operations. Review Zabbix **Reports → Action log** for failed sends.
 
-Check the bearer token, token owner state, source scope and token expiry/revoked
-state. The token must authorize `zabbix`.
+## Retirement after recording validation
 
-### HTTP 400
+When ready to retire Zabbix, disable its Nowlert recipient media or dedicated
+forwarding action, revoke the Zabbix-only Nowlert token, and remove private token
+exports. Preserve the tutorial and delivery history. Decommissioning the Zabbix
+server belongs to the infrastructure retirement workflow; this setup does not
+stop or delete that server.
 
-Validate the JSON envelope. The schema must be `nowlert.event.v1`, required
-strings must be non-empty, and severity/status values must be supported.
-
-### Request is accepted but Discord is empty
-
-Check the Zabbix (HTTP) route filters, destination enabled state and Delivery
-History. Test the Discord destination separately.
-
-## Next step
-
-Once the synthetic request works, configure the Zabbix action/media type to
-submit real problem and recovery events, then review the first few deliveries
-against the source event details.
-
-- <https://github.com/Theriark/nowlert-ce>
+Reference: [Zabbix 7.4 Webhook media documentation](https://www.zabbix.com/documentation/7.4/en/manual/config/notifications/media/webhook).
