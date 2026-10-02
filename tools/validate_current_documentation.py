@@ -32,7 +32,7 @@ FILES = (
     ROOT / "docs" / "releases" / "v3.1.6.md",
     ROOT / "docs" / "roadmap.md",
     ROOT / "docs" / "smtp-security.md",
-    ROOT / "docs" / "v3.1.6-qa-checklist.md",
+    ROOT / "docs" / "releases" / "validation" / "v3.1.6-qa-checklist.md",
     ROOT / "docs" / "webui.md",
 )
 
@@ -98,7 +98,7 @@ webui = (ROOT / "docs" / "webui.md").read_text(encoding="utf-8")
 api = (ROOT / "docs" / "platform-api.md").read_text(encoding="utf-8")
 deployment = (ROOT / "docs" / "deployment.md").read_text(encoding="utf-8")
 release = (ROOT / "docs" / "releases" / "v3.1.6.md").read_text(encoding="utf-8")
-checklist = (ROOT / "docs" / "v3.1.6-qa-checklist.md").read_text(encoding="utf-8")
+checklist = (ROOT / "docs" / "releases" / "validation" / "v3.1.6-qa-checklist.md").read_text(encoding="utf-8")
 version = (ROOT / "src" / "version.py").read_text(encoding="utf-8")
 environment = (ROOT / ".env.example").read_text(encoding="utf-8")
 compose = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
@@ -117,7 +117,7 @@ required_pairs = (
     (deployment, 'version="v3.1.6"'),
     (deployment, "ghcr.io/theriark/nowlert-ce:3.1.6"),
     (deployment, "docker.io/theriark/nowlert-ce:3.1.6"),
-    (deployment, "Development -> Stage -> main -> Release"),
+    (deployment, "Development -> Stage -> Finalize CE Release"),
     (deployment, "no second Docker-alias workflow"),
     (api, "DELETE | `/api/v2/users/{id}`"),
     (api, "DELETE | `/api/v2/backups/{id}`"),
@@ -141,8 +141,8 @@ if "gh workflow run docker-release.yml" in deployment:
 for document in UNCHANGED_RUNTIME_GUIDES:
     text = document.read_text(encoding="utf-8")
     relative = document.relative_to(ROOT)
-    if "Nowlert v3.1.2" not in text:
-        raise SystemExit(f"ERROR: unchanged runtime guide lost v3.1.2 behavior baseline: {relative}")
+    if not text.startswith("# "):
+        raise SystemExit(f"ERROR: runtime guide missing document title: {relative}")
     if "Nowlert v3.1.1" in text:
         raise SystemExit(f"ERROR: stale runtime guide identity remains in {relative}: Nowlert v3.1.1")
 

@@ -16,6 +16,18 @@ NAMES = {
     "github_actions": "GitHub Actions",
 }
 
+# Checkmk's native notification environment uses the long Nagios state names;
+# older adapters and fixtures also use their short forms.
+CHECKMK_STATES = {
+    "HOST": {"UP", "DOWN", "UNREACH", "UNREACHABLE"},
+    "SERVICE": {"OK", "WARN", "WARNING", "CRIT", "CRITICAL", "UNKNOWN"},
+}
+CHECKMK_SEVERITIES = {
+    "WARN": "warning", "WARNING": "warning", "UNKNOWN": "warning",
+    "CRIT": "critical", "CRITICAL": "critical", "DOWN": "critical",
+    "UNREACH": "critical", "UNREACHABLE": "critical",
+}
+
 
 def text(value, limit=4000):
     return str(value or "").strip()[:limit]
@@ -38,7 +50,7 @@ class Parser:
         if self.source == "checkmk":
             c = object_value(payload, "checkmk")
             what = c.get("WHAT")
-            states = {"HOST": {"UP", "DOWN", "UNREACH"}, "SERVICE": {"OK", "WARN", "CRIT", "UNKNOWN"}}
+            states = CHECKMK_STATES
             return isinstance(what, str) and what in states and isinstance(c.get(what + "STATE"), str) and bool(text(c.get("HOSTNAME"))) and bool(text(c.get("NOTIFICATIONTYPE"))) and c.get(what + "STATE") in states[what] and (what == "HOST" or bool(text(c.get("SERVICEDESC"))))
         if self.source in {"sonarr", "radarr"}:
             return bool(text(payload.get("eventType"))) and isinstance(payload.get("instanceName"), str)
@@ -65,12 +77,13 @@ class Parser:
         if self.source == "checkmk":
             c = payload["checkmk"]
             kind = text(c["NOTIFICATIONTYPE"])
+            event_kind = kind.split(" (", 1)[0].upper()
             what = c["WHAT"]
             native_state = c[what + "STATE"]
             host = text(c["HOSTNAME"])
             service = text(c.get("SERVICEDESC")) if what == "SERVICE" else ""
-            state = "resolved" if kind == "RECOVERY" else "test" if kind == "CUSTOM" else "firing" if kind == "PROBLEM" else kind.casefold().split(" (", 1)[0]
-            severity = {"WARN": "warning", "CRIT": "critical", "UNKNOWN": "warning", "DOWN": "critical", "UNREACH": "critical"}.get(native_state, "information") if kind == "PROBLEM" else "information"
+            state = "resolved" if event_kind == "RECOVERY" else "test" if event_kind == "CUSTOM" else "firing" if event_kind == "PROBLEM" else event_kind.casefold()
+            severity = CHECKMK_SEVERITIES.get(native_state, "information") if event_kind == "PROBLEM" else "information"
             return [self._notification(
                 f"{host}{' / ' + service if service else ''}: {native_state}",
                 text(c.get(what + "OUTPUT")) or f"{kind}: {native_state}", state, severity, "monitoring", {

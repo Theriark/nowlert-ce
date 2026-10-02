@@ -117,6 +117,8 @@ def notification_status_icon(status, severity="") -> str:
     """Return one accessible Unicode status label for a UniFi title."""
 
     state = f"{status or ''} {severity or ''}".casefold()
+    if str(status or "").casefold() in {"success", "resolved", "recovered"}:
+        return "✅"
     if "failure" in state or "critical" in state:
         return "🚨"
     if "warning" in state or "degraded" in state:

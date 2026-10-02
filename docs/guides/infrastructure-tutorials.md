@@ -28,10 +28,13 @@ image recorded in that guide.
 | [Semaphore](semaphore-to-nowlert.md) | Native Slack provider, project alerts, success suppression off | Read-only task #30 success and native notification delivered. |
 | [Sonarr](sonarr-to-nowlert.md) | Native POST webhook, scoped header, all 13 triggers | Native tests delivered; enabled-trigger screenshot included. |
 | [Radarr](radarr-to-nowlert.md) | Native POST webhook, scoped header, all 12 triggers | Native tests delivered; enabled-trigger screenshot included. |
-| [Metabase](metabase-to-nowlert.md) | Bearer webhook, private LAN host policy | Saved and connection test passed. No real question alert configured yet. |
+| [Metabase](metabase-to-nowlert.md) | Bearer webhook, real failed-delivery question, hourly alert | Healthy run suppressed; separate native question test delivered to Discord, HTTP 200. |
 | [GitHub Actions reference](../github-actions.md) | Public HTTPS callback required | Deferred by the operator; no repository hooks configured. |
 
 ## Screenshot coverage
+
+Read [notification lifecycle coverage](notification-lifecycle.md) for the native
+problem, recovery and success behavior of each integration and its source limits.
 
 | Page or configuration step | Capture |
 |---|---|
@@ -40,6 +43,7 @@ image recorded in that guide.
 | Radarr saved connection and all native triggers | [Connections](../images/application-setup/radarr-all-events.jpg) |
 | Semaphore native task success and notification log | [Task #30](../images/application-setup/semaphore-native-test.jpg) |
 | Metabase saved webhook, no token value | [Webhook destination](../images/application-setup/metabase-webhook.jpg) |
+| Metabase hourly failure alert and native delivery proof | [Saved alert](../images/application-setup/metabase-delivery-alert.jpg), [native question test](../images/application-setup/metabase-native-question-delivered.jpg) |
 | Home Assistant enabled alert automations | [Automation entities](../images/home-assistant-setup/enabled-automations.jpg) |
 | Home Assistant native notification test | [Action](../images/home-assistant-setup/native-test.jpg), [delivery proof](../images/home-assistant-setup/native-delivery-proof.jpg) |
 | Home Assistant authenticated receiver acceptance | [HTTP 204 response](../images/home-assistant-setup/transport-response.jpg) |

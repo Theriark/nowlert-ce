@@ -10,7 +10,7 @@ def test_v311_release_documents_are_preserved():
     release = (ROOT / "docs" / "releases" / "v3.1.1.md").read_text(
         encoding="utf-8"
     )
-    checklist = (ROOT / "docs" / "v3.1.1-qa-checklist.md").read_text(
+    checklist = (ROOT / "docs" / "releases" / "validation" / "v3.1.1-qa-checklist.md").read_text(
         encoding="utf-8"
     )
 
@@ -26,7 +26,7 @@ def test_v311_release_notes_cover_cumulative_qa_and_immutable_release():
     release = (ROOT / "docs" / "releases" / "v3.1.1.md").read_text(
         encoding="utf-8"
     )
-    checklist = (ROOT / "docs" / "v3.1.1-qa-checklist.md").read_text(
+    checklist = (ROOT / "docs" / "releases" / "validation" / "v3.1.1-qa-checklist.md").read_text(
         encoding="utf-8"
     )
 

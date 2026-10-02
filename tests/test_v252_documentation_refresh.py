@@ -89,7 +89,7 @@ def test_current_docs_and_roadmap_exist():
         "docs/platform-state.md",
         "docs/releases/v3.1.6.md",
         "docs/roadmap.md",
-        "docs/v3.1.6-qa-checklist.md",
+        "docs/releases/validation/v3.1.6-qa-checklist.md",
         "docs/webui.md",
     )
     for relative in required:

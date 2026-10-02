@@ -30,7 +30,7 @@ def test_v316_release_identity_is_consistent():
     environment = (ROOT / ".env.example").read_text(encoding="utf-8")
     compose = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
     release = (ROOT / "docs" / "releases" / "v3.1.6.md").read_text(encoding="utf-8")
-    checklist = (ROOT / "docs" / "v3.1.6-qa-checklist.md").read_text(encoding="utf-8")
+    checklist = (ROOT / "docs" / "releases" / "validation" / "v3.1.6-qa-checklist.md").read_text(encoding="utf-8")
     assert "stable-v3.1.6-F4C542" in readme
     assert "**Current Stable Release** | **v3.1.6**" in readme
     assert "current stable release is **v3.1.6**" in dockerhub.casefold()
@@ -97,7 +97,7 @@ def test_v316_release_safety_contract():
 def test_v316_documentation_validator_tracks_current_release():
     validator = (ROOT / "tools" / "validate_current_documentation.py").read_text(encoding="utf-8")
     assert 'ROOT / "docs" / "releases" / "v3.1.6.md"' in validator
-    assert 'ROOT / "docs" / "v3.1.6-qa-checklist.md"' in validator
+    assert 'ROOT / "docs" / "releases" / "validation" / "v3.1.6-qa-checklist.md"' in validator
     assert "stable-v3.1.6-F4C542" in validator
     assert 'VERSION = "3.1.6"' in validator
     assert 'version="v3.1.6"' in validator
@@ -107,7 +107,7 @@ def test_v316_documentation_validator_tracks_current_release():
 def test_v316_deployment_docs_contain_stage_final_promotion_chain():
     deployment = (ROOT / "docs" / "deployment.md").read_text(encoding="utf-8")
     release = (ROOT / "docs" / "releases" / "v3.1.6.md").read_text(encoding="utf-8")
-    checklist = (ROOT / "docs" / "v3.1.6-qa-checklist.md").read_text(encoding="utf-8")
+    checklist = (ROOT / "docs" / "releases" / "validation" / "v3.1.6-qa-checklist.md").read_text(encoding="utf-8")
     normalized = " ".join(deployment.split()).casefold()
     assert "gh workflow run promote-stage.yml" in deployment
     assert "gh workflow run finalize-release.yml" in deployment

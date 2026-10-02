@@ -9,7 +9,7 @@ def test_v310_release_documentation_and_screenshots_remain_packaged():
     release = (ROOT / "docs" / "releases" / "v3.1.0.md").read_text(
         encoding="utf-8"
     )
-    checklist = (ROOT / "docs" / "v3.1.0-qa-checklist.md").read_text(
+    checklist = (ROOT / "docs" / "releases" / "validation" / "v3.1.0-qa-checklist.md").read_text(
         encoding="utf-8"
     )
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")

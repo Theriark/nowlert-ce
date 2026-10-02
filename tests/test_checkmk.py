@@ -22,8 +22,9 @@ def context(**changes):
 
 
 @pytest.mark.parametrize('what,state,status', [
-    ('HOST','DOWN','failure'), ('HOST','UNREACH','failure'), ('HOST','UP','information'),
+    ('HOST','DOWN','failure'), ('HOST','UNREACH','failure'), ('HOST','UNREACHABLE','failure'), ('HOST','UP','information'),
     ('SERVICE','WARN','warning'), ('SERVICE','CRIT','failure'),
+    ('SERVICE','WARNING','warning'), ('SERVICE','CRITICAL','failure'),
     ('SERVICE','UNKNOWN','warning'), ('SERVICE','OK','information'),
 ])
 def test_native_host_service_states(what,state,status):
@@ -46,6 +47,32 @@ def test_lifecycle_notifications_are_preserved(kind,state):
     assert item.metadata['state'] == state
     assert item.metadata['notification_type'] == kind
     assert item.status == ('success' if kind == 'RECOVERY' else 'information')
+
+
+@pytest.mark.parametrize('kind,native_state,status,state', [
+    ('PROBLEM (CRITICAL)', 'CRITICAL', 'failure', 'firing'),
+    ('RECOVERY (OK)', 'OK', 'success', 'resolved'),
+])
+def test_decorated_native_problem_and_recovery(kind,native_state,status,state):
+    item = Dispatcher().parse_webhook('checkmk',context(
+        NOTIFICATIONTYPE=kind,SERVICESTATE=native_state))[0]
+    assert item.status == status
+    assert item.metadata['state'] == state
+    assert item.metadata['notification_type'] == kind
+
+
+@pytest.mark.parametrize('native_state,status', [('WARNING','warning'), ('CRITICAL','failure')])
+def test_native_long_states_pass_authenticated_http_intake(native_state,status):
+    from inputs.http_matrix_parity import install
+    from test_portainer_webhook import RunningServer, request
+    install()
+    with RunningServer(shared_secret='synthetic-checkmk-token') as server:
+        assert request(server.port, '/checkmk/events', context(SERVICESTATE=native_state), {
+            'Content-Type':'application/json', 'X-Nowlert-Token':'synthetic-checkmk-token',
+        }) == 204
+        assert len(server.router.notifications) == 1
+        assert server.router.notifications[0].status == status
+        assert server.router.notifications[0].metadata['state'] == 'firing'
 
 
 @pytest.mark.parametrize('changes', [{'WHAT':'INVALID'}, {'HOSTNAME':''}, {'SERVICEDESC':''}, {'SERVICESTATE':'INVALID'}, {'NOTIFICATIONTYPE':''}, {'WHAT':[]}])
