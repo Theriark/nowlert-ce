@@ -14,6 +14,7 @@ from dataclasses import replace
 from integrations.catalog import canonical_source
 from storage.delivery import DeliverySummary
 from storage.ownership import Actor, OwnershipPolicy
+from storage.routes import RouteStore
 
 
 def _normalized(value) -> str:
@@ -43,7 +44,9 @@ def routing_only_matching(self, actor, owner_user_id, notification):
         route = self._route(row)
         if route.input_type and _normalized(route.input_type) != observed_input:
             continue
-        candidates.append(replace(route, filters={}))
+        candidate = replace(route, filters={})
+        if RouteStore.matches(candidate, notification):
+            candidates.append(candidate)
     return candidates
 
 

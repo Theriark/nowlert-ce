@@ -313,7 +313,7 @@ def test_destination_filter_blocks_transport_and_allows_matching_event(
     assert observed == [(target.id, "Critical")]
 
 
-def test_filtered_specific_route_can_fall_back_to_wildcard_destination(
+def test_filtered_specific_route_cannot_bypass_filter_via_wildcard_destination(
     filtering_platform,
 ):
     platform = filtering_platform
@@ -352,5 +352,5 @@ def test_filtered_specific_route_can_fall_back_to_wildcard_destination(
         ),
     )
 
-    assert summary.matched_routes == 1
-    assert delivered_to == [fallback.id]
+    assert summary.matched_routes == 0
+    assert delivered_to == []
