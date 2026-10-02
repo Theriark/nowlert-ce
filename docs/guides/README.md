@@ -7,6 +7,8 @@ rather than for historical release compatibility.
 ## Guides
 
 - [Illustrated infrastructure tutorials and screenshot index](infrastructure-tutorials.md)
+- [Portainer native Alerting to Nowlert and Discord](portainer-to-discord.md)
+- [Collect supported source events before centralized filtering](centralized-event-coverage.md)
 - [Route Xen Orchestra alerts through Nowlert CE to Discord](xen-orchestra-to-discord.md)
 - [Send Xen Orchestra alerts to Microsoft Teams](xen-orchestra-to-teams.md)
 - [Centralise homelab SMTP alerts without mailbox rules](centralise-homelab-smtp-alerts.md)

@@ -135,7 +135,7 @@ format is an object. A payload for initial validation is:
 ```json
 {
   "Destination": "https://nowlert.example.com/redfish/hpe",
-  "EventTypes": ["Alert", "StatusChange"],
+  "EventTypes": ["StatusChange", "ResourceUpdated", "ResourceAdded", "ResourceRemoved", "Alert"],
   "HttpHeaders": {"X-Nowlert-Token": "<private-token>"},
   "Context": "Nowlert HPE hardware alerts",
   "TTLCount": 999999,
@@ -181,7 +181,7 @@ uses an **array** for `HttpHeaders`, unlike iLO4's object:
 {
   "Destination": "https://nowlert.example.com/redfish/dell",
   "Protocol": "Redfish",
-  "EventTypes": ["Alert", "StatusChange"],
+  "EventTypes": ["StatusChange", "ResourceUpdated", "ResourceAdded", "ResourceRemoved", "Alert"],
   "HttpHeaders": [{"X-Nowlert-Token": "<private-token>"}],
   "Context": "Nowlert Dell hardware alerts"
 }
@@ -274,3 +274,11 @@ configuration is not automatically installed by the Nowlert image.
 Collect the delivery and output evidence from a controller-originated test for
 each vendor. The included iLO delivery is verified; Dell and Supermicro still
 require successful controller callbacks and their own delivery/output captures.
+
+## Expanded event coverage
+
+The subscription screenshots and readback records above capture the original
+Alert/StatusChange setup. On 2 October 2026, the subscriptions were expanded
+to all five event types advertised by these controllers. The examples now use
+that full list. See the [coverage audit](centralized-event-coverage.md) for the
+accepted changes, observed iLO deliveries, and outstanding readback/TLS checks.

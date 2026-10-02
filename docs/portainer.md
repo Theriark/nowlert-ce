@@ -22,7 +22,14 @@ more alerts. Nowlert creates one normalized notification per alert and maps
 Portainer `firing` events by severity. A `resolved` event maps to a successful
 recovery notification.
 
-## Nowlert configuration
+## Current platform setup
+
+For scoped tokens, built-in route assignment, current screenshots, and the
+URL-token authentication fix, use the [Portainer tutorial](guides/portainer-to-discord.md).
+The configuration below describes the legacy shared-secret setup. A legacy
+shared secret is not a replacement for a Portainer-scoped platform token.
+
+## Legacy Nowlert configuration
 
 Generate a URL-safe secret:
 
@@ -94,8 +101,8 @@ host port `18080` to the trusted management network and do not expose it to the
 internet.
 
 The query token exists because Portainer's webhook channel accepts only a URL
-and cannot set `X-Nowlert-Token`. Nowlert accepts `?token=` only on the
-Portainer endpoint, requires exactly one value, and compares it using a
+and cannot set `X-Nowlert-Token`. The Portainer receiver accepts exactly one nonblank `?token=` value and validates
+its application scope, expiry, and rate limit. The legacy shared-secret path compares it using a
 timing-safe operation. Header authentication remains accepted on every native
 endpoint.
 

@@ -7,6 +7,8 @@ replace its addresses and channel labels with your own.
 
 | Tutorial | What it demonstrates | Validation |
 |---|---|---|
+| [Portainer to Discord](portainer-to-discord.md) | Scoped URL token, native webhook channel, all alert rules, and delivery checks | Configuration saved; delivery verification described in the guide. |
+| [Centralized event coverage](centralized-event-coverage.md) | Broad source subscriptions and backup-report policies | Audit lists accepted changes and remaining validation limits. |
 | [Xen Orchestra to Discord](xen-orchestra-to-discord.md) | SMTP transport, backup-report recipient, built-in route, Discord destination, and Delivery history | Real backup report delivered. |
 | [Hardware Redfish setup](hardware-redfish-setup.md) | Source-scoped token, vendor routes, subscription JSON, and safe test actions for iLO, iDRAC, and Supermicro | iLO4 controller event delivered; iDRAC8 and Supermicro delivery remains unverified. |
 | [Legacy iLO4 local TLS listener](ilo4-local-tls-listener.md) | Portainer deployment, no-SNI TLS callback, native chunked request, and HTTP 200 acknowledgement | Verified on iLO4 2.81 with the specified development image. |

@@ -104,9 +104,13 @@ Nowlert and the destination channel. See
 The illustrated private deployment uses `nowlert@nowlert.local` as the recipient
 label. Xen Orchestra delivers it to the configured SMTP host; this flow does not
 require provisioning an external mailbox with that address. Use your own label.
-In each backup job, set **Report** to the desired condition: **Always**, **Skipped
-and failure**, or **Failure**. **Never** prevents scheduled reports. Changing the
-plugin alone does not change the job's reporting policy.
+To make delivery policy central, set each supported backup job's **Report**
+condition to **Always**. **Skipped and failure**, **Failure**, and **Never**
+suppress reports at the source. Changing the plugin alone does not change a
+job's reporting policy. In the 2 October audit, all six backup jobs were
+verified as Always, including configuration/metadata; two had previously
+suppressed successful reports. See the
+[coverage audit](centralized-event-coverage.md) for scope and remaining limits.
 
 The tested private deployment used an unauthenticated SMTP listener without
 STARTTLS, so **secure: disabled (never use STARTTLS)** matched that listener.
