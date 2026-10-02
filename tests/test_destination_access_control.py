@@ -318,3 +318,28 @@ def test_seeded_accounts_share_one_system_catalogue_in_selector(access_platform)
         choices = platform["routes"].list_visible(platform[key].actor)
         assert len(choices) == len(expected)
         assert {(route.source, route.input_type) for route in choices} == expected
+
+
+def test_system_route_projection_batches_database_reads_across_account_copies(access_platform, monkeypatch):
+    from contextlib import contextmanager
+    from storage.default_routes import seed_default_routes
+
+    platform = access_platform
+    for index in range(12):
+        user = platform["users"].create(f"operator-{index}", "operator secure password")
+        seed_default_routes(platform["database"], user.id, user.role)
+    database = platform["database"]
+    original_connect = database.connect
+    reads = []
+
+    @contextmanager
+    def count_connections():
+        reads.append(1)
+        with original_connect() as connection:
+            yield connection
+
+    monkeypatch.setattr(database, "connect", count_connections)
+    choices = platform["routes"].list_visible(platform["admin"].actor)
+    assert len(choices) == 25
+    # Hundreds of backing records must not require hundreds of connections.
+    assert len(reads) <= 6

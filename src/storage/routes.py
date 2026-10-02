@@ -499,7 +499,7 @@ class RouteStore:
             raise KeyError("route not found")
         return row
 
-    def _route(self, row) -> Route:
+    def _route(self, row, *, destination_ids=None) -> Route:
         decoded = json.loads(str(row["filters_json"]))
         return Route(
             id=str(row["id"]),
@@ -512,7 +512,7 @@ class RouteStore:
             created_at=int(row["created_at"]),
             updated_at=int(row["updated_at"]),
             input_type=str(row["input_type"] or "") if "input_type" in row.keys() else "",
-            destination_ids=self._destination_ids(str(row["id"])),
+            destination_ids=(self._destination_ids(str(row["id"])) if destination_ids is None else destination_ids),
         )
 
     def _destination_ids(self, route_id: str) -> tuple[str, ...]:

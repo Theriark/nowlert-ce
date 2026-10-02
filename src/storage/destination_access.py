@@ -663,14 +663,11 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
             ).fetchall()
         return tuple(str(row["id"]) for row in rows)
 
-    def _for_actor(self, actor: Actor, row):
-        route = self._route(row)
-        return replace(
-            route,
-            enabled=True,
-            filters={},
-            destination_ids=self._visible_destination_ids(actor, str(row["id"])),
-        )
+    def _for_actor(self, actor: Actor, row, *, destination_ids=None):
+        if destination_ids is None:
+            destination_ids = self._visible_destination_ids(actor, str(row["id"]))
+        route = self._route(row, destination_ids=destination_ids)
+        return replace(route, enabled=True, filters={})
 
     def get(self, actor: Actor, route_id: str):
         row = self._record(route_id)
@@ -682,6 +679,19 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
             rows = connection.execute(
                 "SELECT * FROM routes ORDER BY priority, name_normalized, id"
             ).fetchall()
+            assignments = connection.execute(
+                """
+                SELECT route_destinations.route_id, destinations.id
+                FROM route_destinations
+                JOIN destinations ON destinations.id = route_destinations.destination_id
+                WHERE destinations.owner_user_id = ? OR destinations.shared = 1
+                ORDER BY destinations.name_normalized, destinations.id
+                """,
+                (actor.user_id,),
+            ).fetchall()
+        visible_assignments = {}
+        for assignment in assignments:
+            visible_assignments.setdefault(str(assignment["route_id"]), []).append(str(assignment["id"]))
         # Routes are system integration plumbing, not account-specific filters.
         # Older accounts each own a seeded copy of the same source/input pair.
         # Project them as one choice, retaining every visible assignment and all
@@ -690,7 +700,9 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
         errors = []
         for row in rows:
             try:
-                route = self._for_actor(actor, row)
+                route = self._for_actor(
+                    actor, row, destination_ids=tuple(visible_assignments.get(str(row["id"]), ()))
+                )
                 pair = self._matrix_pair(route.source, route.input_type)
                 previous = items_by_pair.get(pair)
                 if previous is None:
