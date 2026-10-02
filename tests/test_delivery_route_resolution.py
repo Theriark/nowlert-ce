@@ -185,7 +185,7 @@ def test_resolve_matching_preserves_specific_route_wildcard_fallback(tmp_path):
     )
 
     grafana = Notification(source="grafana", title="Specific")
-    other = Notification(source="zabbix", title="Fallback")
+    other = Notification(source="generic_http", title="Fallback")
 
     for notification in (grafana, other):
         legacy = legacy_candidates(platform, admin.actor, notification)

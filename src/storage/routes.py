@@ -12,7 +12,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Callable
 
-from integrations.catalog import canonical_source
+from integrations.catalog import canonical_source, integration
 from models import Notification
 from storage.audit_events import AuditEventStore
 from storage.database import Database
@@ -417,6 +417,10 @@ class RouteStore:
     def matches(cls, route: Route, notification: Notification) -> bool:
         source = canonical_source(notification.source)
         route_source = route.source if route.source == "*" else canonical_source(route.source)
+        # Named integrations require an explicit assignment. A transport fallback
+        # must not turn an unchecked integration into an enabled delivery route.
+        if route_source == "*" and integration(source) is not None:
+            return False
         if route_source not in {"*", source}:
             return False
         if route.input_type:
