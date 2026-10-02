@@ -161,3 +161,27 @@ def test_source_scope_cannot_be_reused_for_another_application():
         assert request(server.port, "/sonarr/events", payload("sonarr"), headers) == 204
         assert request(server.port, "/radarr/events", payload("radarr"), headers) == 401
         assert scopes == ["sonarr", "radarr"]
+
+
+def test_metabase_native_empty_connection_probe_requires_source_authentication():
+    install()
+    with RunningServer() as server:
+        server.server.api.platform = object()
+        server.server.api.authorize_source = lambda headers, source, remote: (
+            source == "metabase" and headers.get("X-Nowlert-Token") == "metabase-token"
+        )
+        for path, body, token, expected in [
+            ("/metabase/alerts", b"", "wrong", 401),
+            ("/metabase/alerts", b"", "metabase-token", 204),
+            ("/metabase/alerts", b"{}", "metabase-token", 400),
+            ("/sonarr/events", b"", "metabase-token", 401),
+        ]:
+            connection = http.client.HTTPConnection("127.0.0.1", server.port)
+            connection.request("POST", path, body=body, headers={
+                "Content-Type": "application/json", "X-Nowlert-Token": token,
+            })
+            response = connection.getresponse()
+            assert response.status == expected
+            response.read()
+            connection.close()
+        assert server.router.notifications == []
