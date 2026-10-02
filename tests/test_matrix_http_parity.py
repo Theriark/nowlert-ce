@@ -55,6 +55,52 @@ def test_platform_runtime_uses_application_token_auth_for_matrix_sources(monkeyp
     assert calls == [("portainer", "10.42.20.67", "Bearer matrix-token")]
 
 
+@pytest.mark.parametrize("query,headers,accepted", [
+    ("token=portainer-only", {}, True),
+    ("token=wrong-scope", {}, False),
+    ("token=", {}, False),
+    ("token=portainer-only&token=portainer-only", {}, False),
+    ("token=portainer-only", {"X-Nowlert-Token": "wrong-scope"}, False),
+    ("token=portainer-only", {"Authorization": "Bearer wrong-scope"}, False),
+])
+def test_portainer_url_token_uses_scoped_authorization(query, headers, accepted):
+    install()
+    calls = []
+
+    class API:
+        platform = object()
+
+        def authorize_source(self, supplied, source, client):
+            calls.append((source, client))
+            token = supplied.get("Authorization", "").removeprefix("Bearer ")
+            token = token or supplied.get("X-Nowlert-Token", "")
+            return object() if source == "portainer" and token == "portainer-only" else None
+
+    handler = object.__new__(native_http.HTTPHandler)
+    handler.server = SimpleNamespace(api=API(), shared_secret="")
+    handler.headers = headers
+    handler.client_address = ("10.42.20.67", 50000)
+    assert handler._authenticated_application("portainer", "/portainer/alerts", query) is accepted
+    assert calls == [("portainer", "10.42.20.67")]
+    assert headers == handler.headers
+
+
+def test_portainer_url_token_is_not_accepted_on_other_sources():
+    install()
+
+    class API:
+        platform = object()
+
+        def authorize_source(self, headers, source, client):
+            return object() if headers.get("X-Nowlert-Token") else None
+
+    handler = object.__new__(native_http.HTTPHandler)
+    handler.server = SimpleNamespace(api=API(), shared_secret="")
+    handler.headers = {}
+    handler.client_address = ("10.42.20.67", 50000)
+    assert not handler._authenticated_application("grafana", "/grafana/alerts", "token=portainer-only")
+
+
 @pytest.mark.parametrize(
     "state,alert_count",
     (

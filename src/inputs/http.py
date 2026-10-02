@@ -368,8 +368,18 @@ class HTTPHandler(BaseHTTPRequestHandler):
             return self._authenticated(path, query)
         if str(self.server.shared_secret or "") and self._authenticated(path, query):
             return True
+        source_headers = self.headers
+        if (
+            path in {"/portainer/alerts", "/synology/events"}
+            and not self.headers.get("Authorization", "")
+            and not self.headers.get("X-Nowlert-Token", "")
+        ):
+            values = parse_qs(query, keep_blank_values=True).get("token", [])
+            if len(values) == 1 and values[0]:
+                source_headers = dict(self.headers.items())
+                source_headers["X-Nowlert-Token"] = values[0]
         principal = self.server.api.authorize_source(
-            self.headers,
+            source_headers,
             scoped_source,
             self.client_address[0],
         )
