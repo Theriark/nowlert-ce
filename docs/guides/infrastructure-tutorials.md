@@ -29,7 +29,13 @@ image recorded in that guide.
 | [Sonarr](sonarr-to-nowlert.md) | Native POST webhook, scoped header, all 13 triggers | Native tests delivered; enabled-trigger screenshot included. |
 | [Radarr](radarr-to-nowlert.md) | Native POST webhook, scoped header, all 12 triggers | Native tests delivered; enabled-trigger screenshot included. |
 | [Metabase](metabase-to-nowlert.md) | Bearer webhook, real failed-delivery question, hourly alert | Healthy run suppressed; separate native question test delivered to Discord, HTTP 200. |
+| [Zabbix](zabbix-webhook-to-discord.md) | Importable 7.4 Webhook media, all-severity recipient, existing problem/recovery action | Native media problem and recovery tests delivered, HTTP 200. Real trigger/action lifecycle remains untested. |
 | [GitHub Actions reference](../github-actions.md) | Public HTTPS callback required | Deferred by the operator; no repository hooks configured. |
+
+[Controlled integration validation](controlled-integration-validation.md) records
+successful simulated problem/recovery callbacks for Portainer, UniFi Drive,
+Dell and Supermicro, plus live verification of the Network Accessed/firewall
+filter. These simulations do not replace native source-emission proof.
 
 ## Screenshot coverage
 
@@ -38,6 +44,8 @@ problem, recovery and success behavior of each integration and its source limits
 
 | Page or configuration step | Capture |
 |---|---|
+| Zabbix native webhook and recipient | [Enabled media](../images/zabbix-setup/media-enabled.jpg), [saved recipient](../images/zabbix-setup/recipient-media.jpg), [problem/recovery operations](../images/zabbix-setup/action-operations.jpg) |
+| Zabbix native media test acceptance | [Problem](../images/zabbix-setup/native-problem-accepted.jpg), [recovery](../images/zabbix-setup/native-recovery-accepted.jpg) |
 | Checkmk saved native notification rule | [All events/method](../images/application-setup/checkmk-all-events.jpg), [recipient](../images/application-setup/checkmk-single-recipient.jpg), [conditions/save behavior](../images/application-setup/checkmk-sending-conditions.jpg) |
 | Sonarr saved connection and all native triggers | [Connections](../images/application-setup/sonarr-all-events.jpg) |
 | Radarr saved connection and all native triggers | [Connections](../images/application-setup/radarr-all-events.jpg) |

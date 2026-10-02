@@ -1,0 +1,90 @@
+{
+  "zabbix_export": {
+    "version": "7.4",
+    "media_types": [
+      {
+        "name": "Nowlert CE",
+        "type": "WEBHOOK",
+        "parameters": [
+          {
+            "name": "url",
+            "value": "https://nowlert.example.com"
+          },
+          {
+            "name": "token",
+            "value": "YOUR_ZABBIX_SCOPED_TOKEN"
+          },
+          {
+            "name": "subject",
+            "value": "{ALERT.SUBJECT}"
+          },
+          {
+            "name": "message",
+            "value": "{ALERT.MESSAGE}"
+          },
+          {
+            "name": "host_name",
+            "value": "{HOST.NAME}"
+          },
+          {
+            "name": "event_id",
+            "value": "{EVENT.ID}"
+          },
+          {
+            "name": "event_name",
+            "value": "{EVENT.NAME}"
+          },
+          {
+            "name": "event_value",
+            "value": "{EVENT.VALUE}"
+          },
+          {
+            "name": "event_nseverity",
+            "value": "{EVENT.NSEVERITY}"
+          },
+          {
+            "name": "event_source",
+            "value": "{EVENT.SOURCE}"
+          }
+        ],
+        "script": "var p = JSON.parse(value);\nif (!p.url || !p.token) { throw 'Nowlert URL and source-scoped token are required'; }\nif (p.url.indexOf('https://') !== 0) { throw 'Use an HTTPS Nowlert callback'; }\nvar nseverity = parseInt(p.event_nseverity, 10);\nvar severities = ['information', 'information', 'warning', 'warning', 'critical', 'critical'];\nvar recovered = String(p.event_value) === '0';\nvar severity = severities[nseverity] || 'warning';\nvar request = new HttpRequest();\nrequest.addHeader('Content-Type: application/json');\nrequest.addHeader('Authorization: Bearer ' + p.token);\nvar envelope = {\n    schema: 'nowlert.event.v1', source: 'zabbix', provider: 'Zabbix', category: 'monitoring',\n    title: String(p.subject || 'Zabbix notification').substring(0, 256),\n    message: String(p.message || 'Zabbix event notification').substring(0, 4000),\n    severity: severity, status: recovered ? 'resolved' : 'firing', host: String(p.host_name || '').substring(0, 256),\n    metadata: {event_id: String(p.event_id || ''), event_source: String(p.event_source || ''),\n        trigger: String(p.event_name || '').substring(0, 1000), notification_type: recovered ? 'RECOVERY' : 'PROBLEM'}\n};\nrequest.post(p.url.replace(/\\/+$/, '') + '/api/v2/events', JSON.stringify(envelope));\nvar status = request.getStatus();\nif (status < 200 || status >= 300) { throw 'Nowlert rejected the event (HTTP ' + status + ')'; }\nreturn JSON.stringify({accepted: true, http_status: status, lifecycle: envelope.status});\n",
+        "timeout": "15s",
+        "attempts": "3",
+        "attempt_interval": "30s",
+        "description": "Forward native Zabbix problems and recoveries to Nowlert CE; apply notification filtering centrally.",
+        "message_templates": [
+          {
+            "event_source": "TRIGGERS",
+            "operation_mode": "PROBLEM",
+            "subject": "Problem: {EVENT.NAME}",
+            "message": "Host: {HOST.NAME}\nProblem: {EVENT.NAME}\nSeverity: {EVENT.SEVERITY}\nStarted: {EVENT.DATE} {EVENT.TIME}\nOperational data: {EVENT.OPDATA}\nEvent ID: {EVENT.ID}"
+          },
+          {
+            "event_source": "TRIGGERS",
+            "operation_mode": "RECOVERY",
+            "subject": "Resolved: {EVENT.NAME}",
+            "message": "Host: {HOST.NAME}\nResolved: {EVENT.NAME}\nDuration: {EVENT.DURATION}\nRecovered: {EVENT.RECOVERY.DATE} {EVENT.RECOVERY.TIME}\nOriginal event ID: {EVENT.ID}"
+          },
+          {
+            "event_source": "TRIGGERS",
+            "operation_mode": "UPDATE",
+            "subject": "Updated: {EVENT.NAME}",
+            "message": "Host: {HOST.NAME}\nEvent update: {EVENT.UPDATE.ACTION}\nMessage: {EVENT.UPDATE.MESSAGE}\nEvent ID: {EVENT.ID}"
+          },
+          {
+            "event_source": "INTERNAL",
+            "operation_mode": "PROBLEM",
+            "subject": "Internal problem: {EVENT.NAME}",
+            "message": "Host: {HOST.NAME}\nInternal problem: {EVENT.NAME}\nEvent ID: {EVENT.ID}"
+          },
+          {
+            "event_source": "INTERNAL",
+            "operation_mode": "RECOVERY",
+            "subject": "Internal recovery: {EVENT.NAME}",
+            "message": "Host: {HOST.NAME}\nInternal recovery: {EVENT.NAME}\nEvent ID: {EVENT.ID}"
+          }
+        ]
+      }
+    ]
+  }
+}
