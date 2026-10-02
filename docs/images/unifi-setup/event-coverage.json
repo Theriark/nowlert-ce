@@ -1,0 +1,343 @@
+{
+  "captured_on": "2026-10-02",
+  "network_console": "UDM-01",
+  "drive_console": "UNAS-01",
+  "network_alarm_groups": [
+    "Monitoring",
+    "Internet",
+    "Power",
+    "Security",
+    "VPN",
+    "Devices",
+    "Admin",
+    "Network",
+    "WiFi",
+    "UPS Power Restored"
+  ],
+  "protect_alarm_groups": [
+    "Objects",
+    "Activity",
+    "System",
+    "Sensors"
+  ],
+  "drive_alarm_count": 78,
+  "drive_events": [
+    {
+      "category": "Activity",
+      "event": "UniFi Drive Access Failed"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Partially Completed"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Backup Destination Server Inaccessible"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Rsync Backup Source Server Inaccessible"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Backup Destination Folder Doesn't Exist"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Backup Source Folder Doesn't Exist"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Other Failed Reasons"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Multiple Issues Occurred"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Destination Storage Full"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Some Drives Locked"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Source Folder(s) in an Isolated Drive"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Destination Folder is in an Isolated Drive"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Authorization Failed"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Invalid Cloud Credentials"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Invalid Server Credentials"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Paused - Console Rename Detected"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Paused - Destination Directory Rename Failed"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Backblaze B2 Transaction or Storage Cap Exceeded"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Google Drive Rate Limit Exceeded"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Destination Locked"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - Destination Deactivated"
+    },
+    {
+      "category": "Settings",
+      "event": "Backup Task Failed - USB Not Plugged In"
+    },
+    {
+      "category": "Settings",
+      "event": "Shared Drive Snapshot Creation Failed"
+    },
+    {
+      "category": "Settings",
+      "event": "Shared Drive Snapshot Creation Failed - Console Storage Full"
+    },
+    {
+      "category": "Settings",
+      "event": "Shared Drive Snapshot Creation Failed - Locked Snapshot Reached Retention Limit"
+    },
+    {
+      "category": "Settings",
+      "event": "Shared Drive Snapshot Restored"
+    },
+    {
+      "category": "Settings",
+      "event": "Shared Drive Snapshot Restoration Failed"
+    },
+    {
+      "category": "Settings",
+      "event": "SMB Connectivity Disabled"
+    },
+    {
+      "category": "Settings",
+      "event": "NFS Connectivity Disabled"
+    },
+    {
+      "category": "Settings",
+      "event": "NFS Shared Drive Squash Option Changed"
+    },
+    {
+      "category": "Settings",
+      "event": "Drive Encrypted"
+    },
+    {
+      "category": "Settings",
+      "event": "Drive Encryption Failed - File Name Too Long"
+    },
+    {
+      "category": "Settings",
+      "event": "Drive Encryption Failed - Not Enough Storage Space"
+    },
+    {
+      "category": "Settings",
+      "event": "Drive Encryption Failed - Not Enough Drive Space"
+    },
+    {
+      "category": "Settings",
+      "event": "Drive Encryption Failed - Other Failed Reason"
+    },
+    {
+      "category": "Settings",
+      "event": "Drive Decrypted"
+    },
+    {
+      "category": "Settings",
+      "event": "Drive Decryption Failed - Not Enough Storage Space"
+    },
+    {
+      "category": "Settings",
+      "event": "Drive Decryption Failed - Not Enough Drive Space"
+    },
+    {
+      "category": "Settings",
+      "event": "Drive Decryption Failed - Other Failed Reason"
+    },
+    {
+      "category": "Settings",
+      "event": "Drive Encryption Disabled"
+    },
+    {
+      "category": "Settings",
+      "event": "Encrypted Drives Locked"
+    },
+    {
+      "category": "Settings",
+      "event": "Encrypted Drives Unlocked"
+    },
+    {
+      "category": "Settings",
+      "event": "Encryption Key Updated"
+    },
+    {
+      "category": "Settings",
+      "event": "Microsoft 365 Backup Task Failed - Destination Storage Full"
+    },
+    {
+      "category": "Settings",
+      "event": "Microsoft 365 Backup Task Failed - Some Drives Locked"
+    },
+    {
+      "category": "Settings",
+      "event": "Microsoft 365 Backup Task Failed"
+    },
+    {
+      "category": "Settings",
+      "event": "M365 Backup Task Encrypted"
+    },
+    {
+      "category": "Settings",
+      "event": "M365 Backup Task Decrypted"
+    },
+    {
+      "category": "Settings",
+      "event": "M365 Backup Task Encryption Failed"
+    },
+    {
+      "category": "Settings",
+      "event": "M365 Backup Task Decryption Failed"
+    },
+    {
+      "category": "Storage",
+      "event": "Storage Pool Expanded"
+    },
+    {
+      "category": "Storage",
+      "event": "Storage Pool Array Failed"
+    },
+    {
+      "category": "Storage",
+      "event": "Storage Pool Array at Risk"
+    },
+    {
+      "category": "Storage",
+      "event": "Storage Pool Almost Full"
+    },
+    {
+      "category": "Storage",
+      "event": "Storage Pool Full"
+    },
+    {
+      "category": "Storage",
+      "event": "Storage Pool Lacks Data Protection"
+    },
+    {
+      "category": "Storage",
+      "event": "Storage Pool Not Found"
+    },
+    {
+      "category": "Storage",
+      "event": "Storage Pool Removed"
+    },
+    {
+      "category": "Storage",
+      "event": "Storage Pool Suspended"
+    },
+    {
+      "category": "Storage",
+      "event": "Drive at Risk"
+    },
+    {
+      "category": "Storage",
+      "event": "Drive Failed"
+    },
+    {
+      "category": "Storage",
+      "event": "Drive Removed"
+    },
+    {
+      "category": "Storage",
+      "event": "Global Hot Spare at Risk"
+    },
+    {
+      "category": "Storage",
+      "event": "Global Hot Spare Failed"
+    },
+    {
+      "category": "Storage",
+      "event": "Global Hot Spare Removed"
+    },
+    {
+      "category": "Storage",
+      "event": "SSD Cache Not Found"
+    },
+    {
+      "category": "Activity",
+      "event": "Shared Link Access Failed"
+    },
+    {
+      "category": "Activity",
+      "event": "Shared Link Removed After Failed Attempts"
+    },
+    {
+      "category": "Activity",
+      "event": "Personal Drive Activated"
+    },
+    {
+      "category": "Activity",
+      "event": "Personal Drive Deleted"
+    },
+    {
+      "category": "Activity",
+      "event": "Personal Drive Storage Size Changed"
+    },
+    {
+      "category": "Activity",
+      "event": "Personal Drive Almost Full"
+    },
+    {
+      "category": "Activity",
+      "event": "Personal Drive Full"
+    },
+    {
+      "category": "Activity",
+      "event": "Shared Drive Created"
+    },
+    {
+      "category": "Activity",
+      "event": "Shared Drive Deleted"
+    },
+    {
+      "category": "Activity",
+      "event": "Shared Drive Storage Size Changed"
+    },
+    {
+      "category": "Activity",
+      "event": "Shared Drive Almost Full"
+    },
+    {
+      "category": "Activity",
+      "event": "Shared Drive Full"
+    }
+  ],
+  "validation": {
+    "network": "native events delivered, destination HTTP 200",
+    "protect": "native events delivered, destination HTTP 200",
+    "drive": "synthetic receiver test HTTP 204, Storage destination HTTP 200; native UNAS emission unverified"
+  }
+}

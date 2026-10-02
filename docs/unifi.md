@@ -1,5 +1,9 @@
 # UniFi integration
 
+For the current UI-based setup, source-scoped tokens and illustrated delivery
+checks, use [UniFi Network, Protect and Drive to Discord](guides/unifi-to-discord.md).
+The YAML examples below document the older 1.7.0 configuration interface.
+
 Nowlert `1.7.0` provides three independent normalized UniFi sources:
 
 - `unifi_network` receives UniFi Network Alarm Manager JSON webhooks;
