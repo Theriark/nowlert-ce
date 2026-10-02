@@ -9,7 +9,7 @@
   conditions:
   - condition: template
     value_template: "{% set entity = trigger.event.data.entity_id | default('', true) %} {% set old =\
-      \ trigger.event.data.from_state %} {% set new = trigger.event.data.to_state %} {{\n  entity.startswith('update.')\n\
+      \ trigger.event.data.from_state | default(none) %} {% set new = trigger.event.data.to_state | default(none) %} {{\n  entity.startswith('update.')\n\
       \  and old is not none\n  and new is not none\n  and (\n    (old.state == 'off' and new.state ==\
       \ 'on')\n    or\n    (old.state == 'on' and new.state == 'off')\n  )\n}}"
   actions:
@@ -79,13 +79,14 @@
   triggers:
   - trigger: event
     event_type: system_log_event
-  conditions:
-  - condition: template
-    value_template: "{% set details = (\n  (trigger.event.data.name | default('', true) | string)\n  ~\
-      \ ' '\n  ~ (trigger.event.data.source | default('', true) | string)\n  ~ ' '\n  ~ (trigger.event.data.message\
-      \ | default('', true) | string)\n) | lower %} {{ 'nowlert' not in details and 'rest_command' not\
-      \ in details }}"
+  conditions: []
   actions:
+  # Run the guard inside the queued action, avoiding recursive condition rendering
+  # when a log is emitted while another automation template is being evaluated.
+  - condition: template
+    value_template: >-
+      {% set logger = trigger.event.data.name | default('', true) | string | lower %}
+      {{ 'nowlert' not in logger and 'rest_command' not in logger }}
   - variables:
       event_message: "{% set messages = trigger.event.data.message | default([], true) %} {% if messages\
         \ is string %}\n  {{ messages }}\n{% elif messages | count > 0 %}\n  {{ messages[0] }}\n{% else\
@@ -107,6 +108,7 @@
       - system-log
   mode: queued
   max: 100
+  max_exceeded: silent
 - id: nowlert-central-notifications
   alias: Nowlert - Persistent notifications
   description: Forward all persistent notification lifecycle changes to Nowlert

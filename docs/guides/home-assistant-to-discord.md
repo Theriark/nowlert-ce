@@ -103,6 +103,15 @@ data:
   a Home Assistant entity ID; leave `entity_id` empty for notification events.
 - No log events: verify `system_log.fire_event` and enabled automations. This
   stream emits warnings/errors, not informational log entries.
+- Recursive automation errors: use the current example's logger guard as the
+  first queued action. Avoid rendering a log-forwarding guard in automation
+  conditions while another template is logging an error. The update example
+  also tolerates state events without `from_state` or `to_state`.
+- Repeated iLO session lifecycle alerts: an `hp_ilo` sensor platform can query
+  the controller separately for each metric. Set `scan_interval: 300` on that
+  platform if five-minute metric updates are sufficient. Native Redfish alert
+  subscriptions remain independent; filter unwanted session lifecycle messages
+  in Nowlert rather than disabling hardware alerts.
 - Accepted but not delivered: check route assignment and centralized destination
   filtering. Keep source alert collection broad and manage noise in Nowlert.
 - Network/TLS errors: the Home Assistant server must resolve and reach the URL;
