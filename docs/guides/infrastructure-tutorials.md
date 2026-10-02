@@ -1,7 +1,7 @@
 # Illustrated infrastructure tutorials
 
 Use these walkthroughs to reproduce the tested infrastructure-to-Discord flows.
-Each guide contains the configuration steps, screenshots, test procedure, and
+The guides contain configuration steps, available screenshots, test procedures, and
 troubleshooting. The screenshots were captured from the local deployment;
 replace its addresses and channel labels with your own.
 
@@ -34,11 +34,11 @@ image recorded in that guide.
 ## Screenshot coverage
 
 | Page or configuration step | Capture |
+|---|---|
 | Sonarr saved connection and all native triggers | [Connections](../images/application-setup/sonarr-all-events.jpg) |
 | Radarr saved connection and all native triggers | [Connections](../images/application-setup/radarr-all-events.jpg) |
 | Semaphore native task success and notification log | [Task #30](../images/application-setup/semaphore-native-test.jpg) |
 | Metabase saved webhook, no token value | [Webhook destination](../images/application-setup/metabase-webhook.jpg) |
-|---|---|
 | Home Assistant enabled alert automations | [Automation entities](../images/home-assistant-setup/enabled-automations.jpg) |
 | Home Assistant native notification test | [Action](../images/home-assistant-setup/native-test.jpg), [delivery proof](../images/home-assistant-setup/native-delivery-proof.jpg) |
 | Home Assistant authenticated receiver acceptance | [HTTP 204 response](../images/home-assistant-setup/transport-response.jpg) |
