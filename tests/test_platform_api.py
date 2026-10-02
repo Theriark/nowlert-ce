@@ -1532,10 +1532,9 @@ def test_integrations_endpoint_is_complete_and_categories_are_database_backed(pl
     }
 
     assert integrations_by_source["qnap"]["route_filters"]["statuses"] == []
-    assert (
-        integrations_by_source["unifi_network"]["route_filters"]["statuses"]
-        == []
-    )
+    assert integrations_by_source["unifi_network"]["route_filters"]["statuses"] == [
+        "information", "warning", "failure", "firing", "success", "resolved",
+    ]
     assert (
         integrations_by_source["home_assistant"]["route_filters"]["statuses"]
         == []
