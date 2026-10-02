@@ -1,0 +1,16 @@
+{
+  "method": "GET",
+  "path": "/redfish/v1/EventService/EventSubscriptions/12/",
+  "HTTP status": 200,
+  "response": {
+    "@odata.id": "/redfish/v1/EventService/EventSubscriptions/12/",
+    "Destination": "https://192.168.0.14:18443/redfish/hpe",
+    "Context": "DELTA-IPMI",
+    "EventTypes": [
+      "Alert",
+      "StatusChange"
+    ],
+    "TTLCount": 999999,
+    "TTLUnits": "days"
+  }
+}

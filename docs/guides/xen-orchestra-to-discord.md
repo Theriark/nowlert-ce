@@ -23,10 +23,10 @@ but are difficult to scan quickly during normal operations.
 
 ## What you need
 
-- a running Nowlert CE v3.1.2 instance;
+- a running current Nowlert CE instance;
 - network reachability from Xen Orchestra to Nowlert's SMTP listener;
 - a Discord webhook for the channel that should receive the notification; and
-- a Nowlert user with permission to create the destination and route.
+- a Nowlert user with permission to create the destination and assign routes.
 
 The default SMTP listener is configured in `config.yaml`:
 
@@ -53,14 +53,17 @@ In the Nowlert WebUI:
 Nowlert treats destination credentials as write-only secrets. Normal read views
 do not expose the stored webhook URL again.
 
-## 2. Create a Xen Orchestra SMTP route
+![Configured Operational Discord destination, webhook value hidden](../images/hardware-setup/nowlert-xen-destination.jpg)
 
-Open **Routes** and create a route with:
+## 2. Assign the Xen Orchestra SMTP route
 
-- **Integration:** Xen Orchestra
-- **Input:** SMTP
-- **Destination:** the Discord destination created above
-- **Enabled:** yes
+Edit the destination, choose **Manage routes**, and select the built-in
+**Xen Orchestra SMTP** route. Choose **Done**, then **Save changes**. On a current
+fresh installation the integration routes are supplied by the image; assigning
+one does not require creating it again. If it is already assigned, keep that
+assignment.
+
+![Built-in Xen Orchestra SMTP route selected for Operational](../images/hardware-setup/nowlert-xen-routes.jpg)
 
 For the first validation, keep host/event/severity/status filtering simple so a
 normal Xen Orchestra notification can match. Once delivery is confirmed, add
@@ -72,8 +75,49 @@ unless no dedicated route matches.
 
 ## 3. Point Xen Orchestra at Nowlert SMTP
 
-Configure the Xen Orchestra notification/email target to use the hostname or IP
-address of your Nowlert instance and the configured SMTP port (8025 by default).
+In Xen Orchestra, open **Settings → Plugins**. Configure and enable
+**transport-email** first; **backup-reports** uses this transport to send its
+report to the recipients configured separately.
+
+| transport-email field | Value |
+|---|---|
+| From name | A recognizable sender, such as `Xen Orchestra` |
+| From address | Your infrastructure sender address |
+| Host | A hostname or IP reachable from the Xen Orchestra server |
+| Port | The **published SMTP port**, 8025 in the tested deployment |
+| Secure | Match what the Nowlert SMTP listener actually offers |
+| User / password | Supply only when SMTP AUTH is enabled |
+
+Save the configuration. In **backup-reports**, configure the recipient email
+address and save. Use **Test plugin** with a valid backup run ID, then check
+Nowlert and the destination channel. See
+[Xen Orchestra's backup-report documentation](https://docs.xen-orchestra.com/backups-and-dr/backup_reports).
+
+![Saved transport-email settings: host 192.168.0.14, SMTP port 8025](../images/hardware-setup/xen-orchestra-transport-email.jpg)
+
+![Saved backup-reports recipient](../images/hardware-setup/xen-orchestra-backup-reports.jpg)
+
+![Backup report test controls: provide an existing execution runId](../images/hardware-setup/xen-orchestra-backup-test.jpg)
+
+![Transport authentication fields are empty on this private listener](../images/hardware-setup/xen-orchestra-transport-auth.jpg)
+
+The illustrated private deployment uses `nowlert@nowlert.local` as the recipient
+label. Xen Orchestra delivers it to the configured SMTP host; this flow does not
+require provisioning an external mailbox with that address. Use your own label.
+In each backup job, set **Report** to the desired condition: **Always**, **Skipped
+and failure**, or **Failure**. **Never** prevents scheduled reports. Changing the
+plugin alone does not change the job's reporting policy.
+
+The tested private deployment used an unauthenticated SMTP listener without
+STARTTLS, so **secure: disabled (never use STARTTLS)** matched that listener.
+This is not a universal TLS setting: if your listener advertises STARTTLS,
+configure Xen Orchestra accordingly. An HTTP UI port, such as 18080, is not
+the SMTP receiver port.
+
+For a connection timeout, check from the **Xen Orchestra server** that the
+chosen host and port reach the SMTP listener. A TCP connection should receive
+an SMTP `220` greeting. Check container port publishing, interface binding,
+firewall rules, and routing before changing TLS settings repeatedly.
 
 On a trusted private network, the backward-compatible listener can run without
 SMTP authentication. For untrusted networks, enable STARTTLS first and then SMTP
@@ -108,13 +152,35 @@ Check three places:
    expected task/backup information.
 2. **Delivery History** — confirm the event was delivered through the intended
    route and destination.
-3. **Routes** — confirm the dedicated Xen Orchestra route, not a generic
-   fallback, was responsible for delivery.
+3. **Destination → Manage routes** — confirm the dedicated Xen Orchestra route
+   is assigned. Use the delivery details to establish which route matched.
 
 The current public visual baseline includes an approved Xen Orchestra Discord
 example:
 
 ![Nowlert Discord Xen Orchestra notification](../images/v3.1.0-discord-xen-orchestra.png)
+
+The following real deployment capture shows a successfully delivered backup
+report: SMTP input, the Operational Discord destination, HTTP 200, and no error.
+This verifies an actual report, beyond the plugin's success indication.
+
+![Real Xen Orchestra SMTP report delivered by Nowlert](../images/hardware-setup/xen-orchestra-delivery.png)
+
+The configuration captures above were taken from the saved plugin forms on
+2 October 2026; no configuration was changed to take them. Their SMTP password
+field is empty, and browser session URLs are excluded. The delivery screenshot
+shows the previously received real backup report, rather than claiming a new
+test was sent during documentation capture.
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| `Connection timeout` after a long spinner | From the XO server, verify TCP reachability to the Docker host's published SMTP port and an SMTP `220` greeting. Do not use the WebUI port. |
+| TLS negotiation error | Match the XO security setting to the SMTP listener's actual TLS configuration. The screenshots show a private listener without STARTTLS. |
+| Test rejects `runId` | Choose an existing backup execution's run ID; it is not the job name or an arbitrary timestamp. |
+| Test succeeds but no scheduled reports | Check the backup job's Report condition, plugin enablement, and Auto-load at server start. |
+| Nowlert receives the report but Discord does not | Check the Xen Orchestra SMTP assignment, destination enablement, filters, and Delivery history error. |
 
 ## Optional: harden SMTP transport
 

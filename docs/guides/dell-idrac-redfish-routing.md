@@ -26,7 +26,7 @@ administrator credentials.
 
 ## What you need
 
-- a running Nowlert CE v3.1.2 instance;
+- a running current Nowlert CE instance;
 - HTTP/HTTPS reachability from iDRAC to the Nowlert HTTP listener or trusted
   reverse proxy;
 - a source-scoped Nowlert token that allows `dell_idrac`, unless you deliberately
@@ -92,14 +92,15 @@ Keep a dedicated hardware destination if that makes the operational ownership
 clearer. Destination credentials remain write-only and are not exposed in
 normal platform reads.
 
-## 4. Create a Dell iDRAC Redfish route
+## 4. Assign the built-in Dell iDRAC Redfish route
 
-In **Routes**, create:
+Edit the destination, open **Manage routes**, and select **Dell iDRAC Redfish**.
+Choose **Done**, then **Save changes**. Current images supply the integration
+routes on a fresh instance; creating a duplicate route is unnecessary.
 
-- **Integration:** Dell iDRAC
-- **Input:** Redfish
-- **Destination:** your hardware destination
-- **Enabled:** yes
+See the [illustrated hardware setup](hardware-redfish-setup.md) for screenshots,
+subscription payloads, and the tested firmware compatibility results. The local
+iDRAC8 test is not verified end to end because its callback TLS negotiation failed.
 
 Start with broad matching for validation. Afterwards, use host/event/severity or
 status criteria to restrict delivery if required.

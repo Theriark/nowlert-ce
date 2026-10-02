@@ -6,10 +6,13 @@ rather than for historical release compatibility.
 
 ## Guides
 
+- [Illustrated infrastructure tutorials and screenshot index](infrastructure-tutorials.md)
 - [Route Xen Orchestra alerts through Nowlert CE to Discord](xen-orchestra-to-discord.md)
 - [Send Xen Orchestra alerts to Microsoft Teams](xen-orchestra-to-teams.md)
 - [Centralise homelab SMTP alerts without mailbox rules](centralise-homelab-smtp-alerts.md)
 - [Route Dell iDRAC Redfish events through Nowlert CE](dell-idrac-redfish-routing.md)
+- [Connect Supermicro, Dell iDRAC, and HPE iLO: illustrated setup and validation status](hardware-redfish-setup.md)
+- [Configure the local HTTPS callback used by the iLO4 tutorial](ilo4-local-tls-listener.md)
 - [Send Zabbix webhooks to Discord](zabbix-webhook-to-discord.md)
 
 ## Current platform assumptions

@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Dell iDRAC8 2.86.86.86 — Redfish configuration record</title><style>body{margin:0;background:#0b1014;color:#edf0f3;font:15px/1.4 system-ui;padding:22px}main{max-width:1080px;margin:auto}header{border-bottom:1px solid #34424c;padding-bottom:18px}small{color:#e9bc34;letter-spacing:1px}h1{font-size:26px;margin:8px 0}p{color:#bac8d2}section{background:#141c23;border:1px solid #35434c;border-radius:14px;padding:18px;margin-top:16px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.35 Consolas,monospace}.status{border-left:4px solid #e9bc34;padding-left:16px}a{color:#e9bc34}</style><main><header><small>NOWLERT CE · CONFIGURATION EVIDENCE · 2 OCTOBER 2026</small><h1>Dell iDRAC8 2.86.86.86</h1><p>Redacted API readback record — not a controller WebUI screenshot.</p></header><section><strong>Stored event subscription · HTTP 200</strong><pre>{
+  &quot;method&quot;: &quot;GET&quot;,
+  &quot;path&quot;: &quot;/redfish/v1/EventService/Subscriptions/b52e9f44-bdeb-11f1-9a94-107d1afdf6f8&quot;,
+  &quot;HTTP status&quot;: 200,
+  &quot;response&quot;: {
+    &quot;@odata.id&quot;: &quot;/redfish/v1/EventService/Subscriptions/b52e9f44-bdeb-11f1-9a94-107d1afdf6f8&quot;,
+    &quot;Destination&quot;: &quot;https://192.168.0.14:18443/redfish/dell&quot;,
+    &quot;Protocol&quot;: &quot;Redfish&quot;,
+    &quot;Context&quot;: &quot;ALFA-IPMI&quot;,
+    &quot;EventTypes&quot;: [
+      &quot;Alert&quot;,
+      &quot;StatusChange&quot;
+    ]
+  }
+}</pre><p>Authentication values are excluded. The controller does not return HttpHeaders in this readback.</p></section><section class="status"><strong>Validation result</strong><p>Subscription stored. End-to-end delivery NOT verified: no common TLS cipher suite.</p></section></main></html>
