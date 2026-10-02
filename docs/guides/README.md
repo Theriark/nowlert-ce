@@ -6,11 +6,13 @@ rather than for historical release compatibility.
 
 ## Native application notification setup
 
-- [Semaphore](../semaphore.md)
-- [Sonarr](../sonarr.md)
-- [Radarr](../radarr.md)
-- [Metabase](../metabase.md)
-- [GitHub Actions](../github-actions.md)
+- [Shared Nowlert route, token and delivery setup](application-notification-setup.md)
+- [Checkmk native notifications](checkmk-to-nowlert.md)
+- [Semaphore native task results](semaphore-to-nowlert.md)
+- [Sonarr](sonarr-to-nowlert.md)
+- [Radarr](radarr-to-nowlert.md)
+- [Metabase](metabase-to-nowlert.md)
+- [GitHub Actions: reference setup, local configuration deferred](../github-actions.md)
 
 These integrations include automated receiver tests. The guides describe native
 application tests; live delivery is verified separately when configuring each

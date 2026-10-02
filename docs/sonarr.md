@@ -1,5 +1,7 @@
 # Sonarr notifications to Nowlert
 
+[Configured-installation tutorial](guides/sonarr-to-nowlert.md) · [All illustrated tutorials](guides/infrastructure-tutorials.md)
+
 ## Configure Nowlert first
 
 1. Upgrade to a development image containing this integration. Fresh accounts
@@ -21,8 +23,11 @@ Assign **Sonarr HTTP** and issue a `sonarr`-scoped token. In Sonarr go to
 **Settings → Connect → + → Webhook**. Set the method to POST and URL to:
 
 ```text
-https://nowlert.example/sonarr/events?token=YOUR_SONARR_TOKEN
+https://nowlert.example/sonarr/events
 ```
+
+Add a **Custom Headers** entry with key `X-Nowlert-Token` and value
+`YOUR_SONARR_TOKEN`. The configured installation uses header authentication.
 
 Enable all notification triggers offered by your version, including Health
 Issue, Health Restored, application updates, grabs/imports/deletions and manual

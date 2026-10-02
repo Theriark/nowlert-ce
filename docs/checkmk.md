@@ -1,5 +1,7 @@
 # Checkmk notifications to Nowlert
 
+[Configured-installation tutorial](guides/checkmk-to-nowlert.md) · [All illustrated tutorials](guides/infrastructure-tutorials.md)
+
 Checkmk's native notification system calls a site-local notification script with
 host/service context. This integration uses that documented interface, without
 polling hosts or running an additional monitoring agent.
@@ -47,7 +49,7 @@ Run these steps as the **Checkmk site user**, inside the site container if used.
    Checkmk still observes its normal notification periods, acknowledgements,
    downtime suppression and host/service contact rules. Those can prevent an
    event from being emitted upstream; Nowlert cannot receive suppressed events.
-5. Save and activate changes. Use Checkmk's test notification on a disposable
+5. Save; activate only if Checkmk shows pending changes. Use Checkmk's test notification on a disposable
    monitored object. Verify accepted HTTP 204, then inspect Nowlert Delivery
    history and the destination. Acceptance alone is not proof of delivery.
 

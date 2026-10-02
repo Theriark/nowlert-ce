@@ -1,5 +1,7 @@
 # Metabase alerts to Nowlert
 
+[Configured-installation tutorial](guides/metabase-to-nowlert.md) · [All illustrated tutorials](guides/infrastructure-tutorials.md)
+
 ## Configure Nowlert first
 
 1. Upgrade to a development image containing this integration. Fresh accounts
@@ -29,6 +31,11 @@ whose alert should be centralized, create/edit its alert and select this webhook
 as recipient. Keep the desired question conditions/schedule in Metabase; these
 conditions generate the alert, while Nowlert decides which destinations receive
 it. Use the native test and then exercise a real question alert.
+
+Metabase's empty authenticated connection probe returns HTTP 204 without
+creating an event or delivery. A real question-alert test is required to prove
+the destination flow. For a private LAN callback, see the illustrated tutorial
+for `MB_HTTP_CHANNEL_HOST_STRATEGY: allow-private` and trusted TLS setup.
 
 Nowlert recognizes Metabase's `type: alert`, question metadata and `sent_at`.
 Filtering includes question name/ID, alert ID, creator, status and severity.

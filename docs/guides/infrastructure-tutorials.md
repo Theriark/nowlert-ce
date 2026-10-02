@@ -16,9 +16,28 @@ replace its addresses and channel labels with your own.
 | [Hardware Redfish setup](hardware-redfish-setup.md) | Source-scoped token, vendor routes, subscription JSON, and safe test actions for iLO, iDRAC, and Supermicro | iLO4 controller event delivered; iDRAC8 and Supermicro delivery remains unverified. |
 | [Legacy iLO4 local TLS listener](ilo4-local-tls-listener.md) | Portainer deployment, no-SNI TLS callback, native chunked request, and HTTP 200 acknowledgement | Verified on iLO4 2.81 with the specified development image. |
 
+## Newly configured application tutorials
+
+Start with [shared Nowlert route, token and delivery setup](application-notification-setup.md).
+These configurations were verified on 2 October 2026 against the development
+image recorded in that guide.
+
+| Tutorial | Native configuration | Validation |
+|---|---|---|
+| [Checkmk](checkmk-to-nowlert.md) | Site-local script, one recipient, broad notification rule | Real host/service events delivered. Rule-page screenshot pending. |
+| [Semaphore](semaphore-to-nowlert.md) | Native Slack provider, project alerts, success suppression off | Read-only task #30 success and native notification delivered. |
+| [Sonarr](sonarr-to-nowlert.md) | Native POST webhook, scoped header, all 13 triggers | Native tests delivered; enabled-trigger screenshot included. |
+| [Radarr](radarr-to-nowlert.md) | Native POST webhook, scoped header, all 12 triggers | Native tests delivered; enabled-trigger screenshot included. |
+| [Metabase](metabase-to-nowlert.md) | Bearer webhook, private LAN host policy | Saved and connection test passed. No real question alert configured yet. |
+| [GitHub Actions reference](../github-actions.md) | Public HTTPS callback required | Deferred by the operator; no repository hooks configured. |
+
 ## Screenshot coverage
 
 | Page or configuration step | Capture |
+| Sonarr saved connection and all native triggers | [Connections](../images/application-setup/sonarr-all-events.jpg) |
+| Radarr saved connection and all native triggers | [Connections](../images/application-setup/radarr-all-events.jpg) |
+| Semaphore native task success and notification log | [Task #30](../images/application-setup/semaphore-native-test.jpg) |
+| Metabase saved webhook, no token value | [Webhook destination](../images/application-setup/metabase-webhook.jpg) |
 |---|---|
 | Home Assistant enabled alert automations | [Automation entities](../images/home-assistant-setup/enabled-automations.jpg) |
 | Home Assistant native notification test | [Action](../images/home-assistant-setup/native-test.jpg), [delivery proof](../images/home-assistant-setup/native-delivery-proof.jpg) |
