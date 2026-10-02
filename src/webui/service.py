@@ -330,6 +330,7 @@ class WebUIService:
             "grafana.png",
             "prometheus.png",
             "portainer.png",
+            "checkmk.png",
             "semaphore.png",
             "sonarr.png",
             "radarr.png",

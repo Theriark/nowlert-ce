@@ -45,6 +45,7 @@ class PresentationMixin:
     ).rstrip("/")
 
     PRODUCT_ICONS = {
+        "checkmk": "checkmk.png",
         "semaphore": "semaphore.png",
         "sonarr": "sonarr.png",
         "radarr": "radarr.png",

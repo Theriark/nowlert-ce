@@ -28,6 +28,7 @@ _INPUT_NAMES = {
 # Display names and input names are deliberately separate from those internal
 # identifiers so the WebUI never needs to expose values such as dell_idrac.
 _CATALOGUE = (
+    {"source": "checkmk", "name": "Checkmk", "category": "monitoring", "icon_key": "checkmk", "inputs": ("http",), "aliases": ("check_mk",)},
     {"source": "semaphore", "name": "Semaphore", "category": "automation", "icon_key": "semaphore", "inputs": ("smtp", "http"), "aliases": ()},
     {"source": "sonarr", "name": "Sonarr", "category": "automation", "icon_key": "sonarr", "inputs": ("http",), "aliases": ()},
     {"source": "radarr", "name": "Radarr", "category": "automation", "icon_key": "radarr", "inputs": ("http",), "aliases": ()},
@@ -180,6 +181,7 @@ _CATALOGUE = (
 #
 # Empty tuples mean that dimension is not exposed by that integration.
 _ROUTE_FILTERS = {
+    "checkmk": {"severities": ("information", "warning", "critical"), "statuses": ("firing", "resolved", "acknowledgement", "flappingstart", "flappingstop", "downtimestart", "downtimeend", "downtimecancelled", "alerthandler", "test")},
     "semaphore": {"severities": ("information", "warning", "error", "critical"), "statuses": ("success", "failure", "waiting", "waiting_confirmation", "starting", "confirmed", "rejected", "running", "stopping", "stopped", "unknown", "test")},
     "sonarr": {"severities": ("information", "warning", "error", "critical"), "statuses": ("firing", "resolved", "test", "information")},
     "radarr": {"severities": ("information", "warning", "error", "critical"), "statuses": ("firing", "resolved", "test", "information")},

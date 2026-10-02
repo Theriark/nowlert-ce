@@ -95,3 +95,5 @@ matching.
 
 See [platform-routing.md](platform-routing.md) for the full matching model and
 [`integrations/`](integrations/) for product-specific setup notes.
+
+Checkmk host/service notifications: HTTP `/checkmk/events`, application source scope `checkmk`; see [setup guide](checkmk.md).

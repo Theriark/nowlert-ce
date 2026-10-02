@@ -33,7 +33,7 @@ def test_bootstrap_admin_receives_shipped_route_catalog(tmp_path):
 
     expected = {(item["source"], item["input_type"]) for item in route_options()}
     assert {(item.source, item.input_type) for item in routes} == expected
-    assert len(routes) == len(expected) == 28
+    assert len(routes) == len(expected) == 29
     assert all(not item.destination_ids for item in routes)
     assert all(item.enabled for item in routes)
 
@@ -54,9 +54,9 @@ def test_upgrade_adds_only_new_application_routes_and_preserves_existing_state(t
             "INSERT INTO settings_records(namespace, setting_key, value_json, updated_at) VALUES (?, ?, ?, ?)",
             ("platform.default_routes", owner.id, json.dumps({"version": 1}), 1),
         )
-    assert seed_default_routes(database, owner.id, owner.role) == 5
+    assert seed_default_routes(database, owner.id, owner.role) == 6
     routes = RouteStore(database).list_for_owner(owner.actor, owner.id)
-    assert len(routes) == 7
+    assert len(routes) == 8
     preserved = next(item for item in routes if item.id == original.id)
     assert not preserved.enabled and preserved.name == "Custom Grafana"
     assert [item.id for item in routes if item.source == "sonarr"] == [existing_sonarr.id]
@@ -74,13 +74,35 @@ def test_default_routes_are_seeded_once_and_not_restored_after_deletion(tmp_path
         "correct horse battery staple",
     )
 
-    assert seed_default_routes(database, admin.id, admin.role) == 28
+    assert seed_default_routes(database, admin.id, admin.role) == 29
     assert seed_default_routes(database, admin.id, admin.role) == 0
     with database.transaction() as connection:
         connection.execute("DELETE FROM routes WHERE owner_user_id = ?", (admin.id,))
 
     assert seed_default_routes(database, admin.id, admin.role) == 0
     assert RouteStore(database).list_visible(admin.actor) == []
+
+
+def test_version_two_upgrade_adds_only_checkmk_once(tmp_path):
+    import json
+    from storage.default_routes import seed_default_routes
+
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    owner = UserStore(database, password_hasher=fast_hash).bootstrap_admin(
+        "administrator", "correct horse battery staple"
+    )
+    original = RouteStore(database).create(owner.actor, owner.id, "Keep disabled", "grafana", input_type="http", enabled=False)
+    with database.transaction() as connection:
+        connection.execute(
+            "INSERT INTO settings_records(namespace, setting_key, value_json, updated_at) VALUES (?, ?, ?, ?)",
+            ("platform.default_routes", owner.id, json.dumps({"version": 2}), 1),
+        )
+    assert seed_default_routes(database, owner.id, owner.role) == 1
+    assert seed_default_routes(database, owner.id, owner.role) == 0
+    routes = RouteStore(database).list_for_owner(owner.actor, owner.id)
+    assert {item.source for item in routes} == {"grafana", "checkmk"}
+    assert not next(item for item in routes if item.id == original.id).enabled
 
 
 def test_upgrade_does_not_restore_old_routes_deleted_before_upgrade(tmp_path):
@@ -97,9 +119,9 @@ def test_upgrade_does_not_restore_old_routes_deleted_before_upgrade(tmp_path):
             "INSERT INTO settings_records(namespace, setting_key, value_json, updated_at) VALUES (?, ?, ?, ?)",
             ("platform.default_routes", owner.id, json.dumps({"version": 1}), 1),
         )
-    assert seed_default_routes(database, owner.id, owner.role) == 6
+    assert seed_default_routes(database, owner.id, owner.role) == 7
     assert {route.source for route in RouteStore(database).list_visible(owner.actor)} == {
-        "semaphore", "sonarr", "radarr", "metabase", "github_actions"
+        "semaphore", "sonarr", "radarr", "metabase", "github_actions", "checkmk"
     }
     assert seed_default_routes(database, owner.id, owner.role) == 0
 
@@ -121,8 +143,8 @@ def test_existing_empty_accounts_are_seeded_on_upgrade_but_existing_routes_are_p
     )
 
     created = seed_missing_default_routes(database)
-    assert created == 28
-    assert len(RouteStore(database).list_for_owner(empty.actor, empty.id)) == 28
+    assert created == 29
+    assert len(RouteStore(database).list_for_owner(empty.actor, empty.id)) == 29
     assert [item.name for item in RouteStore(database).list_for_owner(populated.actor, populated.id)] == ["Custom"]
 
 
@@ -135,7 +157,7 @@ def test_regular_user_receives_assignable_integration_routes_without_admin_fallb
     users.bootstrap_admin("administrator", "correct horse battery staple")
     regular = users.create("operator-user", "operator secure password", role="user")
 
-    assert seed_default_routes(database, regular.id, regular.role) == 25
+    assert seed_default_routes(database, regular.id, regular.role) == 26
     routes = RouteStore(database).list_for_owner(regular.actor, regular.id)
     expected = {
         (item["source"], item["input_type"])
