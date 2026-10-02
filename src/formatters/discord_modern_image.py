@@ -4377,3 +4377,48 @@ class GenericFallbackDiscordModernImageRenderer(
             value,
             fallback,
         )
+
+
+class CheckmkDiscordModernImageRenderer(GenericFallbackDiscordModernImageRenderer):
+    """Keep native check output across the full card, outside the context grid."""
+
+    def render(self, notification: Notification, classic_payload: dict) -> bytes:
+        embed = self._embed(classic_payload)
+        lifecycle = self._lifecycle(embed, notification)
+        status = self._status_kind(lifecycle, self._embed_accent(embed))
+        if lifecycle.casefold() == "warning":
+            status = "warning"
+        accent = {"success": self.SUCCESS, "failure": self.FAILURE,
+                  "warning": self.BRAND_GOLD, "skipped": self.SKIPPED}[status]
+        metadata = notification.metadata or {}
+        rows = [{"label": f"{label}:", "value": self._clean(value)}
+                for label, value in (
+                    ("Host", metadata.get("host")),
+                    ("Service", metadata.get("service")),
+                    ("Notification", " · ".join(str(value) for value in
+                        (metadata.get("notification_type"), metadata.get("native_state")) if value)),
+                ) if value not in (None, "")]
+        timing = []
+        for label, value in (("Started", notification.start_time),
+                             ("Resolved", notification.end_time)):
+            if value:
+                timing.append({"label": f"{label}:", "value": self._normalize_timing_block(str(value))})
+        timing.extend({"label": f"{label}:", "value": self._clean(value)}
+                      for label, value in (("Site", metadata.get("site")),
+                                           ("Previous state", metadata.get("previous_state")))
+                      if value not in (None, ""))
+        return self._render_standard_card(
+            source="checkmk", integration="Checkmk",
+            context=self._context(notification, "Checkmk"),
+            badge={"Success": "Successful", "Failed": "Failure"}.get(lifecycle, lifecycle),
+            title=notification.title,
+            severity=self._summary_severity(notification, lifecycle),
+            category=self._summary_category(notification),
+            event_time=self._summary_time(notification, self._fields(embed)),
+            details=[{"title": "Source & Context", "rows": rows},
+                     {"title": "Timing", "rows": timing}],
+            outcomes=[{"title": "RESULT" if status == "success" else "EVENT DETAILS",
+                       "rows": [{"icon": "cube", "value": notification.body or notification.title}],
+                       "full_width": True, "accent": accent, "status": status}],
+            accent=accent, status=status, font_profile=self.MODERN_FONT_PROFILE,
+        )
