@@ -183,6 +183,12 @@ class HTTPHandler(BaseHTTPRequestHandler):
         except BodyError as error:
             self._respond(error.status)
             return
+        if application == "metabase" and not body:
+            # Metabase checks webhook connectivity with an authenticated empty
+            # POST, before sending question-alert envelopes. A probe is not an
+            # event and must never create a destination delivery.
+            self._respond(acknowledgement)
+            return
         if application == "github_actions":
             # GitHub cannot set custom authorization headers. Authenticate the
             # URL token through the ordinary source scope and also require its
