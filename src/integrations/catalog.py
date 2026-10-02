@@ -180,7 +180,7 @@ _CATALOGUE = (
 #
 # Empty tuples mean that dimension is not exposed by that integration.
 _ROUTE_FILTERS = {
-    "semaphore": {"severities": ("information", "warning", "error", "critical"), "statuses": ("success", "failure", "failed", "waiting", "running", "stopped", "queued", "in_progress", "cancelled", "skipped", "neutral", "timed_out", "action_required", "startup_failure", "test")},
+    "semaphore": {"severities": ("information", "warning", "error", "critical"), "statuses": ("success", "failure", "waiting", "waiting_confirmation", "starting", "confirmed", "rejected", "running", "stopping", "stopped", "unknown", "test")},
     "sonarr": {"severities": ("information", "warning", "error", "critical"), "statuses": ("firing", "resolved", "test", "information")},
     "radarr": {"severities": ("information", "warning", "error", "critical"), "statuses": ("firing", "resolved", "test", "information")},
     "metabase": {"severities": ("information", "warning", "error", "critical"), "statuses": ("firing", "resolved", "test", "information")},

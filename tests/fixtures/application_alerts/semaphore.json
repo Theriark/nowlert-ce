@@ -3,7 +3,7 @@
     {
       "title": "Task: Infrastructure apply",
       "title_link": "https://semaphore.example/project/1/history?t=42",
-      "text": "execution #42, status: failed!",
+      "text": "execution #42, status: \u274c ERROR!",
       "color": "#ff0000",
       "fields": [
         {

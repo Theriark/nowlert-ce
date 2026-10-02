@@ -119,6 +119,9 @@ class Dispatcher:
             if match:
                 notification.run_id = match.group(1)
                 notification.metadata["template"] = match.group(2)
+                if match.group(1) == "0" and match.group(2) == "Test Notification":
+                    notification.status = "information"
+                    notification.metadata.update({"state": "test", "severity": "information"})
             return notification
 
         unifi_drive_candidate = self.unifi_drive_parser.is_message(

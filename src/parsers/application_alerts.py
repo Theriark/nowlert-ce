@@ -112,11 +112,17 @@ class Parser:
         message = text(attachment["text"])
         match = re.search(r"execution #(\d+), status:\s*(.*?)!?(?:\n|$)", message, re.I)
         result = match.group(2).rstrip("!").strip().casefold()
-        state = next((value for value in ("failure", "failed", "success", "waiting", "running", "stopped") if value in result), result)
+        # TaskStatus.Format() emits an emoji followed by an uppercase status,
+        # notably ERROR rather than FAILED and WAITING_CONFIRMATION.
+        status_match = re.search(r"\b([a-z_]+)\s*$", result)
+        native_status = status_match.group(1) if status_match else "unknown"
+        state = {"error": "failure", "failed": "failure"}.get(native_status, native_status)
+        if match.group(1) == "0" and text(attachment["title"])[5:].strip() == "Test Notification":
+            state = "test"
         fields = {text(field.get("title")).casefold(): text(field.get("value")) for field in attachment.get("fields", []) if isinstance(field, dict)}
         return self._notification(
             text(attachment["title"])[5:].strip(), message, state,
-            "error" if state in {"failure", "failed"} else "information", "automation", {
+            "error" if state == "failure" else "warning" if state == "waiting_confirmation" else "information", "automation", {
                 "template": text(attachment["title"])[5:].strip(), "actor": fields.get("author", ""),
                 "version": fields.get("version", ""), "action_link": text(attachment.get("title_link")),
                 "event_type": "task_result",

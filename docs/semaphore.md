@@ -38,6 +38,11 @@ Provider configuration/UI differs by Semaphore version; older installations use
 server configuration plus the project's Allow alerts option. Newer versions
 also provide project alerts and Send test message.
 
+A successful HTTP callback returns **200**, as required by Semaphore’s native
+notifier. Native `ERROR` is normalized to failure; `WAITING_CONFIRMATION` remains
+a distinct, filterable state. The built-in zero-ID Test Notification is marked
+as a test.
+
 The receiver accepts the native `attachments` entries containing `Task:` and
 `execution #..., status: ...`. It exposes template, actor, version, run ID,
 status and severity to central filtering. Waiting/running/stopped states are

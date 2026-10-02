@@ -144,7 +144,8 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
         # Older iLO event clients require an explicit 200 acknowledgement.
         # Use it for duplicates and disabled-input acknowledgements too.
-        acknowledgement = 200 if application == "hpe" else 204
+        # Semaphore's native Slack notifier explicitly requires HTTP 200.
+        acknowledgement = 200 if application in {"hpe", "semaphore"} else 204
 
         if not self._authenticated_application(
             application,

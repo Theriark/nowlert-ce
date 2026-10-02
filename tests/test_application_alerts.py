@@ -102,6 +102,25 @@ def test_native_semaphore_smtp_failure_requires_application_identity():
     assert Dispatcher().parse(message).source == "generic"
 
 
+@pytest.mark.parametrize("native,state,status", [
+    ("❌ ERROR", "failure", "failure"),
+    ("✅ SUCCESS", "success", "success"),
+    ("⚠️ WAITING_CONFIRMATION", "waiting_confirmation", "warning"),
+    ("⏹️ STOPPED", "stopped", "information"),
+])
+def test_semaphore_native_task_status_format(native, state, status):
+    value = payload("semaphore")
+    value["attachments"][0]["text"] = f"execution #42, status: {native}!"
+    item = Parser("semaphore").parse(value)[0]
+    assert item.metadata["state"] == state and item.status == status
+
+
+def test_semaphore_native_zero_id_notification_test():
+    value = payload("semaphore")
+    value["attachments"][0].update(title="Task: Test Notification", text="execution #0, status: ✅ SUCCESS!")
+    assert Parser("semaphore").parse(value)[0].metadata["state"] == "test"
+
+
 @pytest.mark.parametrize("source", ["semaphore", "sonarr", "radarr", "metabase"])
 def test_authenticated_native_http_inputs(source):
     install()
@@ -110,7 +129,8 @@ def test_authenticated_native_http_inputs(source):
     token = "synthetic-source-token"
     with RunningServer(shared_secret=token) as server:
         assert request(server.port, path, payload(source)) == 401
-        assert request(server.port, path, payload(source), {"Content-Type": "application/json", "X-Nowlert-Token": token}) == 204
+        expected = 200 if source == "semaphore" else 204
+        assert request(server.port, path, payload(source), {"Content-Type": "application/json", "X-Nowlert-Token": token}) == expected
         assert len(server.router.notifications) == 1
         assert server.router.notifications[0].metadata["_input_type"] == "HTTP"
 
