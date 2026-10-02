@@ -270,3 +270,51 @@ def test_admin_delivery_history_excludes_private_user_destination_contents(acces
     alice_visible = platform["history"].list_visible(alice.actor)
     assert {item.destination_id for item in admin_visible} == {shared.id}
     assert {item.destination_id for item in alice_visible} == {private.id, shared.id}
+
+
+def test_system_route_choices_merge_account_copies_without_losing_assignments(access_platform):
+    platform = access_platform
+    routes = platform["routes"]
+    destinations = platform["destinations"]
+    relationships = platform["relationships"]
+    admin, alice, bob = (platform[key] for key in ("admin", "alice", "bob"))
+    first = routes.create(admin.actor, admin.id, "Sonarr HTTP", "sonarr", input_type="http")
+    duplicate = routes.create(alice.actor, alice.id, "Sonarr HTTP", "sonarr", input_type="http")
+    smtp = routes.create(admin.actor, admin.id, "Semaphore SMTP", "semaphore", input_type="smtp")
+    http = routes.create(admin.actor, admin.id, "Semaphore HTTP", "semaphore", input_type="http")
+    shared = destinations.create(admin.actor, admin.id, "Company Discord", "discord", settings={}, shared=True)
+    private = destinations.create(alice.actor, alice.id, "Private Discord", "discord", settings={}, shared=False)
+    relationships.replace_for_destination(admin.actor, shared.id, [first.id])
+    relationships.replace_for_destination(alice.actor, private.id, [duplicate.id])
+
+    choices = routes.list_visible(alice.actor)
+    sonarr = [route for route in choices if route.source == "sonarr"]
+    assert len(sonarr) == 1
+    assert set(sonarr[0].destination_ids) == {shared.id, private.id}
+    assert {route.input_type for route in choices if route.source == "semaphore"} == {"http", "smtp"}
+    assert relationships.route_ids_for_destination(alice.actor, private.id) == (sonarr[0].id,)
+    assert [route.destination_ids for route in routes.list_visible(bob.actor) if route.source == "sonarr"] == [(shared.id,)]
+
+    # Saving the checked representative migrates only this destination's links.
+    relationships.replace_for_destination(alice.actor, private.id, [sonarr[0].id])
+    assert relationships.route_ids_for_destination(alice.actor, private.id) == (sonarr[0].id,)
+    relationships.replace_for_destination(alice.actor, private.id, [])
+    assert relationships.route_ids_for_destination(alice.actor, private.id) == ()
+    assert relationships.route_ids_for_destination(admin.actor, shared.id) == (sonarr[0].id,)
+    with platform["database"].connect() as connection:
+        assert connection.execute("SELECT COUNT(*) FROM routes").fetchone()[0] == 4
+
+
+def test_seeded_accounts_share_one_system_catalogue_in_selector(access_platform):
+    from integrations.catalog import route_options
+    from storage.default_routes import seed_default_routes
+
+    platform = access_platform
+    for key in ("admin", "alice", "bob"):
+        user = platform[key]
+        seed_default_routes(platform["database"], user.id, user.role)
+    expected = {(item["source"], item["input_type"]) for item in route_options()}
+    for key in ("admin", "alice", "bob"):
+        choices = platform["routes"].list_visible(platform[key].actor)
+        assert len(choices) == len(expected)
+        assert {(route.source, route.input_type) for route in choices} == expected

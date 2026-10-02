@@ -680,13 +680,28 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
         self._reconcile_catalogue_route_matrix()
         with self.database.connect() as connection:
             rows = connection.execute(
-                "SELECT * FROM routes ORDER BY priority, name_normalized"
+                "SELECT * FROM routes ORDER BY priority, name_normalized, id"
             ).fetchall()
-        items = []
+        # Routes are system integration plumbing, not account-specific filters.
+        # Older accounts each own a seeded copy of the same source/input pair.
+        # Project them as one choice, retaining every visible assignment and all
+        # backing records (including their delivery history and ownership).
+        items_by_pair = {}
         errors = []
         for row in rows:
             try:
-                items.append(self._for_actor(actor, row))
+                route = self._for_actor(actor, row)
+                pair = self._matrix_pair(route.source, route.input_type)
+                previous = items_by_pair.get(pair)
+                if previous is None:
+                    items_by_pair[pair] = route
+                else:
+                    items_by_pair[pair] = replace(
+                        previous,
+                        destination_ids=tuple(dict.fromkeys(
+                            (*previous.destination_ids, *route.destination_ids)
+                        )),
+                    )
             except Exception as error:
                 errors.append(
                     {
@@ -696,7 +711,7 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
                         "message": f"Route {str(row['name'])!r} could not be loaded: {error}",
                     }
                 )
-        return items, errors
+        return list(items_by_pair.values()), errors
 
     def matching(self, actor: Actor, owner_user_id: str, notification: Notification):
         source = canonical_source(notification.source)
@@ -755,6 +770,16 @@ class AccessControlledRouteDestinationStore(RouteDestinationStore):
         if write:
             OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
         return row
+
+    def route_ids_for_destination(self, actor, destination_id):
+        self._destination(actor, destination_id, write=False)
+        # Return the same representative IDs as the system route selector. A
+        # destination assigned an older account's copy must remain checked.
+        return tuple(
+            route.id
+            for route in SystemRoutingRouteStore(self.database).list_visible(actor)
+            if str(destination_id) in route.destination_ids
+        )
 
     def validate_for_destination(self, actor, destination_id, route_ids):
         destination = self._destination(actor, destination_id, write=True)
