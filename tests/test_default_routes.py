@@ -83,6 +83,27 @@ def test_default_routes_are_seeded_once_and_not_restored_after_deletion(tmp_path
     assert RouteStore(database).list_visible(admin.actor) == []
 
 
+def test_upgrade_does_not_restore_old_routes_deleted_before_upgrade(tmp_path):
+    import json
+    from storage.default_routes import seed_default_routes
+
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    owner = UserStore(database, password_hasher=fast_hash).bootstrap_admin(
+        "administrator", "correct horse battery staple"
+    )
+    with database.transaction() as connection:
+        connection.execute(
+            "INSERT INTO settings_records(namespace, setting_key, value_json, updated_at) VALUES (?, ?, ?, ?)",
+            ("platform.default_routes", owner.id, json.dumps({"version": 1}), 1),
+        )
+    assert seed_default_routes(database, owner.id, owner.role) == 6
+    assert {route.source for route in RouteStore(database).list_visible(owner.actor)} == {
+        "semaphore", "sonarr", "radarr", "metabase", "github_actions"
+    }
+    assert seed_default_routes(database, owner.id, owner.role) == 0
+
+
 def test_existing_empty_accounts_are_seeded_on_upgrade_but_existing_routes_are_preserved(tmp_path):
     from storage.default_routes import seed_missing_default_routes
 

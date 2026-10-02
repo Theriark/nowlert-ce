@@ -55,7 +55,7 @@ def seed_default_routes(
         ).fetchone()[0]
         if not existing or version == 1:
             for option in route_options():
-                if existing and option["source"] not in _ADDED_SOURCES:
+                if version == 1 and option["source"] not in _ADDED_SOURCES:
                     continue
                 if connection.execute(
                     "SELECT 1 FROM routes WHERE owner_user_id = ? AND source = ? AND input_type = ?",
