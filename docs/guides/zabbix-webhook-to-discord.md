@@ -10,7 +10,7 @@ then apply delivery filters centrally. This walkthrough was tested on **Zabbix
 1. Create or edit your destination in **Destinations** and test it.
 2. Open **Manage routes**, select the built-in **Zabbix HTTP** route, click
    **Done**, then **Save changes**. Do not create duplicate routes.
-3. In **Settings → API Access**, issue an application token scoped only to
+3. Open your user menu → **Profile → API tokens**, then issue an application token scoped only to
    `zabbix`. Choose a rate limit suited to your alert volume; this deployment
    uses 300 events/minute. Copy the value privately when issued.
 
