@@ -48,6 +48,7 @@ from formatters.discord_unifi import (
 )
 from formatters.discord_zabbix import ZabbixDiscordFormatter
 from formatters.discord_modern_image import (
+    CheckmkDiscordModernImageRenderer,
     DiscordModernImageRenderer,
     GenericFallbackDiscordModernImageRenderer,
     GrafanaDiscordModernImageRenderer,
@@ -129,6 +130,7 @@ class DiscordOutput:
         self.generic_fallback_modern_image_renderer = (
             GenericFallbackDiscordModernImageRenderer(self.ICON_DIR)
         )
+        self.checkmk_modern_image_renderer = CheckmkDiscordModernImageRenderer(self.ICON_DIR)
 
         self.source_formatters = {
             **{source: ApplicationDiscordFormatter() for source in APPLICATION_NAMES},
@@ -387,6 +389,8 @@ class DiscordOutput:
                 if source == "home_assistant"
                 else self.redfish_modern_image_renderer
                 if source == "redfish"
+                else self.checkmk_modern_image_renderer
+                if source == "checkmk"
                 else self.generic_fallback_modern_image_renderer
             )
             return renderer.render(
