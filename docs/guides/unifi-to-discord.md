@@ -4,7 +4,7 @@ Configure UniFi Alarm Manager to send supported events to Nowlert, then use
 Nowlert's destination filters to decide which alerts should reach Discord.
 This walkthrough was captured on 2 October 2026 with Network 10.6.106,
 Drive 4.4.9 and UniFi OS 5.1.33. Network and Protect run on UDM-01;
-Drive runs on UNAS-01. Existing notification and Notifinho alarms were preserved.
+Drive runs on UNAS-01. Existing notification and webhook alarms were preserved.
 
 ## 1. Prepare routes and source tokens
 
