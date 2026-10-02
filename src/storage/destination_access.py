@@ -775,9 +775,10 @@ class AccessControlledRouteDestinationStore(RouteDestinationStore):
         self._destination(actor, destination_id, write=False)
         # Return the same representative IDs as the system route selector. A
         # destination assigned an older account's copy must remain checked.
+        routes, _errors = SystemRoutingRouteStore(self.database).list_visible_safe(actor)
         return tuple(
             route.id
-            for route in SystemRoutingRouteStore(self.database).list_visible(actor)
+            for route in routes
             if str(destination_id) in route.destination_ids
         )
 
