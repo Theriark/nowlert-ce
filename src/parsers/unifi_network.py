@@ -4,6 +4,7 @@ from __future__ import annotations
 
 
 from models import Notification
+from parsers.unifi_lifecycle import event_lifecycle
 
 
 def normalize_vendor_severity(
@@ -17,6 +18,10 @@ def normalize_vendor_severity(
     disconnect at the discovered severity ``2`` remains informational unless
     stronger failure wording is present.
     """
+
+    lifecycle = event_lifecycle(event_name)
+    if lifecycle:
+        return lifecycle[:2]
 
     try:
         numeric = int(value)
@@ -102,6 +107,7 @@ class Parser:
             "event_name": event_name,
             "category": notification.category,
             "severity": severity,
+            "event_state": (event_lifecycle(event_name) or (status, severity, status))[2],
             "vendor_severity": payload.get("severity"),
             "message": message,
             "controller": self._text(parameters.get("UNIFIhost")),

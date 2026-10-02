@@ -45,11 +45,15 @@ iDRAC/Redfish routing, and Zabbix Event API delivery to Discord.
 Current release material:
 
 - [v3.1.6 release notes](releases/v3.1.6.md)
-- [v3.1.6 QA checklist](v3.1.6-qa-checklist.md)
+- [v3.1.6 QA checklist](releases/validation/v3.1.6-qa-checklist.md)
 
 Historical notes under `releases/` and historical acceptance/QA checklists are
 version snapshots. They are intentionally preserved even when a newer release
 changes current documentation.
+
+Release checklists are grouped in the [validation archive](releases/validation/README.md)
+to keep the operator documentation easy to browse. They record release QA;
+they do not enable integrations or change runtime behavior.
 
 ## Screenshots
 

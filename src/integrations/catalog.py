@@ -328,13 +328,15 @@ _ROUTE_FILTERS = {
             "warning",
             "critical",
         ),
-        "statuses": (),
+        "statuses": ("information", "warning", "failure", "firing", "success", "resolved"),
     },
     "unifi_protect": {
         "severities": (
             "information",
+            "warning",
+            "critical",
         ),
-        "statuses": (),
+        "statuses": ("information", "firing", "success", "resolved"),
     },
     "unifi_drive": {
         "severities": (

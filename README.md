@@ -123,7 +123,7 @@ Highlights:
   promotion or release publication.
 
 See [v3.1.6 release notes](docs/releases/v3.1.6.md) and the
-[v3.1.6 QA checklist](docs/v3.1.6-qa-checklist.md).
+[v3.1.6 QA checklist](docs/releases/validation/v3.1.6-qa-checklist.md).
 
 ---
 

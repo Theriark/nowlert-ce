@@ -10,6 +10,7 @@ from formatters.unifi import (
     protect_device_display,
 )
 from models import Notification
+from parsers.unifi_lifecycle import event_lifecycle
 
 
 class Parser:
@@ -57,11 +58,14 @@ class Parser:
         outer_time = self._timestamp(payload.get("timestamp"))
         event_time = self._timestamp(primary.get("timestamp")) or outer_time
         event_link = self._valid_url(alarm.get("eventLocalLink"))
+        status, severity, state = event_lifecycle(trigger_key) or (
+            "information", "information", "information"
+        )
 
         notification = Notification(
             source="unifi_protect",
             category="security",
-            status="information",
+            status=status,
             title=visible_title,
             subject=visible_title,
             body=self._body(trigger_label or trigger_key, trigger_device),
@@ -86,7 +90,8 @@ class Parser:
             "event_path": self._text(alarm.get("eventPath")),
             "event_id": self._text(primary.get("event_id")),
             "alarm_id": self._text(payload.get("alarm_id")),
-            "severity": "information",
+            "severity": severity,
+            "event_state": state,
             "parser_confidence": "high",
             "triggers": normalized_triggers,
         }

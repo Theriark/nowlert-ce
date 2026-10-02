@@ -114,6 +114,49 @@ def test_protect_discovered_motion_envelope():
     assert notification.metadata["event_link"].startswith("https://protect.example/")
 
 
+@pytest.mark.parametrize("name,status,state", [
+    ("UPS Power Restored", "success", "resolved"),
+    ("Internet Restored", "success", "resolved"),
+    ("UniFi Device Connected", "success", "resolved"),
+    ("UniFi Device Disconnected", "failure", "firing"),
+    ("Network Accessed", "information", "information"),
+    ("UPS power restore failed", "failure", "failure"),
+])
+def test_network_explicit_lifecycle_overrides_vendor_severity(name,status,state):
+    value = network_payload()
+    value.update(name=name, message="Previous device offline problem", severity=5)
+    item = NetworkParser().parse(value)
+    assert item.status == status
+    assert item.metadata["event_state"] == state
+    assert item.metadata["vendor_severity"] == 5
+    if status in {"success", "information"}:
+        assert item.metadata["severity"] == "information"
+
+
+@pytest.mark.parametrize("key,status,state", [
+    ("device_offline", "failure", "firing"),
+    ("device_online", "success", "resolved"),
+    ("device_issue", "warning", "firing"),
+    ("device_update_failed", "failure", "firing"),
+    ("device_update_completed", "success", "success"),
+    ("motion", "information", "information"),
+    ("person", "information", "information"),
+    ("future_unknown_event", "information", "information"),
+])
+def test_protect_native_trigger_lifecycle_not_operator_alarm_name(key,status,state):
+    value = protect_payload()
+    value["alarm"]["name"] = "Everything recovered"
+    value["alarm"]["triggers"][0]["key"] = key
+    item = ProtectParser().parse(value)
+    assert item.status == status
+    assert item.metadata["event_state"] == state
+
+
+def test_unifi_recovery_icon_overrides_prior_critical_severity():
+    from formatters.unifi import notification_status_icon
+    assert notification_status_icon("resolved", "critical") == "✅"
+
+
 def test_protect_resolves_payload_camera_name_from_raw_trigger_identifier():
     payload = protect_payload()
     payload["alarm"]["triggers"][0]["device"] = "AC8BA90DD406"

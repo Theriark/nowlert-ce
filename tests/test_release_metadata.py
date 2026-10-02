@@ -87,18 +87,18 @@ def test_current_runtime_guides_do_not_regress_to_v311_contract():
 
 def test_historical_v300_v310_v311_v312_v313_v314_and_v315_documents_remain_historical():
     v300_notes = ROOT / "docs" / "releases" / "v3.0.0.md"
-    v300_checklist = ROOT / "docs" / "v3.0.0-acceptance-checklist.md"
+    v300_checklist = ROOT / "docs" / "releases" / "validation" / "v3.0.0-acceptance-checklist.md"
     v310_notes = ROOT / "docs" / "releases" / "v3.1.0.md"
     v311_notes = ROOT / "docs" / "releases" / "v3.1.1.md"
-    v311_checklist = ROOT / "docs" / "v3.1.1-qa-checklist.md"
+    v311_checklist = ROOT / "docs" / "releases" / "validation" / "v3.1.1-qa-checklist.md"
     v312_notes = ROOT / "docs" / "releases" / "v3.1.2.md"
-    v312_checklist = ROOT / "docs" / "v3.1.2-qa-checklist.md"
+    v312_checklist = ROOT / "docs" / "releases" / "validation" / "v3.1.2-qa-checklist.md"
     v313_notes = ROOT / "docs" / "releases" / "v3.1.3.md"
-    v313_checklist = ROOT / "docs" / "v3.1.3-qa-checklist.md"
+    v313_checklist = ROOT / "docs" / "releases" / "validation" / "v3.1.3-qa-checklist.md"
     v314_notes = ROOT / "docs" / "releases" / "v3.1.4.md"
-    v314_checklist = ROOT / "docs" / "v3.1.4-qa-checklist.md"
+    v314_checklist = ROOT / "docs" / "releases" / "validation" / "v3.1.4-qa-checklist.md"
     v315_notes = ROOT / "docs" / "releases" / "v3.1.5.md"
-    v315_checklist = ROOT / "docs" / "v3.1.5-qa-checklist.md"
+    v315_checklist = ROOT / "docs" / "releases" / "validation" / "v3.1.5-qa-checklist.md"
     docker_hub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
 
     assert v300_notes.read_text(encoding="utf-8").startswith(
