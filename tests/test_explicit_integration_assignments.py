@@ -4,11 +4,14 @@ import pytest
 
 from integrations.catalog import route_options
 from models import Notification
-from storage.delivery import DeliveryResult
+from storage.delivery import DeliveryResult, DeliveryHistoryStore, PlatformDeliveryService
 from storage.destination_access import AccessControlledRouteDestinationStore
 from storage.destinations import DestinationStore
 from storage.routing_bridge import PlatformRoutingBridge
 from storage.routes import RouteStore
+from storage.filtering import DestinationFilterStore, FilteredPlatformDeliveryService, RoutingOnlyRouteStore
+from storage.secrets import SecretStore
+from types import SimpleNamespace
 from test_system_routing_fallback import database_with_admin
 
 
@@ -16,7 +19,8 @@ OPTIONS = [option for option in route_options() if option["source"] != "*"]
 
 
 @pytest.mark.parametrize("option", OPTIONS, ids=lambda item: f"{item['source']}-{item['input_type']}")
-def test_delivery_requires_explicit_assignment_even_with_fallback(tmp_path, option):
+@pytest.mark.parametrize("engine", ["system", "filtered", "one-pass"])
+def test_delivery_requires_explicit_assignment_even_with_fallback(tmp_path, option, engine):
     database, actor = database_with_admin(tmp_path)
     destinations = DestinationStore(database)
     selected = destinations.create(actor, actor.user_id, "Selected", "webhook", settings={})
@@ -35,6 +39,13 @@ def test_delivery_requires_explicit_assignment_even_with_fallback(tmp_path, opti
                 sent.append(target.id) or DeliveryResult(True, response_status=204))}
 
     bridge = PlatformRoutingBridge(database, registry=Registry())
+    if engine != "system":
+        service_class = FilteredPlatformDeliveryService if engine == "filtered" else PlatformDeliveryService
+        kwargs = {"filters": DestinationFilterStore(database)} if engine == "filtered" else {}
+        route_store = RoutingOnlyRouteStore(database) if engine == "filtered" else routes
+        service = service_class(route_store, destinations, SecretStore(database),
+                                DeliveryHistoryStore(database), Registry().delivery_adapters(), **kwargs)
+        bridge = SimpleNamespace(route=lambda event: service.deliver(actor, event))
     event = Notification(source=option["source"], title="Route selection probe",
                          metadata={"_input_type": option["input_type"]})
     assert bridge.route(event).delivered == 0
