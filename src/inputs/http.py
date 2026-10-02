@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from config import config
 from api.service import APIService
+from inputs.http_body import BodyError, read_body
 from logger import log
 from outputs.teams_modern_image import (
     TEAMS_MODERN_CARD_PUBLIC_PATH,
@@ -155,20 +156,9 @@ class HTTPHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            length = int(self.headers.get("Content-Length", ""))
-        except (TypeError, ValueError):
-            self._respond(400)
-            return
-        if length < 0:
-            self._respond(400)
-            return
-        if length > self.server.max_body_bytes:
-            self._respond(413)
-            return
-
-        body = self.rfile.read(length)
-        if len(body) > self.server.max_body_bytes:
-            self._respond(413)
+            body = self._read_body()
+        except BodyError as error:
+            self._respond(error.status)
             return
         try:
             if form_encoded:
@@ -386,7 +376,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
         length_header = self.headers.get("Content-Length")
         delete_has_body = (
             method == "DELETE"
-            and length_header not in {None, "", "0"}
+            and (length_header not in {None, "", "0"} or "Transfer-Encoding" in self.headers)
         )
         if method in {"POST", "PUT", "PATCH"} or delete_has_body:
             content_type = self.headers.get("Content-Type", "")
@@ -394,15 +384,10 @@ class HTTPHandler(BaseHTTPRequestHandler):
                 self._respond_json(400, {"error": "application/json required"})
                 return
             try:
-                length = int(length_header or "")
-            except (TypeError, ValueError):
-                self._respond_json(400, {"error": "invalid content length"})
+                payload = json.loads(self._read_body().decode("utf-8"))
+            except BodyError as error:
+                self._respond_json(error.status, {"error": "invalid request body"})
                 return
-            if length < 0 or length > self.server.max_body_bytes:
-                self._respond_json(413 if length > self.server.max_body_bytes else 400, None)
-                return
-            try:
-                payload = json.loads(self.rfile.read(length).decode("utf-8"))
             except (UnicodeError, json.JSONDecodeError):
                 self._respond_json(400, {"error": "invalid JSON"})
                 return
@@ -418,6 +403,18 @@ class HTTPHandler(BaseHTTPRequestHandler):
             response.payload,
             response.headers,
         )
+
+    def _read_body(self) -> bytes:
+        previous_timeout = self.connection.gettimeout()
+        self.connection.settimeout(10)
+        try:
+            return read_body(self.rfile, self.headers, self.server.max_body_bytes)
+        except TimeoutError:
+            raise BodyError(408) from None
+        except OSError:
+            raise BodyError() from None
+        finally:
+            self.connection.settimeout(previous_timeout)
 
     def _respond(self, status: int, headers: dict[str, str] | None = None) -> None:
         self.send_response(status)

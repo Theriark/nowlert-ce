@@ -18,6 +18,18 @@ may use the existing global `http.shared_secret` or an enabled v1.9 token whose
 `sources` contains the normalized source. Send the token in
 `X-Nowlert-Token` or as `Authorization: Bearer TOKEN`.
 
+The native HTTP input accepts both `Content-Length` and
+`Transfer-Encoding: chunked`, including controller requests split across several
+chunks. The decoded body remains subject to `http.max_body_bytes` (1 MiB by
+default). Invalid or truncated framing returns 400, an oversized body returns
+413, and a body-read timeout returns 408. Requests containing both framing
+headers are rejected. Authentication headers must be in the initial header
+section; trailers cannot supply or replace them.
+
+Chunked request support does not require a buffering proxy. Older controllers
+can still require a separately configured HTTPS listener for firmware-specific
+TLS or SNI compatibility; this HTTP fix does not change website TLS settings.
+
 ```yaml
 http:
   enabled: true
