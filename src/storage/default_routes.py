@@ -12,8 +12,8 @@ from storage.validation import normalized_name
 
 
 _SEED_NAMESPACE = "platform.default_routes"
-_SEED_VERSION = 2
-_ADDED_SOURCES = frozenset({"semaphore", "sonarr", "radarr", "metabase", "github_actions"})
+_SEED_VERSION = 3
+_ADDED_SOURCES = frozenset({"semaphore", "sonarr", "radarr", "metabase", "github_actions", "checkmk"})
 
 
 def seed_default_routes(
@@ -53,9 +53,11 @@ def seed_default_routes(
             "SELECT COUNT(*) FROM routes WHERE owner_user_id = ?",
             (owner_user_id,),
         ).fetchone()[0]
-        if not existing or version == 1:
+        if not existing or version in {1, 2}:
             for option in route_options():
                 if version == 1 and option["source"] not in _ADDED_SOURCES:
+                    continue
+                if version == 2 and option["source"] != "checkmk":
                     continue
                 if connection.execute(
                     "SELECT 1 FROM routes WHERE owner_user_id = ? AND source = ? AND input_type = ?",

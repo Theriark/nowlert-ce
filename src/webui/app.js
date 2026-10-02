@@ -45,6 +45,7 @@ const SOURCE_ICONS = {
   grafana: "/ui/source-icons/grafana.png",
   prometheus: "/ui/source-icons/prometheus.png",
   portainer: "/ui/source-icons/portainer.png",
+  checkmk: "/ui/source-icons/checkmk.png",
   semaphore: "/ui/source-icons/semaphore.png",
   sonarr: "/ui/source-icons/sonarr.png",
   radarr: "/ui/source-icons/radarr.png",

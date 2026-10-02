@@ -10,6 +10,17 @@ from integrations.catalog import canonical_source, integration, integrations
 # Only stable Notification attributes and normalized parser metadata are exposed.
 # Raw parser payloads/source_fields are deliberately excluded from Filtering.
 _TEXT_FIELDS = {
+    "checkmk": (
+        ("host", "Host", ("metadata.host",)),
+        ("host_alias", "Host Alias", ("metadata.host_alias",)),
+        ("address", "Address", ("metadata.address",)),
+        ("service", "Service", ("metadata.service",)),
+        ("object_type", "Object Type", ("metadata.object_type",)),
+        ("native_state", "Native State", ("metadata.native_state",)),
+        ("notification_type", "Notification Type", ("metadata.notification_type",)),
+        ("site", "Site", ("metadata.site",)),
+        ("previous_state", "Previous State", ("metadata.previous_state",)),
+    ),
     "semaphore": (
         ("template", "Template", ("metadata.template",)),
         ("actor", "Actor", ("metadata.actor",)),

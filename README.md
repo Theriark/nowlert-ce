@@ -715,3 +715,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 Nowlert CE is released under the MIT License. See [LICENSE](LICENSE).
 
 Powered by **Theriark**.
+
+[Checkmk notifications](docs/checkmk.md): native notification script, host/service states, recovery, acknowledgement, downtime and flapping events.

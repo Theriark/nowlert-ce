@@ -24,6 +24,7 @@ from webui.service import SECURITY_HEADERS, WebUIService
 
 
 ENDPOINTS = {
+    "/checkmk/events": "checkmk",
     "/semaphore/events": "semaphore",
     "/sonarr/events": "sonarr",
     "/radarr/events": "radarr",
@@ -45,6 +46,7 @@ ENDPOINTS = {
 }
 
 SCOPED_SOURCES = {
+    "checkmk": "checkmk",
     "semaphore": "semaphore",
     "sonarr": "sonarr",
     "radarr": "radarr",

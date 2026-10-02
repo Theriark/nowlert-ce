@@ -340,6 +340,6 @@ def test_system_route_projection_batches_database_reads_across_account_copies(ac
 
     monkeypatch.setattr(database, "connect", count_connections)
     choices = platform["routes"].list_visible(platform["admin"].actor)
-    assert len(choices) == 25
+    assert len(choices) == 26
     # Hundreds of backing records must not require hundreds of connections.
     assert len(reads) <= 6

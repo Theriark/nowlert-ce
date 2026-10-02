@@ -121,7 +121,7 @@ def test_semaphore_native_zero_id_notification_test():
     assert Parser("semaphore").parse(value)[0].metadata["state"] == "test"
 
 
-@pytest.mark.parametrize("source", ["semaphore", "sonarr", "radarr", "metabase"])
+@pytest.mark.parametrize("source", ["checkmk", "semaphore", "sonarr", "radarr", "metabase"])
 def test_authenticated_native_http_inputs(source):
     install()
     path = next(path for path, application in ENDPOINTS.items() if application == source)

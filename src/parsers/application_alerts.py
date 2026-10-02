@@ -8,6 +8,7 @@ from models import Notification
 
 
 NAMES = {
+    "checkmk": "Checkmk",
     "semaphore": "Semaphore",
     "sonarr": "Sonarr",
     "radarr": "Radarr",
@@ -34,6 +35,11 @@ class Parser:
     def is_envelope(self, payload):
         if not isinstance(payload, dict):
             return False
+        if self.source == "checkmk":
+            c = object_value(payload, "checkmk")
+            what = c.get("WHAT")
+            states = {"HOST": {"UP", "DOWN", "UNREACH"}, "SERVICE": {"OK", "WARN", "CRIT", "UNKNOWN"}}
+            return isinstance(what, str) and what in states and isinstance(c.get(what + "STATE"), str) and bool(text(c.get("HOSTNAME"))) and bool(text(c.get("NOTIFICATIONTYPE"))) and c.get(what + "STATE") in states[what] and (what == "HOST" or bool(text(c.get("SERVICEDESC"))))
         if self.source in {"sonarr", "radarr"}:
             return bool(text(payload.get("eventType"))) and isinstance(payload.get("instanceName"), str)
         if self.source == "metabase":
@@ -56,6 +62,24 @@ class Parser:
             raise ValueError(f"invalid {NAMES[self.source]} notification")
         if self.source == "semaphore":
             return [self._semaphore(item) for item in payload["attachments"]]
+        if self.source == "checkmk":
+            c = payload["checkmk"]
+            kind = text(c["NOTIFICATIONTYPE"])
+            what = c["WHAT"]
+            native_state = c[what + "STATE"]
+            host = text(c["HOSTNAME"])
+            service = text(c.get("SERVICEDESC")) if what == "SERVICE" else ""
+            state = "resolved" if kind == "RECOVERY" else "test" if kind == "CUSTOM" else "firing" if kind == "PROBLEM" else kind.casefold().split(" (", 1)[0]
+            severity = {"WARN": "warning", "CRIT": "critical", "UNKNOWN": "warning", "DOWN": "critical", "UNREACH": "critical"}.get(native_state, "information") if kind == "PROBLEM" else "information"
+            return [self._notification(
+                f"{host}{' / ' + service if service else ''}: {native_state}",
+                text(c.get(what + "OUTPUT")) or f"{kind}: {native_state}", state, severity, "monitoring", {
+                    "host": host, "host_alias": text(c.get("HOSTALIAS")), "address": text(c.get("HOSTADDRESS")),
+                    "service": service, "object_type": what.casefold(), "native_state": native_state,
+                    "notification_type": kind, "event_type": kind, "site": text(c.get("SITE")),
+                    "previous_state": text(c.get("LAST" + what + "STATE")),
+                }, start_time=text(c.get("SHORTDATETIME")),
+            )]
         if self.source in {"sonarr", "radarr"}:
             return [self._servarr(payload)]
         if self.source == "metabase":
