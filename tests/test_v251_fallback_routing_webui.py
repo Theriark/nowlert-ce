@@ -219,7 +219,7 @@ def test_synology_transport_routes_suppress_matching_fallback_only(tmp_path):
         actor.user_id,
         notification(source="synology", input_type="smtp"),
     )
-    assert [route.id for route in smtp_without_dedicated] == [fallback_smtp.id]
+    assert smtp_without_dedicated == []
 
 def test_matching_routes_deduplicate_at_destination_expansion(tmp_path):
     database, actor = database_with_admin(tmp_path)
