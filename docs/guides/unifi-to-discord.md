@@ -139,6 +139,51 @@ a storage fault or change production backup jobs merely to force a test.
 
 ## 7. Filter centrally
 
+### Match the camera names in Protect
+
+Open Protect's **Devices** page and copy each camera's exact name and MAC
+address. In Nowlert, open **Filtering → Integration behavior → UniFi Protect →
+Edit**. Enter one `MAC = Alias` line per device and save settings. For example:
+
+```text
+AC:8B:A9:0D:D8:AD = CAM-01 | Hall Out
+```
+
+Use the names shown in your console, including any punctuation. This deployment
+saved all eight camera/doorbell names and the console, gateway and two sensor
+names. New events confirmed names such as `CAM-03 | Door F1`; old delivery
+records retain the names captured when they were received. These are saved
+aliases, not an automatic synchronization with future Protect name changes.
+
+![New Protect deliveries use the console's camera names](../images/unifi-setup/camera-names.jpg)
+
+### Suppress animal and audio/burglar notifications
+
+For the destination receiving Protect events, select **Configure → UniFi
+Protect → Configure**, enable filtering, and set the **Trigger** field to
+**contains** with these comma-separated values:
+
+```text
+animal, audio, sound, burglar, burgler
+```
+
+Leave unrelated fields empty and save the filter. The destination editor saves
+a **block** policy: matching any of these trigger values suppresses that
+destination's notification. Other triggers remain allowed. This example
+suppresses all matching audio/sound triggers, not only burglar detections;
+choose narrower values if you want to retain other audio alert classes.
+Keep existing filters for other integrations intact.
+
+Animal and `alrmBurglar` receiver test events returned HTTP 204 and each appeared
+in Routing Flow as **filtered**, with **0** delivery attempts. This proves the
+destination filter path; these two verification events were synthetic, not
+camera detections. Upstream Protect alarms remain enabled, so Nowlert still
+receives the events.
+
+![Enabled Protect noise filter](../images/unifi-setup/protect-noise-filter.jpg)
+
+### Review further noise before blocking it
+
 Keep source forwarding broad. In Nowlert **Filtering**, configure each
 destination's policy using integration, event type, severity and device fields.
 Verify a matching unwanted event is filtered while a relevant event still
