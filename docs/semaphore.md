@@ -1,5 +1,7 @@
 # Semaphore notifications to Nowlert
 
+[Configured-installation tutorial](guides/semaphore-to-nowlert.md) · [All illustrated tutorials](guides/infrastructure-tutorials.md)
+
 Semaphore task notifications report automation results, including Terraform,
 Ansible and other task templates executed by Semaphore. This integration does
 not poll Terraform state or run a monitoring agent.

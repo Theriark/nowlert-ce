@@ -16,6 +16,8 @@ breaking inbound links.
 
 ## Monitoring
 
+- [Checkmk](../checkmk.md)
+
 - [Grafana](../grafana.md)
 - [Prometheus](../prometheus.md)
 
@@ -54,3 +56,5 @@ inputs are supported by each integration. See
 - [Radarr](../radarr.md)
 - [Metabase](../metabase.md)
 - [GitHub Actions](../github-actions.md)
+
+[Illustrated application setup and validation status](../guides/infrastructure-tutorials.md)

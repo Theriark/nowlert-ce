@@ -1,5 +1,7 @@
 # Radarr notifications to Nowlert
 
+[Configured-installation tutorial](guides/radarr-to-nowlert.md) · [All illustrated tutorials](guides/infrastructure-tutorials.md)
+
 ## Configure Nowlert first
 
 1. Upgrade to a development image containing this integration. Fresh accounts
@@ -21,7 +23,7 @@ Assign **Radarr HTTP** and issue a `radarr`-scoped token. In Radarr go to
 **Settings → Connect → + → Webhook**. Set POST and this URL:
 
 ```text
-https://nowlert.example/radarr/events?token=YOUR_RADARR_TOKEN
+https://nowlert.example/radarr/events
 ```
 
 Enable every notification trigger offered by your version, including health
