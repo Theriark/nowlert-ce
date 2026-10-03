@@ -7,13 +7,13 @@ replace its addresses and channel labels with your own.
 
 | Tutorial | What it demonstrates | Validation |
 |---|---|---|
-| [UniFi Network, Protect and Drive to Discord](unifi-to-discord.md) | Scoped header tokens, broad Network/Protect alarms, 78 event-specific Drive alarms, and central filtering | Native Network and Protect events delivered, HTTP 200. Drive receiver test delivered; native UNAS emission remains unverified. |
+| [UniFi Network, Protect and Drive to Discord](unifi-to-discord.md) | Scoped header tokens, broad Network/Protect alarms, 78 event-specific Drive alarms, and central filtering | Native Network and Protect events delivered, HTTP 200. Native Drive Shared Drive Created delivered to Storage on 3 October, HTTP 200; fault/recovery pairs are not yet native-verified. |
 | [Home Assistant to Discord](home-assistant-to-discord.md) | Scoped secret, broad alert automations, native notification test | Native notification and real integration errors delivered, HTTP 200. |
 | [TrueNAS to Discord](truenas-to-discord.md) | SMTP transport, Info-level Email service, native alert test | Native TrueNAS test delivered, HTTP 200. |
 | [Portainer to Discord](portainer-to-discord.md) | Scoped URL token, native webhook channel, all alert rules, and delivery checks | Configuration saved; delivery verification described in the guide. |
 | [Centralized event coverage](centralized-event-coverage.md) | Broad source subscriptions and backup-report policies | Audit lists accepted changes and remaining validation limits. |
 | [Xen Orchestra to Discord](xen-orchestra-to-discord.md) | SMTP transport, backup-report recipient, built-in route, Discord destination, and Delivery history | Real backup report delivered. |
-| [Hardware Redfish setup](hardware-redfish-setup.md) | Source-scoped token, vendor routes, subscription JSON, and safe test actions for iLO, iDRAC, and Supermicro | iLO4 controller event delivered; iDRAC8 and Supermicro delivery remains unverified. |
+| [Hardware Redfish setup](hardware-redfish-setup.md) | Source-scoped token, vendor routes, subscription JSON, and safe test actions for iLO, iDRAC, and Supermicro | iLO4 controller event and iDRAC8 native informational event delivered, HTTP 200. Supermicro native test delivered through the isolated HTTP relay, HTTP 200. |
 | [Legacy iLO4 local TLS listener](ilo4-local-tls-listener.md) | Portainer deployment, no-SNI TLS callback, native chunked request, and HTTP 200 acknowledgement | Verified on iLO4 2.81 with the specified development image. |
 
 ## Newly configured application tutorials
@@ -29,6 +29,8 @@ image recorded in that guide.
 | [Sonarr](sonarr-to-nowlert.md) | Native POST webhook, scoped header, all 13 triggers | Native tests delivered; enabled-trigger screenshot included. |
 | [Radarr](radarr-to-nowlert.md) | Native POST webhook, scoped header, all 12 triggers | Native tests delivered; enabled-trigger screenshot included. |
 | [Metabase](metabase-to-nowlert.md) | Bearer webhook, real failed-delivery question, hourly alert | Healthy run suppressed; separate native question test delivered to Discord, HTTP 200. |
+| [Grafana](grafana-to-nowlert.md) | Native Bearer webhook contact point, resolved notifications enabled, distinct telemetry query-health rule | Controlled Grafana-managed rule firing and recovery delivered, HTTP 200. |
+| [Prometheus](prometheus-to-nowlert.md) | Alertmanager webhook, private token file, resolved notifications enabled, configuration-reload health rule | Controlled Prometheus rule firing and recovery delivered through Alertmanager, HTTP 200. |
 | [GitHub Actions reference](../github-actions.md) | Public HTTPS callback required | Deferred by the operator; no repository hooks configured. |
 
 ## Screenshot coverage
@@ -82,6 +84,8 @@ deployment configuration; mounting the Nowlert image does not create it.
 
 Verified claims supported by these captures are **Xen Orchestra SMTP to Discord**
 and **iLO4 Redfish to Discord on the documented listener and image**. Do not label
-the older iDRAC8 or Supermicro setup as end-to-end verified until their controller
-callback tests pass. A subscription readback or a laptop-generated receiver test
+a native hardware fault/recovery pair as verified from an informational/test
+event alone. Dell and Supermicro controller-native delivery and Drive native
+alarm delivery are captured in the linked guides. Portainer native emission
+remains unverified. A subscription readback or laptop-generated receiver test
 does not establish controller delivery.

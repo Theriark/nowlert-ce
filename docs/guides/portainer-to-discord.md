@@ -118,6 +118,17 @@ The rule thresholds were not changed. Native source emission therefore remains
 unverified on this installation; the synthetic receiver proof above must not
 be presented as a native Portainer rule test.
 
+On 3 October, a second controlled check temporarily set the existing single-user
+threshold to zero, made one deliberately invalid login for the existing admin
+account, then restored **10** over **5 minutes**, still enabled. The native
+authentication log records that failure at 02:48 Europe/London, but no native
+rule alert or Nowlert webhook was observed. This does not establish whether
+zero is usable by the internal evaluator. No password or workload was changed.
+
+![Native authentication event from the controlled test](../images/monitoring-setup/portainer-native-test-auth-event.jpg)
+
+![Original threshold restored after validation](../images/monitoring-setup/portainer-threshold-restored.jpg)
+
 ## Troubleshooting
 
 | Symptom | Check |

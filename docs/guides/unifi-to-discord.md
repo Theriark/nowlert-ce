@@ -207,3 +207,25 @@ emitted. Review event coverage again after a UniFi upgrade or hardware change.
 
 See [Ubiquiti's Alarm Manager documentation](https://help.ui.com/hc/en-us/articles/27721287753239-UniFi-Alarm-Manager-Customize-Alerts-Integrations-and-Automations-Across-UniFi)
 and [Protect webhook documentation](https://help.ui.com/hc/en-us/articles/25478744592023-Send-UniFi-Protect-Alerts-to-Web-Services-using-Webhooks).
+
+## Drive native validation: 3 October 2026
+
+The saved **Shared Drive Created** alarm was exercised by creating an empty,
+admin-only share named `NowlertNativeValidation20261003`. No production share
+or file was modified. This installation's saved Drive callback uses the private
+LAN endpoint `http://192.168.0.14:18080/unifi/drive` with its scoped token header;
+it differs from the HTTPS example above. Private HTTP does not encrypt the
+callback or token. Prefer compatible HTTPS for new deployments.
+
+The native alarm produced **Shared Drive Created** in Nowlert at 02:37
+Europe/London, delivered through **UniFi Drive HTTP** to **Storage**, attempt 1,
+Discord **HTTP 200**. This proves native informational Drive emission. It does
+not prove a disk fault, backup failure, or recovery pair. Prior failure/recovery
+receiver tests remain labelled simulations.
+
+![Empty share used for native Drive validation](../images/monitoring-setup/drive-native-test-share.jpg)
+
+![Native Drive alarm delivered to Storage](../images/monitoring-setup/drive-native-delivery.jpg)
+
+The empty validation share was deactivated after capture; it contains zero files
+and zero folders. The existing forwarding alarm remains enabled.

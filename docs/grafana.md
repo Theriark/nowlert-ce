@@ -1,5 +1,16 @@
 # Grafana notification support
 
+## Native webhook setup
+
+Current development images accept Grafana's native webhook at
+`POST /grafana/alerts`. Use a Grafana-scoped application token as Bearer
+authorization and keep resolved notifications enabled. Follow the
+[illustrated native setup tutorial](guides/grafana-to-nowlert.md), which records
+native contact-point and managed-rule firing/recovery tests on the specified
+development image. This validation does not establish stable-release availability.
+
+## SMTP compatibility background
+
 Grafana Alerting support was introduced in Nowlert `v1.3.0` and remains
 provisional in the current stable release. It was implemented without
 production Grafana email samples and is currently verified against clearly

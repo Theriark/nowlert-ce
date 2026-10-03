@@ -1,0 +1,36 @@
+{
+  "verified_at": "2026-10-03",
+  "controller_native": true,
+  "action": "EventService.SendTestEvent",
+  "action_status": 200,
+  "callback_source": "192.168.0.125",
+  "callback_path": "/redfish/supermicro",
+  "callback_status": 204,
+  "listener_port": 18446,
+  "transport": "HTTP; approved isolated LAN relay",
+  "controller_sends_token": false,
+  "subscription": {
+    "id": "4",
+    "context": "CHARLIE-ALL",
+    "event_types": [
+      "StatusChange",
+      "ResourceUpdated",
+      "ResourceAdded",
+      "ResourceRemoved",
+      "Alert"
+    ]
+  },
+  "delivery": {
+    "source": "supermicro",
+    "title": "Send Test Event",
+    "event_status": "success",
+    "outcome": "delivered",
+    "response_status": 200,
+    "error_code": null,
+    "created_at": 1790992593
+  },
+  "limitations": [
+    "TLS delivery unresolved",
+    "No real hardware fault/recovery pair tested"
+  ]
+}
