@@ -10,7 +10,7 @@ replace its addresses and channel labels with your own.
 | [UniFi Network, Protect and Drive to Discord](unifi-to-discord.md) | Scoped header tokens, broad Network/Protect alarms, 78 event-specific Drive alarms, and central filtering | Native Network and Protect events delivered, HTTP 200. Native Drive Shared Drive Created delivered to Storage on 3 October, HTTP 200; fault/recovery pairs are not yet native-verified. |
 | [Home Assistant to Discord](home-assistant-to-discord.md) | Scoped secret, broad alert automations, native notification test | Native notification and real integration errors delivered, HTTP 200. |
 | [TrueNAS to Discord](truenas-to-discord.md) | SMTP transport, Info-level Email service, native alert test | Native TrueNAS test delivered, HTTP 200. |
-| [Portainer to Discord](portainer-to-discord.md) | Scoped URL token, native webhook channel, all alert rules, and delivery checks | Configuration saved; delivery verification described in the guide. |
+| [Portainer to Discord](portainer-to-discord.md) | Scoped URL token, native webhook channel, all alert rules, and delivery checks | Native authentication warning and recovery delivered, both HTTP 200; production threshold restored. |
 | [Centralized event coverage](centralized-event-coverage.md) | Broad source subscriptions and backup-report policies | Audit lists accepted changes and remaining validation limits. |
 | [Xen Orchestra to Discord](xen-orchestra-to-discord.md) | SMTP transport, backup-report recipient, built-in route, Discord destination, and Delivery history | Real backup report delivered. |
 | [Hardware Redfish setup](hardware-redfish-setup.md) | Source-scoped token, vendor routes, subscription JSON, and safe test actions for iLO, iDRAC, and Supermicro | iLO4 controller event and iDRAC8 native informational event delivered, HTTP 200. Supermicro native test delivered through the isolated HTTP relay, HTTP 200. |
@@ -77,6 +77,11 @@ are included so the captures can be checked against the data.
 
 ## Release and marketing notes
 
+For mailbox-based sources, see [Gmail and Microsoft Email Alerts](gmail-microsoft-email-alerts.md).
+The local No-IP and OpenAI status groups are prepared; provider application
+registration, mailbox consent, sender-specific rules and native delivery remain
+pending. Do not advertise these two mailbox connections as configured yet.
+
 The native iLO fix was verified in a development image. Before advertising it as
 a stable-release feature, promote and test a release containing that fix and
 update the version references in the guides. The separate TLS listener remains
@@ -86,6 +91,6 @@ Verified claims supported by these captures are **Xen Orchestra SMTP to Discord*
 and **iLO4 Redfish to Discord on the documented listener and image**. Do not label
 a native hardware fault/recovery pair as verified from an informational/test
 event alone. Dell and Supermicro controller-native delivery and Drive native
-alarm delivery are captured in the linked guides. Portainer native emission
-remains unverified. A subscription readback or laptop-generated receiver test
+alarm delivery are captured in the linked guides. Portainer's native warning
+and matching recovery are also verified. A subscription readback or laptop-generated receiver test
 does not establish controller delivery.

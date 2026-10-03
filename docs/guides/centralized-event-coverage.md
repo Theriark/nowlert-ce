@@ -95,8 +95,11 @@ use a separate unfiltered destination if those events are operationally useful.
 - **Supermicro:** the native controller test reached the approved IP-restricted
   HTTP relay and delivered to Criticals, HTTP 200. The saved subscription includes
   all five event types; HTTPS negotiation remains unresolved.
-- **Still unverified:** native Portainer rule emission. Native Dell/Drive/Supermicro
-  real fault-and-recovery pairs have not been exercised.
+- **Portainer:** a positive-threshold controlled authentication rule test produced
+  a native warning and matching recovery, both delivered through Nowlert,
+  HTTP 200. The original threshold was restored immediately after capture.
+- **Still unverified:** native Dell/Drive/Supermicro real fault-and-recovery pairs
+  have not been exercised.
 
 See the [Grafana tutorial](grafana-to-nowlert.md),
 [Prometheus tutorial](prometheus-to-nowlert.md),

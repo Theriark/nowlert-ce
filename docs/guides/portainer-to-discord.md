@@ -109,25 +109,33 @@ alert.
 
 ![Synthetic receiver and routing proof](../images/portainer-setup/receiver-routing-proof.jpg)
 
-### Native rule test status
+### Verified native rule emission: 3 October 2026
 
-A controlled test made 12 invalid login attempts for a nonexistent validation
-username with the existing threshold of 10 and five-minute window. No active
-alert or Portainer-originated webhook appeared during the observation period.
-The rule thresholds were not changed. Native source emission therefore remains
-unverified on this installation; the synthetic receiver proof above must not
-be presented as a native Portainer rule test.
+A controlled check temporarily set **High Authentication Failures (Single User)**
+to a positive threshold of **1**, retaining its five-minute window and Warning
+severity. Two deliberately invalid logins for the existing administrator caused
+Portainer to create an active alert. No password or production workload changed.
 
-On 3 October, a second controlled check temporarily set the existing single-user
-threshold to zero, made one deliberately invalid login for the existing admin
-account, then restored **10** over **5 minutes**, still enabled. The native
-authentication log records that failure at 02:48 Europe/London, but no native
-rule alert or Nowlert webhook was observed. This does not establish whether
-zero is usable by the internal evaluator. No password or workload was changed.
+![Portainer-generated active warning](../images/monitoring-setup/portainer-native-active-alert.png)
 
-![Native authentication event from the controlled test](../images/monitoring-setup/portainer-native-test-auth-event.jpg)
+Nowlert recorded **High Authentication Failures (Single User) [warning]** as
+`firing`, delivered with destination HTTP **200**, at Unix timestamp
+`1790995110`. This was emitted by Portainer's native evaluator, not submitted
+directly to the receiver. The [token-free delivery record](../images/monitoring-setup/records/portainer-native-validation.json)
+contains the evidence.
 
-![Original threshold restored after validation](../images/monitoring-setup/portainer-threshold-restored.jpg)
+The threshold was restored to **10** over **5 minutes**, still enabled. Use
+temporary thresholds only in an approved controlled test; restore the saved
+production values immediately afterwards. The earlier nonexistent-user and
+zero-threshold checks did not establish native emission.
+
+![Production threshold restored](../images/monitoring-setup/portainer-threshold-restored-new.png)
+
+After restoration, Portainer emitted the matching `resolved` callback. Nowlert
+delivered it with HTTP **200** at Unix timestamp `1790995291`. Both native
+lifecycle deliveries are present in the record above.
+
+![Native firing and recovery in Nowlert](../images/monitoring-setup/portainer-native-delivery-lifecycle.png)
 
 ## Troubleshooting
 
