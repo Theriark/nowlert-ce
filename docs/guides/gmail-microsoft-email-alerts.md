@@ -8,8 +8,11 @@ signs in to the provider and authorizes their mailbox.
 ## Current local setup status
 
 The local installation has the **No-IP** and **OpenAI status** groups saved,
-with quiet windows disabled. Gmail and Microsoft OAuth applications and mailbox
-consent are still pending. There are no connected mailboxes or enabled rules
+with quiet windows disabled. The Microsoft application is registered in the
+intended tenant and its public certificate is uploaded. Gmail application setup,
+Microsoft delegated `Mail.Read` is configured. Deployment and mailbox consent
+are still pending.
+There are no connected mailboxes or enabled rules
 for these sources yet. This page describes the configuration procedure; it is
 not a claim of verified native mailbox delivery.
 
@@ -53,12 +56,63 @@ and [token expiration guidance](https://developers.google.com/identity/protocols
 4. Configure Microsoft Graph **delegated** `Mail.Read` permission. Nowlert requests
    `openid profile email offline_access` and `https://graph.microsoft.com/Mail.Read`.
    It does not need application-wide mailbox permissions or `Mail.Send`.
-5. Create an application client secret and store its value privately. Use the
+5. Use a certificate credential if your tenant prohibits client secrets (see
+   below), or create an application client secret and store its value privately. Use the
    appropriate directory tenant ID, or a supported common/consumer authority
    matching the registered account audience.
 
 See Microsoft's [redirect URI setup](https://learn.microsoft.com/en-us/entra/identity-platform/how-to-add-redirect-uri)
 and [application audience configuration](https://learn.microsoft.com/en-us/entra/identity-platform/msal-client-application-configuration).
+
+### Microsoft certificate authentication
+
+Nowlert supports a deployment-owned PEM X.509 certificate and matching RSA
+private key for the same delegated mailbox sign-in flow. This does not grant
+access to all tenant mailboxes. Each mailbox still requires its owner's consent.
+
+1. Generate an RSA key of at least 2048 bits and a matching certificate. Keep
+   the unencrypted private key in the host's restricted secrets directory,
+   readable only by the Nowlert service. Never upload or commit the private key.
+
+   For a new installation, run this in its existing secrets directory. These
+   filenames must not already exist; retain any existing credentials during
+   rotation.
+
+   ```sh
+   umask 077
+   test ! -e nowlert_email_microsoft_private_key &&
+   test ! -e nowlert_email_microsoft_certificate &&
+   openssl req -x509 -newkey rsa:3072 -sha256 -days 365 -nodes \
+     -subj '/CN=Nowlert CE Email Alerts' \
+     -keyout nowlert_email_microsoft_private_key \
+     -out nowlert_email_microsoft_certificate
+   ```
+2. In the intended tenant's application, open **Certificates & secrets →
+   Certificates → Upload certificate** and upload only the public certificate.
+3. Mount both files read-only and configure:
+
+   ```yaml
+   environment:
+     NOWLERT_EMAIL_MICROSOFT_CLIENT_ID: YOUR_APPLICATION_ID
+     NOWLERT_EMAIL_MICROSOFT_TENANT_ID: YOUR_DIRECTORY_ID
+     NOWLERT_EMAIL_MICROSOFT_CERTIFICATE_FILE: /run/secrets/nowlert_email_microsoft_certificate
+     NOWLERT_EMAIL_MICROSOFT_PRIVATE_KEY_FILE: /run/secrets/nowlert_email_microsoft_private_key
+     NOWLERT_EMAIL_MICROSOFT_REDIRECT_URI: https://nowlert-ce.local.fortpt.com/ui/
+   ```
+
+4. Restart the service with the updated configuration, then connect the mailbox
+   through Email Alerts. Retain the delegated `Mail.Read` permission.
+5. Rotate the certificate before expiry: upload the replacement public
+   certificate, replace the mounted pair, and restart Nowlert. Verify mailbox
+   synchronization before removing the old certificate from Entra.
+
+Certificate configuration takes precedence over a client secret. Missing,
+expired, malformed, weak or mismatched certificate credentials fail closed;
+Nowlert does not fall back to a secret. A fresh five-minute PS256 assertion is
+used for both authorization-code exchange and refresh. Private keys are not
+stored in mailbox records, returned in provider status, or included in tutorials.
+
+See Microsoft's [certificate assertion specification](https://learn.microsoft.com/en-us/entra/identity-platform/certificate-credentials).
 
 ## Configure the Nowlert container
 

@@ -12,6 +12,7 @@ import hashlib
 import hmac
 import imaplib
 import json
+import os
 import re
 import secrets as token_secrets
 import threading
@@ -23,6 +24,7 @@ from email.parser import BytesParser
 from email.policy import default
 from email.utils import getaddresses, parsedate_to_datetime
 from typing import Callable
+from pathlib import Path
 from urllib.parse import quote, urlencode, urlsplit
 
 import requests
@@ -30,6 +32,7 @@ import requests
 from email_alert_pipeline import EmailAlertProcessor
 from environment import first_environment, secret_environment
 from email_security import build_email_preview
+from inputs.microsoft_certificate import certificate_material, client_authentication
 from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.email_alerts import EmailAlertStore, EmailMailbox, EmailMessage
@@ -95,7 +98,7 @@ def email_oauth_applications(configuration=None, *, environment=None) -> dict:
         or ""
     ).strip()
 
-    def application(prefix: str) -> dict:
+    def application(prefix: str, *, certificate_configured: bool = False) -> dict:
         return {
             "client_id": str(
                 first_environment(
@@ -105,7 +108,7 @@ def email_oauth_applications(configuration=None, *, environment=None) -> dict:
                 )
                 or ""
             ).strip(),
-            "client_secret": str(
+            "client_secret": "" if certificate_configured else str(
                 secret_environment(
                     f"NOWLERT_EMAIL_{prefix}_CLIENT_SECRET",
                     default_file=(
@@ -128,7 +131,21 @@ def email_oauth_applications(configuration=None, *, environment=None) -> dict:
         }
 
     gmail = application("GMAIL")
-    microsoft = application("MICROSOFT")
+    certificate_credentials = {}
+    source = os.environ if environment is None else environment
+    certificate_configured = False
+    for field, variable in (("certificate", "CERTIFICATE"), ("private_key", "PRIVATE_KEY")):
+        name = f"NOWLERT_EMAIL_MICROSOFT_{variable}"
+        default_file = f"/run/secrets/nowlert_email_microsoft_{field}"
+        certificate_configured |= bool(str(source.get(f"{name}_FILE") or "").strip() or source.get(name) or Path(default_file).exists())
+        certificate_credentials[field] = str(secret_environment(
+            name,
+            default_file=default_file,
+            default="", environment=environment,
+        ) or "").strip()
+    microsoft = application("MICROSOFT", certificate_configured=certificate_configured)
+    if certificate_configured:
+        microsoft.update(certificate_credentials)
     microsoft_tenant_id = str(
         first_environment(
             "NOWLERT_EMAIL_MICROSOFT_TENANT_ID",
@@ -546,6 +563,12 @@ class GmailMailboxProvider(_HTTPProvider):
 class Microsoft365MailboxProvider(_HTTPProvider):
     GRAPH_ROOT = "https://graph.microsoft.com/v1.0"
 
+    def _client_authentication(self, mailbox, credentials):
+        try:
+            return client_authentication(credentials, self._token_url(mailbox, credentials), int(self.clock()))
+        except (ValueError, KeyError) as error:
+            raise MailboxConnectionError("provider_not_configured", "Microsoft OAuth certificate credentials are invalid") from error
+
     @staticmethod
     def _tenant(mailbox: EmailMailbox, credentials: dict | None = None) -> str:
         configured = dict(credentials or {})
@@ -597,7 +620,7 @@ class Microsoft365MailboxProvider(_HTTPProvider):
             self._token_url(mailbox, credentials),
             {
                 "client_id": credentials["client_id"],
-                "client_secret": credentials["client_secret"],
+                **self._client_authentication(mailbox, credentials),
                 "redirect_uri": credentials["redirect_uri"],
                 "grant_type": "authorization_code",
                 "code": code,
@@ -614,7 +637,7 @@ class Microsoft365MailboxProvider(_HTTPProvider):
             self._token_url(mailbox, credentials),
             {
                 "client_id": credentials["client_id"],
-                "client_secret": credentials["client_secret"],
+                **self._client_authentication(mailbox, credentials),
                 "grant_type": "refresh_token",
                 "refresh_token": credentials["refresh_token"],
                 "scope": f"openid profile email offline_access {MICROSOFT_SCOPE}",
@@ -1951,11 +1974,21 @@ class MailboxConnectionService:
             ).strip()
 
         if provider == "microsoft_365":
+            for field in ("certificate", "private_key"):
+                if field in configured:
+                    application[field] = str(configured[field]).strip()
             tenant_id = str(configured.get("tenant_id") or "").strip()
             if tenant_id:
                 application["tenant_id"] = tenant_id
 
-        if not all(application.get(key) for key in _OAUTH_APPLICATION_FIELDS):
+        required = ("client_id", "redirect_uri")
+        certificate_configured = provider == "microsoft_365" and any(field in application for field in ("certificate", "private_key"))
+        if certificate_configured:
+            try:
+                certificate_material(application, int(self.clock()))
+            except ValueError as error:
+                raise MailboxConnectionError("provider_not_configured", "Microsoft OAuth certificate credentials are invalid") from error
+        if not all(application.get(key) for key in required) or not (certificate_configured or application.get("client_secret")):
             label = "Gmail" if provider == "gmail" else "Microsoft 365"
             raise MailboxConnectionError(
                 "provider_not_configured",
