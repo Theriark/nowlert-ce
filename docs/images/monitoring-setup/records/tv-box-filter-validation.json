@@ -1,0 +1,14 @@
+{
+  "run": "SIMULATION-TVBOX-84478a22",
+  "simulated_callbacks": 30,
+  "filtered_counter_increase": 30,
+  "destination_attempts": 0,
+  "predicate_checks": 17,
+  "verified": true,
+  "sources": [
+    "unifi_network",
+    "checkmk",
+    "home_assistant",
+    "zabbix"
+  ]
+}
