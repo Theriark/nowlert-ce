@@ -1,5 +1,14 @@
 # UniFi Network, Protect and Drive to Discord
 
+> Lifecycle readback, 4 October 2026: Drive 4.4.9's **New Alarm → Settings**
+> catalogue exposes backup failures and partial completion, but no backup-success,
+> completed or recovery trigger. Successful jobs visible on its dashboard do not
+> establish a recovery webhook. Native Shared Drive Created delivery is verified;
+> a native backup fault/recovery pair remains unverified. The inspected alarm draft
+> was canceled without saving or changing existing alarms.
+
+![Drive backup trigger catalogue, private console details concealed](../images/monitoring-setup/drive-backup-trigger-catalogue.png)
+
 Configure UniFi Alarm Manager to send supported events to Nowlert, then use
 Nowlert's destination filters to decide which alerts should reach Discord.
 This walkthrough was captured on 2 October 2026 with Network 10.6.106,
@@ -63,7 +72,7 @@ threshold, not raw traffic telemetry. Other categories cover intrusion/firewall
 events, power faults, VPN changes, device lifecycle, configuration changes,
 network faults and WiFi issues.
 
-![Network alarms alongside existing rules](../images/unifi-setup/network-alarms.jpg)
+![Network alarms alongside existing rules](../images/unifi-setup/network-alarms.png)
 
 ## 4. Protect: select triggers and eligible devices
 
@@ -87,7 +96,7 @@ deployment's forwarding alarm. The Schedule trigger is a timer, not a source
 event subscription. This setup forwards available alarm events, not video or
 every raw telemetry sample; thumbnails were left off.
 
-![Protect forwarding alarms and native trigger history](../images/unifi-setup/protect-alarms.jpg)
+![Protect forwarding alarms and native trigger history](../images/unifi-setup/protect-alarms.png)
 
 ## 5. Drive: one alarm per event
 
@@ -108,7 +117,7 @@ SMB/NFS changes, encryption and Microsoft 365 backup outcomes. The event
 catalog varies with Drive versions and supported features; do not claim an
 event is subscribed if the console does not expose it.
 
-![Drive event-specific forwarding alarms](../images/unifi-setup/drive-alarms.jpg)
+![Drive event-specific forwarding alarms](../images/unifi-setup/drive-alarms.png)
 
 ## 6. Validate intake and destination delivery
 
@@ -118,14 +127,14 @@ Person, Vehicle and Animal detections. In Nowlert's **Delivery history**, select
 the event and confirm its source, route, destination, **Delivered** outcome and
 HTTP 200 destination response.
 
-![Native Protect delivery](../images/unifi-setup/protect-delivery.jpg)
+![Native Protect delivery](../images/unifi-setup/protect-delivery.png)
 
 Network emitted native intrusion and client-connection/high-traffic alarms.
 The Threat Detected example below reached Security through UniFi Network HTTP.
 Its **Failure** source status describes the reported condition; **Delivered**
 and HTTP 200 describe the successful notification delivery.
 
-![Native Network delivery](../images/unifi-setup/network-delivery.jpg)
+![Native Network delivery](../images/unifi-setup/network-delivery.png)
 
 Drive's alarm editor did not expose a Test Alarm control. We separately posted
 a representative default Drive payload using its restricted token: the receiver
@@ -135,7 +144,7 @@ It is **not evidence that UNAS emitted a native callback**. Native Drive
 delivery remains to be checked when a configured event occurs. Do not provoke
 a storage fault or change production backup jobs merely to force a test.
 
-![Drive receiver test delivered to Storage](../images/unifi-setup/drive-receiver-delivery.jpg)
+![Drive receiver test delivered to Storage](../images/unifi-setup/drive-receiver-delivery.png)
 
 ## 7. Filter centrally
 
@@ -155,7 +164,7 @@ names. New events confirmed names such as `CAM-03 | Door F1`; old delivery
 records retain the names captured when they were received. These are saved
 aliases, not an automatic synchronization with future Protect name changes.
 
-![New Protect deliveries use the console's camera names](../images/unifi-setup/camera-names.jpg)
+![New Protect deliveries use the console's camera names](../images/unifi-setup/camera-names.png)
 
 ### Suppress animal and audio/burglar notifications
 
@@ -180,7 +189,7 @@ destination filter path; these two verification events were synthetic, not
 camera detections. Upstream Protect alarms remain enabled, so Nowlert still
 receives the events.
 
-![Enabled Protect noise filter](../images/unifi-setup/protect-noise-filter.jpg)
+![Enabled Protect noise filter](../images/unifi-setup/protect-noise-filter.png)
 
 ### Review further noise before blocking it
 
@@ -207,3 +216,25 @@ emitted. Review event coverage again after a UniFi upgrade or hardware change.
 
 See [Ubiquiti's Alarm Manager documentation](https://help.ui.com/hc/en-us/articles/27721287753239-UniFi-Alarm-Manager-Customize-Alerts-Integrations-and-Automations-Across-UniFi)
 and [Protect webhook documentation](https://help.ui.com/hc/en-us/articles/25478744592023-Send-UniFi-Protect-Alerts-to-Web-Services-using-Webhooks).
+
+## Drive native validation: 3 October 2026
+
+The saved **Shared Drive Created** alarm was exercised by creating an empty,
+admin-only share named `NowlertNativeValidation20261003`. No production share
+or file was modified. This installation's saved Drive callback uses the private
+LAN endpoint `http://192.0.2.10:18080/unifi/drive` with its scoped token header;
+it differs from the HTTPS example above. Private HTTP does not encrypt the
+callback or token. Prefer compatible HTTPS for new deployments.
+
+The native alarm produced **Shared Drive Created** in Nowlert at 02:37
+Europe/London, delivered through **UniFi Drive HTTP** to **Storage**, attempt 1,
+Discord **HTTP 200**. This proves native informational Drive emission. It does
+not prove a disk fault, backup failure, or recovery pair. Prior failure/recovery
+receiver tests remain labelled simulations.
+
+![Empty share used for native Drive validation](../images/monitoring-setup/drive-native-test-share.png)
+
+![Native Drive alarm delivered to Storage](../images/monitoring-setup/drive-native-delivery.png)
+
+The empty validation share was deactivated after capture; it contains zero files
+and zero folders. The existing forwarding alarm remains enabled.

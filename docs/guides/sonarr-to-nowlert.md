@@ -28,7 +28,7 @@ Grab, File Import, File Upgrade, Import Complete, Rename, Series Add, Series Del
 Click **Test**, then **Save**. Keep the authentication value private. The saved
 connection card displays the enabled event types without displaying credentials:
 
-![Sonarr saved Nowlert connection with all event triggers](../images/application-setup/sonarr-all-events.jpg)
+![Sonarr saved Nowlert connection with all event triggers](../images/application-setup/sonarr-all-events.png)
 
 ## Verify the whole flow
 

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-03",
+  "kind": "native-portainer-rule-evaluation",
+  "temporary_threshold": 1,
+  "controlled_invalid_logins": 2,
+  "restored_threshold": 10,
+  "window_minutes": 5,
+  "deliveries": [
+    {
+      "source": "portainer",
+      "title": "High Authentication Failures (Single User) [warning]",
+      "event_status": "resolved",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790995291
+    },
+    {
+      "source": "portainer",
+      "title": "High Authentication Failures (Single User) [warning]",
+      "event_status": "firing",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790995110
+    }
+  ]
+}

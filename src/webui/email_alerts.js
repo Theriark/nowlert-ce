@@ -990,16 +990,26 @@ function emailFilterActivityMessages() {
 }
 
 function emailActivityTime(value) {
-  const date = value ? new Date(value) : null;
+  const number = Number(value);
+  const date = value === null || value === undefined || value === ""
+    ? null
+    : new Date(Number.isNaN(number) ? value : number < 10_000_000_000 ? number * 1000 : number);
   if (!date || Number.isNaN(date.getTime())) return { time: "Time unavailable", date: "" };
-  const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+  const language = state.preferences.language || "en-GB";
+  const timeZone = state.preferences.timezone || "Europe/Lisbon";
+  const time = new Intl.DateTimeFormat(language, {
+    hour: "2-digit", minute: "2-digit", hour12: state.preferences.time_format === "12", timeZone,
+  }).format(date);
   const today = new Date();
-  const sameDay = date.getFullYear() === today.getFullYear()
-    && date.getMonth() === today.getMonth()
-    && date.getDate() === today.getDate();
+  const calendar = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone });
+  const sameDay = calendar.format(date) === calendar.format(today);
+  const year = new Intl.DateTimeFormat("en", { year: "numeric", timeZone });
   const day = sameDay
     ? "Today"
-    : new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: date.getFullYear() === today.getFullYear() ? undefined : "numeric" }).format(date);
+    : new Intl.DateTimeFormat(language, {
+      day: "numeric", month: "short", timeZone,
+      ...(year.format(date) === year.format(today) ? {} : { year: "numeric" }),
+    }).format(date);
   return { time, date: day };
 }
 
@@ -1146,6 +1156,51 @@ function emailLabel(label, control) {
     element("span", { text: label }),
     control,
   ]);
+}
+
+function emailShowEditor(dialog) {
+  // Bitwarden's inline popover conflicts with native showModal() top-layer dialogs.
+  // Keep native validation/close semantics, with our own backdrop and focus boundary.
+  if (dialog.open) return;
+  const returnFocus = document.activeElement;
+  const shell = byId("app-shell");
+  const wasInert = shell?.inert || false;
+  if (!dialog.emailOverlay) {
+    const overlay = element("div", { className: "email-editor-overlay", hidden: true });
+    overlay.append(dialog);
+    document.body.append(overlay);
+    dialog.emailOverlay = overlay;
+    dialog.setAttribute("aria-modal", "true");
+    dialog.addEventListener("close", () => {
+      overlay.hidden = true;
+      const reauth = byId("reauth-dialog");
+      const reauthOpen = reauth && !reauth.hidden;
+      if (shell) shell.inert = dialog.emailPreviousInert || Boolean(reauthOpen);
+      if (!reauthOpen && dialog.emailReturnFocus?.isConnected) dialog.emailReturnFocus.focus({ preventScroll: true });
+    });
+    dialog.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        dialog.close();
+      } else if (event.key === "Tab") {
+        const controls = [...dialog.querySelectorAll("button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), a[href]")]
+          .filter((control) => control.getClientRects().length);
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (!first) { event.preventDefault(); return; }
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault(); last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault(); first.focus();
+        }
+      }
+    });
+  }
+  dialog.emailReturnFocus = returnFocus;
+  dialog.emailPreviousInert = wasInert;
+  dialog.emailOverlay.hidden = false;
+  if (shell) shell.inert = true;
+  dialog.show();
 }
 
 function emailEnsureDialogs() {
@@ -1586,7 +1641,7 @@ function emailOpenGroup(group = null) {
   byId("email-group-quiet").value = String(Math.round((group?.quiet_window_seconds || 0) / 60));
   byId("email-group-enabled").value = String(group?.enabled !== false);
   byId("email-group-error").hidden = true;
-  byId("email-group-dialog").showModal();
+  emailShowEditor(byId("email-group-dialog"));
   byId("email-group-name").focus();
 }
 
@@ -1643,7 +1698,7 @@ function emailOpenRule(rule = null) {
   const conditions = rule?.conditions?.length ? rule.conditions : [null];
   for (const condition of conditions) emailAddCondition(condition);
   byId("email-rule-error").hidden = true;
-  byId("email-rule-dialog").showModal();
+  emailShowEditor(byId("email-rule-dialog"));
   byId("email-rule-name").focus();
 }
 
@@ -1672,7 +1727,7 @@ function emailOpenMailbox(provider = "") {
   emailResetMailboxFolderOptions();
   byId("email-mailbox-dialog").querySelector("h2").textContent = "Connect mailbox";
   emailMailboxProviderFields();
-  byId("email-mailbox-dialog").showModal();
+  emailShowEditor(byId("email-mailbox-dialog"));
   byId("email-mailbox-address")?.focus();
 }
 
@@ -1776,7 +1831,7 @@ function emailOpenMailboxEdit(mailbox) {
 
   byId("email-mailbox-dialog").querySelector("h2").textContent = "Edit mailbox";
   emailMailboxProviderFields();
-  byId("email-mailbox-dialog").showModal();
+  emailShowEditor(byId("email-mailbox-dialog"));
   byId("email-mailbox-name")?.focus();
   void emailScanMailboxFolders({ manual: false });
 }

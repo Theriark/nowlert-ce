@@ -26,6 +26,9 @@ env/
 # Test and integration artifacts
 tests/tmp/
 
+# Local implementation plans are working notes, not public documentation
+/docs/superpowers/
+
 # OS/editor
 .DS_Store
 Thumbs.db

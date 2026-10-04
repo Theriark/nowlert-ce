@@ -37,7 +37,7 @@ The webhook adds the bearer token to the Authorization header and posts the
 three attempts, 30 seconds apart. Tokens are never included in the event body.
 Do not publish a configured export: its media parameters contain the token.
 
-![Enabled native Webhook media](../images/zabbix-setup/media-enabled.jpg)
+![Enabled native Webhook media](../images/zabbix-setup/media-enabled.png)
 
 ## 3. Enable recipient media
 
@@ -54,7 +54,7 @@ Click **Add**, then **Update** on the user form. Reopen it to confirm persistenc
 An IdP-managed profile may require editing through the administrator's Users page.
 Existing email media can remain enabled.
 
-![Persisted all-severity recipient media](../images/zabbix-setup/recipient-media.jpg)
+![Persisted all-severity recipient media](../images/zabbix-setup/recipient-media.png)
 
 ## 4. Check the notification action
 
@@ -64,13 +64,13 @@ hosts/events you intend to forward. Add a recovery operation such as **Notify
 all involved**. Avoid a second overlapping action, which duplicates delivery.
 
 In the tested deployment, the existing enabled action **Report problems to
-rdkappa** has no narrowing conditions, sends problems via all media, and notifies
+the configured recipient** has no narrowing conditions, sends problems via all media, and notifies
 all involved on recovery. Its existing suppression/symptom pause settings were
 retained. It has no update operation: acknowledgements and comments are not
 forwarded unless an update operation is added. Internal-event actions are
 separate from trigger actions; inspect their conditions and recipients too.
 
-![Existing problem and recovery operations](../images/zabbix-setup/action-operations.jpg)
+![Existing problem and recovery operations](../images/zabbix-setup/action-operations.png)
 
 ## 5. Test from Zabbix
 
@@ -93,9 +93,9 @@ type test successful**, HTTP **202**, and lifecycle `firing` or `resolved`.
 Then check **Nowlert → Delivery history** and the destination itself. Acceptance
 by Nowlert alone does not prove delivery.
 
-![Native problem test accepted](../images/zabbix-setup/native-problem-accepted.jpg)
+![Native problem test accepted](../images/zabbix-setup/native-problem-accepted.png)
 
-![Native recovery test accepted](../images/zabbix-setup/native-recovery-accepted.jpg)
+![Native recovery test accepted](../images/zabbix-setup/native-recovery-accepted.png)
 
 Both tests in this deployment reached Discord: problem displayed **Failure**,
 recovery displayed **Successful**, with delivery HTTP **200** and no error code.

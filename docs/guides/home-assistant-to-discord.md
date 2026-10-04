@@ -51,7 +51,7 @@ to `automations.yaml`. Preserve existing automations. They forward:
 The tested installation also has a sixth automation for its existing validation
 helper. That deployment-specific helper is not required by the downloadable file.
 
-![All six local automations enabled](../images/home-assistant-setup/enabled-automations.jpg)
+![All six local automations enabled](../images/home-assistant-setup/enabled-automations.png)
 
 Use **Settings → Tools → YAML → Check configuration**. Reload **RESTful Command**
 and **Automations**. Changing an integration setting such as `system_log.fire_event`
@@ -75,18 +75,18 @@ data:
   notification_id: nowlert_tutorial_validation
 ```
 
-![Native Home Assistant test action](../images/home-assistant-setup/native-test.jpg)
+![Native Home Assistant test action](../images/home-assistant-setup/native-test.png)
 
 Open Nowlert **Delivery history**, filter Home Assistant, and select the event.
 Confirm Input **HTTP**, destination **Security** (or yours), route
 **Home Assistant HTTP**, outcome **Delivered**, and response **HTTP 200**.
 
-![Native notification delivered to Discord](../images/home-assistant-setup/native-delivery-proof.jpg)
+![Native notification delivered to Discord](../images/home-assistant-setup/native-delivery-proof.png)
 
 A direct `rest_command.nowlert_event` test also returns HTTP 204 when the receiver
 accepts the payload. This is receiver acceptance, separate from destination delivery.
 
-![Authenticated transport accepted](../images/home-assistant-setup/transport-response.jpg)
+![Authenticated transport accepted](../images/home-assistant-setup/transport-response.png)
 
 Dismiss only the disposable test notification afterward:
 

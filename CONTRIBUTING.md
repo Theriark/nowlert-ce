@@ -70,6 +70,11 @@ credentials, API/setup tokens, private URLs, email addresses, or personal data.
 Historical release notes and acceptance checklists are version records; do not
 rewrite old files to describe new behavior.
 
+Keep temporary implementation plans and agent working notes local. The
+`docs/superpowers/` workspace is ignored by Git. Publish durable operator guides,
+architecture explanations and sanitized validation evidence in the documentation
+index instead. Remove superseded screenshots when no guide references them.
+
 ## Reporting issues
 
 Include:

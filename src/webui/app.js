@@ -693,7 +693,9 @@ function applySessionMetadata(session) {
 function finishReauthentication(result) {
   const dialog = byId("reauth-dialog");
   if (dialog) dialog.hidden = true;
-  byId("app-shell")?.removeAttribute("inert");
+  if (!document.querySelector(".email-editor-overlay:not([hidden])")) {
+    byId("app-shell")?.removeAttribute("inert");
+  }
   document.body.classList.remove("session-reauth-open");
   const resolve = reauthResolve;
   reauthResolve = null;

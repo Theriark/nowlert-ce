@@ -10,11 +10,13 @@ Nowlert filtering and routing pipeline.
 
 ## Authentication
 
-When the Nowlert HTTP shared secret is configured, send it as the
-`X-Nowlert-Token` request header. Alertmanager supports custom request headers
-through its HTTP client configuration.
+Issue a Nowlert application token scoped to `prometheus`. Configure
+Alertmanager's `http_config.authorization` with type `Bearer` and a private
+`credentials_file`. Keep `send_resolved: true`. Do not put credentials in the
+webhook URL or commit the token file.
 
-Do not put the shared secret in the webhook URL.
+The [native setup tutorial](guides/prometheus-to-nowlert.md) includes the
+configuration and verified firing/recovery delivery records.
 
 ## Normalization
 

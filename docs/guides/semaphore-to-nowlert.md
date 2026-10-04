@@ -29,7 +29,7 @@ for your installation. Keep this file private and outside Git.
 Restart Semaphore to load the configuration. In the intended project, enable
 **Allow alerts**. For every intended task template, turn off success suppression
 (`suppress_success_alerts=0`). Keep the default message template, including its
-Task and execution/status fields. The local FortPT Infrastructure project has
+Task and execution/status fields. The local example Infrastructure project has
 all five templates included.
 
 Newer Semaphore versions may expose notification channels in the UI; choose
@@ -39,10 +39,10 @@ authentication header. Use HTTPS and exclude the full URL from screenshots/logs.
 
 ## Test with a harmless task
 
-Run a read-only task you already trust. The local test used **FortPT VM list**,
+Run a read-only task you already trust. The local test used **example VM list**,
 task **#30**. Its log shows success and the native provider's send confirmation:
 
-![Semaphore native task success and notification send](../images/application-setup/semaphore-native-test.jpg)
+![Semaphore native task success and notification send](../images/application-setup/semaphore-native-test.png)
 
 Nowlert acknowledged the callback with HTTP 200 and destination delivery was
 verified. On your installation, also match the source/run time in Delivery

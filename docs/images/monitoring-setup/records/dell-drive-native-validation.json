@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-03",
+  "events": [
+    {
+      "source": "unifi_drive",
+      "title": "Shared Drive Created",
+      "event_status": "information",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790991446
+    },
+    {
+      "source": "dell_idrac",
+      "title": "User Login",
+      "event_status": "information",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790991439
+    }
+  ],
+  "receiver_log": "192.0.2.11 POST /redfish/dell 204",
+  "drive_action": "Created empty admin-only NowlertNativeValidation20261003 share, subsequently deactivated",
+  "limitations": "Informational native emissions verified; native fault/recovery pairs not verified."
+}

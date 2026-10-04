@@ -53,7 +53,7 @@ In the Nowlert WebUI:
 Nowlert treats destination credentials as write-only secrets. Normal read views
 do not expose the stored webhook URL again.
 
-![Configured Operational Discord destination, webhook value hidden](../images/hardware-setup/nowlert-xen-destination.jpg)
+![Configured Operational Discord destination, webhook value hidden](../images/hardware-setup/nowlert-xen-destination.png)
 
 ## 2. Assign the Xen Orchestra SMTP route
 
@@ -63,7 +63,7 @@ fresh installation the integration routes are supplied by the image; assigning
 one does not require creating it again. If it is already assigned, keep that
 assignment.
 
-![Built-in Xen Orchestra SMTP route selected for Operational](../images/hardware-setup/nowlert-xen-routes.jpg)
+![Built-in Xen Orchestra SMTP route selected for Operational](../images/hardware-setup/nowlert-xen-routes.png)
 
 For the first validation, keep host/event/severity/status filtering simple so a
 normal Xen Orchestra notification can match. Once delivery is confirmed, add
@@ -93,15 +93,15 @@ address and save. Use **Test plugin** with a valid backup run ID, then check
 Nowlert and the destination channel. See
 [Xen Orchestra's backup-report documentation](https://docs.xen-orchestra.com/backups-and-dr/backup_reports).
 
-![Saved transport-email settings: host 192.168.0.14, SMTP port 8025](../images/hardware-setup/xen-orchestra-transport-email.jpg)
+![Saved transport-email settings: host 192.0.2.10, SMTP port 8025](../images/hardware-setup/xen-orchestra-transport-email.png)
 
-![Saved backup-reports recipient](../images/hardware-setup/xen-orchestra-backup-reports.jpg)
+![Saved backup-reports recipient](../images/hardware-setup/xen-orchestra-backup-reports.png)
 
-![Backup report test controls: provide an existing execution runId](../images/hardware-setup/xen-orchestra-backup-test.jpg)
+![Backup report test controls: provide an existing execution runId](../images/hardware-setup/xen-orchestra-backup-test.png)
 
-![Transport authentication fields are empty on this private listener](../images/hardware-setup/xen-orchestra-transport-auth.jpg)
+![Transport authentication fields are empty on this private listener](../images/hardware-setup/xen-orchestra-transport-auth.png)
 
-The illustrated private deployment uses `nowlert@nowlert.local` as the recipient
+The illustrated private deployment uses `alerts@example.com` as the recipient
 label. Xen Orchestra delivers it to the configured SMTP host; this flow does not
 require provisioning an external mailbox with that address. Use your own label.
 To make delivery policy central, set each supported backup job's **Report**

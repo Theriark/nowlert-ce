@@ -38,8 +38,8 @@ controller-originated validation results are:
 | Controller | Result |
 |---|---|
 | HPE iLO4 2.81 | Verified: controller test reached Nowlert through the dedicated local callback and was delivered to the Criticals Discord destination, HTTP 200, attempt 1. |
-| Dell iDRAC8 2.86.86.86 | Not verified: callback TLS negotiation failed because the controller and receiver offered no common cipher suite. |
-| Supermicro 03.24 | Not verified: callback TLS handshake timed out; the cause remains unresolved. |
+| Dell iDRAC8 2.86.86.86 | Verified on 3 October: a native User Login callback reached the isolated compatibility listener and delivered to Criticals, HTTP 200, attempt 1. The original listener still has no common cipher with this firmware. |
+| Supermicro 03.24 | Native Send Test Event delivered through the approved isolated HTTP relay, HTTP 200. TLS negotiation still stalls. |
 
 The native-image HPE test was recorded on 2 October 2026 at 02:00 in Nowlert's delivery
 history. Earlier failed HPE subscriptions exhausted their delivery retries and
@@ -51,7 +51,11 @@ with HTTP 200. The subscription still existed more than three minutes later,
 and the callback logs showed one request rather than repeated delivery retries.
 This observation validates the test window, not indefinite subscription health.
 
-![Controller-originated HPE test delivered through the native image to Discord](../images/hardware-setup/hpe-native-image-delivery.png)
+![Synthetic receiver checks in Nowlert delivery history](../images/hardware-setup/hpe-native-image-delivery.png)
+
+The screenshot above shows synthetic receiver checks, not a controller-originated
+test. The callback log and subscription readback below document the native HPE
+test separately; a synthetic delivery alone does not verify controller emission.
 
 For this older iLO, the working callback was a dedicated, controller-restricted
 HTTPS listener on the local Docker host, port 18443. It accepts TLS connections
@@ -61,7 +65,7 @@ The test used the TLS listener forwarding directly to Nowlert; no buffering
 adapter was involved. TLS certificates and the no-SNI listener are still an
 instance-specific configuration. The main
 website listener remains separate. Do not assume this configuration also works
-for the two unverified controllers.
+for the controller configuration examples.
 
 ## 1. Issue a hardware token
 
@@ -92,9 +96,9 @@ tokens also authenticate the corresponding vendor Redfish receivers.
 The image supplies these routes on a fresh instance. Assign them rather than
 creating duplicate routes. Start with broad filters for the first test.
 
-![Hardware Discord destination; stored webhook hidden](../images/hardware-setup/nowlert-hardware-destination.jpg)
+![Hardware Discord destination; stored webhook hidden](../images/hardware-setup/nowlert-hardware-destination.png)
 
-![Three vendor Redfish routes selected; generic fallback not selected](../images/hardware-setup/nowlert-hardware-routes.jpg)
+![Three vendor Redfish routes selected; generic fallback not selected](../images/hardware-setup/nowlert-hardware-routes.png)
 
 ## 3. Choose the callback endpoint
 
@@ -153,7 +157,7 @@ Submit this JSON as a POST to the subscription collection using your controller
 credentials. Keep `Content-Type: application/json`. Save the resource URL returned
 in `Location`, then GET that resource to verify the stored destination and TTL.
 
-![Token-free API readback of the configured iLO subscription](../images/hardware-setup/hpe-subscription-record.jpg)
+![Token-free API readback of the configured iLO subscription](../images/hardware-setup/hpe-subscription-record.png)
 
 This is a rendered record of the actual API readback, not an iLO WebUI page.
 The subscription was created through Redfish, not through iLO's SMTP settings.
@@ -193,9 +197,9 @@ Service and GET the new resource returned in `Location`. Preserve the path's
 trailing slash when required by the device; do not forward credentials across
 an unexpected redirect.
 
-![Stored Dell subscription; TLS delivery remains unverified](../images/hardware-setup/dell-subscription-record.jpg)
+![Stored Dell subscription; TLS delivery remains unverified](../images/hardware-setup/dell-subscription-record.png)
 
-![Stored Supermicro subscription; TLS delivery remains unverified](../images/hardware-setup/supermicro-subscription-record.jpg)
+![Stored Supermicro subscription; TLS delivery remains unverified](../images/hardware-setup/supermicro-subscription-record.png)
 
 These two images are also rendered, token-free API readback records. The firmware
 omitted `HttpHeaders` from its GET response; the omission alone does not prove
@@ -253,7 +257,7 @@ check waited more than three minutes and confirmed that the subscription remaine
 | Symptom | Check |
 |---|---|
 | Subscription POST returns 201, but no event arrives | Test from the controller and inspect callback access/TLS logs; creation does not test connectivity. |
-| No common TLS cipher suite | Compare receiver and controller TLS capabilities. Do not present the local iDRAC8 setup as verified. |
+| No common TLS cipher suite | Compare receiver and controller TLS capabilities. The verified iDRAC8 callback uses the separate compatibility listener described below. |
 | TLS handshake times out | Check the controller network, trust, firmware, and server handshake logs. The local Supermicro cause is still unresolved. |
 | iLO subscription disappears after a test | Inspect retries and acknowledgement status; use an image containing the native HTTP 200 fix. |
 | HTTP 401/403/429 | Check token scope, owner status, revocation, expiry, and rate limit. |
@@ -272,18 +276,114 @@ configuration is not automatically installed by the Nowlert image.
 - The resulting destination card.
 
 Collect the delivery and output evidence from a controller-originated test for
-each vendor. The included iLO delivery is verified; Dell and Supermicro still
-require successful controller callbacks and their own delivery/output captures.
+each vendor. The included iLO, Dell, and Supermicro deliveries are verified on
+their documented listeners. A test event does not prove a real fault/recovery pair.
 
 ## Expanded event coverage
 
-The subscription screenshots and readback records above capture the original
-Alert/StatusChange setup. On 2 October 2026, the subscriptions were expanded
-to all five event types advertised by these controllers. The examples now use
-that full list. See the [coverage audit](centralized-event-coverage.md) for the
-accepted changes, observed iLO deliveries, and outstanding readback/TLS checks.
+The subscription screenshots above capture the original Alert/StatusChange
+setup. iLO subsequently emitted ResourceAdded/ResourceRemoved events, and
+Dell's additional subscription was read back with all five advertised types.
+Supermicro's PATCH responses did not apply the requested list. Earlier all-five
+creation payloads were rejected, but the later HTTP subscription with the short
+context `CONTROLLER-C-ALL` was accepted and read back with all five types. This verifies
+the saved subscription scope, not delivery of every event type.
+See the [coverage audit](centralized-event-coverage.md) for the observed results.
 
 For repeated iLO ResourceAdded/ResourceRemoved messages, keep broad source intake
 and use a narrow destination block rule. The [coverage audit](centralized-event-coverage.md#keep-broad-ilo-intake-without-flooding-a-destination)
 shows the saved rule and actual filtered outcomes. Avoid filtering every Ok event,
 which can also suppress useful hardware recovery notifications.
+
+## Dell native validation: 3 October 2026
+
+The local instance runs development commit
+`abdc92887fc508bf1f105697eb48772acda78b08`. iDRAC8 could not negotiate TLS
+with the original iLO listener. With explicit approval, a separate Nginx
+listener was deployed at `https://192.0.2.10:18445/redfish/dell`.
+Port 18444 was already occupied by Home Assistant and was preserved.
+
+The listener accepts TLS 1.2 with RSA/AES-CBC only, using an RSA certificate.
+It accepts the Dell and Supermicro controller IPs; each vendor path additionally
+accepts only its own controller IP. Each path injects a different source-scoped
+Nowlert Bearer token, stored privately. The website and iLO listener are unchanged.
+Legacy RSA key exchange lacks forward secrecy. This is an explicitly approved,
+private compatibility deployment, not a service automatically provided by the
+Nowlert image or a recommended public website TLS configuration.
+
+A new Dell subscription was read back with all five advertised event types and
+the new callback URL. Original subscriptions were preserved. Receiver logs show
+`192.0.2.11 POST /redfish/dell 204`; Nowlert shows **User Login**, Redfish input,
+**Criticals**, **Delivered**, attempt 1, **HTTP 200** at 02:37 Europe/London.
+This is a controller-originated informational event, not a hardware failure or
+recovery test. Other severity/lifecycle combinations still need their own native
+validation before being advertised as tested.
+
+![Native Dell event delivered to Criticals](../images/monitoring-setup/dell-native-delivery.png)
+
+## Supermicro native validation: 3 October 2026
+
+TLS negotiation still stalled on both HTTPS listeners. With explicit approval,
+a separate HTTP relay was deployed at
+`http://192.0.2.10:18446/redfish/supermicro`, accepting only the Supermicro
+controller IP. Hardware event contents travel unencrypted on the LAN. The
+controller sends no token; the relay injects a privately stored, Supermicro-only
+Nowlert token. Existing website and HTTPS listeners remain unchanged. This relay
+is deployment configuration, not automatically installed by the Nowlert image.
+
+The test subscription was created with this payload and read back successfully:
+
+```json
+{
+  "Destination": "http://192.0.2.10:18446/redfish/supermicro",
+  "Protocol": "Redfish",
+  "Context": "CONTROLLER-C-ALL",
+  "EventTypes": ["StatusChange", "ResourceUpdated", "ResourceAdded", "ResourceRemoved", "Alert"]
+}
+```
+
+Original subscriptions 1–3 were preserved. The test HTTPS subscription created
+for this investigation was replaced with the approved HTTP subscription; no
+additional Nowlert route was created.
+
+The controller's native `SendTestEvent` action returned HTTP 200. Receiver logs
+then recorded `192.0.2.12 POST /redfish/supermicro 204`. Nowlert shows **Send
+Test Event**, Redfish input, **Criticals**, **Delivered**, attempt 1, **HTTP 200**
+at 02:56 Europe/London. This proves controller-native test delivery, not a real
+hardware fault/recovery pair. The TLS stall's root cause remains unresolved.
+
+![Native Supermicro test delivered to Criticals](../images/monitoring-setup/supermicro-native-delivery.png)
+
+Its earlier Destination PATCH returned HTTP 200 but readback retained the old
+URL; always check the saved subscription rather than relying on PATCH status.
+
+### Controller-native severity tests: 4 October 2026
+
+The same Supermicro controller's `EventService.SendTestEvent` action was invoked
+twice, with explicit Warning and OK severities and messages identifying them as
+QA tests with no hardware fault. Both action responses were HTTP 200. Nowlert
+recorded the Warning event at 04:23:36 UTC and the Successful event at 04:24:06
+UTC, each delivered to Discord on attempt 1 with HTTP 200 and no error.
+
+These callbacks originated from the controller, rather than a mock server or
+an HTTP client posting directly to Nowlert. They verify native transport and
+severity classification; they do not establish physical fault detection or a
+real hardware fault/recovery pair. The existing isolated HTTP relay is still
+required for this installation.
+
+![Controller-originated Supermicro Warning and Successful tests](../images/monitoring-setup/supermicro-native-test-pair.png)
+
+Dell's Event Service remains enabled and healthy, and its route remains assigned.
+Full test requests returned HTTP 201, but no corresponding Warning/Successful
+delivery pair was identified in Nowlert. Action acceptance must not be reported
+as successful delivery. Dell's native informational delivery remains the verified
+result; its hardware fault/recovery pair is still pending.
+
+The follow-up readback confirmed that Dell's global `IPMILan.1#AlertEnable`
+setting is **Enabled**. A bounded callback trace following another accepted
+critical test request observed one callback containing three informational
+`USR0030` login events, with no QA message or requested critical test event.
+Those are login-audit events, not evidence of a critical/recovery pair. The saved
+Nowlert noise rule targets `USR0030` from the trusted management client; do not
+enable duplicate routes or remove that noise rule to compensate for a test event
+that has not been observed arriving.
