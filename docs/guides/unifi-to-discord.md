@@ -1,5 +1,14 @@
 # UniFi Network, Protect and Drive to Discord
 
+> Lifecycle readback, 4 October 2026: Drive 4.4.9's **New Alarm → Settings**
+> catalogue exposes backup failures and partial completion, but no backup-success,
+> completed or recovery trigger. Successful jobs visible on its dashboard do not
+> establish a recovery webhook. Native Shared Drive Created delivery is verified;
+> a native backup fault/recovery pair remains unverified. The inspected alarm draft
+> was canceled without saving or changing existing alarms.
+
+![Drive backup trigger catalogue, private console details concealed](../images/monitoring-setup/drive-backup-trigger-catalogue.png)
+
 Configure UniFi Alarm Manager to send supported events to Nowlert, then use
 Nowlert's destination filters to decide which alerts should reach Discord.
 This walkthrough was captured on 2 October 2026 with Network 10.6.106,

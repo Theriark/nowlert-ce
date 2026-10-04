@@ -356,3 +356,25 @@ hardware fault/recovery pair. The TLS stall's root cause remains unresolved.
 
 Its earlier Destination PATCH returned HTTP 200 but readback retained the old
 URL; always check the saved subscription rather than relying on PATCH status.
+
+### Controller-native severity tests: 4 October 2026
+
+The same Supermicro controller's `EventService.SendTestEvent` action was invoked
+twice, with explicit Warning and OK severities and messages identifying them as
+QA tests with no hardware fault. Both action responses were HTTP 200. Nowlert
+recorded the Warning event at 04:23:36 UTC and the Successful event at 04:24:06
+UTC, each delivered to Discord on attempt 1 with HTTP 200 and no error.
+
+These callbacks originated from the controller, rather than a mock server or
+an HTTP client posting directly to Nowlert. They verify native transport and
+severity classification; they do not establish physical fault detection or a
+real hardware fault/recovery pair. The existing isolated HTTP relay is still
+required for this installation.
+
+![Controller-originated Supermicro Warning and Successful tests](../images/monitoring-setup/supermicro-native-test-pair.png)
+
+Dell's Event Service remains enabled and healthy, and its route remains assigned.
+Full test requests returned HTTP 201, but no corresponding Warning/Successful
+delivery pair was identified in Nowlert. Action acceptance must not be reported
+as successful delivery. Dell's native informational delivery remains the verified
+result; its hardware fault/recovery pair is still pending.
