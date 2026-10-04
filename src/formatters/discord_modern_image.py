@@ -4310,6 +4310,34 @@ class GenericFallbackDiscordModernImageRenderer(
 ):
     """Render generic/unknown fallback cards on the frozen baseline."""
 
+    def render(self, notification: Notification, classic_payload: dict) -> bytes:
+        if str(notification.source or '').strip().casefold() != 'email':
+            return super().render(notification, classic_payload)
+        metadata = notification.metadata or {}
+        classification = str(metadata.get('classification') or notification.status or 'information').casefold()
+        status = 'failure' if classification in {'urgent', 'critical', 'failure', 'error'} else 'warning' if classification == 'warning' else 'success'
+        accent = self.FAILURE if status == 'failure' else self.BRAND_GOLD if status == 'warning' else self.ICON_BLUE
+        label = 'Urgent' if status == 'failure' else 'Warning' if status == 'warning' else 'Information'
+        fields = self._fields(self._embed(classic_payload))
+        context_rows = [{'label': f'{key}:', 'value': self._clean(value)} for key, value in (
+            ('Classification', label), ('Rule', metadata.get('rule')),
+            ('Group', metadata.get('group')), ('Sender', metadata.get('sender') or notification.sender),
+            ('Mailbox', metadata.get('mailbox')), ('Provider', metadata.get('provider')),
+        ) if value not in (None, '')]
+        timing = [{'label': 'Received:', 'value': self._normalize_timing_block(str(notification.start_time))}] if notification.start_time else []
+        return self._render_standard_card(
+            source='email', integration='Email', context=self._clean(metadata.get('provider') or 'Email'),
+            badge=' '.join(str(value) for value in (metadata.get('group'), label) if value),
+            title=notification.subject or notification.title,
+            severity=self._summary_severity(notification, label), category=self._summary_category(notification),
+            event_time=self._summary_time(notification, fields),
+            details=[{'title': 'Source & Context', 'rows': context_rows}, {'title': 'Timing', 'rows': timing}],
+            outcomes=[{'title': 'EVENT DETAILS', 'rows': [{'icon': 'cube', 'value': notification.body or notification.subject or notification.title}],
+                       'full_width': True, 'accent': accent, 'status': status}],
+            accent=accent, status=status, font_profile=self.MODERN_FONT_PROFILE,
+        )
+
+
     WEBHOOK_FALLBACK_WIDTH = 2400
 
     def _standard_canvas_width(self, content) -> int:
