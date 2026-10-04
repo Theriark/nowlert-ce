@@ -1,0 +1,106 @@
+{
+  "validation_date": "2026-10-02",
+  "scope": "Controlled conditions; four synthetic callbacks and native Zabbix media tests. Not controller-origin or trigger-action proof.",
+  "deliveries": [
+    {
+      "source": "portainer",
+      "title": "SIMULATION 20261002 T223937 Z High authentication failures for a single user",
+      "event_name": "SIMULATION 20261002 T223937 Z High authentication failures for a single user",
+      "event_status": "firing",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790980780
+    },
+    {
+      "source": "portainer",
+      "title": "SIMULATION 20261002 T223937 Z High authentication failures for a single user",
+      "event_name": "SIMULATION 20261002 T223937 Z High authentication failures for a single user",
+      "event_status": "resolved",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790980784
+    },
+    {
+      "source": "dell_idrac",
+      "title": "[SIMULATED callback SIMULATION-20261002T223937Z] Physical disk 0:1:2 is reporting a predictive failure",
+      "event_name": "[SIMULATED callback SIMULATION-20261002T223937Z] Physical disk 0:1:2 is reporting a predictive failure",
+      "event_status": "warning",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790980788
+    },
+    {
+      "source": "dell_idrac",
+      "title": "[SIMULATED callback SIMULATION-20261002T223937Z] Physical disk 0:1:2 status returned to normal",
+      "event_name": "[SIMULATED callback SIMULATION-20261002T223937Z] Physical disk 0:1:2 status returned to normal",
+      "event_status": "success",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790980791
+    },
+    {
+      "source": "supermicro",
+      "title": "[SIMULATED callback SIMULATION-20261002T223937Z] CPU 1 temperature exceeded the warning threshold",
+      "event_name": "[SIMULATED callback SIMULATION-20261002T223937Z] CPU 1 temperature exceeded the warning threshold",
+      "event_status": "warning",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790980796
+    },
+    {
+      "source": "supermicro",
+      "title": "[SIMULATED callback SIMULATION-20261002T223937Z] CPU 1 temperature returned to normal",
+      "event_name": "[SIMULATED callback SIMULATION-20261002T223937Z] CPU 1 temperature returned to normal",
+      "event_status": "success",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790980800
+    },
+    {
+      "source": "unifi_drive",
+      "title": "Backup task failed [SIMULATED callback SIMULATION-20261002T224106Z]",
+      "event_name": "Backup task failed [SIMULATED callback SIMULATION-20261002T224106Z]",
+      "event_status": "failure",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790980870
+    },
+    {
+      "source": "unifi_drive",
+      "title": "Backup task completed [SIMULATED callback SIMULATION-20261002T224106Z]",
+      "event_name": "Backup task completed [SIMULATED callback SIMULATION-20261002T224106Z]",
+      "event_status": "success",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790980873
+    },
+    {
+      "source": "zabbix",
+      "title": "[SIMULATED CONDITION] Zabbix native webhook problem",
+      "event_name": "[SIMULATED CONDITION] Zabbix native webhook problem",
+      "event_status": "failure",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790981183
+    },
+    {
+      "source": "zabbix",
+      "title": "[SIMULATED CONDITION] Zabbix native webhook recovery",
+      "event_name": "[SIMULATED CONDITION] Zabbix native webhook recovery",
+      "event_status": "success",
+      "outcome": "delivered",
+      "response_status": 200,
+      "error_code": null,
+      "created_at": 1790981233
+    }
+  ]
+}
