@@ -46,6 +46,10 @@ problem, recovery and success behavior of each integration and its source limits
 | Semaphore native task success and notification log | [Task #30](../images/application-setup/semaphore-native-test.jpg) |
 | Metabase saved webhook, no token value | [Webhook destination](../images/application-setup/metabase-webhook.jpg) |
 | Metabase hourly failure alert and native delivery proof | [Saved alert](../images/application-setup/metabase-delivery-alert.jpg), [native question test](../images/application-setup/metabase-native-question-delivered.jpg) |
+| Gmail API enabled | [API status, account header omitted](../images/email-setup/gmail-api-enabled.jpg) |
+| Microsoft delegated mailbox permission | [Mail.Read, address concealed](../images/email-setup/microsoft-mail-read-redacted.png) |
+| Both mailbox connections healthy | [Private labels concealed](../images/email-setup/mailboxes-healthy-redacted.png) |
+| Real No-IP warning classification | [Email, hostname and mailbox label concealed](../images/email-setup/noip-warning-redacted.png) |
 | Home Assistant enabled alert automations | [Automation entities](../images/home-assistant-setup/enabled-automations.jpg) |
 | Home Assistant native notification test | [Action](../images/home-assistant-setup/native-test.jpg), [delivery proof](../images/home-assistant-setup/native-delivery-proof.jpg) |
 | Home Assistant authenticated receiver acceptance | [HTTP 204 response](../images/home-assistant-setup/transport-response.jpg) |
@@ -77,10 +81,14 @@ are included so the captures can be checked against the data.
 
 ## Release and marketing notes
 
-For mailbox-based sources, see [Gmail and Microsoft Email Alerts](gmail-microsoft-email-alerts.md).
-The local No-IP and OpenAI status groups are prepared; provider application
-registration, mailbox consent, sender-specific rules and native delivery remain
-pending. Do not advertise these two mailbox connections as configured yet.
+For mailbox sources, follow the illustrated [Gmail](gmail-email-alerts.md) and
+[Microsoft 365 / Outlook](microsoft-email-alerts.md) tutorials, then the
+[shared rules and delivery walkthrough](gmail-microsoft-email-alerts.md).
+Both local mailbox connections and background synchronization were verified on
+4 October 2026. Real No-IP notices matched the warning rule. Gmail remains in
+Google Testing mode; production authorization is outstanding. Native OpenAI
+incident/resolution and email-to-destination delivery proof are not yet captured.
+Personal addresses and account labels are concealed in the tutorial images.
 
 The native iLO fix was verified in a development image. Before advertising it as
 a stable-release feature, promote and test a release containing that fix and

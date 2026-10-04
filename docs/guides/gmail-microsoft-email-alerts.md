@@ -1,181 +1,107 @@
-# Connect Gmail and Microsoft mailboxes to Nowlert
+# Gmail and Microsoft Email Alerts: rules and delivery
 
-Email Alerts reads mailbox metadata, classifies matching messages, and forwards
-them through Nowlert's existing routing and destination filters. The installation
-administrator configures a provider application once; each mailbox owner then
-signs in to the provider and authorizes their mailbox.
+Use Nowlert Email Alerts to connect a mailbox, classify matching messages and
+forward actionable notices through existing routes and destinations. Each
+installation has its own provider application credentials; each mailbox owner
+consents to read-only access. Credentials are not bundled in the Nowlert image.
 
-## Current local setup status
+## Choose a provider walkthrough
 
-The local installation has the **No-IP** and **OpenAI status** groups saved,
-with quiet windows disabled. The Microsoft application is registered in the
-intended tenant and its public certificate is uploaded. Gmail application setup,
-Microsoft delegated `Mail.Read` is configured. Certificate support is deployed
-as a local build; publication in the standard image and mailbox consent are
-still pending.
-There are no connected mailboxes or enabled rules
-for these sources yet. This page describes the configuration procedure; it is
-not a claim of verified native mailbox delivery.
+- [Gmail: Google project, OAuth, mailbox connection and verification](gmail-email-alerts.md)
+- [Microsoft 365 / Outlook: Entra, certificate or secret, connection and verification](microsoft-email-alerts.md)
 
-![Saved email groups](../images/monitoring-setup/email-groups-created.png)
+The examples use `https://nowlert.example.com/ui/`. Replace the hostname with the
+canonical HTTPS URL of your installation and register the exact callback,
+including the trailing slash. The browser must reach that URL; the container
+must reach the provider APIs. The Google callback and Microsoft Web callback are
+OAuth redirects, not SMTP listeners or Nowlert integration webhooks.
 
-## Register the provider applications
+## No-IP and OpenAI status rules
 
-Use the exact callback URL derived from the installation's canonical WebUI URL:
+These rules are shared by the same owner's Gmail and Microsoft mailboxes. Add a
+mailbox condition if a rule should apply to just one connection. Avoid duplicate
+provider-specific copies of an otherwise identical rule.
 
-```text
-https://nowlert-ce.local.fortpt.com/ui/
-```
+1. Connect the mailbox and verify **Healthy** and a recent **Last sync**.
+2. Inspect an actual message under **Email Alerts → Activity**. Verify its sender
+   domain and subject before choosing conditions; display names alone are not
+   reliable matching criteria.
+3. Under **Email Alerts → Groups**, create **No-IP** and **OpenAI status**, or reuse
+   the existing groups. Review their delivery settings and leave quiet windows
+   off while validating the first events.
+4. Under **Email Alerts → Rules**, add the following rules with **Enabled** status
+   and **All conditions (AND)**. Lower priority numbers are evaluated first.
 
-The browser completing authorization must be able to reach this local hostname.
-Register the identical URL, including the trailing slash. Do not expose Nowlert
-publicly just to configure a browser redirect. A provider may impose additional
-domain and tenant policies that must be satisfied by the app registration.
+| Group | Rule | Classification | Priority | Conditions |
+|---|---|---|---|---|
+| No-IP | No-IP - hostname expired | Urgent | 10 | Sender domain equals `noip.com`; Subject contains `expired` |
+| No-IP | No-IP - hostname expiring soon | Warning | 20 | Sender domain equals `noip.com`; Subject contains `expiring` |
+| OpenAI status | OpenAI status - incident resolved | Information | 10 | Sender domain equals `statuspage.io`; Subject contains `OpenAI`; Body contains `This incident has been resolved` |
+| OpenAI status | OpenAI status - incident updates | Warning | 30 | Sender domain equals `statuspage.io`; Subject contains `OpenAI` |
 
-### Google
+The No-IP pattern was verified against a real message from each connected
+mailbox. The OpenAI patterns were checked with representative samples; a native
+OpenAI incident/resolution pair has not yet been captured. Verify your real
+status subscription's sender and resolution wording before treating those
+patterns as proven for your mailbox. These are email classifications, not an
+inferred incident lifecycle. A resolution is Information in this setup.
 
-1. Open Google Cloud and select the intended project. Enable the Gmail API.
-2. Configure Google Auth Platform branding and audience for the mailbox users.
-3. Create an OAuth client of type **Web application**. Register the callback URL
-   above as an authorized redirect URI.
-4. Configure the requested read-only scope:
-   `https://www.googleapis.com/auth/gmail.readonly`.
-5. Keep the application client secret private. An external application left in
-   Testing can require periodic reauthorization; review Google's token-expiry
-   and consent policies before using it for unattended monitoring.
+The sender-domain condition distinguishes OpenAI incident subscriptions from
+OpenAI newsletters. The subject condition also prevents another vendor's
+Statuspage messages matching merely because they use `statuspage.io`. Body
+conditions retrieve message content only when an enabled rule requires it;
+attachments are not used for matching.
 
-See Google's [web-server OAuth setup](https://developers.google.com/identity/protocols/oauth2/web-server)
-and [token expiration guidance](https://developers.google.com/identity/protocols/oauth2#expiration).
+5. Save each rule and preview representative messages. Check a No-IP reminder,
+   an expiry notice, an incident update and its resolution, plus unrelated
+   marketing and another vendor's status email as negative controls.
+6. In **Destinations**, edit the target, open **Manage routes**, select **Email
+   Alerts**, click **Done**, and **Save changes**. Review destination filters so
+   the desired classifications are permitted.
 
-### Microsoft
+![No-IP warning match with private identifiers concealed](../images/email-setup/noip-warning-redacted.png)
 
-1. Open Microsoft Entra **App registrations** and create or reuse the intended
-   Nowlert application.
-2. Select the supported account audience appropriate for the mailbox. Personal
-   Outlook accounts require an audience that includes personal Microsoft accounts.
-3. Add a **Web** platform with the exact callback URL above.
-4. Configure Microsoft Graph **delegated** `Mail.Read` permission. Nowlert requests
-   `openid profile email offline_access` and `https://graph.microsoft.com/Mail.Read`.
-   It does not need application-wide mailbox permissions or `Mail.Send`.
-5. Use a certificate credential if your tenant prohibits client secrets (see
-   below), or create an application client secret and store its value privately. Use the
-   appropriate directory tenant ID, or a supported common/consumer authority
-   matching the registered account audience.
+## Verify the complete path
 
-See Microsoft's [redirect URI setup](https://learn.microsoft.com/en-us/entra/identity-platform/how-to-add-redirect-uri)
-and [application audience configuration](https://learn.microsoft.com/en-us/entra/identity-platform/msal-client-application-configuration).
+A connection and a rule preview are only part of the acceptance check:
 
-### Microsoft certificate authentication
+1. Receive a new relevant email in a selected folder/label.
+2. Confirm mailbox synchronization remains healthy.
+3. In **Activity**, verify the actual message, matched group/rule and severity.
+4. In **Delivery history**, find the corresponding event and successful response
+   for the intended destination. Inspect filtered outcomes if dispatch is absent.
+5. Synchronize again and check that the same provider message has not produced
+   duplicate deliveries. Do not replay historical messages just to create proof.
 
-Nowlert supports a deployment-owned PEM X.509 certificate and matching RSA
-private key for the same delegated mailbox sign-in flow. This does not grant
-access to all tenant mailboxes. Each mailbox still requires its owner's consent.
+An expiry reminder does not confirm a hostname's current expiry or renew it.
+Check the No-IP account separately if you need to confirm or renew the hostname.
 
-1. Generate an RSA key of at least 2048 bits and a matching certificate. Keep
-   the unencrypted private key in the host's restricted secrets directory,
-   readable only by the Nowlert service. Never upload or commit the private key.
+## Validation and screenshot notes
 
-   For a new installation, run this in its existing secrets directory. These
-   filenames must not already exist; retain any existing credentials during
-   rotation.
+On **4 October 2026**, the local deployment had both Gmail and Microsoft mailboxes
+connected and healthy, with successful background synchronization. Microsoft
+used a deployment-owned certificate. Real stored No-IP notices matched the
+warning rule. Four enabled No-IP/OpenAI rules were saved.
 
-   ```sh
-   umask 077
-   test ! -e nowlert_email_microsoft_private_key &&
-   test ! -e nowlert_email_microsoft_certificate &&
-   openssl req -x509 -newkey rsa:3072 -sha256 -days 365 -nodes \
-     -subj '/CN=Nowlert CE Email Alerts' \
-     -keyout nowlert_email_microsoft_private_key \
-     -out nowlert_email_microsoft_certificate
-   ```
+The Gmail application remained in **Testing**, so its authorization is temporary:
+Google expires Gmail-scope refresh tokens from external Testing apps after seven
+days. Production publishing requirements and reauthorization remain outstanding.
+See [Google's token-expiry documentation](https://developers.google.com/identity/protocols/oauth2#expiration).
 
-   Set both files to mode `0600`, owned by the UID/GID used by the running
-   Nowlert container. Files generated by root cannot be read by a non-root
-   service until ownership is corrected. Keep the secrets directory traversable
-   by that service account and the mount read-only; do not make the key
-   world-readable to resolve a permission error.
-2. In the intended tenant's application, open **Certificates & secrets →
-   Certificates → Upload certificate** and upload only the public certificate.
-3. Mount both files read-only and configure:
+This evidence confirms provider connection, synchronization and No-IP matching.
+Native OpenAI incident/resolution emails and email-to-destination delivery proof
+remain separate acceptance items. Do not advertise them as verified from these
+screenshots. The local certificate-support build is a development candidate;
+verify the feature in your chosen release image before deploying.
 
-   ```yaml
-   environment:
-     NOWLERT_EMAIL_MICROSOFT_CLIENT_ID: YOUR_APPLICATION_ID
-     NOWLERT_EMAIL_MICROSOFT_TENANT_ID: YOUR_DIRECTORY_ID
-     NOWLERT_EMAIL_MICROSOFT_CERTIFICATE_FILE: /run/secrets/nowlert_email_microsoft_certificate
-     NOWLERT_EMAIL_MICROSOFT_PRIVATE_KEY_FILE: /run/secrets/nowlert_email_microsoft_private_key
-     NOWLERT_EMAIL_MICROSOFT_REDIRECT_URI: https://nowlert-ce.local.fortpt.com/ui/
-   ```
+![Both provider connections healthy; account labels concealed](../images/email-setup/mailboxes-healthy-redacted.png)
 
-4. Restart the service with the updated configuration, then connect the mailbox
-   through Email Alerts. Retain the delegated `Mail.Read` permission.
-5. Rotate the certificate before expiry: upload the replacement public
-   certificate, replace the mounted pair, and restart Nowlert. Verify mailbox
-   synchronization before removing the old certificate from Entra.
+Screenshots are privacy-edited illustrations of the configured pages. Account
+labels, email addresses and the example hostname are concealed. Google's API
+capture is cropped to omit the signed-in account header. No application secret,
+mailbox authorization token or private key is included. The written validation
+status comes from the actual application state and rule checks, rather than
+from edited image pixels alone.
 
-Certificate configuration takes precedence over a client secret. Missing,
-expired, malformed, weak or mismatched certificate credentials fail closed;
-Nowlert does not fall back to a secret. A fresh five-minute PS256 assertion is
-used for both authorization-code exchange and refresh. Private keys are not
-stored in mailbox records, returned in provider status, or included in tutorials.
-
-See Microsoft's [certificate assertion specification](https://learn.microsoft.com/en-us/entra/identity-platform/certificate-credentials).
-
-## Configure the Nowlert container
-
-Add the public application identifiers and secret-file paths to the existing
-Nowlert service's environment. Preserve its image, volumes, ports and networks:
-
-```yaml
-environment:
-  NOWLERT_EMAIL_GMAIL_CLIENT_ID: YOUR_GOOGLE_CLIENT_ID
-  NOWLERT_EMAIL_GMAIL_CLIENT_SECRET_FILE: /run/secrets/nowlert_email_gmail_client_secret
-  NOWLERT_EMAIL_MICROSOFT_CLIENT_ID: YOUR_MICROSOFT_CLIENT_ID
-  NOWLERT_EMAIL_MICROSOFT_TENANT_ID: YOUR_TENANT_ID
-  NOWLERT_EMAIL_MICROSOFT_CLIENT_SECRET_FILE: /run/secrets/nowlert_email_microsoft_client_secret
-  NOWLERT_EMAIL_OAUTH_REDIRECT_URI: https://nowlert-ce.local.fortpt.com/ui/
-```
-
-Store only each secret value in the corresponding file under the existing
-read-only `/run/secrets` mount. Do not paste secrets into documentation, screenshots,
-mailbox settings or Git. Recreate the Nowlert service to load changed environment
-variables. Confirm both OAuth connection buttons become available.
-
-## Connect each mailbox
-
-Open **Email Alerts → Mailboxes → Connect mailbox**. Select Gmail or Microsoft
-365, identify the intended mailbox and complete provider sign-in and consent.
-The provider password stays with Google or Microsoft. Confirm the mailbox becomes
-healthy and that synchronization succeeds before configuring delivery rules.
-
-## Add No-IP and OpenAI status rules
-
-1. Inspect the actual sender address/domain and subject from a representative
-   message in the connected mailbox. Do not match display names alone.
-2. In **Email Alerts → Rules**, create a rule in **No-IP** for actionable hostname
-   confirmation, renewal or expiry messages. Match the verified sender plus the
-   actual subject patterns. Classify reminders as Warning; use a separate
-   higher-priority rule for urgent expiry notices if needed.
-3. Create an **OpenAI status** rule matching the verified status-email sender and
-   subject identifying OpenAI. Include incident updates and resolutions; do not
-   silently discard resolution messages. Email classifications are Urgent,
-   Warning, Information or Ignore, rather than a provider-independent incident
-   lifecycle inference.
-4. Use the rule preview against representative messages and a negative control
-   from an unrelated sender. Keep mailbox and sender conditions specific.
-5. Assign the built-in Email Alerts route to the desired destination, save the
-   destination, and confirm centralized filtering permits the intended classes.
-
-Keep quiet windows off initially. Tune repeats only after observing actual
-message patterns, so meaningful incident updates are not suppressed.
-
-## Verify delivery
-
-Check **Email Alerts → Activity** for synchronization, matched rule, classification
-and dispatch. Confirm the same message in **Delivery history**, including the
-destination's successful response. Reprocessing the same provider message should
-not produce duplicate deliveries. A rule preview or synthetic message test does
-not establish provider OAuth, background synchronization or native email delivery.
-
-See [deployment OAuth configuration](../deployment.md#email-alerts-oauth-applications)
-for the per-installation credential model and redirect overrides.
+For environment variables and secret mounts, see
+[deployment OAuth configuration](../deployment.md#email-alerts-oauth-applications).

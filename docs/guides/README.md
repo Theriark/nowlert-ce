@@ -21,6 +21,9 @@ installation.
 ## Guides
 
 - [Illustrated infrastructure tutorials and screenshot index](infrastructure-tutorials.md)
+- [Gmail email alerts: illustrated setup](gmail-email-alerts.md)
+- [Microsoft 365 / Outlook email alerts: illustrated setup](microsoft-email-alerts.md)
+- [Shared email rules and delivery validation](gmail-microsoft-email-alerts.md)
 - [Portainer native Alerting to Nowlert and Discord](portainer-to-discord.md)
 - [Home Assistant alerts to Nowlert and Discord](home-assistant-to-discord.md)
 - [TrueNAS alerts to Nowlert and Discord](truenas-to-discord.md)
