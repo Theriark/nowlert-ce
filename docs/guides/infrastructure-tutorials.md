@@ -46,8 +46,8 @@ problem, recovery and success behavior of each integration and its source limits
 
 | Page or configuration step | Capture |
 |---|---|
-| Zabbix native webhook and recipient | [Enabled media](../images/zabbix-setup/media-enabled.jpg), [saved recipient](../images/zabbix-setup/recipient-media.jpg), [problem/recovery operations](../images/zabbix-setup/action-operations.jpg) |
-| Zabbix native media test acceptance | [Problem](../images/zabbix-setup/native-problem-accepted.jpg), [recovery](../images/zabbix-setup/native-recovery-accepted.jpg) |
+| Zabbix native webhook and recipient | [Enabled media](../images/zabbix-setup/media-enabled.png), [saved recipient](../images/zabbix-setup/recipient-media.png), [problem/recovery operations](../images/zabbix-setup/action-operations.png) |
+| Zabbix native media test acceptance | [Problem](../images/zabbix-setup/native-problem-accepted.png), [recovery](../images/zabbix-setup/native-recovery-accepted.png) |
 | Checkmk saved native notification rule | [All events/method](../images/application-setup/checkmk-all-events.jpg), [recipient](../images/application-setup/checkmk-single-recipient.png), [conditions/save behavior](../images/application-setup/checkmk-sending-conditions.jpg) |
 | Sonarr saved connection and all native triggers | [Connections](../images/application-setup/sonarr-all-events.png) |
 | Radarr saved connection and all native triggers | [Connections](../images/application-setup/radarr-all-events.jpg) |
