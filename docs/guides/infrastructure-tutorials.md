@@ -67,7 +67,7 @@ problem, recovery and success behavior of each integration and its source limits
 | Local Portainer stack | [Running services](../images/hardware-setup/portainer-stack-running.png) |
 | TLS listener configuration | [Listener](../images/hardware-setup/portainer-tls-config.png), [forwarding and allowlist](../images/hardware-setup/portainer-tls-forwarding.png) |
 | Actual iLO callback acknowledgement | [Access log](../images/hardware-setup/portainer-hpe-callback.png) |
-| Actual iLO-to-Discord delivery | [Native image delivery](../images/hardware-setup/hpe-native-image-delivery.png) |
+| Synthetic hardware receiver checks | [Receiver delivery history](../images/hardware-setup/hpe-native-image-delivery.png); native iLO emission is evidenced by the callback log above |
 | Xen Orchestra Discord edit form | [Operational destination](../images/hardware-setup/nowlert-xen-destination.png) |
 | Xen Orchestra SMTP route | [SMTP assignment](../images/hardware-setup/nowlert-xen-routes.png) |
 | Xen Orchestra transport-email | [Host, port, security](../images/hardware-setup/xen-orchestra-transport-email.png), [authentication fields](../images/hardware-setup/xen-orchestra-transport-auth.png) |

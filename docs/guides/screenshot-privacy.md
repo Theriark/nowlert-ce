@@ -1,7 +1,8 @@
 # Screenshot privacy review
 
 The tutorial and documentation image collection was reviewed on 4 October 2026.
-The review covered all 97 raster assets under `docs/images`, including the logo,
+The review covered all 97 raster assets then under `docs/images`, before removing
+unused and superseded captures. It included the logo,
 legacy examples, integration setup pages, email setup, and delivery evidence.
 
 Private details were replaced with opaque masks in 83 screenshots. The masks
