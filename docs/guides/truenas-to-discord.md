@@ -17,7 +17,7 @@ In TrueNAS **System → General Settings → Email → Configure**, select SMTP:
 
 | Field | Tested local value | For your deployment |
 |---|---|---|
-| Outgoing Mail Server | `192.168.0.14` | Reachable Nowlert host address |
+| Outgoing Mail Server | `192.0.2.10` | Reachable Nowlert host address |
 | Mail Server Port | `8025` | Published SMTP port, not the HTTP port |
 | Security | Plain / No Encryption | Match the listener's actual capabilities |
 | SMTP Authentication | Disabled | Match the listener's authentication model |
@@ -38,10 +38,10 @@ Open **System → Alert Settings**. Add or edit an **E-Mail** alert service:
 
 - Enabled: yes.
 - Level: **Info**, the lowest supported level.
-- Override Admin Email: `nowlert@nowlert.local`, or your accepted alert recipient.
+- Override Admin Email: `alerts@example.com`, or your accepted alert recipient.
 - Save the service.
 
-![Saved Info email alert service](../images/truenas-setup/info-alert-service.jpg)
+![Saved Info email alert service](../images/truenas-setup/info-alert-service.png)
 
 Info includes higher alert levels too: Notice, Warning, Error, Critical, Alert,
 and Emergency. Use Nowlert **Filtering** for destination-specific severity and
@@ -62,14 +62,14 @@ In Nowlert **Delivery history**, select the TrueNAS test and verify:
 
 | Detail | Observed result |
 |---|---|
-| Event | `DELTA | test` / `This is a test alert` |
+| Event | `CONTROLLER-D | test` / `This is a test alert` |
 | Input | SMTP |
 | Route | TrueNAS SMTP |
 | Destination | Storage / Discord |
 | Outcome | Delivered, attempt 1 |
 | Response | HTTP 200, no error |
 
-![Native TrueNAS alert delivered](../images/truenas-setup/delivery-proof.jpg)
+![Native TrueNAS alert delivered](../images/truenas-setup/delivery-proof.png)
 
 ## Troubleshooting
 

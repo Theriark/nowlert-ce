@@ -40,7 +40,7 @@ Open **Admin → Settings → Webhooks → Add a webhook**:
 Select **Send a test**. After Success, save the destination. The local saved
 destination appears here; its token is excluded:
 
-![Metabase saved Nowlert webhook destination](../images/application-setup/metabase-webhook.jpg)
+![Metabase saved Nowlert webhook destination](../images/application-setup/metabase-webhook.png)
 
 **This connection test sends an empty authenticated POST.** Nowlert acknowledges
 it with HTTP 204 without creating an event or destination delivery. An empty
@@ -82,7 +82,7 @@ on 2 October 2026. No recurring alert was saved for that validation question.
 This verifies the native payload and destination path without inventing a
 production failure or changing the hourly failure alert.
 
-![Native question test delivered to Discord](../images/application-setup/metabase-native-question-delivered.jpg)
+![Native question test delivered to Discord](../images/application-setup/metabase-native-question-delivered.png)
 
 For another operational data source:
 

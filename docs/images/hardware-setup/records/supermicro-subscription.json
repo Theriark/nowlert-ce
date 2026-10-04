@@ -4,9 +4,9 @@
   "HTTP status": 200,
   "response": {
     "@odata.id": "/redfish/v1/EventService/Subscriptions/2",
-    "Destination": "https://192.168.0.14:18443/redfish/supermicro",
+    "Destination": "https://192.0.2.10:18443/redfish/supermicro",
     "Protocol": "Redfish",
-    "Context": "CHARLIE-IPMI",
+    "Context": "CONTROLLER-C-IPMI",
     "EventTypes": [
       "StatusChange",
       "Alert"

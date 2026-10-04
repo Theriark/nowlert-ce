@@ -32,7 +32,7 @@ your desired rules. The local installation initially had no alert rules or
 notification integrations; its default policy now uses this contact point.
 Existing policies must be reviewed before changing their receiver.
 
-![Saved native webhook contact point; credentials excluded](../images/monitoring-setup/grafana-contact.jpg)
+![Saved native webhook contact point; credentials excluded](../images/monitoring-setup/grafana-contact.png)
 
 ## Verify the contact and alert lifecycle
 
@@ -40,7 +40,7 @@ Use **Test → Send test notification** on the contact point. Check the result i
 Grafana and the corresponding delivery in Nowlert. A successful contact test
 alone does not establish that a real rule or recovery notification works.
 
-![Grafana native contact-point test succeeded](../images/monitoring-setup/grafana-native-test.jpg)
+![Grafana native contact-point test succeeded](../images/monitoring-setup/grafana-native-test.png)
 
 For the full lifecycle, create a clearly named disposable Grafana-managed rule
 with a math expression `1 > 0`, using a dedicated test notification policy.

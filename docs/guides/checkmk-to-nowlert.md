@@ -1,6 +1,6 @@
 # Checkmk host and service notifications to Nowlert
 
-Tested with Checkmk **2.5.0p14 Community**, site `fortpt`. Real native host/service
+Tested with Checkmk **2.5.0p14 Community**, site `example`. Real native host/service
 notifications were delivered to the Criticals destination. This uses Checkmk's
 notification script interface; it does not poll hosts or install another agent.
 
@@ -12,7 +12,7 @@ for **Checkmk HTTP**, scope `checkmk`.
 Run as your **Checkmk site user** (inside the site container if applicable).
 Copy [the supplied script](../../tools/checkmk_notification.py) to
 `~/local/share/check_mk/notifications/nowlert`. The local example's absolute
-path is `/omd/sites/fortpt/local/share/check_mk/notifications/nowlert`.
+path is `/omd/sites/example/local/share/check_mk/notifications/nowlert`.
 
 ```sh
 chmod 0755 ~/local/share/check_mk/notifications/nowlert
@@ -53,7 +53,7 @@ The saved rule selects **All events** and the native Nowlert method:
 
 It sends once to the explicit recipient:
 
-![Checkmk single explicit recipient](../images/application-setup/checkmk-single-recipient.jpg)
+![Checkmk single explicit recipient](../images/application-setup/checkmk-single-recipient.png)
 
 Save. Activate changes **only if Checkmk shows pending changes**. On the tested
 2.5 site, notification-rule saves were immediate and activation correctly

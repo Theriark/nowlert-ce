@@ -8,7 +8,7 @@ Nowlert image. Prefer your existing HTTPS receiver if the controller can use it.
 The tested path was:
 
 ```text
-iLO4 → 192.168.0.14:18443 (Caddy TLS) → nowlert-ce:8080 → Discord
+iLO4 → 192.0.2.10:18443 (Caddy TLS) → nowlert-ce:8080 → Discord
 ```
 
 The iLO4 client did not send SNI. The listener selected a default RSA certificate
@@ -47,7 +47,7 @@ browser. The tested base directory was `/docker/nowlert-ce`.
     container_name: nowlert-ce-redfish-tls
     restart: unless-stopped
     ports:
-      - "192.168.0.14:18443:18443/tcp"
+      - "192.0.2.10:18443:18443/tcp"
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - 'printf "%s\n" "$$CADDYFILE" > /tmp/Caddyfile; cp /usr/bin/caddy /data/caddy-runtime; exec /data/caddy-runtime run --config /tmp/Caddyfile --adapter caddyfile'
@@ -57,9 +57,9 @@ browser. The tested base directory was `/docker/nowlert-ce`.
           admin off
           skip_install_trust
           auto_https disable_redirects
-          default_sni 192.168.0.14
+          default_sni 192.0.2.10
         }
-        https://192.168.0.14:18443 {
+        https://192.0.2.10:18443 {
           log {
             output stdout
             format filter {
@@ -72,7 +72,7 @@ browser. The tested base directory was `/docker/nowlert-ce`.
           tls internal {
             key_type rsa2048
           }
-          @controllers remote_ip 192.168.0.125 192.168.0.120 192.168.0.217
+          @controllers remote_ip 192.0.2.12 192.0.2.11 192.0.2.13
           handle @controllers {
             request_body {
               max_size 1MB
@@ -104,11 +104,11 @@ This example issues an internal certificate. Confirm trust and compatibility wit
 your controller before relying on it. It does not establish compatibility with
 iDRAC8 or the older Supermicro controller; their callback tests remain unresolved.
 
-![Portainer stack with the Nowlert and TLS listener containers running](../images/hardware-setup/portainer-stack-running.jpg)
+![Portainer stack with the Nowlert and TLS listener containers running](../images/hardware-setup/portainer-stack-running.png)
 
-![Saved Portainer stack editor showing the dedicated callback configuration](../images/hardware-setup/portainer-tls-config.jpg)
+![Saved Portainer stack editor showing the dedicated callback configuration](../images/hardware-setup/portainer-tls-config.png)
 
-![RSA certificate, controller allowlist, and direct Nowlert upstream](../images/hardware-setup/portainer-tls-forwarding.jpg)
+![RSA certificate, controller allowlist, and direct Nowlert upstream](../images/hardware-setup/portainer-tls-forwarding.png)
 
 ## 3. Apply and verify
 
@@ -122,7 +122,7 @@ iDRAC8 or the older Supermicro controller; their callback tests remain unresolve
 6. Check Nowlert Delivery history for the Discord result, then read the subscription
    again after the retry window.
 
-![Actual controller callback, chunked body acknowledged with HTTP 200](../images/hardware-setup/portainer-hpe-callback.jpg)
+![Actual controller callback, chunked body acknowledged with HTTP 200](../images/hardware-setup/portainer-hpe-callback.png)
 
 HTTP 200 at the receiver and HTTP 200 from Discord are separate results. The first
 acknowledges the controller request; the second confirms output delivery. Both

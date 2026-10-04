@@ -36,9 +36,9 @@ Portainer thresholds, evaluation periods, Kubernetes-only rules, Alertmanager
 grouping/inhibition, and source-side silences can affect the emitted stream.
 Enabling every rule does not turn native Alerting into a raw Docker-event feed.
 
-![Newly included iLO resource events delivered](../images/portainer-setup/ilo-expanded-event-delivery.jpg)
+![Newly included iLO resource events delivered](../images/portainer-setup/ilo-expanded-event-delivery.png)
 
-![All six Xen Orchestra jobs report Always](../images/portainer-setup/xen-backup-report-coverage.jpg)
+![All six Xen Orchestra jobs report Always](../images/portainer-setup/xen-backup-report-coverage.png)
 
 ## Reproduce and verify
 
@@ -73,9 +73,9 @@ messages are not matched. Routing Flow showed six subsequent events filtered.
 Resource creation/removal with Ok is intentionally suppressed for this destination;
 use a separate unfiltered destination if those events are operationally useful.
 
-![Saved narrow iLO block rule](../images/hardware-setup/ilo-resource-filter.jpg)
+![Saved narrow iLO block rule](../images/hardware-setup/ilo-resource-filter.png)
 
-![Native iLO events now filtered centrally](../images/hardware-setup/ilo-resource-filter-proof.jpg)
+![Native iLO events now filtered centrally](../images/hardware-setup/ilo-resource-filter-proof.png)
 
 ## Monitoring and native validation follow-up: 3 October 2026
 

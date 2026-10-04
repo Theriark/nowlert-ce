@@ -51,7 +51,11 @@ with HTTP 200. The subscription still existed more than three minutes later,
 and the callback logs showed one request rather than repeated delivery retries.
 This observation validates the test window, not indefinite subscription health.
 
-![Controller-originated HPE test delivered through the native image to Discord](../images/hardware-setup/hpe-native-image-delivery.png)
+![Synthetic receiver checks in Nowlert delivery history](../images/hardware-setup/hpe-native-image-delivery.png)
+
+The screenshot above shows synthetic receiver checks, not a controller-originated
+test. The callback log and subscription readback below document the native HPE
+test separately; a synthetic delivery alone does not verify controller emission.
 
 For this older iLO, the working callback was a dedicated, controller-restricted
 HTTPS listener on the local Docker host, port 18443. It accepts TLS connections
@@ -92,9 +96,9 @@ tokens also authenticate the corresponding vendor Redfish receivers.
 The image supplies these routes on a fresh instance. Assign them rather than
 creating duplicate routes. Start with broad filters for the first test.
 
-![Hardware Discord destination; stored webhook hidden](../images/hardware-setup/nowlert-hardware-destination.jpg)
+![Hardware Discord destination; stored webhook hidden](../images/hardware-setup/nowlert-hardware-destination.png)
 
-![Three vendor Redfish routes selected; generic fallback not selected](../images/hardware-setup/nowlert-hardware-routes.jpg)
+![Three vendor Redfish routes selected; generic fallback not selected](../images/hardware-setup/nowlert-hardware-routes.png)
 
 ## 3. Choose the callback endpoint
 
@@ -153,7 +157,7 @@ Submit this JSON as a POST to the subscription collection using your controller
 credentials. Keep `Content-Type: application/json`. Save the resource URL returned
 in `Location`, then GET that resource to verify the stored destination and TTL.
 
-![Token-free API readback of the configured iLO subscription](../images/hardware-setup/hpe-subscription-record.jpg)
+![Token-free API readback of the configured iLO subscription](../images/hardware-setup/hpe-subscription-record.png)
 
 This is a rendered record of the actual API readback, not an iLO WebUI page.
 The subscription was created through Redfish, not through iLO's SMTP settings.
@@ -193,9 +197,9 @@ Service and GET the new resource returned in `Location`. Preserve the path's
 trailing slash when required by the device; do not forward credentials across
 an unexpected redirect.
 
-![Stored Dell subscription; TLS delivery remains unverified](../images/hardware-setup/dell-subscription-record.jpg)
+![Stored Dell subscription; TLS delivery remains unverified](../images/hardware-setup/dell-subscription-record.png)
 
-![Stored Supermicro subscription; TLS delivery remains unverified](../images/hardware-setup/supermicro-subscription-record.jpg)
+![Stored Supermicro subscription; TLS delivery remains unverified](../images/hardware-setup/supermicro-subscription-record.png)
 
 These two images are also rendered, token-free API readback records. The firmware
 omitted `HttpHeaders` from its GET response; the omission alone does not prove
@@ -282,7 +286,7 @@ setup. iLO subsequently emitted ResourceAdded/ResourceRemoved events, and
 Dell's additional subscription was read back with all five advertised types.
 Supermicro's PATCH responses did not apply the requested list. Earlier all-five
 creation payloads were rejected, but the later HTTP subscription with the short
-context `CHARLIE-ALL` was accepted and read back with all five types. This verifies
+context `CONTROLLER-C-ALL` was accepted and read back with all five types. This verifies
 the saved subscription scope, not delivery of every event type.
 See the [coverage audit](centralized-event-coverage.md) for the observed results.
 
@@ -296,7 +300,7 @@ which can also suppress useful hardware recovery notifications.
 The local instance runs development commit
 `abdc92887fc508bf1f105697eb48772acda78b08`. iDRAC8 could not negotiate TLS
 with the original iLO listener. With explicit approval, a separate Nginx
-listener was deployed at `https://192.168.0.14:18445/redfish/dell`.
+listener was deployed at `https://192.0.2.10:18445/redfish/dell`.
 Port 18444 was already occupied by Home Assistant and was preserved.
 
 The listener accepts TLS 1.2 with RSA/AES-CBC only, using an RSA certificate.
@@ -309,19 +313,19 @@ Nowlert image or a recommended public website TLS configuration.
 
 A new Dell subscription was read back with all five advertised event types and
 the new callback URL. Original subscriptions were preserved. Receiver logs show
-`192.168.0.120 POST /redfish/dell 204`; Nowlert shows **User Login**, Redfish input,
+`192.0.2.11 POST /redfish/dell 204`; Nowlert shows **User Login**, Redfish input,
 **Criticals**, **Delivered**, attempt 1, **HTTP 200** at 02:37 Europe/London.
 This is a controller-originated informational event, not a hardware failure or
 recovery test. Other severity/lifecycle combinations still need their own native
 validation before being advertised as tested.
 
-![Native Dell event delivered to Criticals](../images/monitoring-setup/dell-native-delivery.jpg)
+![Native Dell event delivered to Criticals](../images/monitoring-setup/dell-native-delivery.png)
 
 ## Supermicro native validation: 3 October 2026
 
 TLS negotiation still stalled on both HTTPS listeners. With explicit approval,
 a separate HTTP relay was deployed at
-`http://192.168.0.14:18446/redfish/supermicro`, accepting only the Supermicro
+`http://192.0.2.10:18446/redfish/supermicro`, accepting only the Supermicro
 controller IP. Hardware event contents travel unencrypted on the LAN. The
 controller sends no token; the relay injects a privately stored, Supermicro-only
 Nowlert token. Existing website and HTTPS listeners remain unchanged. This relay
@@ -331,9 +335,9 @@ The test subscription was created with this payload and read back successfully:
 
 ```json
 {
-  "Destination": "http://192.168.0.14:18446/redfish/supermicro",
+  "Destination": "http://192.0.2.10:18446/redfish/supermicro",
   "Protocol": "Redfish",
-  "Context": "CHARLIE-ALL",
+  "Context": "CONTROLLER-C-ALL",
   "EventTypes": ["StatusChange", "ResourceUpdated", "ResourceAdded", "ResourceRemoved", "Alert"]
 }
 ```
@@ -343,12 +347,12 @@ for this investigation was replaced with the approved HTTP subscription; no
 additional Nowlert route was created.
 
 The controller's native `SendTestEvent` action returned HTTP 200. Receiver logs
-then recorded `192.168.0.125 POST /redfish/supermicro 204`. Nowlert shows **Send
+then recorded `192.0.2.12 POST /redfish/supermicro 204`. Nowlert shows **Send
 Test Event**, Redfish input, **Criticals**, **Delivered**, attempt 1, **HTTP 200**
 at 02:56 Europe/London. This proves controller-native test delivery, not a real
 hardware fault/recovery pair. The TLS stall's root cause remains unresolved.
 
-![Native Supermicro test delivered to Criticals](../images/monitoring-setup/supermicro-native-delivery.jpg)
+![Native Supermicro test delivered to Criticals](../images/monitoring-setup/supermicro-native-delivery.png)
 
 Its earlier Destination PATCH returned HTTP 200 but readback retained the old
 URL; always check the saved subscription rather than relying on PATCH status.

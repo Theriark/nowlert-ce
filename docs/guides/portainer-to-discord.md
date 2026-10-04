@@ -25,7 +25,7 @@ In Nowlert, edit the desired destination, open **Manage routes**, select
 existing **Operational** Discord destination. Leave centralized filtering at
 the desired delivery policy; do not narrow the source subscription by severity.
 
-![Portainer HTTP selected on Operational](../images/portainer-setup/route-assignment.jpg)
+![Portainer HTTP selected on Operational](../images/portainer-setup/route-assignment.png)
 
 ## 2. Issue a scoped token
 
@@ -34,7 +34,7 @@ Open your profile menu → **Security** → **New token**. Name it
 appropriate rate limit. The example uses 60 requests per minute. Issue the
 token and save the one-time value privately.
 
-![Portainer-only event token scope](../images/portainer-setup/token-scope.jpg)
+![Portainer-only event token scope](../images/portainer-setup/token-scope.png)
 
 The token authorizes event submission for Portainer, not administrator API access.
 The same token works on the native Portainer receiver in the fixed image.
@@ -55,7 +55,7 @@ accepts a URL and cannot supply the token header. Keep this direct HTTP callback
 on a trusted private network; use a compatible HTTPS listener when crossing a
 network boundary. Keep the token out of public screenshots and proxy query logs.
 
-![Webhook channel with a credential-free example URL](../images/portainer-setup/webhook-channel.jpg)
+![Webhook channel with a credential-free example URL](../images/portainer-setup/webhook-channel.png)
 
 The screenshot uses an unsaved placeholder URL to keep the real token private.
 
@@ -63,7 +63,7 @@ Choose **Save Settings**. The alert manager must show **connected**, **Enabled:
 Yes**, and the configured channel count. Its **Test** action checks manager
 reachability; it does not emit a webhook notification.
 
-![Saved connected and enabled internal manager](../images/portainer-setup/alert-manager-enabled.jpg)
+![Saved connected and enabled internal manager](../images/portainer-setup/alert-manager-enabled.png)
 
 ## 4. Enable all applicable rules
 
@@ -76,9 +76,9 @@ supported rule. The local 2.45.1 installation exposes 13 rules:
 - Etcd Unhealthy, Kubernetes API High Request Latency, TLS Certificate Expiry,
   Kubernetes API Unhealthy, and Node NotReady.
 
-![Enabled Portainer alert rules](../images/portainer-setup/all-rules-enabled.jpg)
+![Enabled Portainer alert rules](../images/portainer-setup/all-rules-enabled.png)
 
-![The final Node NotReady rule is enabled](../images/portainer-setup/node-rule-enabled.jpg)
+![The final Node NotReady rule is enabled](../images/portainer-setup/node-rule-enabled.png)
 
 Kubernetes rules require a compatible Kubernetes environment; enabling them on
 a Docker-only installation does not create Kubernetes telemetry. Thresholds and
@@ -107,7 +107,7 @@ delivered to Operational through Portainer HTTP, attempt 1, Discord HTTP 200.
 This verifies the receiver and destination path; it is not a Portainer-originated
 alert.
 
-![Synthetic receiver and routing proof](../images/portainer-setup/receiver-routing-proof.jpg)
+![Synthetic receiver and routing proof](../images/portainer-setup/receiver-routing-proof.png)
 
 ### Verified native rule emission: 3 October 2026
 

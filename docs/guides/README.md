@@ -4,6 +4,10 @@ These guides show complete, practical event flows using the current Nowlert CE
 platform model. They are written for operators evaluating or deploying Nowlert
 rather than for historical release compatibility.
 
+Screenshots hide private account and deployment details. Addresses and site names
+in the examples and validation records are anonymized; substitute your own values.
+See the [screenshot privacy review](screenshot-privacy.md).
+
 ## Native application notification setup
 
 - [Shared Nowlert route, token and delivery setup](application-notification-setup.md)

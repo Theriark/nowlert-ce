@@ -40,38 +40,38 @@ problem, recovery and success behavior of each integration and its source limits
 
 | Page or configuration step | Capture |
 |---|---|
-| Checkmk saved native notification rule | [All events/method](../images/application-setup/checkmk-all-events.jpg), [recipient](../images/application-setup/checkmk-single-recipient.jpg), [conditions/save behavior](../images/application-setup/checkmk-sending-conditions.jpg) |
-| Sonarr saved connection and all native triggers | [Connections](../images/application-setup/sonarr-all-events.jpg) |
+| Checkmk saved native notification rule | [All events/method](../images/application-setup/checkmk-all-events.jpg), [recipient](../images/application-setup/checkmk-single-recipient.png), [conditions/save behavior](../images/application-setup/checkmk-sending-conditions.jpg) |
+| Sonarr saved connection and all native triggers | [Connections](../images/application-setup/sonarr-all-events.png) |
 | Radarr saved connection and all native triggers | [Connections](../images/application-setup/radarr-all-events.jpg) |
-| Semaphore native task success and notification log | [Task #30](../images/application-setup/semaphore-native-test.jpg) |
-| Metabase saved webhook, no token value | [Webhook destination](../images/application-setup/metabase-webhook.jpg) |
-| Metabase hourly failure alert and native delivery proof | [Saved alert](../images/application-setup/metabase-delivery-alert.jpg), [native question test](../images/application-setup/metabase-native-question-delivered.jpg) |
+| Semaphore native task success and notification log | [Task #30](../images/application-setup/semaphore-native-test.png) |
+| Metabase saved webhook, no token value | [Webhook destination](../images/application-setup/metabase-webhook.png) |
+| Metabase hourly failure alert and native delivery proof | [Saved alert](../images/application-setup/metabase-delivery-alert.jpg), [native question test](../images/application-setup/metabase-native-question-delivered.png) |
 | Gmail API enabled | [API status, account header omitted](../images/email-setup/gmail-api-enabled.jpg) |
 | Microsoft delegated mailbox permission | [Mail.Read, address concealed](../images/email-setup/microsoft-mail-read-redacted.png) |
 | Both mailbox connections healthy | [Private labels concealed](../images/email-setup/mailboxes-healthy-redacted.png) |
 | Real No-IP warning classification | [Email, hostname and mailbox label concealed](../images/email-setup/noip-warning-redacted.png) |
-| Home Assistant enabled alert automations | [Automation entities](../images/home-assistant-setup/enabled-automations.jpg) |
-| Home Assistant native notification test | [Action](../images/home-assistant-setup/native-test.jpg), [delivery proof](../images/home-assistant-setup/native-delivery-proof.jpg) |
-| Home Assistant authenticated receiver acceptance | [HTTP 204 response](../images/home-assistant-setup/transport-response.jpg) |
-| TrueNAS saved Info Email service | [Service](../images/truenas-setup/info-alert-service.jpg) |
-| TrueNAS native alert delivery | [Delivery proof](../images/truenas-setup/delivery-proof.jpg) |
-| iLO resource noise suppressed centrally | [Rule](../images/hardware-setup/ilo-resource-filter.jpg), [filtered outcomes](../images/hardware-setup/ilo-resource-filter-proof.jpg) |
+| Home Assistant enabled alert automations | [Automation entities](../images/home-assistant-setup/enabled-automations.png) |
+| Home Assistant native notification test | [Action](../images/home-assistant-setup/native-test.png), [delivery proof](../images/home-assistant-setup/native-delivery-proof.png) |
+| Home Assistant authenticated receiver acceptance | [HTTP 204 response](../images/home-assistant-setup/transport-response.png) |
+| TrueNAS saved Info Email service | [Service](../images/truenas-setup/info-alert-service.png) |
+| TrueNAS native alert delivery | [Delivery proof](../images/truenas-setup/delivery-proof.png) |
+| iLO resource noise suppressed centrally | [Rule](../images/hardware-setup/ilo-resource-filter.png), [filtered outcomes](../images/hardware-setup/ilo-resource-filter-proof.png) |
 | Hardware token scope selection | [Token form](../images/hardware-setup/nowlert-token-scope.png) |
 | Issued token list, credential value excluded | [Token list](../images/hardware-setup/nowlert-token-list.png) |
-| Configured destination list | [Destinations](../images/hardware-setup/nowlert-destinations.jpg) |
-| Hardware Discord edit form | [Hardware destination](../images/hardware-setup/nowlert-hardware-destination.jpg) |
-| Built-in hardware routes | [Redfish assignments](../images/hardware-setup/nowlert-hardware-routes.jpg) |
-| iLO event subscription | [Redacted API readback](../images/hardware-setup/hpe-subscription-record.jpg) |
-| Dell event subscription | [Redacted API readback](../images/hardware-setup/dell-subscription-record.jpg) |
-| Supermicro event subscription | [Redacted API readback](../images/hardware-setup/supermicro-subscription-record.jpg) |
-| Local Portainer stack | [Running services](../images/hardware-setup/portainer-stack-running.jpg) |
-| TLS listener configuration | [Listener](../images/hardware-setup/portainer-tls-config.jpg), [forwarding and allowlist](../images/hardware-setup/portainer-tls-forwarding.jpg) |
-| Actual iLO callback acknowledgement | [Access log](../images/hardware-setup/portainer-hpe-callback.jpg) |
+| Configured destination list | [Destinations](../images/hardware-setup/nowlert-destinations.png) |
+| Hardware Discord edit form | [Hardware destination](../images/hardware-setup/nowlert-hardware-destination.png) |
+| Built-in hardware routes | [Redfish assignments](../images/hardware-setup/nowlert-hardware-routes.png) |
+| iLO event subscription | [Redacted API readback](../images/hardware-setup/hpe-subscription-record.png) |
+| Dell event subscription | [Redacted API readback](../images/hardware-setup/dell-subscription-record.png) |
+| Supermicro event subscription | [Redacted API readback](../images/hardware-setup/supermicro-subscription-record.png) |
+| Local Portainer stack | [Running services](../images/hardware-setup/portainer-stack-running.png) |
+| TLS listener configuration | [Listener](../images/hardware-setup/portainer-tls-config.png), [forwarding and allowlist](../images/hardware-setup/portainer-tls-forwarding.png) |
+| Actual iLO callback acknowledgement | [Access log](../images/hardware-setup/portainer-hpe-callback.png) |
 | Actual iLO-to-Discord delivery | [Native image delivery](../images/hardware-setup/hpe-native-image-delivery.png) |
-| Xen Orchestra Discord edit form | [Operational destination](../images/hardware-setup/nowlert-xen-destination.jpg) |
-| Xen Orchestra SMTP route | [SMTP assignment](../images/hardware-setup/nowlert-xen-routes.jpg) |
-| Xen Orchestra transport-email | [Host, port, security](../images/hardware-setup/xen-orchestra-transport-email.jpg), [authentication fields](../images/hardware-setup/xen-orchestra-transport-auth.jpg) |
-| Xen Orchestra backup-reports | [Recipient](../images/hardware-setup/xen-orchestra-backup-reports.jpg), [test controls](../images/hardware-setup/xen-orchestra-backup-test.jpg) |
+| Xen Orchestra Discord edit form | [Operational destination](../images/hardware-setup/nowlert-xen-destination.png) |
+| Xen Orchestra SMTP route | [SMTP assignment](../images/hardware-setup/nowlert-xen-routes.png) |
+| Xen Orchestra transport-email | [Host, port, security](../images/hardware-setup/xen-orchestra-transport-email.png), [authentication fields](../images/hardware-setup/xen-orchestra-transport-auth.png) |
+| Xen Orchestra backup-reports | [Recipient](../images/hardware-setup/xen-orchestra-backup-reports.png), [test controls](../images/hardware-setup/xen-orchestra-backup-test.png) |
 | Actual Xen Orchestra SMTP delivery | [Delivery history](../images/hardware-setup/xen-orchestra-delivery.png) |
 
 Controller subscriptions were configured through authenticated Redfish API

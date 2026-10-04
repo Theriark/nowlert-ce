@@ -1,12 +1,12 @@
 {
   "method": "GET",
-  "path": "/redfish/v1/EventService/Subscriptions/b52e9f44-bdeb-11f1-9a94-107d1afdf6f8",
+  "path": "/redfish/v1/EventService/Subscriptions/00000000-0000-4000-8000-000000000001",
   "HTTP status": 200,
   "response": {
-    "@odata.id": "/redfish/v1/EventService/Subscriptions/b52e9f44-bdeb-11f1-9a94-107d1afdf6f8",
-    "Destination": "https://192.168.0.14:18443/redfish/dell",
+    "@odata.id": "/redfish/v1/EventService/Subscriptions/00000000-0000-4000-8000-000000000001",
+    "Destination": "https://192.0.2.10:18443/redfish/dell",
     "Protocol": "Redfish",
-    "Context": "ALFA-IPMI",
+    "Context": "CONTROLLER-A-IPMI",
     "EventTypes": [
       "Alert",
       "StatusChange"

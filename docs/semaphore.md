@@ -54,7 +54,7 @@ retained rather than silently treated as failures.
 
 Assign **Semaphore SMTP**. Point Semaphore's native email settings at the
 Nowlert SMTP listener (normally port 8025), using the TLS/authentication policy
-configured on that listener. Use `semaphore@nowlert.local` as the recipient, or
+configured on that listener. Use `alerts@example.com` as the recipient, or
 include Semaphore in the configured sender identity. Enable email alerts and
 project alerts. Nowlert recognizes the stock Task ... with template ... has
 failed message and reports the template/run ID as an automation failure.
