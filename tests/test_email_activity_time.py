@@ -30,4 +30,3 @@ assert.equal(emailActivityTime(0).date, '31 Dec 1969');
 '''
     result = subprocess.run(['node', '-e', program], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-
