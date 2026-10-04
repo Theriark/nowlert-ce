@@ -378,3 +378,12 @@ Full test requests returned HTTP 201, but no corresponding Warning/Successful
 delivery pair was identified in Nowlert. Action acceptance must not be reported
 as successful delivery. Dell's native informational delivery remains the verified
 result; its hardware fault/recovery pair is still pending.
+
+The follow-up readback confirmed that Dell's global `IPMILan.1#AlertEnable`
+setting is **Enabled**. A bounded callback trace following another accepted
+critical test request observed one callback containing three informational
+`USR0030` login events, with no QA message or requested critical test event.
+Those are login-audit events, not evidence of a critical/recovery pair. The saved
+Nowlert noise rule targets `USR0030` from the trusted management client; do not
+enable duplicate routes or remove that noise rule to compensate for a test event
+that has not been observed arriving.

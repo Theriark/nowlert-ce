@@ -36,8 +36,8 @@ provider-specific copies of an otherwise identical rule.
 |---|---|---|---|---|
 | No-IP | No-IP - hostname expired | Urgent | 10 | Sender domain equals `noip.com`; Subject contains `expired` |
 | No-IP | No-IP - hostname expiring soon | Warning | 20 | Sender domain equals `noip.com`; Subject contains `expiring` |
-| OpenAI status | OpenAI status - incident resolved | Information | 10 | Sender domain equals `statuspage.io`; Subject contains `OpenAI`; Body contains `This incident has been resolved` |
-| OpenAI status | OpenAI status - incident updates | Warning | 30 | Sender domain equals `statuspage.io`; Subject contains `OpenAI` |
+| OpenAI status | OpenAI status - incident resolved | Information | 10 | Sender domain equals your verified status-email domain; Subject contains the verified OpenAI identifier; Body contains the verified resolution marker |
+| OpenAI status | OpenAI status - incident updates | Warning | 30 | Sender domain equals your verified status-email domain; Subject contains the verified OpenAI identifier |
 
 The No-IP pattern was verified against a real message from each connected
 mailbox. The OpenAI patterns were checked with representative samples; a native
@@ -46,9 +46,19 @@ status subscription's sender and resolution wording before treating those
 patterns as proven for your mailbox. These are email classifications, not an
 inferred incident lifecycle. A resolution is Information in this setup.
 
+On 4 October 2026, [OpenAI's official status page](https://status.openai.com/)
+identified incident.io as its provider. The local rules still used the historical
+sample domain `statuspage.io` and resolution text `This incident has been
+resolved`; those values are not verified for the current subscription. Searches
+of the connected Microsoft mailbox across folders and Gmail including Spam and
+Trash found no existing status message. Both configured sync scopes are Inbox
+only. Confirm which subscribed account and folder receives the real notice
+before changing the sender conditions or synchronization scope; do not assume
+the status-page provider's website domain is also the email sender domain.
+
 The sender-domain condition distinguishes OpenAI incident subscriptions from
 OpenAI newsletters. The subject condition also prevents another vendor's
-Statuspage messages matching merely because they use `statuspage.io`. Body
+messages matching merely because they share a status-email provider. Body
 conditions retrieve message content only when an enabled rule requires it;
 attachments are not used for matching.
 
