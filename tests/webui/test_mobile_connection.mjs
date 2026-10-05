@@ -35,3 +35,19 @@ test("other provider saves remain unchanged", () => {
   run(payload);
   assert.equal(payload.settings.components_v2, true);
 });
+
+test("closing the editor cancels polling and invalidates an in-flight response", () => {
+  const resetStart = source.indexOf("function resetMobileConnection(");
+  const resetEnd = source.indexOf("function renderMobileConnection(", resetStart);
+  const cancelledTimers = [];
+  const context = {
+    mobileConnection: { id: "pending-connection", approved: false },
+    mobileConnectionTimer: 123,
+    mobileConnectionGeneration: 4,
+    clearTimeout: (timer) => cancelledTimers.push(timer),
+  };
+  vm.runInNewContext(source.slice(resetStart, resetEnd) + "resetMobileConnection();", context);
+  assert.deepEqual(cancelledTimers, [123]);
+  assert.equal(context.mobileConnection, null);
+  assert.equal(context.mobileConnectionGeneration, 5);
+});

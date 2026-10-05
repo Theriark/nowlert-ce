@@ -5163,6 +5163,7 @@ function setSidebarCollapsed(collapsed) {
 }
 
 function bindEvents() {
+  byId("destination-dialog").addEventListener("close", resetMobileConnection);
   ensureSessionResilienceUi();
   window.setInterval(() => {
     if (
@@ -5335,5 +5336,3 @@ function startApplication() {
 document.addEventListener("DOMContentLoaded", startApplication, { once: true });
 window.addEventListener("load", startApplication, { once: true });
 if (document.readyState === "complete") startApplication();
-
-byId("destination-dialog").addEventListener("close", resetMobileConnection);
