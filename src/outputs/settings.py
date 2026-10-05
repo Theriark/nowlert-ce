@@ -5,11 +5,12 @@ from __future__ import annotations
 import ipaddress
 import json
 import re
+import uuid
 
 from urllib.parse import urlsplit
 
 
-OUTPUT_TYPES = {"discord", "teams", "slack", "webhook", "email"}
+OUTPUT_TYPES = {"discord", "teams", "slack", "webhook", "email", "nowlert_mobile"}
 _HEADER = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$")
 _FORBIDDEN_HEADERS = {
     "authorization",
@@ -53,6 +54,7 @@ def normalize_output_settings(
         "slack": _slack,
         "webhook": _webhook,
         "email": _email,
+        "nowlert_mobile": _nowlert_mobile,
     }
     normalized = {**validators[kind](specific, require_complete), **common}
     encoded = json.dumps(
@@ -85,6 +87,28 @@ def validate_public_https_url(value, field: str) -> str:
     if len(text) > 2048:
         raise ValueError(f"{field} must not exceed 2048 characters")
     return text
+
+
+def _nowlert_mobile(settings, _complete):
+    _unknown(settings, {"base_url", "topic_id"})
+    base_url = validate_public_https_url(settings.get("base_url"), "Mobile base URL")
+    parsed = urlsplit(base_url)
+    if parsed.query or parsed.path not in {"", "/"}:
+        raise ValueError("Mobile base URL must be an HTTPS origin without a path or query")
+    try:
+        topic_id = str(uuid.UUID(str(settings.get("topic_id") or "")))
+    except ValueError:
+        raise ValueError("Mobile topic ID must be a UUID") from None
+    return {"base_url": base_url.rstrip("/"), "topic_id": topic_id}
+
+
+def validate_mobile_publish_key(secret):
+    token = secret.get("api_token") if isinstance(secret, dict) else None
+    if not isinstance(token, str) or not token or len(token) > 8192 or any(
+        ord(char) < 33 or ord(char) > 126 for char in token
+    ):
+        raise ValueError("Mobile topic-scoped publish key is required")
+    return token
 
 
 def _discord(settings, _complete):

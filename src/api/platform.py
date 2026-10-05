@@ -20,7 +20,7 @@ from logger import log
 from api.security import Principal, RateLimiter
 from outputs.platform import PlatformOutputRegistry
 from outputs.service import PlatformOutputService
-from outputs.settings import normalize_output_settings
+from outputs.settings import normalize_output_settings, validate_mobile_publish_key
 from storage.api_tokens import APITokenStore
 from storage.audit_events import AuditEventStore
 from storage.backups import StateBackupStore
@@ -1698,6 +1698,8 @@ class PlatformAPI:
             output_type = data.get("output_type")
             settings = data.get("settings", {})
             normalized_settings = normalize_output_settings(output_type, settings)
+            if str(output_type or "").strip().casefold() == "nowlert_mobile":
+                self._mobile_publish_key(data.get("secret"))
             if (
                 str(output_type or "").strip().casefold() == "email"
                 and normalized_settings.get("username")
@@ -2797,6 +2799,11 @@ class PlatformAPI:
                 next_type,
                 next_settings,
             )
+            if next_type == "nowlert_mobile":
+                if "secret" in data:
+                    self._mobile_publish_key(data.get("secret"))
+                elif not destination.secret_configured:
+                    raise ValueError("Mobile topic-scoped publish key is required")
             if (
                 next_type == "email"
                 and normalized_settings.get("username")
@@ -3255,6 +3262,10 @@ class PlatformAPI:
         return {str(row["id"]): str(row["name"]) for row in rows}
 
     @staticmethod
+    def _mobile_publish_key(secret):
+        validate_mobile_publish_key(secret)
+
+    @staticmethod
     def _delivery(item, route_name=None):
         return {
             "id": item.id,
@@ -3267,6 +3278,7 @@ class PlatformAPI:
             "title": item.title,
             "severity": item.severity,
             "outcome": item.outcome,
+            "delivery_status": "accepted" if item.outcome == "delivered" and item.response_status == 202 else item.outcome,
             "attempt_number": item.attempt_number,
             "retryable": item.retryable,
             "response_status": item.response_status,

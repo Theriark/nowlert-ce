@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from copy import deepcopy
 from urllib.parse import urlsplit
 
-from outputs.settings import OUTPUT_TYPES, normalize_output_settings
+from outputs.settings import OUTPUT_TYPES, normalize_output_settings, validate_mobile_publish_key
 
 
 _SECRET_KEY = re.compile(
@@ -363,6 +363,11 @@ def validate_config(data) -> list[str]:
                     settings.get("enabled", True) is True
                     and destination.get("enabled", True) is True
                 )
+                if output_name == "nowlert_mobile" and (destination_enabled or configured_secret is not None):
+                    try:
+                        validate_mobile_publish_key(configured_secret)
+                    except ValueError as error:
+                        errors.append(f"{prefix}: {error}")
                 if output_name == "teams":
                     if destination_enabled and configured_secret in (None, "", {}):
                         errors.append(f"{prefix}.webhook is required")
@@ -416,7 +421,7 @@ def validate_config(data) -> list[str]:
                         settings.get("enabled", True) is True
                         and target_settings.get("enabled", True) is True
                     )
-                    if route_enabled and target_enabled and output in {"discord", "teams", "slack", "webhook"} and configured_secret in (None, "", {}):
+                    if route_enabled and target_enabled and output in {"discord", "teams", "slack", "webhook", "nowlert_mobile"} and configured_secret in (None, "", {}):
                         errors.append(f"outputs.{output}.{target} credentials are required")
     return errors
 

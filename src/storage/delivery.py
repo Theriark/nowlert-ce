@@ -8,7 +8,7 @@ import uuid
 
 from collections import deque
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable
 
 from models import Notification
@@ -666,7 +666,12 @@ class PlatformDeliveryService:
                 delay = self.retry_delays[delay_index] if self.retry_delays else 0
                 if delay:
                     self.sleeper(delay)
-            result = self._invoke(adapter, target, secret_value, notification)
+            outbound_notification = notification
+            if target.destination.output_type == "nowlert_mobile":
+                outbound_notification = replace(notification, metadata={
+                    **(notification.metadata or {}), "_ce_route": {"id": route.id, "name": route.name},
+                })
+            result = self._invoke(adapter, target, secret_value, outbound_notification)
             retry = result.retryable and attempt_number < self.maximum_attempts
             outcome = (
                 "delivered"

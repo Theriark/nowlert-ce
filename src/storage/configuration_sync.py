@@ -17,7 +17,7 @@ from pathlib import Path
 from api.schema import validate_config
 from api.security import TokenAuthenticator, hash_token
 from integrations.catalog import canonical_source, infer_input_type
-from outputs.settings import OUTPUT_TYPES, normalize_output_settings
+from outputs.settings import OUTPUT_TYPES, normalize_output_settings, validate_mobile_publish_key
 from storage.api_tokens import APITokenStore
 from storage.audit_events import AuditEventStore
 from storage.destinations import DestinationStore
@@ -239,6 +239,8 @@ class UnifiedConfigurationService:
         enabled = self._boolean(data.get("enabled", True), "enabled")
         shared = self._boolean(data.get("shared", True), "shared")
         secret = data.get("secret")
+        if output_type == "nowlert_mobile":
+            validate_mobile_publish_key(secret)
         original = self.config_service.snapshot()
         candidate = deepcopy(original)
         self._assert_destination_name_available(candidate, display)
@@ -311,6 +313,8 @@ class UnifiedConfigurationService:
             )
 
         next_target = target
+        if next_type == "nowlert_mobile":
+            validate_mobile_publish_key(secret)
         rebind = None
         if next_type != output_type:
             next_target = self._new_target(display, next_type, data=candidate)
