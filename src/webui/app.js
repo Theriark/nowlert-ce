@@ -4159,7 +4159,8 @@ function destinationDefinition(type) {
   const definitions = {
     nowlert_mobile: {
       help: "Connect your mobile app, then choose the routes that should deliver alerts.",
-      settings: [],
+      settings: [{ key: "message_style", label: "Message style", kind: "select",
+        choices: [["modern", "Modern Card"], ["classic", "Classic Card"]], default: "modern" }],
       secrets: [],
     },
     discord: {
@@ -4371,6 +4372,7 @@ function renderMobileConnection(settings = {}) {
 
 function prepareMobileDestinationPayload(payload, id) {
   if (payload.output_type !== "nowlert_mobile") return;
+  payload.message_style = payload.settings.message_style;
   delete payload.settings;
   if (mobileConnection) {
     if (!mobileConnection.approved) throw new Error("Approve the connection in Nowlert Mobile before saving.");
@@ -4386,6 +4388,9 @@ function renderDestinationFields(settings = {}) {
   const type = byId("destination-type").value;
   if (type === "nowlert_mobile" && !byId("destination-name").value.trim()) byId("destination-name").value = "Nowlert Mobile";
   const definition = destinationDefinition(type);
+  if (type === "nowlert_mobile" && byId("destination-id").value && !settings.message_style) {
+    settings = { ...settings, message_style: "classic" };
+  }
   byId("destination-help").textContent = definition.help;
   const settingsContainer = byId("destination-settings");
   const secretsContainer = byId("destination-secrets");

@@ -334,11 +334,13 @@ class PlatformAPI(BasePlatformAPI):
                 "shared",
                 "secret",
                 "route_ids",
+                "message_style",
             },
         )
         destination = self.destinations.get(actor, destination_id)
         row = self._access_store().destination_row(destination_id)
         self._access_store().require_edit_destination(actor, row)
+        self._apply_mobile_message_style(data, destination)
 
         route_ids = data.pop("route_ids", None) if "route_ids" in data else None
         normalized_routes = None

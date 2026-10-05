@@ -90,7 +90,10 @@ def validate_public_https_url(value, field: str) -> str:
 
 
 def _nowlert_mobile(settings, _complete):
-    _unknown(settings, {"base_url", "topic_id", "topic_name"})
+    _unknown(settings, {"base_url", "topic_id", "topic_name", "message_style"})
+    style = str(settings.get("message_style", "classic") or "").strip().casefold()
+    if style not in {"modern", "classic"}:
+        raise ValueError("Mobile message_style must be modern or classic")
     base_url = validate_public_https_url(settings.get("base_url"), "Mobile base URL")
     parsed = urlsplit(base_url)
     if parsed.query or parsed.path not in {"", "/"}:
@@ -99,7 +102,9 @@ def _nowlert_mobile(settings, _complete):
         topic_id = str(uuid.UUID(str(settings.get("topic_id") or "")))
     except ValueError:
         raise ValueError("Mobile topic ID must be a UUID") from None
-    return {"base_url": base_url.rstrip("/"), "topic_id": topic_id, **({"topic_name": str(settings["topic_name"])[:128]} if settings.get("topic_name") else {})}
+    return {"base_url": base_url.rstrip("/"), "topic_id": topic_id,
+            **({"message_style": style} if "message_style" in settings else {}),
+            **({"topic_name": str(settings["topic_name"])[:128]} if settings.get("topic_name") else {})}
 
 
 def validate_mobile_publish_key(secret):

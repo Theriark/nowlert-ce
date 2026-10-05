@@ -98,6 +98,9 @@ class MobileConnections:
         return {"status": result["status"], **({"topic_name": str(result.get("topic_name", "Nowlert CE"))[:128]} if result["status"] == "approved" else {})}
 
     def save(self, actor, connection_id, data, destination_id, save):
+        style = str(data.get("message_style", "classic") or "").strip().casefold()
+        if style not in {"modern", "classic"}:
+            raise ValueError("Mobile message_style must be modern or classic")
         # Lock across workers. The private retry record retains a redeemed grant if normal save fails.
         with open(self.secrets.directory / ".mobile-connect.lock", "a") as lock:
             os.chmod(lock.name, 0o600)
@@ -120,7 +123,9 @@ class MobileConnections:
                 record["expires_at"] = int(time.time()) + 3600
                 self.secrets.rotate(actor, connection_id, json.dumps(record))
             grant = record["grant"]
-            data = {**data, "settings": {"base_url": record["origin"], "topic_id": grant["topic_id"], "topic_name": grant["topic_name"]}, "secret": {"api_token": grant["secret"]}}
+            data = {**data, "settings": {"base_url": record["origin"], "topic_id": grant["topic_id"], "topic_name": grant["topic_name"],
+                    **({"message_style": style} if "message_style" in data else {})}, "secret": {"api_token": grant["secret"]}}
+            data.pop("message_style", None)
             response = save(destination_id, data)
             if response.status < 300:
                 record["saved_destination_id"] = response.payload["destination"]["id"]
