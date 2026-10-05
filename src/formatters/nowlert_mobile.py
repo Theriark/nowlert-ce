@@ -3,6 +3,7 @@ import hashlib
 from storage.sanitize import sanitize_text
 
 from outputs.platform_common import notification_context
+from formatters.mobile_simple_card import render_mobile_simple_card
 
 
 def mobile_payload(destination, notification, settings):
@@ -23,6 +24,7 @@ def mobile_payload(destination, notification, settings):
         "status": context["status"], "category": context["category"],
         "host": context["host"], "ce_event_id": context["event_id"],
     }
+    metadata["presentation"] = render_mobile_simple_card(notification)
     route = (notification.metadata or {}).get("_ce_route")
     if isinstance(route, dict):
         metadata["route_id"] = sanitize_text(route.get("id"))[:128]
