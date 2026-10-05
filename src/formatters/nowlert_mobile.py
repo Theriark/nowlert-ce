@@ -17,6 +17,8 @@ def mobile_payload(destination, notification, settings):
     priority = "default" if recovery else {
         "warning": "high", "warn": "high", "critical": "urgent", "fatal": "urgent",
         "disaster": "urgent", "error": "high",
+        "caution": "high", "high": "high", "average": "high", "failure": "high",
+        "alert": "urgent", "emergency": "urgent",
     }.get(severity, "default")
     metadata = {
         "producer": "nowlert-ce", "source_name": f"Nowlert CE · {context['source'] or 'alerts'}",
