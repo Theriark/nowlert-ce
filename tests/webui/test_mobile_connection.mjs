@@ -51,3 +51,51 @@ test("closing the editor cancels polling and invalidates an in-flight response",
   assert.equal(context.mobileConnection, null);
   assert.equal(context.mobileConnectionGeneration, 5);
 });
+
+function saveState({ connection = null, destinations = [], id = "", type = "nowlert_mobile" } = {}) {
+  const nodes = {
+    "destination-id": { value: id },
+    "destination-type": { value: type },
+    "destination-submit": { disabled: false },
+    "destination-name": { value: "My phone" },
+  };
+  const context = { mobileConnection: connection, state: { destinations }, byId: (key) => nodes[key] };
+  const helpersStart = source.indexOf("function mobileDestinationValidationMessage(");
+  const helpersEnd = source.indexOf("function resetMobileConnection(", helpersStart);
+  vm.runInNewContext(source.slice(helpersStart, helpersEnd) + "updateMobileDestinationSaveAvailability();", context);
+  return { context, nodes };
+}
+
+test("Save is disabled until approval, then enabled without requiring technical fields", () => {
+  const fresh = saveState();
+  assert.equal(fresh.nodes["destination-submit"].disabled, true);
+  assert.match(vm.runInNewContext("mobileDestinationValidationMessage()", fresh.context), /Connect Nowlert Mobile/);
+  const pending = saveState({ connection: { id: "a", approved: false } });
+  assert.equal(pending.nodes["destination-submit"].disabled, true);
+  assert.match(vm.runInNewContext("mobileDestinationValidationMessage()", pending.context), /Approve/);
+  assert.equal(saveState({ connection: { id: "a", approved: true } }).nodes["destination-submit"].disabled, false);
+});
+
+test("existing destinations retain normal editing, but pending reconnect cannot save", () => {
+  const existing = { id: "phone", output_type: "nowlert_mobile", secret_configured: true };
+  assert.equal(saveState({ id: "phone", destinations: [existing] }).nodes["destination-submit"].disabled, false);
+  assert.equal(saveState({ id: "phone", destinations: [existing], connection: { approved: false } }).nodes["destination-submit"].disabled, true);
+  assert.equal(saveState({ type: "discord" }).nodes["destination-submit"].disabled, false);
+});
+
+test("keyboard or programmatic submit gives actionable guidance without sending a request", async () => {
+  const dashboard = readFileSync(new URL("../../src/webui/dashboard.js", import.meta.url), "utf8");
+  for (const body of [
+    source.slice(source.indexOf("async function saveDestination("), source.indexOf("function splitList(")),
+    dashboard.slice(dashboard.indexOf("saveDestination = async function"), dashboard.indexOf("function routeAssignmentInstallRouteDefinitionUi(")),
+  ]) {
+    const { context } = saveState();
+    context.clearError = () => {};
+    context.showValidationError = (_id, message) => { context.guidance = message; };
+    context.showError = () => { assert.fail("generic error must not replace connection guidance"); };
+    context.event = { preventDefault() {} };
+    context.request = () => { assert.fail("an unapproved connection must not submit"); };
+    await vm.runInNewContext(body + "saveDestination(event);", context);
+    assert.match(context.guidance, /Connect Nowlert Mobile before saving/);
+  }
+});

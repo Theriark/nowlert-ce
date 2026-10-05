@@ -467,6 +467,12 @@ saveDestination = async function saveDestinationWithRoutes(event) {
   clearError("destination-error");
   const id = byId("destination-id").value;
   const submit = byId("destination-submit");
+  const connectionGuidance = mobileDestinationValidationMessage();
+  if (connectionGuidance) {
+    showValidationError("destination-error", connectionGuidance);
+    updateMobileDestinationSaveAvailability();
+    return;
+  }
   const name = byId("destination-name").value.trim();
   const duplicate = state.destinations.find((item) => item.id !== id && item.name.trim().toLowerCase() === name.toLowerCase());
   if (duplicate) {
@@ -529,7 +535,7 @@ saveDestination = async function saveDestinationWithRoutes(event) {
   } catch (error) {
     showError("destination-error", error);
   } finally {
-    submit.disabled = false;
+    updateMobileDestinationSaveAvailability();
   }
 };
 
