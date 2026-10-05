@@ -485,6 +485,7 @@ saveDestination = async function saveDestinationWithRoutes(event) {
       route_ids: [...routeAssignmentSelection],
     };
     if (isAdmin()) payload.shared = byId("destination-shared").checked;
+    prepareMobileDestinationPayload(payload, id);
     if (Object.keys(secret).length) payload.secret = secret;
     const response = await request(id ? `/destinations/${id}` : "/destinations", {
       method: id ? "PATCH" : "POST",

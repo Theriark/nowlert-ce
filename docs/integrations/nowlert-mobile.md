@@ -1,36 +1,51 @@
-# Nowlert Mobile destination
+# Nowlert Mobile
 
-Send CE events to the native Nowlert Mobile app using a topic-scoped publish key.
+Add a destination and select **Nowlert Mobile**. Its default name is Nowlert
+Mobile; you can change it at any time.
 
-1. Sign in to Nowlert Mobile, enable notifications and send a test alert.
-2. Create a topic in Topics and subscribe the receiving device to it. Copy its UUID.
-3. In API tokens, create a publish key scoped to that topic. Copy the key once.
-4. In CE Destinations, select **Nowlert Mobile**. Enter the Mobile platform HTTPS
-   base URL and topic UUID, then paste the key into **Topic-scoped publish key**.
-   Development uses `https://nowlert-mb-dev.theriark.dev`. Use the URL and a separate
-   key/topic for the environment where the receiving app is signed in.
-5. Save and test the destination. Confirm receipt in the app, then assign the
-   destination to a CE route.
+1. Select **Connect Nowlert Mobile** to get a temporary connection code.
+2. In the Mobile app, open **Integrations → Connect Nowlert CE**, enter the
+   code, review the destination name and approve. The app connects a personal
+   **Nowlert CE** topic by default and subscribes you to receive its alerts.
+3. CE displays **Connected** with the topic name. Select **Manage routes** to
+   choose which routes may deliver to this destination.
+4. Select **Add destination** or **Save changes** to save the connection and
+   selected routes together.
 
-The publish key uses CE's existing private credential handling and is never
-returned in destination read responses or previews. Leave the field blank while
-editing to keep the current key. Public settings contain only the base URL, topic
-UUID and optional destination label. Do not put a key in the URL or settings.
+Codes expire after ten minutes. Select Connect again if a code expires. An
+interrupted status check retries automatically. If saving fails, correct the
+problem and save again; CE retains the approved connection for one hour after
+redeeming it. Merely approving or polling does not create a destination.
 
-Alerts contain bounded, sanitized title/body and CE source, severity, host,
-category, status, event identity and matched route. Critical events map to urgent,
-warnings/errors to high, and informational/recovery events to default priority.
-Alerts from the same destination, source, host and category form a thread.
-Retries keep the same idempotency key; separate CE event IDs create separate alerts.
-Upstream integrations should provide a stable, unique event ID for each occurrence.
+When editing a connected destination, its connection and selected routes are
+retained. You can rename it, adjust routes, or select Reconnect Nowlert Mobile
+to approve a new connection. Existing manually configured Mobile destinations
+remain usable and show a connected status without requesting technical fields.
 
-HTTP 202 means the Mobile platform accepted the alert. CE's delivery history shows
-**Accepted**; it does not establish device delivery, reading or acknowledgement.
-The native app tracks reading and acknowledgement separately. **Acknowledge** does
-not modify the originating CE event. No CE deep link is fabricated.
+Use the existing destination test action to send a test, then confirm receipt in
+the app. Server acceptance is separate from device delivery, read and
+acknowledgement. Normal route filtering and delivery history still apply.
 
-Check the platform URL and publish key for 401/403, and the topic UUID/subscription
-if an accepted alert does not appear. 429, network timeouts and server failures
-use CE's bounded retry policy. Redirects are refused to protect the publish key.
-Provider response bodies and raw exception messages are not persisted. Do not
-paste publish keys into tickets or logs.
+## Administrator reference
+
+CE selects the Mobile service on the server using
+`NOWLERT_DEPLOYMENT_ENVIRONMENT`: `development`, `stage`, or `production`
+(default). If the explicit environment is unset, CE uses the existing server
+`DD_ENV` deployment setting. Recognized aliases include `dev`, `stg` and `prod`;
+unrecognized tracing environments use production. These select `https://nowlert-mb-dev.theriark.dev`,
+`https://nowlert-mb-stg.theriark.dev`, or `https://nowlert-mb.theriark.com`.
+The development Compose file selects development explicitly. Set
+`NOWLERT_MOBILE_ORIGIN` to override the origin for an installation. It must be a
+credential-free HTTPS origin. No browser input or Host header selects it.
+
+Pairing credentials are owner-scoped, short-lived and stored through CE's
+existing private secret files outside SQLite. The browser receives only the
+temporary human code, CE connection reference and safe approval status. CE
+polls `/api/v1/integrations/ce/connections/status` without redeeming; only the
+standard destination save redeems the topic-scoped publish credential. Failed
+saves retain the redeemed grant in the existing secret store for retries.
+
+The existing destination API continues to accept `nowlert_mobile` settings
+`base_url` and `topic_id`, with `secret.api_token` containing a topic-scoped
+publish key, for administrator automation. These fields are not part of the
+normal destination editor. Do not use a customer or administrative API key.

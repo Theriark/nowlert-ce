@@ -16,6 +16,7 @@ from urllib.parse import unquote
 from api.response import APIResponse
 from environment import compatible_environment
 from integrations.catalog import integrations, route_options
+from integrations.mobile_connection import MobileConnections
 from logger import log
 from api.security import Principal, RateLimiter
 from outputs.platform import PlatformOutputRegistry
@@ -84,6 +85,7 @@ class PlatformAPI:
         self.sessions = SessionStore(database)
         self.tokens = APITokenStore(database, audit=self.audit)
         self.secrets = SecretStore(database)
+        self.mobile_connections = MobileConnections(self.secrets)
         self.email_connections = MailboxConnectionService(
             database,
             secrets=self.secrets,
@@ -228,6 +230,46 @@ class PlatformAPI:
         actor = principal.actor
 
         try:
+            if path == "/api/v2/mobile-connections" or path.startswith("/api/v2/mobile-connections/"):
+                if self.yaml_resource_authority:
+                    self._require_admin(actor)
+                if method != "POST":
+                    return self._method_not_allowed("POST")
+                if path == "/api/v2/mobile-connections":
+                    data = self._object(payload, {"name"})
+                    result = self.mobile_connections.start(actor, data.get("name"))
+                else:
+                    self._object(payload, set())
+                    result = self.mobile_connections.status(actor, path.rsplit("/", 1)[-1])
+                return APIResponse(200, result, (("Cache-Control", "no-store"),))
+            if method in {"POST", "PATCH"} and isinstance(payload, dict) and "mobile_connection_id" in payload:
+                destination_id = None
+                if path != "/api/v2/destinations":
+                    match = re.fullmatch(r"/api/v2/destinations/([0-9a-f]{32})", path)
+                    if not match or method != "PATCH":
+                        raise ValueError("Mobile connection requires a destination save")
+                    destination_id = match.group(1)
+                    destination = self.destinations.get(actor, destination_id)
+                    if destination.owner_user_id != actor.user_id:
+                        raise PermissionError("Only the destination owner can connect Mobile")
+                elif method != "POST":
+                    raise ValueError("Mobile connection requires a destination save")
+                if payload.get("output_type") != "nowlert_mobile" or str(payload.get("owner_user_id", actor.user_id)) != actor.user_id:
+                    raise ValueError("Mobile connection must belong to this destination owner")
+                if self.yaml_resource_authority:
+                    self._require_admin(actor)
+                data = self._object(payload, {"mobile_connection_id", "name", "output_type", "enabled", "shared", "route_ids"})
+                connection_id = data.pop("mobile_connection_id")
+                def save_mobile(target_id, values):
+                    if target_id:
+                        target = self.destinations.get(actor, target_id)
+                        if target.owner_user_id != actor.user_id:
+                            raise PermissionError("Only the destination owner can connect Mobile")
+                        if target_id != destination_id and target.output_type != "nowlert_mobile":
+                            raise ValueError("Saved Mobile connection no longer matches this destination")
+                        return self._destination_resource("PATCH", values, actor, target_id, None)
+                    return self._destinations_endpoint("POST", values, actor)
+                return self.mobile_connections.save(actor, connection_id, data, destination_id, save_mobile)
             if path == "/api/v2/session":
                 return self._session_endpoint(method, principal)
             if path == "/api/v2/users":
