@@ -5,11 +5,13 @@
   const CHANNEL_DESTINATION_TYPES = new Set(["discord", "slack", "teams"]);
   const REFERENCE_PAGERS = new Set(["delivery-pagination", "audit-pagination"]);
   const DESTINATION_ICON_PATHS = {
+    nowlert_mobile: "/ui/source-icons/nowlert.png",
     discord: "/ui/icons/discord.svg",
     slack: "/ui/icons/routing-slack.svg",
     teams: "/ui/icons/routing-teams.svg",
   };
   const DESTINATION_SUBTITLE_NAMES = {
+    nowlert_mobile: "Nowlert Mobile",
     discord: "Discord",
     slack: "Slack",
     teams: "Teams",

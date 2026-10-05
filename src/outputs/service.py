@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import uuid
 
 from models import Notification
 from outputs.platform import OutputPreview, PlatformOutputRegistry
@@ -20,6 +21,7 @@ class PlatformOutputService:
         "slack": "Slack",
         "webhook": "Generic webhook",
         "email": "Email",
+        "nowlert_mobile": "Nowlert Mobile",
         "mqtt": "MQTT",
         "ntfy": "ntfy",
     }
@@ -121,6 +123,7 @@ class PlatformOutputService:
                 "format": "event-api-v1",
                 "output": destination.output_type,
                 "synthetic": True,
+                **({"event_id": uuid.uuid4().hex} if destination.output_type == "nowlert_mobile" else {}),
             },
         )
 

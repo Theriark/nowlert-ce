@@ -2,7 +2,7 @@
 
 The platform output layer introduced in Nowlert v3.1.2 exposes database-authoritative
 destinations through a shared output-adapter layer for Discord, Microsoft Teams, Slack,
-Email over SMTP, and generic outbound webhooks.
+Email over SMTP, Nowlert Mobile, and generic outbound webhooks.
 
 Adapters receive safe public destination metadata, an internally resolved
 owner-scoped secret, and the normalized `Notification` model.
@@ -32,6 +32,14 @@ Credential-like values must not be placed in the public settings document.
 | Slack | message style, Classic detail option, and destination label | Slack webhook URL |
 | Webhook | message style and destination label | webhook URL |
 | Email | SMTP host/port/security, username, From/To/CC/Reply-To | SMTP password when authentication is used |
+| Nowlert Mobile | HTTPS base URL, topic UUID and destination label | topic-scoped publish key |
+
+## Nowlert Mobile
+
+The native Mobile adapter sends topic-targeted alerts through the shared routing,
+secret-store, retry and history paths. HTTP 202 is displayed as **Accepted**;
+device delivery, reading and acknowledgement are separate. See the
+[setup guide](integrations/nowlert-mobile.md).
 
 ## Discord
 

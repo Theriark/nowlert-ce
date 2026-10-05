@@ -21,6 +21,7 @@ const VIEW_TITLES = {
   account: "Security",
 };
 const OUTPUT_NAMES = {
+  nowlert_mobile: "Nowlert Mobile",
   discord: "Discord",
   teams: "Microsoft Teams",
   slack: "Slack",
@@ -30,6 +31,7 @@ const OUTPUT_NAMES = {
   ntfy: "ntfy",
 };
 const OUTPUT_ICONS = {
+  nowlert_mobile: "/ui/source-icons/nowlert.png",
   discord: "/ui/icons/discord.svg",
   email: "/ui/icons/email.svg",
   mqtt: "/ui/icons/mqtt.svg",
@@ -1633,7 +1635,7 @@ function sourceIsActive(source) {
     route.enabled && (route.source === source || route.source === "*"));
 }
 
-const CREDENTIAL_OUTPUTS = new Set(["discord", "teams", "slack", "webhook"]);
+const CREDENTIAL_OUTPUTS = new Set(["discord", "teams", "slack", "webhook", "nowlert_mobile", "nowlert_mobile"]);
 
 function inputFlowState(inputType) {
   const key = String(inputType || "http").toLowerCase();
@@ -1707,6 +1709,9 @@ function destinationFlowState(destination) {
     };
   }
   if (testResult && testResult.success) {
+    if (destination.output_type === "nowlert_mobile" && testResult.response_status === 202) {
+      return { state: "active", detail: "Nowlert Mobile accepted the test; confirm it in your app" };
+    }
     if (destination.output_type === "teams" && testResult.response_status === 202) {
       return {
         state: "active",
@@ -1736,6 +1741,9 @@ function destinationTestToast(delivery, outputType) {
       message: "Email test sent successfully through SMTP.",
       style: "success",
     };
+  }
+  if (outputType === "nowlert_mobile" && delivery.response_status === 202) {
+    return { message: "Nowlert Mobile accepted the test. Open the app to confirm receipt.", style: "" };
   }
   if (outputType === "teams" && delivery.response_status === 202) {
     return {
@@ -2231,7 +2239,7 @@ function renderDestinations() {
         text: "View only",
       }));
     }
-    if (!item.secret_configured && ["discord", "teams", "slack", "webhook"].includes(item.output_type)) {
+    if (!item.secret_configured && ["discord", "teams", "slack", "webhook", "nowlert_mobile"].includes(item.output_type)) {
       metaItems.push(badge("Credentials required", "danger"));
     }
     if (testResult) {
@@ -2747,7 +2755,7 @@ function renderDeliveries() {
         element("strong", { text: heading }),
         element("small", { className: "delivery-context", text: `${friendlyName(item.source)} • ${semanticFailure ? "🚨" : "✓"} ${statusText}${item.device_name ? ` • 📍 ${item.device_name}` : ""}` }),
         element("p", { className: "event-description", text: item.event_description || error }),
-        element("div", { className: "resource-meta" }, [badge(delivered ? "Delivered" : capitalize(item.outcome), delivered ? "success" : "danger"), badge(capitalize(item.severity), style), badge(statusText, style), badge(`Attempt ${item.attempt_number}`), badge(`Input ${item.input_type || sourceInputType(item.source)}`), item.response_status ? badge(`Destination HTTP ${item.response_status}`) : null]),
+        element("div", { className: "resource-meta" }, [badge(item.delivery_status === "accepted" ? "Accepted" : delivered ? "Delivered" : capitalize(item.outcome), delivered ? "success" : "danger"), badge(capitalize(item.severity), style), badge(statusText, style), badge(`Attempt ${item.attempt_number}`), badge(`Input ${item.input_type || sourceInputType(item.source)}`), item.response_status ? badge(`Destination HTTP ${item.response_status}`) : null]),
       ]),
       element("div", { className: "timeline-meta" }, [element("span", { text: formatTime(item.completed_at || item.created_at) }), item.retryable ? element("small", { text: "Retryable" }) : null]),
     ]));
@@ -4149,6 +4157,14 @@ function destinationDefinition(type) {
   const adminPrivate = isAdmin() ? [{ key: "allow_private_network", label: "Allow private-network target", kind: "checkbox", default: false }] : [];
   const presentation = { key: "channel_name", label: "Channel / destination" };
   const definitions = {
+    nowlert_mobile: {
+      help: "Send alerts to a Nowlert Mobile topic. Subscribe to the topic in the app and create a publish key scoped to that topic. Server acceptance is separate from delivery, read and acknowledgement.",
+      settings: [presentation,
+        { key: "base_url", label: "Mobile platform URL", required: true, wide: true, help: "HTTPS base URL, for example https://nowlert-mb-dev.theriark.dev" },
+        { key: "topic_id", label: "Topic ID", required: true, wide: true, help: "Copy the topic UUID from Nowlert Mobile." },
+      ],
+      secrets: [{ key: "api_token", label: "Topic-scoped publish key", kind: "password", required: true, wide: true }],
+    },
     discord: {
       help: "Discord components-v2 formatting with source-aware fallback.",
       settings: [presentation, { key: "components_v2", label: "Use Components v2", kind: "checkbox", default: true }],

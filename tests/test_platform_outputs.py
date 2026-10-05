@@ -339,6 +339,7 @@ def test_registry_exposes_supported_platform_output_types():
         "slack",
         "webhook",
         "email",
+        "nowlert_mobile",
     }
     assert PlatformOutputRegistry([]).delivery_adapters() == {}
 

@@ -13,6 +13,7 @@ import requests
 from config import config
 from formatters.classic_card_v1 import classic_card_v1_from_discord_payload
 from formatters.slack import SlackFormatter
+from formatters.nowlert_mobile import mobile_payload
 from models import Notification
 from outputs.discord import DiscordOutput
 from outputs.email import EmailOutput
@@ -25,7 +26,7 @@ from outputs.platform_common import (
     secret_url,
     validate_outbound_url,
 )
-from outputs.settings import normalize_output_settings
+from outputs.settings import normalize_output_settings, validate_mobile_publish_key
 from outputs.teams import TeamsModernImageUnavailable, TeamsOutput
 from outputs.teams_modern_image import (
     publish_teams_modern_image as publish_modern_card_image,
@@ -890,6 +891,43 @@ class EmailPlatformAdapter(PlatformOutputAdapter):
         return self.output.deliver(destination.settings, secret_value, notification)
 
 
+class NowlertMobilePlatformAdapter(_HTTPAdapter):
+    output_type = "nowlert_mobile"
+
+    def preview(self, destination, notification):
+        settings = normalize_output_settings(self.output_type, destination.settings)
+        return OutputPreview(self.output_type, "application/json",
+                             mobile_payload(destination, notification, settings),
+                             {"transport": "native_mobile", "success_means": "accepted"})
+
+    def deliver(self, destination, secret_value, notification):
+        try:
+            settings = normalize_output_settings(self.output_type, destination.settings)
+            token = validate_mobile_publish_key(decode_secret(secret_value))
+            url = self._url(settings["base_url"] + "/api/v1/notifications", settings)
+            payload = self.preview(destination, notification).payload
+        except (ValueError, TypeError):
+            return DeliveryResult(False, error_code="invalid_destination",
+                                  safe_error="Check the Mobile URL, topic ID and publish key.")
+        try:
+            response = self.http_client.post(url, json=payload, timeout=15,
+                allow_redirects=False, headers={"Authorization": "Bearer " + token,
+                    "Content-Type": "application/json", "User-Agent": "Nowlert-CE/1.0"})
+        except requests.RequestException as error:
+            return request_failure(error)
+        except Exception:
+            return DeliveryResult(False, error_code="transport_error")
+        if int(response.status_code) == 202:
+            return DeliveryResult(True, response_status=202,
+                safe_error="Accepted by Nowlert Mobile; device delivery, read and acknowledgement are separate.")
+        result = http_delivery_result(response)
+        if result.success:
+            return DeliveryResult(False, response_status=int(response.status_code),
+                                  error_code="unexpected_mobile_response",
+                                  safe_error="Mobile did not return the expected HTTP 202 acceptance.")
+        return result
+
+
 class PlatformOutputRegistry:
     def __init__(self, adapters: list[PlatformOutputAdapter] | None = None):
         configured = (
@@ -901,6 +939,7 @@ class PlatformOutputRegistry:
                 SlackPlatformAdapter(),
                 WebhookPlatformAdapter(),
                 EmailPlatformAdapter(),
+                NowlertMobilePlatformAdapter(),
             ]
         )
         self.adapters = {adapter.output_type: adapter for adapter in configured}

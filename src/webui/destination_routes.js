@@ -92,6 +92,11 @@ if (typeof module !== "undefined" && module.exports) {
   if (typeof routeAssignmentRenderOptions !== "function") return;
 
   const DESTINATION_EDITOR_META = {
+    nowlert_mobile: {
+      label: "Nowlert Mobile",
+      description: "Send alerts to a subscribed topic in the native mobile app",
+      presentation: "Destination label",
+    },
     discord: {
       label: "Discord",
       description: "Send alerts to a Discord channel",
@@ -129,7 +134,7 @@ if (typeof module !== "undefined" && module.exports) {
     },
   };
 
-  const REQUIRED_CREDENTIAL_TYPES = new Set(["discord", "teams", "slack", "webhook"]);
+  const REQUIRED_CREDENTIAL_TYPES = new Set(["discord", "teams", "slack", "webhook", "nowlert_mobile"]);
   let routeAssignmentMoreMenuOpen = false;
   let routeAssignmentMoreMenuDismissalBound = false;
   window.nowlertDestinationRouteIds = () => [...routeAssignmentSelection];

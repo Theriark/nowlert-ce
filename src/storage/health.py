@@ -97,7 +97,7 @@ class HealthCheckService:
     @staticmethod
     def _destination_requires_credentials(row) -> bool:
         output_type = str(row["output_type"] or "").strip().casefold()
-        if output_type in {"discord", "teams", "slack", "webhook"}:
+        if output_type in {"discord", "teams", "slack", "webhook", "nowlert_mobile"}:
             return True
         if output_type != "email":
             return False
