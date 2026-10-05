@@ -81,7 +81,9 @@ def test_native_payload_and_stable_delivery_identity():
 
 
 @pytest.mark.parametrize("severity,expected", [("warning", "high"), ("critical", "urgent"),
-    ("information", "default"), ("unknown", "default"), ("recovery", "default")])
+    ("information", "default"), ("unknown", "default"), ("recovery", "default"),
+    ("caution", "high"), ("high", "high"), ("average", "high"), ("failure", "high"),
+    ("alert", "urgent"), ("emergency", "urgent")])
 def test_priority(severity, expected):
     assert adapter().preview(destination(), alert(severity=severity)).payload["priority"] == expected
 
