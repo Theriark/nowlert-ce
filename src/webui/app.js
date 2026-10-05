@@ -4279,6 +4279,17 @@ let mobileConnection = null;
 let mobileConnectionTimer = null;
 let mobileConnectionGeneration = 0;
 
+function mobileDestinationValidationMessage() {
+  if (byId("destination-type").value !== "nowlert_mobile") return "";
+  if (mobileConnection) return mobileConnection.approved && mobileConnection.id ? "" : "Approve the connection in Nowlert Mobile before saving.";
+  const existing = state.destinations.find((item) => item.id === byId("destination-id").value);
+  return existing?.output_type === "nowlert_mobile" && existing.secret_configured ? "" : "Connect Nowlert Mobile before saving.";
+}
+
+function updateMobileDestinationSaveAvailability() {
+  byId("destination-submit").disabled = Boolean(mobileDestinationValidationMessage());
+}
+
 function resetMobileConnection() {
   mobileConnectionGeneration += 1;
   clearTimeout(mobileConnectionTimer);
@@ -4298,6 +4309,8 @@ function renderMobileConnection(settings = {}) {
   byId("destination-secrets").closest("fieldset").hidden = true;
   connect.addEventListener("click", async () => {
     resetMobileConnection();
+    mobileConnection = { approved: false };
+    updateMobileDestinationSaveAvailability();
     const generation = mobileConnectionGeneration;
     const current = () => generation === mobileConnectionGeneration && byId("destination-dialog").open && byId("destination-type").value === "nowlert_mobile";
     connect.disabled = true;
@@ -4319,6 +4332,7 @@ function renderMobileConnection(settings = {}) {
           status.textContent = "This code has expired. Connect again for a new code.";
           connect.disabled = false;
           mobileConnection = null;
+          updateMobileDestinationSaveAvailability();
           return;
         }
         try {
@@ -4326,6 +4340,7 @@ function renderMobileConnection(settings = {}) {
           if (!current()) return;
           if (approval.status === "approved") {
             mobileConnection.approved = true;
+            updateMobileDestinationSaveAvailability();
             status.textContent = `Connected to ${approval.topic_name || "Nowlert CE"}. Choose routes and save this destination.`;
             instructions.hidden = true;
             code.textContent = "";
@@ -4348,6 +4363,8 @@ function renderMobileConnection(settings = {}) {
       if (!current()) return;
       status.textContent = error.message || "Could not start the connection. Please try again.";
       connect.disabled = false;
+      mobileConnection = null;
+      updateMobileDestinationSaveAvailability();
     }
   });
 }
@@ -4381,6 +4398,7 @@ function renderDestinationFields(settings = {}) {
   const typeChanged = editing && originalType && originalType !== type;
   for (const input of secretsContainer.querySelectorAll("[required]")) input.required = !editing || typeChanged;
   if (typeChanged) byId("destination-help").textContent += " New credentials are required because the destination type changed.";
+  updateMobileDestinationSaveAvailability();
 }
 
 function openDestination(id = "") {
@@ -4436,6 +4454,12 @@ async function saveDestination(event) {
   clearError("destination-error");
   const id = byId("destination-id").value;
   const submit = byId("destination-submit");
+  const connectionGuidance = mobileDestinationValidationMessage();
+  if (connectionGuidance) {
+    showValidationError("destination-error", connectionGuidance);
+    updateMobileDestinationSaveAvailability();
+    return;
+  }
   const name = byId("destination-name").value.trim();
   const duplicate = state.destinations.find((item) => item.id !== id && item.name.trim().toLowerCase() === name.toLowerCase());
   if (duplicate) {
@@ -4467,7 +4491,7 @@ async function saveDestination(event) {
   } catch (error) {
     showError("destination-error", error);
   } finally {
-    submit.disabled = false;
+    updateMobileDestinationSaveAvailability();
   }
 }
 
