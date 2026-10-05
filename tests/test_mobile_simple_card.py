@@ -42,3 +42,9 @@ def test_parser_normalised_information_preserves_native_test_state():
     item = checkmk()
     item.status = 'information'
     assert render_mobile_simple_card(item)['status'] == 'test'
+
+
+def test_unifi_numeric_event_time_is_readable_and_explicitly_utc():
+    item = Notification(source='unifi_protect', title='Motion', body='Motion detected',
+        status='information', start_time='1767323045000', metadata={'severity': 'information'})
+    assert render_mobile_simple_card(item)['event_time'] == '2026-01-02T03:04:05+00:00'

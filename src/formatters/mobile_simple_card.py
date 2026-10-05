@@ -1,4 +1,5 @@
 """Safe versioned presentation for the native Nowlert Mobile Simple Card."""
+from datetime import datetime, timezone
 from integrations.catalog import canonical_source, integrations
 from outputs.platform_common import notification_context
 from storage.sanitize import sanitize_text
@@ -10,6 +11,16 @@ _NAMES = {item["source"]: item["name"] for item in integrations()}
 
 def _text(value, limit):
     return sanitize_text(value)[:limit]
+
+
+def _event_time(value):
+    text = _text(value, 128)
+    if text.isascii() and text.isdigit() and len(text) in (10, 13):
+        try:
+            return datetime.fromtimestamp(int(text) / (1000 if len(text) == 13 else 1), timezone.utc).isoformat()
+        except (ValueError, OverflowError, OSError):
+            pass
+    return text
 
 
 def render_mobile_simple_card(notification):
@@ -40,6 +51,6 @@ def render_mobile_simple_card(notification):
         "source_name": _NAMES.get(source, "Nowlert CE"),
         "title": title, "severity": context["severity"],
         "status": _text(metadata.get("state") or context["status"], 64),
-        "event_time": _text(notification.start_time or metadata.get("event_time"), 128),
+        "event_time": _event_time(notification.start_time or metadata.get("event_time")),
         "fields": [field for field in fields if field["value"]][:8],
     }
