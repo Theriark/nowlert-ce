@@ -16,6 +16,8 @@ services:
       - "${NOWLERT_SECRETS_DIR:-./secrets}:/run/secrets:ro"
     environment:
       TZ: Europe/Lisbon
+      NOWLERT_DEPLOYMENT_ENVIRONMENT: development
+      NOWLERT_MOBILE_ORIGIN: "${NOWLERT_MOBILE_ORIGIN:-https://nowlert-mb-dev.theriark.dev}"
       NOWLERT_EMAIL_GMAIL_CLIENT_ID: "${NOWLERT_EMAIL_GMAIL_CLIENT_ID:-}"
       NOWLERT_EMAIL_GMAIL_CLIENT_SECRET_FILE: "${NOWLERT_EMAIL_GMAIL_CLIENT_SECRET_FILE:-/run/secrets/nowlert_email_gmail_client_secret}"
       NOWLERT_EMAIL_GMAIL_REDIRECT_URI: "${NOWLERT_EMAIL_GMAIL_REDIRECT_URI:-}"

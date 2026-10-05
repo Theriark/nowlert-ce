@@ -4158,12 +4158,9 @@ function destinationDefinition(type) {
   const presentation = { key: "channel_name", label: "Channel / destination" };
   const definitions = {
     nowlert_mobile: {
-      help: "Send alerts to a Nowlert Mobile topic. Subscribe to the topic in the app and create a publish key scoped to that topic. Server acceptance is separate from delivery, read and acknowledgement.",
-      settings: [presentation,
-        { key: "base_url", label: "Mobile platform URL", required: true, wide: true, help: "HTTPS base URL, for example https://nowlert-mb-dev.theriark.dev" },
-        { key: "topic_id", label: "Topic ID", required: true, wide: true, help: "Copy the topic UUID from Nowlert Mobile." },
-      ],
-      secrets: [{ key: "api_token", label: "Topic-scoped publish key", kind: "password", required: true, wide: true }],
+      help: "Connect your mobile app, then choose the routes that should deliver alerts.",
+      settings: [],
+      secrets: [],
     },
     discord: {
       help: "Discord components-v2 formatting with source-aware fallback.",
@@ -4278,14 +4275,107 @@ function destinationDefinition(type) {
   return definitions[type];
 }
 
+let mobileConnection = null;
+let mobileConnectionTimer = null;
+let mobileConnectionGeneration = 0;
+
+function resetMobileConnection() {
+  mobileConnectionGeneration += 1;
+  clearTimeout(mobileConnectionTimer);
+  mobileConnection = null;
+}
+
+function renderMobileConnection(settings = {}) {
+  const container = byId("destination-settings");
+  const item = state.destinations.find((candidate) => candidate.id === byId("destination-id").value);
+  const connected = item?.output_type === "nowlert_mobile" && item.secret_configured;
+  const status = element("p", { className: "wide", text: connected ? `Connected${settings.topic_name ? ` to ${settings.topic_name}` : " to Nowlert Mobile"}` : "Connect Nowlert Mobile to receive your routed alerts.", attributes: { role: "status", "aria-live": "polite" } });
+  const code = element("strong", { className: "mobile-connection-code wide" });
+  const instructions = element("p", { className: "wide", text: "Open Nowlert Mobile → Integrations → Connect Nowlert CE. Enter the code and approve the connection." });
+  instructions.hidden = true;
+  const connect = element("button", { type: "button", className: "button primary", text: connected ? "Reconnect Nowlert Mobile" : "Connect Nowlert Mobile" });
+  container.append(status, code, instructions, connect);
+  byId("destination-secrets").closest("fieldset").hidden = true;
+  connect.addEventListener("click", async () => {
+    resetMobileConnection();
+    const generation = mobileConnectionGeneration;
+    const current = () => generation === mobileConnectionGeneration && byId("destination-dialog").open && byId("destination-type").value === "nowlert_mobile";
+    connect.disabled = true;
+    code.textContent = "";
+    instructions.hidden = true;
+    status.textContent = "Starting connection…";
+    try {
+      const result = await request("/mobile-connections", { method: "POST", body: { name: byId("destination-name").value.trim() || "Nowlert Mobile" } });
+      if (!current()) return;
+      mobileConnection = { id: result.connection_id, approved: false };
+      code.textContent = result.user_code;
+      instructions.hidden = false;
+      status.textContent = "Waiting for approval in Nowlert Mobile…";
+      const expires = Date.now() + result.expires_in * 1000;
+      let failures = 0;
+      const poll = async () => {
+        if (!current()) return;
+        if (Date.now() >= expires) {
+          status.textContent = "This code has expired. Connect again for a new code.";
+          connect.disabled = false;
+          mobileConnection = null;
+          return;
+        }
+        try {
+          const approval = await request(`/mobile-connections/${result.connection_id}`, { method: "POST", body: {} });
+          if (!current()) return;
+          if (approval.status === "approved") {
+            mobileConnection.approved = true;
+            status.textContent = `Connected to ${approval.topic_name || "Nowlert CE"}. Choose routes and save this destination.`;
+            instructions.hidden = true;
+            code.textContent = "";
+            connect.textContent = "Connect again";
+            connect.disabled = false;
+            return;
+          }
+          failures = 0;
+          status.textContent = "Waiting for approval in Nowlert Mobile…";
+        } catch (error) {
+          if (!current()) return;
+          failures += 1;
+          status.textContent = `${error.message || "Connection interrupted."} Checking again…`;
+          connect.disabled = false;
+        }
+        mobileConnectionTimer = setTimeout(poll, Math.min(15000, 3000 * (failures + 1)));
+      };
+      mobileConnectionTimer = setTimeout(poll, 3000);
+    } catch (error) {
+      if (!current()) return;
+      status.textContent = error.message || "Could not start the connection. Please try again.";
+      connect.disabled = false;
+    }
+  });
+}
+
+function prepareMobileDestinationPayload(payload, id) {
+  if (payload.output_type !== "nowlert_mobile") return;
+  delete payload.settings;
+  if (mobileConnection) {
+    if (!mobileConnection.approved) throw new Error("Approve the connection in Nowlert Mobile before saving.");
+    payload.mobile_connection_id = mobileConnection.id;
+  } else {
+    const existing = state.destinations.find((item) => item.id === id);
+    if (!existing?.secret_configured || existing.output_type !== "nowlert_mobile") throw new Error("Connect Nowlert Mobile before saving.");
+  }
+}
+
 function renderDestinationFields(settings = {}) {
+  resetMobileConnection();
   const type = byId("destination-type").value;
+  if (type === "nowlert_mobile" && !byId("destination-name").value.trim()) byId("destination-name").value = "Nowlert Mobile";
   const definition = destinationDefinition(type);
   byId("destination-help").textContent = definition.help;
   const settingsContainer = byId("destination-settings");
   const secretsContainer = byId("destination-secrets");
   settingsContainer.replaceChildren(...definition.settings.map((field) => formField(field, settings[field.key])));
   secretsContainer.replaceChildren(...definition.secrets.map((field) => formField(field)));
+  secretsContainer.closest("fieldset").hidden = type === "nowlert_mobile";
+  if (type === "nowlert_mobile") renderMobileConnection(settings);
   const editing = Boolean(byId("destination-id").value);
   const originalType = byId("destination-original-type").value;
   const typeChanged = editing && originalType && originalType !== type;
@@ -4365,6 +4455,7 @@ async function saveDestination(event) {
     if (!byId("destination-shared-field").hidden) {
       payload.shared = byId("destination-shared").checked;
     }
+    prepareMobileDestinationPayload(payload, id);
     if (Object.keys(secret).length) payload.secret = secret;
     if (typeof window.nowlertDestinationRouteIds === "function") {
       payload.route_ids = window.nowlertDestinationRouteIds();
@@ -5072,6 +5163,7 @@ function setSidebarCollapsed(collapsed) {
 }
 
 function bindEvents() {
+  byId("destination-dialog").addEventListener("close", resetMobileConnection);
   ensureSessionResilienceUi();
   window.setInterval(() => {
     if (

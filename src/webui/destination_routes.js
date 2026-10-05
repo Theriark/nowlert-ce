@@ -205,6 +205,8 @@ if (typeof module !== "undefined" && module.exports) {
   }
 
   function destinationEditorRefreshCredentialState() {
+    const credentialCard = byId("destination-secrets")?.closest("fieldset");
+    if (credentialCard) credentialCard.hidden = byId("destination-type")?.value === "nowlert_mobile";
     const item = destinationEditorCurrentItem();
     const status = byId("destination-credential-status");
     if (!status) return;
