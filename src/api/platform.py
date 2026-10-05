@@ -258,7 +258,7 @@ class PlatformAPI:
                     raise ValueError("Mobile connection must belong to this destination owner")
                 if self.yaml_resource_authority:
                     self._require_admin(actor)
-                data = self._object(payload, {"mobile_connection_id", "name", "output_type", "enabled", "shared", "route_ids"})
+                data = self._object(payload, {"mobile_connection_id", "name", "output_type", "enabled", "shared", "route_ids", "message_style"})
                 connection_id = data.pop("mobile_connection_id")
                 def save_mobile(target_id, values):
                     if target_id:
@@ -2743,6 +2743,16 @@ class PlatformAPI:
         token = self.tokens.revoke(actor, token_id)
         return APIResponse(200, {"token": self._token(token)})
 
+    @staticmethod
+    def _apply_mobile_message_style(data, current):
+        if "message_style" not in data:
+            return
+        if current.output_type != "nowlert_mobile" or data.get("output_type", current.output_type) != "nowlert_mobile":
+            raise ValueError("Mobile message style requires a Mobile destination")
+        if "settings" in data:
+            raise ValueError("Mobile message style must be saved without connection settings")
+        data["settings"] = {**current.settings, "message_style": data.pop("message_style")}
+
     def _destination_resource(self, method, payload, actor, destination_id, action):
         if action in {"preview", "test"}:
             if method != "POST":
@@ -2803,7 +2813,14 @@ class PlatformAPI:
             destination = self.destinations.get(actor, destination_id)
             return APIResponse(200, {"destination": self._destination(destination)})
         if method == "PATCH":
-            data = self._object(payload, {"name", "output_type", "settings", "enabled", "shared", "secret"})
+            data = self._object(payload, {"name", "output_type", "settings", "enabled", "shared", "secret", "message_style"})
+            if "message_style" in data:
+                current = (next((item for item in self.configuration_sync.list_destinations(actor)
+                                 if item.id == destination_id), None) if self.yaml_resource_authority
+                           else self.destinations.get(actor, destination_id))
+                if current is None:
+                    raise KeyError("destination not found")
+                self._apply_mobile_message_style(data, current)
             if self.yaml_resource_authority:
                 destination = self.configuration_sync.update_destination(actor, destination_id, data)
                 return APIResponse(
