@@ -12,8 +12,8 @@ permissions:
   packages: write
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: nowlert-ce-delivery
+  cancel-in-progress: false
 
 jobs:
   tests:
