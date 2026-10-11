@@ -20,7 +20,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: nowlert-ce-stage-promotion
+  group: nowlert-ce-delivery
   cancel-in-progress: false
 
 jobs:
