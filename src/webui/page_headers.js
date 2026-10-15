@@ -319,12 +319,17 @@
   let selectedAuditKey = "";
   let activeAuditTab = "overview";
   let controlsBound = false;
+  let auditSearchTimer;
   const filters = {
     action: "",
     outcome: "",
     range: "7d",
     sort: "newest",
   };
+  window.nowlertAuditQuery = () => ({
+    ...filters,
+    search: String(byId("audit-search")?.value || "").trim(),
+  });
 
   const originalRenderAudit = renderAudit;
   const originalRenderHealthChecks =
@@ -551,7 +556,12 @@
     controlsBound = true;
 
     const search = byId("audit-search");
-    if (search) search.addEventListener("input", renderAuditWorkbench);
+    if (search) {
+      search.addEventListener("input", () => {
+        clearTimeout(auditSearchTimer);
+        auditSearchTimer = setTimeout(refreshAuditPage, 300);
+      });
+    }
 
     for (const [id, key] of [
       ["audit-log-action-filter", "action"],
@@ -561,7 +571,7 @@
       byId(id)?.addEventListener("change", (event) => {
         filters[key] = event.target.value;
         selectedAuditKey = "";
-        renderAuditWorkbench();
+        refreshAuditPage();
       });
     }
 
@@ -574,12 +584,12 @@
       byId("audit-log-outcome-filter").value = "";
       byId("audit-log-range-filter").value = "7d";
       selectedAuditKey = "";
-      renderAuditWorkbench();
+      refreshAuditPage();
     });
 
     byId("audit-log-time-sort")?.addEventListener("click", () => {
       filters.sort = filters.sort === "newest" ? "oldest" : "newest";
-      renderAuditWorkbench();
+      refreshAuditPage();
     });
   }
 
@@ -587,49 +597,23 @@
     const items = state.audit || [];
     setSelectOptions(
       byId("audit-log-action-filter"),
-      items.map((item) => item.action),
+      state.auditFilterOptions?.actions || items.map((item) => item.action),
       "All actions",
     );
     setSelectOptions(
       byId("audit-log-outcome-filter"),
-      items.map((item) => item.outcome),
+      state.auditFilterOptions?.outcomes || items.map((item) => item.outcome),
       "All outcomes",
     );
   }
 
+  function refreshAuditPage() {
+    clearTimeout(auditSearchTimer);
+    if (typeof qaLoadAuditPage === "function") void qaLoadAuditPage(1);
+  }
+
   function filteredAuditItems() {
-    const query = String(byId("audit-search")?.value || "").trim().toLowerCase();
-    const now = Date.now();
-    const rangeMs = {
-      "1d": 24 * 60 * 60 * 1000,
-      "7d": 7 * 24 * 60 * 60 * 1000,
-      "30d": 30 * 24 * 60 * 60 * 1000,
-    }[filters.range] || 0;
-
-    const items = (state.audit || []).filter((item) => {
-      if (filters.action && String(item.action || "") !== filters.action) return false;
-      if (filters.outcome && String(item.outcome || "") !== filters.outcome) return false;
-      if (rangeMs) {
-        const timestamp = auditTimestamp(item);
-        if (timestamp && timestamp < now - rangeMs) return false;
-      }
-      if (!query) return true;
-      return JSON.stringify([
-        item.action,
-        item.actor_username,
-        item.actor_user_id,
-        item.resource_type,
-        item.resource_id,
-        item.outcome,
-        item.details,
-      ]).toLowerCase().includes(query);
-    });
-
-    items.sort((left, right) => {
-      const delta = auditTimestamp(right) - auditTimestamp(left);
-      return filters.sort === "oldest" ? -delta : delta;
-    });
-    return items;
+    return state.audit || [];
   }
 
   function updateAuditSummary() {
