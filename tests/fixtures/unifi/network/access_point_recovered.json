@@ -1,0 +1,11 @@
+{
+  "alarm_id": "synthetic-alarm-network-0004",
+  "app": "network",
+  "customContent": null,
+  "deviceEventClassId": "synthetic-access-point-recovered",
+  "message": "SYNTHETIC-AP recovered and service was restored.",
+  "name": "Access Point Recovered",
+  "parameters": {"UNIFIcategory": "Device", "UNIFIhost": "synthetic-controller.example.invalid", "UNIFIlastConnectedToDeviceIp": "192.0.2.21", "UNIFIlastConnectedToDeviceMac": "00:00:5e:00:53:21", "UNIFIlastConnectedToDeviceModel": "Synthetic AP", "UNIFIlastConnectedToDeviceName": "SYNTHETIC-AP", "UNIFInetworkName": "SYNTHETIC-NETWORK", "UNIFInetworkVlan": "101", "UNIFIutcTime": "2026-01-02T03:07:05Z", "UNIFIwifiBand": "5 GHz", "UNIFIwifiChannel": "36", "UNIFIwifiName": "SYNTHETIC-WIFI"},
+  "severity": 2,
+  "version": "synthetic-v1"
+}

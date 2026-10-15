@@ -15,7 +15,7 @@ def event_lifecycle(value: str) -> tuple[str, str, str] | None:
         "wanconnected", "deviceonline", "cameraonline", "nvronline",
         "deviceconnected", "cameraconnected", "unifideviceconnected",
         "devicereconnected", "camerareconnected", "devicerecovered",
-        "camerarecovered", "deviceissueresolved", "applicationissueresolved",
+        "camerarecovered", "accesspointrecovered", "deviceissueresolved", "applicationissueresolved",
     }
     failures = {
         "internetdisconnected", "internetconnectionlost", "wandegraded",

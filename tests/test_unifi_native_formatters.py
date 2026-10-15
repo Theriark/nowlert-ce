@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from datetime import datetime, timezone
 
 import pytest
+from PIL import ImageDraw
 
 import router as router_module
 
@@ -23,9 +25,28 @@ from formatters.teams_unifi import (
 )
 from formatters.unifi import format_protect_event_time, protect_device_display
 from models import Notification
+from parsers.unifi_network import Parser as NetworkParser
 from outputs.discord import DiscordOutput
 from outputs.teams import TeamsOutput
 from router import Router
+
+
+def test_access_point_recovery_renders_resolved_with_information_severity(monkeypatch):
+    payload = json.loads((Path(__file__).parent / "fixtures/unifi/network/access_point_recovered.json").read_text())
+    item = NetworkParser().parse(payload)
+    embed = UniFiNetworkDiscordFormatter().format(item)["embeds"][0]
+    assert embed["color"] == 0x2ECC71
+    drawn = []
+    original = ImageDraw.ImageDraw.text
+
+    def capture(self, xy, text, *args, **kwargs):
+        drawn.append(str(text))
+        return original(self, xy, text, *args, **kwargs)
+
+    monkeypatch.setattr(ImageDraw.ImageDraw, "text", capture)
+    assert DiscordOutput().render_modern_image(item)
+    assert "Device Resolved" in drawn
+    assert "information" in drawn
 
 
 def notification(source: str) -> Notification:
