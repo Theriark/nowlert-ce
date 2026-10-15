@@ -177,7 +177,7 @@ def test_redfish_vendor_classic_cards_share_compact_hardware_geometry():
         assert "Source IP" not in repr(embed)
         assert "Event ID" not in repr(embed)
         assert "Hardware Origin" not in repr(embed)
-        assert "/redfish/" not in repr(embed)
+        assert "**Origin:** `/redfish/v1/Systems/1`" in repr(embed)
 
 
 def test_home_assistant_classic_keeps_only_actionable_source_context():

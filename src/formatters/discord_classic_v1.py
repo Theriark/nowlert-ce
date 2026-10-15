@@ -2096,7 +2096,12 @@ def _render_hardware(
                     _metadata_value(metadata, "message_id")
                     or normalized.get("subject"),
                 ),
+                ("Origin", _metadata_value(metadata, "origin")),
             ],
+        ),
+        _rows_field(
+            "🛠️ Recommended Action",
+            [("Action", _metadata_value(metadata, "recommended_action"))],
         ),
         _rows_field(
             "⏱️ Timing",
