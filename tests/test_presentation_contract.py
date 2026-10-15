@@ -329,7 +329,17 @@ def test_teams_product_assets_use_legible_aspect_safe_sizes(source, pixels):
     image = _header_image(header)
 
     assert image["width"] == f"{pixels}px"
-    assert image["height"] == f"{pixels}px"
+    if source in {"qnap", "synology"}:
+        assert "height" not in image  # Adaptive Cards preserve intrinsic aspect.
+    else:
+        assert image["height"] == f"{pixels}px"
+
+
+@pytest.mark.parametrize("source,width", (("qnap", 72), ("synology", 64)))
+def test_legacy_teams_header_preserves_native_wordmark_aspect(source, width):
+    image = _header_image(PresentationMixin()._teams_header("Synthetic alert", "Attention", source))
+    assert image["width"] == f"{width}px"
+    assert "height" not in image
 
 
 @pytest.mark.parametrize("filename", TEAMS_PRODUCT_ASSETS.values())

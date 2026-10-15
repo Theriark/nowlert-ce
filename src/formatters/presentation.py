@@ -94,8 +94,8 @@ class PresentationMixin:
     }
 
     # Wide vendor wordmarks need a larger square render area than compact
-    # product marks. Keeping both dimensions equal preserves the official
-    # artwork's aspect ratio while making thin lockups legible in Teams.
+    # product marks. Native wide wordmarks retain their intrinsic height;
+    # square padded assets keep equal dimensions.
     TEAMS_ICON_PIXELS = {
         "nowlert": 80,
         "proxmox": 64,
@@ -173,6 +173,14 @@ class PresentationMixin:
         if url:
             embed["thumbnail"] = {"url": url}
 
+    def _teams_icon_dimensions(self, source: str) -> dict:
+        normalized = str(source or "").strip().casefold()
+        size = f"{self.TEAMS_ICON_PIXELS.get(normalized, 48)}px"
+        dimensions = {"width": size}
+        if normalized not in {"qnap", "synology"}:
+            dimensions["height"] = size
+        return dimensions
+
     def _teams_header(
         self,
         title: str,
@@ -192,9 +200,6 @@ class PresentationMixin:
         icon_url = self._product_icon_url(source)
         if not icon_url:
             return title_block
-        normalized_source = str(source or "").strip().casefold()
-        icon_pixels = self.TEAMS_ICON_PIXELS.get(normalized_source, 48)
-        icon_size = f"{icon_pixels}px"
         return {
             "type": "ColumnSet",
             # Keep the legacy title metadata for downstream card tests and
@@ -218,8 +223,7 @@ class PresentationMixin:
                             "url": icon_url,
                             "altText": f"{source} icon",
                             "size": "Small",
-                            "width": icon_size,
-                            "height": icon_size,
+                            **self._teams_icon_dimensions(source),
                         }
                     ],
                 },
