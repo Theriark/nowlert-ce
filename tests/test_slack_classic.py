@@ -68,6 +68,29 @@ def notification(source: str) -> Notification:
     return item
 
 
+def test_short_download_cards_keep_every_metadata_field_in_small_sections():
+    from parsers.application_alerts import Parser
+
+    for source in ("sonarr", "radarr"):
+        item = Parser(source).parse({
+            "eventType": "Download",
+            "instanceName": f"Synthetic {source}",
+            "message": "Synthetic native Connect notification",
+            "series" if source == "sonarr" else "movie": {"title": "Synthetic Media"},
+            "downloadClient": "Synthetic Client",
+        })[0]
+        payload = SlackFormatter().format(item)
+        sections = [block for block in payload["attachments"][0]["blocks"]
+                    if block.get("type") == "section"]
+        assert all(len(block.get("fields", [])) <= 2 for block in sections)
+        body_sections = [block["text"]["text"] for block in sections
+                         if isinstance(block.get("text"), dict) and "accessory" not in block]
+        assert all(text.count("\n") <= 4 and len(text) <= 650 for text in body_sections)
+        rendered = str(sections)
+        for expected in ("Download", "Synthetic Media", "Synthetic Client", f"Synthetic {source}"):
+            assert expected in rendered
+
+
 def expected_icon_source(source: str) -> str:
     if source == "redfish":
         return "nowlert"
