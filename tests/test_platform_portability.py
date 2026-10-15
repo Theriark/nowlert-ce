@@ -16,6 +16,7 @@ from storage.audit_events import AuditEventStore
 from storage.backups import StateBackupStore
 from storage.database import Database
 from storage.destinations import DestinationStore
+from storage.migrations import LATEST_SCHEMA_VERSION
 from storage.portability import PlatformPortabilityService
 from storage.routes import RouteStore
 from storage.secrets import SecretStore
@@ -663,6 +664,95 @@ def test_external_backup_can_restore_after_local_copy_is_removed(platform_state)
     assert [item.id for item in external] == [backup.id]
     assert restored.enabled is True
     assert result["sessions_revoked"] is True
+
+
+@pytest.mark.parametrize("operation", ["_digest", "_validate_database"])
+def test_external_backup_listing_does_not_read_archive_contents(
+    platform_state, monkeypatch, operation,
+):
+    state = platform_state
+    seed_destination(state)
+    external_root = state["tmp_path"] / "external"
+    external_root.mkdir(mode=0o700)
+    backups = StateBackupStore(state["database"])
+    backup = backups.create(state["admin"].actor)
+    backups.mirror(state["admin"].actor, backup.id, external_root)
+
+    def reject_content_read(*_args, **_kwargs):
+        pytest.fail("listing must not hash archive files or open the archive database")
+
+    monkeypatch.setattr(backups, operation, reject_content_read)
+    listed = backups.list_external(state["admin"].actor, external_root)
+
+    assert [item.public() for item in listed] == [backup.public()]
+
+
+def test_external_backup_corruption_is_rejected_before_live_state_changes(platform_state):
+    state = platform_state
+    secret, destination, _route = seed_destination(state)
+    external_root = state["tmp_path"] / "external"
+    external_root.mkdir(mode=0o700)
+    backups = StateBackupStore(state["database"])
+    backup = backups.create(state["admin"].actor)
+    archive = backups.mirror(state["admin"].actor, backup.id, external_root)
+    with (archive / "nowlert.db").open("r+b") as stream:
+        stream.write(b"corrupt database!")
+    live_secret = "https://discord.com/api/webhooks/123/live-after-backup"
+    state["secrets"].rotate(state["admin"].actor, secret.id, live_secret)
+    state["destinations"].set_enabled(state["admin"].actor, destination.id, False)
+    sessions = SessionStore(state["database"])
+    sessions.create(state["admin"].id)
+
+    assert [item.id for item in backups.list_external(
+        state["admin"].actor, external_root,
+    )] == [backup.id]
+    with pytest.raises(RuntimeError, match="integrity"):
+        backups.restore_external(state["admin"].actor, backup.id, backup.id, external_root)
+
+    assert state["secrets"].resolve(state["admin"].actor, secret.id) == live_secret.encode()
+    assert state["destinations"].get(state["admin"].actor, destination.id).enabled is False
+    with state["database"].connect() as connection:
+        assert connection.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 1
+    assert [item.id for item in backups.list(state["admin"].actor)] == [backup.id]
+
+
+@pytest.mark.parametrize("invalid", [
+    "manifest", "digest", "schema_old", "schema_new", "file_list",
+    "secret_count", "secret_limit", "secret_size", "symlink",
+])
+def test_external_backup_listing_rejects_invalid_metadata(platform_state, monkeypatch, invalid):
+    state = platform_state
+    seed_destination(state)
+    external_root = state["tmp_path"] / "external"
+    external_root.mkdir(mode=0o700)
+    backups = StateBackupStore(state["database"])
+    backup = backups.create(state["admin"].actor)
+    archive = backups.mirror(state["admin"].actor, backup.id, external_root)
+    manifest_path = archive / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    if invalid == "manifest":
+        manifest["schema"] = "unknown"
+    elif invalid == "digest":
+        manifest["files"]["nowlert.db"] = "not-a-digest"
+    elif invalid.startswith("schema_"):
+        manifest["database_schema"] = 0 if invalid == "schema_old" else LATEST_SCHEMA_VERSION + 1
+    elif invalid == "file_list":
+        manifest["files"]["../outside"] = "0" * 64
+    elif invalid == "secret_count":
+        manifest["secret_files"] = 2
+    elif invalid == "secret_limit":
+        monkeypatch.setattr("storage.backups._MAXIMUM_SECRET_FILES", 0)
+    elif invalid == "secret_size":
+        secret_file = next((archive / "secrets").iterdir())
+        secret_file.write_bytes(b"x" * (64 * 1024 + 1))
+        manifest["files"][f"secrets/{secret_file.name}"] = backups._digest(secret_file)
+    elif invalid == "symlink":
+        database = archive / "nowlert.db"
+        database.unlink()
+        database.symlink_to(state["database"].path)
+    manifest_path.write_text(json.dumps(manifest))
+
+    assert backups.list_external(state["admin"].actor, external_root) == []
 
 
 
