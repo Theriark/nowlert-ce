@@ -99,7 +99,7 @@ other private state.
 
 ## Current schema
 
-Current development uses database schema **17** with
+Current development uses database schema **18** with
 `platform_database_v1`. Supported older state is migrated transactionally,
 including operational-history housekeeping and account MFA policy/enrollment
 metadata. This contract describes development, not a newly published release.

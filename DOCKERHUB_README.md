@@ -35,7 +35,7 @@ theriark/nowlert-ce:3.1.6
 v3.1.6 was a release-automation maintenance patch. These highlights describe
 the published release, not newer development changes.
 
-Current development uses database schema **17** with `platform_database_v1`.
+Current development uses database schema **18** with `platform_database_v1`.
 Read the current configuration and migration guide before upgrading development
 images; this does not claim that development changes have been published.
 
@@ -154,7 +154,7 @@ Before upgrading:
 4. verify `/api/health`, login, routes, destinations, history, and backups; and
 5. keep the matched backup until acceptance passes.
 
-Current development migrates supported older databases to schema 17. Take a
+Current development migrates supported older databases to schema 18. Take a
 verified recovery snapshot before upgrading and retain the original image for rollback.
 
 ## Immutable release provenance

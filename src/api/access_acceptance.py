@@ -344,7 +344,7 @@ class AcceptanceFilterStore(SystemDestinationFilterStore):
                 (_FILTER_NAME_NAMESPACE, str(destination_id)),
             )
 
-    def matches(self, actor, destination_id: str, notification) -> bool:
+    def matches(self, actor, destination_id: str, notification, *, source_event_id=None) -> bool:
         matched = True
         if self.destination_filtering_enabled(destination_id):
             source = canonical_source(notification.source)
@@ -374,6 +374,7 @@ class AcceptanceFilterStore(SystemDestinationFilterStore):
             destination_id,
             notification,
             matched,
+            source_event_id=source_event_id,
         )
         return matched
 

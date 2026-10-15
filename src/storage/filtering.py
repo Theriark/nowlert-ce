@@ -6,6 +6,7 @@ import fnmatch
 import json
 import time
 import unicodedata
+import uuid
 
 from dataclasses import replace
 
@@ -343,6 +344,7 @@ class DestinationFilterStore:
         actor: Actor,
         destination_id: str,
         notification: Notification,
+        *, source_event_id: str | None = None,
     ) -> bool:
         self._destination(actor, destination_id)
         source = canonical_source(notification.source)
@@ -667,13 +669,14 @@ class FilteredPlatformDeliveryService(PlatformDeliveryService):
         super().__init__(*args, **kwargs)
         self.filters = filters
 
-    def deliver(self, actor: Actor, notification: Notification) -> DeliverySummary:
+    def deliver(self, actor: Actor, notification: Notification, *, source_event_id=None) -> DeliverySummary:
+        source_event_id = source_event_id or uuid.uuid4().hex
         self.filters.migrate_legacy_route_filters()
         routes = self.routes.matching(actor, actor.user_id, notification)
         candidates = self.relationships.expand(actor, routes)
         allowed = [
             candidate
             for candidate in candidates
-            if self.filters.matches(actor, candidate.destination_id, notification)
+            if self.filters.matches(actor, candidate.destination_id, notification, source_event_id=source_event_id)
         ]
-        return self._deliver_candidates(actor, notification, allowed)
+        return self._deliver_candidates(actor, notification, allowed, source_event_id=source_event_id)

@@ -173,7 +173,7 @@ class DeliverySummary:
 
 
 class Delivery:
-    def deliver(self, _actor, _notification):
+    def deliver(self, _actor, _notification, *, source_event_id=None):
         return DeliverySummary()
 
 

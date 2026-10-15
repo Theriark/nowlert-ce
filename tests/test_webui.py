@@ -170,7 +170,7 @@ def test_routing_flow_script_has_a_fresh_cache_key_for_notification_particles():
     markup = service.response("/").body.decode("utf-8")
 
     assert f"/ui/routing_flow.js?v={ROUTING_FLOW_JS_BUILD}" in markup
-    assert ROUTING_FLOW_JS_BUILD == f"{UI_BUILD}-routing-flow-5"
+    assert ROUTING_FLOW_JS_BUILD == f"{UI_BUILD}-routing-flow-6"
 
 
 def test_webui_is_default_on_but_every_explicit_disable_is_authoritative():

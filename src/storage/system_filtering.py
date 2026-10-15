@@ -111,7 +111,7 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
                 ]
         return view
 
-    def matches(self, actor: Actor, destination_id: str, notification) -> bool:
+    def matches(self, actor: Actor, destination_id: str, notification, *, source_event_id=None) -> bool:
         self._destination(actor, destination_id)
         source = canonical_source(notification.source)
         policy = self._policy(destination_id, source)
@@ -142,6 +142,7 @@ class SystemDestinationFilterStore(AccessControlledDestinationFilterStore):
             destination_id,
             notification,
             matched,
+            source_event_id=source_event_id,
         )
         return matched
 

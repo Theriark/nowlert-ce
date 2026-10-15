@@ -114,7 +114,7 @@ def test_existing_mfa_users_can_generate_codes_and_recovery_can_disable(api):
 def test_mfa_recovery_migration_preserves_enrolled_accounts(tmp_path, monkeypatch):
     database = Database(tmp_path / "upgrade.db")
     with monkeypatch.context() as previous:
-        previous.setattr(database_module, "MIGRATIONS", MIGRATIONS[:-1])
+        previous.setattr(database_module, "MIGRATIONS", tuple(item for item in MIGRATIONS if item[0] <= 16))
         previous.setattr(database_module, "LATEST_SCHEMA_VERSION", 16)
         assert database.migrate() == 16
         users = UserStore(database)
@@ -123,8 +123,8 @@ def test_mfa_recovery_migration_preserves_enrolled_accounts(tmp_path, monkeypatc
         with database.transaction() as connection:
             connection.execute("UPDATE users SET mfa_enabled = 1, mfa_secret_id = ? WHERE id = ?",
                                (secret.id, user.id))
-    assert database.migrate() == 17
-    assert database.migrate() == 17
+    assert database.migrate() == 18
+    assert database.migrate() == 18
     assert users.authenticate("enrolled-user", PASSWORD).mfa_enabled is True
     codes = users.generate_mfa_recovery_codes(user.id, secret.id)
     assert len(codes) == 10

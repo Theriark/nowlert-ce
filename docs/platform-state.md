@@ -30,9 +30,9 @@ than based on user input.
 Normal metadata operations do not return secret values or secret filesystem
 paths.
 
-## Schema 17
+## Schema 18
 
-Current development uses database schema **17**.
+Current development uses database schema **18**.
 
 The current schema covers:
 
@@ -49,6 +49,11 @@ The current schema covers:
 - backup target/run metadata;
 - housekeeping run history; and
 - destination-test health state.
+
+Schema 18 records a source event identity across destination fanout, filtering
+and retries. Routing Flow counts visible source events separately from destination
+deliveries. Source counts are unavailable (`null`) for periods containing older
+rows without identities; they are not estimated from titles or timestamps.
 
 A database created by a newer unsupported schema is rejected instead of being
 silently downgraded. Recovery restore can stage and migrate an older supported
@@ -194,6 +199,10 @@ definitions, container image bytes, or externally managed read-only
 backup policy.
 
 ## Upgrade and rollback
+
+Schema 18 upgrades older supported snapshots without inventing historical source
+identities. An older application build cannot open the upgraded database; rollback
+requires its compatible pre-upgrade database backup and matching secret files.
 
 Before an upgrade:
 

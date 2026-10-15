@@ -112,13 +112,13 @@ class DestinationFilterStore(BaseDestinationFilterStore):
             )
         return result
 
-    def matches(self, actor, destination_id: str, notification) -> bool:
+    def matches(self, actor, destination_id: str, notification, *, source_event_id=None) -> bool:
         source = canonical_source(notification.source)
         policy = self._policy(destination_id, source)
         if policy and policy.get("clauses") and not self.filter_enabled(destination_id, source):
             self._destination(actor, destination_id)
             return True
-        return super().matches(actor, destination_id, notification)
+        return super().matches(actor, destination_id, notification, source_event_id=source_event_id)
 
     def clear_source(self, actor, destination_id: str, source: str) -> None:
         super().clear_source(actor, destination_id, source)
