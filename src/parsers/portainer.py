@@ -118,7 +118,7 @@ class Parser:
                 ),
                 "username": self._text(labels.get("username")),
                 "created_by": self._text(annotations.get("created_by")),
-                "event_time": notification.start_time,
+                "event_time": notification.end_time or notification.start_time,
                 "resolved_time": notification.end_time,
                 "alert_count": len(payload["alerts"]),
                 "truncated_alerts": self._integer(payload.get("truncatedAlerts")),

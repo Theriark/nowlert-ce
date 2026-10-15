@@ -15,6 +15,7 @@ import router as router_module
 
 from dispatcher import Dispatcher
 from formatters.discord_portainer import PortainerDiscordFormatter
+from formatters.discord_modern_image import PortainerDiscordModernImageRenderer
 from formatters.teams_portainer import PortainerTeamsFormatter
 from inputs.http import HTTPServer
 from outputs.discord import DiscordOutput
@@ -111,6 +112,26 @@ def test_resolved_payload_maps_to_success_and_end_time():
     assert item.status == "success"
     assert item.metadata["state"] == "resolved"
     assert item.end_time == "2026-07-14T15:50:00Z"
+
+
+@pytest.mark.parametrize("state,end,expected", (
+    ("resolved", "2026-07-14T15:50:00Z", "2026-07-14T15:50:00Z"),
+    ("resolved", "", "2026-07-14T15:45:00Z"),
+    ("firing", "2026-07-14T15:50:00Z", "2026-07-14T15:45:00Z"),
+))
+def test_event_time_matches_resolved_transition_and_preserves_timing(state, end, expected):
+    payload = fixture_payload()
+    payload["status"] = state
+    payload["alerts"][0]["status"] = state
+    payload["alerts"][0]["endsAt"] = end
+    item = Parser().parse(payload)[0]
+
+    assert item.metadata["event_time"] == expected
+    assert item.start_time == "2026-07-14T15:45:00Z"
+    assert item.end_time == (end if state == "resolved" else "")
+    assert item.metadata["resolved_time"] == item.end_time
+    renderer = PortainerDiscordModernImageRenderer()
+    assert renderer._summary_time(item, []) == renderer._format_time(expected)
 
 
 def test_critical_firing_payload_maps_to_failure():
