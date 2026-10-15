@@ -201,6 +201,10 @@
     } else if (view === "account") {
       nodes.push(document.getElementById("restart-header-button"));
     }
+    if (view === "deliveries" || view === "audit") {
+      const pagerId = view === "deliveries" ? "delivery-pagination" : "audit-pagination";
+      nodes.push(document.querySelector(`[data-qa-bottom="${pagerId}"]`));
+    }
     return nodes.filter(Boolean);
   }
 

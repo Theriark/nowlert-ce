@@ -937,9 +937,8 @@ def test_20260918_round_four_footer_destination_and_security_regressions():
     assert "const contentReady = (" in management
     assert "if (contentReady && positionReady) return;" in management
 
-    # The wide desktop footer intentionally uses the compact reference pager.
-    # Round five refines the exact number stepping without changing its controls.
-    assert "function referencePageNumbers(page, totalPages)" in management
+    # The shared pager retains the accepted editable Page [n] of N status.
+    assert "function referencePageNumbers(page, totalPages)" not in management
     round_four = styles[styles.index("/* 2026-09-18 round-four screenshot corrections. */"):]
     assert "background-image: none !important;" in round_four
     assert "minmax(250px, 1.62fr)" in round_four
@@ -966,11 +965,8 @@ def test_20260918_round_five_history_audit_settings_regressions():
     reference = (ROOT / "src" / "webui" / "reference_acceptance.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "reference_acceptance.css").read_text(encoding="utf-8")
 
-    # Requested numeric stepping is current, next, current+4, then ellipsis.
-    assert "const values = [page];" in management
-    assert "const next = page + 1;" in management
-    assert "const skip = page + 4;" in management
-    assert 'if (skip < totalPages) values.push("ellipsis");' in management
+    # Styling layers must not replace the shared History/Audit pager.
+    assert "installReferencePagination" not in management
 
     # The dead Delivery History refresh control is fully removed.
     assert "delivery-history-refresh" not in delivery

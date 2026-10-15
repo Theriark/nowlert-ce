@@ -70,12 +70,8 @@ def test_management_consistency_runtime_matches_selected_ui_contract():
     assert 'CHANNEL_DESTINATION_TYPES' in script
     assert 'destination-channel-prefix' in script
     assert 'result.channel_name = channel ? `#${channel}` : "";' in script
-    assert 'pagerButton("«", "First page"' in script
-    assert 'pagerButton("‹", "Previous page"' in script
-    assert 'pagerButton("›", "Next page"' in script
-    assert 'pagerButton("»", "Last page"' in script
-    assert 'span("reference-pagination-label", "Go to page")' in script
-    assert 'input.addEventListener("change", jumpToInput)' in script
+    # Use the shared accessible pager, rather than replacing its current-page input.
+    assert 'installReferencePagination' not in script
     assert 'text: "Go"' not in script
     assert 'reference-pagination-go' not in script
 

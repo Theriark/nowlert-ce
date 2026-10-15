@@ -3,7 +3,6 @@
 /* Cross-page UI consistency corrections layered after the accepted WebUI modules. */
 (() => {
   const CHANNEL_DESTINATION_TYPES = new Set(["discord", "slack", "teams"]);
-  const REFERENCE_PAGERS = new Set(["delivery-pagination", "audit-pagination"]);
   const DESTINATION_ICON_PATHS = {
     nowlert_mobile: "/ui/source-icons/nowlert.png",
     discord: "/ui/icons/discord.svg",
@@ -608,174 +607,6 @@
     }
   }
 
-  function pagerButton(text, label, disabled, action, className = "reference-pagination-control") {
-    const button = element("button", {
-      className,
-      text,
-      type: "button",
-      disabled,
-      attributes: { "aria-label": label },
-    });
-    if (!disabled) button.addEventListener("click", action);
-    return button;
-  }
-
-  function referencePageNumbers(page, totalPages) {
-    if (totalPages <= 4) {
-      return Array.from({ length: totalPages }, (_value, index) => index + 1);
-    }
-
-    // Keep the footer compact without losing the requested stepping pattern:
-    // page 1 -> 1 2 5 ..., page 2 -> 2 3 6 ..., and so on.
-    const values = [page];
-    const next = page + 1;
-    const skip = page + 4;
-
-    if (next <= totalPages) values.push(next);
-
-    if (skip <= totalPages) {
-      if (!values.includes(skip)) values.push(skip);
-      if (skip < totalPages) values.push("ellipsis");
-      return values;
-    }
-
-    if (next < totalPages) {
-      if (totalPages - next > 1) values.push("ellipsis");
-      values.push(totalPages);
-    }
-    return values;
-  }
-
-  function installReferencePagination() {
-    if (typeof qaPager !== "function" || qaPager.referencePagination) return;
-    const previousQaPager = qaPager;
-
-    const replacement = function qaPagerWithReferenceLayout(containerId, pagination, onPage) {
-      if (!REFERENCE_PAGERS.has(containerId)) {
-        return previousQaPager(containerId, pagination, onPage);
-      }
-
-      let container = byId(containerId);
-      if (!container) {
-        container = element("div", {
-          className: "qa-pagination",
-          attributes: { id: containerId, "aria-label": "Pagination" },
-        });
-        return container;
-      }
-
-      const page = Math.max(1, Number(pagination.page || 1));
-      const pageSize = Math.max(1, Number(pagination.page_size || 25));
-      const totalPages = Math.max(1, Number(pagination.total_pages || 1));
-      const total = Math.max(0, Number(pagination.total || 0));
-      const startItem = total ? ((page - 1) * pageSize) + 1 : 0;
-      const endItem = total ? Math.min(page * pageSize, total) : 0;
-
-      const navigatePage = (targetPage) => {
-        const target = Math.max(1, Math.min(totalPages, Number(targetPage || 1)));
-        if (target === page) return;
-        let result;
-        try {
-          result = onPage(target);
-        } catch (error) {
-          if (typeof qaScrollPageBottom === "function") qaScrollPageBottom();
-          throw error;
-        }
-        Promise.resolve(result).then(
-          () => { if (typeof qaScrollPageBottom === "function") qaScrollPageBottom(); },
-          () => { if (typeof qaScrollPageBottom === "function") qaScrollPageBottom(); },
-        );
-      };
-
-      const range = span("reference-pagination-range", `${startItem} – ${endItem} of ${total}`);
-      const pages = document.createElement("div");
-      pages.className = "reference-pagination-pages";
-      pages.append(
-        pagerButton("«", "First page", page <= 1, () => navigatePage(1)),
-        pagerButton("‹", "Previous page", page <= 1, () => navigatePage(page - 1)),
-      );
-
-      for (const value of referencePageNumbers(page, totalPages)) {
-        if (value === "ellipsis") {
-          pages.append(span("reference-pagination-ellipsis", "…"));
-          continue;
-        }
-        const current = value === page;
-        pages.append(pagerButton(
-          String(value),
-          `Page ${value}`,
-          current,
-          () => navigatePage(value),
-          `reference-pagination-page${current ? " is-current" : ""}`,
-        ));
-      }
-
-      pages.append(
-        pagerButton("›", "Next page", page >= totalPages, () => navigatePage(page + 1)),
-        pagerButton("»", "Last page", page >= totalPages, () => navigatePage(totalPages)),
-      );
-
-      const jump = document.createElement("label");
-      jump.className = "reference-pagination-jump";
-      jump.append(span("reference-pagination-label", "Go to page"));
-      const input = element("input", {
-        className: "reference-pagination-input",
-        type: "number",
-        value: page,
-        attributes: {
-          min: "1",
-          max: String(totalPages),
-          step: "1",
-          inputmode: "numeric",
-          "aria-label": `Go to page, 1 to ${totalPages}`,
-        },
-      });
-      const jumpToInput = () => {
-        const requested = Number(input.value);
-        if (!Number.isInteger(requested) || requested < 1 || requested > totalPages) {
-          input.value = String(page);
-          input.setAttribute("aria-invalid", "true");
-          return;
-        }
-        input.removeAttribute("aria-invalid");
-        navigatePage(requested);
-      };
-      input.addEventListener("change", jumpToInput);
-      input.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter") return;
-        event.preventDefault();
-        jumpToInput();
-      });
-      jump.append(input);
-
-      container.replaceChildren(range, pages, jump);
-      container.dataset.referencePager = "1";
-      container.dataset.referenceSignature = `${page}:${pageSize}:${totalPages}:${total}`;
-      return container;
-    };
-
-    replacement.referencePagination = true;
-    qaPager = replacement;
-  }
-
-  function syncReferencePagers() {
-    if (typeof qaPager !== "function") return;
-    const delivery = document.getElementById("delivery-pagination");
-    if (delivery && delivery.dataset.referencePager !== "1" && typeof qaDeliveryPagination !== "undefined") {
-      qaPager("delivery-pagination", qaDeliveryPagination, qaLoadDeliveryPage);
-      if (typeof qaArrangePaginationFooter === "function") {
-        qaArrangePaginationFooter("view-deliveries", "delivery-pagination");
-      }
-    }
-    const audit = document.getElementById("audit-pagination");
-    if (audit && audit.dataset.referencePager !== "1" && typeof qaAuditPagination !== "undefined") {
-      qaPager("audit-pagination", qaAuditPagination, qaLoadAuditPage);
-      if (typeof qaArrangePaginationFooter === "function") {
-        qaArrangePaginationFooter("view-audit", "audit-pagination");
-      }
-    }
-  }
-
   function syncDeliveryHistory() {
     document.querySelectorAll("#view-deliveries .delivery-history-detail-close")
       .forEach((node) => node.remove());
@@ -857,7 +688,6 @@
     syncAssignedRoutesHelp();
     syncIntegrationBehaviorHeading();
     syncDestinationChannelField();
-    syncReferencePagers();
   }
 
   function scheduleSync() {
@@ -868,7 +698,6 @@
 
   installChannelCollection();
   installDestinationFieldHook();
-  installReferencePagination();
   installAssignedRoutesHelpRemoval();
 
   const previousRenderDestinations = renderDestinations;

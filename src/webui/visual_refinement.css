@@ -2229,3 +2229,44 @@ body {
   height: 38px !important;
   min-width: 38px !important;
 }
+
+/* Keep the shared History/Audit pager controls visible in their workbenches. */
+#view-deliveries#view-deliveries .qa-pagination-row,
+#view-audit#view-audit .qa-pagination-row {
+  align-items: center !important;
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 12px;
+  height: auto !important;
+  min-height: 64px !important;
+  padding: 10px 12px !important;
+}
+
+#view-deliveries#view-deliveries .qa-pagination-left,
+#view-audit#view-audit .qa-pagination-left {
+  display: flex !important;
+  align-self: center;
+}
+
+#view-deliveries#view-deliveries .qa-pagination,
+#view-audit#view-audit .qa-pagination {
+  align-self: center;
+  display: flex !important;
+  flex: 1 1 360px;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+}
+
+#view-deliveries#view-deliveries .qa-pagination-footer,
+#view-audit#view-audit .qa-pagination-footer {
+  align-items: center !important;
+  align-self: center;
+  border: 0 !important;
+  flex: 0 0 auto;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+}
