@@ -9,6 +9,7 @@ from email.parser import BytesParser
 from pathlib import Path
 
 import pytest
+from PIL import ImageDraw
 
 import outputs.discord as discord_output_module
 import outputs.teams as teams_output_module
@@ -30,6 +31,27 @@ FIXTURES = Path(__file__).parent / "fixtures" / "truenas"
 def fixture_notification(name: str = "grouped_alerts.eml"):
     with (FIXTURES / name).open("rb") as fixture:
         return Parser().parse(BytesParser(policy=policy.default).parse(fixture))
+
+
+def test_grouped_modern_alarm_uses_supported_text_glyph(monkeypatch):
+    notification = fixture_notification()
+    drawn = []
+    original = ImageDraw.ImageDraw.text
+
+    def capture(self, xy, text, *args, **kwargs):
+        drawn.append(str(text))
+        if "! Replication alert" in str(text):
+            font = kwargs["font"]
+            assert bytes(font.getmask("!")) != bytes(font.getmask("\uffff"))
+        return original(self, xy, text, *args, **kwargs)
+
+    monkeypatch.setattr(ImageDraw.ImageDraw, "text", capture)
+    assert DiscordOutput().render_modern_image(notification)
+    rendered = " ".join(drawn)
+    assert "! Replication alert — Failed" in rendered
+    assert "🚨" not in rendered
+    for context in ("SYNTHETIC-POOL", "SYNTHETIC-REPLICATION", "SYNTHETIC-UPS", "SYNTHETIC-DISK-01"):
+        assert context in rendered
 
 
 def test_discord_and_teams_payloads_contain_operational_details():
