@@ -664,3 +664,43 @@ def test_external_backup_can_restore_after_local_copy_is_removed(platform_state)
     assert restored.enabled is True
     assert result["sessions_revoked"] is True
 
+
+
+def test_state_backup_excludes_empty_mobile_connection_lock(platform_state):
+    state = platform_state
+    seed_destination(state)
+    lock = state["secrets"].directory / ".mobile-connect.lock"
+    lock.touch(mode=0o600)
+    inode = lock.stat().st_ino
+    backups = StateBackupStore(state["database"])
+    backup = backups.create(state["admin"].actor)
+    manifest = json.loads((backups.backup_directory / backup.id / "manifest.json").read_text())
+    assert manifest["secret_files"] == 1
+    assert "secrets/.mobile-connect.lock" not in manifest["files"]
+    assert not (backups.backup_directory / backup.id / "secrets" / lock.name).exists()
+    assert lock.stat().st_ino == inode
+    assert lock.read_bytes() == b""
+
+
+@pytest.mark.parametrize("kind", ["nonempty", "symlink", "directory", "unknown", "public", "hardlink"])
+def test_state_backup_rejects_invalid_mobile_connection_lock(platform_state, kind):
+    state = platform_state
+    seed_destination(state)
+    lock = state["secrets"].directory / ".mobile-connect.lock"
+    if kind == "symlink":
+        lock.symlink_to(state["tmp_path"] / "missing")
+    elif kind == "directory":
+        lock.mkdir(mode=0o700)
+    elif kind == "hardlink":
+        original = state["tmp_path"] / "lock"
+        original.touch(mode=0o600)
+        os.link(original, lock)
+    else:
+        if kind == "unknown":
+            lock = lock.with_name(".unknown.lock")
+        lock.write_bytes(b"unexpected" if kind == "nonempty" else b"")
+        lock.chmod(0o644 if kind == "public" else 0o600)
+    backups = StateBackupStore(state["database"])
+    with pytest.raises(ValueError, match="invalid file"):
+        backups.create(state["admin"].actor)
+    assert backups.list(state["admin"].actor) == []

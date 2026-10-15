@@ -127,6 +127,13 @@ class StateBackupStore:
                     if not stat.S_ISDIR(directory_mode) or directory_mode & 0o077:
                         raise PermissionError("secret directory must be mode 0700")
                     for source in sorted(self.secret_directory.iterdir()):
+                        if source.name == ".mobile-connect.lock":
+                            details = source.lstat()
+                            if (stat.S_ISREG(details.st_mode) and details.st_size == 0
+                                    and stat.S_IMODE(details.st_mode) == 0o600
+                                    and details.st_nlink == 1):
+                                # Mobile workers coordinate on this inode; it is not a secret.
+                                continue
                         if (
                             source.is_symlink()
                             or not source.is_file()
