@@ -52,7 +52,7 @@ const SOURCE_ICONS = {
   sonarr: "/ui/source-icons/sonarr.png",
   radarr: "/ui/source-icons/radarr.png",
   metabase: "/ui/source-icons/metabase.png",
-  github_actions: "/ui/source-icons/github-actions.png",
+  github_actions: "/ui/source-icons/github-actions-white.png",
 
   proxmox: "/ui/source-icons/proxmox.png",
   qnap: "/ui/source-icons/qnap.png",

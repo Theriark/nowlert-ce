@@ -51,7 +51,7 @@ class PresentationMixin:
         "sonarr": "sonarr.png",
         "radarr": "radarr.png",
         "metabase": "metabase.png",
-        "github_actions": "github-actions.png",
+        "github_actions": "github-actions-white.png",
 
         "xo": "xen-orchestra.png",
         "xen_orchestra": "xen-orchestra.png",
