@@ -140,3 +140,33 @@ test('destination selection preserves actual disabled route without adding its g
   const result = vm.runInNewContext(`${functionSource('destination_routes.js', 'destinationRouteSelectionForItem')}\ndestinationRouteSelectionForItem({id:'dest',route_ids:['grouped'],actual_route_ids:['disabled']},[{id:'disabled',enabled:false,destination_ids:['dest']}]);`, context);
   assert.deepEqual([...result], ['disabled']);
 });
+
+test('same-account keepalive does not discard pending history', async () => {
+  let resolve, applied = false;
+  const context = {
+    state: {user: {id: 'qa-a'}}, qaDeliveryRequestId: 0, qaDeliveryPageSize: 25, URLSearchParams,
+    window: {}, renderSessionExpiryLabel() {}, updateSessionWarning() {},
+    request: () => new Promise(done => {resolve = done;}),
+    qaApplyDeliveryPage: response => {applied = true; return response;},
+  };
+  vm.runInNewContext(`${functionSource('app.js', 'applySessionMetadata')}\n${functionSource('qa_patch.js', 'qaFetchDeliveryPage')}`, context);
+  const pending = context.qaFetchDeliveryPage(1);
+  context.applySessionMetadata({user: {id: 'qa-a', username: 'refreshed'}});
+  resolve({deliveries: []}); await pending;
+  assert.equal(applied, true);
+});
+
+test('range change cannot apply an old session response after logout and same-account login', async () => {
+  let resolve;
+  const context = {
+    state: {user: {id: 'qa-a'}, sessionGeneration: 1, historyRange: '1h'},
+    byId: () => ({value: '1h'}), request: () => new Promise(done => {resolve = done;}),
+    renderDashboard() {}, toast() {},
+  };
+  vm.runInNewContext(functionSource('app.js', 'changeHistoryRange'), context);
+  const pending = context.changeHistoryRange();
+  context.state.sessionGeneration++;
+  context.state.user = {id: 'qa-a'};
+  resolve({metrics: {oldSession: true}}); await pending;
+  assert.equal(context.state.metrics, undefined);
+});

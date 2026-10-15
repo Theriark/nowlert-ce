@@ -44,7 +44,6 @@
   let clockTimer = null;
   let refreshBusy = false;
   let refreshPending = false;
-  let refreshGeneration = 0;
   let lastUpdatedAt = 0;
   let deliveryChartSignature = "";
   let animateChartNextRender = true;
@@ -789,8 +788,8 @@
 
     refreshBusy = true;
     const requestedRange = state.historyRange;
-    const requestedUser = state.user;
-    const generation = refreshGeneration;
+    const requestedUser = state.user?.id;
+    const generation = state.sessionGeneration;
     try {
       const jobs = await Promise.allSettled([
         request(`/metrics/${requestedRange}`, { dashboardFeed: true }),
@@ -799,7 +798,7 @@
         request("/audit-events/page/1/size/25", { dashboardFeed: true }),
       ]);
 
-      if (generation !== refreshGeneration || requestedUser !== state.user) return;
+      if (generation !== state.sessionGeneration || requestedUser !== state.user?.id) return;
       // A range change can happen while this batch is in flight. Never paint
       // the old batch over the newly selected window.
       if (requestedRange !== state.historyRange) {
@@ -879,7 +878,6 @@
 
   const previousExpireSession = expireSession;
   expireSession = function operationsDashboardExpireSession(options = {}) {
-    refreshGeneration += 1;
     if (options.preserveCache !== true) clearDashboardSnapshots(state.user);
     filterSnapshot = null;
     dashboardDeliveries = [];

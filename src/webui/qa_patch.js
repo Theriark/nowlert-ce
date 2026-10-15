@@ -580,12 +580,13 @@ function qaApplyDeliveryPage(response) {
 
 async function qaFetchDeliveryPage(page) {
   const requestId = ++qaDeliveryRequestId;
-  const requestedUser = state.user;
+  const requestedUser = state.user?.id;
+  const requestedSession = state.sessionGeneration;
   const query = new URLSearchParams(window.nowlertDeliveryQuery?.() || {}).toString();
   const response = await request(
     `/deliveries/page/${Math.max(1, Number(page || 1))}/size/${qaDeliveryPageSize}${query ? `?${query}` : ""}`,
   );
-  return requestId === qaDeliveryRequestId && requestedUser === state.user
+  return requestId === qaDeliveryRequestId && requestedUser === state.user?.id && requestedSession === state.sessionGeneration
     ? qaApplyDeliveryPage(response) : null;
 }
 
@@ -598,11 +599,12 @@ function qaApplyAuditPage(response) {
 }
 
 async function qaFetchAuditPage(page) {
-  const requestedUser = state.user;
+  const requestedUser = state.user?.id;
+  const requestedSession = state.sessionGeneration;
   const response = await request(
     `/audit-events/page/${Math.max(1, Number(page || 1))}/size/${qaAuditPageSize}`,
   );
-  return requestedUser === state.user ? qaApplyAuditPage(response) : null;
+  return requestedUser === state.user?.id && requestedSession === state.sessionGeneration ? qaApplyAuditPage(response) : null;
 }
 
 window.nowlertInitialDeliveryRequest = () => qaFetchDeliveryPage(qaDeliveryPage);

@@ -188,6 +188,7 @@ const PT_TRANSLATIONS = {
   "Reset password": "Repor palavra-passe",
 };
 const state = {
+  sessionGeneration: 0,
   user: null,
   csrf: "",
   currentView: "dashboard",
@@ -830,6 +831,7 @@ function noteSessionActivity() {
 }
 
 function expireSession(options = {}) {
+  state.sessionGeneration += 1;
   closeMfaDialog();
   state.user = null;
   state.csrf = "";
@@ -893,6 +895,7 @@ function requestedAppView() {
 }
 
 function showApp(session) {
+  state.sessionGeneration += 1;
   state.user = session.user;
   applySessionMetadata(session);
   byId("login-view").hidden = true;
@@ -1242,7 +1245,8 @@ async function confirmMfaSetup(event) {
 async function disableMfa(event) {
   event.preventDefault();
   clearError("mfa-disable-error");
-  const requestedUser = state.user;
+  const requestedUser = state.user?.id;
+  const requestedSession = state.sessionGeneration;
   const submit = event.submitter;
   if (submit) submit.disabled = true;
   try {
@@ -1253,13 +1257,13 @@ async function disableMfa(event) {
         code: byId("mfa-disable-code").value.trim(),
       },
     });
-    if (requestedUser !== state.user) return;
+    if (requestedUser !== state.user?.id || requestedSession !== state.sessionGeneration) return;
     state.user = response.user;
     closeMfaDialog();
     document.dispatchEvent(new Event("nowlert:account-updated"));
     toast("Multi-factor authentication disabled.");
   } catch (error) {
-    if (requestedUser === state.user) showError("mfa-disable-error", error);
+    if (requestedUser === state.user?.id && requestedSession === state.sessionGeneration) showError("mfa-disable-error", error);
   } finally {
     if (submit) submit.disabled = false;
   }
@@ -1331,7 +1335,8 @@ async function initialize(startupRequests = {}) {
 }
 
 async function loadWorkspace() {
-  const requestedUser = state.user;
+  const requestedUser = state.user?.id;
+  const requestedSession = state.sessionGeneration;
   const requestedRange = state.historyRange;
   const pagedDeliveries = typeof window.nowlertInitialDeliveryRequest === "function";
   const initialDeliveryRequest = typeof window.nowlertInitialDeliveryRequest === "function"
@@ -1397,7 +1402,7 @@ async function loadWorkspace() {
   }
   const entries = Object.values(tasks);
   const settled = await Promise.allSettled(entries.map(([, promise]) => promise));
-  if (requestedUser !== state.user) return;
+  if (requestedUser !== state.user?.id || requestedSession !== state.sessionGeneration) return;
   state.workspaceErrors = [];
   for (let index = 0; index < settled.length; index += 1) {
     const result = settled[index];
@@ -3565,9 +3570,11 @@ async function savePreferences(event) {
 async function changeHistoryRange() {
   state.historyRange = byId("history-range").value;
   const requestedRange = state.historyRange;
+  const requestedUser = state.user?.id;
+  const requestedSession = state.sessionGeneration;
   try {
     const response = await request(`/metrics/${requestedRange}`);
-    if (requestedRange !== state.historyRange) return;
+    if (requestedRange !== state.historyRange || requestedUser !== state.user?.id || requestedSession !== state.sessionGeneration) return;
     state.metrics = response.metrics;
     renderDashboard();
   } catch (error) {
