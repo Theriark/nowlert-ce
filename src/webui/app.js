@@ -1596,6 +1596,7 @@ function navigate(view, historyMode = "push") {
     else button.removeAttribute("aria-current");
   }
   byId("page-title").textContent = VIEW_TITLES[view];
+  byId("page-title").dataset.i18nSource = VIEW_TITLES[view];
   closeProfileMenu();
   const targetHash = `#${view}`;
   const targetUrl = new URL(window.location.href);
