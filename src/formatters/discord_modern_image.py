@@ -2684,14 +2684,15 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
                 f"{label}:",
                 font=summary_label_font,
             )
-            draw.text(
-                (
-                    label_x + label_width + self.SUMMARY_VALUE_GAP,
-                    summary_mid_y,
-                ),
+            value_x = label_x + label_width + self.SUMMARY_VALUE_GAP
+            self._fit_text(
+                draw,
                 value,
-                font=summary_value_font,
-                fill=self.TEXT,
+                value_x,
+                summary_mid_y,
+                cell_x2 - value_x,
+                summary_value_font,
+                self.TEXT,
                 anchor="lm",
             )
             if index < 2:
