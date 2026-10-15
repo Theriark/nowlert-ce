@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 TEAMS_MODERN_CARD_ROUTE_PREFIX = "/ui/teams-modern-cards/"
 
 
-UI_BUILD = "20260929-r73"
+UI_BUILD = "20260929-r74"
 ROUTING_FLOW_CSS_BUILD = f"{UI_BUILD}-routing-flow-6"
 ROUTING_FLOW_JS_BUILD = f"{UI_BUILD}-routing-flow-6"
 EMAIL_ALERTS_JS_BUILD = f"{UI_BUILD}-email-alerts-1"
@@ -349,6 +349,7 @@ class WebUIService:
             "unifi-drive.png",
             "zabbix.png",
             "supermicro.png",
+            "supermicro-white-fill.png",
             "hpe-ilo.png",
             "dell-idrac.png",
             "home-assistant.png",
