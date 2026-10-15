@@ -21,6 +21,27 @@ class Node {
 }
 const descendants = node => [node, ...(node.children || []).flatMap(child => typeof child === 'object' ? descendants(child) : [])];
 
+for (const nested of [false, true]) {
+  test(`pagination shortcuts scroll ${nested ? 'the desktop workspace' : 'the mobile document'}`, () => {
+    const windowCalls = [];
+    const workspaceCalls = [];
+    const workspace = {scrollHeight: 4200, scrollTo: value => workspaceCalls.push(value.top)};
+    const context = {
+      window: {scrollTo: value => windowCalls.push(value.top), requestAnimationFrame: callback => callback()},
+      document: {
+        documentElement: {scrollHeight: 900}, body: {scrollHeight: 900},
+        querySelector: () => nested ? workspace : null,
+      },
+    };
+    const source = read('qa_patch.js');
+    vm.runInNewContext(source.slice(source.indexOf('function qaScrollPageBottom()'), source.indexOf('\nconst qaOriginalNavigate')), context);
+    context.qaScrollPageBottom();
+    context.qaScrollPageTop();
+    assert.deepEqual(windowCalls, [900, 900, 900, 0, 0, 0]);
+    assert.deepEqual(workspaceCalls, nested ? [4200, 4200, 4200, 0, 0, 0] : []);
+  });
+}
+
 for (const id of ['delivery-pagination', 'audit-pagination']) {
   test(`${id} retains the editable current-page status and Enter navigation`, async () => {
     const pager = new Node('div');
