@@ -124,25 +124,61 @@ class AuditEventStore:
         return int(cursor.lastrowid)
 
     def list_visible(
-        self, actor: Actor, limit: int = 100, offset: int = 0
+        self, actor: Actor, limit: int = 100, offset: int = 0, **filters
     ) -> list[AuditEvent]:
         bounded = max(1, min(int(limit), 500))
         bounded_offset = max(0, int(offset))
-        where, parameters = self._visibility(actor)
+        where, parameters = self._query_where(actor, filters)
+        direction = "ASC" if filters.get("sort") == "oldest" else "DESC"
         with self.database.connect() as connection:
             rows = connection.execute(
-                f"SELECT * FROM audit_events WHERE {where} ORDER BY id DESC LIMIT ? OFFSET ?",
+                f"SELECT * FROM audit_events WHERE {where} ORDER BY id {direction} LIMIT ? OFFSET ?",
                 (*parameters, bounded, bounded_offset),
             ).fetchall()
         return [self._event(row) for row in rows]
 
-    def count_visible(self, actor: Actor) -> int:
-        where, parameters = self._visibility(actor)
+    def count_visible(self, actor: Actor, **filters) -> int:
+        where, parameters = self._query_where(actor, filters)
         with self.database.connect() as connection:
             row = connection.execute(
                 f"SELECT COUNT(*) FROM audit_events WHERE {where}", parameters,
             ).fetchone()
         return int(row[0] or 0)
+
+    def filter_options(self, actor: Actor) -> dict:
+        where, parameters = self._query_where(actor, {})
+        with self.database.connect() as connection:
+            return {
+                key: [row[0] for row in connection.execute(
+                    f"SELECT DISTINCT {field} FROM audit_events WHERE {where} AND {field} != '' ORDER BY {field}",
+                    parameters,
+                )]
+                for key, field in (("actions", "action"), ("outcomes", "outcome"))
+            }
+
+    @classmethod
+    def _query_where(cls, actor: Actor, filters: dict) -> tuple[str, list]:
+        visibility, visibility_parameters = cls._visibility(actor)
+        clauses = [visibility]
+        parameters = list(visibility_parameters)
+        for field in ("action", "outcome"):
+            if filters.get(field):
+                clauses.append(f"{field} = ?")
+                parameters.append(filters[field])
+        if filters.get("since") is not None:
+            clauses.append("created_at >= ?")
+            parameters.append(int(filters["since"]))
+        if filters.get("search"):
+            fields = (
+                "action", "resource_type", "resource_id", "outcome",
+                "details_json", "actor_user_id",
+                "(SELECT username FROM users WHERE users.id = audit_events.actor_user_id)",
+            )
+            clauses.append("(" + " OR ".join(
+                f"instr(lower(COALESCE({field}, '')), lower(?)) > 0" for field in fields
+            ) + ")")
+            parameters.extend([filters["search"]] * len(fields))
+        return " AND ".join(clauses), parameters
 
     @staticmethod
     def _visibility(actor: Actor) -> tuple[str, tuple]:

@@ -107,6 +107,7 @@ navigate = function navigateWithPagedViewTop(view, historyMode = "push") {
 let qaAuditPageSize = qaReadAuditPageSize();
 let qaDeliveryPageSize = qaReadDeliveryPageSize();
 let qaDeliveryRequestId = 0;
+let qaAuditRequestId = 0;
 let qaDeliveryPagination = { page: 1, page_size: qaDeliveryPageSize, total: 0, total_pages: 1 };
 let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 
@@ -596,6 +597,7 @@ async function qaFetchDeliveryPage(page) {
 
 function qaApplyAuditPage(response) {
   state.audit = response.audit_events || [];
+  state.auditFilterOptions = response.filter_options || {};
   if (typeof state.auditPageSize === "number") state.auditPageSize = qaAuditPageSize;
   qaAuditPagination = response.pagination || qaAuditPagination;
   qaAuditPage = qaAuditPagination.page || 1;
@@ -603,12 +605,15 @@ function qaApplyAuditPage(response) {
 }
 
 async function qaFetchAuditPage(page) {
+  const requestId = ++qaAuditRequestId;
   const requestedUser = state.user?.id;
   const requestedSession = state.sessionGeneration;
+  const query = new URLSearchParams(window.nowlertAuditQuery?.() || {}).toString();
   const response = await request(
-    `/audit-events/page/${Math.max(1, Number(page || 1))}/size/${qaAuditPageSize}`,
+    `/audit-events/page/${Math.max(1, Number(page || 1))}/size/${qaAuditPageSize}${query ? `?${query}` : ""}`,
   );
-  return requestedUser === state.user?.id && requestedSession === state.sessionGeneration ? qaApplyAuditPage(response) : null;
+  return requestId === qaAuditRequestId && requestedUser === state.user?.id && requestedSession === state.sessionGeneration
+    ? qaApplyAuditPage(response) : null;
 }
 
 window.nowlertInitialDeliveryRequest = () => qaFetchDeliveryPage(qaDeliveryPage);

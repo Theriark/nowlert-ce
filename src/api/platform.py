@@ -406,10 +406,13 @@ class PlatformAPI:
                     actor,
                     int(audit_page_size.group(1)),
                     int(audit_page_size.group(2)),
+                    query=request_url.query,
                 )
             audit_page = re.fullmatch(r"/api/v2/audit-events/page/(\d+)", path)
             if audit_page:
-                return self._audit_page_endpoint(method, actor, int(audit_page.group(1)))
+                return self._audit_page_endpoint(
+                    method, actor, int(audit_page.group(1)), query=request_url.query,
+                )
             if path == "/api/v2/health-checks":
                 return self._health_endpoint(method, actor)
             if path == "/api/v2/housekeeping":
@@ -2038,20 +2041,32 @@ class PlatformAPI:
 
     _AUDIT_PAGE_SIZES = (25, 50, 100, 150, 250, 500)
 
-    def _audit_page_endpoint(self, method, actor, page, size=None) -> APIResponse:
+    def _audit_page_endpoint(self, method, actor, page, size=None, query="") -> APIResponse:
         if method != "GET":
             return self._method_not_allowed("GET")
         page_size = 25
         if size is not None and int(size) in self._AUDIT_PAGE_SIZES:
             page_size = int(size)
+        values = parse_qs(query, keep_blank_values=True, max_num_fields=6)
+        if set(values) - {"search", "action", "outcome", "range", "sort"} or any(len(items) != 1 for items in values.values()):
+            raise ValueError("audit query is invalid")
+        filters = {key: items[0].strip() for key, items in values.items()}
+        if any(len(value) > 1000 for value in filters.values()):
+            raise ValueError("audit query is too long")
+        history_range = filters.pop("range", "all")
+        if history_range not in {"all", "1d", "7d", "30d"} or filters.get("sort", "newest") not in {"newest", "oldest"}:
+            raise ValueError("audit range or sort is invalid")
+        if history_range != "all":
+            filters["since"] = int(time.time()) - int(history_range[:-1]) * 86400
         audit = self._audit_read_store()
-        total = audit.count_visible(actor)
+        total = audit.count_visible(actor, **filters)
         total_pages = max(1, (total + page_size - 1) // page_size)
         current = min(max(1, int(page)), total_pages)
         events = audit.list_visible(
             actor,
             limit=page_size,
             offset=(current - 1) * page_size,
+            **filters,
         )
         return APIResponse(
             200,
@@ -2063,6 +2078,7 @@ class PlatformAPI:
                     "total": total,
                     "total_pages": total_pages,
                 },
+                "filter_options": audit.filter_options(actor),
             },
         )
 
