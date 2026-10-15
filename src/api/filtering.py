@@ -102,9 +102,14 @@ class PlatformAPI(BasePlatformAPI):
     def _routes_endpoint(self, method, payload, actor) -> APIResponse:
         if method == "GET" and not self.yaml_resource_authority:
             routes, errors = self.routes.list_visible_safe(actor)
+            actual_routes, actual_errors = self.routes.list_actual_visible_safe(actor)
             return APIResponse(
                 200,
-                {"routes": [self._route(item) for item in routes], "errors": errors},
+                {
+                    "routes": [self._route(item) for item in routes],
+                    "actual_routes": [{**self._route(item), "enabled": item.enabled} for item in actual_routes],
+                    "errors": errors + [error for error in actual_errors if error not in errors],
+                },
             )
         if method != "GET" and self.yaml_resource_authority:
             self._require_admin(actor)
@@ -734,8 +739,10 @@ class PlatformAPI(BasePlatformAPI):
         }
         if history_range not in windows:
             raise ValueError("history range is invalid")
-        since = int(time.time()) - windows[history_range]
+        until = int(time.time()) + 1
+        since = until - windows[history_range]
         delivery = self.history.metrics(actor, since)
+        dashboard = self.history.dashboard(actor, since, until, {"10m": 20, "1h": 36, "1d": 24, "1m": 31, "1y": 24}[history_range])
         with self.database.connect() as connection:
             route_row = connection.execute(
                 """
@@ -779,6 +786,7 @@ class PlatformAPI(BasePlatformAPI):
                     "routes": int(route_row["total"] or 0),
                     "applications": active_applications,
                     **delivery,
+                    **dashboard,
                 }
             },
         )
@@ -842,6 +850,11 @@ class PlatformAPI(BasePlatformAPI):
                 self._serialization_actor(item.owner_user_id), item.id
             )
         )
+        with self.database.connect() as connection:
+            data["actual_route_ids"] = [row[0] for row in connection.execute(
+                "SELECT route_id FROM route_destinations WHERE destination_id = ? ORDER BY route_id",
+                (item.id,),
+            )]
         return data
 
     def _route(self, item):

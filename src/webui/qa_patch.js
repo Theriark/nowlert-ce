@@ -102,6 +102,7 @@ navigate = function navigateWithPagedViewTop(view, historyMode = "push") {
 
 let qaAuditPageSize = qaReadAuditPageSize();
 let qaDeliveryPageSize = qaReadDeliveryPageSize();
+let qaDeliveryRequestId = 0;
 let qaDeliveryPagination = { page: 1, page_size: qaDeliveryPageSize, total: 0, total_pages: 1 };
 let qaAuditPagination = { page: 1, page_size: QA_PAGE_SIZE, total: 0, total_pages: 1 };
 
@@ -134,6 +135,8 @@ const QA_WORKSPACE_CACHE_FIELDS = [
   "destinationErrors",
   "destinationTestResults",
   "routes",
+  "actualRoutes",
+  "deliveryFilterOptions",
   "routeErrors",
   "tokens",
   "preferences",
@@ -357,6 +360,7 @@ renderBackupOverview = function renderBackupOverviewWithFirstPaintCache(...args)
 
 const qaOriginalExpireSession = expireSession;
 expireSession = function expireSessionWithWorkspaceCacheClear(options = {}) {
+  qaDeliveryRequestId += 1;
   if (options.preserveCache !== true) qaClearWorkspaceCache();
   return qaOriginalExpireSession(options);
 };
@@ -568,16 +572,21 @@ renderDestinationFields = function renderDestinationFieldsWithCredentialState(se
 
 function qaApplyDeliveryPage(response) {
   state.deliveries = response.deliveries || [];
+  state.deliveryFilterOptions = response.filter_options || {};
   qaDeliveryPagination = response.pagination || qaDeliveryPagination;
   qaDeliveryPage = qaDeliveryPagination.page || 1;
   return response;
 }
 
 async function qaFetchDeliveryPage(page) {
+  const requestId = ++qaDeliveryRequestId;
+  const requestedUser = state.user;
+  const query = new URLSearchParams(window.nowlertDeliveryQuery?.() || {}).toString();
   const response = await request(
-    `/deliveries/page/${Math.max(1, Number(page || 1))}/size/${qaDeliveryPageSize}`,
+    `/deliveries/page/${Math.max(1, Number(page || 1))}/size/${qaDeliveryPageSize}${query ? `?${query}` : ""}`,
   );
-  return qaApplyDeliveryPage(response);
+  return requestId === qaDeliveryRequestId && requestedUser === state.user
+    ? qaApplyDeliveryPage(response) : null;
 }
 
 function qaApplyAuditPage(response) {
@@ -589,10 +598,11 @@ function qaApplyAuditPage(response) {
 }
 
 async function qaFetchAuditPage(page) {
+  const requestedUser = state.user;
   const response = await request(
     `/audit-events/page/${Math.max(1, Number(page || 1))}/size/${qaAuditPageSize}`,
   );
-  return qaApplyAuditPage(response);
+  return requestedUser === state.user ? qaApplyAuditPage(response) : null;
 }
 
 window.nowlertInitialDeliveryRequest = () => qaFetchDeliveryPage(qaDeliveryPage);

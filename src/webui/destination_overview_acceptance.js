@@ -195,6 +195,17 @@
     range: "7d",
     sort: "newest",
   };
+  window.nowlertDeliveryQuery = () => ({
+    ...filters,
+    search: String(byId("delivery-search")?.value || "").trim(),
+  });
+  let searchTimer;
+
+  function refreshHistory() {
+    selectedDeliveryId = "";
+    clearTimeout(searchTimer);
+    if (typeof qaLoadDeliveryPage === "function") void qaLoadDeliveryPage(1);
+  }
 
   const originalRenderDeliveries = renderDeliveries;
   const originalLoadDeliveryPage =
@@ -360,7 +371,10 @@
     filtersBound = true;
 
     const search = byId("delivery-search");
-    if (search) search.addEventListener("input", renderWorkbench);
+    if (search) search.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(refreshHistory, 200);
+    });
 
     for (const [id, key] of [
       ["delivery-history-source-filter", "source"],
@@ -371,8 +385,7 @@
     ]) {
       byId(id)?.addEventListener("change", (event) => {
         filters[key] = event.target.value;
-        selectedDeliveryId = "";
-        renderWorkbench();
+        refreshHistory();
       });
     }
 
@@ -389,65 +402,30 @@
       byId("delivery-history-range-filter").value = "7d";
       byId("delivery-history-sort").value = "newest";
       selectedDeliveryId = "";
-      renderWorkbench();
+      refreshHistory();
     });
 
   }
 
   function filteredDeliveries() {
-    const query = String(byId("delivery-search")?.value || "").trim().toLowerCase();
-    const now = Date.now();
-    const rangeMs = {
-      "1d": 24 * 60 * 60 * 1000,
-      "7d": 7 * 24 * 60 * 60 * 1000,
-      "30d": 30 * 24 * 60 * 60 * 1000,
-    }[filters.range] || 0;
-
-    const items = (state.deliveries || []).filter((item) => {
-      if (filters.source && String(item.source || "") !== filters.source) return false;
-      if (filters.severity && String(item.severity || "") !== filters.severity) return false;
-      if (filters.outcome && String(item.outcome || "") !== filters.outcome) return false;
-      if (rangeMs) {
-        const timestamp = deliveryTimestamp(item);
-        if (timestamp && timestamp < now - rangeMs) return false;
-      }
-      if (!query) return true;
-      return JSON.stringify([
-        item.source,
-        item.device_name,
-        item.event_name,
-        item.title,
-        item.event_description,
-        item.severity,
-        item.event_status,
-        item.outcome,
-        item.safe_error,
-        item.error_code,
-      ]).toLowerCase().includes(query);
-    });
-
-    items.sort((left, right) => {
-      const delta = deliveryTimestamp(right) - deliveryTimestamp(left);
-      return filters.sort === "oldest" ? -delta : delta;
-    });
-    return items;
+    return state.deliveries || [];
   }
 
   function refreshFilterOptions() {
     const items = state.deliveries || [];
     setSelectOptions(
       byId("delivery-history-source-filter"),
-      items.map((item) => item.source),
+      state.deliveryFilterOptions?.sources || items.map((item) => item.source),
       "All sources",
     );
     setSelectOptions(
       byId("delivery-history-severity-filter"),
-      items.map((item) => item.severity),
+      state.deliveryFilterOptions?.severities || items.map((item) => item.severity),
       "All severities",
     );
     setSelectOptions(
       byId("delivery-history-outcome-filter"),
-      items.map((item) => item.outcome),
+      state.deliveryFilterOptions?.outcomes || items.map((item) => item.outcome),
       "All outcomes",
     );
   }
@@ -705,7 +683,7 @@
     }
 
     const total = typeof qaDeliveryPagination !== "undefined"
-      ? Number(qaDeliveryPagination.total || state.deliveries.length)
+      ? Number(qaDeliveryPagination.total ?? state.deliveries.length)
       : state.deliveries.length;
     const totalLabel = byId("delivery-history-total");
     if (totalLabel) totalLabel.textContent = `${total} event${total === 1 ? "" : "s"}`;

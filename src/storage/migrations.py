@@ -766,6 +766,19 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             """,
         ),
     ),
+    (
+        17,
+        "one-time MFA recovery codes",
+        (
+            """
+            CREATE TABLE mfa_recovery_codes (
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                code_hash TEXT NOT NULL CHECK (length(code_hash) = 64),
+                PRIMARY KEY (user_id, code_hash)
+            )
+            """,
+        ),
+    ),
 )
 
 

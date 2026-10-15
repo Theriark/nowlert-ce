@@ -53,7 +53,7 @@ The saved rule selects **All events** and the native Nowlert method:
 
 It sends once to the explicit recipient:
 
-![Checkmk single explicit recipient](../images/application-setup/checkmk-single-recipient.png)
+Select exactly one intended Checkmk recipient so each event produces one notification.
 
 Save. Activate changes **only if Checkmk shows pending changes**. On the tested
 2.5 site, notification-rule saves were immediate and activation correctly

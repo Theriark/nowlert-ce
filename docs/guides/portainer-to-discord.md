@@ -29,7 +29,7 @@ the desired delivery policy; do not narrow the source subscription by severity.
 
 ## 2. Issue a scoped token
 
-Open your profile menu → **Security** → **New token**. Name it
+Open **Profile menu → Security → API tokens → New token**. Name it
 `Portainer centralized alerts`, select only **Portainer**, and choose an
 appropriate rate limit. The example uses 60 requests per minute. Issue the
 token and save the one-time value privately.
@@ -135,7 +135,7 @@ After restoration, Portainer emitted the matching `resolved` callback. Nowlert
 delivered it with HTTP **200** at Unix timestamp `1790995291`. Both native
 lifecycle deliveries are present in the record above.
 
-![Native firing and recovery in Nowlert](../images/monitoring-setup/portainer-native-delivery-lifecycle.png)
+In Delivery history, verify distinct Portainer firing and resolved attempts with successful destination responses; consult the dated validation record below.
 
 ## Troubleshooting
 

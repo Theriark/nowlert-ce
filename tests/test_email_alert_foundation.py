@@ -30,8 +30,8 @@ def create_user(database, user_id, username, role="user"):
 def test_schema_15_adds_email_alert_foundation_tables(tmp_path):
     database = Database(tmp_path / "state" / "nowlert.db")
 
-    assert database.migrate() == 16
-    assert LATEST_SCHEMA_VERSION == 16
+    assert database.migrate() == 17
+    assert LATEST_SCHEMA_VERSION == 17
 
     with database.connect() as connection:
         tables = {

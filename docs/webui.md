@@ -4,9 +4,8 @@ Current Nowlert packages a responsive, dependency-free management interface in
 the application image. The browser uses the authenticated same-origin
 `/api/v2` contract and never needs direct access to SQLite or secret files.
 
-The current WebUI keeps the approved v3.1 visual language while evolving the management workflows. Existing approved
-screenshots therefore remain the visual baseline where a screenshot is useful;
-new screenshots are required only when the rendered UI materially changes.
+Historical v3.1.0 screenshots in this guide illustrate older layouts. Current
+development has newer management workflows; follow the written steps below.
 
 ## Activation
 
@@ -68,7 +67,7 @@ Dashboard is entered or refreshed; reduced-motion preferences disable it. The
 chart shares its selected time range with the Dashboard controls and has no
 manual replay button.
 
-![Nowlert Dashboard](images/v3.1.0-dashboard.png)
+![Historical v3.1.0 Dashboard](images/v3.1.0-dashboard.png)
 
 ### Sources
 
@@ -125,6 +124,8 @@ pulse grey, and endpoints shared by both use a split yellow/grey pulse. Filter
 criteria and routing behavior are unchanged.
 ### Event API tokens
 
+Open **Profile menu → Security → API tokens** to issue, rotate or revoke an Event API token.
+
 Event API tokens authorize external applications to submit
 `POST /api/v2/events`. They are not required for SMTP, dedicated vendor webhook
 endpoints, Redfish subscriptions, WebUI login, or destination delivery.
@@ -152,7 +153,7 @@ Pagination behavior is shared with Audit Log:
 - page size persists; and
 - the header **Bottom** shortcut and page-change scroll behavior remain.
 
-![Nowlert Delivery History](images/v3.1.0-delivery-history.png)
+![Historical v3.1.0 Delivery History](images/v3.1.0-delivery-history.png)
 
 ### Audit Log
 
@@ -248,6 +249,6 @@ transport security, state location, and WebUI publication. See
 
 ## Current persistent schema
 
-Current development uses database schema **13** and
+Current development uses database schema **17** and
 `platform_database_v1`. Take a verified recovery snapshot before an upgrade
 and keep an off-host copy until acceptance passes.

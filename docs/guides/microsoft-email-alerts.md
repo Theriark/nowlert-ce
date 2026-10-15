@@ -118,7 +118,7 @@ for whichever credential method you use. See [deployment OAuth configuration](..
    you want classified. Private visibility does not make the mailbox available
    to other Nowlert users.
 
-![Microsoft and Gmail connections healthy; account labels concealed](../images/email-setup/mailboxes-healthy-redacted.png)
+Check each mailbox for Healthy, Credentials configured, and a recent Last sync; use your own account labels.
 
 ## 4. Configure rules and delivery
 

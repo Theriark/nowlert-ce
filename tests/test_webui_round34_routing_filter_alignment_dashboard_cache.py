@@ -50,7 +50,7 @@ def test_filtering_expanded_cards_align_from_the_left_and_are_not_treated_as_act
 def test_dashboard_has_range_aware_first_paint_snapshot_for_f5():
     script = read("src/webui/operations_dashboard.js")
 
-    assert 'const DASHBOARD_SNAPSHOT_SCHEMA = 1;' in script
+    assert 'const DASHBOARD_SNAPSHOT_SCHEMA = 2;' in script
     assert "function dashboardSnapshotKey(session, range)" in script
     assert "function restoreDashboardSnapshot(session, range)" in script
     assert "function saveDashboardSnapshot(range)" in script

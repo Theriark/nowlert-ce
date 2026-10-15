@@ -8,12 +8,14 @@ import uuid
 import base64
 import binascii
 import re
+import hmac
 
 from dataclasses import dataclass
 from typing import Callable
 
 from api.security import hash_password, verify_password
 from storage.database import Database
+from storage.mfa import generate_recovery_codes, recovery_code_hash
 from storage.ownership import Actor
 from storage.validation import ConflictError, normalized_identifier
 
@@ -405,7 +407,61 @@ class UserStore:
             )
             if cursor.rowcount != 1:
                 raise KeyError("user not found")
+            if not enabled:
+                connection.execute(
+                    "DELETE FROM mfa_recovery_codes WHERE user_id = ?", (str(user_id),)
+                )
         return self.get(user_id)
+
+    def generate_mfa_recovery_codes(
+        self, user_id: str, secret_id: str, *, enroll: bool = False,
+    ) -> list[str]:
+        """Enable or rotate recovery credentials atomically with their MFA state."""
+
+        codes = generate_recovery_codes()
+        with self.database.transaction() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE users SET mfa_enabled = 1, updated_at = ?
+                WHERE id = ? AND mfa_secret_id = ? AND mfa_enabled = ? AND enabled = 1
+                """,
+                (int(self.clock()), str(user_id), str(secret_id), 0 if enroll else 1),
+            )
+            if cursor.rowcount != 1:
+                raise ConflictError("MFA state changed; reopen MFA settings and try again")
+            connection.execute("DELETE FROM mfa_recovery_codes WHERE user_id = ?", (str(user_id),))
+            connection.executemany(
+                "INSERT INTO mfa_recovery_codes(user_id, code_hash) VALUES (?, ?)",
+                [(str(user_id), recovery_code_hash(code)) for code in codes],
+            )
+        return codes
+
+    def consume_mfa_recovery_code(self, user_id: str, code: str) -> bool:
+        """Delete a matching digest under the write lock so concurrent reuse fails."""
+
+        supplied_hash = recovery_code_hash(code)
+        if supplied_hash is None:
+            return False
+        with self.database.transaction() as connection:
+            rows = connection.execute(
+                """
+                SELECT codes.code_hash FROM mfa_recovery_codes AS codes
+                JOIN users ON users.id = codes.user_id
+                WHERE codes.user_id = ? AND users.mfa_enabled = 1 AND users.enabled = 1
+                """,
+                (str(user_id),),
+            ).fetchall()
+            matched = None
+            for row in rows:
+                if hmac.compare_digest(str(row["code_hash"]), supplied_hash):
+                    matched = str(row["code_hash"])
+            if matched is None:
+                return False
+            connection.execute(
+                "DELETE FROM mfa_recovery_codes WHERE user_id = ? AND code_hash = ?",
+                (str(user_id), matched),
+            )
+        return True
 
     @staticmethod
     def _user(row) -> User:

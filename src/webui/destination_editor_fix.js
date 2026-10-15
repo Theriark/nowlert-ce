@@ -283,17 +283,6 @@
     refreshSharingStatus();
   }
 
-  function normalizeRouteOptionRows() {
-    const options = document.getElementById("destination-route-options");
-    if (!options) return;
-    for (const secondary of options.querySelectorAll(".route-assignment-option-copy small")) {
-      secondary.remove();
-    }
-    for (const status of options.querySelectorAll(".route-assignment-option-state")) {
-      status.remove();
-    }
-  }
-
   function normalizeRoutingSummary() {
     const routing = document.getElementById("destination-routing-summary");
     if (!routing) return;
@@ -304,17 +293,6 @@
 
   function normalizeRouteDrawer() {
     const manage = document.getElementById("destination-routes-toggle");
-    const options = document.getElementById("destination-route-options");
-
-    normalizeRouteOptionRows();
-
-    if (options && options.dataset.destinationPolishBound !== "true") {
-      options.dataset.destinationPolishBound = "true";
-      new MutationObserver(normalizeRouteOptionRows).observe(options, {
-        childList: true,
-        subtree: true,
-      });
-    }
 
     if (!manage || manage.dataset.destinationDrawerFixBound === "true") return;
 

@@ -80,8 +80,8 @@ def test_users_can_see_and_assign_routes_they_can_access_to_managed_destinations
     )[1].split("const destinationEditorBaseRenderDestinationFields", 1)[0]
 
     assert "if (!isAdmin() && !ownResource(item)) return false;" not in picker
-    assert "state.routes || []" in picker
-    assert "routeAssignmentSelection = new Set((state.routes || []).map((item) => item.id));" in route_editor
+    assert "state.actualRoutes || state.routes || []" in picker
+    assert "routeAssignmentSelection = new Set((state.actualRoutes || state.routes || []).map((item) => item.id));" in route_editor
     assert "routeAssignmentSelection.clear();" in route_editor
 
 

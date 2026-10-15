@@ -348,46 +348,92 @@ class DeliveryHistoryStore:
         return self._attempt(row)
 
     def list_visible(
-        self, actor: Actor, limit: int = 100, offset: int = 0
+        self, actor: Actor, limit: int = 100, offset: int = 0, **filters
     ) -> list[DeliveryAttempt]:
         bounded = max(1, min(int(limit), 500))
         bounded_offset = max(0, int(offset))
+        where, parameters = self._query_where(actor, filters)
+        direction = "ASC" if filters.get("sort") == "oldest" else "DESC"
         with self.database.connect() as connection:
-            if actor.is_admin:
-                rows = connection.execute(
-                    "SELECT * FROM delivery_attempts ORDER BY created_at DESC, id LIMIT ? OFFSET ?",
-                    (bounded, bounded_offset),
-                ).fetchall()
-            else:
-                rows = connection.execute(
-                    """
-                    SELECT attempts.* FROM delivery_attempts AS attempts
-                    LEFT JOIN destinations
-                      ON destinations.id = attempts.destination_id
-                    WHERE attempts.owner_user_id = ? OR destinations.shared = 1
-                    ORDER BY attempts.created_at DESC, attempts.id LIMIT ? OFFSET ?
-                    """,
-                    (actor.user_id, bounded, bounded_offset),
-                ).fetchall()
+            rows = connection.execute(
+                f"SELECT * FROM delivery_attempts WHERE {where} ORDER BY created_at {direction}, id LIMIT ? OFFSET ?",
+                (*parameters, bounded, bounded_offset),
+            ).fetchall()
         return [self._attempt(row) for row in rows]
 
-    def count_visible(self, actor: Actor) -> int:
+    @staticmethod
+    def _query_where(actor: Actor, filters: dict) -> tuple[str, list]:
+        clauses = ["1 = 1"]
+        parameters = []
+        if not actor.is_admin:
+            clauses.append("(owner_user_id = ? OR destination_id IN (SELECT id FROM destinations WHERE shared = 1))")
+            parameters.append(actor.user_id)
+        for field in ("source", "severity", "outcome"):
+            if filters.get(field):
+                clauses.append(f"{field} = ?")
+                parameters.append(filters[field])
+        if filters.get("since") is not None:
+            clauses.append("created_at >= ?")
+            parameters.append(int(filters["since"]))
+        if filters.get("search"):
+            fields = ("source", "device_name", "event_name", "title", "event_description", "severity", "event_status", "outcome", "safe_error", "error_code")
+            clauses.append("(" + " OR ".join(f"instr(lower(COALESCE({field}, '')), lower(?)) > 0" for field in fields) + ")")
+            parameters.extend([filters["search"]] * len(fields))
+        return " AND ".join(clauses), parameters
+
+    def filter_options(self, actor: Actor) -> dict:
+        where, parameters = self._query_where(actor, {})
         with self.database.connect() as connection:
-            if actor.is_admin:
-                row = connection.execute(
-                    "SELECT COUNT(*) FROM delivery_attempts"
-                ).fetchone()
-            else:
-                row = connection.execute(
-                    """
-                    SELECT COUNT(*) FROM delivery_attempts AS attempts
-                    LEFT JOIN destinations
-                      ON destinations.id = attempts.destination_id
-                    WHERE attempts.owner_user_id = ? OR destinations.shared = 1
-                    """,
-                    (actor.user_id,),
-                ).fetchone()
+            return {
+                key: [row[0] for row in connection.execute(
+                    f"SELECT DISTINCT {field} FROM delivery_attempts WHERE {where} AND {field} != '' ORDER BY {field}", parameters
+                )]
+                for key, field in (("sources", "source"), ("severities", "severity"), ("outcomes", "outcome"))
+            }
+
+    def count_visible(self, actor: Actor, **filters) -> int:
+        where, parameters = self._query_where(actor, filters)
+        with self.database.connect() as connection:
+            row = connection.execute(f"SELECT COUNT(*) FROM delivery_attempts WHERE {where}", parameters).fetchone()
         return int(row[0] or 0)
+
+    def dashboard(self, actor: Actor, since: int, until: int, bucket_count: int) -> dict:
+        previous_since = since - (until - since)
+        where, parameters = self._query_where(actor, {"since": previous_since})
+        cte = f"""WITH ranked AS (
+            SELECT *, ROW_NUMBER() OVER (
+                PARTITION BY delivery_id, destination_id, (created_at >= {int(since)})
+                ORDER BY attempt_number DESC, created_at DESC, id DESC
+            ) AS rank FROM delivery_attempts WHERE {where} AND created_at < ?
+        ), latest AS (SELECT *, CASE
+            WHEN outcome IN ('delivered', 'success') THEN 'delivered'
+            WHEN outcome = 'failed' THEN 'failed'
+            WHEN retryable = 1 OR outcome IN ('retry', 'retrying', 'retry_scheduled', 'pending') THEN 'retry'
+            ELSE 'failed' END AS category FROM ranked WHERE rank = 1)
+        """
+        parameters.append(until)
+        seconds = (until - since) / bucket_count
+        buckets = [{"start": since + index * seconds, "delivered": 0, "failed": 0, "retry": 0} for index in range(bucket_count)]
+        with self.database.connect() as connection:
+            rows = connection.execute(cte + "SELECT CAST((created_at - ?) / ? AS INTEGER) AS bucket, category, COUNT(*) AS total FROM latest GROUP BY bucket, category", (*parameters, previous_since, seconds)).fetchall()
+            rankings = {}
+            for key, field in (("top_sources", "source"), ("top_destinations", "destination_id")):
+                rankings[key] = [dict(row) for row in connection.execute(cte + f"SELECT {field}, COUNT(*) AS count FROM latest WHERE created_at >= ? GROUP BY {field} ORDER BY count DESC, {field} LIMIT 5", (*parameters, since))]
+        previous = {"delivered": 0, "failed": 0, "retry": 0}
+        for row in rows:
+            if row["bucket"] < bucket_count:
+                previous[row["category"]] += row["total"]
+            else:
+                buckets[min(bucket_count - 1, row["bucket"] - bucket_count)][row["category"]] += row["total"]
+        totals = {category: sum(bucket[category] for bucket in buckets) for category in ("delivered", "failed", "retry")}
+        total = sum(totals.values())
+        previous_total = sum(previous.values())
+        return {
+            "history": {**totals, "total": total, "successRate": totals["delivered"] * 100 / total if total else None},
+            "history_previous": {**previous, "total": previous_total, "successRate": previous["delivered"] * 100 / previous_total if previous_total else None},
+            "buckets": buckets,
+            **rankings,
+        }
 
     def metrics(self, actor: Actor, since: int) -> dict:
         """Return final delivery outcomes for a server-side history window."""

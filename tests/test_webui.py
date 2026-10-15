@@ -634,7 +634,7 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     assert "delivery_page_size = re.fullmatch(" in platform
     assert "/api/v2/deliveries/page/" in platform
     assert "int(delivery_page_size.group(2))" in platform
-    assert "def _deliveries_page_endpoint(self, method, actor, page, size=None)" in platform
+    assert 'def _deliveries_page_endpoint(self, method, actor, page, size=None, query="")' in platform
 
     # Layout remains usable on narrow displays.
     assert ".qa-pagination .qa-page-number" in styles

@@ -48,20 +48,20 @@ problem, recovery and success behavior of each integration and its source limits
 |---|---|
 | Zabbix native webhook and recipient | [Enabled media](../images/zabbix-setup/media-enabled.png), [saved recipient](../images/zabbix-setup/recipient-media.png), [problem/recovery operations](../images/zabbix-setup/action-operations.png) |
 | Zabbix native media test acceptance | [Problem](../images/zabbix-setup/native-problem-accepted.png), [recovery](../images/zabbix-setup/native-recovery-accepted.png) |
-| Checkmk saved native notification rule | [All events/method](../images/application-setup/checkmk-all-events.jpg), [recipient](../images/application-setup/checkmk-single-recipient.png), [conditions/save behavior](../images/application-setup/checkmk-sending-conditions.jpg) |
+| Checkmk saved native notification rule | [All events/method](../images/application-setup/checkmk-all-events.jpg), [single-recipient procedure](checkmk-to-nowlert.md), [conditions/save behavior](../images/application-setup/checkmk-sending-conditions.jpg) |
 | Sonarr saved connection and all native triggers | [Connections](../images/application-setup/sonarr-all-events.png) |
 | Radarr saved connection and all native triggers | [Connections](../images/application-setup/radarr-all-events.jpg) |
 | Semaphore native task success and notification log | [Task #30](../images/application-setup/semaphore-native-test.png) |
 | Metabase saved webhook, no token value | [Webhook destination](../images/application-setup/metabase-webhook.png) |
-| Metabase hourly failure alert and native delivery proof | [Saved alert](../images/application-setup/metabase-delivery-alert.jpg), [native question test](../images/application-setup/metabase-native-question-delivered.png) |
+| Metabase hourly failure alert and native delivery proof | [Hourly alert procedure](metabase-to-nowlert.md), [native question test](../images/application-setup/metabase-native-question-delivered.png) |
 | Gmail API enabled | [API status, account header omitted](../images/email-setup/gmail-api-enabled.jpg) |
 | Microsoft delegated mailbox permission | [Mail.Read, address concealed](../images/email-setup/microsoft-mail-read-redacted.png) |
-| Both mailbox connections healthy | [Private labels concealed](../images/email-setup/mailboxes-healthy-redacted.png) |
-| Real No-IP warning classification | [Email, hostname and mailbox label concealed](../images/email-setup/noip-warning-redacted.png) |
-| Home Assistant enabled alert automations | [Automation entities](../images/home-assistant-setup/enabled-automations.png) |
-| Home Assistant native notification test | [Action](../images/home-assistant-setup/native-test.png), [delivery proof](../images/home-assistant-setup/native-delivery-proof.png) |
-| Home Assistant authenticated receiver acceptance | [HTTP 204 response](../images/home-assistant-setup/transport-response.png) |
-| TrueNAS saved Info Email service | [Service](../images/truenas-setup/info-alert-service.png) |
+| Both mailbox connections healthy | Check each mailbox for Healthy, Credentials configured, and a recent Last sync; use your own account labels. |
+| Real No-IP warning classification | In Email Alerts → Activity, verify the intended mailbox, matched rule and Warning classification; then check destination delivery separately. |
+| Home Assistant enabled alert automations | In Home Assistant, filter automation entities by nowlert and confirm the required alert automations are enabled. |
+| Home Assistant native notification test | [Native action procedure](home-assistant-to-discord.md), [delivery proof](../images/home-assistant-setup/native-delivery-proof.png) |
+| Home Assistant authenticated receiver acceptance | Verify the action response reports HTTP 204 for receiver acceptance; this is separate from destination delivery. |
+| TrueNAS saved Info Email service | Save an enabled Email alert service at Info level with your intended recipient, then send its native test. |
 | TrueNAS native alert delivery | [Delivery proof](../images/truenas-setup/delivery-proof.png) |
 | iLO resource noise suppressed centrally | [Rule](../images/hardware-setup/ilo-resource-filter.png), [filtered outcomes](../images/hardware-setup/ilo-resource-filter-proof.png) |
 | Hardware token scope selection | [Token form](../images/hardware-setup/nowlert-token-scope.png) |
@@ -73,7 +73,7 @@ problem, recovery and success behavior of each integration and its source limits
 | Dell event subscription | [Redacted API readback](../images/hardware-setup/dell-subscription-record.png) |
 | Supermicro event subscription | [Redacted API readback](../images/hardware-setup/supermicro-subscription-record.png) |
 | Local Portainer stack | [Running services](../images/hardware-setup/portainer-stack-running.png) |
-| TLS listener configuration | [Listener](../images/hardware-setup/portainer-tls-config.png), [forwarding and allowlist](../images/hardware-setup/portainer-tls-forwarding.png) |
+| TLS listener configuration | [Compose configuration procedure](ilo4-local-tls-listener.md), [forwarding and allowlist](../images/hardware-setup/portainer-tls-forwarding.png) |
 | Actual iLO callback acknowledgement | [Access log](../images/hardware-setup/portainer-hpe-callback.png) |
 | Synthetic hardware receiver checks | [Receiver delivery history](../images/hardware-setup/hpe-native-image-delivery.png); native iLO emission is evidenced by the callback log above |
 | Xen Orchestra Discord edit form | [Operational destination](../images/hardware-setup/nowlert-xen-destination.png) |
@@ -96,7 +96,7 @@ Both local mailbox connections and background synchronization were verified on
 4 October 2026. Real No-IP notices matched the warning rule. Gmail remains in
 Google Testing mode; production authorization is outstanding. Native OpenAI
 incident/resolution and email-to-destination delivery proof are not yet captured.
-Personal addresses and account labels are concealed in the tutorial images.
+Unsafe mailbox and activity captures were withdrawn; use the written connection and classification checks.
 
 The native iLO fix was verified in a development image. Before advertising it as
 a stable-release feature, promote and test a release containing that fix and

@@ -26,7 +26,8 @@ function destinationRouteVisibleItems(selectedRoutes, limit = DESTINATION_ROUTE_
 }
 
 function destinationRouteSelectionForItem(item, routes) {
-  const selected = new Set(item && Array.isArray(item.route_ids) ? item.route_ids : []);
+  const ids = item?.actual_route_ids ?? item?.route_ids;
+  const selected = new Set(Array.isArray(ids) ? ids : []);
   const destinationId = item && item.id ? String(item.id) : "";
   if (destinationId) {
     for (const route of Array.isArray(routes) ? routes : []) {
@@ -238,6 +239,7 @@ if (typeof module !== "undefined" && module.exports) {
   function destinationEditorInstallDiscordStyleControl() {
     const settings = byId("destination-settings");
     if (!settings || byId("destination-type")?.value !== "discord") return;
+    if (settings.querySelector("#destination-discord-style")) return;
     const native = settings.querySelector('[data-field="components_v2"]');
     if (!native) return;
     const nativeLabel = native.closest("label");
@@ -474,7 +476,7 @@ if (typeof module !== "undefined" && module.exports) {
   }
 
   function routeAssignmentSummaryPill(route, extraClass = "") {
-    const label = routeAssignmentIntegrationName(route);
+    const label = route.name || routeAssignmentIntegrationName(route);
     const button = element("button", {
       className: `destination-route-pill${extraClass ? ` ${extraClass}` : ""}`,
       type: "button",
@@ -541,7 +543,7 @@ if (typeof module !== "undefined" && module.exports) {
   }
 
   function routeAssignmentRefreshSummary() {
-    const allRoutes = state.routes || [];
+    const allRoutes = state.actualRoutes || state.routes || [];
     const model = destinationRouteSummaryModel(
       allRoutes,
       routeAssignmentSelection,
@@ -653,7 +655,7 @@ if (typeof module !== "undefined" && module.exports) {
     picker.dataset.routeAssignmentBound = "true";
     search.addEventListener("input", routeAssignmentRenderOptions);
     selectAll.addEventListener("click", () => {
-      routeAssignmentSelection = new Set((state.routes || []).map((item) => item.id));
+      routeAssignmentSelection = new Set((state.actualRoutes || state.routes || []).map((item) => item.id));
       routeAssignmentRenderOptions();
     });
     clear.addEventListener("click", () => {
@@ -667,7 +669,7 @@ if (typeof module !== "undefined" && module.exports) {
     const options = byId("destination-route-options");
     if (!options) return;
     const query = String(byId("destination-route-search")?.value || "").trim().toLowerCase();
-    const routes = (state.routes || []).filter((item) => {
+    const routes = (state.actualRoutes || state.routes || []).filter((item) => {
       if (!query) return true;
       const descriptor = routeSourceDescriptor(item.source, item.input_type);
       return `${item.name} ${descriptor.integration} ${descriptor.input} ${item.priority_name || ""}`.toLowerCase().includes(query);
@@ -675,7 +677,7 @@ if (typeof module !== "undefined" && module.exports) {
 
     options.replaceChildren();
     if (!routes.length) {
-      const emptyMessage = !state.routes?.length
+      const emptyMessage = !(state.actualRoutes || state.routes)?.length
         ? "No routes available. Add routes in Routing Flow, then assign them here."
         : "No matching routes.";
       options.append(element("div", {
@@ -729,7 +731,7 @@ if (typeof module !== "undefined" && module.exports) {
     destinationEditorBaseOpenDestination(id);
     destinationEditorEnsureLayout();
     routeAssignmentEnsureDestinationPicker();
-    routeAssignmentSelection = destinationRouteSelectionForItem(item, state.routes || []);
+    routeAssignmentSelection = destinationRouteSelectionForItem(item, state.actualRoutes || state.routes || []);
     routeAssignmentMoreMenuOpen = false;
     routeAssignmentRenderOptions();
     routeAssignmentCloseDrawer();

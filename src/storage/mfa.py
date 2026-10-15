@@ -20,6 +20,20 @@ from urllib.parse import quote
 _CODE = re.compile(r"^[0-9]{6}$")
 
 
+def generate_recovery_codes() -> list[str]:
+    """Generate ten independent 128-bit, printable one-time credentials."""
+
+    codes = [secrets.token_hex(16) for _ in range(10)]
+    return ["-".join(code[index:index + 4] for index in range(0, 32, 4)) for code in codes]
+
+
+def recovery_code_hash(code: str) -> str | None:
+    value = str(code or "").strip().replace("-", "").lower()
+    if re.fullmatch(r"[0-9a-f]{32}", value) is None:
+        return None
+    return hashlib.sha256(value.encode("ascii")).hexdigest()
+
+
 def generate_totp_secret() -> str:
     """Return a 160-bit Base32 secret suitable for authenticator applications."""
 

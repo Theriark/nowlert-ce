@@ -41,7 +41,7 @@ def test_v316_release_identity_is_consistent():
     assert checklist.startswith("# Nowlert CE v3.1.6 QA checklist")
 
 
-def test_v316_approved_visual_baseline_is_packaged_and_referenced():
+def test_v316_historical_visual_examples_are_packaged_and_referenced():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     webui = (ROOT / "docs" / "webui.md").read_text(encoding="utf-8")
     docs_index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
@@ -51,7 +51,7 @@ def test_v316_approved_visual_baseline_is_packaged_and_referenced():
         assert path.stat().st_size > 0, filename
         assert filename in readme or filename in webui
         assert filename in docs_index
-    assert "does not introduce a visual redesign" in " ".join(docs_index.split())
+    assert "Historical v3.1.0" in docs_index
 
 
 def test_v316_consolidated_guide_batch_is_packaged():

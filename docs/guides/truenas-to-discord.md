@@ -41,7 +41,7 @@ Open **System → Alert Settings**. Add or edit an **E-Mail** alert service:
 - Override Admin Email: `alerts@example.com`, or your accepted alert recipient.
 - Save the service.
 
-![Saved Info email alert service](../images/truenas-setup/info-alert-service.png)
+Save an enabled Email alert service at Info level with your intended recipient, then send its native test.
 
 Info includes higher alert levels too: Notice, Warning, Error, Critical, Alert,
 and Emergency. Use Nowlert **Filtering** for destination-specific severity and

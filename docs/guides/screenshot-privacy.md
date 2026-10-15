@@ -1,36 +1,46 @@
 # Screenshot privacy review
 
-The tutorial and documentation image collection was reviewed on 4 October 2026.
-The review covered all 97 raster assets then under `docs/images`, before removing
-unused and superseded captures. It included the logo,
-legacy examples, integration setup pages, email setup, and delivery evidence.
+On 15 October 2026, the 82 raster captures linked from current documentation
+were visually inspected, including sidebars, account labels, message bodies,
+configuration editors and browser chrome. The earlier blanket claim that all
+captures were sanitized was incorrect. Twelve captures with remaining private
+details were withdrawn from the current checkout and all current guide links.
+The affected guides now provide written verification steps instead.
 
-Private details were replaced with opaque masks in 83 screenshots. The masks
-cover account names, email addresses, profile portraits, private domains and
-network addresses, deployment/device identifiers, and unrelated personal folder
-listings. The Gmail and Microsoft images were redacted from the original captures
-using the same local method; they are not AI reconstructions.
+## Withdrawn captures
 
-Masked screenshots are saved as lossless PNGs without embedded metadata. Decoded
-pixels outside every mask were checked against the original capture and remain
-identical. The review combined visual inspection with OCR on the original and
-enlarged images; OCR is a supporting check, not a substitute for visual review.
+Paths below are relative to `docs/`. They are an exclusion record, not links.
 
-Written tutorials and attached JSON/HTML validation records also use anonymized
-site names and documentation addresses in `192.0.2.0/24`. These addresses are
-examples, not endpoints readers should connect to. Recorded HTTP statuses,
-event states, timestamps and validation limitations retain their original meaning.
+- `images/email-setup/mailboxes-healthy-redacted.png` — mailbox account label.
+- `images/email-setup/noip-warning-redacted.png` — mailbox account label in activity.
+- `images/hardware-setup/portainer-tls-config.png` — private bind address in Compose.
+- `images/monitoring-setup/dell-native-delivery.png` — private source address in the message.
+- `images/home-assistant-setup/enabled-automations.png` — personal device label in the sidebar.
+- `images/home-assistant-setup/native-test.png` — personal device label in the sidebar.
+- `images/home-assistant-setup/transport-response.png` — personal device label in the sidebar.
+- `images/application-setup/checkmk-single-recipient.png` — local recipient account name.
+- `images/application-setup/metabase-delivery-alert.jpg` — personal collection/account label.
+- `images/truenas-setup/info-alert-service.png` — appliance hostname in the sidebar.
+- `images/portainer-setup/xen-backup-report-coverage.png` — deployment job labels and schedules.
+- `images/monitoring-setup/portainer-native-delivery-lifecycle.png` — visible profile portrait.
 
-Before adding or replacing a screenshot:
+The remaining linked captures were retained after visual review. Their dated
+validation results are historical observations, not new acceptance or release
+claims. The v3.1.0 preview set is explicitly historical; current written steps
+describe development. A filename containing `redacted` is never proof of privacy.
 
-1. Inspect the full image, including browser/account chrome, sidebars, messages,
-   logs, callback URLs, personal folders and profile pictures.
-2. Cover private data with solid opaque masks. Never rely on blur or a password
-   input alone to sanitize an exported image.
-3. Export a flattened image without metadata, inspect it again at readable size,
-   and update its tutorial links.
-4. Keep raw captures and credential-bearing configuration outside the repository.
-5. Review captions so synthetic tests are not described as native delivery proof.
+## Adding or replacing an image
 
-This update sanitizes the current files. Earlier committed screenshots remain in
-Git history; it does not rewrite repository history or remove cached copies.
+1. Prefer a fresh capture with synthetic account/device names and documentation
+   addresses such as `192.0.2.0/24`; keep raw captures outside the repository.
+2. Inspect the full image at readable size, including account chrome, sidebars,
+   message previews, URLs, logs, personal folders and profile pictures.
+3. If private information remains, omit the image and supply written steps.
+   Do not rely on blur, partial masks or a hidden password input.
+4. Label synthetic receiver tests, native source tests and API readbacks
+   accurately. An image does not establish an untested lifecycle or release.
+5. Recheck the final exported file and every reference before publication.
+
+This change does not rewrite Git history or remove old release artifacts,
+cached copies, or previously published images. No new capture or release is
+claimed accepted by this documentation check.

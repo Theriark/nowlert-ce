@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import runpy
 from pathlib import Path
 
 
@@ -35,6 +36,11 @@ FILES = (
     ROOT / "docs" / "releases" / "validation" / "v3.1.6-qa-checklist.md",
     ROOT / "docs" / "webui.md",
 )
+FILES = tuple(dict.fromkeys((*FILES, *(
+    path for path in (ROOT / "docs").rglob("*.md")
+    if "releases" not in path.relative_to(ROOT).parts
+    and not path.name.startswith("version-history")
+))))
 
 UNCHANGED_RUNTIME_GUIDES = (
     ROOT / "docs" / "current-configuration-model.md",
@@ -50,7 +56,7 @@ UNCHANGED_RUNTIME_GUIDES = (
     ROOT / "docs" / "webui.md",
 )
 
-CURRENT_SCREENSHOTS = (
+HISTORICAL_SCREENSHOTS = (
     "v3.1.0-dashboard.png",
     "v3.1.0-routing-flow.png",
     "v3.1.0-destinations.png",
@@ -80,7 +86,7 @@ for document in FILES:
         if not resolved.exists():
             missing.append(f"{document.relative_to(ROOT)} -> {raw}")
 
-for filename in CURRENT_SCREENSHOTS:
+for filename in HISTORICAL_SCREENSHOTS:
     path = ROOT / "docs" / "images" / filename
     if not path.is_file() or path.stat().st_size == 0:
         missing.append(str(path.relative_to(ROOT)))
@@ -122,7 +128,7 @@ required_pairs = (
     (api, "DELETE | `/api/v2/users/{id}`"),
     (api, "DELETE | `/api/v2/backups/{id}`"),
     (docs_index, "current v3.1.6 release line"),
-    (docs_index, "does not introduce a\nvisual redesign"),
+    (docs_index, "Historical v3.1.0"),
     (guide_index, "xen-orchestra-to-discord.md"),
     (guide_index, "xen-orchestra-to-teams.md"),
     (guide_index, "centralise-homelab-smtp-alerts.md"),
@@ -178,8 +184,32 @@ for stale_claim in (
 if "The mounted file is authoritative" in api:
     raise SystemExit("ERROR: platform API still claims legacy YAML authority")
 
+schema = runpy.run_path(str(ROOT / "src/storage/migrations.py"))["LATEST_SCHEMA_VERSION"]
+for relative in (
+    "README.md", "DOCKERHUB_README.md", "docs/platform-state.md",
+    "docs/current-configuration-model.md", "docs/webui.md",
+):
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    if f"Current development uses database schema **{schema}**" not in text:
+        raise SystemExit(f"ERROR: current development schema drift in {relative}; expected {schema}")
+
+privacy = (ROOT / "docs/guides/screenshot-privacy.md").read_text(encoding="utf-8")
+for asset in re.findall(r"^- `(images/[^`]+)`", privacy, re.MULTILINE):
+    if (ROOT / "docs" / asset).exists():
+        raise SystemExit(f"ERROR: withdrawn private capture remains: {asset}")
+    for document in FILES:
+        if document.name != "screenshot-privacy.md" and "releases" not in document.relative_to(ROOT).parts:
+            if asset in document.read_text(encoding="utf-8"):
+                raise SystemExit(f"ERROR: withdrawn capture reference in {document.relative_to(ROOT)}: {asset}")
+
+for document in (ROOT / "docs/guides").glob("*.md"):
+    if re.search(r"Profile\s*→\s*API tokens", document.read_text(encoding="utf-8")):
+        raise SystemExit(f"ERROR: token navigation omits Security in {document.relative_to(ROOT)}")
+
 print("documentation_links=passed")
 print("documentation_release_identity=passed")
 print("documentation_screenshots=passed")
 print("documentation_guides=passed")
 print("documentation_drift=passed")
+print(f"documentation_development_schema={schema}")
+print("documentation_withdrawn_captures=passed")

@@ -55,7 +55,8 @@ Private state snapshots preserve database resources and owner-scoped secrets.
 Portable exports intentionally omit passwords, Event API token values, and
 destination credentials.
 
-v3.1.2 keeps schema 9, so no database migration is required from v3.1.1.
+Current development uses database schema **17**. Supported older databases are
+migrated transactionally; take a verified snapshot before upgrading.
 Historical rollback notes for older schema transitions remain in their original
 release/acceptance files.
 

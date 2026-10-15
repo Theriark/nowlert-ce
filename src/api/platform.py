@@ -11,7 +11,7 @@ import uuid
 import time
 
 from http.cookies import SimpleCookie
-from urllib.parse import unquote
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from api.response import APIResponse
 from environment import compatible_environment
@@ -196,6 +196,8 @@ class PlatformAPI:
 
     def handle(self, method, path, payload, headers, client) -> APIResponse:
         method = str(method or "").upper()
+        request_url = urlsplit(path)
+        path = request_url.path
         try:
             if path == "/api/v2/bootstrap":
                 return self._bootstrap(method, payload, client)
@@ -280,6 +282,8 @@ class PlatformAPI:
                 return self._own_avatar(method, payload, principal)
             if path == "/api/v2/account/mfa/setup":
                 return self._own_mfa_setup(method, principal)
+            if path == "/api/v2/account/mfa/recovery-codes":
+                return self._own_mfa_recovery_codes(method, payload, principal)
             if path == "/api/v2/account/mfa":
                 return self._own_mfa(method, payload, principal)
             if path == "/api/v2/integrations":
@@ -384,10 +388,11 @@ class PlatformAPI:
                     actor,
                     int(delivery_page_size.group(1)),
                     int(delivery_page_size.group(2)),
+                    query=request_url.query,
                 )
             delivery_page = re.fullmatch(r"/api/v2/deliveries/page/(\d+)", path)
             if delivery_page:
-                return self._deliveries_page_endpoint(method, actor, int(delivery_page.group(1)))
+                return self._deliveries_page_endpoint(method, actor, int(delivery_page.group(1)), query=request_url.query)
             if path == "/api/v2/audit-events":
                 return self._audit_endpoint(method, actor)
             audit_page_size = re.fullmatch(
@@ -536,8 +541,7 @@ class PlatformAPI:
                         "code": "mfa_required",
                     },
                 )
-            secret = self._mfa_secret(user)
-            if secret is None or not verify_totp(secret, otp):
+            if not self._verify_mfa(user, otp):
                 self.audit.write(
                     user.actor,
                     "session.mfa",
@@ -712,6 +716,37 @@ class PlatformAPI:
         except (KeyError, PermissionError, RuntimeError, UnicodeDecodeError, ValueError):
             return None
 
+    def _verify_mfa(self, user, code: str) -> bool:
+        secret = self._mfa_secret(user)
+        return bool(secret and verify_totp(secret, code)) or self.users.consume_mfa_recovery_code(
+            user.id, code,
+        )
+
+    def _own_mfa_recovery_codes(self, method, payload, principal) -> APIResponse:
+        if method != "POST":
+            return self._method_not_allowed("POST")
+        data = self._object(payload, {"password", "code"})
+        user = self.users.authenticate(principal.username, str(data.get("password") or ""))
+        if user is None or user.id != principal.user_id:
+            return APIResponse(
+                403, {"error": "current password is invalid", "code": "password_invalid"},
+            )
+        secret = self._mfa_secret(user)
+        if not user.mfa_enabled or secret is None:
+            return APIResponse(
+                409, {"error": "multi-factor authentication is not enabled", "code": "mfa_not_enabled"},
+            )
+        if not verify_totp(secret, str(data.get("code") or "")):
+            return APIResponse(
+                403, {"error": "authenticator code is invalid", "code": "mfa_invalid"},
+            )
+        codes = self.users.generate_mfa_recovery_codes(user.id, user.mfa_secret_id)
+        self.audit.write(user.actor, "user.mfa.recovery-codes", "user", user.id, "success")
+        return APIResponse(
+            200, {"user": self._user(user), "recovery_codes": codes},
+            (("Cache-Control", "no-store"),),
+        )
+
     def _own_mfa_setup(self, method, principal) -> APIResponse:
         if method != "POST":
             return self._method_not_allowed("POST")
@@ -764,6 +799,10 @@ class PlatformAPI:
         user = self.users.get(principal.user_id)
         if method == "PUT":
             data = self._object(payload, {"code"})
+            if user.mfa_enabled:
+                return APIResponse(
+                    409, {"error": "multi-factor authentication is already enabled", "code": "mfa_already_enabled"},
+                )
             secret = self._mfa_secret(user)
             if secret is None:
                 return APIResponse(
@@ -781,7 +820,8 @@ class PlatformAPI:
                         "code": "mfa_invalid",
                     },
                 )
-            user = self.users.set_mfa_state(user.id, user.mfa_secret_id, True)
+            codes = self.users.generate_mfa_recovery_codes(user.id, user.mfa_secret_id, enroll=True)
+            user = self.users.get(user.id)
             self.audit.write(
                 user.actor,
                 "user.mfa.enable",
@@ -789,7 +829,10 @@ class PlatformAPI:
                 user.id,
                 "success",
             )
-            return APIResponse(200, {"user": self._user(user)})
+            return APIResponse(
+                200, {"user": self._user(user), "recovery_codes": codes},
+                (("Cache-Control", "no-store"),),
+            )
 
         if method == "DELETE":
             data = self._object(payload, {"password", "code"})
@@ -802,8 +845,7 @@ class PlatformAPI:
                     403,
                     {"error": "current password is invalid", "code": "password_invalid"},
                 )
-            secret = self._mfa_secret(user)
-            if not user.mfa_enabled or secret is None:
+            if not user.mfa_enabled:
                 return APIResponse(
                     409,
                     {
@@ -811,7 +853,7 @@ class PlatformAPI:
                         "code": "mfa_not_enabled",
                     },
                 )
-            if not verify_totp(secret, str(data.get("code") or "")):
+            if not self._verify_mfa(user, str(data.get("code") or "")):
                 return APIResponse(
                     403,
                     {
@@ -1876,19 +1918,31 @@ class PlatformAPI:
 
     _DELIVERY_PAGE_SIZES = (25, 50, 100, 150, 250, 500)
 
-    def _deliveries_page_endpoint(self, method, actor, page, size=None) -> APIResponse:
+    def _deliveries_page_endpoint(self, method, actor, page, size=None, query="") -> APIResponse:
         if method != "GET":
             return self._method_not_allowed("GET")
         page_size = 25
         if size is not None and int(size) in self._DELIVERY_PAGE_SIZES:
             page_size = int(size)
-        total = self.history.count_visible(actor)
+        values = parse_qs(query, keep_blank_values=True, max_num_fields=7)
+        if set(values) - {"search", "source", "severity", "outcome", "range", "sort"} or any(len(items) != 1 for items in values.values()):
+            raise ValueError("delivery query is invalid")
+        filters = {key: items[0].strip() for key, items in values.items()}
+        if any(len(value) > 1000 for value in filters.values()):
+            raise ValueError("delivery query is too long")
+        history_range = filters.pop("range", "all")
+        if history_range not in {"all", "1d", "7d", "30d"} or filters.get("sort", "newest") not in {"newest", "oldest"}:
+            raise ValueError("delivery range or sort is invalid")
+        if history_range != "all":
+            filters["since"] = int(time.time()) - int(history_range[:-1]) * 86400
+        total = self.history.count_visible(actor, **filters)
         total_pages = max(1, (total + page_size - 1) // page_size)
         current = min(max(1, int(page)), total_pages)
         attempts = self.history.list_visible(
             actor,
             limit=page_size,
             offset=(current - 1) * page_size,
+            **filters,
         )
         route_names = self._delivery_route_names(attempts)
         return APIResponse(
@@ -1904,6 +1958,7 @@ class PlatformAPI:
                     "total": total,
                     "total_pages": total_pages,
                 },
+                "filter_options": self.history.filter_options(actor),
             },
         )
 
@@ -1919,8 +1974,10 @@ class PlatformAPI:
         }
         if history_range not in windows:
             raise ValueError("history range is invalid")
-        since = int(time.time()) - windows[history_range]
+        until = int(time.time()) + 1
+        since = until - windows[history_range]
         delivery = self.history.metrics(actor, since)
+        dashboard = self.history.dashboard(actor, since, until, {"10m": 20, "1h": 36, "1d": 24, "1m": 31, "1y": 24}[history_range])
         with self.database.connect() as connection:
             route_where = "WHERE routes.enabled = 1"
             destination_where = "WHERE enabled = 1"
@@ -1958,6 +2015,7 @@ class PlatformAPI:
                     "routes": int(route_row["total"] or 0),
                     "applications": active_applications,
                     **delivery,
+                    **dashboard,
                 }
             },
         )
@@ -2030,6 +2088,9 @@ class PlatformAPI:
                     "delivery_history_days",
                     "audit_history_days",
                     "backup_run_history_days",
+                    "email_message_metadata_days",
+                    "email_raw_content_days",
+                    "email_processing_history_days",
                 },
             )
             required = {
@@ -2039,9 +2100,9 @@ class PlatformAPI:
                 "audit_history_days",
                 "backup_run_history_days",
             }
-            if set(data) != required:
+            if not required.issubset(data):
                 raise ValueError("every housekeeping setting is required")
-            settings = self.housekeeping.update_settings(actor, data)
+            settings = self.housekeeping.update_settings(actor, {**self.housekeeping.settings(), **data})
             return APIResponse(
                 200,
                 {"settings": settings, "status": self.housekeeping.status()},

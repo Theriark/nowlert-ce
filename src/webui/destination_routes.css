@@ -615,7 +615,7 @@ button.destination-provider-status {
     inset: 0;
     max-height: 100%;
     position: absolute;
-    z-index: 5;
+    z-index: 20;
   }
 }
 

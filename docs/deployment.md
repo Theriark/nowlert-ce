@@ -151,9 +151,9 @@ Before an upgrade, keep a matched backup of:
 - the deployment definition; and
 - the currently running image reference/digest.
 
-v3.1.6 keeps schema 9, so upgrading from v3.1.5 does not require a database
-migration. A matched backup is still required for safe rollback after state has
-changed.
+Current development uses database schema **17** and migrates supported older
+state transactionally. A matched backup is required for safe rollback after
+state has changed; do not start an older image against a newer live database.
 
 ---
 

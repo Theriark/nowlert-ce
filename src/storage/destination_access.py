@@ -725,6 +725,26 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
                 )
         return list(items_by_pair.values()), errors
 
+    def list_actual_visible_safe(self, actor: Actor):
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """SELECT routes.* FROM routes
+                WHERE routes.owner_user_id = ? OR EXISTS (
+                    SELECT 1 FROM route_destinations
+                    JOIN destinations ON destinations.id = route_destinations.destination_id
+                    WHERE route_destinations.route_id = routes.id
+                      AND (destinations.owner_user_id = ? OR destinations.shared = 1)
+                ) ORDER BY routes.priority, routes.name_normalized, routes.id""",
+                (actor.user_id, actor.user_id),
+            ).fetchall()
+        routes, errors = [], []
+        for row in rows:
+            try:
+                routes.append(self._route(row, destination_ids=self._visible_destination_ids(actor, str(row["id"]))))
+            except Exception as error:
+                errors.append({"resource_id": str(row["id"]), "resource": str(row["name"]), "code": "route_record_invalid", "message": f"Route {str(row['name'])!r} could not be loaded: {error}"})
+        return routes, errors
+
     def matching(self, actor: Actor, owner_user_id: str, notification: Notification):
         source = canonical_source(notification.source)
         with self.database.connect() as connection:
@@ -858,6 +878,10 @@ class AccessControlledDeliveryHistoryStore(DeliveryHistoryStore):
     """History visibility follows the same owner-or-shared Destination boundary."""
 
     @staticmethod
+    def _query_where(actor: Actor, filters: dict):
+        return DeliveryHistoryStore._query_where(Actor(actor.user_id, "user"), filters)
+
+    @staticmethod
     def _visible_where(alias: str = "attempts") -> str:
         return (
             f"({alias}.owner_user_id = ? OR EXISTS ("
@@ -876,30 +900,6 @@ class AccessControlledDeliveryHistoryStore(DeliveryHistoryStore):
         if row is None:
             raise KeyError("delivery attempt not found")
         return self._attempt(row)
-
-    def list_visible(self, actor: Actor, limit: int = 100, offset: int = 0):
-        bounded = max(1, min(int(limit), 500))
-        bounded_offset = max(0, int(offset))
-        with self.database.connect() as connection:
-            rows = connection.execute(
-                f"""
-                SELECT attempts.* FROM delivery_attempts AS attempts
-                WHERE {self._visible_where()}
-                ORDER BY attempts.created_at DESC, attempts.id
-                LIMIT ? OFFSET ?
-                """,
-                (actor.user_id, bounded, bounded_offset),
-            ).fetchall()
-        return [self._attempt(row) for row in rows]
-
-    def count_visible(self, actor: Actor) -> int:
-        with self.database.connect() as connection:
-            row = connection.execute(
-                f"SELECT COUNT(*) FROM delivery_attempts AS attempts "
-                f"WHERE {self._visible_where()}",
-                (actor.user_id,),
-            ).fetchone()
-        return int(row[0] or 0)
 
     def metrics(self, actor: Actor, since: int) -> dict:
         where = f"attempts.created_at >= ? AND {self._visible_where('attempts')}"

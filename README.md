@@ -99,15 +99,18 @@ for the exact secret filenames and redirect URI requirements.
 | **Current Stable Release** | **v3.1.6** |
 | **License** | MIT |
 | **Python** | 3.13 |
-| **Database schema** | 9 |
+| **Current development database schema** | 17 |
 | **Configuration model** | `platform_database_v1` |
 | **State path** | `/nowlert/state` |
 
 ## What changed in v3.1.6
 
-v3.1.6 is a release-automation maintenance patch. It keeps schema 9,
-preserves the existing runtime contracts, and does not require a database
-migration from v3.1.5.
+v3.1.6 was a release-automation maintenance patch. Its release notes describe
+that published snapshot; development changes are not stable-release claims.
+
+Current development uses database schema **17** with `platform_database_v1`.
+See the [current configuration contract](docs/current-configuration-model.md)
+for migration and backup guidance before upgrading.
 
 Highlights:
 
@@ -129,11 +132,11 @@ See [v3.1.6 release notes](docs/releases/v3.1.6.md) and the
 
 # 📸 Preview
 
-v3.1.6 keeps the approved v3.1.0 visual design, so the existing screenshot set
-remains the current visual baseline. New screenshots are added only when the
-rendered UI or notification presentation materially changes.
+Historical v3.1.0 screenshots below illustrate the older interface and card
+formats. They are retained as versioned examples and do not represent the
+current development UI. Use the [WebUI guide](docs/webui.md) for current steps.
 
-## Current WebUI
+## Historical WebUI examples
 
 | Dashboard | Routing Flow |
 |---|---|
@@ -143,7 +146,7 @@ rendered UI or notification presentation materially changes.
 |---|---|
 | ![Nowlert Destinations](docs/images/v3.1.0-destinations.png) | ![Nowlert Delivery History](docs/images/v3.1.0-delivery-history.png) |
 
-## Notifications
+## Historical notification examples
 
 | Discord | Microsoft Teams |
 |---|---|
@@ -284,7 +287,7 @@ setup token so the operator chooses the first administrator credentials.
 
 ## Platform state and backups
 
-- SQLite schema 9;
+- SQLite with transactional schema migrations;
 - `/nowlert/state` persistent mount;
 - owner-only secret files;
 - verified private state snapshots;
