@@ -503,6 +503,7 @@ class SlackFormatter(PresentationMixin):
         padded = {
             "qnap": "qnap-white-slack.png",
             "synology": "synology-white-slack.png",
+            "supermicro": "supermicro-white-slack.png",
         }.get(normalized, self.DISCORD_PRODUCT_ICONS.get(normalized))
         if not icon_url or not padded:
             return icon_url

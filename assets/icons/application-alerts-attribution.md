@@ -39,3 +39,5 @@ The upstream project license and attribution are available in its repository.
   pages 16–18, requires white center fill inside the ellipse. Native palette
   transparency and artwork are preserved. Previous `supermicro.png` and
   `discord/supermicro.png` assets remain packaged for existing URLs.
+  Slack Classic uses `supermicro-white-slack.png`, retaining every official
+  artwork pixel on a transparent square canvas to prevent accessory cropping.

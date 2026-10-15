@@ -99,7 +99,7 @@ def expected_icon_source(source: str) -> str:
 
 def expected_icon_path(formatter: SlackFormatter, source: str) -> str:
     icon_source = expected_icon_source(source)
-    if icon_source in {"qnap", "synology"}:
+    if icon_source in {"qnap", "synology", "supermicro"}:
         return f"{icon_source}-white-slack.png"
     return formatter.DISCORD_PRODUCT_ICONS.get(
         icon_source,

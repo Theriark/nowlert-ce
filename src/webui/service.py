@@ -352,6 +352,7 @@ class WebUIService:
             "zabbix.png",
             "supermicro.png",
             "supermicro-white-fill.png",
+            "supermicro-white-slack.png",
             "hpe-ilo.png",
             "dell-idrac.png",
             "home-assistant.png",

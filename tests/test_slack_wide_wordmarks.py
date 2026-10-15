@@ -9,13 +9,13 @@ from formatters.slack import SlackFormatter
 from webui.service import WebUIService
 
 
-@pytest.mark.parametrize("source", ("qnap", "synology"))
-def test_slack_wide_wordmark_survives_square_cover_crop(source):
+@pytest.mark.parametrize(("source", "native"), (("qnap", "qnap-white.png"), ("synology", "synology-white.png"), ("supermicro", "supermicro-white-fill.png")))
+def test_slack_wide_wordmark_survives_square_cover_crop(source, native):
     formatter = SlackFormatter()
     url = formatter._slack_classic_icon_url(source)
     assert url.endswith(f"/{source}-white-slack.png")
     root = Path(__file__).resolve().parents[1] / "assets" / "icons"
-    with Image.open(root / f"{source}-white.png") as original:
+    with Image.open(root / native) as original:
         original = original.convert("RGBA")
         with Image.open(root / url.rsplit("/", 1)[1]) as padded:
             padded = padded.convert("RGBA")
@@ -26,7 +26,7 @@ def test_slack_wide_wordmark_survives_square_cover_crop(source):
             assert padded.crop((x, y, x + original.width, y + original.height)).tobytes() == original.tobytes()
             assert padded.getpixel((0, 0))[3] == 0
     # Other providers continue using the native wide artwork.
-    assert formatter._product_icon_url(source).endswith(f"/{source}-white.png")
+    assert formatter._product_icon_url(source).endswith(f"/{native}")
 
     class Configuration:
         def get(self, *_keys, default=None):
