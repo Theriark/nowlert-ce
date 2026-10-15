@@ -88,7 +88,7 @@ do not replace its persistent database. See [deployment configuration](../deploy
 6. Use the mailbox's **Edit** control to select the labels/folders to monitor.
    Choose a scope that includes the real No-IP notices.
 
-![Gmail and Microsoft mailboxes healthy; account labels concealed](../images/email-setup/mailboxes-healthy-redacted.png)
+Check each mailbox for Healthy, Credentials configured, and a recent Last sync; use your own account labels.
 
 ## 4. Create rules and assign a destination
 
@@ -107,10 +107,10 @@ Confirm the mailbox, sender domain, matched rule and resulting classification.
 Then check **Delivery history** for the same event and a successful destination
 response. A rule preview validates matching, not end-to-end delivery.
 
-![Real Gmail No-IP message matched the Warning rule; identifiers concealed](../images/email-setup/noip-warning-redacted.png)
+In Email Alerts → Activity, verify the intended mailbox, matched rule and Warning classification; then check destination delivery separately.
 
 The local validation on **4 October 2026** confirmed Gmail consent,
-synchronization and a real No-IP expiry-reminder match. The captured message is
+synchronization and a real No-IP expiry-reminder match. That observation is
 historical; it does not establish the hostname's current expiry or renewal state.
 Destination delivery is a separate acceptance check. The Google application was
 still in Testing at validation, so production authorization remains outstanding.

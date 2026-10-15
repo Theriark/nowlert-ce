@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0b0e11">
-  <meta name="nowlert-ui-build" content="20260929-r65">
+  <meta name="nowlert-ui-build" content="20260929-r66">
   <title>Nowlert</title>
   <link rel="icon" href="/ui/brand/nowlert-owl-v3.1.0.png" type="image/png" sizes="256x256">
   <link rel="icon" href="/ui/brand/nowlert-favicon-v1.svg" type="image/svg+xml" sizes="any">
   <link rel="stylesheet" href="/ui/styles.css">
   <link rel="stylesheet" href="/ui/enhancements.css">
-  <link rel="stylesheet" href="/ui/qa_patch.css?v=20260929-r65">
+  <link rel="stylesheet" href="/ui/qa_patch.css?v=20260929-r66">
   <link rel="stylesheet" href="/ui/professional.css">
-  <script src="/ui/app.js?v=20260929-r65" defer></script>
+  <script src="/ui/app.js?v=20260929-r66" defer></script>
   <script src="/ui/enhancements.js" defer></script>
-  <script src="/ui/qa_patch.js?v=20260929-r65" defer></script>
+  <script src="/ui/qa_patch.js?v=20260929-r66" defer></script>
   <script src="/ui/i18n.js" defer></script>
   <script src="/ui/dashboard.js" defer></script>
 </head>
@@ -112,10 +112,10 @@
           </span>
         </label>
         <label id="login-mfa-field" class="login-reference-field" hidden>
-          <span class="login-reference-label">Authenticator code</span>
+          <span class="login-reference-label">Authenticator or recovery code</span>
           <span class="login-input-shell">
             <svg class="login-field-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"></path><path d="M9 12h6"></path><path d="M12 9v6"></path></svg>
-            <input id="login-otp" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000">
+            <input id="login-otp" name="otp" autocomplete="one-time-code" pattern="[0-9]{6}|[0-9a-fA-F]{32}|([0-9a-fA-F]{4}-){7}[0-9a-fA-F]{4}" maxlength="39" placeholder="Authenticator or recovery code">
           </span>
         </label>
         <label class="login-remember"><input id="login-remember" type="checkbox" checked><span>Remember me</span></label>
@@ -616,10 +616,24 @@
       </div>
       <form id="mfa-disable-form" class="stack compact mfa-reference-disable-form">
         <label><span>Current password</span><input id="mfa-disable-password" type="password" autocomplete="current-password" required></label>
-        <label><span>Authenticator code</span><input id="mfa-disable-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
+        <label><span>Authenticator or recovery code</span><input id="mfa-disable-code" autocomplete="one-time-code" pattern="[0-9]{6}|[0-9a-fA-F]{32}|([0-9a-fA-F]{4}-){7}[0-9a-fA-F]{4}" maxlength="39" required></label>
         <p id="mfa-disable-error" class="form-error" role="alert" hidden></p>
         <button class="button danger mfa-reference-disable-submit" type="submit">Disable MFA</button>
       </form>
+      <form id="mfa-recovery-form" class="stack compact mfa-reference-disable-form">
+        <h3>Recovery codes</h3>
+        <p>Generate new one-time codes to keep somewhere safe in case you lose your authenticator. This replaces any previous recovery codes.</p>
+        <label><span>Current password</span><input id="mfa-recovery-password" type="password" autocomplete="current-password" required></label>
+        <label><span>Current authenticator code</span><input id="mfa-recovery-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
+        <p id="mfa-recovery-error" class="form-error" role="alert" hidden></p>
+        <button class="button secondary" type="submit">Regenerate recovery codes</button>
+      </form>
+    </section>
+    <section id="mfa-recovery-panel" class="mfa-panel stack" hidden>
+      <h3>Save your recovery codes</h3>
+      <p>These codes are shown only once. Save them somewhere safe before closing this window. Each code can be used once with your password when your authenticator is unavailable.</p>
+      <label class="stack"><span>One-time recovery codes</span><textarea id="mfa-recovery-codes" rows="10" cols="39" readonly autocomplete="off" spellcheck="false" wrap="off"></textarea></label>
+      <button id="mfa-recovery-saved" class="button primary" type="button">I saved these codes</button>
     </section>
   </dialog>
 

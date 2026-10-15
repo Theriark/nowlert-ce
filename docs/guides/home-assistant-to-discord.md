@@ -13,7 +13,7 @@ Routing lives in the WebUI database; do not recreate old output/routing YAML.
 
 ## 2. Issue a scoped token
 
-In your Nowlert profile's API tokens, create an application token allowing only
+In the Nowlert **Profile menu → Security → API tokens**, create an application token allowing only
 **Home Assistant**, with 120 events/minute. Copy its one-time value privately.
 Do not use an administrator token or put the token in the URL.
 
@@ -51,7 +51,7 @@ to `automations.yaml`. Preserve existing automations. They forward:
 The tested installation also has a sixth automation for its existing validation
 helper. That deployment-specific helper is not required by the downloadable file.
 
-![All six local automations enabled](../images/home-assistant-setup/enabled-automations.png)
+In Home Assistant, filter automation entities by nowlert and confirm the required alert automations are enabled.
 
 Use **Settings → Tools → YAML → Check configuration**. Reload **RESTful Command**
 and **Automations**. Changing an integration setting such as `system_log.fire_event`
@@ -75,7 +75,7 @@ data:
   notification_id: nowlert_tutorial_validation
 ```
 
-![Native Home Assistant test action](../images/home-assistant-setup/native-test.png)
+Run the YAML action above in Home Assistant and then verify its corresponding delivery in Nowlert.
 
 Open Nowlert **Delivery history**, filter Home Assistant, and select the event.
 Confirm Input **HTTP**, destination **Security** (or yours), route
@@ -86,7 +86,7 @@ Confirm Input **HTTP**, destination **Security** (or yours), route
 A direct `rest_command.nowlert_event` test also returns HTTP 204 when the receiver
 accepts the payload. This is receiver acceptance, separate from destination delivery.
 
-![Authenticated transport accepted](../images/home-assistant-setup/transport-response.png)
+Verify the action response reports HTTP 204 for receiver acceptance; this is separate from destination delivery.
 
 Dismiss only the disposable test notification afterward:
 

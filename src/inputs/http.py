@@ -263,7 +263,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
         ):
             return
         if request_url.path.startswith("/api/"):
-            self._api_request("GET", request_url.path)
+            self._api_request("GET", self.path if request_url.path.startswith("/api/v2/deliveries/page/") else request_url.path)
             return
         if self._webui_request(request_url.path):
             return

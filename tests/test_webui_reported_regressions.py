@@ -59,7 +59,8 @@ def test_destination_route_save_reconciles_new_destination_without_refresh():
     save = script[start:end]
 
     assert "state.destinations.push(nextDestination);" in save
-    assert "state.routes = state.routes.map((route) =>" in save
+    assert 'for (const key of ["routes", "actualRoutes"])' in save
+    assert "state[key] = state[key].map((route) =>" in save
     assert "destination_count: destinationIds.size" in save
     assert "if (savedDestination) {" in save
 

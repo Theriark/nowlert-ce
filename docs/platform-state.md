@@ -30,13 +30,13 @@ than based on user input.
 Normal metadata operations do not return secret values or secret filesystem
 paths.
 
-## Schema 13
+## Schema 17
 
-Current development uses database schema **13**.
+Current development uses database schema **17**.
 
 The current schema covers:
 
-- local users and browser sessions;
+- local users, browser sessions, account MFA policy and enrollment state;
 - hashed Event API token records;
 - owner-scoped secret records;
 - private/shared destinations;
@@ -69,6 +69,19 @@ Local account protection includes:
 - protection against losing the last enabled administrator;
 - absolute and idle session expiry; and
 - secure cookie support for reverse-proxied HTTPS deployments.
+
+### Multi-factor authentication and recovery
+
+Open **Profile menu → Security → Manage multi-factor authentication** to enroll an authenticator and manage MFA.
+Administrators can require MFA for local accounts. Enrollment returns ten
+one-time recovery codes, each containing 128 bits of randomness. Save them
+privately when displayed; only their hashes are stored.
+
+Login, protected reauthentication and MFA disable accept an unused recovery code
+as an alternative to a TOTP code. Each recovery code can be used once.
+Existing enrolled users can choose **Manage multi-factor authentication → Regenerate recovery codes**
+with their password and a current TOTP code. Regeneration invalidates the
+entire previous recovery-code set. This describes current development behavior.
 
 ### Administrator user deletion
 

@@ -21,7 +21,7 @@ In Nowlert, assign the built-in **UniFi Network HTTP**, **UniFi Protect HTTP**
 and **UniFi Drive HTTP** routes to your destinations. Our Network and Protect
 routes deliver to **Security**; Drive delivers to **Storage**.
 
-Open your profile's **Security → API tokens → New token**. Issue one token per
+Open **Profile menu → Security → API tokens → New token**. Issue one token per
 application and select only that application's integration. Our rate limits are
 120 requests/minute for Network, 300 for Protect and 60 for Drive. Adjust these
 to the expected volume; a rate limit is not a notification filter. Tokens allow

@@ -159,8 +159,8 @@ Check three places:
 3. **Destination → Manage routes** — confirm the dedicated Xen Orchestra route
    is assigned. Use the delivery details to establish which route matched.
 
-The current public visual baseline includes an approved Xen Orchestra Discord
-example:
+This historical v3.1.0 example illustrates the older Xen Orchestra Discord
+card format; it is not a capture of current development:
 
 ![Nowlert Discord Xen Orchestra notification](../images/v3.1.0-discord-xen-orchestra.png)
 

@@ -502,27 +502,34 @@ saveDestination = async function saveDestinationWithRoutes(event) {
     if (savedDestination) {
       const destinationId = String(savedDestination.id || id);
       const assignedRouteIds = new Set(
-        Array.isArray(savedDestination.route_ids)
+        Array.isArray(savedDestination.actual_route_ids)
+          ? savedDestination.actual_route_ids.map(String)
+          : Array.isArray(savedDestination.route_ids)
           ? savedDestination.route_ids.map(String)
           : [...routeAssignmentSelection].map(String),
       );
       const nextDestination = {
         ...(destinationIndex >= 0 ? state.destinations[destinationIndex] : {}),
         ...savedDestination,
-        route_ids: [...assignedRouteIds],
+        route_ids: savedDestination.route_ids || [...assignedRouteIds],
+        actual_route_ids: [...assignedRouteIds],
       };
       if (destinationIndex >= 0) state.destinations[destinationIndex] = nextDestination;
       else state.destinations.push(nextDestination);
-      state.routes = state.routes.map((route) => {
-        const destinationIds = new Set((route.destination_ids || []).map(String));
-        if (assignedRouteIds.has(String(route.id))) destinationIds.add(destinationId);
-        else destinationIds.delete(destinationId);
-        return {
-          ...route,
-          destination_ids: [...destinationIds],
-          destination_count: destinationIds.size,
-        };
-      });
+      for (const key of ["routes", "actualRoutes"]) {
+        if (!Array.isArray(state[key])) continue;
+        const selectedIds = key === "actualRoutes" ? assignedRouteIds : new Set(nextDestination.route_ids.map(String));
+        state[key] = state[key].map((route) => {
+          const destinationIds = new Set((route.destination_ids || []).map(String));
+          if (selectedIds.has(String(route.id))) destinationIds.add(destinationId);
+          else destinationIds.delete(destinationId);
+          return {
+            ...route,
+            destination_ids: [...destinationIds],
+            destination_count: destinationIds.size,
+          };
+        });
+      }
       renderDestinations();
       renderFlow();
       document.dispatchEvent(new CustomEvent("nowlert:filtering-state-invalidated"));

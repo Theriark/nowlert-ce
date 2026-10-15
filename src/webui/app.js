@@ -188,6 +188,7 @@ const PT_TRANSLATIONS = {
   "Reset password": "Repor palavra-passe",
 };
 const state = {
+  sessionGeneration: 0,
   user: null,
   csrf: "",
   currentView: "dashboard",
@@ -493,7 +494,9 @@ function clearError(id) {
 
 function toast(message, style = "") {
   const item = element("div", { className: `toast ${style}`.trim(), text: message });
-  byId("toast-region").append(item);
+  const dialog = document.querySelector("dialog[open]");
+  item.setAttribute("role", style === "error" ? "alert" : "status");
+  (dialog || byId("toast-region")).append(item);
   window.setTimeout(() => item.remove(), 4200);
 }
 
@@ -621,14 +624,13 @@ function ensureSessionResilienceUi() {
       attributes: { id: "reauth-otp-field" },
       hidden: true,
     }, [
-      element("span", { text: "Authenticator code" }),
+      element("span", { text: "Authenticator or recovery code" }),
       element("input", {
         type: "text",
         attributes: {
           id: "reauth-otp",
-          inputmode: "numeric",
           autocomplete: "one-time-code",
-          maxlength: "8",
+          maxlength: "39",
         },
       }),
     ]),
@@ -740,8 +742,8 @@ async function submitReauthentication(event) {
     if (reauthError instanceof APIError && ["mfa_required", "mfa_invalid"].includes(reauthError.code)) {
       otpField.hidden = false;
       error.textContent = reauthError.code === "mfa_required"
-        ? "Enter your authenticator code to continue."
-        : "The authenticator code is invalid.";
+        ? "Enter your authenticator or recovery code to continue."
+        : "The authenticator or recovery code is invalid.";
       error.hidden = false;
       byId("reauth-otp").focus();
       return;
@@ -829,8 +831,12 @@ function noteSessionActivity() {
 }
 
 function expireSession(options = {}) {
+  state.sessionGeneration += 1;
+  closeMfaDialog();
   state.user = null;
   state.csrf = "";
+  state.actualRoutes = [];
+  state.deliveryFilterOptions = {};
   state.sessionExpiresAt = null;
   state.sessionIdleExpiresAt = null;
   state.lastSessionKeepaliveAt = 0;
@@ -889,6 +895,7 @@ function requestedAppView() {
 }
 
 function showApp(session) {
+  state.sessionGeneration += 1;
   state.user = session.user;
   applySessionMetadata(session);
   byId("login-view").hidden = true;
@@ -1016,6 +1023,8 @@ function mfaDigitInputs() {
   return [...document.querySelectorAll("[data-mfa-digit]")];
 }
 
+let mfaDialogVersion = 0;
+
 function syncMfaCodeDigits() {
   const code = mfaDigitInputs().map((input) => input.value).join("");
   const hidden = byId("mfa-enable-code");
@@ -1078,11 +1087,14 @@ function handleMfaDigitPaste(event) {
 }
 
 async function startMfaSetup() {
+  const version = mfaDialogVersion;
+  const userId = state.user?.id;
   clearError("mfa-enable-error");
   const response = await request("/account/mfa/setup", {
     method: "POST",
     body: {},
   });
+  if (version !== mfaDialogVersion || !byId("mfa-dialog")?.open || state.user?.id !== userId) return response;
   byId("mfa-secret-value").textContent = response.secret || "";
   const qr = byId("mfa-qr-code");
   if (qr) {
@@ -1100,8 +1112,11 @@ async function openMfaDialog() {
   const summary = byId("mfa-dialog-summary");
   const detail = byId("mfa-dialog-detail");
   if (!dialog || !setup || !disable) return;
+  mfaDialogVersion += 1;
+  clearMfaCredentials();
   clearError("mfa-enable-error");
   clearError("mfa-disable-error");
+  clearError("mfa-recovery-error");
 
   const enabled = Boolean(state.user?.mfa_enabled);
   setup.hidden = enabled;
@@ -1135,10 +1150,13 @@ async function openMfaDialog() {
   }
 }
 
-function closeMfaDialog() {
-  const dialog = byId("mfa-dialog");
-  if (dialog) dialog.classList.remove("is-disable-mode");
+function clearMfaCredentials() {
   resetMfaCodeDigits();
+  for (const id of ["mfa-disable-password", "mfa-disable-code", "mfa-recovery-password", "mfa-recovery-code", "mfa-recovery-codes"]) {
+    if (byId(id)) byId(id).value = "";
+  }
+  const recoveryPanel = byId("mfa-recovery-panel");
+  if (recoveryPanel) recoveryPanel.hidden = true;
   const secret = byId("mfa-secret-value");
   if (secret) secret.textContent = "";
   const qr = byId("mfa-qr-code");
@@ -1146,7 +1164,52 @@ function closeMfaDialog() {
     qr.removeAttribute("src");
     qr.hidden = true;
   }
+}
+
+function closeMfaDialog() {
+  mfaDialogVersion += 1;
+  const dialog = byId("mfa-dialog");
+  if (dialog) dialog.classList.remove("is-disable-mode");
+  clearMfaCredentials();
   if (dialog?.open) dialog.close();
+}
+
+function showMfaRecoveryCodes(codes, version) {
+  const dialog = byId("mfa-dialog");
+  if (version !== mfaDialogVersion || !dialog?.open) return;
+  clearMfaCredentials();
+  byId("mfa-setup-panel").hidden = true;
+  byId("mfa-disable-panel").hidden = true;
+  dialog.classList.remove("is-disable-mode");
+  byId("mfa-dialog-summary").textContent = "Multi-factor authentication is enabled. Save your recovery codes now.";
+  byId("mfa-dialog-detail").hidden = true;
+  byId("mfa-recovery-codes").value = codes.join("\n");
+  byId("mfa-recovery-panel").hidden = false;
+  byId("mfa-recovery-codes").focus();
+}
+
+async function regenerateMfaRecoveryCodes(event) {
+  event.preventDefault();
+  clearError("mfa-recovery-error");
+  const version = mfaDialogVersion;
+  const userId = state.user?.id;
+  const submit = event.submitter;
+  if (submit) submit.disabled = true;
+  try {
+    const response = await request("/account/mfa/recovery-codes", {
+      method: "POST",
+      body: {
+        password: byId("mfa-recovery-password").value,
+        code: byId("mfa-recovery-code").value.trim(),
+      },
+    });
+    if (state.user?.id !== userId) return;
+    showMfaRecoveryCodes(response.recovery_codes, version);
+  } catch (error) {
+    if (version === mfaDialogVersion) showError("mfa-recovery-error", error);
+  } finally {
+    if (submit) submit.disabled = false;
+  }
 }
 
 async function confirmMfaSetup(event) {
@@ -1159,14 +1222,17 @@ async function confirmMfaSetup(event) {
     return;
   }
   const submit = event.submitter;
+  const version = mfaDialogVersion;
+  const userId = state.user?.id;
   if (submit) submit.disabled = true;
   try {
     const response = await request("/account/mfa", {
       method: "PUT",
       body: { code },
     });
+    if (state.user?.id !== userId) return;
     state.user = response.user;
-    closeMfaDialog();
+    showMfaRecoveryCodes(response.recovery_codes, version);
     document.dispatchEvent(new Event("nowlert:account-updated"));
     toast("Multi-factor authentication enabled.");
   } catch (error) {
@@ -1179,6 +1245,8 @@ async function confirmMfaSetup(event) {
 async function disableMfa(event) {
   event.preventDefault();
   clearError("mfa-disable-error");
+  const requestedUser = state.user?.id;
+  const requestedSession = state.sessionGeneration;
   const submit = event.submitter;
   if (submit) submit.disabled = true;
   try {
@@ -1189,12 +1257,13 @@ async function disableMfa(event) {
         code: byId("mfa-disable-code").value.trim(),
       },
     });
+    if (requestedUser !== state.user?.id || requestedSession !== state.sessionGeneration) return;
     state.user = response.user;
     closeMfaDialog();
     document.dispatchEvent(new Event("nowlert:account-updated"));
     toast("Multi-factor authentication disabled.");
   } catch (error) {
-    showError("mfa-disable-error", error);
+    if (requestedUser === state.user?.id && requestedSession === state.sessionGeneration) showError("mfa-disable-error", error);
   } finally {
     if (submit) submit.disabled = false;
   }
@@ -1266,6 +1335,10 @@ async function initialize(startupRequests = {}) {
 }
 
 async function loadWorkspace() {
+  const requestedUser = state.user?.id;
+  const requestedSession = state.sessionGeneration;
+  const requestedRange = state.historyRange;
+  const pagedDeliveries = typeof window.nowlertInitialDeliveryRequest === "function";
   const initialDeliveryRequest = typeof window.nowlertInitialDeliveryRequest === "function"
     ? window.nowlertInitialDeliveryRequest()
     : request("/deliveries");
@@ -1291,16 +1364,23 @@ async function loadWorkspace() {
     }],
     routes: ["Routes", request("/routes"), (value) => {
       state.routes = value.routes || [];
+      state.actualRoutes = value.actual_routes || state.routes;
       state.routeErrors = value.errors || [];
     }],
     filters: ["Filtering", request("/filters"), (value) => {
       state.filteringOverview = value;
     }],
     tokens: ["Event API tokens", request("/tokens"), (value) => { state.tokens = value.tokens; }],
-    deliveries: ["Delivery history", initialDeliveryRequest, (value) => { state.deliveries = value.deliveries || []; }],
-    audit: ["Audit log", initialAuditRequest, (value) => { state.audit = value.audit_events || []; }],
+    deliveries: ["Delivery history", initialDeliveryRequest, (value) => {
+      if (!pagedDeliveries) state.deliveries = value.deliveries || [];
+    }],
+    audit: ["Audit log", initialAuditRequest, (value) => {
+      if (typeof window.nowlertInitialAuditRequest !== "function") state.audit = value.audit_events || [];
+    }],
     preferences: ["Regional settings", request("/preferences"), (value) => { state.preferences = value.preferences; }],
-    metrics: ["Overview metrics", request(`/metrics/${state.historyRange}`), (value) => { state.metrics = value.metrics; }],
+    metrics: ["Overview metrics", request(`/metrics/${requestedRange}`), (value) => {
+      if (requestedRange === state.historyRange) state.metrics = value.metrics;
+    }],
     version: ["Version status", request("/version"), (value) => { state.versionStatus = value.version; }],
   };
   if (isAdmin()) {
@@ -1322,6 +1402,7 @@ async function loadWorkspace() {
   }
   const entries = Object.values(tasks);
   const settled = await Promise.allSettled(entries.map(([, promise]) => promise));
+  if (requestedUser !== state.user?.id || requestedSession !== state.sessionGeneration) return;
   state.workspaceErrors = [];
   for (let index = 0; index < settled.length; index += 1) {
     const result = settled[index];
@@ -1409,6 +1490,7 @@ function renderCurrentView(view = state.currentView) {
       renderRoutes();
       break;
     case "tokens":
+    case "account":
       renderTokens();
       break;
     case "deliveries":
@@ -3487,8 +3569,12 @@ async function savePreferences(event) {
 
 async function changeHistoryRange() {
   state.historyRange = byId("history-range").value;
+  const requestedRange = state.historyRange;
+  const requestedUser = state.user?.id;
+  const requestedSession = state.sessionGeneration;
   try {
-    const response = await request(`/metrics/${state.historyRange}`);
+    const response = await request(`/metrics/${requestedRange}`);
+    if (requestedRange !== state.historyRange || requestedUser !== state.user?.id || requestedSession !== state.sessionGeneration) return;
     state.metrics = response.metrics;
     renderDashboard();
   } catch (error) {
@@ -5226,6 +5312,9 @@ function bindEvents() {
   byId("password-form").addEventListener("submit", changePassword);
   byId("mfa-enable-form")?.addEventListener("submit", confirmMfaSetup);
   byId("mfa-disable-form")?.addEventListener("submit", disableMfa);
+  byId("mfa-recovery-form")?.addEventListener("submit", regenerateMfaRecoveryCodes);
+  byId("mfa-recovery-saved")?.addEventListener("click", closeMfaDialog);
+  byId("mfa-dialog")?.addEventListener("close", closeMfaDialog);
   byId("mfa-close")?.addEventListener("click", closeMfaDialog);
   byId("mfa-copy-secret")?.addEventListener("click", copyMfaSecret);
   for (const input of mfaDigitInputs()) {

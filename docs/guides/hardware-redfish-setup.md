@@ -69,7 +69,7 @@ for the controller configuration examples.
 
 ## 1. Issue a hardware token
 
-1. Open your profile menu, then **Security**.
+1. Open **Profile menu → Security → API tokens**.
 2. Under **Event API tokens**, choose **New token**.
 3. Name it `Hardware Redfish controllers`.
 4. Select **Supermicro**, **HPE iLO**, and **Dell iDRAC**. A separate token per
@@ -319,7 +319,7 @@ This is a controller-originated informational event, not a hardware failure or
 recovery test. Other severity/lifecycle combinations still need their own native
 validation before being advertised as tested.
 
-![Native Dell event delivered to Criticals](../images/monitoring-setup/dell-native-delivery.png)
+In Delivery history, select the Dell native test and verify its input, route, destination and Delivered outcome without publishing controller addresses.
 
 ## Supermicro native validation: 3 October 2026
 

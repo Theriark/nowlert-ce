@@ -74,13 +74,15 @@ def test_current_runtime_guides_do_not_regress_to_v311_contract():
         assert document.strip(), relative
         assert "Nowlert v3.1.1" not in document, relative
 
-    assert "database schema **13**" in (
+    from storage.migrations import LATEST_SCHEMA_VERSION
+
+    assert f"database schema **{LATEST_SCHEMA_VERSION}**" in (
         ROOT / "docs" / "current-configuration-model.md"
     ).read_text(encoding="utf-8")
     assert "nowlert.platform.v2" in (
         ROOT / "docs" / "data-portability.md"
     ).read_text(encoding="utf-8")
-    assert "schema **13**" in (
+    assert f"schema **{LATEST_SCHEMA_VERSION}**" in (
         ROOT / "docs" / "platform-state.md"
     ).read_text(encoding="utf-8")
 

@@ -215,21 +215,19 @@ assert.deepEqual(routeSources.map(item => item.source), ["home_assistant", "*"])
     assert result.returncode == 0, result.stderr
 
 
-def test_destination_editor_fix_preserves_visual_route_row_cleanup_without_state_wrappers():
+def test_destination_editor_fix_does_not_replace_route_identity_or_selection():
     source = FIX_SCRIPT.read_text(encoding="utf-8")
 
-    assert "destinationPolishBound" in source
-    assert "new MutationObserver(normalizeRouteOptionRows)" in source
+    assert "normalizeRouteOptionRows" not in source
     assert "routeAssignmentSelection" not in source
     assert "destinationRouteSelectionForItem" not in source
 
 
-def test_destination_editor_fix_removes_route_secondary_copy_after_each_render():
+def test_destination_editor_fix_preserves_route_context_after_each_render():
     source = FIX_SCRIPT.read_text(encoding="utf-8")
-
-    assert 'querySelectorAll(".route-assignment-option-copy small")' in source
-    assert "secondary.remove()" in source
-    assert "normalizeRouteOptionRows();" in source
+    stylesheet = FIX_STYLE.read_text(encoding="utf-8")
+    assert 'querySelectorAll(".route-assignment-option-copy small")' not in source
+    assert ".route-assignment-option-copy small" not in stylesheet
 
 
 def test_destination_editor_fix_centers_route_row_contents_without_label_spacing():
@@ -245,11 +243,11 @@ def test_destination_editor_fix_centers_route_row_contents_without_label_spacing
     assert "min-height: 22px" in stylesheet
 
 
-def test_destination_editor_fix_removes_route_status_and_routing_helper_from_dom():
+def test_destination_editor_fix_preserves_route_status_and_removes_routing_helper():
     source = FIX_SCRIPT.read_text(encoding="utf-8")
 
-    assert 'querySelectorAll(".route-assignment-option-state")' in source
-    assert "status.remove()" in source
+    assert 'querySelectorAll(".route-assignment-option-state")' not in source
+    assert ".route-assignment-option-state" not in FIX_STYLE.read_text(encoding="utf-8")
     assert 'document.getElementById("destination-routing-summary")' in source
     assert 'querySelectorAll(".destination-section-copy small")' in source
     assert "helper.remove()" in source
@@ -299,7 +297,6 @@ def test_destination_editor_fix_clamps_route_icons_inside_two_column_rows():
     stylesheet = FIX_STYLE.read_text(encoding="utf-8")
 
     assert "grid-template-columns: auto minmax(0, 1fr);" in stylesheet
-    assert ".route-assignment-option-state" in stylesheet
     assert "overflow: hidden" in stylesheet
     assert "max-height: 18px !important" in stylesheet
     assert "max-width: 22px !important" in stylesheet

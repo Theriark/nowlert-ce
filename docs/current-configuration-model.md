@@ -99,9 +99,10 @@ other private state.
 
 ## Current schema
 
-Current development uses database schema **13** with
-`platform_database_v1`. Schema 13 adds bounded operational-history
-housekeeping metadata; existing schema-12 state is migrated transactionally.
+Current development uses database schema **17** with
+`platform_database_v1`. Supported older state is migrated transactionally,
+including operational-history housekeeping and account MFA policy/enrollment
+metadata. This contract describes development, not a newly published release.
 
 Take a verified recovery snapshot before upgrading and keep the off-host copy
 until acceptance checks pass.

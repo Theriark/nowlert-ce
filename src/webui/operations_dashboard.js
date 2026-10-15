@@ -18,7 +18,7 @@
     "1m": "Last 1 month",
     "1y": "Last 1 year",
   };
-  const DASHBOARD_SNAPSHOT_SCHEMA = 1;
+  const DASHBOARD_SNAPSHOT_SCHEMA = 2;
   const DASHBOARD_SNAPSHOT_MAX_AGE_MS = 10 * 60_000;
   const DASHBOARD_SNAPSHOT_PREFIX = "nowlert.dashboard-first-paint";
   const SVG_NS = "http://www.w3.org/2000/svg";
@@ -347,6 +347,7 @@
   }
 
   function successStats(attempts) {
+    if (state.metrics?.history) return state.metrics.history;
     const delivered = attempts.filter(item => classifyAttempt(item) === "delivered").length;
     const retry = attempts.filter(item => classifyAttempt(item) === "retry").length;
     const failed = attempts.filter(item => classifyAttempt(item) === "failed").length;
@@ -370,11 +371,9 @@
     byId("ops-kpi-failures").textContent = stats.failed.toLocaleString();
     byId("ops-kpi-failures-note").textContent = `${stats.failed.toLocaleString()} failed ${stats.failed === 1 ? "delivery" : "deliveries"}`;
 
-    const seconds = RANGE_SECONDS[state.historyRange] || RANGE_SECONDS["1h"];
-    const now = Math.floor(Date.now() / 1000) + 1;
-    const previous = successStats(attemptsBetween(now - (2 * seconds), now - seconds));
-    renderDelta("ops-success-delta", stats.successRate, previous.successRate, true);
-    renderDelta("ops-failure-delta", stats.failed, previous.failed, false);
+    const previous = state.metrics?.history_previous;
+    renderDelta("ops-success-delta", stats.successRate, previous?.successRate, true);
+    renderDelta("ops-failure-delta", stats.failed, previous?.failed, false);
   }
 
   function renderDelta(id, current, previous, percentage) {
@@ -422,18 +421,18 @@
     const now = Math.floor(Date.now() / 1000);
     const start = now - seconds;
     const bucketSeconds = seconds / bucketCount;
-    const buckets = Array.from({ length: bucketCount }, (_, index) => ({
+    const buckets = state.metrics?.buckets || Array.from({ length: bucketCount }, (_, index) => ({
       start: start + index * bucketSeconds,
       delivered: 0,
       failed: 0,
       retry: 0,
     }));
-    for (const item of attempts) {
+    for (const item of state.metrics?.buckets ? [] : attempts) {
       const index = Math.min(bucketCount - 1, Math.max(0, Math.floor((attemptTime(item) - start) / bucketSeconds)));
       buckets[index][classifyAttempt(item)] += 1;
     }
 
-    const chartSignature = `${state.historyRange}|${attempts.map((item) => `${item.id || attemptTime(item)}:${classifyAttempt(item)}`).sort().join("|")}`;
+    const chartSignature = `${state.historyRange}|${JSON.stringify(buckets)}`;
     const chartModel = window.NowlertDeliveryChart;
     const shouldAnimate = chartModel.shouldAnimateRender(
       deliveryChartSignature,
@@ -641,8 +640,10 @@
       const destination = item.destination_id || "";
       if (destination) destinationCounts.set(destination, (destinationCounts.get(destination) || 0) + 1);
     }
-    const sources = [...sourceCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-    const destinations = [...destinationCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const sources = state.metrics?.top_sources?.map(item => [item.source, item.count])
+      || [...sourceCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const destinations = state.metrics?.top_destinations?.map(item => [item.destination_id, item.count])
+      || [...destinationCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
     renderSourceRanking(byId("dashboard-top-sources"), sources);
     renderDestinationRanking(byId("dashboard-top-destinations"), destinations);
   }
@@ -651,7 +652,7 @@
     if (!container) return;
     container.replaceChildren();
     if (!entries.length) { container.append(emptyState("No top integrations", "Activity will appear after events are delivered.")); return; }
-    const total = entries.reduce((sum, [, count]) => sum + count, 0) || 1;
+    const total = state.metrics?.history?.total || entries.reduce((sum, [, count]) => sum + count, 0) || 1;
     entries.forEach(([source, count], index) => {
       const row = node("div", "ops-ranking-row");
       const rank = node("span", "ops-rank", index + 1);
@@ -671,7 +672,7 @@
     container.replaceChildren();
     if (!entries.length) { container.append(emptyState("No top destinations", "Destination activity will appear after events are delivered.")); return; }
     const destinationMap = new Map((state.destinations || []).map(item => [item.id, item]));
-    const total = entries.reduce((sum, [, count]) => sum + count, 0) || 1;
+    const total = state.metrics?.history?.total || entries.reduce((sum, [, count]) => sum + count, 0) || 1;
     entries.forEach(([id, count], index) => {
       const destination = destinationMap.get(id);
       const row = node("div", "ops-ranking-row");
@@ -787,6 +788,8 @@
 
     refreshBusy = true;
     const requestedRange = state.historyRange;
+    const requestedUser = state.user?.id;
+    const generation = state.sessionGeneration;
     try {
       const jobs = await Promise.allSettled([
         request(`/metrics/${requestedRange}`, { dashboardFeed: true }),
@@ -795,6 +798,7 @@
         request("/audit-events/page/1/size/25", { dashboardFeed: true }),
       ]);
 
+      if (generation !== state.sessionGeneration || requestedUser !== state.user?.id) return;
       // A range change can happen while this batch is in flight. Never paint
       // the old batch over the newly selected window.
       if (requestedRange !== state.historyRange) {

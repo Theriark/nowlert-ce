@@ -107,9 +107,9 @@ Then compare the delivered Teams card with the original Xen Orchestra message.
 The useful operational fields should be visible without having to scan the full
 raw email.
 
-Current presentation example:
+Historical v3.1.0 presentation example; current development cards differ:
 
-![Nowlert Microsoft Teams Xen Orchestra notification](../images/v3.1.0-teams-xen-orchestra.png)
+![Historical v3.1.0 Microsoft Teams Xen Orchestra notification](../images/v3.1.0-teams-xen-orchestra.png)
 
 ## Why use Nowlert in the middle?
 

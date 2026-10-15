@@ -381,11 +381,6 @@
   min-height: 22px;
 }
 
-.route-assignment-option-copy small,
-.route-assignment-option-state {
-  display: none !important;
-}
-
 /* Keep every integration mark inside a predictable icon slot. Some source
  * assets are wide wordmarks while others are square, so clamp both axes and
  * let object-fit preserve their aspect ratio. */

@@ -57,11 +57,10 @@ they do not enable integrations or change runtime behavior.
 
 ## Screenshots
 
-Current public screenshots live under `images/`. v3.1.6 does not introduce a
-visual redesign, so it deliberately reuses the approved v3.1.0 visual baseline
-rather than duplicating identical PNGs under new filenames.
+Historical v3.1.0 screenshots live under `images/` as versioned examples of
+the older interface. They do not describe the current development UI.
 
-The README/current WebUI documentation uses:
+The README and WebUI guide label these images as historical:
 
 - `v3.1.0-dashboard.png`
 - `v3.1.0-routing-flow.png`
@@ -74,8 +73,8 @@ Additional packaged screenshots may be referenced by individual practical
 guides when they accurately demonstrate an existing integration/destination
 presentation.
 
-Refresh screenshots only when the rendered UI or notification presentation
-materially changes. Never publish captures that show passwords, destination
+Capture replacement images from synthetic data in the current development UI.
+Never publish captures that show passwords, destination
 URLs, API tokens, setup tokens, private hostnames, email addresses, or other
 secret/personal material.
 
@@ -92,6 +91,6 @@ python -m pytest -q tests/test_comprehensive_readme.py \
   tests/test_v316_release_docs.py
 ```
 
-Documentation, release metadata, runtime version, Compose defaults, and the
-approved visual baseline should describe the same release before a tag is
-created.
+Before tagging, verify release metadata, runtime version and Compose defaults
+against the accepted release candidate. Label development-only behavior and
+historical screenshots separately; documentation checks do not approve a release.

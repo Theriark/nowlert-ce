@@ -69,7 +69,7 @@ attachments are not used for matching.
    Alerts**, click **Done**, and **Save changes**. Review destination filters so
    the desired classifications are permitted.
 
-![No-IP warning match with private identifiers concealed](../images/email-setup/noip-warning-redacted.png)
+In Email Alerts → Activity, verify the intended mailbox, matched rule and Warning classification; then check destination delivery separately.
 
 ## Verify the complete path
 
@@ -104,14 +104,13 @@ remain separate acceptance items. Do not advertise them as verified from these
 screenshots. The local certificate-support build is a development candidate;
 verify the feature in your chosen release image before deploying.
 
-![Both provider connections healthy; account labels concealed](../images/email-setup/mailboxes-healthy-redacted.png)
+Check each mailbox for Healthy, Credentials configured, and a recent Last sync; use your own account labels.
 
-Screenshots are privacy-edited illustrations of the configured pages. Account
-labels, email addresses and the example hostname are concealed. Google's API
-capture is cropped to omit the signed-in account header. No application secret,
-mailbox authorization token or private key is included. The written validation
-status comes from the actual application state and rule checks, rather than
-from edited image pixels alone.
+Mailbox and activity captures with remaining private labels were withdrawn.
+Use the written connection, rule and delivery checks above with your own
+account data. The retained provider setup images illustrate API permissions;
+they do not establish end-to-end delivery. See the
+[screenshot privacy review](screenshot-privacy.md) for the exclusion record.
 
 For environment variables and secret mounts, see
 [deployment OAuth configuration](../deployment.md#email-alerts-oauth-applications).

@@ -30,15 +30,19 @@ theriark/nowlert-ce:3.1.6
 - The active workflow set is exactly Continuous Integration, Promote CE to
   Stage, and Finalize CE Release.
 - The approved Development digest is promoted and published without rebuild.
-- Database schema 9 and `platform_database_v1` remain unchanged.
+- The published release retained the `platform_database_v1` configuration model.
 
-v3.1.6 is a release-automation maintenance patch. Event ingestion, parsers,
-routing, destinations, authentication, backups, and WebUI behavior are unchanged
-from v3.1.5, and no database migration is required.
+v3.1.6 was a release-automation maintenance patch. These highlights describe
+the published release, not newer development changes.
+
+Current development uses database schema **17** with `platform_database_v1`.
+Read the current configuration and migration guide before upgrading development
+images; this does not claim that development changes have been published.
 
 ## Preview
 
-v3.1.6 keeps the approved v3.1.0 visual baseline.
+Historical v3.1.0 screenshots below show an older interface. They are versioned
+examples, not captures of the current development UI.
 
 ![Nowlert Dashboard](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-dashboard.png)
 
@@ -150,7 +154,8 @@ Before upgrading:
 4. verify `/api/health`, login, routes, destinations, history, and backups; and
 5. keep the matched backup until acceptance passes.
 
-v3.1.6 keeps schema 9, so no v3.1.5 database migration is expected.
+Current development migrates supported older databases to schema 17. Take a
+verified recovery snapshot before upgrading and retain the original image for rollback.
 
 ## Immutable release provenance
 
