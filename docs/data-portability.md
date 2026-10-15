@@ -14,7 +14,7 @@ The active configuration model is `platform_database_v1`.
 
 - SQLite is authoritative for WebUI-managed resources and operational history.
 - `config/config.yaml` contains process/bootstrap and listener/security settings.
-- destination and managed backup-target credentials remain in private secret files.
+- destination credentials remain in private secret files; NAS credentials stay on the host.
 
 ## Data Tools: safe user configuration
 
@@ -39,7 +39,9 @@ The export deliberately excludes:
 - backup archives and recovery-only private material.
 
 Credential-dependent destinations imported from safe JSON remain disabled until
-an administrator supplies their credential through the normal write-only form.
+an authorized owner supplies their credential through the normal write-only form.
+Administrator-only import preserves ownership; it does not grant access to another
+user's private destination.
 
 The importer remains compatible with `nowlert.platform.v1` documents. Legacy
 v1 route-filter fields are accepted only for backward compatibility; new v2
