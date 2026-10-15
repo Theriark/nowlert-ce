@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0b0e11">
-  <meta name="nowlert-ui-build" content="20260929-r68">
+  <meta name="nowlert-ui-build" content="20260929-r69">
   <title>Nowlert</title>
   <link rel="icon" href="/ui/brand/nowlert-owl-v3.1.0.png" type="image/png" sizes="256x256">
   <link rel="icon" href="/ui/brand/nowlert-favicon-v1.svg" type="image/svg+xml" sizes="any">
   <link rel="stylesheet" href="/ui/styles.css">
   <link rel="stylesheet" href="/ui/enhancements.css">
-  <link rel="stylesheet" href="/ui/qa_patch.css?v=20260929-r68">
+  <link rel="stylesheet" href="/ui/qa_patch.css?v=20260929-r69">
   <link rel="stylesheet" href="/ui/professional.css">
-  <script src="/ui/app.js?v=20260929-r68" defer></script>
+  <script src="/ui/app.js?v=20260929-r69" defer></script>
   <script src="/ui/enhancements.js" defer></script>
-  <script src="/ui/qa_patch.js?v=20260929-r68" defer></script>
+  <script src="/ui/qa_patch.js?v=20260929-r69" defer></script>
   <script src="/ui/i18n.js" defer></script>
   <script src="/ui/dashboard.js" defer></script>
 </head>
@@ -720,17 +720,9 @@
       <input id="backup-target-id" type="hidden">
       <div class="form-grid">
         <label class="wide"><span>Name</span><input id="backup-target-name" required maxlength="120" placeholder="NAS backups"></label>
-        <label><span>Type</span><select id="backup-target-type"><option value="local">Local</option><option value="nfs">NFS</option><option value="smb">SMB</option></select></label>
+        <label><span>Type</span><select id="backup-target-type"><option value="local">Local</option><option value="nfs">Host-mounted NFS</option><option value="smb">Host-mounted SMB</option></select></label>
         <label class="switch-field"><input id="backup-target-enabled" type="checkbox" checked><span>Enabled</span></label>
-        <label class="backup-remote-field"><span>Host</span><input id="backup-target-host" placeholder="192.0.2.163"></label>
-        <label class="backup-nfs-field wide"><span>NFS export path</span><input id="backup-target-remote-path" placeholder="/mnt/pool/nowlert"></label>
-        <label class="backup-smb-field"><span>SMB share</span><input id="backup-target-share" placeholder="Backups"></label>
-        <label class="backup-smb-field"><span>Path inside share</span><input id="backup-target-smb-path" placeholder="Nowlert"></label>
-        <label class="backup-local-field wide"><span>Local or bind-mounted path</span><input id="backup-target-local-path" placeholder="/nowlert/external-backups"></label>
-        <label class="backup-smb-field"><span>Username</span><input id="backup-target-username" autocomplete="off"></label>
-        <label class="backup-smb-field"><span>Domain</span><input id="backup-target-domain" autocomplete="off"></label>
-        <label class="backup-smb-field wide"><span>Password</span><input id="backup-target-password" type="password" autocomplete="new-password"><small>Write-only. Leave blank while editing to keep the current password.</small></label>
-        <label class="backup-remote-field wide"><span>Mount options</span><input id="backup-target-options" placeholder="vers=4"><small>Optional comma-separated options. Nowlert always adds rw,nosuid,nodev,noexec.</small></label>
+        <label class="wide"><span>Container-mounted backup path</span><input id="backup-target-local-path" required placeholder="/nowlert/external-backups"><small>Mount NFS or SMB on the host, then bind-mount it into the container at this path with write access. If the mount is unavailable, reconnect it on the host and test the destination again.</small></label>
       </div>
       <p id="backup-target-error" class="form-error" role="alert" hidden></p>
       <div class="modal-actions"><button class="button secondary" value="cancel" formnovalidate>Cancel</button><button class="button primary" value="default">Save destination</button></div>

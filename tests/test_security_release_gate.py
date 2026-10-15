@@ -5,6 +5,7 @@ import re
 
 from packaging.version import Version
 import pytest
+import yaml
 
 from storage.mfa import totp_code
 from storage.destinations import DestinationStore
@@ -14,6 +15,15 @@ from test_unified_configuration import migrated
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_backup_compose_never_grants_container_mount_privileges():
+    for name in ("compose.production.yaml", "compose.managed-backups.yaml", "docker-compose.yml"):
+        for service in yaml.safe_load((ROOT / name).read_text())["services"].values():
+            assert service.get("user") not in {"0", "0:0", "root"}
+            assert not service.get("privileged", False)
+            assert not set(service.get("cap_add", [])) & {"SYS_ADMIN", "DAC_OVERRIDE", "FOWNER"}
+    assert "cifs-utils" not in (ROOT / "Dockerfile").read_text()
 
 
 def test_urllib3_includes_the_three_2026_advisory_fixes():

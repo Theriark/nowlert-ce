@@ -1,11 +1,15 @@
-# Optional override for WebUI-managed NFS/SMB mounts.
-# This runs the Nowlert container as root and grants only the additional capabilities
-# needed to access existing UID-owned bind mounts, secure platform state, and
-# mount remote filesystems. Use only on a dedicated, trusted host.
+# Compatibility filename: NAS shares are now mounted on the Docker host.
+# Set NOWLERT_EXTERNAL_BACKUP_DIR to the dedicated, already-mounted NAS directory.
 services:
   nowlert-ce:
-    user: "0:0"
-    cap_add:
-      - DAC_OVERRIDE
-      - FOWNER
-      - SYS_ADMIN
+    user: "${NOWLERT_UID:-1000}:${NOWLERT_GID:-1000}"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - type: bind
+        source: "${NOWLERT_EXTERNAL_BACKUP_DIR:?Set the host-mounted NAS directory}"
+        target: /nowlert/external-backups
+        bind:
+          create_host_path: false

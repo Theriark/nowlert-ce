@@ -87,10 +87,9 @@ def test_managed_backup_override_targets_production_service_name():
 
     assert "  nowlert-ce:" in text
     assert "\n  nowlert:\n" not in text
-    assert 'user: "0:0"' in text
-    assert "- DAC_OVERRIDE" in text
-    assert "- FOWNER" in text
-    assert "- SYS_ADMIN" in text
+    assert 'user: "${NOWLERT_UID:-1000}:${NOWLERT_GID:-1000}"' in text
+    assert "cap_add:" not in text
+    assert "create_host_path: false" in text
 
 def test_preview_dialog_matches_editor_shell_and_routes_are_temporary_scenario_choices():
     script = JS.read_text(encoding="utf-8")

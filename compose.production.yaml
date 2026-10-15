@@ -52,9 +52,7 @@ services:
       - "${NOWLERT_SECRETS_DIR:-./secrets}:/run/secrets:ro"
       - "${NOWLERT_STATE_DIR:-./state}:/nowlert/state"
 
-      # This remains the safest backup mode: mount NFS/SMB on the host and
-      # bind it here. The managed-backups override is available when Nowlert
-      # must manage remote mounts itself.
+      # Mount NFS/SMB on the host and bind the dedicated backup directory here.
       - "${NOWLERT_EXTERNAL_BACKUP_DIR:-./external-backups}:/nowlert/external-backups"
 
     read_only: true

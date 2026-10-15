@@ -3329,11 +3329,10 @@ function renderBackupTargets() {
   body.replaceChildren();
   for (const item of state.backupTargets) {
     const outcome = item.last_test_outcome;
-    const status = !item.enabled ? "Disabled" : outcome === "success" ? "Writable" : outcome === "failed" ? "Test failed" : "Not tested";
-    const style = !item.enabled ? "warning" : outcome === "success" ? "success" : outcome === "failed" ? "danger" : "warning";
-    const location = item.type === "local"
-      ? item.local_path
-      : item.type === "nfs" ? item.remote_path : `${item.share_name}${item.remote_path ? `/${item.remote_path}` : ""}`;
+    const missingMount = item.type !== "local" && !item.mounted;
+    const status = !item.enabled ? "Disabled" : missingMount ? "Mount unavailable" : outcome === "success" ? "Writable" : outcome === "failed" ? "Test failed" : "Not tested";
+    const style = !item.enabled ? "warning" : missingMount ? "danger" : outcome === "success" ? "success" : outcome === "failed" ? "danger" : "warning";
+    const location = item.local_path;
     const actions = element("div", { className: "row-actions backup-row-actions" }, [
       backupIconAction("test-backup-target", item.id, "Test", "play"),
       backupIconAction("edit-backup-target", item.id, "Edit", "edit", "secondary", true),
@@ -3614,7 +3613,7 @@ async function saveBackupSettings(event) {
         weekday: Number(byId("backup-weekday").value),
         day: Number(byId("backup-day").value),
         target_id: byId("backup-target").value,
-        managed_mounts: true,
+        managed_mounts: false,
         external_enabled: false,
         external_type: "nfs",
         external_path: "",
@@ -3676,18 +3675,6 @@ async function toggleHousekeeping() {
     toggle.disabled = false;
   }
 }
-function updateBackupTargetFields() {
-  const type = byId("backup-target-type").value;
-  for (const item of document.querySelectorAll(".backup-remote-field")) item.hidden = type === "local";
-  for (const item of document.querySelectorAll(".backup-nfs-field")) item.hidden = type !== "nfs";
-  for (const item of document.querySelectorAll(".backup-smb-field")) item.hidden = type !== "smb";
-  for (const item of document.querySelectorAll(".backup-local-field")) item.hidden = type !== "local";
-  byId("backup-target-host").required = type !== "local";
-  byId("backup-target-remote-path").required = type === "nfs";
-  byId("backup-target-share").required = type === "smb";
-  byId("backup-target-local-path").required = type === "local";
-}
-
 function openBackupTarget(id = "") {
   const item = state.backupTargets.find((candidate) => candidate.id === id);
   byId("backup-target-form").reset();
@@ -3696,17 +3683,8 @@ function openBackupTarget(id = "") {
   byId("backup-target-name").value = item ? item.name : "";
   byId("backup-target-type").value = item ? item.type : "local";
   byId("backup-target-enabled").checked = item ? item.enabled : true;
-  byId("backup-target-host").value = item ? item.host : "";
-  byId("backup-target-remote-path").value = item && item.type === "nfs" ? item.remote_path : "";
-  byId("backup-target-share").value = item ? item.share_name : "";
-  byId("backup-target-smb-path").value = item && item.type === "smb" ? item.remote_path : "";
-  byId("backup-target-local-path").value = item && item.type === "local" ? item.local_path : "";
-  byId("backup-target-username").value = item ? item.username : "";
-  byId("backup-target-domain").value = item ? item.domain : "";
-  byId("backup-target-options").value = item ? item.mount_options : "";
-  byId("backup-target-password").value = "";
+  byId("backup-target-local-path").value = item ? item.local_path : "";
   byId("backup-target-dialog-title").textContent = item ? `Edit ${item.name}` : "Add backup destination";
-  updateBackupTargetFields();
   byId("backup-target-dialog").showModal();
 }
 
@@ -3725,14 +3703,7 @@ async function saveBackupTarget(event) {
       body: {
         name: byId("backup-target-name").value.trim(),
         type,
-        host: byId("backup-target-host").value.trim(),
-        remote_path: type === "nfs" ? byId("backup-target-remote-path").value.trim() : byId("backup-target-smb-path").value.trim(),
-        share_name: byId("backup-target-share").value.trim(),
         local_path: byId("backup-target-local-path").value.trim(),
-        username: byId("backup-target-username").value.trim(),
-        domain: byId("backup-target-domain").value.trim(),
-        password: byId("backup-target-password").value,
-        mount_options: byId("backup-target-options").value.trim(),
         enabled: byId("backup-target-enabled").checked,
       },
     });
@@ -3741,9 +3712,7 @@ async function saveBackupTarget(event) {
     if (state.currentView === "backups") {
       await loadExternalBackups({ silent: true });
     }
-    toast(type === "local"
-      ? (id ? "Backup destination updated." : "Backup destination added.")
-      : "Remote backup destination saved with automatic managed mounting enabled.");
+    toast(id ? "Backup destination updated." : "Backup destination added.");
   } catch (error) {
     showError("backup-target-error", error);
   }
@@ -4478,7 +4447,7 @@ function renderMobileConnection(settings = {}) {
 
 function prepareMobileDestinationPayload(payload, id) {
   if (payload.output_type !== "nowlert_mobile") return;
-  payload.message_style = payload.settings.message_style;
+  payload.message_style = payload.settings?.message_style;
   delete payload.settings;
   if (mobileConnection) {
     if (!mobileConnection.approved) throw new Error("Approve the connection in Nowlert Mobile before saving.");
@@ -5356,7 +5325,6 @@ function bindEvents() {
   byId("backup-settings-form").addEventListener("submit", saveBackupSettings);
   byId("housekeeping-form")?.addEventListener("submit", saveHousekeepingSettings);
   byId("backup-target-form").addEventListener("submit", saveBackupTarget);
-  byId("backup-target-type").addEventListener("change", updateBackupTargetFields);
   byId("restart-form").addEventListener("submit", restartPlatform);
   byId("restart-reason").addEventListener("input", updateRestartDialogContext);
   byId("avatar-form").addEventListener("submit", saveAvatar);

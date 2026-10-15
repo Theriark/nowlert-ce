@@ -48,10 +48,11 @@ SMTP protocol tests generate an ephemeral certificate and private key in pytest'
 temporary directory, trust that certificate explicitly, and verify its hostname.
 No private TLS fixture key is committed or included in either image.
 
-Do not suppress genuine container privileges as a false positive. The optional
-managed-backup mount mode and any deployment using it require the explicit
-privilege review described in the deployment guide. Host-mounted backup shares
-avoid container mount capabilities.
+NFS/SMB shares must be mounted by the Docker host and bound into the container.
+Nowlert never mounts or unmounts shares and requires no NAS passwords or Linux
+mount capabilities. Remote targets verify the mounted filesystem before use;
+a missing NAS mount must never redirect backups onto local disk. See the
+[host-mount migration guide](deployment.md#host-mounted-nas-backups).
 
 ## Release evidence
 

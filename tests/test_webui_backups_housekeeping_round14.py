@@ -68,7 +68,7 @@ def test_backup_actions_refresh_both_panels_without_local_confirmation_and_retir
     assert 'if (backupTime) backupTime.type = "text";' not in enhancements
 
 
-def test_backup_controls_move_to_stored_copies_mounts_are_automatic_and_tables_align():
+def test_backup_controls_move_to_stored_copies_mounts_are_host_managed_and_tables_align():
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
     app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "qa_patch.css").read_text(encoding="utf-8")
@@ -86,7 +86,7 @@ def test_backup_controls_move_to_stored_copies_mounts_are_automatic_and_tables_a
 
     assert 'id="backup-managed-mounts"' not in markup
     save = _function(app, "async function saveBackupSettings(event)")
-    assert "managed_mounts: true" in save
+    assert "managed_mounts: false" in save
 
     marker = "/* 2026-09-18 backup follow-up alignment and controls. */"
     assert marker in styles
@@ -112,11 +112,11 @@ def test_backup_selects_match_the_existing_operational_control_style():
     assert "color-scheme: dark;" in final
 
 
-def test_managed_backup_mounting_is_always_enabled(tmp_path):
-    values = {**DEFAULT_BACKUP_SETTINGS, "managed_mounts": False}
+def test_managed_backup_mounting_is_always_disabled(tmp_path):
+    values = {**DEFAULT_BACKUP_SETTINGS, "managed_mounts": True}
     normalized = SettingsStore.validate("platform", "backups", values)
-    assert DEFAULT_BACKUP_SETTINGS["managed_mounts"] is True
-    assert normalized["managed_mounts"] is True
+    assert DEFAULT_BACKUP_SETTINGS["managed_mounts"] is False
+    assert normalized["managed_mounts"] is False
 
     database = Database(tmp_path / "state" / "nowlert.db")
     database.migrate()
@@ -124,7 +124,7 @@ def test_managed_backup_mounting_is_always_enabled(tmp_path):
         database,
         Configuration({"platform": {"backups": {"managed_mounts": False}}}),
     )
-    assert store.managed_mounts is True
+    assert store.managed_mounts is False
 
 
 def test_housekeeping_reference_workspace_uses_clickable_status_and_recent_runs():

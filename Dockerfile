@@ -13,7 +13,7 @@ WORKDIR /nowlert
 COPY requirements.txt /nowlert/requirements.txt
 
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y cifs-utils fonts-dejavu-core nfs-common \
+    && apt-get install --no-install-recommends -y fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/* \
     && pip install \
     --disable-pip-version-check \
