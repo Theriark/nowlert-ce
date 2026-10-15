@@ -370,7 +370,8 @@ class DeliveryHistoryStore:
             parameters.append(actor.user_id)
         for field in ("source", "severity", "outcome"):
             if filters.get(field):
-                clauses.append(f"{field} = ?")
+                comparison = f"{field} = ? COLLATE NOCASE" if field == "severity" else f"{field} = ?"
+                clauses.append(comparison)
                 parameters.append(filters[field])
         if filters.get("since") is not None:
             clauses.append("created_at >= ?")
@@ -388,7 +389,7 @@ class DeliveryHistoryStore:
                 key: [row[0] for row in connection.execute(
                     f"SELECT DISTINCT {field} FROM delivery_attempts WHERE {where} AND {field} != '' ORDER BY {field}", parameters
                 )]
-                for key, field in (("sources", "source"), ("severities", "severity"), ("outcomes", "outcome"))
+                for key, field in (("sources", "source"), ("severities", "lower(severity)"), ("outcomes", "outcome"))
             }
 
     def count_visible(self, actor: Actor, **filters) -> int:

@@ -55,6 +55,23 @@ def test_history_rejects_invalid_query(platform_api, query):
     assert call(platform_api, "GET", "/api/v2/deliveries/page/1/size/25?" + query, headers=headers).status == 400
 
 
+def test_history_severity_filter_combines_case_variants_without_duplicate_options(platform_api):
+    headers = login(platform_api)
+    seed_history(platform_api, headers, count=3)
+    with platform_api["database"].transaction() as connection:
+        connection.execute("UPDATE delivery_attempts SET severity = 'Critical' WHERE delivery_id = 'event-1'")
+        connection.execute("UPDATE delivery_attempts SET severity = 'warning' WHERE delivery_id = 'event-2'")
+    for severity in ("critical", "Critical", "CRITICAL"):
+        response = call(platform_api, "GET", f"/api/v2/deliveries/page/1/size/25?severity={severity}", headers=headers)
+        assert response.status == 200
+        assert response.payload["pagination"]["total"] == 2
+        assert response.payload["filter_options"]["severities"] == ["critical", "warning"]
+    other = login(platform_api, "owner-user", "owner secure password")
+    hidden = call(platform_api, "GET", "/api/v2/deliveries/page/1/size/25?severity=Critical", headers=other)
+    assert hidden.payload["pagination"]["total"] == 0
+    assert hidden.payload["filter_options"]["severities"] == []
+
+
 def test_native_http_preserves_delivery_query(platform_api):
     headers = login(platform_api)
     server = HTTPServer(("127.0.0.1", 0), Dispatcher(), None, 1_048_576, "", platform_api["database"])
