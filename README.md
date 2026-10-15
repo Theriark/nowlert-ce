@@ -99,7 +99,7 @@ for the exact secret filenames and redirect URI requirements.
 | **Current Stable Release** | **v3.1.6** |
 | **License** | MIT |
 | **Python** | 3.13 |
-| **Current development database schema** | 17 |
+| **Current development database schema** | 18 |
 | **Configuration model** | `platform_database_v1` |
 | **State path** | `/nowlert/state` |
 
@@ -108,7 +108,7 @@ for the exact secret filenames and redirect URI requirements.
 v3.1.6 was a release-automation maintenance patch. Its release notes describe
 that published snapshot; development changes are not stable-release claims.
 
-Current development uses database schema **17** with `platform_database_v1`.
+Current development uses database schema **18** with `platform_database_v1`.
 See the [current configuration contract](docs/current-configuration-model.md)
 for migration and backup guidance before upgrading.
 

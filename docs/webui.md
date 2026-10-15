@@ -230,6 +230,6 @@ transport security, state location, and WebUI publication. See
 
 ## Current persistent schema
 
-Current development uses database schema **17** and
+Current development uses database schema **18** and
 `platform_database_v1`. Take a verified recovery snapshot before an upgrade
 and keep an off-host copy until acceptance passes.
