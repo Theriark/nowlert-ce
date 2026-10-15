@@ -58,6 +58,8 @@ function qaScrollPageBottom() {
       left: 0,
       behavior: "auto",
     });
+    const workspace = document.querySelector("#app-shell .workspace");
+    if (workspace) workspace.scrollTo({ top: workspace.scrollHeight, left: 0, behavior: "auto" });
   };
 
   // Apply immediately and again after layout settles so async table
@@ -76,6 +78,8 @@ function qaScrollPageTop() {
       left: 0,
       behavior: "auto",
     });
+    const workspace = document.querySelector("#app-shell .workspace");
+    if (workspace) workspace.scrollTo({ top: 0, left: 0, behavior: "auto" });
   };
 
   scroll();
