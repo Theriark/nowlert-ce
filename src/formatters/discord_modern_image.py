@@ -4208,7 +4208,7 @@ class GenericFallbackDiscordModernImageRenderer(
             return super().render(notification, classic_payload)
         metadata = notification.metadata or {}
         classification = str(metadata.get('classification') or notification.status or 'information').casefold()
-        status = 'failure' if classification in {'urgent', 'critical', 'failure', 'error'} else 'warning' if classification == 'warning' else 'success'
+        status = 'failure' if classification in {'urgent', 'critical', 'failure', 'error'} else 'warning' if classification == 'warning' else 'information'
         accent = self.FAILURE if status == 'failure' else self.BRAND_GOLD if status == 'warning' else self.ICON_BLUE
         label = 'Urgent' if status == 'failure' else 'Warning' if status == 'warning' else 'Information'
         fields = self._fields(self._embed(classic_payload))
