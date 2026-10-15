@@ -62,6 +62,92 @@ class HTTPClient:
         return Response(self.statuses.pop(0))
 
 
+@pytest.mark.parametrize("style", ("classic", "modern"))
+@pytest.mark.parametrize("body", ("invalid_blocks", "invalid_payload\n"))
+def test_slack_preserves_only_known_provider_error_tokens(monkeypatch, style, body):
+    client = HTTPClient((400,))
+    original_post = client.post
+
+    def post(*args, **kwargs):
+        response = original_post(*args, **kwargs)
+        response.text = body
+        return response
+
+    client.post = post
+    adapter = SlackPlatformAdapter(http_client=client, resolver=public_resolver)
+    if style == "modern":
+        _enable_slack_modern_image(monkeypatch, adapter)
+    result = adapter.deliver(destination("slack", {"message_style": style}),
+                             b"https://hooks.slack.com/services/T/B/value", notification())
+    assert result.safe_error == f"destination returned HTTP 400 (Slack: {body.strip()})"
+    assert result.error_code == "upstream_rejected"
+    assert result.response_status == 400 and not result.success and not result.retryable
+    assert len(client.calls) == 1
+
+
+@pytest.mark.parametrize("body", (
+    "unknown_provider_error", "invalid_blocks token=private-secret",
+    "invalid_blocks https://hooks.slack.com/services/T/B/private-secret",
+    '{"error":"invalid_blocks","token":"private-secret"}',
+    "invalid_blocks\nprivate-secret", "<html>private-secret</html>",
+))
+def test_slack_unknown_or_secret_bearing_error_body_stays_generic(body):
+    class Client(HTTPClient):
+        def post(self, *args, **kwargs):
+            response = super().post(*args, **kwargs)
+            response.text = body
+            return response
+    client = Client((400,))
+    result = SlackPlatformAdapter(http_client=client, resolver=public_resolver).deliver(
+        destination("slack"), b"https://hooks.slack.com/services/T/B/value", notification())
+    assert result.safe_error == "destination returned HTTP 400"
+    assert not result.retryable and len(client.calls) == 1
+
+
+@pytest.mark.parametrize("status,retryable", ((200, False), (429, True), (500, True)))
+def test_slack_provider_diagnostics_preserve_status_retry_policy(status, retryable):
+    class Client(HTTPClient):
+        def post(self, *args, **kwargs):
+            response = super().post(*args, **kwargs)
+            response.text = "invalid_blocks"
+            return response
+    client = Client((status,))
+    result = SlackPlatformAdapter(http_client=client, resolver=public_resolver).deliver(
+        destination("slack"), b"https://hooks.slack.com/services/T/B/value", notification())
+    assert result.success == (status == 200)
+    assert result.retryable is retryable and len(client.calls) == 1
+    if status == 200:
+        assert result.safe_error == ""
+
+
+def test_slack_error_diagnostic_reaches_delivery_history(platform):
+    owner = platform["owner"]
+    target = platform["destinations"].create(owner.actor, owner.id, "Slack", "slack")
+    route = platform["routes"].create(owner.actor, owner.id, "Grafana", "grafana", target.id)
+    class Client(HTTPClient):
+        def post(self, *args, **kwargs):
+            response = super().post(*args, **kwargs)
+            response.text = "invalid_blocks"
+            return response
+    result = SlackPlatformAdapter(http_client=Client((400,)), resolver=public_resolver).deliver(
+        target, b"https://hooks.slack.com/services/T/B/value", notification())
+    attempt = platform["history"].record(owner.id, "slack-diagnostic", route, notification(), 1, "failed", result)
+    persisted = platform["history"].get(owner.actor, attempt.id)
+    assert persisted.safe_error == "destination returned HTTP 400 (Slack: invalid_blocks)"
+    assert persisted.error_code == "upstream_rejected"
+
+
+def test_other_http_outputs_do_not_persist_slack_error_tokens():
+    class Client(HTTPClient):
+        def post(self, *args, **kwargs):
+            response = super().post(*args, **kwargs)
+            response.text = "invalid_blocks"
+            return response
+    result = WebhookPlatformAdapter(http_client=Client((400,)), resolver=public_resolver).deliver(
+        destination("webhook"), b"https://example.com/hook", notification())
+    assert result.safe_error == "destination returned HTTP 400"
+
+
 def destination(output_type, settings=None):
     return Destination(
         id=f"{output_type}-destination",

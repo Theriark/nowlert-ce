@@ -89,6 +89,9 @@ class _HTTPAdapter(PlatformOutputAdapter):
             return request_failure(error)
         except Exception:
             return DeliveryResult(False, error_code="transport_error")
+        return self._response_result(response)
+
+    def _response_result(self, response):
         return http_delivery_result(response)
 
 
@@ -430,6 +433,23 @@ class TeamsPlatformAdapter(_HTTPAdapter):
 
 class SlackPlatformAdapter(_HTTPAdapter):
     output_type = "slack"
+
+    # Exact provider tokens only: response bodies can contain credentials or URLs.
+    _SAFE_ERROR_TOKENS = frozenset({
+        "invalid_blocks", "invalid_payload", "no_text", "too_many_attachments",
+        "action_prohibited", "channel_is_archived", "channel_not_found",
+        "invalid_token", "no_active_hooks", "no_service", "no_service_id",
+        "no_team", "posting_to_general_channel_denied", "team_disabled",
+        "user_not_found",
+    })
+
+    def _response_result(self, response):
+        result = super()._response_result(response)
+        if not result.success:
+            token = str(getattr(response, "text", "") or "").strip()
+            if token in self._SAFE_ERROR_TOKENS:
+                return replace(result, safe_error=f"{result.safe_error} (Slack: {token})")
+        return result
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
