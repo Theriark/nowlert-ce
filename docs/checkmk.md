@@ -12,7 +12,8 @@ polling hosts or running an additional monitoring agent.
    built-in route for new accounts and adds it once on upgrade for previously
    seeded accounts. In EE, create a route with integration **Checkmk**, input
    **HTTP**. Assign the route to your destination and enable both.
-2. Create an application token scoped only to `checkmk` in Settings.
+2. Open **Profile menu → Security → API tokens → New token** and create an
+   application token scoped only to `checkmk`.
 3. Your Checkmk site must reach `https://YOUR_NOWLERT/checkmk/events` with a
    certificate it trusts. Requests use `X-Nowlert-Token`, not a token in the URL.
 

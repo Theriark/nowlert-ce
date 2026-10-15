@@ -10,7 +10,7 @@
 2. Create or edit your destination and assign this application's built-in route.
    Enable the destination and route. Leave source severity/status restrictions
    empty initially so every notification emitted by the application can arrive.
-3. For HTTP, issue a source-scoped token in Settings. Give it only this
+3. For HTTP, open **Profile menu → Security → API tokens → New token**. Give it only this
    application's source and the required event rate. Use HTTPS for callbacks.
 4. Configure the application's notification settings as described below.
 5. Send its native test and check Nowlert Delivery history, source identity,

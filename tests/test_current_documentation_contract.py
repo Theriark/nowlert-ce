@@ -45,6 +45,15 @@ def test_current_guides_include_security_step_for_event_tokens():
     assert "Profile menu → Security → API tokens" in section
 
 
+@pytest.mark.parametrize("relative", (
+    "checkmk.md", "github-actions.md", "metabase.md", "radarr.md",
+    "semaphore.md", "sonarr.md", "guides/application-notification-setup.md",
+))
+def test_application_setup_uses_actual_token_navigation(relative):
+    text = (ROOT / "docs" / relative).read_text(encoding="utf-8")
+    assert "Profile menu → Security → API tokens → New token" in text
+
+
 @pytest.mark.parametrize("relative", WITHDRAWN_IMAGES)
 def test_exposed_captures_are_withdrawn_from_current_checkout(relative):
     assert not (ROOT / "docs/images" / relative).exists()

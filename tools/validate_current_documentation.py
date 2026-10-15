@@ -202,9 +202,14 @@ for asset in re.findall(r"^- `(images/[^`]+)`", privacy, re.MULTILINE):
             if asset in document.read_text(encoding="utf-8"):
                 raise SystemExit(f"ERROR: withdrawn capture reference in {document.relative_to(ROOT)}: {asset}")
 
-for document in (ROOT / "docs/guides").glob("*.md"):
-    if re.search(r"Profile\s*→\s*API tokens", document.read_text(encoding="utf-8")):
+for document in FILES:
+    if "releases" in document.relative_to(ROOT).parts:
+        continue
+    text = document.read_text(encoding="utf-8")
+    if re.search(r"Profile\s*→\s*API tokens", text):
         raise SystemExit(f"ERROR: token navigation omits Security in {document.relative_to(ROOT)}")
+    if re.search(r"token[^\n]* in Settings|In \*\*Settings\*\*, create an application token", text):
+        raise SystemExit(f"ERROR: obsolete Settings token navigation in {document.relative_to(ROOT)}")
 
 print("documentation_links=passed")
 print("documentation_release_identity=passed")
