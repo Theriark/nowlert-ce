@@ -54,6 +54,12 @@ mount capabilities. Remote targets verify the mounted filesystem before use;
 a missing NAS mount must never redirect backups onto local disk. See the
 [host-mount migration guide](deployment.md#host-mounted-nas-backups).
 
+External backup listing checks manifest metadata, supported schema bounds, file
+names, types and sizes without hashing archive contents or opening SQLite over
+the share. A listed archive is not proof of content integrity. Restore verifies
+all file digests and database integrity on the staged local copy before changing
+live state; local listing, backup creation and mirroring retain full checks.
+
 ## Release evidence
 
 Keep the candidate SHA, image digest, scan timestamps and reviewed disposition of

@@ -203,7 +203,7 @@ class StateBackupStore:
             if not path.is_dir() or not _BACKUP_ID.fullmatch(path.name):
                 continue
             try:
-                backups.append(self._validate(path))
+                backups.append(self._validate(path, verify_contents=False))
             except (OSError, RuntimeError, TypeError, ValueError):
                 continue
         return backups
@@ -416,7 +416,7 @@ class StateBackupStore:
         )
         return final
 
-    def _validate(self, directory: Path) -> StateBackup:
+    def _validate(self, directory: Path, *, verify_contents: bool = True) -> StateBackup:
         if directory.is_symlink() or not directory.is_dir():
             raise ValueError("backup path must be a directory")
         manifest_path = directory / "manifest.json"
@@ -442,7 +442,11 @@ class StateBackupStore:
         for item in secret_directory.iterdir():
             if item.is_symlink() or not item.is_file() or not _SECRET_FILE.fullmatch(item.name):
                 raise ValueError("backup contains an invalid secret file")
+            if item.stat().st_size > _MAXIMUM_SECRET_BYTES:
+                raise ValueError("backup secret file is too large")
             expected_names.add(f"secrets/{item.name}")
+            if len(expected_names) - 1 > _MAXIMUM_SECRET_FILES:
+                raise ValueError("secret file count exceeds backup limit")
         config_included = bool(manifest.get("config_included", False))
         if config_included:
             config_file = directory / "config" / "config.yaml"
@@ -460,13 +464,16 @@ class StateBackupStore:
             path = directory / relative
             if not path.is_file() or path.is_symlink():
                 raise ValueError("backup file is missing")
-            if not hmac.compare_digest(self._digest(path), str(digest)):
+            if verify_contents and not hmac.compare_digest(self._digest(path), str(digest)):
                 raise RuntimeError("backup integrity check failed")
             size += path.stat().st_size
-        database_version = self._validate_database(directory / "nowlert.db")
         manifest_version = int(manifest.get("database_schema", -1))
-        if manifest_version != database_version:
-            raise ValueError("backup database schema does not match manifest")
+        if manifest_version < 1 or manifest_version > LATEST_SCHEMA_VERSION:
+            raise ValueError("backup database schema is not supported")
+        if verify_contents:
+            database_version = self._validate_database(directory / "nowlert.db")
+            if manifest_version != database_version:
+                raise ValueError("backup database schema does not match manifest")
         secret_count = int(manifest.get("secret_files", -1))
         actual_secret_count = len(
             [name for name in expected_names if name.startswith("secrets/")]
@@ -476,7 +483,7 @@ class StateBackupStore:
         return StateBackup(
             id=directory.name,
             created_at=int(manifest["created_at"]),
-            schema_version=database_version,
+            schema_version=manifest_version,
             secret_files=secret_count,
             size_bytes=size,
             config_included=config_included,
