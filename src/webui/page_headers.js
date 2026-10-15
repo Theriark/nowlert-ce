@@ -447,7 +447,7 @@
     const legacyTablePanel = view.querySelector(":scope > .table-panel");
     const legacyHealthPanel = view.querySelector(":scope > .health-panel");
     const healthList = byId("health-check-list");
-    const auditFooter = view.querySelector(":scope > .audit-footer");
+    const auditFooter = view.querySelector(".audit-footer");
     if (!search || !searchField || !legacyTablePanel || !auditFooter) return;
 
     view.classList.add("audit-log-revamp");
