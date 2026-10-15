@@ -128,32 +128,57 @@ class AuditEventStore:
     ) -> list[AuditEvent]:
         bounded = max(1, min(int(limit), 500))
         bounded_offset = max(0, int(offset))
+        where, parameters = self._visibility(actor)
         with self.database.connect() as connection:
-            if actor.is_admin:
-                rows = connection.execute(
-                    "SELECT * FROM audit_events ORDER BY id DESC LIMIT ? OFFSET ?",
-                    (bounded, bounded_offset),
-                ).fetchall()
-            else:
-                rows = connection.execute(
-                    """
-                    SELECT * FROM audit_events
-                    WHERE actor_user_id = ? ORDER BY id DESC LIMIT ? OFFSET ?
-                    """,
-                    (actor.user_id, bounded, bounded_offset),
-                ).fetchall()
+            rows = connection.execute(
+                f"SELECT * FROM audit_events WHERE {where} ORDER BY id DESC LIMIT ? OFFSET ?",
+                (*parameters, bounded, bounded_offset),
+            ).fetchall()
         return [self._event(row) for row in rows]
 
     def count_visible(self, actor: Actor) -> int:
+        where, parameters = self._visibility(actor)
         with self.database.connect() as connection:
-            if actor.is_admin:
-                row = connection.execute("SELECT COUNT(*) FROM audit_events").fetchone()
-            else:
-                row = connection.execute(
-                    "SELECT COUNT(*) FROM audit_events WHERE actor_user_id = ?",
-                    (actor.user_id,),
-                ).fetchone()
+            row = connection.execute(
+                f"SELECT COUNT(*) FROM audit_events WHERE {where}", parameters,
+            ).fetchone()
         return int(row[0] or 0)
+
+    @staticmethod
+    def _visibility(actor: Actor) -> tuple[str, tuple]:
+        return ("1", ()) if actor.is_admin else ("actor_user_id = ?", (actor.user_id,))
+
+    def summary_visible(self, actor: Actor) -> dict:
+        """Return fixed-size all-time totals and two adjacent seven-day windows."""
+        now = int(self.clock())
+        current_start = now - 7 * 86400
+        previous_start = now - 14 * 86400
+        where, parameters = self._visibility(actor)
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT CASE
+                    WHEN created_at >= ? AND created_at < ? THEN 'current'
+                    WHEN created_at >= ? AND created_at < ? THEN 'previous'
+                    ELSE 'outside' END AS period,
+                    CASE
+                    WHEN lower(outcome) IN ('success','ok','healthy','delivered','accepted','completed') THEN 'success'
+                    WHEN lower(outcome) IN ('warning','warn','pending','retrying') THEN 'warning'
+                    WHEN lower(outcome) IN ('failed','failure','error','denied','invalid') THEN 'failed'
+                    ELSE 'other' END AS bucket,
+                    COUNT(*) AS count
+                FROM audit_events WHERE {where} GROUP BY period, bucket
+                """,
+                (current_start, now + 1, previous_start, current_start, *parameters),
+            ).fetchall()
+        result = {"total": 0, "current": dict.fromkeys(("success", "warning", "failed", "other"), 0),
+                  "previous": dict.fromkeys(("success", "warning", "failed", "other"), 0)}
+        for row in rows:
+            count = int(row["count"])
+            result["total"] += count
+            if row["period"] in {"current", "previous"}:
+                result[row["period"]][row["bucket"]] = count
+        return result
 
     @classmethod
     def _safe_details(cls, details: dict) -> dict:

@@ -31,7 +31,8 @@ def test_audit_log_refinement_matches_selected_interaction_contract():
     assert "audit-refine-list" in script
 
     assert "fetchAuditAnalytics" in script
-    assert "/audit-events/page/${page}/size/500" in script
+    assert 'request("/audit-events/summary")' in script
+    assert "/audit-events/page/${page}/size/500" not in script
     assert "vs. previous 7 days" in script
     assert "Last 7 days" in script
     assert "All pages" in script
@@ -81,7 +82,7 @@ def test_audit_summary_analytics_restore_immediately_after_refresh():
         encoding="utf-8"
     )
 
-    assert 'const AUDIT_ANALYTICS_STORAGE_VERSION = "v1";' in script
+    assert 'const AUDIT_ANALYTICS_STORAGE_VERSION = "v2";' in script
     assert "function auditAnalyticsStorageKey()" in script
     assert "function normalizedAuditAnalytics(value)" in script
     assert "function readAuditAnalytics()" in script
