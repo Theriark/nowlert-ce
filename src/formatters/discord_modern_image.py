@@ -1011,6 +1011,11 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
     def _lifecycle(self, embed, notification):
         if str(notification.status or "").strip().casefold() == "skipped":
             return "Skipped"
+        if (
+            notification.source in {"unifi_network", "unifi_protect", "unifi_drive"}
+            and (notification.metadata or {}).get("event_state") == "resolved"
+        ):
+            return "Resolved"
         title = (
             str(embed.get("title") or "")
             if isinstance(embed, dict)

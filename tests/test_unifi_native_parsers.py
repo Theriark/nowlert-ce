@@ -69,6 +69,28 @@ def test_network_missing_optional_parameters_and_unknown_event():
     assert notification.metadata["client_ip"] == ""
 
 
+@pytest.mark.parametrize("historical_failure", (False, True))
+def test_access_point_recovered_is_explicit_recovery_with_information_severity(historical_failure):
+    payload = json.loads((FIXTURES / "network/access_point_recovered.json").read_text())
+    if historical_failure:
+        payload["message"] = "Previously offline after a failure; service has now recovered."
+    notification = NetworkParser().parse(payload)
+    assert notification.status == "success"
+    assert notification.metadata["event_state"] == "resolved"
+    assert notification.metadata["severity"] == "information"
+    assert notification.metadata["vendor_severity"] == 2
+    assert notification.body == payload["message"]
+
+
+@pytest.mark.parametrize("name", ("Custom Access Point Recovered", "Access Point Recovered Later"))
+def test_custom_recovered_titles_do_not_imply_native_recovery(name):
+    payload = json.loads((FIXTURES / "network/access_point_recovered.json").read_text())
+    payload["name"] = name
+    notification = NetworkParser().parse(payload)
+    assert notification.status == "information"
+    assert notification.metadata["event_state"] == "information"
+
+
 @pytest.mark.parametrize(
     "payload",
     [
