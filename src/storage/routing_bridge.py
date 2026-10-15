@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import uuid
+
 from outputs.platform import PlatformOutputRegistry
 from storage.delivery import DeliveryHistoryStore, DeliverySummary
 from storage.destination_access import (
@@ -49,11 +51,13 @@ class PlatformRoutingBridge:
         )
 
     def route(self, notification) -> DeliverySummary:
+        source_event_id = uuid.uuid4().hex
         matched = delivered = failed = attempts = 0
         for owner_id in self._owners(notification):
             summary = self.delivery.deliver(
                 Actor(owner_id, "user"),
                 notification,
+                source_event_id=source_event_id,
             )
             matched += summary.matched_routes
             delivered += summary.delivered

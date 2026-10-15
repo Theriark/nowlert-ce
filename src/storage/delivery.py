@@ -60,6 +60,7 @@ class DeliveryAttempt:
     event_name: str = ""
     event_description: str = ""
     event_status: str = ""
+    source_event_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -98,8 +99,8 @@ class _DeliveryHistoryBatcher:
             source, title, severity, outcome, attempt_number,
             retryable, response_status, error_code, safe_error,
             created_at, completed_at, input_type, device_name,
-            event_name, event_description, event_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            event_name, event_description, event_status, source_event_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
     def __init__(
@@ -242,6 +243,7 @@ class DeliveryHistoryStore:
         outcome: str,
         result: DeliveryResult,
         destination_id: str | None = None,
+        *, source_event_id: str | None = None,
     ) -> DeliveryAttempt:
         if outcome not in {"delivered", "failed", "retry_scheduled"}:
             raise ValueError("unsupported delivery outcome")
@@ -308,6 +310,7 @@ class DeliveryHistoryStore:
             event_name=event_name,
             event_description=event_description,
             event_status=event_status,
+            source_event_id=source_event_id,
         )
         self._batcher.write(
             (
@@ -332,6 +335,7 @@ class DeliveryHistoryStore:
                 attempt.event_name,
                 attempt.event_description,
                 attempt.event_status,
+                attempt.source_event_id,
             )
         )
         return attempt
@@ -511,6 +515,7 @@ class DeliveryHistoryStore:
             event_name=str(row["event_name"] or "") if "event_name" in row.keys() else "",
             event_description=str(row["event_description"] or "") if "event_description" in row.keys() else "",
             event_status=str(row["event_status"] or "") if "event_status" in row.keys() else "",
+            source_event_id=row["source_event_id"] if "source_event_id" in row.keys() else None,
         )
 
 
@@ -546,19 +551,22 @@ class PlatformDeliveryService:
         self,
         actor: Actor,
         notification: Notification,
+        *, source_event_id: str | None = None,
     ) -> DeliverySummary:
+        source_event_id = source_event_id or uuid.uuid4().hex
         candidates = self.relationships.resolve_matching(
             actor,
             actor.user_id,
             notification,
         )
-        return self._deliver_candidates(actor, notification, candidates)
+        return self._deliver_candidates(actor, notification, candidates, source_event_id=source_event_id)
 
     def _deliver_candidates(
         self,
         actor: Actor,
         notification: Notification,
         candidates: list[RouteDestinationCandidate],
+        *, source_event_id: str | None = None,
     ) -> DeliverySummary:
         delivered = 0
         failed = 0
@@ -575,6 +583,7 @@ class PlatformDeliveryService:
                     candidate,
                     notification,
                     delivery_id,
+                    source_event_id=source_event_id,
                 )
             except Exception:
                 future = None
@@ -587,6 +596,7 @@ class PlatformDeliveryService:
                     candidate,
                     notification,
                     delivery_id,
+                    source_event_id=source_event_id,
                 )
             else:
                 try:
@@ -597,6 +607,7 @@ class PlatformDeliveryService:
                         candidate,
                         notification,
                         delivery_id,
+                        source_event_id=source_event_id,
                     )
             attempts += count
             if outcome:
@@ -612,6 +623,7 @@ class PlatformDeliveryService:
         candidate: RouteDestinationCandidate,
         notification: Notification,
         delivery_id: str,
+        *, source_event_id: str | None = None,
     ) -> tuple[bool, int]:
         result = DeliveryResult(
             False,
@@ -628,6 +640,7 @@ class PlatformDeliveryService:
                 "failed",
                 result,
                 destination_id=candidate.destination_id,
+                source_event_id=source_event_id,
             )
         except Exception:
             pass
@@ -639,6 +652,7 @@ class PlatformDeliveryService:
         candidate: RouteDestinationCandidate,
         notification: Notification,
         delivery_id: str,
+        *, source_event_id: str | None = None,
     ) -> tuple[bool, int]:
         route = candidate.route
         destination_id = candidate.destination_id
@@ -657,6 +671,7 @@ class PlatformDeliveryService:
                     "failed",
                     result,
                     destination_id=destination_id,
+                    source_event_id=source_event_id,
                 )
                 return False, 1
         elif not target.destination.enabled:
@@ -670,6 +685,7 @@ class PlatformDeliveryService:
                 "failed",
                 result,
                 destination_id=destination_id,
+                source_event_id=source_event_id,
             )
             return False, 1
 
@@ -689,6 +705,7 @@ class PlatformDeliveryService:
                     "failed",
                     result,
                     destination_id=destination_id,
+                    source_event_id=source_event_id,
                 )
                 return False, 1
 
@@ -704,6 +721,7 @@ class PlatformDeliveryService:
                 "failed",
                 result,
                 destination_id=destination_id,
+                source_event_id=source_event_id,
             )
             return False, 1
 
@@ -734,6 +752,7 @@ class PlatformDeliveryService:
                 outcome,
                 result,
                 destination_id=destination_id,
+                source_event_id=source_event_id,
             )
             if result.success:
                 return True, attempt_number

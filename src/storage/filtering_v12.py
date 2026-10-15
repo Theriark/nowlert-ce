@@ -9,6 +9,8 @@ and finally de-duplicating by Destination.
 
 from __future__ import annotations
 
+import uuid
+
 from dataclasses import replace
 
 from integrations.catalog import canonical_source
@@ -50,7 +52,8 @@ def routing_only_matching(self, actor, owner_user_id, notification):
     return candidates
 
 
-def filtered_deliver(self, actor: Actor, notification) -> DeliverySummary:
+def filtered_deliver(self, actor: Actor, notification, *, source_event_id=None) -> DeliverySummary:
+    source_event_id = source_event_id or uuid.uuid4().hex
     self.filters.migrate_legacy_route_filters()
     routes = self.routes.matching(actor, actor.user_id, notification)
 
@@ -63,7 +66,7 @@ def filtered_deliver(self, actor: Actor, notification) -> DeliverySummary:
     allowed = [
         candidate
         for candidate in candidates
-        if self.filters.matches(actor, candidate.destination_id, notification)
+        if self.filters.matches(actor, candidate.destination_id, notification, source_event_id=source_event_id)
     ]
     specific = [candidate for candidate in allowed if candidate.route.source != "*"]
     selected = specific if specific else [
@@ -77,7 +80,7 @@ def filtered_deliver(self, actor: Actor, notification) -> DeliverySummary:
             continue
         seen_destinations.add(candidate.destination_id)
         matching.append(candidate)
-    return self._deliver_candidates(actor, notification, matching)
+    return self._deliver_candidates(actor, notification, matching, source_event_id=source_event_id)
 
 
 def apply_filtering_v12(routing_only_class, filtered_delivery_class):

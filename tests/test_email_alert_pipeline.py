@@ -39,7 +39,7 @@ class FakeDelivery:
         self.summary = summary or DeliverySummary(1, 1, 0, 1)
         self.calls = []
 
-    def deliver(self, actor, notification):
+    def deliver(self, actor, notification, *, source_event_id=None):
         self.calls.append((actor, notification))
         return self.summary
 

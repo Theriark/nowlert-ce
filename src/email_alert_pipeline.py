@@ -298,7 +298,7 @@ class EmailAlertProcessor:
         )
         event_id = uuid.uuid4().hex
         notification = self._notification(event, body, event_id)
-        summary = self._delivery_service().deliver(owner_actor, notification)
+        summary = self._delivery_service().deliver(owner_actor, notification, source_event_id=event_id)
         action = "reprocessed" if replay else "promoted"
         details = {
             "matched_routes": summary.matched_routes,

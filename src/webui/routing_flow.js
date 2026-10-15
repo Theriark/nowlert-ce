@@ -760,9 +760,10 @@
   }
   function renderMetrics() {
     $("rf-metrics").replaceChildren();
-    const spec = [["received", "Received", "Source events", "pulse"], ["delivered", "Delivered", "Destination deliveries", "green"], ["filtered", "Filtered out", "Events not routed", "filter"], ["pending", "Retry scheduled", "Latest recorded status", "amber"], ["failed", "Failed", "Terminal failures", "red"]];
+    const spec = [["received", "Received", "Source events", "pulse"], ["delivered", "Delivered", "Destination deliveries", "green"], ["filtered", "Filtered out", "Destination decisions", "filter"], ["pending", "Retry scheduled", "Latest recorded status", "amber"], ["failed", "Failed", "Terminal failures", "red"]];
     for (const [key, label, note, symbol] of spec) {
       const box = el("div", "rf-metric"), content = el("div");
+      if (key === "received" && data.metrics.received === null) box.title = "Source event counts were not recorded for part of this period. Choose a period after the source receipt upgrade for exact counts.";
       box.append(["pulse", "filter"].includes(symbol) ? icon(symbol) : dot(symbol));
       content.append(el("strong", "", metricText(data.metrics[key])), el("span", "", label), el("small", "", data.metrics[key] === null ? "Not recorded" : note));
       box.append(content);

@@ -779,7 +779,17 @@ MIGRATIONS: tuple[tuple[int, str, tuple[str, ...]], ...] = (
             """,
         ),
     ),
+    (
+        18,
+        "source receipt identity",
+        (
+            "ALTER TABLE routing_flow_events ADD COLUMN source_event_id TEXT",
+            "ALTER TABLE delivery_attempts ADD COLUMN source_event_id TEXT",
+            "CREATE INDEX routing_flow_events_source_event ON routing_flow_events(source_event_id, created_at)",
+            "CREATE INDEX delivery_attempts_source_event ON delivery_attempts(source_event_id, created_at)",
+            "CREATE UNIQUE INDEX routing_flow_events_source_destination ON routing_flow_events(source_event_id, destination_id) WHERE source_event_id IS NOT NULL",
+        ),
+    ),
 )
-
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1][0]

@@ -54,6 +54,7 @@ def record_destination_filter_decision(
     notification,
     matched,
     *,
+    source_event_id=None,
     clock=time.time,
 ):
     """Record the filter decision at the filter boundary without payload data."""
@@ -69,8 +70,9 @@ def record_destination_filter_decision(
                 """
                 INSERT INTO routing_flow_events(
                     owner_user_id, route_id, destination_id,
-                    source, filtered, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    source, filtered, created_at, source_event_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(source_event_id, destination_id) WHERE source_event_id IS NOT NULL DO NOTHING
                 """,
                 (
                     str(actor.user_id),
@@ -79,6 +81,7 @@ def record_destination_filter_decision(
                     source,
                     0 if matched else 1,
                     now,
+                    source_event_id,
                 ),
             )
             connection.execute(
@@ -202,6 +205,38 @@ def delivery_snapshot(database, actor, since):
             parameters,
         ).fetchall()
 
+        # Apply recipient visibility before sharing an identity across owners.
+        receipt_cte = """WITH receipts AS (
+            SELECT e.source_event_id, e.route_id, e.created_at
+            FROM routing_flow_events e WHERE e.owner_user_id = ? OR EXISTS (
+                SELECT 1 FROM destinations d WHERE d.id = e.destination_id AND d.shared = 1
+            )
+            UNION ALL
+            SELECT a.source_event_id, a.route_id, a.created_at
+            FROM delivery_attempts a WHERE a.owner_user_id = ? OR EXISTS (
+                SELECT 1 FROM destinations d WHERE d.id = a.destination_id AND d.shared = 1
+            )
+        ), identified AS (
+            SELECT source_event_id, route_id, MIN(created_at) AS received_at
+            FROM receipts WHERE source_event_id IS NOT NULL
+            GROUP BY source_event_id, route_id
+        ) """
+        receipt_parameters = (actor.user_id, actor.user_id, int(since), int(since))
+        source_total = connection.execute(receipt_cte + """
+            SELECT (SELECT COUNT(*) FROM (
+                SELECT source_event_id FROM identified GROUP BY source_event_id
+                HAVING MIN(received_at) >= ?
+            )) AS received,
+            EXISTS(SELECT 1 FROM receipts WHERE source_event_id IS NULL AND created_at >= ?) AS legacy
+            """, receipt_parameters).fetchone()
+        source_routes = connection.execute(receipt_cte + """
+            SELECT route_id, COUNT(*) AS received, 0 AS legacy
+            FROM identified WHERE received_at >= ? GROUP BY route_id
+            UNION ALL
+            SELECT DISTINCT route_id, 0 AS received, 1 AS legacy
+            FROM receipts WHERE source_event_id IS NULL AND created_at >= ?
+            """, receipt_parameters).fetchall()
+
     total = {**empty_metrics(), "last_activity_at": 0}
     by_route, by_destination, by_link, by_filter = {}, {}, {}, {}
 
@@ -288,13 +323,20 @@ def delivery_snapshot(database, actor, since):
 
     for metrics in by_link.values():
         normalize_received(metrics)
-    for metrics in by_route.values():
-        normalize_received(metrics)
     for metrics in by_destination.values():
         normalize_received(metrics)
     for metrics in by_filter.values():
         normalize_received(metrics)
-    normalize_received(total)
+    # Source receipts cannot be inferred from destination delivery totals.
+    total["received"] = None if source_total["legacy"] else int(source_total["received"])
+    for metrics in by_route.values():
+        metrics["received"] = 0
+    for row in source_routes:
+        metrics = by_route.setdefault(row["route_id"], {**empty_metrics(), "last_activity_at": 0})
+        if row["legacy"]:
+            metrics["received"] = None
+        elif metrics["received"] is not None:
+            metrics["received"] += int(row["received"])
 
     history_fields = (
         "id",
