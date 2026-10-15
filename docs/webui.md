@@ -69,15 +69,6 @@ manual replay button.
 
 ![Historical v3.1.0 Dashboard](images/v3.1.0-dashboard.png)
 
-### Sources
-
-Sources shows the complete built-in integration catalogue. Integrations are
-packaged application capabilities rather than removable runtime records.
-Administrators may change presentation categories and supported integration
-behavior without changing the parser identity.
-
-The normalized input badges are **SMTP**, **HTTP**, and **Redfish**.
-
 ### Destinations
 
 Destination owners can create, edit, preview, test, enable/disable,
@@ -90,31 +81,26 @@ but normal read APIs do not return the stored webhook URL, password, token, or
 secret-file path. A positive test state means a real destination test passed;
 saving a credential alone is not presented as validation.
 
-### Routes
+### Route assignments
 
-Routes connect an integration/input pair to a destination.
+In **Destinations**, create or edit a destination and select **Manage routes**.
+Choose the built-in integration/input routes, select **Done**, then save the
+destination. Done updates the form; **Save changes** (or **Add destination**)
+persists the assignments. There is no separate Sources or Routes page.
 
-The v3.1.2 route editor keeps route editing focused on meaningful criteria:
+Built-in integrations are packaged application capabilities. The normalized
+input badges are **SMTP**, **HTTP**, and **Redfish**. Dedicated matching routes
+are evaluated before wildcard **Fallback** routes.
 
-- Host include/exclude patterns;
-- Event include/exclude patterns;
-- Included Severities; and
-- Included Statuses.
+### Filtering
 
-Excluded severity/status lists are not shown because any unselected severity or
-status is already excluded by the included set.
-
-Included Severities and Included Statuses support normal mouse-only additive
-selection: click an unselected option to add it and click a selected option to
-remove it. Native range/drag selection remains available. The control uses the
-standard selected-option highlight rather than a second green/red color system.
-
-The available values are scoped to the selected integration/input contract, and
-the Routes list accurately represents both partial and full-list criteria after
-save.
-
-Wildcard routes are labelled **Fallback**. They are evaluated only when no
-enabled dedicated integration route matches the event.
+Open **Filtering** to configure destination-specific integration filters for
+severity, status and supported application fields. Keep source notifications
+broad, then suppress unwanted events centrally. Administrative deterministic
+processing settings appear under **Integration behavior** on this page as well:
+Xen Orchestra job/run ID visibility, Zabbix problem ID visibility, Dell iDRAC
+trusted management clients, UniFi Protect device aliases, Home Assistant
+endpoint/component aliases, and Redfish deduplication.
 
 ### Routing Flow
 
@@ -185,22 +171,13 @@ display **User**.
 Settings includes:
 
 - language, IANA timezone, and 12/24-hour clock;
-- scheduled-only housekeeping with Enabled/Disabled state and recommended retention choices for Delivery History, Audit Log, and backup-run records;
-- Xen Orchestra job/run ID visibility;
-- Zabbix problem ID visibility;
-- Dell iDRAC trusted management clients;
-- UniFi Protect device aliases;
-- Home Assistant endpoint/component aliases; and
-- Redfish deduplication behavior.
+- scheduled-only housekeeping with Enabled/Disabled state and recommended retention choices for Delivery History, Audit Log, and backup-run records; and
+- administrative update checks.
+
+Integration behavior controls live under **Filtering**.
 
 Each settings record has an independent error boundary. One invalid record does
 not make unrelated settings or pages unavailable.
-
-### Inputs
-
-SMTP, HTTP, and Redfish listeners are managed independently. Listener binding,
-TLS, authentication, and process-level enablement remain bootstrap settings and
-require a Nowlert restart when changed.
 
 ### Backups and Data tools
 
@@ -241,6 +218,10 @@ The WebUI relies on server-enforced security boundaries:
 - one-time Event API token display.
 
 ## Persistent configuration model
+
+SMTP, HTTP and Redfish listeners are configured through bootstrap settings.
+Binding, TLS, authentication and process-level enablement changes require a
+Nowlert restart. There is no separate Inputs navigation page.
 
 WebUI-managed resources are database-authoritative under `/nowlert/state`.
 `config.yaml` is limited to process/bootstrap concerns such as listeners,

@@ -86,8 +86,7 @@ def test_management_consistency_styles_cover_workbench_layout_regressions():
     assert ".destination-reference-card .resource-meta .destination-test-state" in styles
     assert "min-height: 54px;" in styles
     assert "flex: 0 0 auto;" in styles
-    assert "grid-auto-columns: minmax(0, 1fr);" in styles
-    assert "grid-auto-flow: column;" in styles
+    assert "flex: 1 1 max-content;" in styles
     assert "height: 2.35rem;" in styles
     shared_actions = styles[
         styles.index(".destination-reference-card:has(.destination-view-only-badge):has(.destination-sharing-control.is-shared) .resource-actions"):

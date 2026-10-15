@@ -65,11 +65,9 @@
 #view-destinations .destination-reference-card .resource-meta,
 #view-destinations .acceptance-private-destination .resource-meta {
   align-items: stretch;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
-  grid-template-columns: none;
   min-height: 54px;
   padding-block: 10px;
 }
@@ -77,12 +75,14 @@
 #view-destinations .destination-reference-card .resource-meta > *,
 #view-destinations .acceptance-private-destination .resource-meta > * {
   box-sizing: border-box;
-  height: 34px;
+  flex: 1 1 max-content;
+  height: auto;
+  max-width: 100%;
   min-height: 34px;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  width: auto;
 }
 
 #view-destinations .destination-reference-card .resource-meta .destination-test-state {
@@ -90,7 +90,7 @@
   box-sizing: border-box;
   min-height: 34px;
   padding: 0.32rem 0.72rem;
-  width: 100%;
+  width: auto;
 }
 
 #view-destinations .destination-reference-card .resource-actions {

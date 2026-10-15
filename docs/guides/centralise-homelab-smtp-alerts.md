@@ -93,9 +93,11 @@ Current destination adapters include:
 Destination credentials are stored as owner-scoped write-only secrets rather
 than being returned by normal read APIs.
 
-## 4. Create dedicated routes
+## 4. Assign dedicated routes
 
-Create routes from **Routes** using the integration and SMTP input, for example:
+In **Destinations**, create or edit the target and open **Manage routes**.
+Select the built-in integration SMTP routes, choose **Done**, then save the
+destination. For example:
 
 ```text
 Xen Orchestra (SMTP) -> Infrastructure Discord
@@ -103,7 +105,7 @@ QNAP (SMTP)           -> Storage Teams
 TrueNAS (SMTP)        -> Infrastructure Discord
 ```
 
-Routes can filter on host, event, severity and status. Dedicated integration
+Use **Filtering** for destination-specific noise rules. Dedicated integration
 routes are evaluated first. Wildcard routes are fallback-only and run only when
 no enabled dedicated route matches.
 

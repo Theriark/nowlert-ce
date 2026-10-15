@@ -96,7 +96,9 @@ deployment's forwarding alarm. The Schedule trigger is a timer, not a source
 event subscription. This setup forwards available alarm events, not video or
 every raw telemetry sample; thumbnails were left off.
 
-![Protect forwarding alarms and native trigger history](../images/unifi-setup/protect-alarms.png)
+In Protect Alarm Manager, confirm the four forwarding alarms are enabled and
+inspect each trigger and eligible-device scope. Use your own camera/location
+labels; the earlier capture was withdrawn because it exposed private labels.
 
 ## 5. Drive: one alarm per event
 

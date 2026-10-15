@@ -269,14 +269,12 @@ administrators may explicitly share destinations for route use.
 The bundled same-origin WebUI provides:
 
 - Dashboard/Overview analytics and routing flow;
-- Sources/integration catalogue;
-- Destinations;
-- Routes;
-- Event API tokens;
+- Destinations with built-in route assignments;
+- Filtering;
+- Profile menu → Security → API tokens;
 - Delivery History;
 - Audit Log;
 - Users;
-- Inputs;
 - Backups and Data tools;
 - integration settings;
 - regional preferences; and

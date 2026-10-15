@@ -64,16 +64,13 @@ In **Destinations** in the Nowlert WebUI:
 
 The credential is not returned by normal read APIs after it is stored.
 
-## 4. Create the Xen Orchestra route
+## 4. Assign the Xen Orchestra route
 
-In **Routes**, create a route with:
+In **Destinations**, edit the Teams destination and open **Manage routes**.
+Select **Xen Orchestra SMTP**, choose **Done**, then **Save changes**. Keep the
+destination and route enabled. No extra route needs to be created.
 
-- Integration: **Xen Orchestra**;
-- Input: **SMTP**;
-- Destination: the Teams destination created above;
-- Enabled: yes.
-
-Optional host/event/severity/status filters can narrow the route. If Xen
+Use **Filtering** to narrow destination-specific events when needed. If Xen
 Orchestra has a dedicated matching route, a wildcard fallback route is not used
 as an additional fan-out path.
 

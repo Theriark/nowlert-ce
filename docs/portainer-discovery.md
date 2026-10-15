@@ -5,7 +5,7 @@ production integration. Production configuration now lives in the
 [Portainer integration guide](portainer.md). The first validation target is
 Portainer Business Edition 2.42.0 running on NOWLERT-HOST (`192.0.2.164`).
 
-[Portainer Alerting](https://docs.portainer.io/user/observability/alerting) is
+[Portainer Alerting](https://docs.portainer.io/user/alerting.md) is
 a Business Edition feature and is configured by a Portainer administrator
 under **Additional Functionality > Alerting**. Its notification channels
 include webhook and email. Nowlert consumes those outbound alert

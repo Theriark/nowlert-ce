@@ -14,6 +14,7 @@ SCHEMA_GUIDES = (
     "docs/current-configuration-model.md", "docs/webui.md",
 )
 WITHDRAWN_IMAGES = (
+    "unifi-setup/protect-alarms.png",
     "email-setup/mailboxes-healthy-redacted.png",
     "email-setup/noip-warning-redacted.png",
     "hardware-setup/portainer-tls-config.png",
@@ -67,3 +68,19 @@ def test_old_preview_is_identified_as_historical():
         text = (ROOT / relative).read_text(encoding="utf-8")
         assert "Historical v3.1.0" in text
         assert "remains the current visual baseline" not in text
+
+
+def test_current_guides_follow_destination_route_navigation():
+    webui = (ROOT / "docs/webui.md").read_text(encoding="utf-8")
+    assert "### Sources" not in webui
+    assert "### Routes" not in webui
+    assert "### Inputs" not in webui
+    assert "### Filtering" in webui
+    assert "Manage routes" in webui
+    for relative in ("centralise-homelab-smtp-alerts.md", "xen-orchestra-to-teams.md"):
+        text = (ROOT / "docs/guides" / relative).read_text(encoding="utf-8")
+        assert "**Routes**" not in text, relative
+        assert "**Manage routes**" in text, relative
+    readme = (ROOT / "README.md").read_text(encoding="utf-8").split("## WebUI", 1)[1].split("## ", 1)[0]
+    for retired in ("Sources/integration catalogue", "- Routes;", "- Inputs;"):
+        assert retired not in readme
