@@ -55,7 +55,7 @@
     "invalid",
   ]);
   const ANALYTICS_TTL_MS = 60_000;
-  const AUDIT_ANALYTICS_STORAGE_VERSION = "v1";
+  const AUDIT_ANALYTICS_STORAGE_VERSION = "v2";
   const HEALTH_STORAGE_VERSION = "v1";
 
   const previousRenderAudit = renderAudit;
@@ -359,34 +359,6 @@
     button.append(icon, copy);
   }
 
-  function auditTimestamp(item) {
-    const value = Number(item?.created_at || 0);
-    if (!Number.isFinite(value) || value <= 0) return 0;
-    return value < 10_000_000_000 ? value * 1000 : value;
-  }
-
-  function metricBucket(outcome) {
-    const normalized = normalizedDetailKey(outcome);
-    if (SUCCESS_OUTCOMES.has(normalized)) return "success";
-    if (WARNING_OUTCOMES.has(normalized)) return "warning";
-    if (FAILED_OUTCOMES.has(normalized)) return "failed";
-    return "other";
-  }
-
-  function blankCounts() {
-    return { success: 0, warning: 0, failed: 0, other: 0 };
-  }
-
-  function countEvents(events, startMs, endMs) {
-    const counts = blankCounts();
-    for (const item of events) {
-      const timestamp = auditTimestamp(item);
-      if (!timestamp || timestamp < startMs || timestamp >= endMs) continue;
-      counts[metricBucket(item.outcome)] += 1;
-    }
-    return counts;
-  }
-
   function summaryCards() {
     return {
       success: document.getElementById("audit-log-success-count")?.closest(".audit-log-summary-card"),
@@ -545,30 +517,18 @@
     }
 
     analyticsPromise = (async () => {
-      const all = [];
-      let page = 1;
-      let totalPages = 1;
-      let total = knownTotal;
-      const cutoff = now - (14 * 24 * 60 * 60 * 1000);
-
-      do {
-        const response = await request(`/audit-events/page/${page}/size/500`);
-        const events = Array.isArray(response?.audit_events) ? response.audit_events : [];
-        all.push(...events);
-        const pagination = response?.pagination || {};
-        total = Number(pagination.total || total || all.length);
-        totalPages = Math.max(1, Number(pagination.total_pages || 1));
-        const oldest = events.length ? auditTimestamp(events[events.length - 1]) : 0;
-        if (!events.length || (oldest && oldest < cutoff)) break;
-        page += 1;
-      } while (page <= totalPages);
-
-      const currentStart = now - (7 * 24 * 60 * 60 * 1000);
+      const response = await request("/audit-events/summary");
+      const summary = response?.summary;
+      const metrics = [summary?.total, ...["current", "previous"].flatMap(period =>
+        ["success", "warning", "failed", "other"].map(key => summary?.[period]?.[key]))];
+      if (!metrics.every(value => typeof value === "number" && Number.isFinite(value) && value >= 0)) {
+        throw new Error("Audit summary is unavailable");
+      }
       auditAnalytics = {
         loadedAt: Date.now(),
-        total,
-        current: countEvents(all, currentStart, now + 1),
-        previous: countEvents(all, cutoff, currentStart),
+        total: summary.total,
+        current: summary.current,
+        previous: summary.previous,
       };
       persistAuditAnalytics(auditAnalytics);
       applyAuditAnalytics();

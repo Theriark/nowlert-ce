@@ -13,6 +13,7 @@ from api.response import APIResponse
 from integrations.catalog import canonical_source
 from outputs.settings import normalize_output_settings
 from storage.destination_access import (
+    AccessControlledAuditEventStore,
     AccessControlledDeliveryHistoryStore,
     AccessControlledDestinationStore,
     AccessControlledRouteDestinationStore,
@@ -673,59 +674,8 @@ class PlatformAPI(BasePlatformAPI):
 
         return super()._resource_endpoint(method, path, payload, actor)
 
-    def _audit_endpoint(self, method, actor) -> APIResponse:
-        if method != "GET":
-            return self._method_not_allowed("GET")
-        if not actor.is_admin:
-            return APIResponse(200, {"audit_events": []})
-        events = [
-            item
-            for item in self.audit.list_visible(actor, limit=500)
-            if self._access_store().audit_event_visible(actor, item)
-        ]
-        return APIResponse(200, {"audit_events": self._audit_items(events)})
-
-    def _audit_page_endpoint(self, method, actor, page, size=None) -> APIResponse:
-        if method != "GET":
-            return self._method_not_allowed("GET")
-        page_size = 25
-        if size is not None and int(size) in self._AUDIT_PAGE_SIZES:
-            page_size = int(size)
-        if not actor.is_admin:
-            return APIResponse(
-                200,
-                {
-                    "audit_events": [],
-                    "pagination": {
-                        "page": 1,
-                        "page_size": page_size,
-                        "total": 0,
-                        "total_pages": 1,
-                    },
-                },
-            )
-        events = [
-            item
-            for item in self.audit.list_visible(actor, limit=500)
-            if self._access_store().audit_event_visible(actor, item)
-        ]
-        total = len(events)
-        total_pages = max(1, (total + page_size - 1) // page_size)
-        current = min(max(1, int(page)), total_pages)
-        start = (current - 1) * page_size
-        selected = events[start:start + page_size]
-        return APIResponse(
-            200,
-            {
-                "audit_events": self._audit_items(selected),
-                "pagination": {
-                    "page": current,
-                    "page_size": page_size,
-                    "total": total,
-                    "total_pages": total_pages,
-                },
-            },
-        )
+    def _audit_read_store(self):
+        return AccessControlledAuditEventStore(self.database, clock=self.audit.clock)
 
     def _metrics_endpoint(self, method, actor, history_range) -> APIResponse:
         if method != "GET":

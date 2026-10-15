@@ -395,6 +395,8 @@ class PlatformAPI:
                 return self._deliveries_page_endpoint(method, actor, int(delivery_page.group(1)), query=request_url.query)
             if path == "/api/v2/audit-events":
                 return self._audit_endpoint(method, actor)
+            if path == "/api/v2/audit-events/summary":
+                return self._audit_summary_endpoint(method, actor)
             audit_page_size = re.fullmatch(
                 r"/api/v2/audit-events/page/(\d+)/size/(\d+)", path
             )
@@ -2020,10 +2022,18 @@ class PlatformAPI:
             },
         )
 
+    def _audit_read_store(self):
+        return self.audit
+
+    def _audit_summary_endpoint(self, method, actor) -> APIResponse:
+        if method != "GET":
+            return self._method_not_allowed("GET")
+        return APIResponse(200, {"summary": self._audit_read_store().summary_visible(actor)})
+
     def _audit_endpoint(self, method, actor) -> APIResponse:
         if method != "GET":
             return self._method_not_allowed("GET")
-        events = self.audit.list_visible(actor, limit=500)
+        events = self._audit_read_store().list_visible(actor, limit=500)
         return APIResponse(200, {"audit_events": self._audit_items(events)})
 
     _AUDIT_PAGE_SIZES = (25, 50, 100, 150, 250, 500)
@@ -2034,10 +2044,11 @@ class PlatformAPI:
         page_size = 25
         if size is not None and int(size) in self._AUDIT_PAGE_SIZES:
             page_size = int(size)
-        total = self.audit.count_visible(actor)
+        audit = self._audit_read_store()
+        total = audit.count_visible(actor)
         total_pages = max(1, (total + page_size - 1) // page_size)
         current = min(max(1, int(page)), total_pages)
-        events = self.audit.list_visible(
+        events = audit.list_visible(
             actor,
             limit=page_size,
             offset=(current - 1) * page_size,

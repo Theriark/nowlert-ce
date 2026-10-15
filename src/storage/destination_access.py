@@ -10,6 +10,7 @@ from dataclasses import replace
 
 from integrations.catalog import canonical_source, infer_input_type, route_options
 from models import Notification
+from storage.audit_events import AuditEventStore
 from storage.delivery import DeliveryHistoryStore
 from storage.destinations import DeliveryDestination, DestinationStore
 from storage.filtering import RoutingOnlyRouteStore
@@ -254,6 +255,29 @@ class DestinationAccessStore:
             if user is not None and str(user["role"]) == "user":
                 return False
         return True
+
+
+class AccessControlledAuditEventStore(AuditEventStore):
+    """Read audit history using the owner/shared Destination visibility contract."""
+
+    @staticmethod
+    def _visibility(actor: Actor) -> tuple[str, tuple]:
+        if not actor.is_admin:
+            return "0", ()
+        # SQL equivalent of DestinationAccessStore.audit_event_visible, before LIMIT/count.
+        return """(
+            resource_type NOT IN ('destination', 'destination_filter')
+            OR EXISTS (
+                SELECT 1 FROM destinations AS d WHERE d.id = audit_events.resource_id
+                AND (d.owner_user_id = ? OR d.shared = 1)
+            )
+            OR (
+                NOT EXISTS (SELECT 1 FROM destinations AS d WHERE d.id = audit_events.resource_id)
+                AND NOT EXISTS (
+                    SELECT 1 FROM users AS u WHERE u.id = audit_events.actor_user_id AND u.role = 'user'
+                )
+            )
+        )""", (actor.user_id,)
 
 
 class AccessControlledDestinationStore(DestinationStore):
