@@ -27,6 +27,10 @@ The upstream project license and attribution are available in its repository.
   obtained 2026-10-15. Its [logo guidance](https://design.synology.com/elements/logo)
   specifies the white variant for dark backgrounds.
   Previous `qnap.png` and `synology.png` assets remain packaged for existing URLs.
+  Slack Classic uses `qnap-white-slack.png` and `synology-white-slack.png`:
+  the unchanged white artwork centered on a transparent square canvas, so
+  Slack's square cover crop retains the whole wordmark. Other providers keep
+  the native wide assets.
 
 - Supermicro active icon: `supermicro-white-fill.png` is the unchanged official
   [PNG White Background](https://www.supermicro.com/sites/default/files/content_resources/static_resources/logos/Supermicro_GreenC_NewLogo_WhiteBackground.png)

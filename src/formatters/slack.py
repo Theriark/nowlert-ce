@@ -500,7 +500,10 @@ class SlackFormatter(PresentationMixin):
 
         normalized = str(source or "").strip().casefold()
         icon_url = self._product_icon_url(normalized)
-        padded = self.DISCORD_PRODUCT_ICONS.get(normalized)
+        padded = {
+            "qnap": "qnap-white-slack.png",
+            "synology": "synology-white-slack.png",
+        }.get(normalized, self.DISCORD_PRODUCT_ICONS.get(normalized))
         if not icon_url or not padded:
             return icon_url
         return f"{icon_url.rsplit('/', 1)[0]}/{padded}"
