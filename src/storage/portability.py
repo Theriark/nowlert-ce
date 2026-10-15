@@ -582,16 +582,30 @@ class PlatformPortabilityService:
     def rollback_resources(self, actor: Actor, resources: dict) -> None:
         """Remove only resources created by an interrupted local migration."""
 
+        self._require_admin(actor)
         route_ids = list(resources.get("routes") or ())
         destination_ids = list(resources.get("destinations") or ())
         secret_ids = list(resources.get("secrets") or ())
         with self.database.maintenance():
+            self._clear_portable_filter_state(destination_ids)
             for route_id in reversed(route_ids):
                 self.routes.delete(actor, route_id)
             for destination_id in reversed(destination_ids):
-                self.destinations.delete(actor, destination_id)
+                self.destinations.delete(
+                    self._import_destination_actor(actor, destination_id), destination_id,
+                )
             for secret_id in reversed(secret_ids):
                 self.secrets.delete(actor, secret_id)
+
+    def _import_destination_actor(self, actor: Actor, destination_id: str) -> Actor:
+        self._require_admin(actor)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT owner_user_id FROM destinations WHERE id = ?", (destination_id,),
+            ).fetchone()
+        if row is None:
+            raise KeyError("destination not found")
+        return Actor(str(row["owner_user_id"]), actor.role)
 
     def _apply(self, actor: Actor, plan: ImportPlan, fingerprint: str) -> dict:
         if not plan.valid:
@@ -611,6 +625,7 @@ class PlatformPortabilityService:
         *,
         include_resources: bool = False,
     ) -> dict:
+        self._require_admin(actor)
         created_routes: list[str] = []
         created_destinations: list[str] = []
         created_secrets: list[str] = []
@@ -633,7 +648,8 @@ class PlatformPortabilityService:
                     item.get("secret_required") and not secret_id
                 ))
                 destination = self.destinations.create(
-                    actor,
+                    # Trusted admin import keeps its capabilities under the destination owner identity.
+                    Actor(item["owner_id"], actor.role),
                     item["owner_id"],
                     item["name"],
                     item["output_type"],
@@ -662,7 +678,7 @@ class PlatformPortabilityService:
                 destination_id = destination_ids[item["ref"]]
                 selected = [route_ids[ref] for ref in item.get("route_refs") or ()]
                 self.relationships.replace_for_destination(
-                    actor,
+                    self._import_destination_actor(actor, destination_id),
                     destination_id,
                     selected,
                 )
@@ -680,7 +696,9 @@ class PlatformPortabilityService:
                     pass
             for destination_id in reversed(created_destinations):
                 try:
-                    self.destinations.delete(actor, destination_id)
+                    self.destinations.delete(
+                        self._import_destination_actor(actor, destination_id), destination_id,
+                    )
                 except Exception:
                     pass
             for secret_id in reversed(created_secrets):
