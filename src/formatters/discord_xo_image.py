@@ -2288,10 +2288,10 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
         )
         return selected
 
-    def _fit_text(self, draw, value, x, y, width, font, fill):
+    def _fit_text(self, draw, value, x, y, width, font, fill, *, anchor=None):
         text = self._clean(value)
         if draw.textlength(text, font=font) <= width:
-            draw.text((x, y), text, font=font, fill=fill)
+            draw.text((x, y), text, font=font, fill=fill, anchor=anchor)
             return
         ellipsis = "…"
         while text and draw.textlength(text + ellipsis, font=font) > width:
@@ -2301,6 +2301,7 @@ class XenOrchestraDiscordImageRenderer(ModernCardLayoutMixin):
             (text.rstrip() + ellipsis) if text else ellipsis,
             font=font,
             fill=fill,
+            anchor=anchor,
         )
 
     @staticmethod
