@@ -2986,8 +2986,8 @@ textarea:focus {
 
 .qa-pagination .qa-page-status .qa-page-number {
   margin: 0;
-  max-width: 4.25rem;
-  width: 4.25rem;
+  max-width: 6rem;
+  width: 6rem;
 }
 
 @media (max-width: 900px) {
