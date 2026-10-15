@@ -8,12 +8,13 @@ from formatters.discord_classic_v1 import render_classic_embed_v1
 from formatters.presentation import PresentationMixin
 from models import Notification
 from outputs.platform_common import safe_action_url
+from parsers.application_alerts import NAMES as APPLICATION_NAMES
 
 
 CLASSIC_FOOTER = "🦉 Nowlert CE • Classic Card"
 _MARKDOWN_LINK = re.compile(r"\[([^\]\n]{1,120})\]\((https://[^)\s]+)\)")
 _UNFOLDED_CLASSIC_SOURCES = frozenset(
-    {"prometheus", "truenas", "unifi_network", "semaphore"}
+    {"prometheus", "truenas", "unifi_network", *APPLICATION_NAMES}
 )
 
 
