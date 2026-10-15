@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 TEAMS_MODERN_CARD_ROUTE_PREFIX = "/ui/teams-modern-cards/"
 
 
-UI_BUILD = "20260929-r71"
+UI_BUILD = "20260929-r72"
 ROUTING_FLOW_CSS_BUILD = f"{UI_BUILD}-routing-flow-6"
 ROUTING_FLOW_JS_BUILD = f"{UI_BUILD}-routing-flow-6"
 EMAIL_ALERTS_JS_BUILD = f"{UI_BUILD}-email-alerts-1"
@@ -340,7 +340,9 @@ class WebUIService:
 
             "proxmox.png",
             "qnap.png",
+            "qnap-white.png",
             "synology.png",
+            "synology-white.png",
             "truenas.png",
             "unifi-network.png",
             "unifi-protect.png",

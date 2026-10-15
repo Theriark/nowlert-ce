@@ -70,7 +70,7 @@ def test_protect_rejects_malformed_nested_lists(field):
     assert ProtectParser.is_envelope(payload) is False
 
 
-@pytest.mark.parametrize(("source", "relative"), [("synology", "synology.png"), ("zabbix", "zabbix.png"), ("unifi_protect", "unifi-protect.png")])
+@pytest.mark.parametrize(("source", "relative"), [("synology", "synology-white.png"), ("zabbix", "zabbix.png"), ("unifi_protect", "unifi-protect.png")])
 def test_teams_icons_use_public_https_urls(source, relative):
     url = PresentationMixin()._product_icon_url(source)
     assert url.startswith("https://")
@@ -97,10 +97,10 @@ def test_discord_resolves_regular_packaged_variant():
     output = DiscordOutput()
     output.ICON_DIR = ROOT / "assets" / "icons"
     formatter = output.source_formatters["synology"]
-    payload = _components_thumbnail("nowlert-asset://synology.png")
+    payload = _components_thumbnail("nowlert-asset://synology-white.png")
     filename, path, _thumbnail = output._local_icon(payload, formatter)
-    assert filename == "synology.png"
-    assert path == (ROOT / "assets" / "icons" / "synology.png").resolve()
+    assert filename == "synology-white.png"
+    assert path == (ROOT / "assets" / "icons" / "synology-white.png").resolve()
 
 
 def test_discord_rejects_unmapped_and_traversal_assets():

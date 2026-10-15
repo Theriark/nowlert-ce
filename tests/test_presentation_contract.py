@@ -31,8 +31,8 @@ TEAMS_PRODUCT_ASSETS = {
     "prometheus": "prometheus.png",
     "portainer": "portainer.png",
     "proxmox": "proxmox.png",
-    "qnap": "qnap.png",
-    "synology": "synology.png",
+    "qnap": "qnap-white.png",
+    "synology": "synology-white.png",
     "truenas": "truenas.png",
     "unifi_network": "unifi-network.png",
     "unifi_protect": "unifi-protect.png",
@@ -333,13 +333,17 @@ def test_teams_product_assets_use_legible_aspect_safe_sizes(source, pixels):
 
 
 @pytest.mark.parametrize("filename", TEAMS_PRODUCT_ASSETS.values())
-def test_every_teams_product_asset_is_256px_transparent_png(filename):
+def test_every_teams_product_asset_is_transparent_png_with_expected_dimensions(filename):
     data = (ROOT / "assets" / "icons" / filename).read_bytes()
     assert data.startswith(b"\x89PNG\r\n\x1a\n")
     width, height, _depth, color_type, _compression, _filter, _interlace = (
         struct.unpack(">IIBBBBB", data[16:29])
     )
-    assert (width, height) == (256, 256)
+    expected_dimensions = {
+        "qnap-white.png": (1460, 313),
+        "synology-white.png": (1200, 371),
+    }
+    assert (width, height) == expected_dimensions.get(filename, (256, 256))
     assert color_type in {4, 6}
 
 

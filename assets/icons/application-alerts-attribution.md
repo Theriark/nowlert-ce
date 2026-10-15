@@ -15,3 +15,15 @@ The upstream project license and attribution are available in its repository.
   The white variant follows the [official color guidance](https://brand.github.com/foundations/logo)
   for legibility on dark surfaces. The previous Homarr-derived `github-actions.png`
   remains packaged for existing card URLs.
+
+- QNAP active icon: `qnap-white.png` is the unchanged official
+  `logo_QNAP_LOGO_K0.png` from the vendor's
+  [white logo PNG package](https://marketing.qnap.com/download/750/?version=logo-png),
+  obtained 2026-10-15. The [resource page](https://marketing.qnap.com/resource/qnap-logo-k0/)
+  identifies the white variant as RGB 255, 255, 255.
+- Synology active icon: `synology-white.png` is the unchanged official
+  `Synology_logo_white.png` from the vendor's
+  [logo package](https://design.synology.com/assets/guidelines/resources/downloads/01_logo_synology_logo_package.zip),
+  obtained 2026-10-15. Its [logo guidance](https://design.synology.com/elements/logo)
+  specifies the white variant for dark backgrounds.
+  Previous `qnap.png` and `synology.png` assets remain packaged for existing URLs.
