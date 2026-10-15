@@ -33,7 +33,6 @@ def test_discord_uses_padded_variants_for_requested_integrations():
         "truenas": "discord/truenas.png",
         "portainer": "discord/portainer.png",
         "home_assistant": "discord/home-assistant.png",
-        "supermicro": "discord/supermicro.png",
         "zabbix": "discord/zabbix.png",
     }
     assert expected.items() <= PresentationMixin.DISCORD_PRODUCT_ICONS.items()

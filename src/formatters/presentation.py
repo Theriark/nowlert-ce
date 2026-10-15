@@ -69,7 +69,7 @@ class PresentationMixin:
         "proxmox": "proxmox.png",
         "synology": "synology-white.png",
         "redfish": "redfish.png",
-        "supermicro": "supermicro.png",
+        "supermicro": "supermicro-white-fill.png",
         "hpe_ilo": "hpe-ilo.png",
         "dell_idrac": "dell-idrac.png",
         "home_assistant": "home-assistant.png",
@@ -89,7 +89,6 @@ class PresentationMixin:
         "truenas": "discord/truenas.png",
         "portainer": "discord/portainer.png",
         "home_assistant": "discord/home-assistant.png",
-        "supermicro": "discord/supermicro.png",
         "zabbix": "discord/zabbix.png",
     }
 
@@ -177,7 +176,7 @@ class PresentationMixin:
         normalized = str(source or "").strip().casefold()
         size = f"{self.TEAMS_ICON_PIXELS.get(normalized, 48)}px"
         dimensions = {"width": size}
-        if normalized not in {"qnap", "synology"}:
+        if normalized not in {"qnap", "synology", "supermicro"}:
             dimensions["height"] = size
         return dimensions
 

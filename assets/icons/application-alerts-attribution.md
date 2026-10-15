@@ -27,3 +27,11 @@ The upstream project license and attribution are available in its repository.
   obtained 2026-10-15. Its [logo guidance](https://design.synology.com/elements/logo)
   specifies the white variant for dark backgrounds.
   Previous `qnap.png` and `synology.png` assets remain packaged for existing URLs.
+
+- Supermicro active icon: `supermicro-white-fill.png` is the unchanged official
+  [PNG White Background](https://www.supermicro.com/sites/default/files/content_resources/static_resources/logos/Supermicro_GreenC_NewLogo_WhiteBackground.png)
+  linked by the [vendor logo page](https://www.supermicro.com/en/supermicro-logos),
+  obtained 2026-10-15. The [2026 Rev.4 brand guide](https://www.supermicro.com/manuals/SUPERMICRO_Logo_Guidelines.pdf),
+  pages 16–18, requires white center fill inside the ellipse. Native palette
+  transparency and artwork are preserved. Previous `supermicro.png` and
+  `discord/supermicro.png` assets remain packaged for existing URLs.

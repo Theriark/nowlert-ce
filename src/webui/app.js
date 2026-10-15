@@ -62,7 +62,7 @@ const SOURCE_ICONS = {
   unifi_protect: "/ui/source-icons/unifi-protect.png",
   unifi_drive: "/ui/source-icons/unifi-drive.png",
   zabbix: "/ui/source-icons/zabbix.png",
-  supermicro: "/ui/source-icons/supermicro.png",
+  supermicro: "/ui/source-icons/supermicro-white-fill.png",
   hpe_ilo: "/ui/source-icons/hpe-ilo.png",
   dell_idrac: "/ui/source-icons/dell-idrac.png",
   home_assistant: "/ui/source-icons/home-assistant.png",

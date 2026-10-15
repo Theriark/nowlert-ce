@@ -39,7 +39,7 @@ TEAMS_PRODUCT_ASSETS = {
     "unifi_drive": "unifi-drive.png",
     "zabbix": "zabbix.png",
     "redfish": "redfish.png",
-    "supermicro": "supermicro.png",
+    "supermicro": "supermicro-white-fill.png",
     "hpe_ilo": "hpe-ilo.png",
     "dell_idrac": "dell-idrac.png",
     "home_assistant": "home-assistant.png",
@@ -329,13 +329,13 @@ def test_teams_product_assets_use_legible_aspect_safe_sizes(source, pixels):
     image = _header_image(header)
 
     assert image["width"] == f"{pixels}px"
-    if source in {"qnap", "synology"}:
+    if source in {"qnap", "synology", "supermicro"}:
         assert "height" not in image  # Adaptive Cards preserve intrinsic aspect.
     else:
         assert image["height"] == f"{pixels}px"
 
 
-@pytest.mark.parametrize("source,width", (("qnap", 72), ("synology", 64)))
+@pytest.mark.parametrize("source,width", (("qnap", 72), ("synology", 64), ("supermicro", 64)))
 def test_legacy_teams_header_preserves_native_wordmark_aspect(source, width):
     image = _header_image(PresentationMixin()._teams_header("Synthetic alert", "Attention", source))
     assert image["width"] == f"{width}px"
@@ -352,9 +352,10 @@ def test_every_teams_product_asset_is_transparent_png_with_expected_dimensions(f
     expected_dimensions = {
         "qnap-white.png": (1460, 313),
         "synology-white.png": (1200, 371),
+        "supermicro-white-fill.png": (680, 373),
     }
     assert (width, height) == expected_dimensions.get(filename, (256, 256))
-    assert color_type in {4, 6}
+    assert color_type in {4, 6} or (filename == "supermicro-white-fill.png" and color_type == 3)
 
 
 def test_placeholder_unifi_badge_and_generated_sources_are_removed():
