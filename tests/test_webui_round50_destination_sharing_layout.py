@@ -53,7 +53,7 @@ def test_private_admin_destination_has_one_owner_badge_and_view_only_badge():
     assert "syncDestinationViewOnlyBadge(card);" in consistency
 
 
-def test_destination_metadata_row_uses_equal_dynamic_columns_at_action_height():
+def test_destination_metadata_wraps_long_and_five_badge_rows_without_clipping():
     styles = read("src/webui/management_consistency.css")
     destination_css = read("src/webui/destination_overview_acceptance.css")
 
@@ -61,13 +61,21 @@ def test_destination_metadata_row_uses_equal_dynamic_columns_at_action_height():
     end = styles.index("#view-destinations .destination-reference-card .resource-actions", start)
     block = styles[start:end]
 
-    assert "display: grid;" in block
-    assert "grid-auto-columns: minmax(0, 1fr);" in block
-    assert "grid-auto-flow: column;" in block
-    assert "grid-template-columns: none;" in block
-    assert "height: 34px;" in block
+    assert "display: flex;" in block
+    assert "flex-wrap: wrap;" in block
+    assert "flex: 1 1 max-content;" in block
+    assert "max-width: 100%;" in block
+    assert "height: auto;" in block
+    assert "white-space: normal;" in block
+    assert "overflow-wrap: anywhere;" in block
+    assert "overflow: hidden;" not in block
+    assert "\n  width: 100%;" not in block
     assert "min-height: 34px;" in block
     assert "grid-template-columns: repeat(4" not in styles
+
+    reference = read("src/webui/reference_acceptance.css")
+    owner = reference.split("#view-destinations .destination-owner-badge {", 1)[1].split("}", 1)[0]
+    assert "height: auto !important;" in owner
 
     actions_start = destination_css.index("#view-destinations .resource-actions .button {")
     actions_end = destination_css.index("}", actions_start)

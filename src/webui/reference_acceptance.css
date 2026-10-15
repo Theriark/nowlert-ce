@@ -691,7 +691,7 @@ button.reference-preview-route-more:focus-visible {
 #view-destinations .destination-owner-badge {
   box-sizing: border-box !important;
   font-size: 0.64rem !important;
-  height: 2rem !important;
+  height: auto !important;
   line-height: 1 !important;
   min-height: 2rem !important;
   padding: 0.32rem 0.6rem !important;

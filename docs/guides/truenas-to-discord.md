@@ -82,6 +82,7 @@ In Nowlert **Delivery history**, select the TrueNAS test and verify:
   changing them. Preserve existing notification paths during migration.
 - Received but suppressed: inspect Nowlert's centralized Filtering and Routing Flow.
 
-The public [TrueNAS 25.04 alert-service API](https://api.truenas.com/v25.04.0/api_methods_alertservice.create.html)
-documents service levels. UI labels differ across releases; this walkthrough
+Consult the [TrueNAS API version selector](https://api.truenas.com/) and the
+installed appliance's `/api/docs/` reference for `alertservice.create` to check
+service levels. UI labels differ across releases; this walkthrough
 records the tested 25.04 screen rather than assuming all versions have the same UI.

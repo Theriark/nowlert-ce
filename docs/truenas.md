@@ -67,7 +67,8 @@ Edit or add the Email alert service:
 TrueNAS sends the selected level and more severe alerts. The v26 API calls the
 service type `Mail` and supports Info, Notice, Warning, Error, Critical, Alert,
 and Emergency levels. See the official
-[v26 alertservice API](https://api.truenas.com/v26.0/api_methods_alertservice.create.html).
+[TrueNAS API version selector](https://api.truenas.com/). Use `/api/docs/` on
+your appliance for its installed version and the `alertservice.create` method.
 
 ## Dedicated routing
 

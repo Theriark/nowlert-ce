@@ -7,10 +7,16 @@ captures were sanitized was incorrect. Twelve captures with remaining private
 details were withdrawn from the current checkout and all current guide links.
 The affected guides now provide written verification steps instead.
 
+A fresh independent review of all 70 retained linked raster captures later on
+15 October found one further Protect capture with custom camera/location labels.
+That capture was also withdrawn and replaced with written checks, leaving 69
+linked rasters. Thirteen captures are now excluded from the current checkout.
+
 ## Withdrawn captures
 
 Paths below are relative to `docs/`. They are an exclusion record, not links.
 
+- `images/unifi-setup/protect-alarms.png` — private camera/location labels.
 - `images/email-setup/mailboxes-healthy-redacted.png` — mailbox account label.
 - `images/email-setup/noip-warning-redacted.png` — mailbox account label in activity.
 - `images/hardware-setup/portainer-tls-config.png` — private bind address in Compose.
