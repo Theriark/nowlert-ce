@@ -8,6 +8,7 @@ services:
     container_name: nowlert-ce-dev
     restart: unless-stopped
     working_dir: /nowlert
+    user: "${NOWLERT_UID:-1000}:${NOWLERT_GID:-1000}"
     ports:
       - "8026:8025"
       - "18082:8080"

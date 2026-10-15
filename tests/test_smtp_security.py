@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+from datetime import datetime, timedelta, timezone
+import ipaddress
 import smtplib
 import socket
 import ssl
@@ -12,6 +14,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 
 from aiosmtpd.controller import Controller
 from aiosmtpd.smtp import LoginPassword
@@ -26,11 +32,35 @@ from inputs.smtp_security import (
 )
 
 
-TLS_FIXTURES = Path(__file__).parent / "fixtures" / "tls"
-CERTFILE = TLS_FIXTURES / "cert.pem"
-KEYFILE = TLS_FIXTURES / "key.pem"
+CERTFILE = KEYFILE = None
 USERNAME = "nowlert"
 PASSWORD = "correct horse battery staple"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def ephemeral_tls_files(tmp_path_factory):
+    global CERTFILE, KEYFILE
+    directory = tmp_path_factory.mktemp("smtp-tls")
+    CERTFILE, KEYFILE = directory / "cert.pem", directory / "key.pem"
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
+    now = datetime.now(timezone.utc)
+    certificate = (
+        x509.CertificateBuilder().subject_name(name).issuer_name(name)
+        .public_key(key.public_key()).serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(minutes=1))
+        .not_valid_after(now + timedelta(days=1))
+        .add_extension(x509.SubjectAlternativeName([
+            x509.DNSName("localhost"), x509.IPAddress(ipaddress.ip_address("127.0.0.1")),
+        ]), critical=False)
+        .sign(key, hashes.SHA256())
+    )
+    KEYFILE.write_bytes(key.private_bytes(
+        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    ))
+    KEYFILE.chmod(0o600)
+    CERTFILE.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
 
 
 class FakeConfig:
@@ -63,13 +93,13 @@ def smtp_config(
     username=USERNAME,
     password_env="NOWLERT_SMTP_PASSWORD",
     password_file="",
-    certfile=CERTFILE,
-    keyfile=KEYFILE,
+    certfile=None,
+    keyfile=None,
 ):
     tls = {
         "enabled": tls_enabled,
-        "certfile": str(certfile),
-        "keyfile": str(keyfile),
+        "certfile": str(CERTFILE if certfile is None else certfile),
+        "keyfile": str(KEYFILE if keyfile is None else keyfile),
     }
     auth = {
         "enabled": auth_enabled,
@@ -149,10 +179,7 @@ def running_server(settings, handler=None):
 
 
 def client_tls_context():
-    context = ssl.create_default_context()
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
-    return context
+    return ssl.create_default_context(cafile=str(CERTFILE))
 
 
 def start_tls(client):

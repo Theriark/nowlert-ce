@@ -242,7 +242,7 @@ def test_release_workflows_use_current_action_majors():
     assert "actions/setup-node@v7" in ci
 
     assert "actions/checkout@v7" in finalization
-    assert "docker/login-action@v4" in finalization
+    assert "docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4" in finalization
     assert "docker/setup-buildx-action" not in finalization
     assert "docker/build-push-action" not in finalization
     assert "skopeo copy --all --preserve-digests" in finalization

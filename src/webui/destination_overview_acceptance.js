@@ -94,7 +94,7 @@
         );
       }
     } catch (error) {
-      toast(error.message || "Destination test failed.", "error");
+      toast(uiErrorMessage(error, "Destination test failed."), "error");
     } finally {
       if (button) button.disabled = false;
     }

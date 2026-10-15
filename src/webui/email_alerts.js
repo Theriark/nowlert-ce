@@ -2,6 +2,16 @@
 
 const EMAIL_ACTIVITY_REFRESH_MS = 30_000;
 
+function emailProviderLink(value) {
+  if (typeof value !== "string") return "";
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password ? url.href : "";
+  } catch (_error) {
+    return "";
+  }
+}
+
 function emailInitialTab() {
   const requested = new URLSearchParams(window.location.search).get("emailTab");
   return ["rules", "groups", "mailboxes", "activity"].includes(requested) ? requested : "rules";
@@ -288,7 +298,7 @@ async function emailLoad(force = false) {
     const box = byId("email-alerts-error");
     box.textContent = error instanceof APIError && error.status === 429
       ? "Email Alerts is temporarily rate limited after repeated refreshes. Wait up to one minute, then refresh once."
-      : error.message || "Email Alerts could not be loaded.";
+      : uiErrorMessage(error, "Email Alerts could not be loaded.");
     box.hidden = false;
   } finally {
     emailAlertsState.loadingTabs.delete(tab);
@@ -1046,11 +1056,12 @@ function emailRenderActivityItems() {
       text: label,
       dataset: { emailAction: action, id: message.id },
     }));
-    if (message.provider_deep_link) {
+    const providerLink = emailProviderLink(message.provider_deep_link);
+    if (providerLink) {
       actions.unshift(element("a", {
         className: "text-button email-activity-menu-action",
         text: "Open Original Email",
-        attributes: { href: message.provider_deep_link, target: "_blank", rel: "noopener noreferrer" },
+        attributes: { href: providerLink, target: "_blank", rel: "noopener noreferrer" },
       }));
     }
 
@@ -1496,7 +1507,7 @@ async function emailOpenPreview(messageId) {
     security.replaceChildren(
       element("span", {
         className: "email-safe-error",
-        text: error.message || "The message preview could not be loaded.",
+        text: uiErrorMessage(error, "The message preview could not be loaded."),
       }),
     );
   }
@@ -1538,7 +1549,7 @@ async function emailSaveSeverity(event) {
     );
     await emailLoad(true);
   } catch (requestError) {
-    error.textContent = requestError.message || "The severity could not be changed.";
+    error.textContent = uiErrorMessage(requestError, "The severity could not be changed.");
     error.hidden = false;
   }
 }
@@ -1798,7 +1809,7 @@ async function emailScanMailboxFolders({ manual = true } = {}) {
   } catch (error) {
     emailResetMailboxFolderOptions("Folder scan unavailable");
     const formError = byId("email-mailbox-error");
-    formError.textContent = error.message || "Mailbox folders could not be scanned.";
+    formError.textContent = uiErrorMessage(error, "Mailbox folders could not be scanned.");
     formError.hidden = false;
   } finally {
     if (scan) scan.disabled = false;
@@ -1838,7 +1849,7 @@ function emailOpenMailboxEdit(mailbox) {
 
 function emailReadConditions() {
   const rows = [...byId("email-rule-conditions").querySelectorAll(".email-condition-row")];
-  if (!rows.length) throw new Error("At least one condition is required.");
+  if (!rows.length) throw new APIError(400, "At least one condition is required.");
   return rows.map((row) => ({
     field: row.querySelector('[data-email-condition="field"]').value,
     operator: row.querySelector('[data-email-condition="operator"]').value,
@@ -1867,7 +1878,7 @@ async function emailSaveGroup(event) {
     toast(id ? "Email Alert group updated." : "Email Alert group created.", "success");
     await emailLoad(true);
   } catch (requestError) {
-    error.textContent = requestError.message || "The group could not be saved.";
+    error.textContent = uiErrorMessage(requestError, "The group could not be saved.");
     error.hidden = false;
   }
 }
@@ -1896,7 +1907,7 @@ async function emailSaveRule(event) {
     toast(id ? "Email Alert rule updated." : "Email Alert rule created.", "success");
     await emailLoad(true);
   } catch (requestError) {
-    error.textContent = requestError.message || "The rule could not be saved.";
+    error.textContent = uiErrorMessage(requestError, "The rule could not be saved.");
     error.hidden = false;
   }
 }
@@ -1914,7 +1925,7 @@ async function emailSaveMailbox(event) {
     if (editing) {
       const folder = byId("email-mailbox-folder").value;
       if (!folder) {
-        throw new Error("Scan and select a mailbox folder before saving.");
+        throw new APIError(400, "Scan and select a mailbox folder before saving.");
       }
       const body = {
         name: byId("email-mailbox-name").value.trim(),
@@ -1986,7 +1997,7 @@ async function emailSaveMailbox(event) {
       window.location.assign(connect.oauth.authorization_url);
     }
   } catch (requestError) {
-    error.textContent = requestError.message || (
+    error.textContent = uiErrorMessage(requestError,
       editing
         ? "The mailbox could not be updated."
         : "The mailbox could not be added."
@@ -2163,7 +2174,7 @@ async function emailAction(action, id, node) {
     }
 
   } catch (error) {
-    toast(error.message || "Email Alerts action failed.", "danger");
+    toast(uiErrorMessage(error, "Email Alerts action failed."), "danger");
   } finally {
     if (node && action === "sync-mailbox") node.disabled = false;
   }
@@ -2198,7 +2209,7 @@ async function emailHandleOAuthReturn() {
       toast("Mailbox authorization completed.", "success");
     }
   } catch (error) {
-    toast(error.message || "Mailbox authorization failed.", "danger");
+    toast(uiErrorMessage(error, "Mailbox authorization failed."), "danger");
   } finally {
     emailAlertsState.tab = "mailboxes";
     for (const key of ["code", "state", "scope", "authuser", "prompt", "error", "error_description", "session_state"]) {

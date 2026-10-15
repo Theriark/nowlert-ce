@@ -5,9 +5,6 @@ from __future__ import annotations
 import os
 import re
 import sqlite3
-import socket
-import subprocess
-import tempfile
 import time
 import uuid
 
@@ -25,6 +22,31 @@ from storage.validation import normalized_name
 _HOST = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$")
 _SHARE = re.compile(r"^[^/\\\x00-\x1f]{1,80}$")
 _MOUNT_OPTIONS = re.compile(r"^[A-Za-z0-9_.:=,-]{0,240}$")
+
+
+_MOUNTINFO = Path("/proc/self/mountinfo")
+
+
+def _remote_mounted(path: str | Path, target_type: str) -> bool:
+    """A bind mount of a local host directory is not a NAS destination."""
+    if not os.path.ismount(path):
+        return False
+    filesystems = {"nfs", "nfs4"} if target_type == "nfs" else {"cifs", "smb3"}
+    try:
+        resolved = Path(path).resolve()
+        device = resolved.stat().st_dev
+        device_id = f"{os.major(device)}:{os.minor(device)}"
+        for line in _MOUNTINFO.read_text(encoding="utf-8").splitlines():
+            mount, separator, filesystem = line.partition(" - ")
+            fields = mount.split()
+            if (separator and len(fields) >= 5 and fields[2] == device_id
+                    and filesystem.split()[0] in filesystems):
+                mountpoint = re.sub(r"\\([0-7]{3})", lambda match: chr(int(match[1], 8)), fields[4])
+                if Path(mountpoint).resolve() == resolved:
+                    return True
+    except (OSError, ValueError, IndexError):
+        pass
+    return False
 
 
 @dataclass(frozen=True)
@@ -63,9 +85,8 @@ class BackupTarget:
             "credentials_configured": self.credentials_configured,
             "mount_options": self.mount_options,
             "enabled": self.enabled,
-            "mounted": self.mounted_at is not None or (
-                self.target_type == "local" and Path(self.local_path).is_dir()
-            ),
+            "mounted": (Path(self.local_path).is_dir() if self.target_type == "local"
+                        else _remote_mounted(self.local_path, self.target_type)),
             "mounted_at": self.mounted_at,
             "last_test_at": self.last_test_at,
             "last_test_outcome": self.last_test_outcome,
@@ -76,7 +97,7 @@ class BackupTarget:
 
 
 class BackupTargetStore:
-    """Persist targets and perform bounded reachability, mount, and write tests."""
+    """Persist targets and test local or host-mounted backup storage."""
 
     def __init__(
         self,
@@ -85,23 +106,15 @@ class BackupTargetStore:
         *,
         secrets: SecretStore | None = None,
         clock: Callable[[], float] = time.time,
-        runner=subprocess.run,
-        connector=socket.create_connection,
     ):
         self.database = database
         self.configuration = configuration
         self.secrets = secrets or SecretStore(database)
         self.clock = clock
-        self.runner = runner
-        self.connector = connector
-        self.mount_root = database.path.parent / "mounts"
 
     @property
     def managed_mounts(self) -> bool:
-        # Remote destinations are a first-class backup target. Mount management is
-        # therefore always enabled; container capability/host mount failures are
-        # still surfaced by the bounded mount operation itself.
-        return True
+        return False
 
     def list(self, actor: Actor) -> list[BackupTarget]:
         self._require_admin(actor)
@@ -124,17 +137,7 @@ class BackupTargetStore:
     def create(self, actor: Actor, values: dict) -> BackupTarget:
         self._require_admin(actor)
         target_id = uuid.uuid4().hex
-        spec = self._validated(values, target_id=target_id)
-        secret_id = None
-        password = str(values.get("password") or "")
-        if password:
-            secret_id = self.secrets.create(
-                actor,
-                actor.user_id,
-                f"backup-target-{target_id}",
-                "smb-password",
-                password,
-            ).id
+        spec = self._validated(values)
         now = int(self.clock())
         try:
             with self.database.transaction() as connection:
@@ -159,7 +162,7 @@ class BackupTargetStore:
                         spec["local_path"],
                         spec["username"],
                         spec["domain"],
-                        secret_id,
+                        None,
                         spec["mount_options"],
                         1 if spec["enabled"] else 0,
                         now,
@@ -167,13 +170,7 @@ class BackupTargetStore:
                     ),
                 )
         except sqlite3.IntegrityError as error:
-            if secret_id:
-                self.secrets.delete(actor, secret_id)
             raise ValueError("backup target name is already configured") from error
-        except Exception:
-            if secret_id:
-                self.secrets.delete(actor, secret_id)
-            raise
         return self.get(actor, target_id)
 
     def update(self, actor: Actor, target_id: str, values: dict) -> BackupTarget:
@@ -183,9 +180,8 @@ class BackupTargetStore:
             **values,
             "type": values.get("type", current.target_type),
         }
-        spec = self._validated(merged, target_id=current.id)
+        spec = self._validated(merged)
         secret_id = self._secret_id(current.id)
-        password = values.get("password")
         with self.database.connect() as connection:
             duplicate = connection.execute(
                 "SELECT 1 FROM backup_targets WHERE name_normalized = ? AND id != ?",
@@ -193,17 +189,6 @@ class BackupTargetStore:
             ).fetchone()
         if duplicate is not None:
             raise ValueError("backup target name is already configured")
-        if password not in (None, ""):
-            if secret_id:
-                self.secrets.rotate(actor, secret_id, str(password))
-            else:
-                secret_id = self.secrets.create(
-                    actor,
-                    actor.user_id,
-                    f"backup-target-{current.id}",
-                    "smb-password",
-                    str(password),
-                ).id
         retained_secret_id = secret_id if spec["type"] == "smb" else None
         now = int(self.clock())
         try:
@@ -235,8 +220,6 @@ class BackupTargetStore:
     def delete(self, actor: Actor, target_id: str) -> None:
         current = self.get(actor, target_id)
         secret_id = self._secret_id(current.id)
-        if current.target_type != "local" and os.path.ismount(current.local_path):
-            self._unmount(current.local_path)
         with self.database.transaction() as connection:
             connection.execute("DELETE FROM backup_targets WHERE id = ?", (current.id,))
         if secret_id:
@@ -266,6 +249,7 @@ class BackupTargetStore:
                 mounted_at = now
         except Exception as failure:
             outcome = "failed"
+            mounted_at = None
             error = sanitize_text(failure)[:240] or "backup target test failed"
         with self.database.transaction() as connection:
             connection.execute(
@@ -286,92 +270,23 @@ class BackupTargetStore:
         if item.target_type == "local":
             local.mkdir(parents=True, exist_ok=True, mode=0o700)
             return local
-        self._network_test(item)
-        if not os.path.ismount(local):
-            if not self.managed_mounts:
-                raise RuntimeError(
-                    "remote target is not mounted; enable managed_mounts or bind-mount it on the host"
-                )
-            local.mkdir(parents=True, exist_ok=True, mode=0o700)
-            self._mount(actor, item, local)
+        if not _remote_mounted(local, item.target_type):
+            raise RuntimeError("remote target is not mounted as a NAS filesystem; mount it on the Docker host and bind it into the container")
         destination = local
         if item.target_type == "smb" and item.remote_path:
-            destination = local / item.remote_path.strip("/")
+            self._validate_smb_path(item.remote_path)
+            destination = local / item.remote_path
+            if not destination.resolve().is_relative_to(local.resolve()):
+                raise ValueError("SMB backup path must remain inside the mounted share")
             destination.mkdir(parents=True, exist_ok=True, mode=0o700)
         return destination
 
-    def _mount(self, actor: Actor, target: BackupTarget, local: Path) -> None:
-        common = "rw,nosuid,nodev,noexec"
-        if target.target_type == "nfs":
-            # Backup archives do not use advisory locks. Disabling NLM avoids
-            # starting rpc.statd, which cannot create runtime state inside the
-            # intentionally read-only application container.
-            options = ",".join(
-                value for value in (common, "nolock", target.mount_options) if value
-            )
-            command = [
-                "mount", "-t", "nfs", "-o", options,
-                f"{target.host}:{target.remote_path}", str(local),
-            ]
-            self._run_mount(command)
-            return
-        options = ",".join(value for value in (common, target.mount_options) if value)
-        secret_id = self._secret_id(target.id)
-        password = ""
-        if secret_id:
-            password = self.secrets.resolve(actor, secret_id).decode("utf-8")
-        credentials = None
-        try:
-            with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", prefix=".nowlert-smb-",
-                dir=self.database.path.parent, delete=False,
-            ) as handle:
-                credentials = Path(handle.name)
-                handle.write(f"username={target.username}\npassword={password}\n")
-                if target.domain:
-                    handle.write(f"domain={target.domain}\n")
-                handle.flush()
-                os.fsync(handle.fileno())
-            credentials.chmod(0o600)
-            smb_options = f"{options},credentials={credentials}"
-            self._run_mount([
-                "mount", "-t", "cifs", f"//{target.host}/{target.share_name}",
-                str(local), "-o", smb_options,
-            ])
-        finally:
-            if credentials is not None:
-                credentials.unlink(missing_ok=True)
+    @staticmethod
+    def _validate_smb_path(path: str) -> None:
+        if path.startswith("/") or ".." in PurePosixPath(path).parts or "\\" in path or any(ord(char) < 32 for char in path):
+            raise ValueError("SMB backup path must be relative to the share")
 
-    def _run_mount(self, command: list[str]) -> None:
-        result = self.runner(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=20,
-            check=False,
-        )
-        if result.returncode:
-            detail = sanitize_text(result.stderr or result.stdout)[:180]
-            raise RuntimeError(detail or "remote share mount failed")
-
-    def _unmount(self, path: str) -> None:
-        result = self.runner(
-            ["umount", str(path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, timeout=20, check=False,
-        )
-        if result.returncode:
-            raise RuntimeError("remote share could not be unmounted")
-
-    def _network_test(self, target: BackupTarget) -> None:
-        port = 2049 if target.target_type == "nfs" else 445
-        connection = self.connector((target.host, port), timeout=4)
-        try:
-            connection.close()
-        except AttributeError:
-            pass
-
-    def _validated(self, values: dict, *, target_id: str) -> dict:
+    def _validated(self, values: dict) -> dict:
         if not isinstance(values, dict):
             raise ValueError("backup target must be an object")
         name, normalized = normalized_name(
@@ -398,28 +313,22 @@ class BackupTargetStore:
             "suid", "dev", "exec",
         }:
             raise ValueError("mount options contain a protected setting")
-        if target_type != "local" and not _HOST.fullmatch(host):
+        if target_type != "local" and host and not _HOST.fullmatch(host):
             raise ValueError("backup target host is invalid")
-        if target_type == "nfs" and (
+        if target_type == "nfs" and remote_path and (
             not remote_path.startswith("/") or ".." in PurePosixPath(remote_path).parts
         ):
             raise ValueError("NFS export path must be an absolute safe path")
-        if target_type == "smb" and not _SHARE.fullmatch(share_name):
+        if target_type == "smb" and share_name and not _SHARE.fullmatch(share_name):
             raise ValueError("SMB share name is invalid")
-        if target_type == "smb" and (
-            remote_path.startswith("/") or ".." in PurePosixPath(remote_path).parts
-        ):
-            raise ValueError("SMB backup path must be relative to the share")
-        supplied_path = str(values.get("local_path") or "").strip()
-        if target_type == "local":
-            local_path = supplied_path
-            if not local_path.startswith("/") or local_path == "/":
-                raise ValueError("local backup path must be an absolute bounded directory")
-        else:
-            default_path = self.mount_root / target_id
-            local_path = supplied_path or str(default_path)
-            if Path(local_path) != default_path and not local_path.startswith("/nowlert/"):
-                raise ValueError("remote mount path must be inside Nowlert storage")
+        if target_type == "smb":
+            self._validate_smb_path(remote_path)
+        local_path = str(values.get("local_path") or "").strip()
+        if (not local_path.startswith("/") or local_path == "/"
+                or (target_type != "local" and (
+                    ".." in PurePosixPath(local_path).parts or "\\" in local_path
+                    or any(ord(char) < 32 for char in local_path)))):
+            raise ValueError("local backup path must be an absolute bounded directory")
         return {
             "name": name,
             "normalized": normalized,

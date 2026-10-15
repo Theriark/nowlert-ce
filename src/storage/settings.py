@@ -33,7 +33,7 @@ DEFAULT_BACKUP_SETTINGS = {
     "weekday": 0,
     "day": 1,
     "target_id": "",
-    "managed_mounts": True,
+    "managed_mounts": False,
     "external_enabled": False,
     "external_type": "nfs",
     "external_path": "",
@@ -136,12 +136,12 @@ class SettingsStore:
 
         try:
             return self.get(namespace, key, default), None
-        except SettingsRecordError as error:
+        except SettingsRecordError:
             return deepcopy(default), {
                 "resource": key,
                 "namespace": namespace,
                 "code": "settings_record_invalid",
-                "message": str(error),
+                "message": f"Stored {namespace}.{key} settings could not be loaded.",
             }
 
     def set(self, actor: Actor, namespace: str, key: str, value: dict) -> SettingsRecord:
@@ -314,10 +314,8 @@ class SettingsStore:
         target_id = str(value.get("target_id") or "").strip()
         if target_id and not re.fullmatch(r"[0-9a-f]{32}", target_id):
             raise ValueError("backup target identifier is invalid")
-        # Remote backup targets are always managed by Nowlert. The legacy
-        # managed_mounts field remains accepted for compatibility but is no longer
-        # a user-disableable setting.
-        managed_mounts = True
+        # Retain the legacy field without granting mount privileges.
+        managed_mounts = False
         external_enabled = cls._bool(
             value.get("external_enabled", False), "external_enabled"
         )

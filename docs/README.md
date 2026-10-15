@@ -21,6 +21,7 @@ Use these guides for the current v3.1.6 release line:
 | [Platform state](platform-state.md) | SQLite schema, local accounts, secrets, backup layout and recovery |
 | [Data portability](data-portability.md) | Credential-free export/import, private backups, restore and deletion |
 | [SMTP security](smtp-security.md) | STARTTLS, SMTP AUTH and trusted-network boundaries |
+| [Security hardening](security-hardening.md) | Dependency, container, error-message and exact-candidate scan controls |
 | [Presentation contract](presentation-contract.md) | Normalized notification presentation rules |
 | [Roadmap](roadmap.md) | Shipped milestones and current maintenance priorities |
 

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from types import SimpleNamespace
 
 import yaml
 
@@ -11,7 +10,6 @@ from api.config_service import ConfigService
 from api.platform import PlatformAPI
 from api.schema import validate_config
 from api.security import hash_password
-from storage.backup_targets import BackupTarget, BackupTargetStore
 from storage.configuration_sync import UnifiedConfigurationService
 from storage.database import Database
 from storage.ownership import Actor
@@ -141,61 +139,15 @@ def test_legacy_source_categories_endpoint_rejects_removal():
         raise AssertionError("source removal was accepted")
 
 
-def test_nfs_managed_mount_disables_nlm_for_read_only_container(tmp_path):
-    commands = []
-
-    def runner(command, **_kwargs):
-        commands.append(command)
-        return SimpleNamespace(returncode=0, stdout="", stderr="")
-
-    store = BackupTargetStore.__new__(BackupTargetStore)
-    store.runner = runner
-    target = BackupTarget(
-        id="a" * 32,
-        owner_user_id="admin-user",
-        name="UNAS backups",
-        target_type="nfs",
-        host="192.0.2.163",
-        remote_path="/exports/nowlert-backups",
-        share_name="",
-        local_path=str(tmp_path / "mount"),
-        username="",
-        domain="",
-        credentials_configured=False,
-        mount_options="vers=3",
-        enabled=True,
-        mounted_at=None,
-        last_test_at=None,
-        last_test_outcome=None,
-        last_error=None,
-        created_at=1,
-        updated_at=1,
-    )
-
-    store._mount(Actor("admin-user", "admin"), target, tmp_path / "mount")
-
-    assert commands == [[
-        "mount",
-        "-t",
-        "nfs",
-        "-o",
-        "rw,nosuid,nodev,noexec,nolock,vers=3",
-        "192.0.2.163:/exports/nowlert-backups",
-        str(tmp_path / "mount"),
-    ]]
-
-
-def test_managed_mount_override_contains_the_verified_capability_set():
+def test_legacy_backup_override_uses_unprivileged_host_mounts():
     override = yaml.safe_load(
         (ROOT / "compose.managed-backups.yaml").read_text(encoding="utf-8")
     )
     service = override["services"]["nowlert-ce"]
-    assert service["user"] == "0:0"
-    assert set(service["cap_add"]) == {
-        "DAC_OVERRIDE",
-        "FOWNER",
-        "SYS_ADMIN",
-    }
+    assert service["user"] == "${NOWLERT_UID:-1000}:${NOWLERT_GID:-1000}"
+    assert not service.get("cap_add")
+    assert service["cap_drop"] == ["ALL"]
+    assert service["volumes"][0]["bind"]["create_host_path"] is False
 
 
 def test_v232_webui_uses_vendor_icons_safe_removal_and_header_restart():

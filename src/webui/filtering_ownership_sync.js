@@ -425,7 +425,7 @@
       document.dispatchEvent(new CustomEvent("nowlert:filtering-overview-updated", { detail: payload }));
       decorate(payload);
     } catch (error) {
-      toast(error.message || "Your destinations could not be loaded. Try again.", "error");
+      toast(uiErrorMessage(error, "Your destinations could not be loaded. Try again."), "error");
       return;
     }
     const choices = ownedChoices(payload);
@@ -618,12 +618,12 @@
     }
     if (action === "filtering") {
       event.preventDefault();
-      toggleFiltering(sync).catch(error => toast(error.message || "Filtering state could not be changed.", "error"));
+      toggleFiltering(sync).catch(error => toast(uiErrorMessage(error, "Filtering state could not be changed."), "error"));
       return;
     }
     if (action === "sharing") {
       event.preventDefault();
-      toggleSharing(sync).catch(error => toast(error.message || "Destination visibility could not be changed.", "error"));
+      toggleSharing(sync).catch(error => toast(uiErrorMessage(error, "Destination visibility could not be changed."), "error"));
     }
   }, true);
 

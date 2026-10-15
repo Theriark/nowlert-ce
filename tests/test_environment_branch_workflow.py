@@ -28,7 +28,7 @@ def test_environment_branch_and_immutable_promotion_contract():
     assert "needs: tests" in ci
     assert "github.event_name == 'push'" in ci
     assert "github.ref == 'refs/heads/development'" in ci
-    assert "docker/build-push-action@v7" in ci
+    assert "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7" in ci
     assert "ghcr.io/theriark/nowlert-ce" in ci
     assert ":development" in ci
     assert "environment: development" in ci
@@ -82,7 +82,7 @@ def test_environment_branch_and_immutable_promotion_contract():
     # aliases without rebuilding the image.
     assert not (ROOT / ".github" / "workflows" / "docker-release.yml").exists()
     assert "docker/build-push-action" not in finalization
-    assert "docker/login-action@v4" in finalization
+    assert "docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4" in finalization
     assert "DOCKERHUB_USERNAME" in finalization
     assert "DOCKERHUB_TOKEN" in finalization
     assert "skopeo copy --all --preserve-digests" in finalization

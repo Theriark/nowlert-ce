@@ -37,6 +37,10 @@ docker logs --tail 100 nowlert-ce-dev
 
 The development Compose definition builds the checked-out source and uses the
 development host ports documented in that file.
+Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the checkout owner's numeric
+identity when it differs from the image default `1000:1000`. The development
+bind mount hides the image's pre-created writable directories; create `logs`,
+`state`, and `external-backups` as that owner before starting.
 
 ## Production host preparation
 
@@ -66,6 +70,75 @@ docker logs --tail 100 nowlert-ce
 The base production definition runs non-root, drops Linux capabilities,
 prevents privilege escalation, uses a read-only root filesystem, and persists
 only the explicitly mounted configuration/state/log/backup paths.
+
+Both images also default to UID/GID `1000:1000` when started without Compose.
+Fresh Docker named volumes inherit the image's private, owned `config`, `logs`,
+`state`, and `external-backups` directories. Bind mounts retain host ownership,
+and existing volumes are never recursively changed at startup. Before upgrading
+an installation previously run as root, stop Nowlert and take the matched backup
+described below. Set `.env` to the intended runtime UID/GID, then repair only
+the configured Nowlert paths on the host, for example for default paths and UID
+1000 (substitute the actual paths and identity):
+
+```bash
+sudo find ./config ./logs ./state ./secrets -xdev \
+  -path './state/mounts/*' -prune -o -exec chown --no-dereference 1000:1000 {} +
+```
+
+Do not recursively change ownership of a shared backup mount. Grant the runtime
+identity access to its dedicated backup directory using the host filesystem or
+NFS/SMB server permissions. Keep secret files private and readable by the
+runtime identity, including TLS keys and OAuth credentials. Docker-mounted
+secrets remain read-only in the container. Changing ownership back to root is
+not necessary for rollback; retain the matched data backup and image digest.
+
+The image healthcheck calls `http://127.0.0.1:8080/api/health` every 30 seconds
+with a three-second request timeout. Deployments that intentionally change the
+HTTP listener, bind address, or disable the API must override the healthcheck
+in their deployment definition to match their configuration.
+
+### Host-mounted NAS backups
+
+Mount NFS/SMB on the Docker host, then bind the dedicated NAS backup directory
+into Nowlert. In **Backups**, select **Host-mounted NFS** or **Host-mounted SMB**
+and enter its path inside the container. Nowlert checks the actual filesystem
+type before writing; an ordinary local directory is not a connected NAS target.
+Scheduling, connection tests, external snapshot browsing and restore remain in
+Nowlert. NAS credentials and mount options belong on the host, never in the app.
+
+For a single NAS share, set `NOWLERT_EXTERNAL_BACKUP_DIR` to its mounted host
+directory and use `/nowlert/external-backups` in the WebUI. The compatibility
+filename `compose.managed-backups.yaml` now binds this directory without root or
+extra capabilities and refuses to create a missing host directory:
+
+```bash
+docker compose -f compose.production.yaml -f compose.managed-backups.yaml up -d
+```
+
+Use the host's normal persistent mount configuration with `nosuid,nodev,noexec`
+and access restricted to the Nowlert runtime UID/GID. Keep SMB credential files
+root-owned, mode `0600`, and reference them from the host mount configuration.
+Bind mounts must be configured on every eligible Swarm node; pin a service to
+the prepared node until those mounts are provisioned elsewhere.
+
+To migrate existing WebUI-managed targets without losing schedules or archives:
+
+1. Stop backup jobs and take a matched state/config/secret backup.
+2. Record each target ID, current container path and share subdirectory. Mount
+   the same share on the host; keep all existing archive files in place.
+3. Bind that host share to the target's existing container mount path. For SMB,
+   retain the existing path-inside-share metadata so archives remain discoverable.
+   Keeping the target ID and path also preserves schedules and restore references.
+4. Repair only local application volume ownership as described above. Grant the
+   NAS directory access for the runtime identity through host/server permissions;
+   do not recursively chown the share.
+5. Remove runtime root-user and added-capability overrides, deploy the non-root
+   image, then test each target, create a backup, browse old snapshots, and restore
+   a disposable snapshot. Verify a disconnected mount reports an error.
+
+The app retains legacy target metadata for migration but never uses old NAS
+passwords to mount anything. Legacy `managed_mounts: true` is normalized to false.
+Removing a target does not unmount or delete its host share or existing archives.
 
 ### Email Alerts OAuth applications
 

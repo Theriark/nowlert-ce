@@ -188,13 +188,13 @@ class DestinationStore:
         for row in rows:
             try:
                 items.append(self._destination(row))
-            except Exception as error:
+            except Exception:
                 errors.append(
                     {
                         "resource_id": str(row["id"]),
                         "resource": str(row["name"]),
                         "code": "destination_record_invalid",
-                        "message": f"Destination {str(row['name'])!r} could not be loaded: {error}",
+                        "message": f"Destination {str(row['name'])!r} could not be loaded.",
                     }
                 )
         return items, errors

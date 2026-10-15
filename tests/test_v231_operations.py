@@ -144,11 +144,17 @@ def test_v231_webui_removes_old_header_and_exposes_corrective_controls():
     assert ".timeline-item.information" in styles
 
 
-def test_remote_target_save_uses_always_enabled_managed_mounting():
+def test_remote_target_save_uses_host_mounted_paths():
     script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
 
     assert 'if (type !== "local" && !state.managedMounts)' not in script
-    assert "managed_mounts: true" in script
+    assert "managed_mounts: false" in script
     assert 'id="backup-managed-mounts"' not in markup
     assert "await request(id ? `/backup-targets/${id}`" in script
+    assert 'id="backup-target-local-path" required' in markup
+    assert "Host-mounted NFS" in markup
+    assert "Host-mounted SMB" in markup
+    assert 'id="backup-target-password"' not in markup
+    assert 'id="backup-target-options"' not in markup
+    assert "automatic managed mounting enabled" not in script

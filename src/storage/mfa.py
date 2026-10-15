@@ -53,6 +53,8 @@ def totp_code(secret: str, *, timestamp: float | None = None) -> str:
         raise ValueError("MFA secret is invalid") from error
     moment = time.time() if timestamp is None else float(timestamp)
     counter = max(0, int(moment) // 30)
+    # RFC6238 HMAC-SHA1 preserves enrolled authenticators; this is not password hashing.
+    # no-dd-sa:datadog/python-weakhash
     digest = hmac.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
     offset = digest[-1] & 0x0F
     number = struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF

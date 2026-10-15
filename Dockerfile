@@ -13,7 +13,7 @@ WORKDIR /nowlert
 COPY requirements.txt /nowlert/requirements.txt
 
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y cifs-utils fonts-dejavu-core nfs-common \
+    && apt-get install --no-install-recommends -y fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/* \
     && pip install \
     --disable-pip-version-check \
@@ -34,6 +34,15 @@ ARG NOWLERT_TEAMS_ICON_BASE_URL=https://raw.githubusercontent.com/Theriark/nowle
 ENV NOWLERT_TEAMS_ICON_BASE_URL=${NOWLERT_TEAMS_ICON_BASE_URL}
 
 RUN chmod +x /nowlert/bootstrap-config.sh /nowlert/start.sh
+
+RUN groupadd --gid 1000 nowlert \
+    && useradd --uid 1000 --gid 1000 --no-create-home --shell /usr/sbin/nologin nowlert \
+    && install -d -o 1000 -g 1000 -m 0700 \
+       /nowlert/config /nowlert/logs /nowlert/state /nowlert/external-backups /run/secrets
+
+USER 1000:1000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD ["python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=3).close()"]
 
 EXPOSE 8025 8080
 

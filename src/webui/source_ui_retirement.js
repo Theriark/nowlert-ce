@@ -508,7 +508,7 @@
             });
             toast(`Access updated for ${item.name}.`);
           } catch (error) {
-            toast(error.message || "Destination access could not be updated.", "error");
+            toast(uiErrorMessage(error, "Destination access could not be updated."), "error");
             await openDestinationAccess(permissionDialogUserId);
           } finally {
             edit.disabled = false;
@@ -524,7 +524,7 @@
       }
       if (!dialog.open) dialog.showModal();
     } catch (error) {
-      toast(error.message || "Destination access could not be loaded.", "error");
+      toast(uiErrorMessage(error, "Destination access could not be loaded."), "error");
     }
   }
 

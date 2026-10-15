@@ -121,7 +121,7 @@
     const error = (state.integrationSettingsErrors || []).find(
       (item) => item.resource === source,
     );
-    const summary = error ? error.message : integrationSettingSummary(source, settings);
+    const summary = error ? resourceErrorMessage(error) : integrationSettingSummary(source, settings);
     return element("article", { className: "resource-card compact-resource-card settings-resource-card" }, [
       element("div", { className: "resource-card-heading" }, [
         element("div", { className: "settings-card-copy" }, [
@@ -454,7 +454,7 @@
         if (editorToggle) editorToggle.checked = expectedEnabled;
         if (source === "dell_idrac") {
           loadDellPolicyEditor(filterDestinationId).catch((error) => {
-            toast(error.message || "Dell filtering policy could not be loaded.", "error");
+            toast(uiErrorMessage(error, "Dell filtering policy could not be loaded."), "error");
           });
         } else {
           removeDellPolicyPanel();
@@ -488,7 +488,7 @@
       if (editorToggle) editorToggle.checked = true;
       if (source === "dell_idrac") {
         loadDellPolicyEditor(filterDestinationId).catch((error) => {
-          toast(error.message || "Dell filtering policy could not be loaded.", "error");
+          toast(uiErrorMessage(error, "Dell filtering policy could not be loaded."), "error");
         });
       } else {
         removeDellPolicyPanel();
