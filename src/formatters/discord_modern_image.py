@@ -1565,8 +1565,8 @@ class DiscordModernImageRenderer(XenOrchestraDiscordImageRenderer):
             "\n",
         )
         # DejaVu lacks these emoji; use its equivalent text glyphs in images.
-        text = re.sub(r"[❌✅⚠⏹][\ufe0e\ufe0f]?", lambda match: {
-            "❌": "✗", "✅": "✓", "⚠": "⚠", "⏹": "■",
+        text = re.sub(r"[❌✅⚠⏹🚨][\ufe0e\ufe0f]?", lambda match: {
+            "❌": "✗", "✅": "✓", "⚠": "⚠", "⏹": "■", "🚨": "!",
         }[match.group(0)[0]], text)
         if preserve_lines:
             lines = [
