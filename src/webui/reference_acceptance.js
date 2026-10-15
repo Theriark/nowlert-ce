@@ -288,7 +288,7 @@
         } catch (error) {
           return {
             route: previewScenarioLabel(route),
-            error: error?.message || "Preview request failed.",
+            error: uiErrorMessage(error, "Preview request failed."),
             destination: null,
           };
         }

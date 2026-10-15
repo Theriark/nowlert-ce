@@ -49,13 +49,13 @@
     const text = String(value || "").trim();
     if (format === "12") {
       const match = text.match(/^(0?[1-9]|1[0-2]):([0-5][0-9])\s*(AM|PM)$/i);
-      if (!match) throw new Error("Use the time format HH:MM AM or HH:MM PM.");
+      if (!match) throw new APIError(400, "Use the time format HH:MM AM or HH:MM PM.");
       let hour = Number(match[1]) % 12;
       if (match[3].toUpperCase() === "PM") hour += 12;
       return `${String(hour).padStart(2, "0")}:${match[2]}`;
     }
     const match = text.match(/^([01]?[0-9]|2[0-3]):([0-5][0-9])$/);
-    if (!match) throw new Error("Use the 24-hour format HH:MM, for example 14:20.");
+    if (!match) throw new APIError(400, "Use the 24-hour format HH:MM, for example 14:20.");
     return `${String(Number(match[1])).padStart(2, "0")}:${match[2]}`;
   }
 
@@ -259,7 +259,7 @@
       state.versionStatus = {
         ...(state.versionStatus || {}),
         checked_at: Date.now(),
-        check_error: error.message || "Update check failed",
+        check_error: uiErrorMessage(error, "Update check failed"),
       };
       renderUpdates();
       if (manual) toast(state.versionStatus.check_error, "error");

@@ -1275,7 +1275,7 @@
         render();
         $("rf-error").hidden = !next.errors?.length;
         $("rf-error").textContent = (next.errors || [])
-          .map(error => `${error.component}: ${error.message}`)
+          .map(() => "A route could not be loaded.")
           .join(" · ");
       }
     } catch (error) {
@@ -1384,12 +1384,12 @@
         render();
       }
       $("rf-error").hidden=!next.errors?.length;
-      $("rf-error").textContent=(next.errors||[]).map(e=>`${e.component}: ${e.message}`).join(" · ");
+      $("rf-error").textContent=(next.errors||[]).map(()=>"A route could not be loaded.").join(" · ");
       animateAttempts(fresh);
     } catch(error) {
       if(token!==generation || !active()) return;
       $("rf-error").hidden=false;
-      $("rf-error").textContent=`${error.name==='AbortError'?'Overview request timed out.':error.message} ${data?'Showing the last successful snapshot.':'No overview loaded.'} Retrying automatically.`;
+      $("rf-error").textContent=`${error.name==='AbortError'?'Overview request timed out.':uiErrorMessage(error, 'Overview could not be loaded.')} ${data?'Showing the last successful snapshot.':'No overview loaded.'} Retrying automatically.`;
     } finally {
       clearTimeout(timeout);
       if(controller===abort)controller=null;

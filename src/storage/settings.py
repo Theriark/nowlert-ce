@@ -136,12 +136,12 @@ class SettingsStore:
 
         try:
             return self.get(namespace, key, default), None
-        except SettingsRecordError as error:
+        except SettingsRecordError:
             return deepcopy(default), {
                 "resource": key,
                 "namespace": namespace,
                 "code": "settings_record_invalid",
-                "message": str(error),
+                "message": f"Stored {namespace}.{key} settings could not be loaded.",
             }
 
     def set(self, actor: Actor, namespace: str, key: str, value: dict) -> SettingsRecord:

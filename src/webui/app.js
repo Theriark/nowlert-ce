@@ -404,16 +404,36 @@ function applyAvatar(id, user) {
 
 class APIError extends Error {
   constructor(status, message, path = "", code = "", reference = "") {
-    const details = [];
-    if (status) details.push(`HTTP ${status}`);
-    if (path) details.push(`${API}${path}`);
-    if (reference) details.push(`reference ${reference}`);
-    super(`${message || "Request failed"}${details.length ? ` (${details.join(" · ")})` : ""}`);
+    // Only the API's public client-error contract may supply validation feedback.
+    const publicMessage = Number.isInteger(status) && status >= 400 && status < 500
+      && typeof message === "string" && message.length <= 1024
+      && !/[\x00-\x1f\x7f]/.test(message) ? message.trim()
+        .replace(/\bbearer\s+[a-z0-9._~+/=-]+/gi, "Bearer <redacted>")
+        .replace(/\b(authorization|api[_ -]?key|password|secret|session[_ -]?id|token)\b(["']?\s*[:=]\s*)(?:"(?:\\[\s\S]|[^"\\])*(?:"|\\?$)|'(?:\\[\s\S]|[^'\\])*(?:'|\\?$)|[^\s,;)}\]]+)/gi, "$1$2<redacted>")
+        .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, "$1<redacted>@")
+        .replace(/(https:\/\/(?:canary\.|ptb\.)?discord(?:app)?\.com\/api\/webhooks\/)[^\s/]+\/[^\s)\]}]+/gi, "$1<redacted>") : "";
+    super(publicMessage || "Request failed");
+    this.publicMessage = publicMessage;
     this.status = status;
     this.path = path;
     this.code = code;
     this.reference = reference;
   }
+}
+
+function uiErrorMessage(error, fallback = "The request could not be completed.") {
+  return error instanceof APIError && error.publicMessage ? error.publicMessage : fallback;
+}
+
+function resourceErrorMessage(error) {
+  const label = {
+    destination_record_invalid: "Destination",
+    route_record_invalid: "Route",
+    integration_settings_unavailable: "Integration settings",
+  }[error?.code] || "This resource";
+  const name = typeof error?.resource === "string" && error.resource.length <= 256
+    && !/[\x00-\x1f\x7f]/.test(error.resource) ? ` "${error.resource}"` : "";
+  return `${label}${name} could not be loaded.`;
 }
 
 async function request(path, options = {}) {
@@ -474,9 +494,9 @@ async function request(path, options = {}) {
   return payload;
 }
 
-function showError(id) {
+function showError(id, error) {
   const item = byId(id);
-  item.textContent = "The request could not be completed.";
+  item.textContent = uiErrorMessage(error);
   item.hidden = false;
 }
 
@@ -734,7 +754,7 @@ async function submitReauthentication(event) {
         await request("/session", { method: "DELETE", reauthenticate: false });
       } catch (_error) {
       }
-      throw new Error("The signed-in account changed. Sign out and sign in again.");
+      throw new APIError(400, "The signed-in account changed. Sign out and sign in again.");
     }
     applySessionMetadata(session);
     finishReauthentication(true);
@@ -748,7 +768,7 @@ async function submitReauthentication(event) {
       byId("reauth-otp").focus();
       return;
     }
-    error.textContent = reauthError.message || "Sign-in failed.";
+    error.textContent = uiErrorMessage(reauthError, "Sign-in failed.");
     error.hidden = false;
   } finally {
     submit.disabled = false;
@@ -954,7 +974,7 @@ async function restoreSession(prefetchedSession = null) {
       return;
     }
     if (!(error instanceof APIError) || error.status !== 404) {
-      byId("login-error").textContent = error.message || "Nowlert is not reachable.";
+      byId("login-error").textContent = uiErrorMessage(error, "Nowlert is not reachable.");
       byId("login-error").hidden = false;
     }
     return;
@@ -966,7 +986,7 @@ async function restoreSession(prefetchedSession = null) {
     if (!(error instanceof APIError) || error.status !== 401) {
       state.workspaceErrors = [{
         component: "Workspace",
-        message: error.message || "Request failed",
+        message: uiErrorMessage(error, "Request failed"),
       }];
       renderWorkspaceErrors();
     }
@@ -1327,7 +1347,7 @@ async function initialize(startupRequests = {}) {
     }
   } catch (error) {
     if (!(error instanceof APIError) || error.status !== 404) {
-      byId("login-error").textContent = error.message || "Nowlert is not reachable.";
+      byId("login-error").textContent = uiErrorMessage(error, "Nowlert is not reachable.");
       byId("login-error").hidden = false;
     }
   }
@@ -1416,7 +1436,7 @@ async function loadWorkspace() {
     }
     state.workspaceErrors.push({
       component: label,
-      message: result.reason && result.reason.message ? result.reason.message : "Request failed",
+      message: uiErrorMessage(result.reason, "Request failed"),
       status: result.reason?.status || 0,
     });
   }
@@ -1533,8 +1553,8 @@ function renderWorkspaceErrors() {
   list.replaceChildren();
   const failures = [
     ...state.workspaceErrors,
-    ...state.destinationErrors.map((item) => ({ component: "Destinations", message: item.message })),
-    ...state.routeErrors.map((item) => ({ component: "Routes", message: item.message })),
+    ...state.destinationErrors.map((item) => ({ component: "Destinations", message: resourceErrorMessage(item) })),
+    ...state.routeErrors.map((item) => ({ component: "Routes", message: resourceErrorMessage(item) })),
   ];
   const isRateLimited = failures.some((failure) => failure.status === 429);
   for (const failure of failures.filter((item) => item.status !== 429)) {
@@ -1596,7 +1616,7 @@ function navigate(view, historyMode = "push") {
     queueMicrotask(() => {
       loadExternalBackups({ silent: true }).catch((error) => {
         if (state.currentView === "backups") {
-          toast(error.message || "Stored snapshots could not be refreshed.", "error");
+          toast(uiErrorMessage(error, "Stored snapshots could not be refreshed."), "error");
         }
       });
     });
@@ -1992,7 +2012,7 @@ function renderIntegrationSettings() {
       element("div", { className: "resource-card-heading" }, [
         element("div", {}, [
           element("strong", { text: INTEGRATION_SETTING_LABELS[source] }),
-          element("small", { text: failure ? failure.message : summary }),
+          element("small", { text: failure ? resourceErrorMessage(failure) : summary }),
         ]),
         failure ? badge("Needs repair", "danger") : badge("Database", "success"),
       ]),
@@ -2121,16 +2141,16 @@ function parseMappingLines(value, label, component = false) {
     const line = rawLine.trim();
     if (!line) continue;
     const position = line.indexOf("=");
-    if (position < 1) throw new Error(`${label} entries must use “key = value”.`);
+    if (position < 1) throw new APIError(400, `${label} entries must use “key = value”.`);
     const key = line.slice(0, position).trim();
     const rawValue = line.slice(position + 1).trim();
-    if (!key || !rawValue) throw new Error(`${label} entries require both a key and value.`);
+    if (!key || !rawValue) throw new APIError(400, `${label} entries require both a key and value.`);
     if (component) {
       const separator = rawValue.lastIndexOf("=>");
       const device = (separator >= 0 ? rawValue.slice(0, separator) : rawValue).trim();
       const endpoint = separator >= 0 ? rawValue.slice(separator + 2).trim() : "";
-      if (!device) throw new Error(`${label} entries require a device name.`);
-      if (separator >= 0 && !endpoint) throw new Error(`${label} entries require an endpoint after “=>”.`);
+      if (!device) throw new APIError(400, `${label} entries require a device name.`);
+      if (separator >= 0 && !endpoint) throw new APIError(400, `${label} entries require an endpoint after “=>”.`);
       result[key] = { device };
       if (endpoint) result[key].endpoint = endpoint;
     } else {
@@ -2172,7 +2192,7 @@ async function saveIntegrationSettings(event) {
     } else if (source === "redfish") {
       body = { deduplication_window_seconds: Number(byId("integration-redfish-window").value) };
     } else {
-      throw new Error("Integration settings are not supported.");
+      throw new APIError(400, "Integration settings are not supported.");
     }
     const response = await request(`/integration-settings/${encodeURIComponent(source)}`, { method: "PUT", body });
     state.integrationSettings[source] = response.settings;
@@ -2239,7 +2259,7 @@ async function saveSourceCategory(event) {
     toast(`${integration ? integration.name : friendlyName(integrationId)} moved to ${SOURCE_CATEGORIES[select.value].label}.`);
   } catch (error) {
     renderSources();
-    toast(error.message || "Integration category could not be saved.", "error");
+    toast(uiErrorMessage(error, "Integration category could not be saved."), "error");
   }
 }
 
@@ -3284,7 +3304,7 @@ async function loadExternalBackups({ silent = false } = {}) {
         errors.push({
           target_id: target.id,
           target_name: target.name,
-          message: result.reason?.message || "Backup destination is unavailable.",
+          message: uiErrorMessage(result.reason, "Backup destination is unavailable."),
         });
       }
     });
@@ -3563,7 +3583,7 @@ async function savePreferences(event) {
     await loadWorkspace();
     toast("Regional settings saved.");
   } catch (error) {
-    toast(error.message || "Settings could not be saved.", "error");
+    toast(uiErrorMessage(error, "Settings could not be saved."), "error");
   }
 }
 
@@ -3578,7 +3598,7 @@ async function changeHistoryRange() {
     state.metrics = response.metrics;
     renderDashboard();
   } catch (error) {
-    toast(error.message || "History could not be loaded.", "error");
+    toast(uiErrorMessage(error, "History could not be loaded."), "error");
   }
 }
 
@@ -3605,7 +3625,7 @@ async function saveBackupSettings(event) {
     if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
     toast("Backup settings saved.");
   } catch (error) {
-    toast(error.message || "Backup settings could not be saved.", "error");
+    toast(uiErrorMessage(error, "Backup settings could not be saved."), "error");
   }
 }
 async function saveHousekeepingSettings(event) {
@@ -3629,7 +3649,7 @@ async function saveHousekeepingSettings(event) {
     renderHousekeepingSettings();
     toast("Housekeeping settings saved.");
   } catch (error) {
-    toast(error.message || "Housekeeping settings could not be saved.", "error");
+    toast(uiErrorMessage(error, "Housekeeping settings could not be saved."), "error");
   }
 }
 
@@ -3651,7 +3671,7 @@ async function toggleHousekeeping() {
     renderHousekeepingSettings();
     toast(enabled ? "Housekeeping enabled." : "Housekeeping disabled.");
   } catch (error) {
-    toast(error.message || "Housekeeping state could not be changed.", "error");
+    toast(uiErrorMessage(error, "Housekeeping state could not be changed."), "error");
   } finally {
     toggle.disabled = false;
   }
@@ -3818,7 +3838,7 @@ async function saveAvatar(event) {
     toast("Profile picture updated.");
   } catch (error) {
     updateAvatarSaveState(Boolean(state.avatarEditor.image));
-    toast(error.message || "Profile picture could not be saved.", "error");
+    toast(uiErrorMessage(error, "Profile picture could not be saved."), "error");
   }
 }
 
@@ -3948,9 +3968,9 @@ async function exportPlatform() {
 async function selectedFile(id) {
   const input = byId(id);
   const file = input.files && input.files[0];
-  if (!file) throw new Error("Choose a file first.");
+  if (!file) throw new APIError(400, "Choose a file first.");
   if (file.size < 1 || file.size > 1024 * 1024) {
-    throw new Error("Import files must contain 1 to 1048576 bytes.");
+    throw new APIError(400, "Import files must contain 1 to 1048576 bytes.");
   }
   return file.text();
 }
@@ -4070,7 +4090,7 @@ async function previewImport(kind, portableFileId = "portable-file") {
         try {
           documentValue = JSON.parse(content);
         } catch (_error) {
-          throw new Error("The selected JSON document is invalid.");
+          throw new APIError(400, "The selected JSON document is invalid.");
         }
         body = { document: documentValue };
       } else {
@@ -4095,7 +4115,7 @@ async function previewImport(kind, portableFileId = "portable-file") {
     byId("import-dialog").showModal();
   } catch (error) {
     state.pendingImport = null;
-    toast(error.message || "Import preview failed.", "error");
+    toast(uiErrorMessage(error, "Import preview failed."), "error");
   }
 }
 
@@ -4440,7 +4460,7 @@ function renderMobileConnection(settings = {}) {
         } catch (error) {
           if (!current()) return;
           failures += 1;
-          status.textContent = `${error.message || "Connection interrupted."} Checking again…`;
+          status.textContent = `${uiErrorMessage(error, "Connection interrupted.")} Checking again…`;
           connect.disabled = false;
         }
         mobileConnectionTimer = setTimeout(poll, Math.min(15000, 3000 * (failures + 1)));
@@ -4448,7 +4468,7 @@ function renderMobileConnection(settings = {}) {
       mobileConnectionTimer = setTimeout(poll, 3000);
     } catch (error) {
       if (!current()) return;
-      status.textContent = error.message || "Could not start the connection. Please try again.";
+      status.textContent = uiErrorMessage(error, "Could not start the connection. Please try again.");
       connect.disabled = false;
       mobileConnection = null;
       updateMobileDestinationSaveAvailability();
@@ -4527,7 +4547,7 @@ function collectFields(container) {
       try {
         result[key] = JSON.parse(input.value || "{}");
       } catch (_error) {
-        throw new Error(`${input.previousElementSibling.textContent} must contain valid JSON.`);
+        throw new APIError(400, `${input.previousElementSibling.textContent} must contain valid JSON.`);
       }
     } else if (input.value.trim()) {
       result[key] = input.value.trim();
@@ -5178,7 +5198,7 @@ async function resourceAction(action, id) {
     }
     await loadWorkspace();
   } catch (error) {
-    toast(error.message || "The action failed.", "error");
+    toast(uiErrorMessage(error, "The action failed."), "error");
   }
 }
 
@@ -5196,7 +5216,7 @@ async function changePassword(event) {
     expireSession({ preserveCache: false });
     toast("Password changed. Sign in again.");
   } catch (error) {
-    toast(error.message || "Password change failed.", "error");
+    toast(uiErrorMessage(error, "Password change failed."), "error");
   }
 }
 
@@ -5342,7 +5362,7 @@ function bindEvents() {
   byId("avatar-form").addEventListener("submit", saveAvatar);
   byId("avatar-file").addEventListener("change", () => loadAvatarEditor().catch((error) => {
     updateAvatarSaveState(false);
-    toast(error.message, "error");
+    toast(uiErrorMessage(error, "The image could not be loaded."), "error");
   }));
   byId("avatar-zoom").addEventListener("input", zoomAvatarEditor);
   byId("avatar-canvas").addEventListener("pointerdown", (event) => {

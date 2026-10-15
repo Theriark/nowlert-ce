@@ -18,6 +18,7 @@ except ImportError:  # Development/test fallback; release images install tzlocal
 
 from config import config
 from environment import compatible_environment, first_environment
+from storage.sanitize import sanitize_text
 
 
 class PresentationMixin:
@@ -109,30 +110,10 @@ class PresentationMixin:
         "dell_idrac": 80,
     }
 
-    _SECRET_ASSIGNMENT = re.compile(
-        r"(?i)\b(authorization|api[_ -]?key|password|secret|session[_ -]?id|"
-        r"token)\b(\s*[:=]\s*)([^\s,;)}\]]+)"
-    )
-    _BEARER_SECRET = re.compile(r"(?i)\bbearer\s+[a-z0-9._~+/=-]+")
-    _DISCORD_WEBHOOK = re.compile(
-        r"(?i)(https://(?:canary\.|ptb\.)?discord(?:app)?\.com/api/webhooks/)"
-        r"[^\s/]+/[^\s)\]}]+"
-    )
-    _TOKEN_QUERY = re.compile(
-        r"(?i)([?&](?:api[_-]?key|secret|token)=)[^&#\s]+"
-    )
-
     def _sanitize_text(self, value: Any) -> str:
         """Remove credential material while retaining operational context."""
 
-        text = "" if value is None else str(value).strip()
-        text = self._BEARER_SECRET.sub("Bearer <redacted>", text)
-        text = self._SECRET_ASSIGNMENT.sub(
-            lambda match: f"{match.group(1)}{match.group(2)}<redacted>",
-            text,
-        )
-        text = self._DISCORD_WEBHOOK.sub(r"\1<redacted>", text)
-        return self._TOKEN_QUERY.sub(r"\1<redacted>", text)
+        return sanitize_text(value)
 
     def _sanitize_payload(self, value: Any) -> Any:
         """Recursively remove credentials from an outbound card payload."""

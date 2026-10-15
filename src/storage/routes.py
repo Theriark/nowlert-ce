@@ -241,13 +241,13 @@ class RouteStore:
         for row in rows:
             try:
                 items.append(self._route(row))
-            except Exception as error:
+            except Exception:
                 errors.append(
                     {
                         "resource_id": str(row["id"]),
                         "resource": str(row["name"]),
                         "code": "route_record_invalid",
-                        "message": f"Route {str(row['name'])!r} could not be loaded: {error}",
+                        "message": f"Route {str(row['name'])!r} could not be loaded.",
                     }
                 )
         return items, errors

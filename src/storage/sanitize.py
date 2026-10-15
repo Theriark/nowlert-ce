@@ -7,7 +7,9 @@ import re
 
 _SECRET_ASSIGNMENT = re.compile(
     r"(?i)\b(authorization|api[_ -]?key|password|secret|session[_ -]?id|"
-    r"token)\b(\s*[:=]\s*)([^\s,;)}\]]+)"
+    r"token)\b([\"']?\s*[:=]\s*)"
+    r"(?:\"(?:\\[\s\S]|[^\"\\])*(?:\"|\\?\Z)|"
+    r"'(?:\\[\s\S]|[^'\\])*(?:'|\\?\Z)|[^\s,;)}\]]+)"
 )
 _BEARER_SECRET = re.compile(r"(?i)\bbearer\s+[a-z0-9._~+/=-]+")
 _DISCORD_WEBHOOK = re.compile(

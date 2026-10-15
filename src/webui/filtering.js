@@ -876,7 +876,7 @@
       const button = event.target.closest("button[data-filter-action]");
       if (!button) return;
       event.preventDefault();
-      handleFilterAction(button).catch((error) => toast(error.message || "The filtering action failed.", "error"));
+      handleFilterAction(button).catch((error) => toast(uiErrorMessage(error, "The filtering action failed."), "error"));
     });
     document.addEventListener("change", (event) => {
       const operator = event.target.closest("select[data-filter-operator]");
@@ -885,7 +885,7 @@
       if (!toggle || toggle.dataset.filterToggleContext === "editor") return;
       toggleIntegration(toggle.dataset.filterToggle, toggle.checked).catch((error) => {
         toggle.checked = !toggle.checked;
-        toast(error.message || "The filter state could not be changed.", "error");
+        toast(uiErrorMessage(error, "The filter state could not be changed."), "error");
       });
     });
     const dialog = byId("filtering-dialog");
@@ -907,7 +907,7 @@
       if (state.currentView === "filtering") {
         const pageTitle = byId("page-title");
         if (pageTitle) byId("page-title").textContent = VIEW_TITLES.filtering;
-        loadOverview().catch((error) => toast(error.message || "Filtering could not be loaded.", "error"));
+        loadOverview().catch((error) => toast(uiErrorMessage(error, "Filtering could not be loaded."), "error"));
       }
       return result;
     };

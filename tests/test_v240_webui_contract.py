@@ -40,11 +40,13 @@ def test_destination_type_is_dynamic_and_duplicate_submits_are_bounded():
     assert "New credentials are required because the destination type changed." in script
 
 
-def test_api_errors_include_status_path_and_reference():
+def test_api_errors_keep_diagnostic_metadata_separate_from_public_feedback():
     script = (ROOT / "src/webui/app.js").read_text(encoding="utf-8")
     platform = (ROOT / "src/api/platform.py").read_text(encoding="utf-8")
-    assert "HTTP ${status}" in script
-    assert "reference ${reference}" in script
+    assert "this.status = status" in script
+    assert "this.path = path" in script
+    assert "this.reference = reference" in script
+    assert "this.publicMessage = publicMessage" in script
     assert '"code": "resource_conflict"' in platform
     assert '"reference": reference' in platform
     assert "Platform API request failed reference=%s path=%s" in platform

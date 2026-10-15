@@ -37,6 +37,10 @@ docker logs --tail 100 nowlert-ce-dev
 
 The development Compose definition builds the checked-out source and uses the
 development host ports documented in that file.
+Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the checkout owner's numeric
+identity when it differs from the image default `1000:1000`. The development
+bind mount hides the image's pre-created writable directories; create `logs`,
+`state`, and `external-backups` as that owner before starting.
 
 ## Production host preparation
 
@@ -66,6 +70,50 @@ docker logs --tail 100 nowlert-ce
 The base production definition runs non-root, drops Linux capabilities,
 prevents privilege escalation, uses a read-only root filesystem, and persists
 only the explicitly mounted configuration/state/log/backup paths.
+
+Both images also default to UID/GID `1000:1000` when started without Compose.
+Fresh Docker named volumes inherit the image's private, owned `config`, `logs`,
+`state`, and `external-backups` directories. Bind mounts retain host ownership,
+and existing volumes are never recursively changed at startup. Before upgrading
+an installation previously run as root, stop Nowlert and take the matched backup
+described below. Set `.env` to the intended runtime UID/GID, then repair only
+the configured Nowlert paths on the host, for example for default paths and UID
+1000 (substitute the actual paths and identity):
+
+```bash
+sudo chown -R --no-dereference 1000:1000 ./config ./logs ./state ./secrets
+```
+
+Do not recursively change ownership of a shared backup mount. Grant the runtime
+identity access to its dedicated backup directory using the host filesystem or
+NFS/SMB server permissions. Keep secret files private and readable by the
+runtime identity, including TLS keys and OAuth credentials. Docker-mounted
+secrets remain read-only in the container. Changing ownership back to root is
+not necessary for rollback; retain the matched data backup and image digest.
+
+The image healthcheck calls `http://127.0.0.1:8080/api/health` every 30 seconds
+with a three-second request timeout. Deployments that intentionally change the
+HTTP listener, bind address, or disable the API must override the healthcheck
+in their deployment definition to match their configuration.
+
+### Backup mounts and the privileged exception
+
+Prefer mounting NFS/SMB on the host and bind-mounting a dedicated writable
+backup directory at `/nowlert/external-backups`. Scheduled and manual backups
+can use that path without container root or added capabilities. To migrate
+from WebUI-managed mounts, stop backup jobs, mount the same share on the host,
+configure its dedicated directory as the external backup path, and verify a
+backup and restore before removing the managed target and Compose override.
+Keep the original backup copies throughout the migration.
+
+`compose.managed-backups.yaml` remains an explicit opt-in exception for WebUI
+NFS/SMB mounting. It runs the application as root with `SYS_ADMIN` for mounting,
+`DAC_OVERRIDE` to access existing UID-owned mounts, and `FOWNER` for private
+state permissions. These privileges expose more of the host if the application
+is compromised and continue to trigger genuine security findings. Removing
+them while retaining container-managed mounts requires a separate privileged
+mount service or equivalent architectural change. Use the override only on a
+dedicated trusted host; do not suppress these findings as fixed.
 
 ### Email Alerts OAuth applications
 

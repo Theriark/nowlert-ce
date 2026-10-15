@@ -26,5 +26,5 @@ idna==3.18
 opentelemetry-api==1.44.0
 soupsieve==2.9.2
 typing-extensions==4.16.0
-urllib3==2.7.0
+urllib3==2.8.0
 wrapt==2.4.1

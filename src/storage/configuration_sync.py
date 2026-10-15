@@ -677,13 +677,13 @@ class UnifiedConfigurationService:
         for key, default in DEFAULT_INTEGRATION_SETTINGS.items():
             try:
                 values[key] = self.settings.get("integration", key, default)
-            except Exception as error:
+            except Exception:
                 values[key] = deepcopy(default)
                 errors.append(
                     {
                         "resource": key,
                         "code": "integration_settings_unavailable",
-                        "message": str(error),
+                        "message": "Integration settings could not be loaded.",
                     }
                 )
         return {"settings": values, "errors": errors}

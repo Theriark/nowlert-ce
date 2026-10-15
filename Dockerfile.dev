@@ -29,4 +29,13 @@ RUN pip install \
     --no-cache-dir \
     -r /nowlert/requirements.txt
 
+RUN groupadd --gid 1000 nowlert \
+    && useradd --uid 1000 --gid 1000 --no-create-home --shell /usr/sbin/nologin nowlert \
+    && install -d -o 1000 -g 1000 -m 0700 \
+       /nowlert/config /nowlert/logs /nowlert/state /nowlert/external-backups /run/secrets
+
+USER 1000:1000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD ["python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=3).close()"]
+
 CMD ["/nowlert/start.sh"]

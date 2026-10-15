@@ -1,14 +1,63 @@
 """Container and process-lifecycle deployment invariants."""
 
 import os
+import json
 from pathlib import Path
+import re
 import stat
 import subprocess
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
+import pytest
 import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize("filename", ["Dockerfile", "Dockerfile.dev"])
+def test_images_default_to_an_unprivileged_identity_with_private_writable_paths(filename):
+    dockerfile = (ROOT / filename).read_text(encoding="utf-8")
+
+    assert re.findall(r"^USER (.+)$", dockerfile, re.MULTILINE)[-1:] == ["1000:1000"]
+    assert "install -d -o 1000 -g 1000 -m 0700" in dockerfile
+    for directory in ("config", "logs", "state", "external-backups"):
+        assert f"/nowlert/{directory}" in dockerfile
+    assert "/run/secrets" in dockerfile
+
+
+@pytest.mark.parametrize("filename", ["Dockerfile", "Dockerfile.dev"])
+@pytest.mark.parametrize("status", [200, 503])
+def test_image_healthcheck_observes_the_local_http_service(filename, status):
+    dockerfile = (ROOT / filename).read_text(encoding="utf-8")
+    healthcheck = re.search(r"^HEALTHCHECK .* CMD (.+)$", dockerfile, re.MULTILINE)
+    assert healthcheck is not None
+    command = json.loads(healthcheck.group(1))
+    assert command[0] == "python3"
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(status if self.path == "/api/health" else 404)
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 8080), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        result = subprocess.run([sys.executable, *command[1:]], capture_output=True)
+        assert (result.returncode == 0) is (status == 200)
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+    result = subprocess.run([sys.executable, *command[1:]], capture_output=True)
+    assert result.returncode != 0
 
 
 def test_production_image_uses_immutable_python_base_and_pinned_dependencies():
