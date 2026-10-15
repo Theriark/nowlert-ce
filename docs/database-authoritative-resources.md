@@ -55,7 +55,7 @@ Private state snapshots preserve database resources and owner-scoped secrets.
 Portable exports intentionally omit passwords, Event API token values, and
 destination credentials.
 
-Current development uses database schema **17**. Supported older databases are
+Current development uses database schema **18**. Supported older databases are
 migrated transactionally; take a verified snapshot before upgrading.
 Historical rollback notes for older schema transitions remain in their original
 release/acceptance files.

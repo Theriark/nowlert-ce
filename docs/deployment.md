@@ -224,7 +224,7 @@ Before an upgrade, keep a matched backup of:
 - the deployment definition; and
 - the currently running image reference/digest.
 
-Current development uses database schema **17** and migrates supported older
+Current development uses database schema **18** and migrates supported older
 state transactionally. A matched backup is required for safe rollback after
 state has changed; do not start an older image against a newer live database.
 

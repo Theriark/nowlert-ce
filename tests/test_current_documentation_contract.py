@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_GUIDES = (
     "README.md", "DOCKERHUB_README.md", "docs/platform-state.md",
     "docs/current-configuration-model.md", "docs/webui.md",
+    "docs/database-authoritative-resources.md", "docs/deployment.md",
 )
 WITHDRAWN_IMAGES = (
     "unifi-setup/protect-alarms.png",
