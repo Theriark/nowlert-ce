@@ -11,6 +11,7 @@ from email.parser import BytesParser
 from pathlib import Path
 
 import pytest
+from PIL import ImageDraw
 
 from config import config
 from dispatcher import Dispatcher
@@ -19,6 +20,7 @@ from formatters.discord_hardware import (
     HPEILODiscordFormatter,
     SupermicroDiscordFormatter,
 )
+from formatters.slack import SlackFormatter
 from formatters.teams_hardware import (
     DellIDRACTeamsFormatter,
     HPEILOTeamsFormatter,
@@ -112,6 +114,51 @@ def test_generic_redfish_endpoint_detects_vendor_from_standard_fields():
     item = Dispatcher().parse_webhook("redfish", payload("hpe_memory.json"))[0]
     assert item.source == "hpe_ilo"
     assert item.metadata["provider"] == "HPE iLO"
+
+
+@pytest.mark.parametrize("application,fixture", (
+    ("supermicro", "supermicro_thermal.json"),
+    ("hpe", "hpe_memory.json"),
+    ("dell", "dell_storage.json"),
+))
+def test_hardware_receivers_preserve_source_action_and_origin(monkeypatch, application, fixture):
+    source = payload(fixture)
+    event = source["Events"][0]
+    origin = event["OriginOfCondition"]["@odata.id"]
+    action = event["Resolution"]
+    item = Dispatcher().parse_webhook(application, source)[0]
+    assert item.metadata["origin"] == origin
+    assert item.metadata["recommended_action"] == action
+    output = DiscordOutput()
+    for rendered in (
+        output.source_formatters[item.source].format(item),
+        SlackFormatter().format(item),
+    ):
+        serialized = json.dumps(rendered)
+        assert origin in serialized
+        assert action in serialized
+    drawn = []
+    original = ImageDraw.ImageDraw.text
+
+    def capture(self, xy, text, *args, **kwargs):
+        drawn.append(str(text))
+        return original(self, xy, text, *args, **kwargs)
+
+    monkeypatch.setattr(ImageDraw.ImageDraw, "text", capture)
+    assert output.render_modern_image(item)
+    rendered = "".join(drawn).replace(" ", "").replace("\n", "")
+    assert origin.replace(" ", "") in rendered
+    assert action.replace(" ", "") in rendered
+
+
+def test_hardware_missing_action_and_origin_do_not_add_empty_sections():
+    source = payload("supermicro_thermal.json")
+    source["Events"][0].pop("Resolution")
+    source["Events"][0].pop("OriginOfCondition")
+    item = Dispatcher().parse_webhook("supermicro", source)[0]
+    embed = DiscordOutput().source_formatters[item.source].format(item)["embeds"][0]
+    assert not any("Recommended Action" in field["name"] for field in embed["fields"])
+    assert "**Origin:**" not in json.dumps(embed)
 
 
 def test_redfish_context_is_presented_as_host_and_scopes_deduplication():

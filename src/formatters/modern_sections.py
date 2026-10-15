@@ -84,16 +84,19 @@ MODERN_SECTION_PROFILES = {
     "supermicro": (
         ("System", ("supermicro bmc",), False),
         ("Hardware Event", ("hardware event",), False),
+        ("Recommended Action", ("recommended action",), True),
         ("Timing", ("timing",), False),
     ),
     "hpe_ilo": (
         ("System", ("hpe ilo",), False),
         ("Hardware Event", ("hardware event",), False),
+        ("Recommended Action", ("recommended action",), True),
         ("Timing", ("timing",), False),
     ),
     "dell_idrac": (
         ("System", ("dell idrac",), False),
         ("Hardware Event", ("hardware event",), False),
+        ("Recommended Action", ("recommended action",), True),
         ("Timing", ("timing",), False),
     ),
     "home_assistant": (
