@@ -570,7 +570,7 @@ def test_inherited_components_v2_contract_is_used_for_delivery(monkeypatch):
     attachments = captured["payload"].get("attachments")
     if attachments is not None:
         assert attachments == [
-            {"id": 0, "filename": "qnap.png"}
+            {"id": 0, "filename": "qnap-white.png"}
         ]
     assert captured["timeout"] == 15
 

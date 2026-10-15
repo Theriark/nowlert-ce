@@ -55,8 +55,8 @@ const SOURCE_ICONS = {
   github_actions: "/ui/source-icons/github-actions-white.png",
 
   proxmox: "/ui/source-icons/proxmox.png",
-  qnap: "/ui/source-icons/qnap.png",
-  synology: "/ui/source-icons/synology.png",
+  qnap: "/ui/source-icons/qnap-white.png",
+  synology: "/ui/source-icons/synology-white.png",
   truenas: "/ui/source-icons/truenas.png",
   unifi_network: "/ui/source-icons/unifi-network.png",
   unifi_protect: "/ui/source-icons/unifi-protect.png",

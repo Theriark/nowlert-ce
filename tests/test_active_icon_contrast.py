@@ -1,6 +1,7 @@
-"""The active GitHub mark remains visible on dark notification cards."""
+"""Active vendor marks remain visible on dark notification cards."""
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from formatters.presentation import PresentationMixin
@@ -10,8 +11,9 @@ from webui.service import WebUIService
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_active_github_icon_has_dark_card_contrast_and_transparent_background():
-    path = ROOT / "assets/icons" / PresentationMixin.PRODUCT_ICONS["github_actions"]
+@pytest.mark.parametrize("source", ("github_actions", "qnap", "synology"))
+def test_active_icon_has_dark_card_contrast_and_transparent_background(source):
+    path = ROOT / "assets/icons" / PresentationMixin.PRODUCT_ICONS[source]
     image = Image.open(path).convert("RGBA")
     opaque = [image.getpixel((x, y)) for y in range(image.height) for x in range(image.width)
               if image.getpixel((x, y))[3] == 255]
@@ -27,12 +29,25 @@ def test_active_github_icon_has_dark_card_contrast_and_transparent_background():
                for value in foreground) >= 3
 
 
-def test_webui_serves_same_github_icon_used_by_notifications():
+@pytest.mark.parametrize("source", ("github_actions", "qnap", "synology"))
+def test_webui_serves_same_icon_used_by_notifications(source):
     class Configuration:
         def get(self, *_keys, default=None):
             return default
-    filename = PresentationMixin.PRODUCT_ICONS["github_actions"]
+    filename = PresentationMixin.PRODUCT_ICONS[source]
     response = WebUIService(Configuration(), root=ROOT).response(f"/ui/source-icons/{filename}")
     assert response is not None and response.status == 200
     assert response.content_type == "image/png"
+    assert response.body == (ROOT / "assets/icons" / filename).read_bytes()
+    script = (ROOT / "src/webui/app.js").read_text()
+    assert f'{source}: "/ui/source-icons/{filename}"' in script
+
+
+@pytest.mark.parametrize("filename", ("qnap.png", "synology.png"))
+def test_previous_nas_icon_urls_remain_available(filename):
+    class Configuration:
+        def get(self, *_keys, default=None):
+            return default
+    response = WebUIService(Configuration(), root=ROOT).response(f"/ui/source-icons/{filename}")
+    assert response.status == 200
     assert response.body == (ROOT / "assets/icons" / filename).read_bytes()

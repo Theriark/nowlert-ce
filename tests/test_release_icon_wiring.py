@@ -74,7 +74,7 @@ def test_official_release_build_uses_packaged_notification_icons():
 
 
 def test_components_v2_delivery_uploads_packaged_icon(monkeypatch, tmp_path):
-    icon = tmp_path / "synology.png"
+    icon = tmp_path / "synology-white.png"
     icon.write_bytes(b"synthetic-png")
     captured = {}
 
@@ -105,9 +105,9 @@ def test_components_v2_delivery_uploads_packaged_icon(monkeypatch, tmp_path):
 
     payload = captured["payload"]
     media = find_thumbnail_media(payload["components"])
-    assert media == {"url": "attachment://synology.png"}
-    assert payload["attachments"] == [{"id": 0, "filename": "synology.png"}]
-    assert captured["filename"] == "synology.png"
+    assert media == {"url": "attachment://synology-white.png"}
+    assert payload["attachments"] == [{"id": 0, "filename": "synology-white.png"}]
+    assert captured["filename"] == "synology-white.png"
     assert captured["content"] == b"synthetic-png"
     assert payload["flags"] == 32768
     assert captured["timeout"] == 15

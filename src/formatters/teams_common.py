@@ -278,12 +278,6 @@ class TeamsCardFormatter(BaseFormatter):
         ]
         icon_url = self._product_icon_url(data.source)
         if icon_url:
-            normalized_source = str(data.source or "").strip().casefold()
-            icon_pixels = self.TEAMS_ICON_PIXELS.get(
-                normalized_source,
-                48,
-            )
-            icon_size = f"{icon_pixels}px"
             columns.append(
                 {
                     "type": "Column",
@@ -295,8 +289,7 @@ class TeamsCardFormatter(BaseFormatter):
                             "url": icon_url,
                             "altText": f"{data.integration} icon",
                             "size": "Small",
-                            "width": icon_size,
-                            "height": icon_size,
+                            **self._teams_icon_dimensions(data.source),
                         }
                     ],
                 }
