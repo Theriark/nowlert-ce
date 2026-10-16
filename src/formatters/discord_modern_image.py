@@ -2648,7 +2648,7 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
         metrics = [
             ("status", "Severity", severity, accent),
             ("sync", "Category", category, self.ICON_BLUE),
-            ("clock", "Event time", event_time, (194, 226, 242)),
+            ("clock", "Event time", event_time or "—", (194, 226, 242)),
         ]
         cells = self._summary_cells_for_metrics(
             x0,

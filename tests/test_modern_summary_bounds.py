@@ -47,3 +47,20 @@ def test_summary_values_stay_inside_cells_and_fixed_strip(monkeypatch, tmp_path,
         assert summary[1].endswith("…")
     with Image.open(BytesIO(png)) as image:
         assert image.height == renderer.BASE_HEIGHT
+
+
+@pytest.mark.parametrize("source", ["email", "semaphore"])
+def test_missing_event_time_is_a_dash_not_an_empty_cell(monkeypatch, tmp_path, source):
+    renderer = GenericFallbackDiscordModernImageRenderer(tmp_path)
+    item = Notification(source=source, title="Task failed", status="error", category="Automation",
+                        body="Task 42 failed", metadata={"state": "failure"})
+    painted = []
+    original = ImageDraw.ImageDraw.text
+
+    def capture(draw, xy, text, *args, **kwargs):
+        painted.append(str(text))
+        return original(draw, xy, text, *args, **kwargs)
+
+    monkeypatch.setattr(ImageDraw.ImageDraw, "text", capture)
+    renderer.render(item, {"embeds": [{"title": item.title, "description": item.body}]})
+    assert painted[painted.index("Event time:") + 1] == "\u2014"
