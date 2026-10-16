@@ -114,3 +114,40 @@ def test_zabbix_family_summary_groups_fit_their_measured_text(tmp_path, renderer
         assert cell_right - cell_left >= needed, (renderer_class.__name__, label, value)
     assert cells[0][1] < cells[1][0] < cells[1][1] < cells[2][0]
     assert cells[2][1] <= right
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    [
+        GrafanaDiscordModernImageRenderer,
+        PortainerDiscordModernImageRenderer,
+        QNAPDiscordModernImageRenderer,
+        GenericFallbackDiscordModernImageRenderer,
+    ],
+)
+def test_long_category_does_not_shrink_short_severity_and_time(tmp_path, renderer_class):
+    renderer = renderer_class(tmp_path)
+    metrics = [
+        ("status", "Severity", "critical", renderer.TEXT),
+        ("sync", "Category", "CE QA Mock Email Alerts 20261015 Production Incident", renderer.TEXT),
+        ("clock", "Event time", "\u2014", renderer.TEXT),
+    ]
+    left, right = renderer.CARD_SIDE_PADDING, renderer.WIDTH - renderer.CARD_SIDE_PADDING
+    cells = renderer._summary_cells_for_metrics(left, right, metrics)
+    label_font, value_font = renderer._summary_fonts_for_metrics(metrics)
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+
+    def needed(label, value):
+        return (
+            renderer.SUMMARY_LABEL_OFFSET
+            + draw.textlength(f"{label}:", font=label_font)
+            + renderer.SUMMARY_VALUE_GAP
+            + draw.textlength(value, font=value_font)
+        )
+
+    widths = [cell_right - cell_left for cell_left, cell_right in cells]
+    assert widths[0] >= needed("Severity", "critical")
+    assert widths[2] >= needed("Event time", "\u2014")
+    # The long category receives every remaining pixel instead of a fixed share.
+    assert widths[1] > needed("Category", "CE QA Mock") + 200
+    assert cells[0][1] < cells[1][0] < cells[1][1] < cells[2][0] < cells[2][1] <= right
