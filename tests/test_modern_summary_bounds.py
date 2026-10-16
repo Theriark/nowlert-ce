@@ -5,7 +5,14 @@ from io import BytesIO
 import pytest
 from PIL import Image, ImageDraw
 
-from formatters.discord_modern_image import GenericFallbackDiscordModernImageRenderer
+from formatters.discord_modern_image import (
+    GenericFallbackDiscordModernImageRenderer,
+    GrafanaDiscordModernImageRenderer,
+    PortainerDiscordModernImageRenderer,
+    ProxmoxDiscordModernImageRenderer,
+    QNAPDiscordModernImageRenderer,
+    ZabbixDiscordModernImageRenderer,
+)
 from models import Notification
 
 
@@ -64,3 +71,46 @@ def test_missing_event_time_is_a_dash_not_an_empty_cell(monkeypatch, tmp_path, s
     monkeypatch.setattr(ImageDraw.ImageDraw, "text", capture)
     renderer.render(item, {"embeds": [{"title": item.title, "description": item.body}]})
     assert painted[painted.index("Event time:") + 1] == "\u2014"
+
+
+@pytest.mark.parametrize(
+    "renderer_class",
+    [
+        ZabbixDiscordModernImageRenderer,
+        GrafanaDiscordModernImageRenderer,
+        PortainerDiscordModernImageRenderer,
+        ProxmoxDiscordModernImageRenderer,
+        QNAPDiscordModernImageRenderer,
+        GenericFallbackDiscordModernImageRenderer,
+    ],
+)
+@pytest.mark.parametrize(
+    "values",
+    [
+        ("warning", "Security", "15:50:00 UTC"),
+        ("Critical", "Alerting", "10:15:00"),
+        ("information", "Administration", "\u2014"),
+        ("information", "Automation", "12:00:00 UTC"),
+    ],
+)
+def test_zabbix_family_summary_groups_fit_their_measured_text(tmp_path, renderer_class, values):
+    renderer = renderer_class(tmp_path)
+    metrics = [
+        ("status", "Severity", values[0], renderer.TEXT),
+        ("sync", "Category", values[1], renderer.TEXT),
+        ("clock", "Event time", values[2], renderer.TEXT),
+    ]
+    left, right = renderer.CARD_SIDE_PADDING, renderer.WIDTH - renderer.CARD_SIDE_PADDING
+    cells = renderer._summary_cells_for_metrics(left, right, metrics)
+    label_font, value_font = renderer._summary_fonts_for_metrics(metrics)
+    draw = ImageDraw.Draw(Image.new("RGB", (renderer.WIDTH, 1)))
+    for (_icon, label, value, _color), (cell_left, cell_right) in zip(metrics, cells):
+        needed = (
+            renderer.SUMMARY_LABEL_OFFSET
+            + draw.textlength(f"{label}:", font=label_font)
+            + renderer.SUMMARY_VALUE_GAP
+            + draw.textlength(value, font=value_font)
+        )
+        assert cell_right - cell_left >= needed, (renderer_class.__name__, label, value)
+    assert cells[0][1] < cells[1][0] < cells[1][1] < cells[2][0]
+    assert cells[2][1] <= right
