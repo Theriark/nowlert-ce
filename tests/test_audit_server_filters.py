@@ -1,9 +1,13 @@
 """Audit search, filters, range and sort apply to the full visible history before paging."""
+import threading
 import time
 
 import pytest
 
+from dispatcher import Dispatcher
+from inputs.http import HTTPServer
 from test_platform_api import call, login, platform_api
+from test_platform_api_http import request
 
 DAY = 86400
 
@@ -116,3 +120,31 @@ def test_invalid_audit_queries_are_rejected(audit_history, query):
     platform, headers, _username = audit_history
     response = call(platform, "GET", "/api/v2/audit-events/page/1/size/25?" + query, headers=headers)
     assert response.status == 400
+
+
+def test_native_http_preserves_audit_query_and_applies_filters(audit_history):
+    platform, headers, _username = audit_history
+    server = HTTPServer(("127.0.0.1", 0), Dispatcher(), None, 1_048_576, "", platform["database"])
+    server.api = platform["service"]
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        status, payload, _headers = request(
+            server.server_port, "GET", "/api/v2/audit-events/page/1/size/25?range=7d", headers=headers
+        )
+        assert status == 200
+        assert payload["pagination"]["total"] == 2
+        status, payload, _headers = request(
+            server.server_port, "GET", "/api/v2/audit-events/page/1/size/25?sort=invalid", headers=headers
+        )
+        assert status == 400
+        status, payload, _headers = request(
+            server.server_port, "GET", "/api/v2/audit-events/page/1?action=backup.run&sort=oldest", headers=headers
+        )
+        assert status == 200
+        assert payload["pagination"]["total"] == 4
+        assert payload["audit_events"][0]["id"] < payload["audit_events"][-1]["id"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
