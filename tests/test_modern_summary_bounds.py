@@ -81,6 +81,7 @@ def test_missing_event_time_is_a_dash_not_an_empty_cell(monkeypatch, tmp_path, s
         PortainerDiscordModernImageRenderer,
         ProxmoxDiscordModernImageRenderer,
         QNAPDiscordModernImageRenderer,
+        GenericFallbackDiscordModernImageRenderer,
     ],
 )
 @pytest.mark.parametrize(
@@ -89,6 +90,7 @@ def test_missing_event_time_is_a_dash_not_an_empty_cell(monkeypatch, tmp_path, s
         ("warning", "Security", "15:50:00 UTC"),
         ("Critical", "Alerting", "10:15:00"),
         ("information", "Administration", "\u2014"),
+        ("information", "Automation", "12:00:00 UTC"),
     ],
 )
 def test_zabbix_family_summary_groups_fit_their_measured_text(tmp_path, renderer_class, values):

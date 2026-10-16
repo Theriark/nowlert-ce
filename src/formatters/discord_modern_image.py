@@ -1774,20 +1774,25 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     def _zabbix_line_height(font) -> int:
         return max(font.size + 8, sum(font.getmetrics()))
 
-    def _summary_cells_for_metrics(
+    SUMMARY_MIN_CELL_GAP = 36
+
+    def _measured_summary_cells(
         self,
         left: int,
         right: int,
         metrics,
+        inner_padding: int,
     ):
-        """Size each summary group to its text so short values are never cut off.
+        """Size each summary group to its measured text, or return None.
 
-        The fixed ratios below only apply when the three groups genuinely do
-        not fit; otherwise each group gets its measured width plus an equal
-        share of the spare room.
+        Groups get the room their icon, label and value need plus a share of
+        any spare width. When the text is slightly too wide the gap between
+        groups shrinks (never below SUMMARY_MIN_CELL_GAP) before any value is
+        truncated. None means the text genuinely does not fit.
         """
 
-        fallback = self._summary_cells(left, right)
+        if len(metrics) != 3:
+            return None
         label_font, value_font = self._summary_fonts_for_metrics(metrics)
         draw = ImageDraw.Draw(Image.new("RGB", (self.WIDTH, 1)))
         required = []
@@ -1797,32 +1802,40 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
                 self.SUMMARY_LABEL_OFFSET
                 + draw.textlength(f"{label}:", font=label_font)
                 + self.SUMMARY_VALUE_GAP
-                + draw.textlength(str(value), font=value_font)
+                + draw.textlength(self._clean(value), font=value_font)
             )
             required.append(int(width) + 1)
-        inner_left = fallback[0][0]
-        available = (
-            fallback[-1][1] - inner_left - self.SUMMARY_CELL_GAP * 2
-        )
-        if len(required) != 3 or sum(required) > available:
-            return fallback
-        extra = available - sum(required)
-        share = extra // 3
+        inner_left = left + inner_padding
+        room = (right - inner_padding) - inner_left
+        gap = self.SUMMARY_CELL_GAP
+        if sum(required) + 2 * gap > room:
+            gap = (room - sum(required)) // 2
+            if gap < self.SUMMARY_MIN_CELL_GAP:
+                return None
+        extra = room - 2 * gap - sum(required)
+        first_extra = extra // 4
+        second_extra = extra // 4
         widths = [
-            required[0] + share,
-            required[1] + share,
-            required[2] + extra - 2 * share,
+            required[0] + first_extra,
+            required[1] + second_extra,
+            required[2] + extra - first_extra - second_extra,
         ]
         cell_1 = (inner_left, inner_left + widths[0])
-        cell_2 = (
-            cell_1[1] + self.SUMMARY_CELL_GAP,
-            cell_1[1] + self.SUMMARY_CELL_GAP + widths[1],
-        )
-        cell_3 = (
-            cell_2[1] + self.SUMMARY_CELL_GAP,
-            cell_2[1] + self.SUMMARY_CELL_GAP + widths[2],
-        )
+        cell_2 = (cell_1[1] + gap, cell_1[1] + gap + widths[1])
+        cell_3 = (cell_2[1] + gap, cell_2[1] + gap + widths[2])
         return [cell_1, cell_2, cell_3]
+
+    def _summary_cells_for_metrics(
+        self,
+        left: int,
+        right: int,
+        metrics,
+    ):
+        """Size each summary group to its text so short values are never cut off."""
+
+        return self._measured_summary_cells(
+            left, right, metrics, 28
+        ) or self._summary_cells(left, right)
 
     def _summary_cells(self, left: int, right: int):
         """Give Category/Event time more breathing room without resizing text."""
@@ -3504,68 +3517,11 @@ class _StandardizedSourceDiscordModernImageRenderer(
     ):
         """Allocate the summary from measured text so groups never collide."""
 
-        draw = ImageDraw.Draw(
-            Image.new("RGB", (self.WIDTH, 1))
-        )
-        required = []
-        for _icon, label, value, _color in metrics:
-            width = (
-                self.SUMMARY_LABEL_OFFSET
-                + draw.textlength(
-                    f"{label}:",
-                    font=self.font_label,
-                )
-                + self.SUMMARY_VALUE_GAP
-                + draw.textlength(
-                    self._clean(value),
-                    font=self.font_detail,
-                )
-            )
-            required.append(int(width) + 1)
-
-        # The new standardized sources keep the frozen 72px group gaps.
-        # A slightly tighter outer inset gives long values such as
-        # Information / Administration enough room without shrinking fonts.
-        inner_padding = 22
-        inner_left = left + inner_padding
-        inner_right = right - inner_padding
-        available = (
-            inner_right
-            - inner_left
-            - self.SUMMARY_CELL_GAP * 2
-        )
-
-        if sum(required) <= available:
-            widths = list(required)
-            extra = available - sum(widths)
-            first_extra = extra // 4
-            second_extra = extra // 4
-            widths[0] += first_extra
-            widths[1] += second_extra
-            widths[2] += extra - first_extra - second_extra
-        else:
-            # Extremely long/custom values still get the established fallback
-            # geometry; normal supported values fit the measured allocation.
-            cells = self._summary_cells(left, right)
-            widths = [
-                cell_right - cell_left
-                for cell_left, cell_right in cells
-            ]
-            inner_left = cells[0][0]
-
-        cell_1 = (
-            inner_left,
-            inner_left + widths[0],
-        )
-        cell_2 = (
-            cell_1[1] + self.SUMMARY_CELL_GAP,
-            cell_1[1] + self.SUMMARY_CELL_GAP + widths[1],
-        )
-        cell_3 = (
-            cell_2[1] + self.SUMMARY_CELL_GAP,
-            cell_2[1] + self.SUMMARY_CELL_GAP + widths[2],
-        )
-        return [cell_1, cell_2, cell_3]
+        # The standardized sources use a slightly tighter outer inset so long
+        # values such as Information / Administration keep their full width.
+        return self._measured_summary_cells(
+            left, right, metrics, 22
+        ) or self._summary_cells(left, right)
 
     def _zabbix_fill_standard_rows(
         self,
