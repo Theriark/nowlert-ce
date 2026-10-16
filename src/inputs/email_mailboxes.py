@@ -381,9 +381,10 @@ class GmailMailboxProvider(_HTTPProvider):
         headers = {"Authorization": f"Bearer {access_token}"}
         limit = _sync_limit(mailbox.settings)
         ids: list[str] = []
+        cursor = ""
         if mailbox.sync_cursor:
             try:
-                ids = self._history_ids(
+                ids, cursor = self._history_ids(
                     mailbox.sync_cursor,
                     headers,
                     limit,
@@ -392,20 +393,29 @@ class GmailMailboxProvider(_HTTPProvider):
             except MailboxConnectionError as error:
                 if error.code != "sync_cursor_expired":
                     raise
-                ids = self._initial_ids(mailbox, headers, limit)
+                ids, cursor = [], ""
+                mailbox_cursor_expired = True
+            else:
+                mailbox_cursor_expired = False
         else:
+            mailbox_cursor_expired = False
+        if not mailbox.sync_cursor or mailbox_cursor_expired:
+            # Take the checkpoint BEFORE listing, so a message that arrives
+            # while this sync runs is picked up by the next history read
+            # instead of being skipped by a later profile read.
+            profile = self._json(
+                "get",
+                f"{self.API_ROOT}/profile",
+                headers=headers,
+            )
+            cursor = str(profile.get("historyId") or "")
             ids = self._initial_ids(mailbox, headers, limit)
 
         messages = tuple(
             self._message(mailbox, headers, message_id)
             for message_id in ids
         )
-        profile = self._json(
-            "get",
-            f"{self.API_ROOT}/profile",
-            headers=headers,
-        )
-        cursor = str(profile.get("historyId") or mailbox.sync_cursor or "")
+        cursor = str(cursor or mailbox.sync_cursor or "")
         if not cursor:
             raise MailboxConnectionError(
                 "provider_response_invalid",
@@ -463,9 +473,19 @@ class GmailMailboxProvider(_HTTPProvider):
         headers,
         limit: int,
         label: str,
-    ) -> list[str]:
+    ) -> tuple[list[str], str]:
+        """Return new message ids and the checkpoint the next sync starts from.
+
+        The checkpoint comes from the history response itself, which is a
+        consistent snapshot, never from a later profile read. If the batch is
+        cut short by the limit, it only advances to the last history record
+        that was fully consumed.
+        """
+
         ids: list[str] = []
         page_token = ""
+        next_cursor = ""
+        truncated_at = ""
         while len(ids) < limit:
             params = {
                 "startHistoryId": str(cursor),
@@ -482,22 +502,33 @@ class GmailMailboxProvider(_HTTPProvider):
                 params=params,
                 cursor_request=True,
             )
+            next_cursor = str(payload.get("historyId") or next_cursor)
+            previous_entry_id = ""
             for entry in payload.get("history", []):
                 if not isinstance(entry, dict):
                     continue
+                entry_ids = []
                 for added in entry.get("messagesAdded", []):
                     message = added.get("message") if isinstance(added, dict) else None
                     identifier = message.get("id") if isinstance(message, dict) else None
                     if identifier and str(identifier) not in ids:
-                        ids.append(str(identifier))
-                        if len(ids) >= limit:
-                            break
-                if len(ids) >= limit:
+                        entry_ids.append(str(identifier))
+                if len(ids) + len(entry_ids) > limit and ids:
+                    truncated_at = previous_entry_id or truncated_at or str(cursor)
                     break
+                ids.extend(entry_ids[: max(0, limit - len(ids))])
+                previous_entry_id = str(entry.get("id") or previous_entry_id)
+                if len(ids) >= limit:
+                    truncated_at = previous_entry_id
+                    break
+            if truncated_at:
+                break
             page_token = str(payload.get("nextPageToken") or "")
             if not page_token:
                 break
-        return ids
+        if truncated_at:
+            return ids, truncated_at
+        return ids, next_cursor
 
     def _message(self, mailbox, headers, message_id: str) -> MailboxProviderMessage:
         payload = self._json(

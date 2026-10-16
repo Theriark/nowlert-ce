@@ -1132,3 +1132,137 @@ def test_mailbox_sync_scheduler_clamps_interval_to_safe_bounds():
         == 3600
     )
 
+
+
+
+class RacingGmailHTTP(GmailHTTP):
+    """Gmail whose mailbox moves on between the history and profile reads."""
+
+    def __init__(self):
+        super().__init__()
+        self.profile_calls = 0
+        self.order = []
+
+    def get(self, url, **kwargs):
+        if url.endswith("/profile"):
+            self.profile_calls += 1
+            self.order.append("profile")
+            self.calls.append(("get", url, kwargs))
+            # A new message arrives after the first read; later reads see a
+            # newer checkpoint than the one the history response described.
+            return Response(payload={"historyId": str(100 + 100 * (self.profile_calls - 1))})
+        if url.endswith("/messages"):
+            self.order.append("list")
+        if url.endswith("/history"):
+            self.order.append("history")
+            self.calls.append(("get", url, kwargs))
+            return Response(
+                payload={
+                    "historyId": "150",
+                    "history": [
+                        {"id": "101", "messagesAdded": [{"message": {"id": "gmail-message-1"}}]}
+                    ],
+                }
+            )
+        return super().get(url, **kwargs)
+
+
+def _gmail_service(tmp_path, http):
+    now = 2_000_000_000
+    database = Database(tmp_path / "state" / "nowlert.db")
+    database.migrate()
+    actor = user(database)
+    service = MailboxConnectionService(
+        database,
+        http=http,
+        clock=lambda: now,
+        oauth_applications={
+            "gmail": {
+                "client_id": "client",
+                "client_secret": "secret",
+                "redirect_uri": "https://nowlert.example/ui/",
+            },
+            "microsoft_365": {},
+        },
+    )
+    mailbox = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "gmail",
+        "alerts@example.com",
+        credential={
+            "access_token": "existing",
+            "refresh_token": "refresh",
+            "expires_at": now + 3600,
+        },
+    )
+    service.store.update_mailbox_connection(
+        actor, mailbox.id, connection_state="healthy", sync_cursor=""
+    )
+    return service, actor, mailbox
+
+
+def test_gmail_initial_sync_takes_checkpoint_before_listing_messages(tmp_path):
+    http = RacingGmailHTTP()
+    service, actor, mailbox = _gmail_service(tmp_path, http)
+    service.sync_mailbox(actor, mailbox.id)
+    assert http.order.index("profile") < http.order.index("list")
+    assert service.store.get_mailbox(actor, mailbox.id).sync_cursor == "100"
+
+
+def test_gmail_incremental_sync_advances_to_history_snapshot_not_a_later_profile(tmp_path):
+    http = RacingGmailHTTP()
+    service, actor, mailbox = _gmail_service(tmp_path, http)
+    service.store.update_mailbox_connection(
+        actor, mailbox.id, connection_state="healthy", sync_cursor="100"
+    )
+    summary = service.sync_mailbox(actor, mailbox.id)
+    assert summary.observed == 1
+    # A message that arrived after the history response (historyId 150) must
+    # still be returned by the next history read, so the cursor is 150, not
+    # whatever the profile reports afterwards.
+    assert service.store.get_mailbox(actor, mailbox.id).sync_cursor == "150"
+    assert http.profile_calls == 0
+
+
+def test_gmail_sync_limit_does_not_skip_history_records(tmp_path):
+    class LimitedHTTP(RacingGmailHTTP):
+        def get(self, url, **kwargs):
+            if url.endswith("/history"):
+                self.calls.append(("get", url, kwargs))
+                return Response(
+                    payload={
+                        "historyId": "500",
+                        "history": [
+                            {"id": "101", "messagesAdded": [{"message": {"id": "gmail-message-1"}}]},
+                            {"id": "102", "messagesAdded": [{"message": {"id": "gmail-message-2"}}]},
+                            {"id": "103", "messagesAdded": [{"message": {"id": "gmail-message-3"}}]},
+                        ],
+                    }
+                )
+            if url.endswith("/messages/gmail-message-2") or url.endswith("/messages/gmail-message-3"):
+                response = super().get(url.rsplit("-", 1)[0] + "-1", **kwargs)
+                payload = dict(response._payload)
+                number = url[-1]
+                payload["id"] = "gmail-message-" + number
+                payload["payload"] = {
+                    "headers": [
+                        {"name": "Message-ID", "value": f"<gmail-message-{number}@example.invalid>"},
+                        {"name": "From", "value": "Monitor <monitor@example.invalid>"},
+                        {"name": "To", "value": "alerts@example.com"},
+                        {"name": "Subject", "value": f"Message {number}"},
+                    ]
+                }
+                return Response(payload=payload)
+            return super().get(url, **kwargs)
+
+    http = LimitedHTTP()
+    service, actor, mailbox = _gmail_service(tmp_path, http)
+    service.update_mailbox(actor, mailbox.id, settings={"max_messages_per_sync": 2})
+    service.store.update_mailbox_connection(
+        actor, mailbox.id, connection_state="healthy", sync_cursor="100"
+    )
+    summary = service.sync_mailbox(actor, mailbox.id)
+    assert summary.observed == 2
+    # Only records 101 and 102 were consumed, so record 103 is read next time.
+    assert service.store.get_mailbox(actor, mailbox.id).sync_cursor == "102"
