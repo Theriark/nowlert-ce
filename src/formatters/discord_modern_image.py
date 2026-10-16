@@ -1809,17 +1809,33 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
         room = (right - inner_padding) - inner_left
         gap = self.SUMMARY_CELL_GAP
         if sum(required) + 2 * gap > room:
-            gap = (room - sum(required)) // 2
-            if gap < self.SUMMARY_MIN_CELL_GAP:
-                return None
-        extra = room - 2 * gap - sum(required)
-        first_extra = extra // 4
-        second_extra = extra // 4
-        widths = [
-            required[0] + first_extra,
-            required[1] + second_extra,
-            required[2] + extra - first_extra - second_extra,
-        ]
+            gap = max(
+                self.SUMMARY_MIN_CELL_GAP,
+                (room - sum(required)) // 2,
+            )
+        available = room - 2 * gap
+        if sum(required) > available:
+            # Too long to show in full: every group that fits inside an equal
+            # share keeps its whole text and the longer ones split the rest,
+            # so only the genuinely long value is shortened.
+            widths = [0, 0, 0]
+            remaining = available
+            for position, index in enumerate(
+                sorted(range(3), key=lambda item: required[item])
+            ):
+                widths[index] = min(
+                    required[index], remaining // (3 - position)
+                )
+                remaining -= widths[index]
+        else:
+            extra = available - sum(required)
+            first_extra = extra // 4
+            second_extra = extra // 4
+            widths = [
+                required[0] + first_extra,
+                required[1] + second_extra,
+                required[2] + extra - first_extra - second_extra,
+            ]
         cell_1 = (inner_left, inner_left + widths[0])
         cell_2 = (cell_1[1] + gap, cell_1[1] + gap + widths[1])
         cell_3 = (cell_2[1] + gap, cell_2[1] + gap + widths[2])
