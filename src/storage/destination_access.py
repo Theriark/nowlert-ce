@@ -781,6 +781,7 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
                 JOIN destinations
                   ON destinations.id = route_destinations.destination_id
                 WHERE (routes.source = ? OR routes.source = '*')
+                  AND routes.enabled = 1
                   AND destinations.owner_user_id = ?
                   AND destinations.enabled = 1
                 ORDER BY routes.priority, routes.name_normalized
