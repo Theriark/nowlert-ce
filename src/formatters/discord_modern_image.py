@@ -1774,6 +1774,56 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     def _zabbix_line_height(font) -> int:
         return max(font.size + 8, sum(font.getmetrics()))
 
+    def _summary_cells_for_metrics(
+        self,
+        left: int,
+        right: int,
+        metrics,
+    ):
+        """Size each summary group to its text so short values are never cut off.
+
+        The fixed ratios below only apply when the three groups genuinely do
+        not fit; otherwise each group gets its measured width plus an equal
+        share of the spare room.
+        """
+
+        fallback = self._summary_cells(left, right)
+        label_font, value_font = self._summary_fonts_for_metrics(metrics)
+        draw = ImageDraw.Draw(Image.new("RGB", (self.WIDTH, 1)))
+        required = []
+        for metric in metrics:
+            _icon, label, value = metric[:3]
+            width = (
+                self.SUMMARY_LABEL_OFFSET
+                + draw.textlength(f"{label}:", font=label_font)
+                + self.SUMMARY_VALUE_GAP
+                + draw.textlength(str(value), font=value_font)
+            )
+            required.append(int(width) + 1)
+        inner_left = fallback[0][0]
+        available = (
+            fallback[-1][1] - inner_left - self.SUMMARY_CELL_GAP * 2
+        )
+        if len(required) != 3 or sum(required) > available:
+            return fallback
+        extra = available - sum(required)
+        share = extra // 3
+        widths = [
+            required[0] + share,
+            required[1] + share,
+            required[2] + extra - 2 * share,
+        ]
+        cell_1 = (inner_left, inner_left + widths[0])
+        cell_2 = (
+            cell_1[1] + self.SUMMARY_CELL_GAP,
+            cell_1[1] + self.SUMMARY_CELL_GAP + widths[1],
+        )
+        cell_3 = (
+            cell_2[1] + self.SUMMARY_CELL_GAP,
+            cell_2[1] + self.SUMMARY_CELL_GAP + widths[2],
+        )
+        return [cell_1, cell_2, cell_3]
+
     def _summary_cells(self, left: int, right: int):
         """Give Category/Event time more breathing room without resizing text."""
 
