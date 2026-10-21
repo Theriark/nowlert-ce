@@ -151,9 +151,12 @@ After a test event:
 4. confirm repeated delivery of the exact same Redfish event does not create an
    unnecessary duplicate notification within the deduplication window.
 
-A public Discord example is included in the repository:
+The packaged Discord example below is an outdated v2.5.2 capture: it shows
+the product's former name and an older card layout. It is retained only until
+a current capture replaces it. Current Discord cards use the Modern Card or
+Classic Card presentation selected on the destination.
 
-![Nowlert Dell iDRAC Discord notification](../images/v2.5.2-discord-idrac.png)
+![Outdated v2.5.2 Dell iDRAC Discord notification, pending recapture](../images/v2.5.2-discord-idrac.png)
 
 ## Authentication compatibility
 

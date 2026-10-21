@@ -4,8 +4,12 @@ Current Nowlert packages a responsive, dependency-free management interface in
 the application image. The browser uses the authenticated same-origin
 `/api/v2` contract and never needs direct access to SQLite or secret files.
 
-Historical v3.1.0 screenshots in this guide illustrate older layouts. Current
-development has newer management workflows; follow the written steps below.
+This guide describes the current development interface, which already differs
+from the released v3.1.6 WebUI; see
+[development after v3.1.6](releases/post-v3.1.6-development.md) for the list of
+changes without a version number yet. Historical v3.1.0 screenshots in this
+guide illustrate older layouts only; no capture of the current interface is
+packaged, so follow the written steps, which match the packaged interface source.
 
 ## Activation
 
@@ -48,18 +52,32 @@ webui:
 
 ## Navigation
 
-### Dashboard / Overview
+The sidebar offers **Dashboard**, **Routing Flow**, **Destinations**,
+**Filtering**, **Email Alerts** (expanding to **Rules**, **Groups**,
+**Mailboxes** and **Activity**), **Delivery history** and **Settings** to every
+signed-in user. **Audit log**, **Backups** and **Users** are shown to
+administrators only. The profile chip at the bottom of the sidebar opens
+**Profile** (the **Security** page) and **Sign out**. Administrators also see a
+**Restart** control in the header that opens the **Restart Nowlert**
+confirmation.
+
+There is no separate Sources, Routes, Inputs, API access, Updates or Data tools
+page: those functions live inside the pages described below.
+
+### Dashboard
 
 The Dashboard combines the operational state that is most useful during normal
 administration:
 
-- administrator notices;
-- event/delivery metrics over selectable time ranges;
-- recent activity;
-- top sources and destinations;
-- health state;
-- complete Integration/Input → Route → Destination flow; and
-- independent working, disabled, warning, and error states.
+- metric cards for **Routed integrations**, **Active Destinations**,
+  **Active Routes** and **Event API tokens**, plus **Success** and
+  **Requests** for the selected history range;
+- **Delivery History** analytics over selectable time ranges;
+- **Recent Activity**;
+- **Top Sources** and **Top Destinations**;
+- **System Health** with the Nowlert health checks; and
+- the complete Integration/Input → Route → Destination flow with independent
+  working, disabled, warning, and error states.
 
 The delivery chart plots cumulative delivery outcomes with a thin pulsing yellow
 line and animated pulses at recorded events. The animation restarts when the
@@ -69,12 +87,41 @@ manual replay button.
 
 ![Historical v3.1.0 Dashboard](images/v3.1.0-dashboard.png)
 
+### Routing Flow
+
+Routing Flow shows the active integration, filter, and destination topology
+with live metrics. Its card highlight follows route type: direct paths pulse
+yellow, filtered paths pulse grey, and endpoints shared by both use a split
+yellow/grey pulse. Source receipts are counted independently of fan-out, so one
+received event that reaches several destinations is still one source receipt.
+
 ### Destinations
+
+The Destinations page configures delivery targets for **Discord**,
+**Microsoft Teams**, **Slack**, **Email**, **Nowlert Mobile** and **generic
+webhooks**. MQTT and ntfy are no longer offered by the destination editor.
+
+**Add destination** opens the editor with the destination name, type, enabled
+and shared switches, a **Connection and presentation** section and the
+write-only credential fields for the chosen type:
+
+- **Channel / destination** is a display label for Discord, Teams, Slack and
+  webhooks.
+- **Message style** selects **Modern Card** or **Classic Card** for Microsoft
+  Teams, Slack, Nowlert Mobile and generic webhooks (Slack defaults to Classic
+  Card, the others to Modern Card). Discord keeps its **Use Components v2**
+  option.
+- **Webhook URL** is the write-only secret for Discord, Teams and Slack.
+- **Nowlert Mobile** connects through **Connect Nowlert Mobile** and a
+  temporary code approved in the mobile app; see
+  [Nowlert Mobile](integrations/nowlert-mobile.md).
 
 Destination owners can create, edit, preview, test, enable/disable,
 share/private, and delete their own destinations. Sharing preserves the
 creator's owner identity. Administrators can inspect, preview, and test another
-user's destination, while its configuration remains view-only.
+user's destination, while its configuration remains view-only. The test action
+sends a Nowlert-owned notification rendered in the destination's selected
+message style.
 
 Credentials are write-only. The WebUI can indicate that a credential exists,
 but normal read APIs do not return the stored webhook URL, password, token, or
@@ -88,26 +135,46 @@ Choose the built-in integration/input routes, select **Done**, then save the
 destination. Done updates the form; **Save changes** (or **Add destination**)
 persists the assignments. There is no separate Sources or Routes page.
 
-Built-in integrations are packaged application capabilities. The normalized
-input badges are **SMTP**, **HTTP**, and **Redfish**. Dedicated matching routes
-are evaluated before wildcard **Fallback** routes.
+Built-in integrations are packaged application capabilities. Routes are named
+after the integration and its input, for example **Xen Orchestra (SMTP)** or
+**Zabbix (HTTP)**. The normalized input badges are **SMTP**, **HTTP**, and
+**Redfish**. Dedicated matching routes are evaluated before wildcard
+**Fallback** routes.
 
 ### Filtering
 
 Open **Filtering** to configure destination-specific integration filters for
-severity, status and supported application fields. Keep source notifications
-broad, then suppress unwanted events centrally. Administrative deterministic
-processing settings appear under **Integration behavior** on this page as well:
-Xen Orchestra job/run ID visibility, Zabbix problem ID visibility, Dell iDRAC
-trusted management clients, UniFi Protect device aliases, Home Assistant
-endpoint/component aliases, and Redfish deduplication.
+severity, status and supported application fields. Choose the destination to
+filter; only integrations currently enabled for it are offered. Keep source
+notifications broad, then suppress unwanted events centrally.
 
-### Routing Flow
+Administrative deterministic processing settings appear under **Integration
+behavior** below the filter table on this page: Xen Orchestra job/run ID
+visibility, Zabbix problem ID visibility, Dell iDRAC trusted management
+clients, UniFi Protect device aliases, Home Assistant endpoint/component
+aliases, Checkmk and other formatter filters, and Redfish deduplication.
 
-Routing Flow shows the active integration, filter, and destination topology. Its
-card highlight follows route type: direct paths pulse yellow, filtered paths
-pulse grey, and endpoints shared by both use a split yellow/grey pulse. Filter
-criteria and routing behavior are unchanged.
+### Email Alerts
+
+Email Alerts ingests messages from connected mailboxes instead of the SMTP
+listener. The page has four tabs:
+
+- **Mailboxes**: connect Gmail or Microsoft 365 mailboxes by signing in with
+  the provider; the installation administrator configures the OAuth
+  application once through deployment secrets. A mailbox can be private to its
+  owner or shared.
+- **Rules**: deterministic conditions on message metadata that classify
+  matching mail.
+- **Groups**: organise related classification rules and optionally suppress
+  repeats for a quiet window.
+- **Activity**: what was fetched, matched, deduplicated and routed.
+
+Matching messages are routed through the Email Alerts route like any other
+event and appear in Delivery history. See the
+[Gmail](guides/gmail-email-alerts.md),
+[Microsoft 365](guides/microsoft-email-alerts.md) and
+[shared rules](guides/gmail-microsoft-email-alerts.md) guides.
+
 ### Event API tokens
 
 Open **Profile menu → Security → API tokens** to issue, rotate or revoke an Event API token.
@@ -120,16 +187,14 @@ Token values are displayed only at creation or successful rotation. The list
 shows safe metadata such as source scopes, rate limit, last use, and state.
 Rotate or revoke a token instead of trying to retrieve its previous value.
 
-### Delivery History
+### Delivery history
 
-Delivery History shows normalized event identity, source/input, destination,
+Delivery history shows normalized event identity, source/input, destination,
 attempt, outcome, safe error state, and time without exposing response bodies or
-credentials.
+credentials. Severity filtering is applied before paging, and the page opens at
+the newest events after a restart.
 
-The v3.1.2 UI keeps the corrected Delivery History presentation without
-redundant/empty status decoration.
-
-Pagination behavior is shared with Audit Log:
+Pagination behavior is shared with Audit log:
 
 - **First / Previous / Next / Last** remain available;
 - the editable page number is embedded in `Page [n] of N - X items`;
@@ -141,13 +206,12 @@ Pagination behavior is shared with Audit Log:
 
 ![Historical v3.1.0 Delivery History](images/v3.1.0-delivery-history.png)
 
-### Audit Log
+### Audit log
 
-Audit Log records protected mutations using bounded, secret-free detail. Users
+Audit log records protected mutations using bounded, secret-free detail. Users
 see activity allowed by the ownership model; administrators can inspect all
-retained audit events.
-
-It uses the same v3.1.2 pagination contract as Delivery History.
+retained audit events. Filters, date range and sort are applied on the server
+before paging, and it uses the same pagination contract as Delivery history.
 
 ### Users
 
@@ -170,14 +234,31 @@ display **User**.
 
 Settings includes:
 
-- language, IANA timezone, and 12/24-hour clock;
-- scheduled-only housekeeping with Enabled/Disabled state and recommended retention choices for Delivery History, Audit Log, and backup-run records; and
-- administrative update checks.
+- **Regional settings**: language (twenty interface languages, English and
+  Português among them), IANA timezone, and 12/24-hour clock; the timezone
+  also controls timestamps generated by notification formatters;
+- **Housekeeping**: scheduled-only retention with Enabled/Disabled state and
+  recommended retention choices for Delivery history, Audit log, and
+  backup-run records; and
+- **Check for updates** for administrators.
 
 Integration behavior controls live under **Filtering**.
 
 Each settings record has an independent error boundary. One invalid record does
 not make unrelated settings or pages unavailable.
+
+### Security
+
+**Profile** in the profile menu opens the **Security** page for the signed-in
+account:
+
+- account details and profile picture;
+- **Change password**;
+- **Multi-factor authentication**: **Enable MFA** with an authenticator app,
+  one-time recovery codes to store safely (**I saved these codes**), and
+  **Disable MFA** after confirming the current password and an authenticator
+  code; and
+- **API tokens**, as described under Event API tokens above.
 
 ### Backups and Data tools
 
@@ -188,7 +269,8 @@ The administration UI provides:
 - complete recovery snapshots containing SQLite state/history, managed secrets,
   and mounted bootstrap configuration when available;
 - individual local snapshot deletion after confirmation;
-- Local/NFS/SMB backup destinations and discovery of snapshots stored there;
+- Local/NFS/SMB backup destinations and discovery of snapshots stored there
+  without scanning archive contents;
 - scheduled daily, weekly, or monthly backup execution;
 - manual backup runs;
 - restore from either local or Local/NFS/SMB storage using local staging,
@@ -197,7 +279,7 @@ The administration UI provides:
 - credential-free Data Tools export/import for user-created configuration only.
 
 Data Tools deliberately excludes users, credentials, token material, Delivery
-History and Audit Log. Housekeeping controls local history retention separately.
+history and Audit log. Housekeeping controls local history retention separately.
 
 ## Browser security
 
@@ -214,6 +296,7 @@ The WebUI relies on server-enforced security boundaries:
   the current page and form state available while credentials are revalidated;
 - timeout re-authentication preserves user-scoped sessionStorage display
   snapshots for warm first paint, while explicit Sign out purges those caches;
+- optional multi-factor authentication with one-time recovery codes;
 - write-only destination secrets; and
 - one-time Event API token display.
 

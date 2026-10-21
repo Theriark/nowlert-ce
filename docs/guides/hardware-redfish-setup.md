@@ -205,6 +205,14 @@ These two images are also rendered, token-free API readback records. The firmwar
 omitted `HttpHeaders` from its GET response; the omission alone does not prove
 the token was absent from the submitted configuration.
 
+Both records (and their source files under `images/hardware-setup/records/`)
+date from 2 October, when end-to-end delivery to the original TLS listener was
+not verified. The Dell and Supermicro native deliveries described later in this
+guide were observed on 3 October through the separate compatibility listener
+and the isolated HTTP relay; TLS delivery to the original listener remains
+unverified for both controllers. The records use RFC 5737 documentation
+addresses and synthetic subscription identifiers.
+
 ## 5. Test the full controller path
 
 1. Read back the new subscription and check its destination and enabled status.

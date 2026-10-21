@@ -35,6 +35,22 @@ validation results are historical observations, not new acceptance or release
 claims. The v3.1.0 preview set is explicitly historical; current written steps
 describe development. A filename containing `redacted` is never proof of privacy.
 
+## Validation records
+
+The JSON and HTML readback records under `images/hardware-setup/records/` and
+`images/monitoring-setup/records/` were re-checked on 21 October 2026. Every
+address in them is an RFC 5737 documentation address (192.0.2.0/24); the
+subscription identifiers and controller contexts are synthetic, and no
+authentication value is present. Keep that convention when adding a record,
+and never paste a real controller, relay or receiver address into one.
+
+The three packaged captures whose file names mention tokens (the hardware
+token list and token scope captures and the Portainer token scope capture)
+were visually inspected on 21 October 2026: they show a token name, the issued
+token list with the value hidden, or the pre-issuance scope form, and no token
+value. A file name that mentions a token is not, by itself, evidence of a
+leak; inspect the image.
+
 ## Adding or replacing an image
 
 1. Prefer a fresh capture with synthetic account/device names and documentation

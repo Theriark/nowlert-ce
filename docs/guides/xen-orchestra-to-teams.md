@@ -3,7 +3,8 @@
 Xen Orchestra can send infrastructure and backup notifications by SMTP. Nowlert
 CE receives those messages directly, identifies the Xen Orchestra source,
 normalises the useful fields, applies a deterministic route, and renders a
-Microsoft Teams Adaptive Card.
+Microsoft Teams card in the message style selected on the destination
+(**Modern Card** by default, or **Classic Card**).
 
 ```text
 Xen Orchestra
@@ -55,19 +56,24 @@ an artificial failure.
 
 In **Destinations** in the Nowlert WebUI:
 
-1. create a destination;
-2. choose **Microsoft Teams**;
+1. select **Add destination**;
+2. choose the type **Microsoft Teams** (workflow or incoming webhook delivery);
 3. give it a clear name such as `Infrastructure - Teams`;
-4. enter the Teams webhook/workflow URL in the write-only secret field;
-5. save it; and
-6. use the destination test action before attaching production routes.
+4. enter the Teams workflow or incoming webhook URL in the write-only
+   **Webhook URL** field;
+5. under **Connection and presentation**, keep **Message style** on
+   **Modern Card** or choose **Classic Card**, and optionally fill
+   **Channel / destination** for display;
+6. save it; and
+7. use the destination test action before attaching production routes. The
+   test sends a Nowlert-owned notification rendered in the selected style.
 
 The credential is not returned by normal read APIs after it is stored.
 
 ## 4. Assign the Xen Orchestra route
 
 In **Destinations**, edit the Teams destination and open **Manage routes**.
-Select **Xen Orchestra SMTP**, choose **Done**, then **Save changes**. Keep the
+Select **Xen Orchestra (SMTP)**, choose **Done**, then **Save changes**. Keep the
 destination and route enabled. No extra route needs to be created.
 
 Use **Filtering** to narrow destination-specific events when needed. If Xen
@@ -88,12 +94,12 @@ Xen Orchestra SMTP message
   -> normalised event
   -> Xen Orchestra (SMTP) route
   -> Teams destination
-  -> Adaptive Card
+  -> Modern Card or Classic Card
 ```
 
 ## 6. Verify the result
 
-Check **Delivery History** in Nowlert and confirm:
+Check **Delivery history** in Nowlert and confirm:
 
 - source/integration is Xen Orchestra;
 - the expected route and Teams destination were selected;
@@ -104,7 +110,9 @@ Then compare the delivered Teams card with the original Xen Orchestra message.
 The useful operational fields should be visible without having to scan the full
 raw email.
 
-Historical v3.1.0 presentation example; current development cards differ:
+No capture of a current Teams card is packaged yet. The image below is a
+historical v3.1.0 presentation example; current Modern and Classic cards differ
+from it:
 
 ![Historical v3.1.0 Microsoft Teams Xen Orchestra notification](../images/v3.1.0-teams-xen-orchestra.png)
 
@@ -118,8 +126,8 @@ source-aware path:
 - vendor-specific content is normalised before routing;
 - destination selection is deterministic and auditable;
 - Teams receives destination-aware presentation; and
-- the same operational model can also serve Discord, Slack, generic webhooks,
-  MQTT, and ntfy.
+- the same operational model can also serve Discord, Slack, Email, Nowlert
+  Mobile and generic webhooks.
 
 ## Troubleshooting
 
@@ -131,7 +139,7 @@ settings. If TLS is enabled, make sure Xen Orchestra trusts the certificate.
 ### Mail arrives but Teams does not
 
 Check the Xen Orchestra route, route filters, destination enabled state and
-Delivery History. Test the Teams destination independently to separate routing
+Delivery history. Test the Teams destination independently to separate routing
 problems from destination credential/network problems.
 
 ### Duplicate notifications

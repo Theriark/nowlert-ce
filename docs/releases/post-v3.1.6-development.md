@@ -1,0 +1,88 @@
+# Nowlert CE development after v3.1.6
+
+**Release candidate version: not yet assigned.** `src/version.py` still reports
+`3.1.6`, the current stable release remains v3.1.6, and this note claims no new
+version number, tag, image alias or Stage promotion. It records what the
+`development` branch contains beyond v3.1.6 so that operators, testers and
+documentation reviewers can tell current development behavior from the released
+line. When a release candidate is cut, its numbered release note and QA
+checklist replace this note as the current release material.
+
+## Compatibility
+
+- Database schema: **18**. v3.1.6 shipped schema 9; migrations 10 to 18 run
+  automatically on first start of a development image: remove notices,
+  destination filtering, independent routes and destination assignments,
+  history housekeeping runs, account MFA and routing flow telemetry, Email
+  Alerts foundation, email mailbox sharing, one-time MFA recovery codes, and
+  source receipt identity.
+- Configuration model: **`platform_database_v1`**, unchanged.
+- Persistent state path: **`/nowlert/state`**, unchanged.
+- A database migrated to schema 18 cannot be used by a v3.1.6 image. Take a
+  verified recovery snapshot before upgrading a v3.1.6 installation and keep an
+  off-host copy until acceptance passes.
+
+## New since v3.1.6
+
+### Inputs and integrations
+
+- **Email Alerts**: Gmail and Microsoft 365 mailbox connections (private or
+  shared), deterministic rules grouped into groups, an Activity view, and
+  routing of classified messages through Nowlert.
+- New built-in integrations: Prometheus (Alertmanager), Checkmk, Semaphore,
+  Sonarr, Radarr, Metabase and GitHub Actions, each with receiver tests and
+  Event API token scopes.
+- Documented and validated flows for Zabbix, Grafana, Portainer, Home
+  Assistant, TrueNAS and UniFi Network/Protect/Drive, with controlled
+  integration delivery validation.
+
+### Destinations and presentation
+
+- Destination types offered by the editor: Discord, Microsoft Teams, Slack,
+  Email (outbound SMTP), Nowlert Mobile and generic webhook. MQTT and ntfy are
+  no longer offered.
+- **Message style** per destination: **Modern Card** or **Classic Card** for
+  Microsoft Teams, Slack, Nowlert Mobile and generic webhook; Discord keeps its
+  Components v2 option. Modern image cards exist for all integrations on
+  Discord and Teams; Slack gained Classic and Modern cards; Teams gained
+  Classic cards across integrations.
+- **Nowlert Mobile** destination connected through a temporary connection code
+  approved in the mobile app.
+- Destination test sends a Nowlert-owned notification rendered in the
+  destination's selected style.
+
+### WebUI
+
+- Routing Flow with pulses and live metrics; Dashboard delivery graph.
+- Filtering decoupled from routes; the **Integration behavior** panel
+  (formatter filters, device aliases, trusted management clients, Redfish
+  deduplication) is shown under **Filtering**.
+- Delivery history and Audit log pagination restored, with Audit log filters,
+  range and sort applied on the server.
+- **Security** page (Profile menu): multi-factor authentication with an
+  authenticator app and one-time recovery codes, password change and Event API
+  tokens.
+- Resilient browser sessions with in-place re-authentication; refreshed
+  translation source for the sidebar titles.
+- The Notices feature was removed.
+
+### Operations
+
+- Scheduled housekeeping of Delivery history, Audit log and backup-run records.
+- Backup listing of NAS targets without scanning archive contents; the Mobile
+  coordination lock is excluded from backups.
+- Concurrent SMTP routing and bounded concurrent destination delivery.
+
+## Documentation state
+
+- No screenshot of the current development interface is packaged. The v3.1.0
+  set is historical; the v2.5.2 and v1.9.6 captures show the retired product
+  name and are outdated pending recapture.
+- A release candidate still needs: a version bump with a numbered release note
+  and QA checklist, signed-in captures from a seeded Development deployment,
+  independent visual review of those captures, and the normal
+  Development -> Stage -> Finalize CE Release path described in
+  [deployment](../deployment.md).
+
+See the [WebUI guide](../webui.md), the [integration setup index](../integrations/README.md)
+and the [technical use-case guides](../guides/README.md) for current steps.
