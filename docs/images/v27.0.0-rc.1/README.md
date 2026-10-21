@@ -31,8 +31,8 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `delivery-history-zabbix-admin-1440.png` | Delivery history, Zabbix source filter | administrator | 1440 | 15:53 |
 | `email-alerts-groups-admin-1440.png` | Email Alerts, Groups tab | administrator | 1440 | 15:53 |
 | `destination-editor-teams-admin-1440.png` | Add destination, Microsoft Teams, Message style | administrator | 1440 | 15:54 |
-| `destination-preview-teams-modern-admin-1440.png` | Preview dialog, Teams, Modern Card | administrator | 1440 | 17:56 |
-| `destination-preview-teams-classic-admin-1440.png` | Preview dialog, Teams, Classic Card | administrator | 1440 | 17:57 |
+| `destination-preview-teams-modern-admin-1440.png` | Preview dialog, Teams destination saved as Modern Card, output scrolled to the card body | administrator | 1440 | 20:44 |
+| `destination-preview-teams-classic-admin-1440.png` | Preview dialog, Teams destination saved as Classic Card, output scrolled to the card body | administrator | 1440 | 20:41 |
 | `destinations-list-admin-768.png` | Destinations list | administrator | 768 | 17:57 |
 | `dashboard-live-admin-768.png` | Dashboard, Live | administrator | 768 | 17:57 |
 | `routing-flow-live-admin-768.png` | Routing Flow, Live | administrator | 768 | 18:04 |
@@ -40,16 +40,46 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `dashboard-live-admin-390.png` | Dashboard, Live | administrator | 390 | 18:05 |
 | `destinations-list-admin-390.png` | Destinations list | administrator | 390 | 18:05 |
 | `dashboard-live-user-1440.png` | Dashboard, Live | regular user | 1440 | 18:06 |
-| `destinations-list-user-1440.png` | Destinations list (shared and own) | regular user | 1440 | 18:06 |
+| `destinations-list-user-1440.png` | Destinations list (shared destinations of other owners, all view only) | regular user | 1440 | 18:06 |
 | `security-profile-user-1440.png` | Security (Profile, MFA, password, API tokens) | regular user | 1440 | 18:07 |
 
-## Known cosmetic limit
+The two preview captures were replaced on 21 October 2026 at the times shown;
+the other 24 files are unchanged.
+
+## Names shown in the captures
+
+- The accounts `ai-crew-admin-…` and `ai-crew-user-…` are the synthetic crew
+  test accounts.
+- The owner label `ITMANAGER` on the shared `CE Development - …` destinations
+  is the username of the administrator account of the Development deployment
+  that created them; it is a role name, not a personal name. The destination
+  subtitles (`#ce-nowlert-development`, `#Dev`, `#test`,
+  `ce-nowlert-development`) are the labels typed into the destination editor
+  for the crew's development test channels, not webhook addresses.
+- The host, database and runbook names in
+  `delivery-history-zabbix-admin-1440.png` (`VM-08 | Zabbix Server`, `DB-01`,
+  `DB-REPLICA`, `DB-RUNBOOK-REPLICATION-01`) are the synthetic Zabbix sample
+  data of the repository's own tests (`tests/test_round44_zabbix_classic_cleanup.py`,
+  `tests/test_discord_modern_images.py`), delivered to the Development
+  deployment on 15 October 2026 with the tag `site=development`; they are not
+  real infrastructure and no address is shown.
+
+## Known limits
 
 - At 768 px the title of the Routing Flow filter card is cut off at the right
-  edge of the card without an ellipsis (`routing-flow-live-admin-768.png`). At
-  390 px the card spans the full width and the whole title is visible. This is
-  a presentation limit of the current development interface observed live on
-  21 October 2026, not a documentation error.
+  edge of the card without an ellipsis (`routing-flow-live-admin-768.png`).
+  The 390 px capture (`routing-flow-live-admin-390.png`) shows the top of the
+  page only, with the metric cards in two columns and the first integration
+  cards; the filter card is further down the page and is not in the capture.
+  This is a presentation limit of the current development interface observed
+  live on 21 October 2026, not a documentation error.
+- In the Preview dialog, changing the **Message style** selector did not
+  change the generated payload in this build: the preview request sends only
+  the sample event, and the payload is rendered in the style saved on the
+  destination (observed live on 21 October 2026 and matching the preview
+  request in `src/webui/app.js`). The preview pair therefore uses two
+  destinations saved with different styles, and the selector in each capture
+  was set to the style saved on that destination.
 
 ## Not captured on purpose
 

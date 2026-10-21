@@ -80,9 +80,11 @@ column on the left, and the owl mark at its top collapses it to icons. The
 Dashboard metric cards sit in five columns above 1180 px, in three columns at
 1180 px and narrower and in one column at 840 px and narrower. Destination
 cards fill one full-width column at 1100 px and narrower. Both captured widths
-below therefore show the sidebar behind the menu button, one metric card per
-row and full-width destination cards. The same pages, captured with an
-administrator account at 768 px and 390 px:
+below therefore show the sidebar behind the menu button, the Dashboard with one
+metric card per row and full-width destination cards. The Routing Flow metric
+cards use their own grid: the captures show them in three columns at 768 px
+and in two columns at 390 px. The same pages, captured with an administrator
+account at 768 px and 390 px:
 
 | Page | 768 px | 390 px |
 |---|---|---|
@@ -95,15 +97,24 @@ administrator account at 768 px and 390 px:
 The Dashboard combines the operational state that is most useful during normal
 administration:
 
-- metric cards for **Routed integrations**, **Active Destinations**,
-  **Active Routes** and **Event API tokens**, plus **Success** and
-  **Requests** for the selected history range;
-- **Delivery History** analytics over selectable time ranges;
-- **Recent Activity**;
-- **Top Sources** and **Top Destinations**;
-- **System Health** with the Nowlert health checks; and
-- the complete Integration/Input → Route → Destination flow with independent
-  working, disabled, warning, and error states.
+- a **Live** refresh indicator and the time range selector in the page
+  header;
+- metric cards for **Integrations** (used by active routes),
+  **Destinations** (enabled destinations), **Routes** (enabled routing rules),
+  **Success Rate** and **Failures** for the selected range, the last two with
+  a change against the previous window;
+- **Delivery Performance**: the delivery chart for the selected range with the
+  Delivered, Failed and Retry counts, the success rate and the total attempts;
+- **Recent Activity**: the latest delivery events, with **View all** leading
+  to Delivery history;
+- **Top Integrations** and **Top Destinations**;
+- **System Health** with the Nowlert health checks and a **Details** link;
+  and
+- a **Configuration** summary (API tokens, active filters, shared
+  destinations, audit issues) below the panels.
+
+The Integration → Route → Destination topology is no longer drawn on the
+Dashboard; it lives on the Routing Flow page.
 
 The delivery chart plots cumulative delivery outcomes with a thin pulsing yellow
 line and animated pulses at recorded events. The animation restarts when the
@@ -164,15 +175,19 @@ message style.
 
 **Preview** opens a dialog with the severity and message style selectors, the
 route summary, an editable sample message and the generated payload for the
-destination type. The same Teams destination rendered as Modern Card and as
-Classic Card:
+destination type. The generated payload follows the message style saved on the
+destination. Two Microsoft Teams destinations, one saved as Modern Card and one
+saved as Classic Card, with the preview output scrolled to the start of the
+Adaptive Card body: the Modern Card body is a single rendered **Image**, the
+Classic Card body starts with a **ColumnSet** of text:
 
 | Modern Card | Classic Card |
 |---|---|
-| ![Preview dialog, Microsoft Teams, Modern Card (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png) | ![Preview dialog, Microsoft Teams, Classic Card (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png) |
+| ![Preview dialog for a Microsoft Teams destination saved as Modern Card, output scrolled to the card body (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png) | ![Preview dialog for a Microsoft Teams destination saved as Classic Card, output scrolled to the card body (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png) |
 
-A regular account sees shared destinations and its own. Another owner's
-destination stays **View only**:
+A regular account sees the destinations shared with it. Every destination in
+this capture belongs to another owner and stays **View only**; the signed-in
+account owns none of them:
 
 ![Destinations (development, regular user, 1440 px)](images/v27.0.0-rc.1/destinations-list-user-1440.png)
 
