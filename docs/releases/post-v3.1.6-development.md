@@ -75,12 +75,15 @@ checklist replace this note as the current release material.
 
 ## Documentation state
 
-- No screenshot of the current development interface is packaged. The v3.1.0
-  set is historical; the v2.5.2 and v1.9.6 captures show the retired product
-  name and are outdated pending recapture.
+- Live captures of this development interface are packaged under
+  `docs/images/v27.0.0-rc.1/`: 26 screenshots taken on 21 October 2026 from
+  the Development deployment with synthetic accounts and synthetic data, at
+  1440, 768 and 390 pixel widths, listed in
+  [the folder index](../images/v27.0.0-rc.1/README.md) and embedded in the
+  [WebUI guide](../webui.md). The v3.1.0 set is historical; the v2.5.2 and
+  v1.9.6 captures show the retired product name and remain outdated.
 - A release candidate still needs: a version bump with a numbered release note
-  and QA checklist, signed-in captures from a seeded Development deployment,
-  independent visual review of those captures, and the normal
+  and QA checklist, independent visual review of those captures, and the normal
   Development -> Stage -> Finalize CE Release path described in
   [deployment](../deployment.md).
 

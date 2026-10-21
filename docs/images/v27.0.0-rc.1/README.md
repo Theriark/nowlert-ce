@@ -43,6 +43,14 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `destinations-list-user-1440.png` | Destinations list (shared and own) | regular user | 1440 | 18:06 |
 | `security-profile-user-1440.png` | Security (Profile, MFA, password, API tokens) | regular user | 1440 | 18:07 |
 
+## Known cosmetic limit
+
+- At 768 px the title of the Routing Flow filter card is cut off at the right
+  edge of the card without an ellipsis (`routing-flow-live-admin-768.png`). At
+  390 px the card spans the full width and the whole title is visible. This is
+  a presentation limit of the current development interface observed live on
+  21 October 2026, not a documentation error.
+
 ## Not captured on purpose
 
 - Delivery history without a source filter and the Email Alerts Activity tab:

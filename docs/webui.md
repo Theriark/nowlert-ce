@@ -73,10 +73,16 @@ page: those functions live inside the pages described below.
 
 ### Layout at tablet and phone widths
 
-Below about 1024 px the sidebar collapses behind a menu button in the page
-header, metric cards stack in one column and destination cards use the full
-width. The same pages, captured with an administrator account at 768 px and
-390 px:
+The stylesheets switch layout at fixed widths. At 780 px and narrower the
+sidebar leaves the page and slides in from the left over the content when the
+menu button (☰) in the page header is pressed; above that width it stays a
+column on the left, and the owl mark at its top collapses it to icons. The
+Dashboard metric cards sit in five columns above 1180 px, in three columns at
+1180 px and narrower and in one column at 840 px and narrower. Destination
+cards fill one full-width column at 1100 px and narrower. Both captured widths
+below therefore show the sidebar behind the menu button, one metric card per
+row and full-width destination cards. The same pages, captured with an
+administrator account at 768 px and 390 px:
 
 | Page | 768 px | 390 px |
 |---|---|---|
