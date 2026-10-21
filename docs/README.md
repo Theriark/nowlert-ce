@@ -68,9 +68,19 @@ they do not enable integrations or change runtime behavior.
 
 ## Screenshots
 
-No screenshot of the current development interface is packaged yet. Every
-raster under `images/` that shows the Nowlert WebUI or a delivered card is an
-older capture and is labeled as such where it is used.
+Current captures of the development WebUI live under
+[`images/v27.0.0-rc.1/`](images/v27.0.0-rc.1/README.md). They were taken on
+21 October 2026 from the Development deployment of the `development` branch
+(application version 3.1.6 plus the development changes) with synthetic test
+accounts, synthetic destinations and synthetic events, at 1440, 768 and 390
+pixel widths, for an administrator and for a regular user. File names follow
+`<page>-<state>-<role>-<width>.png`; the folder index lists every file with its
+page, role, viewport and capture time, and names the pages that were left out
+because they would show a mailbox identity, personal names or a private
+address. The [WebUI guide](webui.md) embeds these captures.
+
+Every other raster under `images/` that shows the Nowlert WebUI or a delivered
+card is an older capture and is labeled as such where it is used.
 
 Historical v3.1.0 screenshots live under `images/` as versioned examples of
 the older interface. They do not describe the current development UI.
@@ -88,8 +98,8 @@ The README and WebUI guide label these images as historical:
 captures that current guides do not embed.
 
 The following captures predate the Nowlert name (they show the retired product
-name) and are outdated. They are retained only until current captures replace
-them and must not be used to illustrate current behavior:
+name) and are outdated. They are retained only for history and must not be
+used to illustrate current behavior:
 
 - `v2.5.2-destinations.png`, `v2.5.2-discord-idrac.png`,
   `v2.5.2-discord-zabbix.png`, `v2.5.2-inputs.png`, `v2.5.2-overview.png`,
