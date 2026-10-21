@@ -7,9 +7,14 @@ the application image. The browser uses the authenticated same-origin
 This guide describes the current development interface, which already differs
 from the released v3.1.6 WebUI; see
 [development after v3.1.6](releases/post-v3.1.6-development.md) for the list of
-changes without a version number yet. Historical v3.1.0 screenshots in this
-guide illustrate older layouts only; no capture of the current interface is
-packaged, so follow the written steps, which match the packaged interface source.
+changes without a version number yet. The screenshots under
+`images/v27.0.0-rc.1/` were captured on 21 October 2026 from the Development
+deployment of the `development` branch (application version 3.1.6 plus the
+development changes) with synthetic test accounts and synthetic data; each file
+name ends with the account role and the viewport width in pixels, and
+[the folder index](images/v27.0.0-rc.1/README.md) lists every capture.
+Historical v3.1.0 screenshots remain in this guide, labelled as such, to
+illustrate older layouts only.
 
 ## Activation
 
@@ -38,6 +43,8 @@ On an empty platform database, container output includes a short-lived,
 single-use setup token. Open the WebUI and use it to choose the first
 administrator username and password. No default account exists.
 
+![Sign in page (development, signed out, 1440 px)](images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png)
+
 Use direct HTTP only on a trusted private network. Public or otherwise
 untrusted deployments should terminate TLS at a trusted reverse proxy and set:
 
@@ -64,6 +71,19 @@ confirmation.
 There is no separate Sources, Routes, Inputs, API access, Updates or Data tools
 page: those functions live inside the pages described below.
 
+### Layout at tablet and phone widths
+
+Below about 1024 px the sidebar collapses behind a menu button in the page
+header, metric cards stack in one column and destination cards use the full
+width. The same pages, captured with an administrator account at 768 px and
+390 px:
+
+| Page | 768 px | 390 px |
+|---|---|---|
+| Dashboard | ![Dashboard at 768 px](images/v27.0.0-rc.1/dashboard-live-admin-768.png) | ![Dashboard at 390 px](images/v27.0.0-rc.1/dashboard-live-admin-390.png) |
+| Routing Flow | ![Routing Flow at 768 px](images/v27.0.0-rc.1/routing-flow-live-admin-768.png) | ![Routing Flow at 390 px](images/v27.0.0-rc.1/routing-flow-live-admin-390.png) |
+| Destinations | ![Destinations at 768 px](images/v27.0.0-rc.1/destinations-list-admin-768.png) | ![Destinations at 390 px](images/v27.0.0-rc.1/destinations-list-admin-390.png) |
+
 ### Dashboard
 
 The Dashboard combines the operational state that is most useful during normal
@@ -85,6 +105,13 @@ Dashboard is entered or refreshed; reduced-motion preferences disable it. The
 chart shares its selected time range with the Dashboard controls and has no
 manual replay button.
 
+![Dashboard (development, administrator, 1440 px)](images/v27.0.0-rc.1/dashboard-live-admin-1440.png)
+
+A regular account sees the same Dashboard with the shorter sidebar (no Audit
+log, Backups or Users entries) and the **User** role label on the profile chip:
+
+![Dashboard (development, regular user, 1440 px)](images/v27.0.0-rc.1/dashboard-live-user-1440.png)
+
 ![Historical v3.1.0 Dashboard](images/v3.1.0-dashboard.png)
 
 ### Routing Flow
@@ -95,11 +122,15 @@ yellow, filtered paths pulse grey, and endpoints shared by both use a split
 yellow/grey pulse. Source receipts are counted independently of fan-out, so one
 received event that reaches several destinations is still one source receipt.
 
+![Routing Flow (development, administrator, 1440 px)](images/v27.0.0-rc.1/routing-flow-live-admin-1440.png)
+
 ### Destinations
 
 The Destinations page configures delivery targets for **Discord**,
 **Microsoft Teams**, **Slack**, **Email**, **Nowlert Mobile** and **generic
 webhooks**. MQTT and ntfy are no longer offered by the destination editor.
+
+![Destinations (development, administrator, 1440 px)](images/v27.0.0-rc.1/destinations-list-admin-1440.png)
 
 **Add destination** opens the editor with the destination name, type, enabled
 and shared switches, a **Connection and presentation** section and the
@@ -116,12 +147,28 @@ write-only credential fields for the chosen type:
   temporary code approved in the mobile app; see
   [Nowlert Mobile](integrations/nowlert-mobile.md).
 
+![Add destination editor for Microsoft Teams with the Message style selector (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png)
+
 Destination owners can create, edit, preview, test, enable/disable,
 share/private, and delete their own destinations. Sharing preserves the
 creator's owner identity. Administrators can inspect, preview, and test another
 user's destination, while its configuration remains view-only. The test action
 sends a Nowlert-owned notification rendered in the destination's selected
 message style.
+
+**Preview** opens a dialog with the severity and message style selectors, the
+route summary, an editable sample message and the generated payload for the
+destination type. The same Teams destination rendered as Modern Card and as
+Classic Card:
+
+| Modern Card | Classic Card |
+|---|---|
+| ![Preview dialog, Microsoft Teams, Modern Card (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png) | ![Preview dialog, Microsoft Teams, Classic Card (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png) |
+
+A regular account sees shared destinations and its own. Another owner's
+destination stays **View only**:
+
+![Destinations (development, regular user, 1440 px)](images/v27.0.0-rc.1/destinations-list-user-1440.png)
 
 Credentials are write-only. The WebUI can indicate that a credential exists,
 but normal read APIs do not return the stored webhook URL, password, token, or
@@ -154,6 +201,8 @@ visibility, Zabbix problem ID visibility, Dell iDRAC trusted management
 clients, UniFi Protect device aliases, Home Assistant endpoint/component
 aliases, Checkmk and other formatter filters, and Redfish deduplication.
 
+![Filtering with Integration behavior (development, administrator, 1440 px)](images/v27.0.0-rc.1/filtering-list-admin-1440.png)
+
 ### Email Alerts
 
 Email Alerts ingests messages from connected mailboxes instead of the SMTP
@@ -168,6 +217,13 @@ listener. The page has four tabs:
 - **Groups**: organise related classification rules and optionally suppress
   repeats for a quiet window.
 - **Activity**: what was fetched, matched, deduplicated and routed.
+
+| Rules | Groups |
+|---|---|
+| ![Email Alerts, Rules tab (development, administrator, 1440 px)](images/v27.0.0-rc.1/email-alerts-rules-admin-1440.png) | ![Email Alerts, Groups tab (development, administrator, 1440 px)](images/v27.0.0-rc.1/email-alerts-groups-admin-1440.png) |
+
+The Mailboxes and Activity tabs show the connected mailbox identity and fetched
+message subjects, so they are described here in writing instead of captured.
 
 Matching messages are routed through the Email Alerts route like any other
 event and appear in Delivery history. See the
@@ -204,6 +260,8 @@ Pagination behavior is shared with Audit log:
 - page size persists; and
 - the header **Bottom** shortcut and page-change scroll behavior remain.
 
+![Delivery history filtered to the Zabbix source (development, administrator, 1440 px)](images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png)
+
 ![Historical v3.1.0 Delivery History](images/v3.1.0-delivery-history.png)
 
 ### Audit log
@@ -212,6 +270,8 @@ Audit log records protected mutations using bounded, secret-free detail. Users
 see activity allowed by the ownership model; administrators can inspect all
 retained audit events. Filters, date range and sort are applied on the server
 before paging, and it uses the same pagination contract as Delivery history.
+
+![Audit log with health checks, event list and event details (development, administrator, 1440 px)](images/v27.0.0-rc.1/audit-log-overview-admin-1440.png)
 
 ### Users
 
@@ -230,6 +290,8 @@ The sidebar profile chip uses the same authoritative account role as access
 control, so administrator accounts display **Admin** and regular accounts
 display **User**.
 
+![Users filtered by search to the two synthetic test accounts (development, administrator, 1440 px)](images/v27.0.0-rc.1/users-search-admin-1440.png)
+
 ### Settings
 
 Settings includes:
@@ -247,6 +309,8 @@ Integration behavior controls live under **Filtering**.
 Each settings record has an independent error boundary. One invalid record does
 not make unrelated settings or pages unavailable.
 
+![Settings with Regional settings, Updates and Housekeeping (development, administrator, 1440 px)](images/v27.0.0-rc.1/settings-regional-admin-1440.png)
+
 ### Security
 
 **Profile** in the profile menu opens the **Security** page for the signed-in
@@ -259,6 +323,10 @@ account:
   **Disable MFA** after confirming the current password and an authenticator
   code; and
 - **API tokens**, as described under Event API tokens above.
+
+| Administrator | Regular user |
+|---|---|
+| ![Security page (development, administrator, 1440 px)](images/v27.0.0-rc.1/security-profile-admin-1440.png) | ![Security page (development, regular user, 1440 px)](images/v27.0.0-rc.1/security-profile-user-1440.png) |
 
 ### Backups and Data tools
 
@@ -280,6 +348,9 @@ The administration UI provides:
 
 Data Tools deliberately excludes users, credentials, token material, Delivery
 history and Audit log. Housekeeping controls local history retention separately.
+
+The Backups page shows the configured backup target addresses, so it is not
+captured; follow the written steps above.
 
 ## Browser security
 
