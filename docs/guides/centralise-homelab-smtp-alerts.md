@@ -22,19 +22,26 @@ Nowlert CE
 Discord / Teams / Slack / ...
 ```
 
-Nowlert does not poll IMAP, Gmail, Microsoft Graph or other mailboxes.
+The direct SMTP listener described here does not poll a mailbox. Mailbox-based
+ingestion is a separate feature, **Email Alerts**, which connects Gmail or
+Microsoft 365 mailboxes through their APIs; see the
+[Gmail](gmail-email-alerts.md) and [Microsoft 365](microsoft-email-alerts.md)
+guides if the sending product can only reach a mailbox.
 
 ## Where this fits
 
-The current v3.1.2 integration catalogue includes SMTP input for products such
-as:
+The current built-in integration catalogue includes SMTP input for:
 
 - Xen Orchestra;
-- QNAP; and
+- Zabbix (SMTP or HTTP);
+- Semaphore (SMTP or HTTP);
+- QNAP;
+- Synology (SMTP or HTTP); and
 - TrueNAS.
 
 Other integrations use HTTP or Redfish instead. Nowlert keeps those transports
-inside the same routing and destination model after ingestion.
+inside the same routing and destination model after ingestion. The
+[integration catalogue](../integrations-and-inputs.md) is authoritative.
 
 ## 1. Enable the SMTP listener
 
@@ -80,24 +87,27 @@ See [SMTP security](../smtp-security.md) for the full secure rollout procedure.
 
 ## 3. Create destinations in the WebUI
 
-Open **Destinations** and create the collaboration targets you actually use.
-Current destination adapters include:
+Open **Destinations**, select **Add destination** and create the collaboration
+targets you actually use. The destination editor offers these types:
 
 - Discord;
 - Microsoft Teams;
 - Slack;
-- generic webhook;
-- MQTT; and
-- ntfy.
+- Email (outbound SMTP);
+- Nowlert Mobile; and
+- generic webhook.
 
-Destination credentials are stored as owner-scoped write-only secrets rather
-than being returned by normal read APIs.
+For Microsoft Teams, Slack, Nowlert Mobile and generic webhook, choose the
+**Message style** (**Modern Card** or **Classic Card**) under **Connection and
+presentation**. Destination credentials such as the **Webhook URL** are stored
+as owner-scoped write-only secrets rather than being returned by normal read
+APIs.
 
 ## 4. Assign dedicated routes
 
 In **Destinations**, create or edit the target and open **Manage routes**.
 Select the built-in integration SMTP routes, choose **Done**, then save the
-destination. For example:
+destination with **Save changes** (or **Add destination**). For example:
 
 ```text
 Xen Orchestra (SMTP) -> Infrastructure Discord
@@ -131,9 +141,12 @@ For each source, confirm:
 - Nowlert detected the expected integration;
 - the event matched the intended dedicated route;
 - the selected destination received the notification; and
-- **Delivery History** records the expected outcome.
+- **Delivery history** records the expected outcome.
 
 Once the basic path is proven, tighten route filters and SMTP network exposure.
+
+No capture of this flow in the current WebUI is packaged; follow the written
+steps, which match the current interface.
 
 ## Example: one homelab, several products
 
@@ -157,7 +170,7 @@ Direct infrastructure-to-Nowlert delivery avoids:
 
 - personal or shared mailbox credentials;
 - mailbox forwarding/rule drift;
-- IMAP/Graph/Gmail polling integrations;
+- mailbox polling in the event path;
 - cloud mail-provider availability in the event path; and
 - treating a long raw email as the final operational notification.
 

@@ -74,6 +74,12 @@ network faults and WiFi issues.
 
 ![Network alarms alongside existing rules](../images/unifi-setup/network-alarms.png)
 
+This capture is outdated pending recapture: it still lists earlier forwarding
+alarms that carry the product's former name, and the alarm totals visible in it
+do not match the current alarm set described in this guide. Use it only as an
+illustration of where the alarms appear; the written steps and the coverage
+manifest are authoritative.
+
 ## 4. Protect: select triggers and eligible devices
 
 We created four forwarding alarms:

@@ -5,7 +5,8 @@ the Nowlert CE README and current documentation.
 
 The product-specific setup notes currently remain in their existing top-level
 `docs/` files; this index links to them without moving historical paths or
-breaking inbound links.
+breaking inbound links. Integrations whose only documentation is an end-to-end
+guide link to that guide.
 
 ## Hardware / Redfish
 
@@ -13,16 +14,20 @@ breaking inbound links.
 - [Dell iDRAC](../dell-idrac.md)
 - [HPE iLO](../hpe-ilo.md)
 - [Supermicro](../supermicro.md)
+- [Illustrated hardware setup and validation status](../guides/hardware-redfish-setup.md)
 
 ## Monitoring
 
 - [Checkmk](../checkmk.md)
-
 - [Grafana](../grafana.md)
 - [Prometheus](../prometheus.md)
+- [Zabbix](../guides/zabbix-webhook-to-discord.md) (SMTP and HTTP inputs;
+  native webhook setup and delivery to Discord)
 
 ## Virtualization and containers
 
+- [Xen Orchestra](../guides/xen-orchestra-to-discord.md) (SMTP input; see also
+  [Xen Orchestra to Microsoft Teams](../guides/xen-orchestra-to-teams.md))
 - [Proxmox](../proxmox.md)
 - [Portainer](../portainer.md)
 
@@ -40,14 +45,14 @@ breaking inbound links.
 
 - [Home Assistant](../home-assistant.md)
 
-## Practical end-to-end use cases
+## Email Alerts
 
-For complete operator-facing flows that include destination and route setup, see
-[the technical use-case guide index](../guides/README.md).
+Email Alerts connects Gmail and Microsoft 365 mailboxes and routes classified
+messages through Nowlert; it is a mailbox connection, not an SMTP listener.
 
-The built-in integration catalogue remains authoritative for which normalized
-inputs are supported by each integration. See
-[Integrations and inputs](../integrations-and-inputs.md).
+- [Gmail email alerts](../guides/gmail-email-alerts.md)
+- [Microsoft 365 / Outlook email alerts](../guides/microsoft-email-alerts.md)
+- [Shared email rules and delivery validation](../guides/gmail-microsoft-email-alerts.md)
 
 ## Application notifications
 
@@ -58,3 +63,17 @@ inputs are supported by each integration. See
 - [GitHub Actions](../github-actions.md)
 
 [Illustrated application setup and validation status](../guides/infrastructure-tutorials.md)
+
+## Destinations with their own setup notes
+
+- [Nowlert Mobile](nowlert-mobile.md): connect the mobile app as a destination
+  with a temporary connection code.
+
+## Practical end-to-end use cases
+
+For complete operator-facing flows that include destination and route setup, see
+[the technical use-case guide index](../guides/README.md).
+
+The built-in integration catalogue remains authoritative for which normalized
+inputs are supported by each integration. See
+[Integrations and inputs](../integrations-and-inputs.md).
