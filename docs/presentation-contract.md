@@ -95,7 +95,11 @@ renderer:
 
 1. Header: `device • event`, device/status icons, severity-aware accent, and
    official integration thumbnail.
-2. Context: `integration • state • source area`.
+2. Context: `integration • state • source area`. When the event carries no
+   explicit state, the Resolved, Critical and Warning buckets keep their
+   words and only the catch-all Information bucket defers to the real
+   severity label (Debug, Notice, Not Classified); Information and its
+   synonyms read Information.
 3. Responsive separator plus the highlighted event message.
 4. Compact Severity, Category, and Event time metrics.
 5. Responsive separator plus optional integration details.
