@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: nowlert-ce-stage-promotion
@@ -195,6 +196,33 @@ jobs:
             --expected-version "${EXPECTED_VERSION}" \
             --success-marker "STAGE CE SILENT PROMOTION SMOKE PASSED"
 
+      - name: Configure AWS credentials for CE ledger
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: arn:aws:iam::845958214943:role/GitHubActions-NowlertCE-LedgerWriter
+          aws-region: eu-west-1
+          role-session-name: nowlert-ce-stage-${{ github.run_id }}
+          role-duration-seconds: 900
+          allowed-account-ids: "845958214943"
+          mask-aws-account-id: true
+          unset-current-credentials: true
+
+      - name: Record CE Stage desired state
+        id: ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python .github/scripts/ledger.py current \
+            --environment stage \
+            --image "${PROMOTION_IMAGE}" \
+            --source-commit "${SOURCE_COMMIT}" \
+            --promotion-run "${GITHUB_RUN_ID}" \
+            --application-id "${CE_STAGE_APPLICATION_ID}" \
+            --evidence-type silent-promotion-smoke \
+            --health-url https://ce-stg-nowlert.theriark.dev/api/health \
+            --success-marker "STAGE CE SILENT PROMOTION SMOKE PASSED"
+
       - name: Advance Stage source branch
         shell: bash
         env:
@@ -264,6 +292,8 @@ jobs:
             echo "- Gate network: isolated namespace, no default route or global address"
             echo "- Live Stage verification: read-only passive smoke passed"
             echo "- External notification delivery during promotion: disabled"
+            echo "- Ledger key: \`${{ steps.ledger.outputs.key }}\`"
+            echo "- Ledger version: \`${{ steps.ledger.outputs.version_id }}\`"
             echo "- Rebuild performed: no"
           } >> "${GITHUB_STEP_SUMMARY}"
 
