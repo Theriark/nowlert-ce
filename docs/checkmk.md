@@ -21,7 +21,8 @@ polling hosts or running an additional monitoring agent.
 
 Run these steps as the **Checkmk site user**, inside the site container if used.
 
-1. Copy [tools/checkmk_notification.py](../tools/checkmk_notification.py) to
+1. Copy the `tools/checkmk_notification.py` script from the Nowlert CE source
+   repository to
    `~/local/share/check_mk/notifications/nowlert`, then make it executable:
 
    ```sh
