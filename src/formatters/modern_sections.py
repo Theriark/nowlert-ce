@@ -1,5 +1,11 @@
 """Shared source-specific grouping for Modern image and native cards."""
 
+from copy import deepcopy
+import re
+
+_MARKDOWN_MARKS = re.compile(r"[*_`~]")
+_CLASSIFICATION_ROW = re.compile(r"^(severity|category)\s*:", re.IGNORECASE)
+
 MODERN_SECTION_PROFILES = {
     "zabbix": (
         ("Problem", ("problem", "operational data"), False),
@@ -123,3 +129,42 @@ MODERN_SECTION_PROFILES = {
     ),
 }
 
+
+def _is_classification_only_alert(field):
+    """True for a Classic "Alert" group that only repeats Severity/Category."""
+
+    if not isinstance(field, dict):
+        return False
+    name = re.sub(r"^[^A-Za-z0-9]+", "", str(field.get("name") or ""))
+    if name.strip().casefold() != "alert":
+        return False
+    rows = [
+        _MARKDOWN_MARKS.sub("", line).strip()
+        for line in str(field.get("value") or "").splitlines()
+    ]
+    rows = [row for row in rows if row]
+    return bool(rows) and all(_CLASSIFICATION_ROW.match(row) for row in rows)
+
+
+def without_repeated_classification(payload):
+    """Copy a Classic payload minus an Alert group repeating the summary cells.
+
+    Modern cards already show Severity and Category in the classification
+    strip, so a Classic Alert group holding only those rows would render again
+    as a redundant "Additional details" panel. Groups with any other row, and
+    every other field, are kept; the Classic payload itself is not modified.
+    """
+
+    embeds = payload.get("embeds") if isinstance(payload, dict) else None
+    if not isinstance(embeds, list) or not embeds or not isinstance(embeds[0], dict):
+        return payload
+    fields = embeds[0].get("fields")
+    if not isinstance(fields, list) or not any(
+        _is_classification_only_alert(field) for field in fields
+    ):
+        return payload
+    result = deepcopy(payload)
+    result["embeds"][0]["fields"] = [
+        field for field in fields if not _is_classification_only_alert(field)
+    ]
+    return result
