@@ -1,0 +1,330 @@
+name: Prepare CE Release Candidate
+
+run-name: publishing:${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Publisher request identifier"
+        required: true
+        type: string
+      rc_version:
+        description: "Next unused release candidate tag, for example v27.0.0-rc.4"
+        required: true
+        type: string
+      source_commit:
+        description: "Full source commit SHA of the tested Development image"
+        required: true
+        type: string
+      image:
+        description: "Immutable tested CE image, ghcr.io/theriark/nowlert-ce@sha256:<digest>"
+        required: true
+        type: string
+      development_run_id:
+        description: "Successful Development CI run ID that built the image"
+        required: true
+        type: string
+      documentation_manifest_sha256:
+        description: "SHA-256 of the verified documentation package manifest"
+        required: true
+        type: string
+      gate_cycle:
+        description: "Publication gate cycle number (integer, 1 or more)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: read
+
+concurrency:
+  group: nowlert-ce-release-finalization
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare annotated RC tag and prerelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      image_digest: ${{ steps.publish.outputs.image_digest }}
+      reused: ${{ steps.publish.outputs.reused }}
+
+    env:
+      REQUEST_ID: ${{ inputs.request_id }}
+      RC_VERSION: ${{ inputs.rc_version }}
+      SOURCE_COMMIT: ${{ inputs.source_commit }}
+      IMAGE: ${{ inputs.image }}
+      DEVELOPMENT_RUN_ID: ${{ inputs.development_run_id }}
+      DOCUMENTATION_MANIFEST_SHA256: ${{ inputs.documentation_manifest_sha256 }}
+      GATE_CYCLE: ${{ inputs.gate_cycle }}
+      WORKFLOW_RUN_ID: ${{ github.run_id }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate inputs and source lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [[ "${REQUEST_ID}" =~ ^[A-Za-z0-9._-]{1,80}$ ]] || {
+            echo "::error::request_id must be 1-80 characters of letters, digits, dot, underscore or hyphen"
+            exit 1
+          }
+          [[ "${RC_VERSION}" =~ ^v27\.[0-9]+\.[0-9]+-rc\.[1-9][0-9]*$ ]] || {
+            echo "::error::rc_version must look like v27.<minor>.<patch>-rc.<number>"
+            exit 1
+          }
+          [[ "${SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::source_commit must be a full lowercase 40-character SHA"
+            exit 1
+          }
+          [[ "${IMAGE}" =~ ^ghcr\.io/theriark/nowlert-ce@sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::image must be an immutable ghcr.io/theriark/nowlert-ce@sha256 digest"
+            exit 1
+          }
+          [[ "${DEVELOPMENT_RUN_ID}" =~ ^[1-9][0-9]{0,17}$ ]] || {
+            echo "::error::development_run_id must be a positive integer"
+            exit 1
+          }
+          [[ "${DOCUMENTATION_MANIFEST_SHA256}" =~ ^[0-9a-f]{64}$ ]] || {
+            echo "::error::documentation_manifest_sha256 must be 64 lowercase hex characters"
+            exit 1
+          }
+          [[ "${GATE_CYCLE}" =~ ^[1-9][0-9]{0,8}$ ]] || {
+            echo "::error::gate_cycle must be a positive integer"
+            exit 1
+          }
+
+          [[ "${GITHUB_REF}" == "refs/heads/development" ]] || {
+            echo "::error::RC preparation must run from development"
+            exit 1
+          }
+
+          git fetch --no-tags origin +refs/heads/development:refs/remotes/origin/development
+
+          git cat-file -e "${SOURCE_COMMIT}^{commit}" || {
+            echo "::error::source_commit does not exist in this repository"
+            exit 1
+          }
+          git merge-base --is-ancestor "${SOURCE_COMMIT}" refs/remotes/origin/development || {
+            echo "::error::source_commit is not on the development lineage"
+            exit 1
+          }
+
+          echo "PASS: inputs valid and ${SOURCE_COMMIT} is on development"
+
+      - name: Verify immutable image digest in GHCR
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "${GH_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin >/dev/null
+
+          EXPECTED_DIGEST="${IMAGE##*@}"
+          ACTUAL_DIGEST="$(
+            docker buildx imagetools inspect "${IMAGE}" --format '{{.Manifest.Digest}}'
+          )"
+
+          [[ "${ACTUAL_DIGEST}" == "${EXPECTED_DIGEST}" ]] || {
+            echo "::error::GHCR resolved ${IMAGE} to ${ACTUAL_DIGEST}; expected ${EXPECTED_DIGEST}"
+            exit 1
+          }
+
+          echo "PASS: ${IMAGE} resolves to ${ACTUAL_DIGEST}"
+
+      - name: Create or reconcile annotated RC tag and prerelease
+        id: publish
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          IMAGE_DIGEST="${IMAGE##*@}"
+          tag_ref_created=false
+          reused=false
+
+          cleanup_failed_publication() {
+            status=$?
+            trap - ERR
+            if [[ "${tag_ref_created}" == "true" ]]; then
+              echo "::warning::Publication failed; removing the RC tag created by this run"
+              gh api --method DELETE \
+                "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RC_VERSION}" \
+                >/dev/null 2>&1 || true
+            fi
+            exit "${status}"
+          }
+          trap cleanup_failed_publication ERR
+
+          # Returns 0 and sets REF_JSON when the tag ref exists, 1 when absent.
+          lookup_tag_ref() {
+            local err
+            err="$(mktemp)"
+            if REF_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RC_VERSION}" 2>"${err}")"; then
+              rm -f "${err}"
+              return 0
+            fi
+            if grep -q 'Not Found' "${err}"; then
+              rm -f "${err}"
+              return 1
+            fi
+            echo "::error::Could not look up tag ${RC_VERSION}: $(cat "${err}")"
+            exit 1
+          }
+
+          release_exists=false
+          if gh release view "${RC_VERSION}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            release_exists=true
+          fi
+
+          if lookup_tag_ref; then
+            # Reconcile: reuse only a tag whose annotation matches exactly.
+            [[ "$(jq -r '.object.type' <<<"${REF_JSON}")" == "tag" ]] || {
+              echo "::error::Tag ${RC_VERSION} exists but is not annotated; stopping"
+              exit 1
+            }
+            TAG_OBJECT_SHA="$(jq -r '.object.sha' <<<"${REF_JSON}")"
+            TAG_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${TAG_OBJECT_SHA}")"
+
+            [[ "$(jq -r '.object.sha' <<<"${TAG_JSON}")" == "${SOURCE_COMMIT}" ]] || {
+              echo "::error::Tag ${RC_VERSION} exists on a different commit; stopping"
+              exit 1
+            }
+
+            jq -er '.message' <<<"${TAG_JSON}" | jq -e \
+              --arg sc "${SOURCE_COMMIT}" \
+              --arg dg "${IMAGE_DIGEST}" \
+              --arg dr "${DEVELOPMENT_RUN_ID}" \
+              --arg ms "${DOCUMENTATION_MANIFEST_SHA256}" \
+              --arg gc "${GATE_CYCLE}" \
+              '.sourceCommit == $sc
+               and .imageDigest == $dg
+               and .developmentRunId == ($dr | tonumber)
+               and .documentationManifestSha256 == $ms
+               and .gateCycle == ($gc | tonumber)
+               and (.workflowRunId | type == "number")' >/dev/null || {
+              echo "::error::Tag ${RC_VERSION} exists with different metadata; stopping"
+              exit 1
+            }
+
+            echo "Existing tag ${RC_VERSION} matches the exact metadata; reusing it"
+            reused=true
+          else
+            if [[ "${release_exists}" == "true" ]]; then
+              echo "::error::GitHub Release ${RC_VERSION} exists without its annotated tag; stopping"
+              exit 1
+            fi
+
+            TAG_MESSAGE="$(
+              jq -cn \
+                --arg sc "${SOURCE_COMMIT}" \
+                --arg dg "${IMAGE_DIGEST}" \
+                --arg dr "${DEVELOPMENT_RUN_ID}" \
+                --arg wr "${WORKFLOW_RUN_ID}" \
+                --arg ms "${DOCUMENTATION_MANIFEST_SHA256}" \
+                --arg gc "${GATE_CYCLE}" \
+                '{sourceCommit: $sc,
+                  imageDigest: $dg,
+                  developmentRunId: ($dr | tonumber),
+                  workflowRunId: ($wr | tonumber),
+                  documentationManifestSha256: $ms,
+                  gateCycle: ($gc | tonumber)}'
+            )"
+
+            TAG_OBJECT_SHA="$(
+              gh api --method POST \
+                -H "Accept: application/vnd.github+json" \
+                "repos/${GITHUB_REPOSITORY}/git/tags" \
+                -f tag="${RC_VERSION}" \
+                -f message="${TAG_MESSAGE}" \
+                -f object="${SOURCE_COMMIT}" \
+                -f type="commit" \
+                -f 'tagger[name]=github-actions[bot]' \
+                -f 'tagger[email]=41898282+github-actions[bot]@users.noreply.github.com' \
+                --jq '.sha'
+            )"
+            [[ "${TAG_OBJECT_SHA}" =~ ^[0-9a-f]{40}$ ]] || {
+              echo "::error::GitHub did not return a valid annotated tag object SHA"
+              exit 1
+            }
+
+            gh api --method POST \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${RC_VERSION}" \
+              -f sha="${TAG_OBJECT_SHA}" \
+              >/dev/null
+            tag_ref_created=true
+          fi
+
+          if [[ "${release_exists}" == "true" ]]; then
+            RELEASE_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RC_VERSION}")"
+            [[ "$(jq -r '.draft' <<<"${RELEASE_JSON}")" == "false" \
+              && "$(jq -r '.prerelease' <<<"${RELEASE_JSON}")" == "true" ]] || {
+              echo "::error::Existing release ${RC_VERSION} is not a published prerelease; stopping"
+              exit 1
+            }
+            echo "Existing prerelease ${RC_VERSION} reused"
+          else
+            NOTES_FILE="$(mktemp)"
+            {
+              echo "Nowlert CE release candidate ${RC_VERSION}"
+              echo
+              echo "- Source commit: ${SOURCE_COMMIT}"
+              echo "- Image: ${IMAGE}"
+              echo "- Development run: ${DEVELOPMENT_RUN_ID}"
+              echo "- Documentation manifest SHA-256: ${DOCUMENTATION_MANIFEST_SHA256}"
+              echo "- Publication gate cycle: ${GATE_CYCLE}"
+              echo
+              echo "Prerelease only. Not a stable release and not latest."
+            } >"${NOTES_FILE}"
+
+            gh release create "${RC_VERSION}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --verify-tag \
+              --prerelease \
+              --latest=false \
+              --title "Nowlert CE ${RC_VERSION}" \
+              --notes-file "${NOTES_FILE}"
+          fi
+
+          trap - ERR
+
+          # Read back and verify the final state.
+          FINAL_RELEASE="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RC_VERSION}")"
+          [[ "$(jq -r '.draft' <<<"${FINAL_RELEASE}")" == "false" \
+            && "$(jq -r '.prerelease' <<<"${FINAL_RELEASE}")" == "true" ]] || {
+            echo "::error::Release ${RC_VERSION} is not a non-draft prerelease"
+            exit 1
+          }
+          FINAL_REF="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RC_VERSION}")"
+          [[ "$(jq -r '.object.type' <<<"${FINAL_REF}")" == "tag" ]] || {
+            echo "::error::Tag ${RC_VERSION} is not annotated"
+            exit 1
+          }
+
+          {
+            echo "image_digest=${IMAGE_DIGEST}"
+            echo "reused=${reused}"
+          } >>"${GITHUB_OUTPUT}"
+
+          {
+            echo "## CE release candidate prepared"
+            echo
+            echo "- Request: \`${REQUEST_ID}\`"
+            echo "- Tag: \`${RC_VERSION}\` (annotated, reused: ${reused})"
+            echo "- Source commit: \`${SOURCE_COMMIT}\`"
+            echo "- Image digest: \`${IMAGE_DIGEST}\`"
+            echo "- Development run: \`${DEVELOPMENT_RUN_ID}\`"
+            echo "- Workflow run: \`${WORKFLOW_RUN_ID}\`"
+            echo "- Documentation manifest: \`${DOCUMENTATION_MANIFEST_SHA256}\`"
+            echo "- Gate cycle: \`${GATE_CYCLE}\`"
+            echo "- Rebuild, deployment, Stage and stable publication performed: no"
+          } >>"${GITHUB_STEP_SUMMARY}"
