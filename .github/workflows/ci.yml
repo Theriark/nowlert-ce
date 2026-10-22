@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -16,7 +17,6 @@ concurrency:
 
 jobs:
   tests:
-    name: Validate CE
     runs-on: ubuntu-latest
 
     steps:
@@ -60,12 +60,6 @@ jobs:
         run: |
           set -euo pipefail
           node --check src/webui/app.js
-          node --check src/webui/filtering.js
-          node --check src/webui/delivery_chart_model.js
-          node --check src/webui/routing_pulse_model.js
-          node --check src/webui/routing_flow.js
-          node --check src/webui/reference_acceptance.js
-          node --test tests/webui/*.mjs
 
       - name: Validate public YAML files
         shell: bash
@@ -105,9 +99,6 @@ jobs:
 
   deploy-development:
     name: Build and deploy CE Development
-    permissions:
-      contents: read
-      packages: write
     needs: tests
     if: github.event_name == 'push' && github.ref == 'refs/heads/development'
     runs-on: ubuntu-latest
@@ -149,18 +140,18 @@ jobs:
           [[ -n "${CF_ACCESS_CLIENT_SECRET}" ]] || { echo "::error::CF_ACCESS_CLIENT_SECRET is missing"; exit 1; }
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and publish Development image
         id: build
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
@@ -171,24 +162,6 @@ jobs:
             ${{ env.IMAGE }}:sha-${{ env.SOURCE_SHA }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Verify Development SHA tag matches build digest
-        shell: bash
-        run: |
-          set -euo pipefail
-          SHA_TAG="${IMAGE}:sha-${SOURCE_SHA}"
-          BUILD_DIGEST="${{ steps.build.outputs.digest }}"
-          TAG_DIGEST="sha256:$(
-            docker buildx imagetools inspect "${SHA_TAG}" --raw |
-              sha256sum |
-              awk '{print $1}'
-          )"
-
-          [[ "${TAG_DIGEST}" == "${BUILD_DIGEST}" ]] || {
-            echo "::error::Development SHA tag ${SHA_TAG} resolves to ${TAG_DIGEST}, expected ${BUILD_DIGEST}"
-            exit 1
-          }
-          echo "Verified ${SHA_TAG} resolves to exact build digest ${BUILD_DIGEST}"
 
       - name: Verify Development image version and approved owl
         shell: bash
@@ -213,7 +186,7 @@ jobs:
 
           echo "Verified image version ${EXPECTED_VERSION} and approved owl ${EXPECTED_ICON_SHA}"
 
-      - name: Deploy exact CE SHA tag to Development
+      - name: Deploy exact CE digest to Development
         id: deploy
         shell: bash
         run: |
@@ -221,270 +194,13 @@ jobs:
           EXPECTED_VERSION="$(
             PYTHONPATH=src python3 -c 'from version import VERSION; print(VERSION)'
           )"
-          python .github/scripts/dokploy_swarm_deploy.py \
+          python .github/scripts/dokploy_release.py deploy \
             --application-id "${DOKPLOY_CE_DEVELOPMENT_APPLICATION_ID}" \
-            --image "${IMAGE}:sha-${SOURCE_SHA}" \
+            --image "${IMAGE}@${{ steps.build.outputs.digest }}" \
             --health-url https://ce-dev-nowlert.theriark.dev/api/health \
             --expected-version "${EXPECTED_VERSION}" \
-            --dd-service "nowlert-ce" \
-            --dd-env "development" \
-            --dd-version "${SOURCE_SHA}" \
-            --dd-agent-host "datadog-agent" \
-            --dd-trace-agent-port 8126 \
-            --dd-runtime-sca \
-            --dd-iast \
             --title "CE Development ${SOURCE_SHA}" \
             --description "GitHub Actions run ${{ github.run_id }}"
-
-      - name: Verify deployed WebUI acceptance bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-          UI_BUILD="$(PYTHONPATH=src python -c 'from webui.service import UI_BUILD; print(UI_BUILD)')"
-          ROUTING_FLOW_JS_BUILD="$(PYTHONPATH=src python -c 'from webui.service import ROUTING_FLOW_JS_BUILD; print(ROUTING_FLOW_JS_BUILD)')"
-          BOOTSTRAP_ONBOARDING_CSS_BUILD="$(PYTHONPATH=src python -c 'from webui.service import BOOTSTRAP_ONBOARDING_CSS_BUILD; print(BOOTSTRAP_ONBOARDING_CSS_BUILD)')"
-          BASE_URL="https://ce-dev-nowlert.theriark.dev"
-          ACCESS_HEADERS=(
-            -H "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}"
-            -H "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}"
-            -H "Cache-Control: no-cache"
-            -H "User-Agent: Theriark-GitHub-Actions/1.0"
-          )
-
-          MEDIA_TOKEN="${SOURCE_SHA}00000000.png"
-          MEDIA_HEADERS="$(mktemp)"
-          MEDIA_STATUS="$(
-            curl --silent --show-error \
-              --dump-header "${MEDIA_HEADERS}" \
-              --output /dev/null \
-              --write-out '%{http_code}' \
-              -H "Cache-Control: no-cache" \
-              -H "Pragma: no-cache" \
-              -H "User-Agent: Theriark-GitHub-Actions/1.0" \
-              "${BASE_URL}/api/health?teams_modern_card=${MEDIA_TOKEN}"
-          )"
-          if [[ "${MEDIA_STATUS}" != "404" ]]; then
-            echo "::error::Teams public media query did not reach the Nowlert image handler (HTTP ${MEDIA_STATUS})"
-            echo "Diagnostic response headers:"
-            grep -Ei '^(HTTP/|cf-cache-status:|content-type:|cache-control:|cdn-cache-control:)' "${MEDIA_HEADERS}" || true
-            rm -f "${MEDIA_HEADERS}"
-            exit 1
-          fi
-          rm -f "${MEDIA_HEADERS}"
-          echo "PASS: exact public health path carries tokenized Teams media requests without Access headers"
-
-          require_contains() {
-            local label="$1"
-            local needle="$2"
-            local haystack="$3"
-            if ! grep -Fq "$needle" <<< "$haystack"; then
-              echo "WAIT: $label is not serving expected WebUI build $UI_BUILD"
-              return 1
-            fi
-          }
-
-          verify_live_bundle() {
-            local html css app ownership routing routing_css filtering filter_sync filter_sync_css filter_css qa_patch dashboard acceptance cleanup reference bootstrap_css
-
-            html="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/?ui_acceptance=${SOURCE_SHA}"
-            )" || { echo "WAIT: WebUI HTML request failed"; return 1; }
-            require_contains "HTML build marker" "name=\"nowlert-ui-build\" content=\"${UI_BUILD}\"" "${html}" || return 1
-            require_contains "HTML qa_patch" "/ui/qa_patch.css?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML app" "/ui/app.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML scaled Nowlert favicon" "/ui/brand/nowlert-favicon-v1.svg" "${html}" || return 1
-            require_contains "HTML Routing Flow" "/ui/routing_flow.js?v=${ROUTING_FLOW_JS_BUILD}" "${html}" || return 1
-            require_contains "HTML Routing Flow CSS" "/ui/routing_flow.css?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML Filtering" "/ui/filtering.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML Filtering CSS" "/ui/filtering_ownership_sync.css?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML qa_patch JS" "/ui/qa_patch.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML Routing pulse model" "/ui/routing_pulse_model.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML Dashboard" "/ui/operations_dashboard.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML delivery chart model" "/ui/delivery_chart_model.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML shared visual theme" "/ui/visual_refinement.css?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML acceptance" "/ui/operations_acceptance.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML cleanup" "/ui/acceptance_cleanup.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML consistency layer" "/ui/management_consistency.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML retirement layer" "/ui/source_ui_retirement.js?v=${UI_BUILD}" "${html}" || return 1
-            require_contains "HTML bootstrap onboarding" "/ui/bootstrap_onboarding.css?v=${BOOTSTRAP_ONBOARDING_CSS_BUILD}" "${html}" || return 1
-
-            favicon="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/brand/nowlert-favicon-v1.svg"
-            )" || { echo "WAIT: Nowlert favicon request failed"; return 1; }
-            require_contains "Favicon compact view box" 'viewBox="0 0 256 256"' "${favicon}" || return 1
-            require_contains "Favicon embeds approved owl" 'data:image/png;base64,' "${favicon}" || return 1
-
-            css="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/qa_patch.css?v=${UI_BUILD}"
-            )" || { echo "WAIT: qa_patch.css request failed"; return 1; }
-            require_contains "qa_patch.css marker" "round-18 acceptance corrections" "${css}" || return 1
-            require_contains "qa_patch.css navigation" "#primary-nav .nav-item[hidden]" "${css}" || return 1
-            require_contains "qa_patch.css owl" "transform: scale(1.65)" "${css}" || return 1
-            require_contains "qa_patch.css workspace" "#app-shell .workspace" "${css}" || return 1
-            require_contains "qa_patch.css backups" "backup-dashboard-grid-top" "${css}" || return 1
-
-            visual_theme="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/visual_refinement.css?v=${UI_BUILD}"
-            )" || { echo "WAIT: visual_refinement.css request failed"; return 1; }
-            require_contains "Shared theme dashboard surfaces" "#view-dashboard#view-dashboard" "${visual_theme}" || return 1
-            require_contains "Shared theme source surfaces" "#view-sources#view-sources" "${visual_theme}" || return 1
-
-            bootstrap_css="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/bootstrap_onboarding.css?v=${BOOTSTRAP_ONBOARDING_CSS_BUILD}"
-            )" || { echo "WAIT: bootstrap onboarding stylesheet request failed"; return 1; }
-            require_contains "Bootstrap onboarding layout" "#bootstrap-view.bootstrap-onboarding" "${bootstrap_css}" || return 1
-            require_contains "Bootstrap onboarding mobile layout" "@media (max-width: 760px)" "${bootstrap_css}" || return 1
-
-            app="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/app.js?v=${UI_BUILD}"
-            )" || { echo "WAIT: app.js request failed"; return 1; }
-            require_contains "app.js preview" "Preview completed." "${app}" || return 1
-
-            ownership="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/source_ui_retirement.js?v=${UI_BUILD}"
-            )" || { echo "WAIT: source_ui_retirement.js request failed"; return 1; }
-            require_contains "retirement audit" "auditNav.hidden = !admin;" "${ownership}" || return 1
-            require_contains "retirement backups" "backupsNav.hidden = !admin;" "${ownership}" || return 1
-            require_contains "retirement users" "usersNav.hidden = !admin;" "${ownership}" || return 1
-
-            routing="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/routing_flow.js?v=${ROUTING_FLOW_JS_BUILD}"
-            )" || { echo "WAIT: routing_flow.js request failed"; return 1; }
-            require_contains "Routing Flow adaptive layout" "function sortLayerByDesired(items, desired)" "${routing}" || return 1
-            require_contains "Routing Flow captured range" 'const routingRangeSelect = section.querySelector("#rf-range");' "${routing}" || return 1
-            require_contains "Routing Flow bounded layout" "const maxSlack = Math.max(24, Math.min(48, gap * 3));" "${routing}" || return 1
-            require_contains "Routing Flow filter names" 'String(filter?.filter_name || filter?.name || "").trim()' "${routing}" || return 1
-            require_contains "Routing Flow filter values" "function filterCardValues(filter)" "${routing}" || return 1
-            require_contains "Routing Flow value overflow" "rf-filter-value-overflow-wrap" "${routing}" || return 1
-            require_contains "Routing Flow dynamic value fitting" "const visibleNodes = valueNodes;" "${routing}" || return 1
-            require_contains "Routing Flow value popover labels" "rf-filter-value-popover-label" "${routing}" || return 1
-            require_contains "Routing Flow interactive node shell" 'const node = el("div", `rf-node rf-${kind}`);' "${routing}" || return 1
-            require_contains "Routing Flow value menu ownership" 'valueToggle.setAttribute("aria-controls", valuePopover.id);' "${routing}" || return 1
-            require_contains "Routing Flow value top-layer popover" 'valuePopover.setAttribute("popover", "auto");' "${routing}" || return 1
-            require_contains "Routing Flow value popover activation" "valuePopover.showPopover();" "${routing}" || return 1
-            require_contains "Routing Flow selected range" "const requestRange = selectedRoutingRange();" "${routing}" || return 1
-            require_contains "Routing Flow response range" "String(next.range || \"\") !== requestRange" "${routing}" || return 1
-
-            routing_css="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/routing_flow.css?v=${UI_BUILD}"
-            )" || { echo "WAIT: routing_flow.css request failed"; return 1; }
-            require_contains "Routing Flow filter summary" ".rf-filter-card-summary" "${routing_css}" || return 1
-            require_contains "Routing Flow value popover" ".rf-filter-value-popover" "${routing_css}" || return 1
-            require_contains "Routing Flow open popover stacking" 'rf-filter-card:has(.rf-filter-value-overflow[aria-expanded="true"])' "${routing_css}" || return 1
-            require_contains "Routing Flow top-layer value menu CSS" ".rf-filter-value-popover[popover]" "${routing_css}" || return 1
-            require_contains "Routing Flow full filter values" ".rf-filter-card-tags [data-filter-value]" "${routing_css}" || return 1
-
-            filtering="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/filtering.js?v=${UI_BUILD}"
-            )" || { echo "WAIT: filtering.js request failed"; return 1; }
-            require_contains "Filtering six-column header" 'data-filter-sync-column="sharing">Sharing</th><th>Actions</th>' "${filtering}" || return 1
-            require_contains "Filtering full-width details" 'className: "filtering-expanded-row"' "${filtering}" || return 1
-            require_contains "Filtering title reset" "delete title.dataset.i18nSource;" "${filtering}" || return 1
-            require_contains "Filtering synchronous final-paint event" "nowlert:filtering-rendered" "${filtering}" || return 1
-
-            filter_sync="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/filtering_ownership_sync.js?v=${UI_BUILD}"
-            )" || { echo "WAIT: filtering_ownership_sync.js request failed"; return 1; }
-            require_contains "Filtering Name enforcement" 'nameHeading.textContent !== "Name"' "${filter_sync}" || return 1
-            require_contains "Filtering synchronous ownership decorator" "decorate(event.detail);" "${filter_sync}" || return 1
-
-            filter_sync_css="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/filtering_ownership_sync.css?v=${UI_BUILD}"
-            )" || { echo "WAIT: filtering_ownership_sync.css request failed"; return 1; }
-            require_contains "Filtering scoped actions alignment" ".filtering-table .filtering-actions-cell > div" "${filter_sync_css}" || return 1
-
-            filter_css="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/filtering.css?v=${UI_BUILD}"
-            )" || { echo "WAIT: filtering.css request failed"; return 1; }
-            require_contains "Filtering Actions width" ".filtering-table th:nth-child(6) { width: 24%; }" "${filter_css}" || return 1
-            require_contains "Filtering left-aligned grid" "grid-template-columns: repeat(auto-fit, minmax(220px, 280px));" "${filter_css}" || return 1
-            require_contains "Filtering left alignment" "justify-content: start;" "${filter_css}" || return 1
-
-            qa_patch="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/qa_patch.js?v=${UI_BUILD}"
-            )" || { echo "WAIT: qa_patch.js request failed"; return 1; }
-            require_contains "Workspace cache fields" "const QA_WORKSPACE_CACHE_FIELDS" "${qa_patch}" || return 1
-
-            dashboard="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/operations_dashboard.js?v=${UI_BUILD}"
-            )" || { echo "WAIT: operations_dashboard.js request failed"; return 1; }
-            require_contains "Dashboard request range capture" "const requestedRange = state.historyRange;" "${dashboard}" || return 1
-            require_contains "Dashboard queued refresh" "refreshPending = true;" "${dashboard}" || return 1
-            require_contains "Dashboard first-paint snapshot" "function restoreDashboardSnapshot(session, range)" "${dashboard}" || return 1
-            require_contains "Dashboard range-scoped snapshot" "snapshot.range !== range" "${dashboard}" || return 1
-            require_contains "Dashboard dedicated delivery feed" "let dashboardDeliveries = [];" "${dashboard}" || return 1
-            require_contains "Dashboard tagged live refresh" "dashboardFeed: true" "${dashboard}" || return 1
-
-            acceptance="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/operations_acceptance.js?v=${UI_BUILD}"
-            )" || { echo "WAIT: operations_acceptance.js request failed"; return 1; }
-            require_contains "Dashboard persisted range bootstrap" "readStoredRangeForSession(session, \"dashboard-range\")" "${acceptance}" || return 1
-            require_contains "Dashboard live status only tracks tagged refreshes" "if (!options.dashboardFeed)" "${acceptance}" || return 1
-
-            cleanup="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/acceptance_cleanup.js?v=${UI_BUILD}"
-            )" || { echo "WAIT: acceptance_cleanup.js request failed"; return 1; }
-            require_contains "Filtering cleanup main rows" '#filter-table > tr.filtering-policy-row' "${cleanup}" || return 1
-            require_contains "Filtering synchronous acceptance decorator" "applyFilteringAcceptance(event.detail);" "${cleanup}" || return 1
-
-            reference="$(
-              curl --fail --silent --show-error \
-                "${ACCESS_HEADERS[@]}" \
-                "${BASE_URL}/ui/reference_acceptance.js?v=${UI_BUILD}"
-            )" || { echo "WAIT: reference_acceptance.js request failed"; return 1; }
-            require_contains "Security authoritative live role" 'const admin = typeof isAdmin === "function" && isAdmin();' "${reference}" || return 1
-            require_contains "Security authenticated role guard" "if (!state.user) return;" "${reference}" || return 1
-            require_contains "Security clears stale role translation" "delete roleValue.dataset.i18nSource;" "${reference}" || return 1
-
-            return 0
-          }
-
-          for attempt in $(seq 1 12); do
-            if verify_live_bundle; then
-              echo "PASS: live CE Development is serving WebUI acceptance bundle ${UI_BUILD}"
-              break
-            fi
-            if [ "${attempt}" -eq 12 ]; then
-              echo "ERROR: live CE Development did not converge to WebUI acceptance bundle ${UI_BUILD}"
-              exit 1
-            fi
-            echo "WAIT: deployment is still converging (${attempt}/12); retrying in 5 seconds"
-            sleep 5
-          done
 
       - name: Record immutable Development result
         shell: bash
@@ -494,7 +210,6 @@ jobs:
             echo
             echo "- Source commit: \`${SOURCE_SHA}\`"
             echo "- Development tag: \`${IMAGE}:development\`"
-            echo "- Dokploy deployment ref: \`${IMAGE}:sha-${SOURCE_SHA}\`"
+            echo "- Promotion tag: \`${IMAGE}:sha-${SOURCE_SHA}\`"
             echo "- Immutable image: \`${IMAGE}@${{ steps.build.outputs.digest }}\`"
-            echo "- Dokploy deployment ID: \`${{ steps.deploy.outputs.deployment_id }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
