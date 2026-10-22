@@ -1,0 +1,355 @@
+name: Prepare CE Release Candidate
+
+run-name: "publishing:${{ inputs.request_id }}"
+
+# Creates ONE annotated release-candidate tag and ONE non-draft GitHub
+# prerelease for the exact, already tested Development source and image.
+# It never rebuilds, never promotes to Stage, never publishes a stable release
+# and never moves an image tag. It is dispatched only by the private publisher,
+# which reads every input from signed controller state.
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Publisher request identifier (used only in the run name and evidence)"
+        required: true
+        type: string
+      rc_tag:
+        description: "Unused release candidate tag, for example v27.0.0-rc.4"
+        required: true
+        type: string
+      source_commit:
+        description: "Full source commit SHA of the tested Development image"
+        required: true
+        type: string
+      image_digest:
+        description: "Immutable image digest, sha256:<64 hex>"
+        required: true
+        type: string
+      development_run_id:
+        description: "Successful Development Continuous Integration run ID that built the image"
+        required: true
+        type: string
+      documentation_manifest_sha256:
+        description: "SHA-256 of the reviewed documentation manifest"
+        required: true
+        type: string
+      gate_cycle:
+        description: "Publication gate cycle number"
+        required: true
+        type: string
+
+# contents: write creates the tag and release. actions: read verifies the
+# Development run and packages: read verifies the image in GHCR; both are
+# read-only.
+permissions:
+  contents: write
+  actions: read
+  packages: read
+
+concurrency:
+  group: nowlert-ce-stage-promotion
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Validate and prepare release candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: development
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      IMAGE_REPOSITORY: ghcr.io/theriark/nowlert-ce
+      REQUEST_ID: ${{ inputs.request_id }}
+      RC_TAG: ${{ inputs.rc_tag }}
+      SOURCE_COMMIT: ${{ inputs.source_commit }}
+      IMAGE_DIGEST: ${{ inputs.image_digest }}
+      DEVELOPMENT_RUN_ID: ${{ inputs.development_run_id }}
+      DOCUMENTATION_MANIFEST_SHA256: ${{ inputs.documentation_manifest_sha256 }}
+      GATE_CYCLE: ${{ inputs.gate_cycle }}
+      WORKFLOW_RUN_ID: ${{ github.run_id }}
+
+    steps:
+      - name: Validate inputs and repository state
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [[ "${GITHUB_REF}" == "refs/heads/development" || "${GITHUB_REF}" == "refs/heads/main" ]] || {
+            echo "::error::Release candidate preparation must run from development or main; received ${GITHUB_REF}"
+            exit 1
+          }
+
+          [[ "${REQUEST_ID}" =~ ^[A-Za-z0-9._:-]{1,128}$ ]] || {
+            echo "::error::request_id is missing or contains unsupported characters"
+            exit 1
+          }
+
+          [[ "${RC_TAG}" =~ ^v27\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-rc\.[1-9][0-9]*$ ]] || {
+            echo "::error::rc_tag must look like v27.<minor>.<patch>-rc.<number>"
+            exit 1
+          }
+
+          [[ "${SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::source_commit must be a full lowercase 40-character SHA"
+            exit 1
+          }
+
+          [[ "${IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::image_digest must be sha256:<64 lowercase hex>"
+            exit 1
+          }
+
+          [[ "${DEVELOPMENT_RUN_ID}" =~ ^[1-9][0-9]*$ ]] || {
+            echo "::error::development_run_id must be a positive integer"
+            exit 1
+          }
+
+          [[ "${DOCUMENTATION_MANIFEST_SHA256}" =~ ^[0-9a-f]{64}$ ]] || {
+            echo "::error::documentation_manifest_sha256 must be 64 lowercase hex characters"
+            exit 1
+          }
+
+          [[ "${GATE_CYCLE}" =~ ^[1-9][0-9]*$ ]] || {
+            echo "::error::gate_cycle must be a positive integer"
+            exit 1
+          }
+
+          # The tag must be unused: no ref and no release of that name.
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RC_TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag ${RC_TAG} already exists; reconcile it instead of re-running"
+            exit 1
+          fi
+          if gh release view "${RC_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "::error::GitHub Release ${RC_TAG} already exists; reconcile it instead of re-running"
+            exit 1
+          fi
+
+          # The source commit must exist and be reachable from development.
+          COMPARE_STATUS="$(
+            gh api "repos/${GITHUB_REPOSITORY}/compare/${SOURCE_COMMIT}...development" \
+              --jq '.status'
+          )" || {
+            echo "::error::Source commit ${SOURCE_COMMIT} was not found in this repository"
+            exit 1
+          }
+          [[ "${COMPARE_STATUS}" == "ahead" || "${COMPARE_STATUS}" == "identical" ]] || {
+            echo "::error::Source commit ${SOURCE_COMMIT} is not an ancestor of development (status=${COMPARE_STATUS})"
+            exit 1
+          }
+
+          echo "Inputs and repository state verified for ${RC_TAG}"
+
+      - name: Verify the Development run built the source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${DEVELOPMENT_RUN_ID}")" || {
+            echo "::error::Development run ${DEVELOPMENT_RUN_ID} was not found"
+            exit 1
+          }
+
+          RUN_PATH="$(jq -r '.path' <<<"${RUN}")"
+          RUN_EVENT="$(jq -r '.event' <<<"${RUN}")"
+          RUN_BRANCH="$(jq -r '.head_branch' <<<"${RUN}")"
+          RUN_STATUS="$(jq -r '.status' <<<"${RUN}")"
+          RUN_CONCLUSION="$(jq -r '.conclusion' <<<"${RUN}")"
+          RUN_HEAD="$(jq -r '.head_sha' <<<"${RUN}")"
+
+          [[ "${RUN_PATH}" == ".github/workflows/ci.yml" ]] || {
+            echo "::error::Run ${DEVELOPMENT_RUN_ID} is not the CI workflow (${RUN_PATH})"
+            exit 1
+          }
+          [[ "${RUN_EVENT}" == "push" && "${RUN_BRANCH}" == "development" ]] || {
+            echo "::error::Run ${DEVELOPMENT_RUN_ID} is not a push to development (${RUN_EVENT} on ${RUN_BRANCH})"
+            exit 1
+          }
+          [[ "${RUN_STATUS}" == "completed" && "${RUN_CONCLUSION}" == "success" ]] || {
+            echo "::error::Run ${DEVELOPMENT_RUN_ID} did not succeed (${RUN_STATUS}/${RUN_CONCLUSION})"
+            exit 1
+          }
+          [[ "${RUN_HEAD}" == "${SOURCE_COMMIT}" ]] || {
+            echo "::error::Run ${DEVELOPMENT_RUN_ID} built ${RUN_HEAD}, expected ${SOURCE_COMMIT}"
+            exit 1
+          }
+
+          echo "PASS: Development run ${DEVELOPMENT_RUN_ID} succeeded for ${SOURCE_COMMIT}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify the immutable image digest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          IMAGE_REF="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+
+          # The digest of an image is the SHA-256 of its raw manifest, so the
+          # manifest fetched by digest must hash to the same digest.
+          ACTUAL_DIGEST="sha256:$(
+            docker buildx imagetools inspect "${IMAGE_REF}" --raw |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          [[ "${ACTUAL_DIGEST}" == "${IMAGE_DIGEST}" ]] || {
+            echo "::error::${IMAGE_REF} resolved to ${ACTUAL_DIGEST}"
+            exit 1
+          }
+
+          # The Development SHA tag written by ci.yml must point at the same
+          # digest, binding the image to the source commit.
+          SHA_TAG="${IMAGE_REPOSITORY}:sha-${SOURCE_COMMIT}"
+          TAG_DIGEST="sha256:$(
+            docker buildx imagetools inspect "${SHA_TAG}" --raw |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          [[ "${TAG_DIGEST}" == "${IMAGE_DIGEST}" ]] || {
+            echo "::error::${SHA_TAG} resolves to ${TAG_DIGEST}, expected ${IMAGE_DIGEST}"
+            exit 1
+          }
+
+          echo "PASS: ${IMAGE_REF} and ${SHA_TAG} agree"
+
+      - name: Create annotated tag and non-draft prerelease
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          tag_ref_created=false
+
+          cleanup_failed_preparation() {
+            status=$?
+            trap - ERR
+
+            if [[ "${tag_ref_created}" == "true" ]]; then
+              echo "::warning::Preparation failed; removing partial release candidate state"
+
+              if gh release view "${RC_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+                gh release delete "${RC_TAG}" \
+                  --repo "${GITHUB_REPOSITORY}" \
+                  --yes || true
+              fi
+
+              gh api --method DELETE \
+                "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RC_TAG}" \
+                >/dev/null 2>&1 || true
+            fi
+
+            exit "${status}"
+          }
+
+          trap cleanup_failed_preparation ERR
+
+          # The tag message is exactly this JSON object (publishing contract).
+          tag_message="$(
+            jq -cn \
+              --arg sourceCommit "${SOURCE_COMMIT}" \
+              --arg imageDigest "${IMAGE_DIGEST}" \
+              --argjson developmentRunId "${DEVELOPMENT_RUN_ID}" \
+              --argjson workflowRunId "${WORKFLOW_RUN_ID}" \
+              --arg documentationManifestSha256 "${DOCUMENTATION_MANIFEST_SHA256}" \
+              --argjson gateCycle "${GATE_CYCLE}" \
+              '{sourceCommit: $sourceCommit, imageDigest: $imageDigest, developmentRunId: $developmentRunId, workflowRunId: $workflowRunId, documentationManifestSha256: $documentationManifestSha256, gateCycle: $gateCycle}'
+          )"
+
+          tag_object_sha="$(
+            gh api --method POST \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/git/tags" \
+              -f tag="${RC_TAG}" \
+              -f message="${tag_message}" \
+              -f object="${SOURCE_COMMIT}" \
+              -f type="commit" \
+              -f 'tagger[name]=github-actions[bot]' \
+              -f 'tagger[email]=41898282+github-actions[bot]@users.noreply.github.com' \
+              --jq '.sha'
+          )" || {
+            echo "::error::GITHUB_TOKEN could not create the annotated tag object"
+            exit 1
+          }
+
+          [[ "${tag_object_sha}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::GitHub did not return a valid annotated tag object SHA"
+            exit 1
+          }
+
+          gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${RC_TAG}" \
+            -f sha="${tag_object_sha}" \
+            >/dev/null || {
+              echo "::error::GITHUB_TOKEN could not create refs/tags/${RC_TAG}"
+              exit 1
+            }
+          tag_ref_created=true
+
+          {
+            echo "Nowlert CE release candidate ${RC_TAG}."
+            echo
+            echo "- Source commit: ${SOURCE_COMMIT}"
+            echo "- Image: ${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+            echo "- Development run: ${DEVELOPMENT_RUN_ID}"
+            echo "- Documentation manifest SHA-256: ${DOCUMENTATION_MANIFEST_SHA256}"
+            echo "- Gate cycle: ${GATE_CYCLE}"
+            echo
+            echo "Pre-release for inspection. Not a stable release; the image was not rebuilt and nothing was promoted to Stage."
+          } > rc-notes.md
+
+          gh release create "${RC_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
+            --prerelease \
+            --latest=false \
+            --title "Nowlert CE ${RC_TAG}" \
+            --notes-file rc-notes.md
+
+          trap - ERR
+
+      - name: Verify the published tag and prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REF_TYPE="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RC_TAG}" --jq '.object.type')"
+          [[ "${REF_TYPE}" == "tag" ]] || {
+            echo "::error::${RC_TAG} is not an annotated tag (object type ${REF_TYPE})"
+            exit 1
+          }
+
+          TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RC_TAG}" --jq '.object.sha')"
+          TAG_TARGET="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${TAG_SHA}" --jq '.object.sha')"
+          [[ "${TAG_TARGET}" == "${SOURCE_COMMIT}" ]] || {
+            echo "::error::${RC_TAG} points at ${TAG_TARGET}, expected ${SOURCE_COMMIT}"
+            exit 1
+          }
+
+          RELEASE="$(gh release view "${RC_TAG}" --repo "${GITHUB_REPOSITORY}" --json isDraft,isPrerelease,tagName)"
+          [[ "$(jq -r '.isDraft' <<<"${RELEASE}")" == "false" && "$(jq -r '.isPrerelease' <<<"${RELEASE}")" == "true" ]] || {
+            echo "::error::Release ${RC_TAG} must be a non-draft prerelease: ${RELEASE}"
+            exit 1
+          }
+
+          {
+            echo "## CE release candidate prepared"
+            echo
+            echo "- Request: \`${REQUEST_ID}\`"
+            echo "- Tag: \`${RC_TAG}\` (annotated, commit \`${SOURCE_COMMIT}\`)"
+            echo "- Image: \`${IMAGE_REPOSITORY}@${IMAGE_DIGEST}\`"
+            echo "- Development run: \`${DEVELOPMENT_RUN_ID}\`"
+            echo "- Workflow run: \`${WORKFLOW_RUN_ID}\`"
+            echo "- Documentation manifest SHA-256: \`${DOCUMENTATION_MANIFEST_SHA256}\`"
+            echo "- Gate cycle: \`${GATE_CYCLE}\`"
+            echo "- GitHub Release: non-draft prerelease"
+            echo "- Image rebuild performed: no"
+            echo "- Stage promotion performed: no"
+            echo "- Stable release published: no"
+          } >> "${GITHUB_STEP_SUMMARY}"
