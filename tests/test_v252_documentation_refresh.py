@@ -20,13 +20,22 @@ def test_stable_documentation_uses_v316_and_preserves_v252_assets():
         "v3.1.0-dashboard.png",
         "v3.1.0-routing-flow.png",
         "v3.1.0-destinations.png",
-        "v3.1.0-delivery-history.png",
-        "v3.1.0-discord-xen-orchestra.png",
-        "v3.1.0-teams-xen-orchestra.png",
     )
     for name in current_visual_baseline:
         assert (ROOT / "docs" / "images" / name).is_file(), name
         assert name in readme or name in webui
+
+    # Withdrawn on 22 October 2026 (screenshot privacy review): no current
+    # document may embed them and only an empty placeholder may remain.
+    withdrawn_v310 = (
+        "v3.1.0-delivery-history.png",
+        "v3.1.0-discord-xen-orchestra.png",
+        "v3.1.0-teams-xen-orchestra.png",
+    )
+    for name in withdrawn_v310:
+        path = ROOT / "docs" / "images" / name
+        assert not path.exists() or path.stat().st_size == 0, name
+        assert name not in readme and name not in dockerhub and name not in webui, name
 
     historical = (
         "v2.5.2-overview.png",

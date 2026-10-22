@@ -60,10 +60,9 @@ HISTORICAL_SCREENSHOTS = (
     "v3.1.0-dashboard.png",
     "v3.1.0-routing-flow.png",
     "v3.1.0-destinations.png",
-    "v3.1.0-delivery-history.png",
-    "v3.1.0-discord-xen-orchestra.png",
-    "v3.1.0-teams-xen-orchestra.png",
 )
+
+RASTER_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 missing: list[str] = []
@@ -195,12 +194,25 @@ for relative in (
 
 privacy = (ROOT / "docs/guides/screenshot-privacy.md").read_text(encoding="utf-8")
 for asset in re.findall(r"^- `(images/[^`]+)`", privacy, re.MULTILINE):
-    if (ROOT / "docs" / asset).exists():
+    withdrawn_path = ROOT / "docs" / asset
+    # An empty placeholder may remain where the withdrawing tool could
+    # overwrite but not delete the file; any content means the capture is back.
+    if withdrawn_path.exists() and withdrawn_path.stat().st_size > 0:
         raise SystemExit(f"ERROR: withdrawn private capture remains: {asset}")
     for document in FILES:
         if document.name != "screenshot-privacy.md" and "releases" not in document.relative_to(ROOT).parts:
             if asset in document.read_text(encoding="utf-8"):
                 raise SystemExit(f"ERROR: withdrawn capture reference in {document.relative_to(ROOT)}: {asset}")
+
+inventory = set(re.findall(r"^\| `(images/[^`]+)` \| retained \|", privacy, re.MULTILINE))
+for path in sorted((ROOT / "docs" / "images").rglob("*")):
+    if path.is_file() and path.suffix.lower() in RASTER_SUFFIXES and path.stat().st_size > 0:
+        relative = path.relative_to(ROOT / "docs").as_posix()
+        if relative not in inventory:
+            raise SystemExit(f"ERROR: raster without a screenshot-privacy inventory row: {relative}")
+for relative in sorted(inventory):
+    if not (ROOT / "docs" / relative).is_file():
+        raise SystemExit(f"ERROR: screenshot-privacy inventory row without a file: {relative}")
 
 for document in FILES:
     if "releases" in document.relative_to(ROOT).parts:
@@ -218,3 +230,4 @@ print("documentation_guides=passed")
 print("documentation_drift=passed")
 print(f"documentation_development_schema={schema}")
 print("documentation_withdrawn_captures=passed")
+print("documentation_screenshot_inventory=passed")

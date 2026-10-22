@@ -10,6 +10,9 @@ CURRENT_SCREENSHOTS = (
     "v3.1.0-dashboard.png",
     "v3.1.0-routing-flow.png",
     "v3.1.0-destinations.png",
+)
+# Withdrawn on 22 October 2026 (docs/guides/screenshot-privacy.md).
+WITHDRAWN_SCREENSHOTS = (
     "v3.1.0-delivery-history.png",
     "v3.1.0-discord-xen-orchestra.png",
     "v3.1.0-teams-xen-orchestra.png",
@@ -51,6 +54,10 @@ def test_v316_historical_visual_examples_are_packaged_and_referenced():
         assert path.stat().st_size > 0, filename
         assert filename in readme or filename in webui
         assert filename in docs_index
+    for filename in WITHDRAWN_SCREENSHOTS:
+        path = ROOT / "docs" / "images" / filename
+        assert not path.exists() or path.stat().st_size == 0, filename
+        assert filename not in readme and filename not in webui, filename
     assert "Historical v3.1.0" in docs_index
 
 

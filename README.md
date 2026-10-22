@@ -142,15 +142,18 @@ current development UI. Use the [WebUI guide](docs/webui.md) for current steps.
 |---|---|
 | ![Nowlert Dashboard](docs/images/v3.1.0-dashboard.png) | ![Nowlert Routing Flow](docs/images/v3.1.0-routing-flow.png) |
 
-| Destinations | Delivery History |
-|---|---|
-| ![Nowlert Destinations](docs/images/v3.1.0-destinations.png) | ![Nowlert Delivery History](docs/images/v3.1.0-delivery-history.png) |
+| Destinations |
+|---|
+| ![Nowlert Destinations](docs/images/v3.1.0-destinations.png) |
 
-## Historical notification examples
-
-| Discord | Microsoft Teams |
-|---|---|
-| ![Nowlert Discord Xen Orchestra](docs/images/v3.1.0-discord-xen-orchestra.png) | ![Nowlert Microsoft Teams Xen Orchestra](docs/images/v3.1.0-teams-xen-orchestra.png) |
+The historical v3.1.0 Delivery History capture and the v3.1.0 Discord and
+Microsoft Teams Xen Orchestra card captures were withdrawn on 22 October 2026
+because they still showed deployment labels; the
+[screenshot privacy review](docs/guides/screenshot-privacy.md) records the
+withdrawal. The [Xen Orchestra to Discord](docs/guides/xen-orchestra-to-discord.md)
+and [Xen Orchestra to Teams](docs/guides/xen-orchestra-to-teams.md) guides
+describe the delivered cards in words, and the
+[WebUI guide](docs/webui.md) shows the current Delivery history page.
 
 More UI behavior is documented in the [WebUI guide](docs/webui.md).
 

@@ -159,10 +159,11 @@ Check three places:
 3. **Destination → Manage routes** — confirm the dedicated Xen Orchestra route
    is assigned. Use the delivery details to establish which route matched.
 
-This historical v3.1.0 example illustrates the older Xen Orchestra Discord
-card format; it is not a capture of current development:
-
-![Nowlert Discord Xen Orchestra notification](../images/v3.1.0-discord-xen-orchestra.png)
+This guide no longer embeds the historical v3.1.0 Discord card example: it
+was withdrawn on 22 October 2026 because it showed a backup job name and only
+partially masked repository and VM names (see the
+[screenshot privacy review](screenshot-privacy.md)). The card delivered by
+your own test is the reference for the current format.
 
 The following real deployment capture shows a successfully delivered backup
 report: SMTP input, the Operational Discord destination, HTTP 200, and no error.

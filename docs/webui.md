@@ -283,7 +283,10 @@ Pagination behavior is shared with Audit log:
 
 ![Delivery history filtered to the Zabbix source (development, administrator, 1440 px)](images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png)
 
-![Historical v3.1.0 Delivery History](images/v3.1.0-delivery-history.png)
+The historical v3.1.0 Delivery History capture was withdrawn on 22 October
+2026 because a history row still showed a device-name prefix (see the
+[screenshot privacy review](guides/screenshot-privacy.md)); the Development
+capture above is the packaged reference for this page.
 
 ### Audit log
 
