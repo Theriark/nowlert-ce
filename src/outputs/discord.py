@@ -47,6 +47,7 @@ from formatters.discord_unifi import (
     UniFiProtectDiscordFormatter,
 )
 from formatters.discord_zabbix import ZabbixDiscordFormatter
+from formatters.modern_sections import without_repeated_classification
 from formatters.discord_modern_image import (
     CheckmkDiscordModernImageRenderer,
     DiscordModernImageRenderer,
@@ -393,6 +394,17 @@ class DiscordOutput:
                 if source == "checkmk"
                 else self.generic_fallback_modern_image_renderer
             )
+            if isinstance(
+                renderer,
+                (
+                    GenericFallbackDiscordModernImageRenderer,
+                    RedfishDiscordModernImageRenderer,
+                ),
+            ):
+                # Severity/Category are already in the card's summary strip.
+                classic_payload = without_repeated_classification(
+                    classic_payload
+                )
             return renderer.render(
                 notification,
                 classic_payload,
