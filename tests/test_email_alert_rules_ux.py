@@ -544,10 +544,10 @@ def test_mailbox_edit_uses_scanned_folders_and_keeps_create_folderless():
     assert "function emailOpenMailboxEdit(mailbox)" in script
     assert "function emailScanMailboxFolders" in script
     assert 'method: "PATCH"' in script
-    assert 'body.settings = { label: folder }' in script
-    assert 'body.settings = { folder }' in script
+    assert 'body.settings = { label: current.folder }' in script
+    assert 'body.settings = { folder: current.folder }' in script
     assert 'folder,' in script
-    assert 'if (password) body.credential.password = password;' in script
+    assert 'if (current.password) body.credential.password = current.password' in script
     assert 'byId("email-mailbox-provider").disabled = editing' in script
     assert 'byId("email-mailbox-address").disabled = editing' in script
     assert 'body.settings = {' in script

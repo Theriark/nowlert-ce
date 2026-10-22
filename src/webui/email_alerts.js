@@ -1576,7 +1576,13 @@ function emailMailboxProviderFields() {
     const input = byId(id);
     if (!input) continue;
     input.disabled = provider !== "imap";
-    input.required = provider === "imap";
+    input.required = provider === "imap" && !(editing && id === "email-imap-username");
+  }
+  const username = byId("email-imap-username");
+  if (username) {
+    username.placeholder = editing
+      ? "Leave blank to keep the current username"
+      : "";
   }
   const password = byId("email-imap-password");
   if (password) {
@@ -1594,7 +1600,7 @@ function emailMailboxProviderFields() {
         ? "Edit the mailbox name, visibility, and scanned Gmail label. OAuth authorization remains unchanged."
         : provider === "microsoft_365"
           ? "Edit the mailbox name, visibility, and scanned Microsoft 365 folder. OAuth authorization remains unchanged."
-          : "Edit the IMAP connection safely. Leave the password blank to keep the stored password, then scan folders before saving a new folder.";
+          : "Edit the IMAP connection safely. Leave the password blank to keep the stored password. Name and visibility changes save without a folder scan; a changed server, username, password, or folder is verified against the server before it is saved.";
     } else if (oauth && !configured) {
       hint.textContent = `${emailProviderLabel(provider)} connections are not configured on this Nowlert instance. An administrator must configure the OAuth application once at deployment level.`;
     } else {
@@ -1803,7 +1809,11 @@ async function emailScanMailboxFolders({ manual = true } = {}) {
 
     const result = response.folders || {};
     if (provider === "imap" && result.username) {
-      byId("email-imap-username").value = result.username;
+      const usernameInput = byId("email-imap-username");
+      if (!usernameInput.value) usernameInput.value = result.username;
+      if (!manual && !form.dataset.originalUsername) {
+        form.dataset.originalUsername = result.username;
+      }
     }
     emailPopulateMailboxFolders(result);
   } catch (error) {
@@ -1824,6 +1834,8 @@ function emailOpenMailboxEdit(mailbox) {
   form.dataset.mailboxId = mailbox.id;
   form.dataset.ownerId = mailbox.owner_user_id || "";
   form.dataset.portTouched = "";
+  form.dataset.originalUsername = "";
+  form.dataset.originalFolder = emailMailboxOriginalFolder(mailbox);
 
   byId("email-mailbox-provider").value = mailbox.provider;
   byId("email-mailbox-name").value = mailbox.name || "";
@@ -1838,6 +1850,9 @@ function emailOpenMailboxEdit(mailbox) {
     byId("email-imap-security").value = mailbox.settings?.security || "ssl";
     byId("email-imap-username").value = "";
     byId("email-imap-password").value = "";
+    form.dataset.originalHost = mailbox.settings?.host || "";
+    form.dataset.originalPort = String(mailbox.settings?.port || 993);
+    form.dataset.originalSecurity = mailbox.settings?.security || "ssl";
   }
 
   byId("email-mailbox-dialog").querySelector("h2").textContent = "Edit mailbox";
@@ -1845,6 +1860,54 @@ function emailOpenMailboxEdit(mailbox) {
   emailShowEditor(byId("email-mailbox-dialog"));
   byId("email-mailbox-name")?.focus();
   void emailScanMailboxFolders({ manual: false });
+}
+
+function emailMailboxOriginalFolder(mailbox) {
+  if (mailbox.provider === "gmail") return String(mailbox.settings?.label || "INBOX");
+  if (mailbox.provider === "microsoft_365") return String(mailbox.settings?.folder || "inbox");
+  return String(mailbox.settings?.folder || "INBOX");
+}
+
+// Builds the PATCH body for an edit. Connection settings and credentials are
+// sent only when the user changed them, so unrelated edits (name, visibility)
+// save without a folder scan, while any changed host, port, security,
+// username, password, or folder is still verified by the server on save.
+function emailMailboxEditBody({ provider, original, current, ownerCanShare }) {
+  const body = { name: current.name };
+  if (ownerCanShare) body.shared = current.shared;
+  const same = (a, b) => String(a || "").toLowerCase() === String(b || "").toLowerCase();
+  const folderChanged = Boolean(current.folder) && !same(current.folder, original.folder);
+
+  if (provider === "gmail") {
+    if (folderChanged) body.settings = { label: current.folder };
+    return body;
+  }
+  if (provider === "microsoft_365") {
+    if (folderChanged) body.settings = { folder: current.folder };
+    return body;
+  }
+
+  const username = String(current.username || "");
+  const usernameChanged = Boolean(username) && username !== String(original.username || "");
+  const credentialChanged = usernameChanged || Boolean(current.password);
+  const connectionChanged = (
+    String(current.host) !== String(original.host)
+    || String(current.port) !== String(original.port)
+    || String(current.security) !== String(original.security)
+  );
+  if (connectionChanged || credentialChanged || folderChanged) {
+    body.settings = {
+      host: current.host,
+      port: current.port,
+      security: current.security,
+      folder: current.folder || original.folder,
+    };
+  }
+  if (credentialChanged) {
+    body.credential = { username: username || String(original.username || "") };
+    if (current.password) body.credential.password = current.password;
+  }
+  return body;
 }
 
 function emailReadConditions() {
@@ -1923,36 +1986,27 @@ async function emailSaveMailbox(event) {
 
   try {
     if (editing) {
-      const folder = byId("email-mailbox-folder").value;
-      if (!folder) {
-        throw new APIError(400, "Scan and select a mailbox folder before saving.");
-      }
-      const body = {
-        name: byId("email-mailbox-name").value.trim(),
-      };
-      if (
-        String(form.dataset.ownerId || "")
-        === String(state.user?.id || "")
-      ) {
-        body.shared = byId("email-mailbox-shared").value === "true";
-      }
-      if (provider === "gmail") {
-        body.settings = { label: folder };
-      } else if (provider === "microsoft_365") {
-        body.settings = { folder };
-      } else {
-        body.settings = {
+      const body = emailMailboxEditBody({
+        provider,
+        original: {
+          folder: form.dataset.originalFolder || "",
+          username: form.dataset.originalUsername || "",
+          host: form.dataset.originalHost || "",
+          port: form.dataset.originalPort || "",
+          security: form.dataset.originalSecurity || "",
+        },
+        current: {
+          name: byId("email-mailbox-name").value.trim(),
+          shared: byId("email-mailbox-shared").value === "true",
+          folder: byId("email-mailbox-folder").value,
           host: byId("email-imap-host").value.trim(),
           port: Number(byId("email-imap-port").value),
           security: byId("email-imap-security").value,
-          folder,
-        };
-        body.credential = {
           username: byId("email-imap-username").value.trim(),
-        };
-        const password = byId("email-imap-password").value;
-        if (password) body.credential.password = password;
-      }
+          password: byId("email-imap-password").value,
+        },
+        ownerCanShare: String(form.dataset.ownerId || "") === String(state.user?.id || ""),
+      });
       await request(`/email-mailboxes/${mailboxId}`, {
         method: "PATCH",
         body,
