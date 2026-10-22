@@ -90,9 +90,11 @@ The README and WebUI guide label these images as historical:
 - `v3.1.0-dashboard.png`
 - `v3.1.0-routing-flow.png`
 - `v3.1.0-destinations.png`
-- `v3.1.0-delivery-history.png`
-- `v3.1.0-discord-xen-orchestra.png`
-- `v3.1.0-teams-xen-orchestra.png`
+
+Three further v3.1.0 captures (the Delivery History page and the Discord and
+Microsoft Teams Xen Orchestra cards) were withdrawn on 22 October 2026 because
+they still showed deployment labels; the
+[screenshot privacy review](guides/screenshot-privacy.md) records them.
 
 `v3.1.0-discord-idrac.png` and `v3.1.0-discord-unifi.png` are further v3.1.0
 captures that current guides do not embed.

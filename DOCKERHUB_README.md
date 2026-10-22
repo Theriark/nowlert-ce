@@ -48,7 +48,9 @@ examples, not captures of the current development UI.
 
 ![Nowlert Routing Flow](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-routing-flow.png)
 
-![Nowlert Delivery History](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-delivery-history.png)
+The historical v3.1.0 Delivery History capture was withdrawn on 22 October
+2026 because it showed a deployment label; the WebUI guide in the repository
+shows the current Delivery history page.
 
 ## Quick start
 

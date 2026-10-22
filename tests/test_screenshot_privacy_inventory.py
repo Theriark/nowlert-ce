@@ -2,10 +2,13 @@
 
 The inventory lives in docs/guides/screenshot-privacy.md. A retained capture has
 a table row ``| `images/<path>` | retained | <record> |``; a withdrawn capture is
-a bullet ``- `images/<path>` — <reason>`` and must not exist in the checkout.
-A raster that is on disk, or linked from a current guide, without a retained
-row fails here, so a new image cannot land without a privacy record. PNG and
-JPEG files must also be free of EXIF and author/copyright text metadata.
+a bullet ``- `images/<path>` — <reason>`` and must not exist in the checkout,
+except as an empty placeholder file left where the withdrawing tool could
+overwrite but not delete it. No current document may reference a withdrawn
+path. A raster that is on disk, or linked from a current guide, without a
+retained row fails here, so a new image cannot land without a privacy record.
+PNG and JPEG files must also be free of EXIF, XMP and author, artist, creator
+or copyright text metadata.
 """
 
 from __future__ import annotations
@@ -27,14 +30,14 @@ WITHDRAWN_ROW_RE = re.compile(r"^- `(images/[^`]+)`", re.MULTILINE)
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 PNG_TEXT_CHUNKS = {b"tEXt", b"iTXt", b"zTXt"}
-PERSONAL_KEYWORDS = {"author", "copyright"}
+PERSONAL_KEYWORDS = {"author", "artist", "creator", "copyright", "xml:com.adobe.xmp"}
 
 
 def rasters_on_disk() -> list[str]:
     return sorted(
         path.relative_to(DOCS).as_posix()
         for path in IMAGES.rglob("*")
-        if path.is_file() and path.suffix.lower() in RASTER_SUFFIXES
+        if path.is_file() and path.suffix.lower() in RASTER_SUFFIXES and path.stat().st_size > 0
     )
 
 
@@ -130,10 +133,26 @@ def test_retained_rows_point_at_existing_files():
 
 def test_withdrawn_captures_are_absent_and_not_retained():
     withdrawn = withdrawn_inventory()
-    present = sorted(relative for relative in withdrawn if (DOCS / relative).exists())
+    present = sorted(
+        relative for relative in withdrawn
+        if (DOCS / relative).exists() and (DOCS / relative).stat().st_size > 0
+    )
     assert not present, f"withdrawn captures still in the checkout: {present}"
     overlap = sorted(withdrawn & retained_inventory())
     assert not overlap, f"captures listed as both retained and withdrawn: {overlap}"
+
+
+def test_withdrawn_captures_are_not_referenced_by_current_documents():
+    withdrawn = withdrawn_inventory()
+    references = []
+    for document in current_documents():
+        if document == PRIVACY:
+            continue
+        text = document.read_text(encoding="utf-8")
+        for relative in sorted(withdrawn):
+            if relative in text:
+                references.append(f"{document.relative_to(ROOT).as_posix()} -> {relative}")
+    assert not references, "\n".join(references)
 
 
 def test_linked_rasters_exist_and_are_retained():

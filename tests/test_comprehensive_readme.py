@@ -39,9 +39,6 @@ def test_readme_remains_comprehensive_and_current():
         "v3.1.0-dashboard.png",
         "v3.1.0-routing-flow.png",
         "v3.1.0-destinations.png",
-        "v3.1.0-delivery-history.png",
-        "v3.1.0-discord-xen-orchestra.png",
-        "v3.1.0-teams-xen-orchestra.png",
         "platform_database_v1",
         "/nowlert/state",
         "Dedicated integration routes",
@@ -65,6 +62,10 @@ def test_readme_remains_comprehensive_and_current():
     assert "| **Current Stable Release** | **v3.1.1** |" not in readme
     assert "teams-xen-orchestra-v1.9.6.png" not in readme
     assert "discord-xen-orchestra-v1.9.6.png" not in readme
+    # withdrawn on 22 October 2026 (docs/guides/screenshot-privacy.md)
+    assert "v3.1.0-delivery-history.png" not in readme
+    assert "v3.1.0-discord-xen-orchestra.png" not in readme
+    assert "v3.1.0-teams-xen-orchestra.png" not in readme
     assert "mounted `config.yaml` is the single configuration authority" not in readme
     assert "\noutputs:\n" not in readme
     assert "\nrouting:\n" not in readme
