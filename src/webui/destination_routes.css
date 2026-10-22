@@ -14,6 +14,17 @@
   width: auto;
 }
 
+/* The Preview dialog mounts the same assigned-routes drawer (see
+ * reference_acceptance.js). The drawer's Done button paints a gradient from
+ * the accent variables above, which only the destination editor defined, so
+ * inside the Preview dialog the gradient was invalid and the dark button text
+ * sat on a transparent background (Development walk finding N1). Give the
+ * Preview dialog the same amber accent the editor ends up with. */
+#preview-dialog.reference-preview-dialog {
+  --destination-accent: var(--accent, #f4c542);
+  --destination-accent-strong: var(--accent-strong, #d9a629);
+}
+
 .destination-editor-form {
   background: var(--destination-surface);
   display: grid;
@@ -644,6 +655,21 @@ button.destination-provider-status {
 .route-assignment-option-state.enabled .destination-status-dot {
   height: 0.4rem;
   width: 0.4rem;
+}
+
+/* destination_editor_fix.css clamps route rows to two columns (checkbox and
+ * icon, then copy). Rows that also carry the Active/Disabled state badge need a
+ * third column, otherwise the badge wraps under the checkbox and overlaps the
+ * integration icon (Development walk finding N1). The :has() guard keeps the
+ * two-column clamp for rows without a badge and wins on specificity. */
+.route-assignment-option:has(> .route-assignment-option-state) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.route-assignment-option > .route-assignment-option-state {
+  align-self: center;
+  justify-self: end;
+  margin-bottom: 0;
 }
 
 .destination-route-more-wrap {

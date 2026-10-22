@@ -90,7 +90,10 @@ class DiscordCardFormatter(BaseFormatter):
             data.status,
             data.severity,
         )
-        state = self._label(data.state) or default_state
+        state = self._label(data.state) or self._discord_header_state(
+            default_state,
+            data.severity,
+        )
         severity = self._label(data.severity) or default_state
         category = self._label(data.category) or "Event"
         source_area = self._truncate(
@@ -178,7 +181,10 @@ class DiscordCardFormatter(BaseFormatter):
                 data.notification
             )
 
-        state = self._label(data.state) or default_state
+        state = self._label(data.state) or self._discord_header_state(
+            default_state,
+            data.severity,
+        )
         severity = self._label(data.severity) or default_state
         category = self._label(data.category) or "Event"
         source_area = self._truncate(
@@ -640,7 +646,7 @@ class DiscordCardFormatter(BaseFormatter):
     def _discord_v2_text(self, content: Any) -> dict[str, Any]:
         """Build a Text Display without allowing source text to ping users."""
 
-        safe = self._truncate(content, 2000).replace("@", "@\u200b")
+        safe = self._truncate(content, 2000).replace("@", "@​")
         return {
             "type": self.COMPONENT_TYPE_TEXT_DISPLAY,
             "content": safe or "—",
@@ -676,7 +682,7 @@ class DiscordCardFormatter(BaseFormatter):
         if str(last.get("value") or "").endswith(self.SEPARATOR):
             self._trim_discord_description_for_budget(embed)
             return
-        if last.get("name") == "\u200b" and not last.get(
+        if last.get("name") == "​" and not last.get(
             "inline",
             True,
         ):
@@ -755,7 +761,7 @@ class DiscordCardFormatter(BaseFormatter):
                     f"📋 **Event details**\n{chunk}"
                 )
             fields.append({
-                "name": "\u200b",
+                "name": "​",
                 "value": chunk,
                 "inline": False,
             })
@@ -763,7 +769,7 @@ class DiscordCardFormatter(BaseFormatter):
 
     def _discord_separator(self) -> dict[str, Any]:
         return {
-            "name": "\u200b",
+            "name": "​",
             "value": self.SEPARATOR,
             "inline": False,
         }
@@ -775,7 +781,7 @@ class DiscordCardFormatter(BaseFormatter):
         value: Any,
         inline: bool = True,
     ) -> dict[str, Any]:
-        name = f"{icon} {label}".strip() or "\u200b"
+        name = f"{icon} {label}".strip() or "​"
         return {
             "name": self._truncate(name, 256),
             "value": self._truncate(value, 1024) or "—",
@@ -855,6 +861,29 @@ class DiscordCardFormatter(BaseFormatter):
         if severity_value in resolved:
             return "✅", 0x2ECC71, "Resolved"
         return "ℹ️", 0x3498DB, "Information"
+
+    # Severities that genuinely mean "informational". Anything else that lands
+    # in the catch-all bucket (debug, notice, not classified, ...) keeps its own
+    # label in the header so the header badge never claims a severity the
+    # event did not carry while the Severity metric prints the real value.
+    INFORMATION_SEVERITIES = frozenset({"information", "informational", "info"})
+
+    @classmethod
+    def _discord_header_state(cls, default_state: str, severity: Any) -> str:
+        """Header badge label when the event carries no explicit state.
+
+        Bucketed states (Resolved, Critical, Warning) stay as they are: a
+        recovery card says Resolved even when the raw severity is Ok. Only the
+        catch-all Information bucket defers to the raw severity label, so a
+        Debug event reads "Debug" in the header and "Severity: Debug" below.
+        """
+
+        if default_state != "Information":
+            return default_state
+        severity_value = str(severity or "").strip().casefold()
+        if not severity_value or severity_value in cls.INFORMATION_SEVERITIES:
+            return "Information"
+        return cls._label(severity) or "Information"
 
     @staticmethod
     def _category_icon(category: Any) -> str:
