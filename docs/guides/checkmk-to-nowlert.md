@@ -10,7 +10,8 @@ for **Checkmk HTTP**, scope `checkmk`.
 ## Install the notification method
 
 Run as your **Checkmk site user** (inside the site container if applicable).
-Copy [the supplied script](../../tools/checkmk_notification.py) to
+Copy the supplied `tools/checkmk_notification.py` script from the Nowlert CE
+source repository to
 `~/local/share/check_mk/notifications/nowlert`. The local example's absolute
 path is `/omd/sites/example/local/share/check_mk/notifications/nowlert`.
 
