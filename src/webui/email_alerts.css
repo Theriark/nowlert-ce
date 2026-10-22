@@ -1612,3 +1612,139 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Rules table narrow layout (Development walk finding N4). Below 900px the
+ * 1120px rules table cannot fit beside the navigation, so each rule becomes a
+ * stacked card: name and status first, classification and group, match and
+ * priority, the conditions, then the three actions. The column order comes
+ * from emailRenderRuleTable() in email_alerts.js (rule, group, classification,
+ * match, conditions, priority, status, actions); each cell prints its column
+ * label itself, so the table header is not needed here. */
+@media (max-width: 900px) {
+  #view-email-alerts#view-email-alerts .email-table-panel .email-rules-table {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table thead {
+    display: none;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody tr {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 12px;
+    display: grid;
+    gap: 10px 14px;
+    /* Both columns flex so a long group name cannot squeeze the rule name
+     * into mid-word breaks; the name column gets the larger share. */
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    padding: 12px 14px;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(n) {
+    border: 0;
+    display: block;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(n)::before {
+    color: #8f99a3;
+    display: block;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 3px;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(2)::before { content: "Group"; }
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(3)::before { content: "Classification"; }
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(4)::before { content: "Match"; }
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(5)::before { content: "Conditions"; }
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(6)::before { content: "Priority"; }
+
+  /* Rule name, status badge and the action row explain themselves. */
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(1),
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(7),
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(8) {
+    align-self: center;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(1)::before,
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(7)::before,
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(8)::before {
+    display: none;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(1) {
+    grid-area: 1 / 1 / 2 / 2;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(1) strong {
+    font-size: 0.95rem;
+    overflow-wrap: break-word;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(7) {
+    grid-area: 1 / 2 / 2 / 3;
+    justify-self: end;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(3) {
+    grid-area: 2 / 1 / 3 / 2;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(2) {
+    grid-area: 2 / 2 / 3 / 3;
+    overflow-wrap: break-word;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(4) {
+    grid-area: 3 / 1 / 4 / 2;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(6) {
+    grid-area: 3 / 2 / 4 / 3;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(5) {
+    grid-area: 4 / 1 / 5 / 3;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(5) .email-condition-summary {
+    min-width: 0;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(5) .email-condition-summary span {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(8) {
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+    grid-area: 5 / 1 / 6 / 3;
+    padding-top: 10px;
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(8) .email-rule-actions {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #view-email-alerts#view-email-alerts .email-rules-table tbody td:nth-child(8) .email-rule-action {
+    justify-content: center;
+    min-height: 36px;
+    width: 100%;
+  }
+}

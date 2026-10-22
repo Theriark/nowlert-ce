@@ -696,6 +696,44 @@
     window.queueMicrotask(syncConsistency);
   }
 
+  // Users actions (create, enable/disable, delete) showed their toast while the
+  // table still listed the old accounts: app.js refreshes state.users only
+  // through the full workspace reload (about twenty requests), so a slow or
+  // rate-limited /users request left the list and the counts stale until the
+  // next reload (Development walk finding N2). Apply each Users API result to
+  // the local list and re-render at once; the workspace reload then reconciles.
+  function applyUserRecord(user) {
+    if (!user || !user.id) return;
+    const users = Array.isArray(state.users) ? state.users : [];
+    const exists = users.some((candidate) => candidate.id === user.id);
+    state.users = exists
+      ? users.map((candidate) => (candidate.id === user.id ? user : candidate))
+      : [...users, user];
+    if (state.currentView === "users") renderUsers();
+  }
+
+  function removeUserRecord(id) {
+    const users = Array.isArray(state.users) ? state.users : [];
+    state.users = users.filter((candidate) => candidate.id !== id);
+    if (state.currentView === "users") renderUsers();
+  }
+
+  function userRecordIdFromPath(path) {
+    const match = /^\/users\/([^/]+)$/.exec(String(path || ""));
+    return match ? match[1] : "";
+  }
+
+  const previousRequest = request;
+  request = async function requestWithUserRecordSync(path, options = {}) {
+    const response = await previousRequest(path, options);
+    const method = String(options?.method || "GET").toUpperCase();
+    const userId = userRecordIdFromPath(path);
+    if (path === "/users" && method === "POST") applyUserRecord(response?.user);
+    else if (userId && method === "PATCH") applyUserRecord(response?.user);
+    else if (userId && method === "DELETE") removeUserRecord(userId);
+    return response;
+  };
+
   installChannelCollection();
   installDestinationFieldHook();
   installAssignedRoutesHelpRemoval();
