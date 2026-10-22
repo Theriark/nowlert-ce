@@ -70,7 +70,7 @@ they do not enable integrations or change runtime behavior.
 
 Current captures of the development WebUI live under
 [`images/v27.0.0-rc.1/`](images/v27.0.0-rc.1/README.md). They were taken on
-21 October 2026 from the Development deployment of the `development` branch
+21 and 22 October 2026 from the Development deployment of the `development` branch
 (application version 3.1.6 plus the development changes) with synthetic test
 accounts, synthetic destinations and synthetic events, at 1440, 768 and 390
 pixel widths, for an administrator and for a regular user. File names follow

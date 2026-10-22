@@ -29,6 +29,13 @@ never as "verified".
   further exposures in captures embedded by the README and guides. Those
   three were withdrawn the same day. The three files that review could not
   open are listed under "Validation records".
+- 22 October 2026, later the same day: five further synthetic Development
+  captures were added to `images/v27.0.0-rc.1/` (Preview dialog routes drawer,
+  Discord Debug preview, Email Alerts rules at 768 and 390 px, Edit mailbox
+  dialog of the synthetic IMAP mailbox) and inspected at full size before
+  being added. The Edit mailbox capture shows the fixture address
+  `qa@ce-qa-fixture.invalid` and the loopback host `127.0.0.1`; the list
+  behind the dialog is hidden by the backdrop.
 
 Sixteen captures are now excluded from current documentation. On 22 October
 2026, after these changes, the inventory held 105 retained rows and current
@@ -246,12 +253,17 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/destination-preview-routes-drawer-admin-1440.png` | retained | synthetic Development capture, 22 Oct 2026 |
+| `images/v27.0.0-rc.1/destination-preview-discord-debug-admin-1440.png` | retained | synthetic Development capture, 22 Oct 2026 |
 | `images/v27.0.0-rc.1/destinations-list-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destinations-list-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destinations-list-admin-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destinations-list-user-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/email-alerts-groups-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/email-alerts-rules-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/email-alerts-rules-admin-768.png` | retained | synthetic Development capture, 22 Oct 2026 |
+| `images/v27.0.0-rc.1/email-alerts-rules-admin-390.png` | retained | synthetic Development capture, 22 Oct 2026 |
+| `images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png` | retained | synthetic Development capture, 22 Oct 2026; fixture address and loopback host only |
 | `images/v27.0.0-rc.1/filtering-list-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026 |

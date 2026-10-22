@@ -50,6 +50,10 @@ checklist replace this note as the current release material.
   approved in the mobile app.
 - Destination test sends a Nowlert-owned notification rendered in the
   destination's selected style.
+- Discord card header: when an event carries no state of its own, the header
+  badge shows the real severity (Debug, Notice, Not Classified) instead of a
+  generic Information label; Information and its synonyms, and the Resolved,
+  Critical and Warning buckets, are unchanged.
 
 ### WebUI
 
@@ -65,6 +69,13 @@ checklist replace this note as the current release material.
 - Resilient browser sessions with in-place re-authentication; refreshed
   translation source for the sidebar titles.
 - The Notices feature was removed.
+- Fixes after the 22 October 2026 Development walk: the Preview dialog's
+  assigned routes drawer shows its **Done** button and keeps the
+  Active/Disabled badge in its own column; the Users list and counts update
+  immediately after create, enable/disable and delete; an IMAP mailbox's name
+  and visibility save without a folder scan and a blank username keeps the
+  stored one; the Email Alerts rules table becomes stacked cards at 900 px and
+  narrower.
 
 ### Operations
 
@@ -76,8 +87,8 @@ checklist replace this note as the current release material.
 ## Documentation state
 
 - Live captures of this development interface are packaged under
-  `docs/images/v27.0.0-rc.1/`: 26 screenshots taken on 21 October 2026 from
-  the Development deployment with synthetic accounts and synthetic data, at
+  `docs/images/v27.0.0-rc.1/`: 31 screenshots taken on 21 and 22 October 2026
+  from the Development deployment with synthetic accounts and synthetic data, at
   1440, 768 and 390 pixel widths, listed in
   [the folder index](../images/v27.0.0-rc.1/README.md) and embedded in the
   [WebUI guide](../webui.md). The v3.1.0 set is historical; the v2.5.2 and

@@ -8,9 +8,9 @@ This guide describes the current development interface, which already differs
 from the released v3.1.6 WebUI; see
 [development after v3.1.6](releases/post-v3.1.6-development.md) for the list of
 changes without a version number yet. The screenshots under
-`images/v27.0.0-rc.1/` were captured on 21 October 2026 from the Development
-deployment of the `development` branch (application version 3.1.6 plus the
-development changes) with synthetic test accounts and synthetic data; each file
+`images/v27.0.0-rc.1/` were captured on 21 and 22 October 2026 from the
+Development deployment of the `development` branch (application version 3.1.6
+plus the development changes) with synthetic test accounts and synthetic data; each file
 name ends with the account role and the viewport width in pixels, and
 [the folder index](images/v27.0.0-rc.1/README.md) lists every capture.
 Historical v3.1.0 screenshots remain in this guide, labelled as such, to
@@ -83,14 +83,18 @@ cards fill one full-width column at 1100 px and narrower. Both captured widths
 below therefore show the sidebar behind the menu button, the Dashboard with one
 metric card per row and full-width destination cards. The Routing Flow metric
 cards use their own grid: the captures show them in three columns at 768 px
-and in two columns at 390 px. The same pages, captured with an administrator
-account at 768 px and 390 px:
+and in two columns at 390 px. At 900 px and narrower the Email Alerts rules
+table becomes a list of stacked rule cards (rule name and status first, then
+classification and group, match and priority, the conditions, and the three
+actions in a row) instead of a sideways-scrolling table. The same pages,
+captured with an administrator account at 768 px and 390 px:
 
 | Page | 768 px | 390 px |
 |---|---|---|
 | Dashboard | ![Dashboard at 768 px](images/v27.0.0-rc.1/dashboard-live-admin-768.png) | ![Dashboard at 390 px](images/v27.0.0-rc.1/dashboard-live-admin-390.png) |
 | Routing Flow | ![Routing Flow at 768 px](images/v27.0.0-rc.1/routing-flow-live-admin-768.png) | ![Routing Flow at 390 px](images/v27.0.0-rc.1/routing-flow-live-admin-390.png) |
 | Destinations | ![Destinations at 768 px](images/v27.0.0-rc.1/destinations-list-admin-768.png) | ![Destinations at 390 px](images/v27.0.0-rc.1/destinations-list-admin-390.png) |
+| Email Alerts rules | ![Email Alerts rules as stacked cards at 768 px](images/v27.0.0-rc.1/email-alerts-rules-admin-768.png) | ![Email Alerts rules as stacked cards at 390 px, scrolled to the first full card](images/v27.0.0-rc.1/email-alerts-rules-admin-390.png) |
 
 ### Dashboard
 
@@ -175,8 +179,24 @@ message style.
 
 **Preview** opens a dialog with the severity and message style selectors, the
 route summary, an editable sample message and the generated payload for the
-destination type. The generated payload follows the message style saved on the
-destination. Two Microsoft Teams destinations, one saved as Modern Card and one
+destination type. **Manage routes** in the dialog opens the same assigned
+routes drawer as the editor: each route row shows its checkbox, integration
+icon, name and an **Active** or **Disabled** badge in its own column, and the
+**Done** button at the bottom of the drawer closes it. The generated payload
+follows the message style saved on the destination.
+
+![Preview dialog with the Manage routes drawer open (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-preview-routes-drawer-admin-1440.png)
+
+For a Discord destination the header line of the generated card names the
+event state. When the event carries no state of its own, the header repeats
+the selected severity instead of a generic **Information** label, so a
+**Debug** or **Notice** preview reads Debug or Notice both in the header and
+in the **Severity** metric; Information and its synonyms still read
+Information, and Resolved, Critical and Warning events keep those words.
+
+![Preview dialog for a Discord destination at severity Debug, output scrolled to the header context line (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-preview-discord-debug-admin-1440.png)
+
+Two Microsoft Teams destinations, one saved as Modern Card and one
 saved as Classic Card, with the preview output scrolled to the start of the
 Adaptive Card body: the Modern Card body is a single rendered **Image**, the
 Classic Card body starts with a **ColumnSet** of text:
@@ -230,7 +250,8 @@ Email Alerts ingests messages from connected mailboxes instead of the SMTP
 listener. The page has four tabs:
 
 - **Mailboxes**: connect Gmail or Microsoft 365 mailboxes by signing in with
-  the provider; the installation administrator configures the OAuth
+  the provider, or an IMAP / IMAPS mailbox with its host, port, security,
+  username and password; the installation administrator configures the OAuth
   application once through deployment secrets. A mailbox can be private to its
   owner or shared.
 - **Rules**: deterministic conditions on message metadata that classify
@@ -245,6 +266,16 @@ listener. The page has four tabs:
 
 The Mailboxes and Activity tabs show the connected mailbox identity and fetched
 message subjects, so they are described here in writing instead of captured.
+
+**Edit** on an IMAP mailbox opens the same form as the connection with the
+stored name, address, visibility, host, port and security filled in. A change
+to the name or the visibility saves at once, without a folder scan. The
+username and password fields are optional on edit: left blank, the stored
+values are kept. A changed host, port, security, username, password or folder
+is still verified against the server before it is saved, so a mailbox whose
+server is unreachable can be renamed or shared but not repointed.
+
+![Edit mailbox dialog of the synthetic IMAP mailbox (development, administrator, 1440 px)](images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png)
 
 Matching messages are routed through the Email Alerts route like any other
 event and appear in Delivery history. See the
@@ -305,6 +336,10 @@ Administrators can:
 - enable/disable accounts;
 - reset another user's password; and
 - permanently delete an eligible user after explicit confirmation.
+
+The list and the account counts update as soon as a create, enable, disable
+or delete request succeeds; the background reload that follows only reconciles
+them.
 
 Deletion is protected by server-side account/ownership safety checks and is
 audited. The last enabled administrator cannot be removed through a path that

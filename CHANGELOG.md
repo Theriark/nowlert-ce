@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Fixed
+
+- Preview dialog: the assigned routes drawer shows its Done button with the
+  editor's accent colours, and route rows with an Active/Disabled badge keep
+  the badge in a third column instead of wrapping under the checkbox.
+- Discord card header: when an event carries no explicit state, the catch-all
+  Information bucket shows the real severity label (Debug, Notice, Not
+  Classified); Information synonyms and the Resolved, Critical and Warning
+  buckets are unchanged.
+- Users: the list and the account counts update immediately after create,
+  enable/disable and delete instead of waiting for the workspace reload.
+- Email Alerts: editing an IMAP mailbox saves name and visibility changes
+  without a folder scan, a blank username keeps the stored one, and only a
+  changed host, port, security, username, password or folder is verified
+  against the server.
+- Email Alerts: the rules table becomes stacked rule cards at 900 px and
+  narrower instead of a sideways-scrolling table.
+
 ### Changed
 
 - Run SMTP notification routing off the aiosmtpd event loop while still waiting

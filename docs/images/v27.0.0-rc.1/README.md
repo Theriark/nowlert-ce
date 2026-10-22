@@ -46,6 +46,40 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 The two preview captures were replaced on 21 October 2026 at the times shown;
 the other 24 files are unchanged.
 
+## Added on 22 October 2026 (commit 8dc1b2ca)
+
+Five captures were added on 22 October 2026 from the Development deployment of
+the `development` branch at commit `8dc1b2cabdbfbbb3f9ec1539ec6fbeb854ab4461`
+(still application version 3.1.6), after the merge of pull requests 619 and
+620, which fixed the Preview dialog routes drawer, the Discord header badge,
+the Users list refresh, the IMAP mailbox edit form and the narrow Email Alerts
+rules table. The stylesheets and scripts served by that deployment were
+compared byte for byte with the sources of that commit before capturing. Same
+synthetic administrator account, same viewports.
+
+| File | Page / state | Role | Width | Captured (Lisbon) |
+|---|---|---|---|---|
+| `destination-preview-routes-drawer-admin-1440.png` | Preview dialog with the **Manage routes** drawer open: Done button, Active badge beside each route | administrator | 1440 | 22:43 |
+| `destination-preview-discord-debug-admin-1440.png` | Preview dialog, Discord destination, severity **Debug**, generic sample source, output scrolled to the context line that reads **Debug** | administrator | 1440 | 22:49 |
+| `email-alerts-rules-admin-768.png` | Email Alerts, Rules tab as stacked rule cards | administrator | 768 | 22:49 |
+| `email-alerts-rules-admin-390.png` | Email Alerts, Rules tab as stacked rule cards, scrolled to the first full card | administrator | 390 | 22:50 |
+| `email-alerts-mailbox-edit-imap-admin-1440.png` | Edit mailbox dialog of the synthetic IMAP mailbox (username and password optional, folder scan unavailable) | administrator | 1440 | 22:51 |
+
+Notes on these five files:
+
+- The Preview dialog has no visible source selector: it sends the sample event
+  with the source of the destination's first dedicated route. For the Debug
+  capture the preview form's source value was set to the generic Nowlert
+  source so that the generic Discord card is shown; an integration with its
+  own state label (for example Home Assistant) keeps that label in the header.
+- The Edit mailbox capture shows the synthetic mailbox
+  `qa@ce-qa-fixture.invalid` with the loopback host `127.0.0.1` and port
+  `19993`, which the QA fixture uses because no IMAP server exists in
+  Development. The Mailboxes list behind the dialog is hidden by the dialog
+  backdrop; the list itself remains uncaptured (see below).
+- The 390 px rules capture is scrolled so that one complete rule card is
+  visible; the page header stays fixed at the top.
+
 ## Names shown in the captures
 
 - The accounts `ai-crew-admin-…` and `ai-crew-user-…` are the synthetic crew
@@ -85,7 +119,9 @@ the other 24 files are unchanged.
 
 - Delivery history without a source filter and the Email Alerts Activity tab:
   message bodies contain a real mailbox address.
-- Email Alerts Mailboxes tab: a personal mailbox label.
+- Email Alerts Mailboxes tab: a personal mailbox label (only the Edit mailbox
+  dialog of the synthetic IMAP mailbox is captured, with the list hidden
+  behind the dialog backdrop).
 - Users without a search filter: personal names of other accounts.
 - Backups: a private storage address.
 
