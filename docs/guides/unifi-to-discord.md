@@ -163,14 +163,16 @@ address. In Nowlert, open **Filtering → Integration behavior → UniFi Protect
 Edit**. Enter one `MAC = Alias` line per device and save settings. For example:
 
 ```text
-AC:8B:A9:0D:D8:AD = CAM-01 | Hall Out
+00:00:5E:00:53:01 = CAM-01 | Hall Out
 ```
 
-Use the names shown in your console, including any punctuation. This deployment
-saved all eight camera/doorbell names and the console, gateway and two sensor
-names. New events confirmed names such as `CAM-03 | Door F1`; old delivery
-records retain the names captured when they were received. These are saved
-aliases, not an automatic synchronization with future Protect name changes.
+The hardware address above is an RFC 7042 documentation value; use the real
+address shown on your Devices page. Use the names shown in your console,
+including any punctuation. This deployment saved all eight camera/doorbell
+names and the console, gateway and two sensor names. New events confirmed
+names such as `CAM-03 | Door F1`; old delivery records retain the names
+captured when they were received. These are saved aliases, not an automatic
+synchronization with future Protect name changes.
 
 ![New Protect deliveries use the console's camera names](../images/unifi-setup/camera-names.png)
 

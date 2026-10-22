@@ -65,6 +65,8 @@ HISTORICAL_SCREENSHOTS = (
     "v3.1.0-teams-xen-orchestra.png",
 )
 
+RASTER_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 missing: list[str] = []
 
@@ -202,6 +204,16 @@ for asset in re.findall(r"^- `(images/[^`]+)`", privacy, re.MULTILINE):
             if asset in document.read_text(encoding="utf-8"):
                 raise SystemExit(f"ERROR: withdrawn capture reference in {document.relative_to(ROOT)}: {asset}")
 
+inventory = set(re.findall(r"^\| `(images/[^`]+)` \| retained \|", privacy, re.MULTILINE))
+for path in sorted((ROOT / "docs" / "images").rglob("*")):
+    if path.is_file() and path.suffix.lower() in RASTER_SUFFIXES:
+        relative = path.relative_to(ROOT / "docs").as_posix()
+        if relative not in inventory:
+            raise SystemExit(f"ERROR: raster without a screenshot-privacy inventory row: {relative}")
+for relative in sorted(inventory):
+    if not (ROOT / "docs" / relative).is_file():
+        raise SystemExit(f"ERROR: screenshot-privacy inventory row without a file: {relative}")
+
 for document in FILES:
     if "releases" in document.relative_to(ROOT).parts:
         continue
@@ -218,3 +230,4 @@ print("documentation_guides=passed")
 print("documentation_drift=passed")
 print(f"documentation_development_schema={schema}")
 print("documentation_withdrawn_captures=passed")
+print("documentation_screenshot_inventory=passed")

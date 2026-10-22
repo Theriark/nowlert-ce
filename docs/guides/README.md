@@ -4,10 +4,12 @@ These guides show complete, practical event flows using the current Nowlert CE
 platform model. They are written for operators evaluating or deploying Nowlert
 rather than for historical release compatibility.
 
-Screenshots hide private account and deployment details. Addresses and site names
-in the examples and validation records are anonymized (validation records use
-RFC 5737 documentation addresses); substitute your own values.
-See the [screenshot privacy review](screenshot-privacy.md).
+Every packaged screenshot has a row in the
+[screenshot privacy review](screenshot-privacy.md), which records when it was
+last inspected; captures that still showed private account or deployment
+details were withdrawn and replaced with written checks. Addresses and site
+names in the examples and validation records are anonymized (validation records
+use RFC 5737 documentation addresses); substitute your own values.
 
 ## Native application notification setup
 

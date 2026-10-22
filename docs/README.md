@@ -115,6 +115,13 @@ guides when they accurately demonstrate an existing integration/destination
 presentation. Their validation dates are historical observations, not claims
 about the current build.
 
+Every raster under `images/` has a row in the
+[screenshot privacy review](guides/screenshot-privacy.md) that records its
+status and the date of its last visual inspection; captures that showed
+private details were withdrawn from the checkout and are listed there.
+`tests/test_screenshot_privacy_inventory.py` fails when a raster is missing
+from that inventory or carries EXIF or author metadata.
+
 Capture replacement images from synthetic data in the current development UI.
 Never publish captures that show passwords, destination
 URLs, API tokens, setup tokens, private hostnames, email addresses, or other
@@ -129,6 +136,7 @@ Run:
 python tools/validate_current_documentation.py
 python -m pytest -q tests/test_comprehensive_readme.py \
   tests/test_current_documentation_contract.py \
+  tests/test_screenshot_privacy_inventory.py \
   tests/test_v252_documentation_refresh.py \
   tests/test_v310_release_docs.py \
   tests/test_v311_release_docs.py \
