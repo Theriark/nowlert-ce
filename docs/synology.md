@@ -50,7 +50,7 @@ dedicated Route for each transport:
 - Integration: **Synology**, Input: **HTTP** -> the intended Synology
   Destination(s).
 
-A **Fallback (SMTP)** Route is evaluated only when no enabled dedicated
+A **Fallback SMTP** Route is evaluated only when no enabled dedicated
 Synology SMTP Route matches. If the Synology SMTP Route is missing or disabled,
 the email is therefore expected to use the SMTP fallback while retaining
 `source = synology`; Discord and other outputs can still render the Synology

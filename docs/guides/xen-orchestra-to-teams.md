@@ -116,12 +116,15 @@ for each route selected under **Routing**, using that route's own source.
    declared list, and a skipped route is simply absent from the output. If
    **Xen Orchestra SMTP** does not appear in **Preview output**, do not read
    that as a routing fault; use the **Delivery history** check below instead.
-3. Choose **Generate preview**. With one route the output is that route's
-   Teams payload; with several routes it is a JSON object with a `severity`
-   value, a `message_style` value and an `outputs` list holding one entry per
-   route. **Message style** is only selectable for Discord and generic webhook
-   destinations; for Teams it reads **Native** and is disabled, and the payload
-   follows the style saved on the destination (section 3).
+3. Choose **Generate preview**. The output is JSON. With one route it is an
+   object with a `route` entry (the route's id, name, integration and input)
+   and a `preview` entry; the Teams payload itself is under `preview.payload`.
+   With several routes it is an object with a `severity` value, a
+   `message_style` value and an `outputs` list holding one such `route` and
+   `preview` entry per route. **Message style** is only selectable for Discord
+   and generic webhook destinations; for Teams it reads **Native** and is
+   disabled, and the payload follows the style saved on the destination
+   (section 3).
 4. If no route is selected, or none of the selected routes supports the chosen
    severity, the output stays empty and an error message names the reason.
 
