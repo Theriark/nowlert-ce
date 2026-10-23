@@ -36,10 +36,25 @@ never as "verified".
   being added. The Edit mailbox capture shows the fixture address
   `qa@ce-qa-fixture.invalid` and the loopback host `127.0.0.1`; the list
   behind the dialog is hidden by the backdrop.
+- 23 October 2026 (Jira TOPS-351, P1 privacy re-check of the packaged
+  Development set): all 31 rasters under `images/v27.0.0-rc.1/` were
+  downloaded from `development` at commit `82c8470a` and opened at full size.
+  Thirty show only the synthetic crew accounts, synthetic fixture values,
+  the role-named owner label and the crew's test channel labels already
+  described in the folder index. One, the Zabbix-filtered Delivery history
+  capture, showed VM-numbered host and database labels taken from the
+  repository's test fixture (`VM-08 | Zabbix Server`, `DB-01`, `DB-REPLICA`)
+  that read like internal infrastructure names; it was withdrawn and replaced
+  by a Synology-filtered capture whose rows name only the synthetic device
+  `synthetic-dsm-01`. The same check confirmed live on Development that the
+  Mailboxes tab, the Activity tab and the unfiltered Delivery history still
+  show real connected-mailbox labels, sender addresses and message subjects;
+  those pages remain uncaptured and are described in writing.
 
-Sixteen captures are now excluded from current documentation. On 22 October
-2026, after these changes, the inventory held 105 retained rows and current
-documents linked 90 of them; counts in this page are dated
+Seventeen captures are now excluded from current documentation. On 22 October
+2026, after that day's changes, the inventory held 105 retained rows and current
+documents linked 90 of them; on 23 October 2026 one row was withdrawn and one
+added, so the counts are unchanged. Counts in this page are dated
 observations and the guard test, not this prose, is the authority.
 
 ## Withdrawn captures
@@ -79,8 +94,18 @@ The crew's repository tools can create and overwrite files but cannot delete
 them, so on 22 October 2026 these three files were overwritten with empty
 content to remove their pixels from the branch. A person with delete access
 should remove the three empty placeholders; until then the guard accepts them
-only while they stay empty. Git history before that date still contains the
-images, as it does for the 15 October withdrawals.
+only while they stay empty.
+
+Withdrawn on 23 October 2026, after the P1 privacy re-check of the packaged
+Development set (Jira TOPS-351); it was embedded by the WebUI guide and is now
+replaced there by the Synology-filtered capture listed in the inventory:
+
+- `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` — VM-numbered host and database labels (`VM-08 | Zabbix Server`, `DB-01`, `DB-REPLICA`) in the sample rows and message.
+
+It was overwritten with empty content the same way; a person with delete
+access should remove the empty placeholder. Git history before each
+withdrawal date still contains the images, as it does for the 15 October
+withdrawals.
 
 The retained captures are listed in the inventory below with the date of their
 last recorded inspection. Their dated validation results are historical
@@ -249,7 +274,7 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | synthetic Development capture, 23 Oct 2026; device `synthetic-dsm-01` only |
 | `images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |

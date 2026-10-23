@@ -28,7 +28,6 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | 15:50 |
 | `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens) | administrator | 1440 | 15:50 |
 | `users-search-admin-1440.png` | Users, filtered to the crew accounts | administrator | 1440 | 15:51 |
-| `delivery-history-zabbix-admin-1440.png` | Delivery history, Zabbix source filter | administrator | 1440 | 15:53 |
 | `email-alerts-groups-admin-1440.png` | Email Alerts, Groups tab | administrator | 1440 | 15:53 |
 | `destination-editor-teams-admin-1440.png` | Add destination, Microsoft Teams, Message style | administrator | 1440 | 15:54 |
 | `destination-preview-teams-modern-admin-1440.png` | Preview dialog, Teams destination saved as Modern Card, output scrolled to the card body | administrator | 1440 | 20:44 |
@@ -43,8 +42,10 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `destinations-list-user-1440.png` | Destinations list (shared destinations of other owners, all view only) | regular user | 1440 | 18:06 |
 | `security-profile-user-1440.png` | Security (Profile, MFA, password, API tokens) | regular user | 1440 | 18:07 |
 
-The two preview captures were replaced on 21 October 2026 at the times shown;
-the other 24 files are unchanged.
+The two preview captures were replaced on 21 October 2026 at the times shown.
+The Zabbix-filtered Delivery history capture of 21 October 2026 (15:53) was
+withdrawn on 23 October 2026 and is no longer listed; see "Replaced on
+23 October 2026" below. The other 23 files of this set are unchanged.
 
 ## Added on 22 October 2026 (commit 8dc1b2ca)
 
@@ -80,6 +81,34 @@ Notes on these five files:
 - The 390 px rules capture is scrolled so that one complete rule card is
   visible; the page header stays fixed at the top.
 
+## Replaced on 23 October 2026 (commit 82c8470a)
+
+The Zabbix-filtered Delivery history capture of 21 October 2026 was withdrawn
+on 23 October 2026 (Jira TOPS-351): its sample rows, although taken from the
+repository's own test fixture, carried VM-numbered host and database labels
+(`VM-08 | Zabbix Server`, `DB-01`, `DB-REPLICA`) that read like internal
+infrastructure names. The crew's repository tools overwrite but cannot delete
+files, so the withdrawn file remains in the folder as an empty placeholder
+until a person with delete access removes it. It was replaced by one capture
+from the Development deployment of the `development` branch at commit
+`82c8470af473570a87690e76f9ea0431f49e3013` (application version 3.1.6 plus the
+development changes, after the merge of pull requests 622 to 626), same
+synthetic administrator account, same viewport, opened at full size before
+being added.
+
+| File | Page / state | Role | Width | Captured (Lisbon) |
+|---|---|---|---|---|
+| `delivery-history-synology-admin-1440.png` | Delivery history, **Synology** source filter, **Last 30 days**, newest first, first event selected with its detail pane | administrator | 1440 | 10:48 |
+
+Note on this file: every value shown is synthetic. The rows are the Synology
+sample events of 15 October 2026 for the device `synthetic-dsm-01` (storage
+pool degraded, recovered, synthetic Hyper Backup failure); the detail pane
+shows the message, the outcome badges, the transport information (input,
+destination `CE Development - Discord`, destination type, response code) and
+the timeline. No mailbox, sender, address or token appears. The Email Alerts
+rows of this page are still not captured: their subtitles name the connected
+mailbox addresses.
+
 ## Names shown in the captures
 
 - The accounts `ai-crew-admin-…` and `ai-crew-user-…` are the synthetic crew
@@ -90,13 +119,12 @@ Notes on these five files:
   subtitles (`#ce-nowlert-development`, `#Dev`, `#test`,
   `ce-nowlert-development`) are the labels typed into the destination editor
   for the crew's development test channels, not webhook addresses.
-- The host, database and runbook names in
-  `delivery-history-zabbix-admin-1440.png` (`VM-08 | Zabbix Server`, `DB-01`,
-  `DB-REPLICA`, `DB-RUNBOOK-REPLICATION-01`) are the synthetic Zabbix sample
-  data of the repository's own tests (`tests/test_round44_zabbix_classic_cleanup.py`,
-  `tests/test_discord_modern_images.py`), delivered to the Development
-  deployment on 15 October 2026 with the tag `site=development`; they are not
-  real infrastructure and no address is shown.
+- The device name `synthetic-dsm-01` and the storage-pool and backup texts in
+  `delivery-history-synology-admin-1440.png` are the synthetic Synology sample
+  events delivered to the Development deployment on 15 October 2026; they are
+  not real infrastructure and no address is shown. The destination column of
+  the detail pane names the shared crew destination `CE Development - Discord`
+  described above.
 
 ## Known limits
 
@@ -118,7 +146,8 @@ Notes on these five files:
 ## Not captured on purpose
 
 - Delivery history without a source filter and the Email Alerts Activity tab:
-  message bodies contain a real mailbox address.
+  message subtitles and bodies contain real mailbox addresses and real
+  message subjects (re-confirmed live on 23 October 2026).
 - Email Alerts Mailboxes tab: a personal mailbox label (only the Edit mailbox
   dialog of the synthetic IMAP mailbox is captured, with the list hidden
   behind the dialog backdrop).
