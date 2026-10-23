@@ -274,7 +274,7 @@
         </section>
 
         <section id="view-tokens" class="view" data-page="tokens" hidden>
-          <div class="section-toolbar"><div><h2>Event API tokens</h2><p>Allow external applications to submit events to <code>/api/v2/events</code>. SMTP, HTTP integration webhooks, Redfish subscriptions, and WebUI login do not require these tokens.</p></div><button class="button primary" type="button" data-action="new-token">＋ New token</button></div>
+          <div class="section-toolbar"><div><h2>Event API tokens</h2><p>Allow external applications to submit events to <code>/api/v2/events</code>. SMTP, HTTP integration webhooks, Redfish subscriptions, and WebUI login do not require these tokens.</p></div><button class="button primary" type="button" data-action="new-token">+ New token</button></div>
           <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>Name</th><th>Allowed integrations</th><th>Rate limit</th><th>Last used</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="token-table"></tbody></table></div><div id="token-empty" class="empty-state" hidden></div></div>
         </section>
 
@@ -758,7 +758,7 @@
       </div>
       <div class="modal-actions restart-reference-actions">
         <button class="button secondary" value="cancel" formnovalidate>Cancel</button>
-        <button class="button danger" value="default"><span aria-hidden="true">⟳</span> Restart</button>
+        <button class="button danger" value="default"><svg class="button-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.34-5.66"></path><path d="M20 4v5h-5"></path></svg> Restart</button>
       </div>
     </form>
   </dialog>
