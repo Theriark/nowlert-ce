@@ -5,6 +5,7 @@
   const USER_PAGE_SIZE = 6;
   const TOKEN_PAGE_SIZE = 6;
   const PREVIEW_DEFAULT_SEVERITIES = ["critical", "warning", "info"];
+  const PREVIEW_MAX_CONCURRENT_REQUESTS = 4;
   let userFilter = "all";
   let userQuery = "";
   let userPage = 1;
@@ -87,24 +88,21 @@
       : [];
   }
 
-  function previewSeverityValues(route) {
-    if (!route) return [];
-    const declared = previewDeclaredSeverities(route);
-    return declared.length ? declared : PREVIEW_DEFAULT_SEVERITIES.slice();
-  }
-
   function previewAvailableSeverities() {
     const values = [];
     const seen = new Set();
-    for (const route of selectedPreviewRoutes()) {
-      for (const severity of previewSeverityValues(route)) {
+    const routes = selectedPreviewRoutes();
+    for (const route of routes) {
+      for (const severity of previewDeclaredSeverities(route)) {
         const key = severity.toLowerCase();
         if (seen.has(key)) continue;
         seen.add(key);
         values.push(severity);
       }
     }
-    return values;
+    // Sources without a severity vocabulary (for example Xen Orchestra) add
+    // nothing above; offer the defaults only when no route declares any.
+    return values.length || !routes.length ? values : PREVIEW_DEFAULT_SEVERITIES.slice();
   }
 
   function refreshPreviewSeverityOptions() {
@@ -131,10 +129,37 @@
 
   function previewRouteSupportsSeverity(route, severity) {
     const wanted = String(severity || "").trim().toLowerCase();
-    if (!wanted) return false;
-    return previewSeverityValues(route).some(
-      (value) => value.toLowerCase() === wanted,
+    if (!wanted || !route) return false;
+    const declared = previewDeclaredSeverities(route);
+    // A source that declares no severities applies to every severity; it must
+    // not drop out of the preview because another route chose the selection.
+    if (!declared.length) return true;
+    return declared.some((value) => value.toLowerCase() === wanted);
+  }
+
+  function previewRequestFailure(error) {
+    const status = Number(error?.status) || 0;
+    if (status < 500) return uiErrorMessage(error, "Preview request failed.");
+    const reference = typeof error.reference === "string"
+      && /^[a-z0-9]{6,32}$/i.test(error.reference) ? `, reference ${error.reference}` : "";
+    return `Preview request failed (HTTP ${status}${reference}).`;
+  }
+
+  async function previewRunLimited(items, limit, worker) {
+    const results = new Array(items.length);
+    let next = 0;
+    const lanes = Array.from(
+      { length: Math.max(1, Math.min(limit, items.length)) },
+      async () => {
+        while (next < items.length) {
+          const index = next;
+          next += 1;
+          results[index] = await worker(items[index], index);
+        }
+      },
     );
+    await Promise.all(lanes);
+    return results;
   }
 
   function beginPreviewScenario(destinationId) {
@@ -275,8 +300,11 @@
     }
 
     const destinationId = destination.id;
-    const responses = await Promise.all(
-      applicable.map(async (route) => {
+    // Each preview renders a card on the server; a bounded number run at a time.
+    const responses = await previewRunLimited(
+      applicable,
+      PREVIEW_MAX_CONCURRENT_REQUESTS,
+      async (route) => {
         const body = {
           event: previewScenarioEvent(route, severity, destination),
         };
@@ -294,11 +322,11 @@
         } catch (error) {
           return {
             route: previewScenarioLabel(route),
-            error: uiErrorMessage(error, "Preview request failed."),
+            error: previewRequestFailure(error),
             destination: null,
           };
         }
-      }),
+      },
     );
 
     renderResult(
