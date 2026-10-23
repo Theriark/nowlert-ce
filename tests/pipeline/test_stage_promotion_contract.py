@@ -1,12 +1,15 @@
 """Input and completion-receipt contract of the Stage promotion workflow.
 
 The tests only read workflow text: they open no network connection, so they stay
-silent inside the network-isolated Stage gate.
+silent inside the network-isolated Stage gate. The source-binding tests run the
+workflow's own git commands against throwaway local repositories only.
 """
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 from pathlib import Path
 
 import yaml
@@ -306,3 +309,285 @@ def test_stage_keeps_the_silent_gate_and_markers() -> None:
         assert marker in text, marker
     # The release finalizer reads the image digest from the Stage run logs.
     assert "Promoting ${PROMOTION_IMAGE}" in text
+
+
+# --- Source binding: the sealed source must be part of development's history, ---
+# --- differ from it only by pipeline files, and never move Stage backwards ---
+
+
+def configuration_script() -> str:
+    return step("Verify CE Stage configuration")["run"]
+
+
+def source_binding_script() -> str:
+    """The workflow's own fetch + source-binding commands, unmodified."""
+    script = configuration_script()
+    return "set -euo pipefail\n" + script[script.index("git fetch origin") :]
+
+
+def git(cwd: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+        env={
+            **os.environ,
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "GIT_AUTHOR_NAME": "test",
+            "GIT_AUTHOR_EMAIL": "test@example.invalid",
+            "GIT_COMMITTER_NAME": "test",
+            "GIT_COMMITTER_EMAIL": "test@example.invalid",
+        },
+    )
+    return result.stdout.strip()
+
+
+def commit(cwd: Path, path: str) -> str:
+    target = cwd / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(path, encoding="utf-8")
+    git(cwd, "add", path)
+    git(cwd, "commit", "-q", "-m", path)
+    return git(cwd, "rev-parse", "HEAD")
+
+
+def history(tmp_path: Path, head_path: str | None = None) -> dict[str, str]:
+    """Local `origin` with development c1 -> c2 -> c3 [-> c4], stage at c1.
+
+    c2 changes a flat pipeline test and c3 a workflow, so c1 and c2 trail c3 by
+    pipeline files only. `head_path` adds a c4 that changes that one path.
+    """
+    origin = tmp_path / "origin"
+    origin.mkdir(parents=True)
+    git(origin, "init", "-q", "--initial-branch=development")
+    c1 = commit(origin, "README.md")
+    c2 = commit(origin, "tests/pipeline/test_one.py")
+    c3 = commit(origin, ".github/workflows/one.yml")
+    c4 = commit(origin, head_path) if head_path else c3
+    git(origin, "branch", "stage", c1)
+
+    # A commit on a line that left development at c1: it can sit on Stage but is
+    # neither ahead of nor behind c2 and c3.
+    git(origin, "checkout", "-q", "-b", "diverged", c1)
+    d1 = commit(origin, "diverged.txt")
+    git(origin, "checkout", "-q", "development")
+
+    work = tmp_path / "work"
+    work.mkdir(parents=True)
+    git(work, "init", "-q", "--initial-branch=work")
+    git(work, "remote", "add", "origin", str(origin))
+    git(work, "fetch", "-q", "origin", "development")
+
+    # A commit that exists locally but is not part of development's history.
+    git(work, "checkout", "-q", "-b", "side", c1)
+    side = commit(work, "side.txt")
+    return {
+        "c1": c1,
+        "c2": c2,
+        "c3": c3,
+        "c4": c4,
+        "d1": d1,
+        "side": side,
+        "origin": str(origin),
+        "work": str(work),
+    }
+
+
+def set_stage(commits: dict[str, str], sha: str) -> None:
+    git(Path(commits["origin"]), "branch", "-f", "stage", sha)
+
+
+def run_gate(commits: dict[str, str], source_commit: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["bash", "-c", source_binding_script()],
+        cwd=commits["work"],
+        capture_output=True,
+        text=True,
+        env={
+            **os.environ,
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "SOURCE_COMMIT": source_commit,
+        },
+    )
+
+
+def test_stage_source_may_be_an_older_ancestor_of_development(tmp_path: Path) -> None:
+    commits = history(tmp_path)
+
+    # The sealed RC predates later development merges (c1 and c2 are behind c3).
+    for older in (commits["c1"], commits["c2"]):
+        result = run_gate(commits, older)
+        assert result.returncode == 0, result.stdout + result.stderr
+
+    # The development head itself is still accepted.
+    result = run_gate(commits, commits["c3"])
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_stage_source_outside_development_history_is_rejected(tmp_path: Path) -> None:
+    commits = history(tmp_path)
+
+    result = run_gate(commits, commits["side"])
+
+    assert result.returncode != 0
+    assert (
+        f"::error::Stage source {commits['side']} is not an ancestor of current "
+        f"development {commits['c3']}"
+    ) in result.stdout
+
+
+def test_stage_ahead_of_or_diverged_from_source_is_rejected(tmp_path: Path) -> None:
+    commits = history(tmp_path)
+
+    # Stage is already ahead of the sealed source: promoting it would downgrade Stage.
+    set_stage(commits, commits["c3"])
+    ahead = run_gate(commits, commits["c2"])
+    assert ahead.returncode != 0
+    assert (
+        f"::error::Stage branch {commits['c3']} is not an ancestor of source "
+        f"{commits['c2']}"
+    ) in ahead.stdout
+
+    # Stage sits on a line that diverged from the source: not a fast-forward either.
+    set_stage(commits, commits["d1"])
+    diverged = run_gate(commits, commits["c2"])
+    assert diverged.returncode != 0
+    assert (
+        f"::error::Stage branch {commits['d1']} is not an ancestor of source "
+        f"{commits['c2']}"
+    ) in diverged.stdout
+
+
+def test_stage_behind_or_equal_to_source_is_accepted(tmp_path: Path) -> None:
+    commits = history(tmp_path)
+
+    # Stage is behind the source (c1 < c3): a normal fast-forward promotion.
+    set_stage(commits, commits["c1"])
+    behind = run_gate(commits, commits["c3"])
+    assert behind.returncode == 0, behind.stdout + behind.stderr
+
+    # Stage already is the source (re-promotion of the same candidate).
+    set_stage(commits, commits["c2"])
+    equal = run_gate(commits, commits["c2"])
+    assert equal.returncode == 0, equal.stdout + equal.stderr
+
+
+def test_stage_source_trailing_by_pipeline_files_only_is_accepted(tmp_path: Path) -> None:
+    for index, head_path in enumerate(
+        (".github/workflows/two.yaml", "tests/pipeline/test_two.py")
+    ):
+        commits = history(tmp_path / str(index), head_path)
+
+        # c3 trails the development head c4 by one workflow or pipeline test.
+        result = run_gate(commits, commits["c3"])
+        assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_stage_source_trailing_by_application_paths_is_rejected(tmp_path: Path) -> None:
+    rejected = (
+        "src/app.py",
+        "requirements.txt",
+        "docs/guide.md",
+        ".github/scripts/helper.py",
+        "tests/pipeline/nested/test_nested.py",
+        "tests/unit/test_app.py",
+        ".github/workflows/notes.md",
+    )
+    for index, head_path in enumerate(rejected):
+        commits = history(tmp_path / str(index), head_path)
+
+        # c3 trails the development head c4 by a path outside the pipeline files.
+        result = run_gate(commits, commits["c3"])
+        assert result.returncode != 0, head_path
+        assert (
+            f"::error::Stage source {commits['c3']} differs from current development "
+            f"{commits['c4']} outside the pipeline-only paths: {head_path}"
+        ) in result.stdout, head_path
+
+    # A source that equals the development head has no drift, so it is accepted
+    # even when that head changed application code.
+    commits = history(tmp_path / "head", "src/app.py")
+    result = run_gate(commits, commits["c4"])
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_stage_source_check_is_ancestry_not_head_equality() -> None:
+    script = configuration_script()
+
+    assert (
+        'git merge-base --is-ancestor "${SOURCE_COMMIT}" '
+        "refs/remotes/origin/development"
+    ) in script
+    assert '"${SOURCE_COMMIT}" == "${DEVELOPMENT_SHA}"' not in script
+    # The workflow's own commit is deliberately not required to be the
+    # development head: that check recreates the race that failed run 40032320625.
+    assert "${GITHUB_SHA}" not in script
+
+    # The check reads the freshly fetched development, after the launch-branch guard.
+    assert script.index('"${GITHUB_REF}" == "refs/heads/development"') < script.index(
+        "git fetch origin"
+    )
+    assert script.index("git fetch origin") < script.index("git merge-base --is-ancestor")
+
+
+def test_stage_pipeline_only_restriction_is_checked_before_any_deploy() -> None:
+    script = configuration_script()
+
+    assert (
+        "PIPELINE_ONLY_PATTERN='^(\\.github/workflows/[A-Za-z0-9._-]+\\.ya?ml|"
+        "tests/pipeline/[A-Za-z0-9._-]+\\.py)$'"
+    ) in script
+    # The YAML block scalar drops the step's 10-space indentation.
+    assert (
+        'git diff --no-renames --name-only \\\n    "${SOURCE_COMMIT}" "${DEVELOPMENT_SHA}"'
+    ) in script
+    # It runs in the guard step, after the development ancestry check, which
+    # precedes every step that writes (image deploy and the stage branch update).
+    assert script.index(
+        'git merge-base --is-ancestor "${SOURCE_COMMIT}" refs/remotes/origin/development'
+    ) < script.index("PIPELINE_ONLY_PATTERN=")
+    assert step_index("Verify CE Stage configuration") < step_index("Promote CE to Stage")
+
+
+def test_stage_guard_rejects_a_stage_ahead_of_the_source_before_any_deploy() -> None:
+    script = configuration_script()
+
+    assert "+refs/heads/stage:refs/remotes/origin/stage" in script
+    assert (
+        'git merge-base --is-ancestor refs/remotes/origin/stage "${SOURCE_COMMIT}"'
+    ) in script
+    # It runs after the development ancestry check and in the guard step, which
+    # precedes every step that writes (image deploy and the stage branch update).
+    assert script.index(
+        'git merge-base --is-ancestor "${SOURCE_COMMIT}" refs/remotes/origin/development'
+    ) < script.index("+refs/heads/stage:refs/remotes/origin/stage")
+    assert step_index("Verify CE Stage configuration") < step_index("Promote CE to Stage")
+
+
+def test_stage_keeps_every_other_source_binding() -> None:
+    rc_script = step("Verify the release candidate tag, prerelease and Development run")["run"]
+
+    # RC tag target, sealed digest, and the Development run's head SHA stay exact.
+    assert '"${TAG_TARGET}" == "${SOURCE_COMMIT}"' in rc_script
+    assert ".sourceCommit == $sourceCommit" in rc_script
+    assert ".imageDigest == $imageDigest" in rc_script
+    assert "jq -r '.head_sha' <<<\"${RUN}\")\" == \"${SOURCE_COMMIT}\"" in rc_script
+
+    # The image digest is bound to the source through its sha-<SOURCE> tag.
+    digest_script = step("Verify the immutable image digest")["run"]
+    assert 'SHA_TAG="${IMAGE_REPOSITORY}:sha-${SOURCE_COMMIT}"' in digest_script
+    assert '"${TAG_DIGEST}" == "${IMAGE_DIGEST}"' in digest_script
+
+    # The full gate tests the sealed source, not whatever development is now.
+    assert step("Checkout candidate source for the full gate")["with"]["ref"] == (
+        "${{ inputs.source_commit }}"
+    )
+
+    # The stage branch only fast-forwards: history that is not ahead is rejected.
+    advance = step("Advance Stage source branch")["run"]
+    assert '[[ "${BEHIND_BY}" == "0" && "${STATUS}" == "ahead" ]]' in advance
+    assert "-F force=false" in advance

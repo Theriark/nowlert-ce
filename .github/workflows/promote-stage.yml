@@ -169,8 +169,42 @@ jobs:
 
           DEVELOPMENT_SHA="$(git rev-parse refs/remotes/origin/development)"
 
-          [[ "${SOURCE_COMMIT}" == "${DEVELOPMENT_SHA}" ]] || {
-            echo "::error::Stage source ${SOURCE_COMMIT} is not current development ${DEVELOPMENT_SHA}"
+          # The sealed release candidate may predate later development merges,
+          # so the source only has to be part of development's history. The RC
+          # tag, digest and Development run checks below bind it exactly.
+          git merge-base --is-ancestor "${SOURCE_COMMIT}" refs/remotes/origin/development || {
+            echo "::error::Stage source ${SOURCE_COMMIT} is not an ancestor of current development ${DEVELOPMENT_SHA}"
+            exit 1
+          }
+
+          # An unchanged candidate may trail development only by a pipeline
+          # repair: every path changed since the source must be a workflow file
+          # or a flat pipeline test. Application source, scripts, docs and
+          # dependencies must equal the candidate. Checked before any deploy.
+          PIPELINE_ONLY_PATTERN='^(\.github/workflows/[A-Za-z0-9._-]+\.ya?ml|tests/pipeline/[A-Za-z0-9._-]+\.py)$'
+          CHANGED_PATHS="$(
+            git diff --no-renames --name-only \
+              "${SOURCE_COMMIT}" "${DEVELOPMENT_SHA}"
+          )"
+          while IFS= read -r CHANGED_PATH; do
+            [[ -n "${CHANGED_PATH}" ]] || continue
+            [[ "${CHANGED_PATH}" =~ ${PIPELINE_ONLY_PATTERN} ]] || {
+              echo "::error::Stage source ${SOURCE_COMMIT} differs from current development ${DEVELOPMENT_SHA} outside the pipeline-only paths: ${CHANGED_PATH}"
+              exit 1
+            }
+          done <<<"${CHANGED_PATHS}"
+
+          # Accepting any ancestor of development must never downgrade Stage:
+          # Stage has to be the source itself or behind it, so a Stage that is
+          # already ahead of, or diverged from, this candidate is rejected
+          # before anything is deployed.
+          git fetch origin \
+            +refs/heads/stage:refs/remotes/origin/stage
+
+          CURRENT_STAGE_SHA="$(git rev-parse refs/remotes/origin/stage)"
+
+          git merge-base --is-ancestor refs/remotes/origin/stage "${SOURCE_COMMIT}" || {
+            echo "::error::Stage branch ${CURRENT_STAGE_SHA} is not an ancestor of source ${SOURCE_COMMIT}; Stage is already ahead of or diverged from this candidate"
             exit 1
           }
 
