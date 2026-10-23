@@ -42,7 +42,8 @@ def test_reference_acceptance_runtime_contract():
     assert "Password & sessions" in script
     assert "Security posture" in script
     assert 'title.textContent = "API tokens"' in script
-    assert 'restart.textContent = "⏻ Restart Nowlert"' in script
+    assert 'restart.append("Restart Nowlert");' in script
+    assert 'restart.textContent = "⏻ Restart Nowlert"' not in script
 
 
 def test_reference_acceptance_styles_contract():
@@ -86,7 +87,7 @@ def test_managed_backup_override_targets_production_service_name():
     text = COMPOSE.read_text(encoding="utf-8")
 
     assert "  nowlert-ce:" in text
-    assert "\n  nowlert:\n" not in text
+    assert "\\n  nowlert:\\n" not in text
     assert 'user: "${NOWLERT_UID:-1000}:${NOWLERT_GID:-1000}"' in text
     assert "cap_add:" not in text
     assert "create_host_path: false" in text

@@ -81,7 +81,7 @@
           <h2>Filtering</h2>
           <p>Control which notifications can reach each destination.</p>
         </div>
-        <button id="add-filter-button" class="button primary" type="button" data-filter-action="new-filter">＋ New filter</button>
+        <button id="add-filter-button" class="button primary" type="button" data-filter-action="new-filter">+ New filter</button>
       </div>
       <div class="table-panel filtering-table-panel">
         <div class="table-scroll">
