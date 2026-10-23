@@ -739,3 +739,63 @@
   .backup-destination-table th:nth-child(6) { width: 18%; }
   .backup-destination-table th:nth-child(7) { width: 17%; }
 }
+
+/* THE-942 Backups bottom row (2026-10-23). styles.css gives every table a
+ * 760px minimum and qa_patch.css keeps Recovery snapshots and Stored copies
+ * side by side from 901px, so inside their 430px (1181px) to 585px (1500px)
+ * scrollers both tables overflowed by 175px to 330px: Restore and Delete sat
+ * past the clip edge at every desktop width below about 1850px, reachable
+ * only through a scrollbar the panel does not advertise. The 20/13/31/11/25
+ * and 22/34/15/11/18 shares of qa_patch.css were written for a table that
+ * fills its panel. Measured at the 12.8px cell font: Date & time needs 155px
+ * (dot, gap, text and 16px padding), Type 108px (SCHEDULED badge), Size 80px,
+ * Restore + Delete 186px (142px with the icon-only Delete of the destinations
+ * table) and the Full snapshot title 101px, so a half panel is too narrow
+ * below 1600px (633px scroller). Between 1181px and 1599px the bottom row
+ * stacks like the layout below 1181px: each table is 904px or wider with its
+ * original shares and labelled buttons, nothing scrolls. From 1600px the two
+ * tables keep their row, drop the 760px floor and use shares that hold every
+ * cell at 633px (Date 158, Type 114, Size 82, Actions 146 or 127); Details and
+ * the destination name keep the ellipsis the cells already declare, and
+ * Delete becomes the icon-only button of the destinations table while its
+ * title and aria-label keep the name. Below 1181px visual_refinement.css keeps
+ * its deliberate contained horizontal scroll for both tables (unchanged). */
+@media (min-width: 1181px) and (max-width: 1599px) {
+  #view-backups .backup-dashboard-grid-bottom {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  #view-backups .backup-recovery-table,
+  #view-backups .backup-stored-table {
+    min-width: 0;
+  }
+
+  #view-backups .backup-recovery-table th:nth-child(1) { width: 25%; }
+  #view-backups .backup-recovery-table th:nth-child(2) { width: 18%; }
+  #view-backups .backup-recovery-table th:nth-child(3) { width: 21%; }
+  #view-backups .backup-recovery-table th:nth-child(4) { width: 13%; }
+  #view-backups .backup-recovery-table th:nth-child(5) { width: 23%; }
+
+  #view-backups .backup-stored-table th:nth-child(1) { width: 25%; }
+  #view-backups .backup-stored-table th:nth-child(2) { width: 24%; }
+  #view-backups .backup-stored-table th:nth-child(3) { width: 18%; }
+  #view-backups .backup-stored-table th:nth-child(4) { width: 13%; }
+  #view-backups .backup-stored-table th:nth-child(5) { width: 20%; }
+
+  #view-backups .backup-recovery-table td,
+  #view-backups .backup-stored-table td {
+    white-space: nowrap;
+  }
+
+  #view-backups .backup-recovery-table .backup-table-action[data-action="delete-backup"] {
+    min-width: 34px;
+    padding: 5px !important;
+    width: 34px;
+  }
+
+  #view-backups .backup-recovery-table .backup-table-action[data-action="delete-backup"] > span {
+    display: none;
+  }
+}
