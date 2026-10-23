@@ -29,12 +29,22 @@ the desired delivery policy; do not narrow the source subscription by severity.
 
 ## 2. Issue a scoped token
 
-Open **Profile menu → Security → API tokens → New token**. Name it
-`Portainer centralized alerts`, select only **Portainer**, and choose an
-appropriate rate limit. The example uses 60 requests per minute. Issue the
-token and save the one-time value privately.
+Open **Profile menu → Security → API tokens → New token**. The **Issue Event
+API token** dialog opens:
 
-![Portainer-only event token scope](../images/portainer-setup/token-scope.png)
+1. In **Name**, enter `Portainer centralized alerts`.
+2. In **Allowed integrations**, select only **Portainer**. Do not choose
+   **All sources (administrator only)**, and leave **Custom source
+   identifiers** empty.
+3. In **Requests per minute**, keep the default 60 or set the limit you need.
+4. Choose **Issue token**. A **Shown once** dialog displays the value with a
+   **Copy** button; Nowlert stores only its digest and cannot show it again.
+   Copy the value, keep it private, then choose **I saved it**.
+
+The token list afterwards shows the name, **Portainer** under **Allowed
+integrations**, `60/min`, **Never used** and **Active**, never the value. You
+paste the value once, as the `token` query value of the webhook URL in section
+3. No capture of the token dialog is published.
 
 The token authorizes event submission for Portainer, not administrator API access.
 The same token works on the native Portainer receiver in the fixed image.

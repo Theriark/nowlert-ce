@@ -71,20 +71,31 @@ for the controller configuration examples.
 
 1. Open **Profile menu → Security → API tokens**.
 2. Under **Event API tokens**, choose **New token**. The **Issue Event API
-   token** dialog opens.
-3. Name it `Hardware Redfish controllers`.
-4. Select **Supermicro**, **HPE iLO**, and **Dell iDRAC**. A separate token per
-   controller is also possible and allows independent rotation.
-5. Set an appropriate request limit; the example uses 60 requests per minute.
-6. In the **Issue Event API token** dialog, choose **Issue token** and save the
-   one-time value privately.
-
-![Select only the hardware integration scopes](../images/hardware-setup/nowlert-token-scope.png)
+   token** dialog opens. Its help text says the token is for an external
+   application that posts normalized events to `/api/v2/events` and that the
+   value is shown once.
+3. In **Name**, enter `Hardware Redfish controllers`.
+4. In **Allowed integrations**, a multi-select list of the configured
+   integrations, select **Supermicro**, **HPE iLO**, and **Dell iDRAC** and
+   nothing else. Administrators also see **All sources (administrator only)**;
+   do not use it for a controller token. Leave **Custom source identifiers**
+   empty. A separate token per controller is also possible and allows
+   independent rotation.
+5. In **Requests per minute**, keep the default 60 or set the limit you need.
+6. Choose **Issue token**. A **Shown once** dialog titled with the token name
+   displays the value next to a **Copy** button; Nowlert stores only its digest
+   and cannot show it again. Copy the value into your password manager, then
+   choose **I saved it**.
 
 Although the dialog describes the normalized Event API, these source-scoped
 tokens also authenticate the corresponding vendor Redfish receivers.
 
-![Hardware token with its value hidden](../images/hardware-setup/nowlert-token-list.png)
+The **Event API tokens** list then shows the new row with its name,
+**Issued credential · version 1**, the allowed integrations, the rate limit as
+`60/min`, **Never used**, and an **Active** status. The value itself is never
+listed; if it is lost, use **Rotate** to issue a new one. You paste the value
+into each controller's subscription as the `X-Nowlert-Token` header value
+(section 3); no capture of the dialog or the list is published.
 
 ## 2. Configure the destination and assign built-in routes
 
@@ -280,7 +291,8 @@ configuration is not automatically installed by the Nowlert image.
 
 ## Screenshot checklist for a completed controller test
 
-- Hardware token scope, with its value hidden (included above).
+- Hardware token scope, with its value hidden (described in writing in
+  section 1; no capture of the token dialog or token list is published).
 - Controller subscription destination and status, with authentication redacted.
 - Nowlert delivery details showing the Redfish input and delivered result.
 - The resulting destination card.

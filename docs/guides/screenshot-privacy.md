@@ -70,6 +70,14 @@ never as "verified".
   capture was withdrawn rather than described as synthetic. The statement above
   that the other thirty captures of the folder show only synthetic values no
   longer covers it. The Audit log page is described in writing instead.
+- 23 October 2026 (Jira TOPS-374): the three token captures that the crew
+  cannot open were unlinked from current documentation. The hardware Redfish
+  guide, the Portainer guide and the infrastructure tutorials index now
+  describe the **Issue Event API token** dialog and the token list in writing
+  instead of embedding or linking them, so the documentation package no longer
+  references files nobody in the crew has inspected. The three files stay in
+  the checkout as retained rows until a person opens them; they must not be
+  embedded again before that inspection is recorded.
 
 Nineteen captures are now excluded from current documentation. On 22 October
 2026 the inventory held 105 retained rows, 90 of them linked from current
@@ -77,7 +85,8 @@ documents; the five synthetic captures added later that day brought it to 110
 retained rows and 95 linked. On 23 October 2026 the Zabbix row was replaced by
 the Synology row (still 110), the unembedded v1.9.6 Teams card was withdrawn
 (109 retained rows, 95 linked) and the audit log capture was withdrawn (108
-retained rows, 94 linked). An earlier version of this paragraph gave 105 and
+retained rows, 94 linked), and the three token captures were unlinked (108
+retained rows, 91 linked). An earlier version of this paragraph gave 105 and
 104 retained rows for those states; those numbers were wrong. Counts in this
 page are dated observations and the guard test, not this prose, is the
 authority.
@@ -220,7 +229,8 @@ confirmed exposures.
 - Token captures `images/hardware-setup/nowlert-token-list.png`,
   `images/hardware-setup/nowlert-token-scope.png` and
   `images/portainer-setup/token-scope.png`: not viewable by the crew (see
-  "Validation records"); a person must open them.
+  "Validation records"); unlinked from every current document on 23 October
+  2026; a person must open them before they are linked again.
 - Every retained row shows only its last recorded inspection date. Re-open any
   capture whose date is considered too old, at full size, and update the
   Record column.
@@ -267,8 +277,8 @@ raster under `docs/images/` needs a row.
 | `images/hardware-setup/nowlert-destinations.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/nowlert-hardware-destination.png` | retained | reviewed 15 Oct 2026; stored webhook hidden |
 | `images/hardware-setup/nowlert-hardware-routes.png` | retained | reviewed 15 Oct 2026 |
-| `images/hardware-setup/nowlert-token-list.png` | retained | reviewed 15 and 21 Oct 2026 (token value hidden); not viewable by the crew on 22 Oct 2026, needs a person |
-| `images/hardware-setup/nowlert-token-scope.png` | retained | reviewed 15 and 21 Oct 2026 (pre-issuance scope form); not viewable by the crew on 22 Oct 2026, needs a person |
+| `images/hardware-setup/nowlert-token-list.png` | retained | reviewed 15 and 21 Oct 2026 (token value hidden); not viewable by the crew on 22 Oct 2026, needs a person; unlinked 23 Oct 2026 |
+| `images/hardware-setup/nowlert-token-scope.png` | retained | reviewed 15 and 21 Oct 2026 (pre-issuance scope form); not viewable by the crew on 22 Oct 2026, needs a person; unlinked 23 Oct 2026 |
 | `images/hardware-setup/nowlert-xen-destination.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/nowlert-xen-routes.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/portainer-hpe-callback.png` | retained | reviewed 15 Oct 2026 |
@@ -297,7 +307,7 @@ raster under `docs/images/` needs a row.
 | `images/portainer-setup/node-rule-enabled.png` | retained | reviewed 15 Oct 2026 |
 | `images/portainer-setup/receiver-routing-proof.png` | retained | reviewed 15 Oct 2026 |
 | `images/portainer-setup/route-assignment.png` | retained | reviewed 15 Oct 2026 |
-| `images/portainer-setup/token-scope.png` | retained | reviewed 15 and 21 Oct 2026 (pre-issuance scope form); not viewable by the crew on 22 Oct 2026, needs a person |
+| `images/portainer-setup/token-scope.png` | retained | reviewed 15 and 21 Oct 2026 (pre-issuance scope form); not viewable by the crew on 22 Oct 2026, needs a person; unlinked 23 Oct 2026 |
 | `images/portainer-setup/webhook-channel.png` | retained | reviewed 15 Oct 2026 |
 | `images/truenas-setup/delivery-proof.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/camera-names.png` | retained | reviewed 15 Oct 2026; aliases confirmed fully masked 22 Oct 2026 |
@@ -361,8 +371,10 @@ hidden, or the pre-issuance scope form, and no token value. The independent
 review of 22 October 2026 could not open these three files: the crew's run
 refused to read them because of their file names, and that rule was not
 bypassed. The 21 October record is therefore unconfirmed by that review, and
-a person must open the three files and update their rows. A file name that
-mentions a token is not, by itself, evidence of a leak; inspect the image.
+a person must open the three files and update their rows. Since 23 October
+2026 no current document embeds or links them; the guides describe the token
+dialog and the token list in writing. A file name that mentions a token is
+not, by itself, evidence of a leak; inspect the image.
 
 ## Adding or replacing an image
 
