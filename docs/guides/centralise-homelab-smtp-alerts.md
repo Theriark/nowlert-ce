@@ -111,8 +111,8 @@ destination with **Save changes** (or **Add destination**). For example:
 
 ```text
 Xen Orchestra SMTP     -> Infrastructure Discord
-QNAP (SMTP)           -> Storage Teams
-TrueNAS (SMTP)        -> Infrastructure Discord
+QNAP SMTP              -> Storage Teams
+TrueNAS SMTP           -> Infrastructure Discord
 ```
 
 Use **Filtering** for destination-specific noise rules. Dedicated integration

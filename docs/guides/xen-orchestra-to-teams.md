@@ -100,13 +100,17 @@ Xen Orchestra SMTP message
 ## 6. Verify the result
 
 Before any real mail arrives, check what Nowlert will build for this
-destination. In **Destinations**, choose **Preview** on the Teams destination,
-set **Source** to `xen_orchestra`, pick a **Severity**, and choose **Generate
-preview**. The generated Teams payload appears below the form, in the message
-style saved on the destination, and the severity you picked is visible in it.
-An empty result means the route or destination needs attention before you
-continue. Preview never sends data; **Send test delivery** in the same dialog
-does contact Teams.
+destination. In **Destinations**, choose **Preview** on the Teams destination.
+The source comes from the routes assigned to the destination, so there is no
+source field to set. Under **Routing**, confirm that **Xen Orchestra SMTP** is
+selected; if it is not, choose **Manage routes** and assign it (section 4).
+Pick a **Severity** and choose **Generate preview**. The generated Teams payload
+appears under **Preview output**, in the message style saved on the destination,
+and the severity you picked is visible in it. **Message style** is shown but
+cannot be changed in this dialog; change it on the destination itself. If no
+route is selected, Preview shows an error message instead of a payload, so fix
+the route assignment before you continue. Preview never sends data; **Send test
+delivery** in the same dialog does contact Teams.
 
 Then check **Delivery history** in Nowlert and confirm:
 
