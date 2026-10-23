@@ -35,18 +35,13 @@ def test_default_preview_severities_are_defined() -> None:
     assert values == ["critical", "warning", "info"]
 
 
-def test_preview_severity_values_falls_back_when_catalog_is_empty() -> None:
+def test_default_severities_are_used_only_when_no_route_declares_any() -> None:
     text = SOURCE.read_text(encoding="utf-8")
-    body = _function_body(text, "previewSeverityValues")
+    body = _function_body(text, "previewAvailableSeverities")
     assert "PREVIEW_DEFAULT_SEVERITIES" in body
     assert "previewDeclaredSeverities(route)" in body
     declared = _function_body(text, "previewDeclaredSeverities")
     # Declared catalog values still take precedence and are not replaced.
     assert 'routeFilterValuesForSource(route.source, "severities")' in declared
     assert "route_filters?.severities" in declared
-
-
-def test_preview_support_check_uses_the_fallback_list() -> None:
-    text = SOURCE.read_text(encoding="utf-8")
-    body = _function_body(text, "previewRouteSupportsSeverity")
-    assert "previewSeverityValues(route)" in body
+    # Behaviour is covered by tests/webui/test_preview_route_severities.mjs.
