@@ -361,7 +361,7 @@ def history(tmp_path: Path, head_path: str | None = None) -> dict[str, str]:
     pipeline files only. `head_path` adds a c4 that changes that one path.
     """
     origin = tmp_path / "origin"
-    origin.mkdir()
+    origin.mkdir(parents=True)
     git(origin, "init", "-q", "--initial-branch=development")
     c1 = commit(origin, "README.md")
     c2 = commit(origin, "tests/pipeline/test_one.py")
@@ -376,7 +376,7 @@ def history(tmp_path: Path, head_path: str | None = None) -> dict[str, str]:
     git(origin, "checkout", "-q", "development")
 
     work = tmp_path / "work"
-    work.mkdir()
+    work.mkdir(parents=True)
     git(work, "init", "-q", "--initial-branch=work")
     git(work, "remote", "add", "origin", str(origin))
     git(work, "fetch", "-q", "origin", "development")
@@ -541,7 +541,10 @@ def test_stage_pipeline_only_restriction_is_checked_before_any_deploy() -> None:
         "PIPELINE_ONLY_PATTERN='^(\\.github/workflows/[A-Za-z0-9._-]+\\.ya?ml|"
         "tests/pipeline/[A-Za-z0-9._-]+\\.py)$'"
     ) in script
-    assert 'git diff --no-renames --name-only \\\n              "${SOURCE_COMMIT}" "${DEVELOPMENT_SHA}"' in script
+    # The YAML block scalar drops the step's 10-space indentation.
+    assert (
+        'git diff --no-renames --name-only \\\n    "${SOURCE_COMMIT}" "${DEVELOPMENT_SHA}"'
+    ) in script
     # It runs in the guard step, after the development ancestry check, which
     # precedes every step that writes (image deploy and the stage branch update).
     assert script.index(
