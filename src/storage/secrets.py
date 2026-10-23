@@ -22,6 +22,17 @@ from storage.validation import normalized_identifier, normalized_name
 
 _SECRET_FILE = re.compile(r"^[0-9a-f]{32}\.v[1-9][0-9]*$")
 
+# Every column that can point at a secret record (constants, never user input).
+_REFERENCED = "(" + " OR ".join(
+    f"EXISTS (SELECT 1 FROM {table} WHERE {column} = {{alias}}.id)"
+    for table, column in (
+        ("destinations", "secret_id"),
+        ("backup_targets", "secret_id"),
+        ("email_mailboxes", "secret_id"),
+        ("users", "mfa_secret_id"),
+    )
+) + ")"
+
 
 @dataclass(frozen=True)
 class SecretMetadata:
@@ -204,12 +215,45 @@ class SecretStore:
         with self.database.maintenance():
             self._delete(actor, secret_id)
 
-    def _delete(self, actor: Actor, secret_id: str) -> None:
+    def delete_if_unreferenced(self, actor: Actor, secret_id: str) -> bool:
+        """Delete a secret only when no table still points at it.
+
+        Returns ``False`` and keeps the record when something references it, so
+        callers can release a credential without checking every consumer.
+        """
+
+        with self.database.maintenance():
+            return self._delete(actor, secret_id, only_unreferenced=True)
+
+    def unreferenced_ids(self, owner_user_id: str) -> list[str]:
+        """List the owner's secret records that nothing references any more."""
+
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                "SELECT id FROM secret_records AS secret "
+                "WHERE owner_user_id = ? AND NOT " + _REFERENCED.format(alias="secret"),
+                (str(owner_user_id),),
+            ).fetchall()
+        return [str(row["id"]) for row in rows]
+
+    def _delete(
+        self,
+        actor: Actor,
+        secret_id: str,
+        *,
+        only_unreferenced: bool = False,
+    ) -> bool:
 
         row = self._record(secret_id)
         OwnershipPolicy.require_write(actor, str(row["owner_user_id"]))
         try:
             with self.database.transaction() as connection:
+                if only_unreferenced and connection.execute(
+                    "SELECT " + _REFERENCED.format(alias="secret") + " "
+                    "FROM secret_records AS secret WHERE secret.id = ?",
+                    (str(secret_id),),
+                ).fetchone()[0]:
+                    return False
                 connection.execute(
                     "DELETE FROM secret_records WHERE id = ?",
                     (str(secret_id),),
@@ -217,6 +261,7 @@ class SecretStore:
         except sqlite3.IntegrityError as error:
             raise ValueError("secret is referenced by a destination") from error
         self._remove(str(row["file_name"]))
+        return True
 
     def _record(self, secret_id: str):
         with self.database.connect() as connection:
