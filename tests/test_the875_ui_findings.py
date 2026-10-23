@@ -80,9 +80,12 @@ def test_f3_backup_destination_actions_and_last_test_columns_fit_their_content()
     widths = {2: "20%", 3: "13%", 4: "22%", 5: "10%", 6: "14%", 7: "14%"}
     for column, width in widths.items():
         assert f".backup-destination-table th:nth-child({column}) {{ width: {width}; }}" in layer
-    # The Type column keeps the 7% declared in qa_patch.css.
+    # The Type column keeps the 7% declared in qa_patch.css. Only the THE-927
+    # block for 1181-1399px (tests/test_the927_narrow_desktop_layout.py) sets
+    # all seven columns, so the THE-875 rules before it leave Type alone.
     assert ".backup-destination-table th:nth-child(1) { width: 7%; }" in _read("qa_patch.css")
-    assert ".backup-destination-table th:nth-child(1)" not in layer
+    the875 = layer[: layer.index("/* THE-927 narrow desktop widths")]
+    assert ".backup-destination-table th:nth-child(1)" not in the875
     assert 7 + sum(int(value.rstrip("%")) for value in widths.values()) == 100
 
 

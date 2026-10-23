@@ -704,3 +704,38 @@
 
 /* F7 Security page: posture value while MFA is still disabled. */
 .reference-fair { color: #f4c542; }
+
+/* THE-927 narrow desktop widths (2026-10-23). Measured on Development with the
+ * navigation expanded: between 1181px and 1399px the side-by-side list panel
+ * (524px at 1181px, 620px at 1280px) is narrower than the Delivery history
+ * row (708px) and the Audit log row (590px at 1181px), so Time, the chevron
+ * and Outcome were clipped; the Delivery row first fits at about 1366px. In
+ * this range both workbenches stack like the layout below 1181px: full-width
+ * list (936px at 1181px), inspector underneath with its two detail columns.
+ * The Backups table is 906px at 1181px, where 14% gave Actions 127px for its
+ * 145px Test, Edit and Delete buttons and Last test, Status and Type also
+ * overflowed; the shares below give Actions 154px and Last test 163px. From
+ * 1400px the THE-875 layout above applies unchanged. */
+@media (min-width: 1181px) and (max-width: 1399px) {
+  #view-deliveries .delivery-history-workbench,
+  #view-audit .audit-log-workbench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #view-deliveries .delivery-history-list-scroll,
+  #view-audit .audit-log-list-scroll {
+    max-height: 620px;
+  }
+
+  #view-deliveries .delivery-history-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .backup-destination-table th:nth-child(1) { width: 10%; }
+  .backup-destination-table th:nth-child(2) { width: 15%; }
+  .backup-destination-table th:nth-child(3) { width: 11%; }
+  .backup-destination-table th:nth-child(4) { width: 17%; }
+  .backup-destination-table th:nth-child(5) { width: 12%; }
+  .backup-destination-table th:nth-child(6) { width: 18%; }
+  .backup-destination-table th:nth-child(7) { width: 17%; }
+}
