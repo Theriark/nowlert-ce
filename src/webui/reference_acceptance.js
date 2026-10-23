@@ -916,7 +916,7 @@ function ensurePreviewReferenceLayout() {
     if (toolbar && toolbar.dataset.referenceUpdates !== "1") {
       toolbar.dataset.referenceUpdates = "1"; const button = byId("platform-check-updates"); toolbar.replaceChildren();
       const copy = ref("div", "reference-update-heading-copy"); copy.innerHTML = '<span class="reference-settings-card-icon">⇩</span><div><h2>Updates</h2><p>Review the running version and any advertised Nowlert update.</p></div>'; toolbar.append(copy);
-      if (button) { button.textContent = "⟳  Check for updates"; button.className = "button secondary reference-check-updates"; toolbar.append(button); }
+      if (button) { button.textContent = "Check for updates"; button.className = "button secondary reference-check-updates"; toolbar.append(button); }
     }
     if (panel && panel.dataset.referenceUpdates !== "1") {
       panel.dataset.referenceUpdates = "1"; const running = byId("running-version"); const available = byId("available-version"); const status = byId("update-status");
@@ -1027,7 +1027,7 @@ function ensurePreviewReferenceLayout() {
       const main = ref("div", "reference-password-main");
       if (form) main.append(form);
       const posture = ref("aside", "reference-security-posture");
-      posture.innerHTML = '<div class="reference-posture-block"><span class="reference-posture-icon">▣</span><div><small>Active sessions</small><strong id="reference-active-sessions">1</strong></div></div><div class="reference-posture-divider"></div><div class="reference-posture-block"><span class="reference-posture-icon">◇</span><div><small>Security posture</small><strong class="reference-good">Good</strong></div></div><div class="reference-posture-divider"></div><ul><li>Password is set</li><li>Account is active</li><li id="reference-mfa-posture">MFA can be enabled</li></ul>';
+      posture.innerHTML = '<div class="reference-posture-block"><span class="reference-posture-icon">▣</span><div><small>Active sessions</small><strong id="reference-active-sessions">1</strong></div></div><div class="reference-posture-divider"></div><div class="reference-posture-block"><span class="reference-posture-icon">◇</span><div><small>Security posture</small><strong id="reference-security-posture-value" class="reference-good">Good</strong></div></div><div class="reference-posture-divider"></div><ul><li>Password is set</li><li>Account is active</li><li id="reference-mfa-posture">MFA can be enabled</li></ul>';
       password.replaceChildren(...(oldHeading ? [oldHeading] : []), main, posture);
     }
 
@@ -1038,7 +1038,7 @@ function ensurePreviewReferenceLayout() {
       const title = toolbar?.querySelector("h2");
       if (title) title.textContent = "API tokens";
       const add = toolbar?.querySelector('[data-action="new-token"]');
-      if (add) add.textContent = "＋ New token";
+      if (add) add.textContent = "+ New token";
       ensureApiTokenReferenceLayout();
     }
   }
@@ -1214,6 +1214,15 @@ function ensurePreviewReferenceLayout() {
     if (mfaIcon) setReferenceMfaStatusIcon(mfaIcon, enabled);
     const posture = byId("reference-mfa-posture");
     if (posture) posture.textContent = enabled ? "MFA is enabled" : "MFA can be enabled";
+    const postureValue = byId("reference-security-posture-value");
+    if (postureValue) {
+      postureValue.textContent = enabled ? "Good" : "Fair";
+      postureValue.classList.toggle("reference-good", enabled);
+      postureValue.classList.toggle("reference-fair", !enabled);
+      postureValue.title = enabled
+        ? "Password set, account active and MFA enabled"
+        : "Enable MFA to raise the security posture to Good";
+    }
     const accessValue = byId("reference-access-status-value");
     if (accessValue) accessValue.textContent = user.enabled === false ? "Disabled" : "Active";
     const systemStatus = byId("reference-system-status");
@@ -1230,7 +1239,11 @@ function ensurePreviewReferenceLayout() {
     const restart = byId("restart-header-button");
     if (restart) {
       const show = state.currentView === "account" && typeof isAdmin === "function" && isAdmin();
-      restart.textContent = "⏻ Restart Nowlert";
+      if (!restart.querySelector(".button-glyph")) {
+        restart.replaceChildren();
+        restart.insertAdjacentHTML("afterbegin", '<svg class="button-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v8"></path><path d="M6.6 6.6a8 8 0 1 0 10.8 0"></path></svg>');
+        restart.append("Restart Nowlert");
+      }
       restart.hidden = !show;
       restart.classList.toggle("reference-account-restart", show);
       if (show) restart.removeAttribute("aria-hidden");

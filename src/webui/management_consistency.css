@@ -264,7 +264,32 @@
 @media (min-width: 821px) {
   #view-deliveries .delivery-history-columns,
   #view-deliveries .delivery-history-row {
-    grid-template-columns: minmax(112px, 0.72fr) minmax(210px, 1.55fr) minmax(126px, 0.82fr) minmax(92px, 0.62fr) minmax(118px, 0.82fr) 20px;
+    grid-template-columns: minmax(116px, 0.8fr) minmax(160px, 1.5fr) minmax(100px, 0.6fr) minmax(92px, 0.6fr) minmax(132px, 0.8fr) 16px;
+  }
+
+  /* The Source name (48px icon plus the bold product name) may wrap onto a
+   * second line instead of truncating; the row already has two lines. */
+  #view-deliveries .delivery-history-row .delivery-history-source strong {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}
+
+/* Development walk finding F4 (THE-875): at 1440px the event list kept only
+ * 658px beside the detail inspector, so Source showed "Ema..." and Time
+ * wrapped. Between 1181px and 1500px the list takes the larger share (the
+ * inspector keeps a 400px minimum), the inspector stacks its Transport and
+ * Timeline cards so their values never break mid-word, and Time has a 132px
+ * minimum for one line. The row minimums (116 + 160 + 100 + 92 + 132 + 16
+ * plus five 12px gaps and 32px padding = 708px) fit the 764px list panel at
+ * 1440px. The single-column layout below 1181px is unchanged. */
+@media (min-width: 1181px) and (max-width: 1500px) {
+  #view-deliveries .delivery-history-workbench {
+    grid-template-columns: minmax(0, 1.3fr) minmax(400px, 0.7fr);
+  }
+
+  #view-deliveries .delivery-history-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -600,3 +625,82 @@
 #view-destinations .resource-actions [data-action="test-private-destination-card"]::before {
   content: "➤";
 }
+
+
+/* THE-875 Development walk fixes (2026-10-23). This layer loads after the page
+ * stylesheets, so the rules below outrank the earlier fixed-column rules of
+ * email_alerts.css and qa_patch.css at every width, media queries included. */
+
+/* F2 Mailboxes (MEDIUM): at 1440px with the navigation expanded the grid forced
+ * four 277px cards; the five action buttons and the status badge overflowed
+ * the card and were clipped. A card is never narrower than 300px (three
+ * columns at 1440px, four only on wider screens), the action row wraps and
+ * the heading, identity and safe-error text can shrink or wrap. */
+.email-card-grid.email-mailboxes-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+
+.email-mailbox-card-heading {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.email-mailbox-card-identity {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.email-mailbox-card-identity h3,
+.email-mailbox-details span,
+.email-mailbox-card .email-safe-error {
+  overflow-wrap: anywhere;
+}
+
+.email-mailbox-card-actions {
+  flex-wrap: wrap;
+}
+
+.email-mailbox-card-actions .button {
+  flex: 1 1 auto;
+}
+
+/* F3 Backups: the 12% actions column clipped the Delete icon button (the row
+ * needs 143px) and Last test truncated. Type keeps the 7% of qa_patch.css. */
+.backup-destination-table th:nth-child(2) { width: 20%; }
+.backup-destination-table th:nth-child(3) { width: 13%; }
+.backup-destination-table th:nth-child(4) { width: 22%; }
+.backup-destination-table th:nth-child(5) { width: 10%; }
+.backup-destination-table th:nth-child(6) { width: 14%; }
+.backup-destination-table th:nth-child(7) { width: 14%; }
+
+/* F5 Audit log: at 1440px the event list had 617px while its effective column
+ * minimums (104 + 170 + 104 + 136 + 78, four 10px gaps and 28px padding) need
+ * 660px, so Outcome was cut off. In the 1181-1500px range the list takes the
+ * larger share; the detail inspector keeps a 400px minimum. */
+@media (min-width: 1181px) and (max-width: 1500px) {
+  #view-audit .audit-log-workbench {
+    grid-template-columns: minmax(0, 1.3fr) minmax(400px, 0.7fr);
+  }
+}
+
+/* F6 Settings: the Housekeeping heading was 33px beside 17px sibling titles. */
+.housekeeping-page-heading h2 {
+  font-size: 1.08rem;
+  letter-spacing: -0.01em;
+}
+
+/* F7 Buttons: inline SVG glyph that replaces symbol characters which render as
+ * missing-glyph boxes when the font lacks them. */
+.button .button-glyph {
+  fill: none;
+  flex: 0 0 auto;
+  height: 1em;
+  margin-right: 0.35em;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 1em;
+}
+
+/* F7 Security page: posture value while MFA is still disabled. */
+.reference-fair { color: #f4c542; }

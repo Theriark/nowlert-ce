@@ -42,7 +42,8 @@ def test_reference_acceptance_runtime_contract():
     assert "Password & sessions" in script
     assert "Security posture" in script
     assert 'title.textContent = "API tokens"' in script
-    assert 'restart.textContent = "⏻ Restart Nowlert"' in script
+    assert 'restart.append("Restart Nowlert");' in script
+    assert 'restart.textContent = "⏻ Restart Nowlert"' not in script
 
 
 def test_reference_acceptance_styles_contract():

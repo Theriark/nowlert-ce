@@ -58,8 +58,8 @@ def test_round24_security_profile_avatar_mfa_and_new_token_match_request():
     assert 'qr.src = response.qr_code || "";' in app
     assert "mfa-reference-methods" in style
     assert "mfa-reference-code-digits" in style
-    assert 'data-action="new-token">＋ New token</button>' in markup
-    assert 'add.textContent = "＋ New token";' in script
+    assert 'data-action="new-token">+ New token</button>' in markup
+    assert 'add.textContent = "+ New token";' in script
 
 
 def test_round24_import_preview_matches_reference_and_is_wired_to_preview_data():

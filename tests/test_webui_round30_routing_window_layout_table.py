@@ -153,10 +153,10 @@ def test_filtering_table_uses_name_and_native_balanced_six_column_widths():
     assert '<th>Destination</th><th>Name</th><th>Filters</th><th>Status</th><th data-filter-sync-column="sharing">Sharing</th><th>Actions</th>' in script
     assert 'className: "filtering-sharing-cell"' in script
     for selector, width in (
-        ("1", "17%"),
-        ("2", "18%"),
-        ("3", "21%"),
-        ("4", "9%"),
+        ("1", "16%"),
+        ("2", "17%"),
+        ("3", "20%"),
+        ("4", "12%"),
         ("5", "11%"),
         ("6", "24%"),
     ):

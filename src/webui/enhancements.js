@@ -195,6 +195,22 @@
     storageWrite(window.localStorage, UPDATE_CACHE_KEY, JSON.stringify(value));
   }
 
+  // Settings "Update status" copy (Development walk finding F6, THE-875): a
+  // failed GitHub check or a missing advertised version must never read as
+  // "up to date" beside the "Update status unavailable" headline.
+  function updateStatusMessage(version) {
+    if (version.check_error) {
+      return "The last update check could not be completed, so Nowlert cannot confirm whether a newer version exists. Check the GitHub releases page or try again later.";
+    }
+    if (version.update_available) {
+      return `Version ${version.available} is available. Review the release notes and deploy the versioned image.`;
+    }
+    if (!version.available) {
+      return "No newer version is advertised for this installation. The automatic check runs every 6 hours.";
+    }
+    return "Nowlert is up to date with the advertised version.";
+  }
+
   function updateCheckMetadata() {
     const status = state.versionStatus || {};
     const updatePanel = byId("update-status") && byId("update-status").closest(".update-panel");
@@ -425,6 +441,8 @@
   const originalRenderUpdates = renderUpdates;
   renderUpdates = function enhancedRenderUpdates() {
     originalRenderUpdates();
+    const status = byId("update-status");
+    if (status) status.textContent = updateStatusMessage(state.versionStatus || {});
     updateCheckMetadata();
   };
 

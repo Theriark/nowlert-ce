@@ -2099,7 +2099,7 @@ async function emailAction(action, id, node) {
     }
     if (action === "delete-group") {
       const item = emailAlertsState.groups.find((group) => group.id === id);
-      if (!window.confirm(`Delete “${item?.name || "this group"}” and all rules in it?`)) return;
+      if (!(await confirmAction("Delete Email Alert group", `Delete “${item?.name || "this group"}” and all rules in it?`, "Delete group"))) return;
       await request(`/email-groups/${id}`, { method: "DELETE" });
       toast("Email Alert group deleted.", "success");
       await emailLoad(true);
@@ -2119,7 +2119,7 @@ async function emailAction(action, id, node) {
     }
     if (action === "delete-rule") {
       const item = emailAlertsState.rules.find((rule) => rule.id === id);
-      if (!window.confirm(`Delete rule “${item?.name || "this rule"}”?`)) return;
+      if (!(await confirmAction("Delete Email Alert rule", `Delete rule “${item?.name || "this rule"}”?`, "Delete rule"))) return;
       await request(`/email-rules/${id}`, { method: "DELETE" });
       toast("Email Alert rule deleted.", "success");
       await emailLoad(true);
@@ -2148,7 +2148,7 @@ async function emailAction(action, id, node) {
     }
     if (action === "mute-similar" || action === "ignore-sender") {
       const label = action === "mute-similar" ? "Mute Similar" : "Ignore Sender";
-      if (!window.confirm(`${label} will create a high-priority Ignore rule. Continue?`)) return;
+      if (!(await confirmAction("Create Ignore rule", `${label} will create a high-priority Ignore rule. Continue?`, "Create rule"))) return;
       const response = await request(
         `/email-messages/${id}/${action}`,
         { method: "POST", body: {} },
@@ -2190,7 +2190,7 @@ async function emailAction(action, id, node) {
     }
     if (action === "delete-mailbox") {
       const item = emailAlertsState.mailboxes.find((mailbox) => mailbox.id === id);
-      if (!window.confirm(`Delete mailbox “${item?.name || item?.address || "this mailbox"}” and its retained Email Alert data?`)) return;
+      if (!(await confirmAction("Delete mailbox", `Delete mailbox “${item?.name || item?.address || "this mailbox"}” and its retained Email Alert data?`, "Delete mailbox"))) return;
       await request(`/email-mailboxes/${id}`, { method: "DELETE" });
       toast("Mailbox deleted.", "success");
       await emailLoad(true);
@@ -2199,9 +2199,11 @@ async function emailAction(action, id, node) {
       const force = action === "force-reprocess-message";
       if (
         force
-        && !window.confirm(
-          "Force replay bypasses the Email Alert group quiet window. Continue?"
-        )
+        && !(await confirmAction(
+          "Force replay",
+          "Force replay bypasses the Email Alert group quiet window. Continue?",
+          "Replay now",
+        ))
       ) return;
       node.disabled = true;
       const response = await request(`/email-messages/${id}/reprocess`, {

@@ -51,10 +51,10 @@ def test_filtering_core_owns_name_sharing_and_final_six_column_geometry():
     assert "syncFilteringTableHeading" not in management
 
     for selector, width in (
-        ("1", "17%"),
-        ("2", "18%"),
-        ("3", "21%"),
-        ("4", "9%"),
+        ("1", "16%"),
+        ("2", "17%"),
+        ("3", "20%"),
+        ("4", "12%"),
         ("5", "11%"),
         ("6", "24%"),
     ):
