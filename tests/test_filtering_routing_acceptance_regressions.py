@@ -66,7 +66,7 @@ def test_filtering_actions_stay_on_one_line_with_room_for_all_controls():
 
     assert ".filtering-table td:last-child > div" not in style
     assert ".filtering-table .filtering-actions-cell > div" in style
-    assert ".filtering-table th:nth-child(6) { width: 24%; }" in base_style
+    assert ".filtering-table th:nth-child(6) { width: 23%; }" in base_style
     assert "flex-wrap: nowrap" in style
     assert "gap: 0.5rem" in style
     assert "white-space: nowrap" in style
