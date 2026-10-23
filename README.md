@@ -541,14 +541,14 @@ Zabbix
   -> HTTP input
   -> Zabbix parser
   -> normalized event
-  -> enabled Zabbix (HTTP) routes
+  -> enabled Zabbix HTTP routes
   -> host/event/severity/status filters
   -> selected destination
   -> Discord / Teams / Slack / Email / webhook
 ```
 
 If no dedicated Zabbix route matches, Nowlert may then evaluate an enabled
-Fallback (HTTP) route.
+Fallback HTTP route.
 
 The same routing model is used for SMTP and Redfish events.
 
