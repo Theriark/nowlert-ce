@@ -64,8 +64,8 @@ problem, recovery and success behavior of each integration and its source limits
 | TrueNAS saved Info Email service | Save an enabled Email alert service at Info level with your intended recipient, then send its native test. |
 | TrueNAS native alert delivery | [Delivery proof](../images/truenas-setup/delivery-proof.png) |
 | iLO resource noise suppressed centrally | [Rule](../images/hardware-setup/ilo-resource-filter.png), [filtered outcomes](../images/hardware-setup/ilo-resource-filter-proof.png) |
-| Hardware token scope selection | [Token form](../images/hardware-setup/nowlert-token-scope.png) |
-| Issued token list, credential value excluded | [Token list](../images/hardware-setup/nowlert-token-list.png) |
+| Hardware token scope selection | In the **Issue Event API token** dialog, confirm **Allowed integrations** holds only Supermicro, HPE iLO and Dell iDRAC before choosing **Issue token**; written steps in [the hardware guide](hardware-redfish-setup.md), no capture published. |
+| Issued token list, credential value excluded | In **Profile menu → Security → API tokens**, confirm the new row shows the token name, its allowed integrations, the rate limit and **Active**; the list never shows the value. |
 | Configured destination list | [Destinations](../images/hardware-setup/nowlert-destinations.png) |
 | Hardware Discord edit form | [Hardware destination](../images/hardware-setup/nowlert-hardware-destination.png) |
 | Built-in hardware routes | [Redfish assignments](../images/hardware-setup/nowlert-hardware-routes.png) |
