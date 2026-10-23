@@ -65,8 +65,8 @@ jobs:
     timeout-minutes: 45
     environment: stage
 
+    # GH_TOKEN is deliberately not set here: only the steps that call gh get it.
     env:
-      GH_TOKEN: ${{ github.token }}
       DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
       DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
       CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
@@ -177,6 +177,8 @@ jobs:
       - name: Verify the release candidate tag, prerelease and Development run
         id: rc
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -260,14 +262,18 @@ jobs:
             exit 1
           }
 
-          # The RC-producing run is a successful run of this repository.
+          # The run that sealed the RC is a successful prepare-rc.yml dispatch
+          # on development, not an arbitrary run id copied from the tag message.
           RC_RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RC_WORKFLOW_RUN_ID}")" || {
             echo "::error::RC workflow run ${RC_WORKFLOW_RUN_ID} was not found"
             exit 1
           }
-          [[ "$(jq -r '.status' <<<"${RC_RUN}")" == "completed" \
+          [[ "$(jq -r '.path' <<<"${RC_RUN}")" == ".github/workflows/prepare-rc.yml" \
+            && "$(jq -r '.event' <<<"${RC_RUN}")" == "workflow_dispatch" \
+            && "$(jq -r '.head_branch' <<<"${RC_RUN}")" == "development" \
+            && "$(jq -r '.status' <<<"${RC_RUN}")" == "completed" \
             && "$(jq -r '.conclusion' <<<"${RC_RUN}")" == "success" ]] || {
-            echo "::error::RC workflow run ${RC_WORKFLOW_RUN_ID} did not succeed"
+            echo "::error::RC workflow run ${RC_WORKFLOW_RUN_ID} is not a successful prepare-rc.yml dispatch on development"
             exit 1
           }
 
@@ -430,6 +436,8 @@ jobs:
 
       - name: Advance Stage source branch
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -484,16 +492,18 @@ jobs:
 
       # Completion receipt consumed by private verification. It is written only
       # after the deployment, the passive smoke and the stage branch update all
-      # succeeded, and it restates the sealed RC evidence verified above.
+      # succeeded, and it restates the sealed RC evidence verified above. It has
+      # no deployment id: dokploy_release.py deploy does not expose one, and the
+      # deployment itself is proven by the exact-image and version checks above.
       - name: Emit verified Stage completion receipt
         id: receipt
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           IMAGE_DIGEST: ${{ steps.rc.outputs.image_digest }}
           RC_TAG_OBJECT_SHA: ${{ steps.rc.outputs.tag_object_sha }}
           RC_WORKFLOW_RUN_ID: ${{ steps.rc.outputs.rc_workflow_run_id }}
           GATE_CYCLE: ${{ steps.rc.outputs.gate_cycle }}
-          DEPLOYMENT_ID: ${{ steps.deploy.outputs.deployment_id }}
         run: |
           set -euo pipefail
 
@@ -528,7 +538,6 @@ jobs:
             --arg stageApplicationId "${CE_STAGE_APPLICATION_ID}" \
             --arg stageHealthUrl "${CE_STAGE_HEALTH_URL}" \
             --arg stageBranchSha "${STAGE_SHA}" \
-            --arg deploymentId "${DEPLOYMENT_ID}" \
             --arg changeReference "${SAFE_CHANGE_REFERENCE}" \
             --arg completedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             '{
@@ -551,7 +560,6 @@ jobs:
               stageApplicationId: $stageApplicationId,
               stageHealthUrl: $stageHealthUrl,
               stageBranchSha: $stageBranchSha,
-              deploymentId: $deploymentId,
               changeReference: $changeReference,
               rebuilt: false,
               completedAt: $completedAt
