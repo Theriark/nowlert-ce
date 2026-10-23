@@ -177,6 +177,20 @@ jobs:
             exit 1
           }
 
+          # Accepting any ancestor of development must never downgrade Stage:
+          # Stage has to be the source itself or behind it, so a Stage that is
+          # already ahead of, or diverged from, this candidate is rejected
+          # before anything is deployed.
+          git fetch origin \
+            +refs/heads/stage:refs/remotes/origin/stage
+
+          CURRENT_STAGE_SHA="$(git rev-parse refs/remotes/origin/stage)"
+
+          git merge-base --is-ancestor refs/remotes/origin/stage "${SOURCE_COMMIT}" || {
+            echo "::error::Stage branch ${CURRENT_STAGE_SHA} is not an ancestor of source ${SOURCE_COMMIT}; Stage is already ahead of or diverged from this candidate"
+            exit 1
+          }
+
       - name: Verify the release candidate tag, prerelease and Development run
         id: rc
         shell: bash

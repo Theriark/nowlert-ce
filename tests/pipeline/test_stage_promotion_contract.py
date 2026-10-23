@@ -312,6 +312,7 @@ def test_stage_keeps_the_silent_gate_and_markers() -> None:
 
 
 # --- Source binding: the sealed source must be part of development's history ---
+# --- and must never move Stage backwards ---
 
 
 def configuration_script() -> str:
@@ -352,13 +353,20 @@ def commit(cwd: Path, name: str) -> str:
 
 
 def history(tmp_path: Path) -> dict[str, str]:
-    """Local `origin` whose development is c1 -> c2 -> c3, plus a side commit."""
+    """Local `origin`: development c1 -> c2 -> c3, stage at c1, plus side commits."""
     origin = tmp_path / "origin"
     origin.mkdir()
     git(origin, "init", "-q", "--initial-branch=development")
     c1 = commit(origin, "c1")
     c2 = commit(origin, "c2")
     c3 = commit(origin, "c3")
+    git(origin, "branch", "stage", c1)
+
+    # A commit on a line that left development at c1: it can sit on Stage but is
+    # neither ahead of nor behind c2 and c3.
+    git(origin, "checkout", "-q", "-b", "diverged", c1)
+    d1 = commit(origin, "d1")
+    git(origin, "checkout", "-q", "development")
 
     work = tmp_path / "work"
     work.mkdir()
@@ -369,7 +377,19 @@ def history(tmp_path: Path) -> dict[str, str]:
     # A commit that exists locally but is not part of development's history.
     git(work, "checkout", "-q", "-b", "side", c1)
     side = commit(work, "side")
-    return {"c1": c1, "c2": c2, "c3": c3, "side": side, "work": str(work)}
+    return {
+        "c1": c1,
+        "c2": c2,
+        "c3": c3,
+        "d1": d1,
+        "side": side,
+        "origin": str(origin),
+        "work": str(work),
+    }
+
+
+def set_stage(commits: dict[str, str], sha: str) -> None:
+    git(Path(commits["origin"]), "branch", "-f", "stage", sha)
 
 
 def run_gate(commits: dict[str, str], source_commit: str) -> subprocess.CompletedProcess:
@@ -412,6 +432,42 @@ def test_stage_source_outside_development_history_is_rejected(tmp_path: Path) ->
     ) in result.stdout
 
 
+def test_stage_ahead_of_or_diverged_from_source_is_rejected(tmp_path: Path) -> None:
+    commits = history(tmp_path)
+
+    # Stage is already ahead of the sealed source: promoting it would downgrade Stage.
+    set_stage(commits, commits["c3"])
+    ahead = run_gate(commits, commits["c2"])
+    assert ahead.returncode != 0
+    assert (
+        f"::error::Stage branch {commits['c3']} is not an ancestor of source "
+        f"{commits['c2']}"
+    ) in ahead.stdout
+
+    # Stage sits on a line that diverged from the source: not a fast-forward either.
+    set_stage(commits, commits["d1"])
+    diverged = run_gate(commits, commits["c2"])
+    assert diverged.returncode != 0
+    assert (
+        f"::error::Stage branch {commits['d1']} is not an ancestor of source "
+        f"{commits['c2']}"
+    ) in diverged.stdout
+
+
+def test_stage_behind_or_equal_to_source_is_accepted(tmp_path: Path) -> None:
+    commits = history(tmp_path)
+
+    # Stage is behind the source (c1 < c3): a normal fast-forward promotion.
+    set_stage(commits, commits["c1"])
+    behind = run_gate(commits, commits["c3"])
+    assert behind.returncode == 0, behind.stdout + behind.stderr
+
+    # Stage already is the source (re-promotion of the same candidate).
+    set_stage(commits, commits["c2"])
+    equal = run_gate(commits, commits["c2"])
+    assert equal.returncode == 0, equal.stdout + equal.stderr
+
+
 def test_stage_source_check_is_ancestry_not_head_equality() -> None:
     script = configuration_script()
 
@@ -426,6 +482,21 @@ def test_stage_source_check_is_ancestry_not_head_equality() -> None:
         "git fetch origin"
     )
     assert script.index("git fetch origin") < script.index("git merge-base --is-ancestor")
+
+
+def test_stage_guard_rejects_a_stage_ahead_of_the_source_before_any_deploy() -> None:
+    script = configuration_script()
+
+    assert "+refs/heads/stage:refs/remotes/origin/stage" in script
+    assert (
+        'git merge-base --is-ancestor refs/remotes/origin/stage "${SOURCE_COMMIT}"'
+    ) in script
+    # It runs after the development ancestry check and in the guard step, which
+    # precedes every step that writes (image deploy and the stage branch update).
+    assert script.index(
+        'git merge-base --is-ancestor "${SOURCE_COMMIT}" refs/remotes/origin/development'
+    ) < script.index("+refs/heads/stage:refs/remotes/origin/stage")
+    assert step_index("Verify CE Stage configuration") < step_index("Promote CE to Stage")
 
 
 def test_stage_keeps_every_other_source_binding() -> None:
