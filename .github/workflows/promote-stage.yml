@@ -169,8 +169,11 @@ jobs:
 
           DEVELOPMENT_SHA="$(git rev-parse refs/remotes/origin/development)"
 
-          [[ "${SOURCE_COMMIT}" == "${DEVELOPMENT_SHA}" ]] || {
-            echo "::error::Stage source ${SOURCE_COMMIT} is not current development ${DEVELOPMENT_SHA}"
+          # The sealed release candidate may predate later development merges,
+          # so the source only has to be part of development's history. The RC
+          # tag, digest and Development run checks below bind it exactly.
+          git merge-base --is-ancestor "${SOURCE_COMMIT}" refs/remotes/origin/development || {
+            echo "::error::Stage source ${SOURCE_COMMIT} is not an ancestor of current development ${DEVELOPMENT_SHA}"
             exit 1
           }
 

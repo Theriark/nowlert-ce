@@ -1,12 +1,15 @@
 """Input and completion-receipt contract of the Stage promotion workflow.
 
 The tests only read workflow text: they open no network connection, so they stay
-silent inside the network-isolated Stage gate.
+silent inside the network-isolated Stage gate. The source-ancestry tests run the
+workflow's own git commands against throwaway local repositories only.
 """
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 from pathlib import Path
 
 import yaml
@@ -306,3 +309,145 @@ def test_stage_keeps_the_silent_gate_and_markers() -> None:
         assert marker in text, marker
     # The release finalizer reads the image digest from the Stage run logs.
     assert "Promoting ${PROMOTION_IMAGE}" in text
+
+
+# --- Source binding: the sealed source must be part of development's history ---
+
+
+def configuration_script() -> str:
+    return step("Verify CE Stage configuration")["run"]
+
+
+def ancestry_gate_script() -> str:
+    """The workflow's own fetch + source-binding commands, unmodified."""
+    script = configuration_script()
+    return "set -euo pipefail\n" + script[script.index("git fetch origin") :]
+
+
+def git(cwd: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+        env={
+            **os.environ,
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "GIT_AUTHOR_NAME": "test",
+            "GIT_AUTHOR_EMAIL": "test@example.invalid",
+            "GIT_COMMITTER_NAME": "test",
+            "GIT_COMMITTER_EMAIL": "test@example.invalid",
+        },
+    )
+    return result.stdout.strip()
+
+
+def commit(cwd: Path, name: str) -> str:
+    (cwd / name).write_text(name, encoding="utf-8")
+    git(cwd, "add", name)
+    git(cwd, "commit", "-q", "-m", name)
+    return git(cwd, "rev-parse", "HEAD")
+
+
+def history(tmp_path: Path) -> dict[str, str]:
+    """Local `origin` whose development is c1 -> c2 -> c3, plus a side commit."""
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    git(origin, "init", "-q", "--initial-branch=development")
+    c1 = commit(origin, "c1")
+    c2 = commit(origin, "c2")
+    c3 = commit(origin, "c3")
+
+    work = tmp_path / "work"
+    work.mkdir()
+    git(work, "init", "-q", "--initial-branch=work")
+    git(work, "remote", "add", "origin", str(origin))
+    git(work, "fetch", "-q", "origin", "development")
+
+    # A commit that exists locally but is not part of development's history.
+    git(work, "checkout", "-q", "-b", "side", c1)
+    side = commit(work, "side")
+    return {"c1": c1, "c2": c2, "c3": c3, "side": side, "work": str(work)}
+
+
+def run_gate(commits: dict[str, str], source_commit: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["bash", "-c", ancestry_gate_script()],
+        cwd=commits["work"],
+        capture_output=True,
+        text=True,
+        env={
+            **os.environ,
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "SOURCE_COMMIT": source_commit,
+        },
+    )
+
+
+def test_stage_source_may_be_an_older_ancestor_of_development(tmp_path: Path) -> None:
+    commits = history(tmp_path)
+
+    # The sealed RC predates later development merges (c1 and c2 are behind c3).
+    for older in (commits["c1"], commits["c2"]):
+        result = run_gate(commits, older)
+        assert result.returncode == 0, result.stdout + result.stderr
+
+    # The development head itself is still accepted.
+    result = run_gate(commits, commits["c3"])
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_stage_source_outside_development_history_is_rejected(tmp_path: Path) -> None:
+    commits = history(tmp_path)
+
+    result = run_gate(commits, commits["side"])
+
+    assert result.returncode != 0
+    assert (
+        f"::error::Stage source {commits['side']} is not an ancestor of current "
+        f"development {commits['c3']}"
+    ) in result.stdout
+
+
+def test_stage_source_check_is_ancestry_not_head_equality() -> None:
+    script = configuration_script()
+
+    assert (
+        'git merge-base --is-ancestor "${SOURCE_COMMIT}" '
+        "refs/remotes/origin/development"
+    ) in script
+    assert '"${SOURCE_COMMIT}" == "${DEVELOPMENT_SHA}"' not in script
+
+    # The check reads the freshly fetched development, after the launch-branch guard.
+    assert script.index('"${GITHUB_REF}" == "refs/heads/development"') < script.index(
+        "git fetch origin"
+    )
+    assert script.index("git fetch origin") < script.index("git merge-base --is-ancestor")
+
+
+def test_stage_keeps_every_other_source_binding() -> None:
+    rc_script = step("Verify the release candidate tag, prerelease and Development run")["run"]
+
+    # RC tag target, sealed digest, and the Development run's head SHA stay exact.
+    assert '"${TAG_TARGET}" == "${SOURCE_COMMIT}"' in rc_script
+    assert ".sourceCommit == $sourceCommit" in rc_script
+    assert ".imageDigest == $imageDigest" in rc_script
+    assert "jq -r '.head_sha' <<<\"${RUN}\")\" == \"${SOURCE_COMMIT}\"" in rc_script
+
+    # The image digest is bound to the source through its sha-<SOURCE> tag.
+    digest_script = step("Verify the immutable image digest")["run"]
+    assert 'SHA_TAG="${IMAGE_REPOSITORY}:sha-${SOURCE_COMMIT}"' in digest_script
+    assert '"${TAG_DIGEST}" == "${IMAGE_DIGEST}"' in digest_script
+
+    # The full gate tests the sealed source, not whatever development is now.
+    assert step("Checkout candidate source for the full gate")["with"]["ref"] == (
+        "${{ inputs.source_commit }}"
+    )
+
+    # The stage branch only fast-forwards: history that is not ahead is rejected.
+    advance = step("Advance Stage source branch")["run"]
+    assert '[[ "${BEHIND_BY}" == "0" && "${STATUS}" == "ahead" ]]' in advance
+    assert "-F force=false" in advance
