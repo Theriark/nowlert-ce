@@ -264,18 +264,32 @@
 @media (min-width: 821px) {
   #view-deliveries .delivery-history-columns,
   #view-deliveries .delivery-history-row {
-    grid-template-columns: minmax(138px, 0.8fr) minmax(170px, 1.5fr) minmax(106px, 0.6fr) minmax(92px, 0.6fr) minmax(118px, 0.8fr) 16px;
+    grid-template-columns: minmax(116px, 0.8fr) minmax(160px, 1.5fr) minmax(100px, 0.6fr) minmax(92px, 0.6fr) minmax(132px, 0.8fr) 16px;
+  }
+
+  /* The Source name (48px icon plus the bold product name) may wrap onto a
+   * second line instead of truncating; the row already has two lines. */
+  #view-deliveries .delivery-history-row .delivery-history-source strong {
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 }
 
-/* Development walk finding F4 (THE-875): between 1181px and 1500px the list
- * panel kept only 658px beside the detail inspector, so Source showed "Ema..."
- * and Time wrapped. Give the list the larger share in that range; the detail
- * panel keeps a 340px minimum and the single-column layout below 1181px is
- * unchanged. */
+/* Development walk finding F4 (THE-875): at 1440px the event list kept only
+ * 658px beside the detail inspector, so Source showed "Ema..." and Time
+ * wrapped. Between 1181px and 1500px the list takes the larger share (the
+ * inspector keeps a 400px minimum), the inspector stacks its Transport and
+ * Timeline cards so their values never break mid-word, and Time has a 132px
+ * minimum for one line. The row minimums (116 + 160 + 100 + 92 + 132 + 16
+ * plus five 12px gaps and 32px padding = 708px) fit the 764px list panel at
+ * 1440px. The single-column layout below 1181px is unchanged. */
 @media (min-width: 1181px) and (max-width: 1500px) {
   #view-deliveries .delivery-history-workbench {
-    grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.65fr);
+    grid-template-columns: minmax(0, 1.3fr) minmax(400px, 0.7fr);
+  }
+
+  #view-deliveries .delivery-history-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

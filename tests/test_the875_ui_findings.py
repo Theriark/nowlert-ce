@@ -76,13 +76,27 @@ def test_f4_delivery_history_list_keeps_source_and_time_readable_at_1440():
     desktop = css[css.index("@media (min-width: 821px) {"):]
     columns = _block(desktop, "#view-deliveries .delivery-history-columns,")
     assert (
-        "grid-template-columns: minmax(138px, 0.8fr) minmax(170px, 1.5fr) "
-        "minmax(106px, 0.6fr) minmax(92px, 0.6fr) minmax(118px, 0.8fr) 16px;"
+        "grid-template-columns: minmax(116px, 0.8fr) minmax(160px, 1.5fr) "
+        "minmax(100px, 0.6fr) minmax(92px, 0.6fr) minmax(132px, 0.8fr) 16px;"
     ) in columns
+    # Row minimums plus five 12px gaps and 32px padding fit the 764px list
+    # panel that the 1.3fr share yields at 1440px with the navigation expanded.
+    assert 116 + 160 + 100 + 92 + 132 + 16 + 5 * 12 + 32 <= 764
+
+    # The Source name wraps onto a second line instead of truncating to
+    # "Email A...": the 48px icon plus the bold name need 158px on one line.
+    source = _block(desktop, "#view-deliveries .delivery-history-row .delivery-history-source strong {")
+    assert "white-space: normal;" in source
+    assert "overflow-wrap: anywhere;" in source
 
     mid = css[css.index("@media (min-width: 1181px) and (max-width: 1500px) {"):]
     workbench = _block(mid, "#view-deliveries .delivery-history-workbench {")
-    assert "grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.65fr);" in workbench
+    assert "grid-template-columns: minmax(0, 1.3fr) minmax(400px, 0.7fr);" in workbench
+
+    # With a 400px inspector the Transport and Timeline cards stack, so their
+    # values never break mid-word.
+    detail_grid = _block(mid, "#view-deliveries .delivery-history-detail-grid {")
+    assert "grid-template-columns: minmax(0, 1fr);" in detail_grid
 
 
 def test_f5_audit_log_outcome_column_is_not_clipped_at_1440():
