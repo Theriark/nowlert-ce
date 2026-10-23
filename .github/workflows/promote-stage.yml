@@ -1,5 +1,13 @@
 name: Promote CE to Stage
 
+run-name: "publishing:${{ inputs.request_id }}"
+
+# Promotes ONE already prepared release candidate to the VM-09 Stage
+# application. It is dispatched only by the private publisher, which reads every
+# input from signed controller state after the separate Stage-promotion
+# approval. It never rebuilds, never mints or moves a tag, and never publishes a
+# stable release: the immutable digest recorded in the annotated RC tag is the
+# only image that can reach Stage.
 on:
   workflow_dispatch:
     inputs:
@@ -12,13 +20,40 @@ on:
         required: true
         type: string
       change_reference:
-        description: "PR, issue, or release reference"
+        description: "PR, issue, or release reference (evidence only)"
+        required: true
+        type: string
+      version:
+        description: "Release version of the candidate, for example v27.0.0"
+        required: true
+        type: string
+      development_run_id:
+        description: "Successful Development Continuous Integration run ID that built the image"
+        required: true
+        type: string
+      request_id:
+        description: "Publisher request identifier (run name and evidence)"
+        required: true
+        type: string
+      documentation_manifest_sha256:
+        description: "SHA-256 of the reviewed documentation manifest sealed in the RC"
+        required: true
+        type: string
+      rc_tag:
+        description: "Existing annotated release candidate tag, for example v27.0.0-rc.4"
         required: true
         type: string
 
+# contents: write advances the stage branch. actions: read verifies the
+# Development and RC runs and packages: read verifies the image in GHCR; both
+# are read-only.
 permissions:
   contents: write
+  actions: read
+  packages: read
 
+# Shared with prepare-rc.yml so the repository never runs two promotion jobs at
+# once. A live deployment is never cancelled.
 concurrency:
   group: nowlert-ce-stage-promotion
   cancel-in-progress: false
@@ -30,14 +65,23 @@ jobs:
     timeout-minutes: 45
     environment: stage
 
+    # GH_TOKEN is deliberately not set here: only the steps that call gh get it.
     env:
       DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
       DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
       CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
       CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      IMAGE_REPOSITORY: ghcr.io/theriark/nowlert-ce
       PROMOTION_IMAGE: ${{ inputs.ce_image }}
       SOURCE_COMMIT: ${{ inputs.source_commit }}
+      CHANGE_REFERENCE: ${{ inputs.change_reference }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      DEVELOPMENT_RUN_ID: ${{ inputs.development_run_id }}
+      REQUEST_ID: ${{ inputs.request_id }}
+      DOCUMENTATION_MANIFEST_SHA256: ${{ inputs.documentation_manifest_sha256 }}
+      RC_TAG: ${{ inputs.rc_tag }}
       CE_STAGE_APPLICATION_ID: x9zOew6dmrn-jmcnFbllk
+      CE_STAGE_HEALTH_URL: https://ce-stg-nowlert.theriark.dev/api/health
 
     steps:
       - name: Checkout pipeline code
@@ -70,6 +114,46 @@ jobs:
             exit 1
           }
 
+          [[ "${REQUEST_ID}" =~ ^[A-Za-z0-9._:-]{1,128}$ ]] || {
+            echo "::error::request_id is missing or contains unsupported characters"
+            exit 1
+          }
+
+          [[ "${DEVELOPMENT_RUN_ID}" =~ ^[1-9][0-9]*$ ]] || {
+            echo "::error::development_run_id must be a positive integer"
+            exit 1
+          }
+
+          [[ "${DOCUMENTATION_MANIFEST_SHA256}" =~ ^[0-9a-f]{64}$ ]] || {
+            echo "::error::documentation_manifest_sha256 must be 64 lowercase hex characters"
+            exit 1
+          }
+
+          RC_TAG_PATTERN='^v27\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-rc\.[1-9][0-9]*$'
+          [[ "${RC_TAG}" =~ ${RC_TAG_PATTERN} ]] || {
+            echo "::error::rc_tag must look like v27.<minor>.<patch>-rc.<number>"
+            exit 1
+          }
+
+          # The version is the stable form of the candidate (v27.M.P); the
+          # candidate form (v27.M.P-rc.N) is accepted when it is the same tag.
+          VERSION_PATTERN='^v?27\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-rc\.[1-9][0-9]*)?$'
+          [[ "${RELEASE_VERSION}" =~ ${VERSION_PATTERN} ]] || {
+            echo "::error::version must look like v27.<minor>.<patch>"
+            exit 1
+          }
+          VERSION_BASE="v${RELEASE_VERSION#v}"
+          if [[ "${VERSION_BASE}" == *-rc.* ]]; then
+            [[ "${VERSION_BASE}" == "${RC_TAG}" ]] || {
+              echo "::error::version ${RELEASE_VERSION} is not the candidate ${RC_TAG}"
+              exit 1
+            }
+          fi
+          [[ "${VERSION_BASE%-rc.*}" == "${RC_TAG%-rc.*}" ]] || {
+            echo "::error::version ${RELEASE_VERSION} does not belong to ${RC_TAG}"
+            exit 1
+          }
+
           git cat-file -e "${SOURCE_COMMIT}^{commit}" || {
             echo "::error::Source commit does not exist in this repository"
             exit 1
@@ -89,6 +173,159 @@ jobs:
             echo "::error::Stage source ${SOURCE_COMMIT} is not current development ${DEVELOPMENT_SHA}"
             exit 1
           }
+
+      - name: Verify the release candidate tag, prerelease and Development run
+        id: rc
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          IMAGE_DIGEST="${PROMOTION_IMAGE##*@}"
+
+          # The RC tag is annotated, points at the source commit and carries
+          # the JSON the RC workflow sealed (publishing contract).
+          REF_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RC_TAG}")" || {
+            echo "::error::Release candidate tag ${RC_TAG} does not exist"
+            exit 1
+          }
+          [[ "$(jq -r '.object.type' <<<"${REF_JSON}")" == "tag" ]] || {
+            echo "::error::${RC_TAG} is not an annotated tag"
+            exit 1
+          }
+          TAG_OBJECT_SHA="$(jq -r '.object.sha' <<<"${REF_JSON}")"
+          TAG_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${TAG_OBJECT_SHA}")"
+          TAG_TARGET="$(jq -r '.object.sha' <<<"${TAG_JSON}")"
+          [[ "${TAG_TARGET}" == "${SOURCE_COMMIT}" ]] || {
+            echo "::error::${RC_TAG} points at ${TAG_TARGET}, expected ${SOURCE_COMMIT}"
+            exit 1
+          }
+
+          jq -r '.message' <<<"${TAG_JSON}" > rc-tag-message.json
+          jq -e 'type == "object"' rc-tag-message.json >/dev/null || {
+            echo "::error::${RC_TAG} message is not the sealed JSON object"
+            exit 1
+          }
+          jq -e \
+            --arg sourceCommit "${SOURCE_COMMIT}" \
+            --arg imageDigest "${IMAGE_DIGEST}" \
+            --argjson developmentRunId "${DEVELOPMENT_RUN_ID}" \
+            --arg manifest "${DOCUMENTATION_MANIFEST_SHA256}" \
+            '.sourceCommit == $sourceCommit
+             and .imageDigest == $imageDigest
+             and .developmentRunId == $developmentRunId
+             and .documentationManifestSha256 == $manifest
+             and ((.workflowRunId | type) == "number" and .workflowRunId > 0)
+             and ((.gateCycle | type) == "number" and .gateCycle > 0)' \
+            rc-tag-message.json >/dev/null || {
+              echo "::error::${RC_TAG} sealed metadata does not match the requested source, digest, Development run and documentation manifest"
+              exit 1
+            }
+          RC_WORKFLOW_RUN_ID="$(jq -r '.workflowRunId' rc-tag-message.json)"
+          GATE_CYCLE="$(jq -r '.gateCycle' rc-tag-message.json)"
+
+          # The GitHub prerelease for the tag is non-draft and records the
+          # same source, image and manifest.
+          RELEASE_JSON="$(gh release view "${RC_TAG}" --repo "${GITHUB_REPOSITORY}" --json isDraft,isPrerelease,tagName,body)" || {
+            echo "::error::GitHub prerelease ${RC_TAG} does not exist"
+            exit 1
+          }
+          [[ "$(jq -r '.isDraft' <<<"${RELEASE_JSON}")" == "false" && "$(jq -r '.isPrerelease' <<<"${RELEASE_JSON}")" == "true" ]] || {
+            echo "::error::Release ${RC_TAG} must be a non-draft prerelease"
+            exit 1
+          }
+          RELEASE_BODY="$(jq -r '.body' <<<"${RELEASE_JSON}")"
+          for needle in \
+            "${SOURCE_COMMIT}" \
+            "${IMAGE_REPOSITORY}@${IMAGE_DIGEST}" \
+            "${DOCUMENTATION_MANIFEST_SHA256}"
+          do
+            grep -Fq -- "${needle}" <<<"${RELEASE_BODY}" || {
+              echo "::error::Prerelease ${RC_TAG} body does not record ${needle}"
+              exit 1
+            }
+          done
+
+          # The Development run built exactly this source.
+          RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${DEVELOPMENT_RUN_ID}")" || {
+            echo "::error::Development run ${DEVELOPMENT_RUN_ID} was not found"
+            exit 1
+          }
+          [[ "$(jq -r '.path' <<<"${RUN}")" == ".github/workflows/ci.yml" \
+            && "$(jq -r '.event' <<<"${RUN}")" == "push" \
+            && "$(jq -r '.head_branch' <<<"${RUN}")" == "development" \
+            && "$(jq -r '.status' <<<"${RUN}")" == "completed" \
+            && "$(jq -r '.conclusion' <<<"${RUN}")" == "success" \
+            && "$(jq -r '.head_sha' <<<"${RUN}")" == "${SOURCE_COMMIT}" ]] || {
+            echo "::error::Run ${DEVELOPMENT_RUN_ID} is not a successful push CI run of ${SOURCE_COMMIT} on development"
+            exit 1
+          }
+
+          # The run that sealed the RC is a successful prepare-rc.yml dispatch
+          # on development, not an arbitrary run id copied from the tag message.
+          RC_RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RC_WORKFLOW_RUN_ID}")" || {
+            echo "::error::RC workflow run ${RC_WORKFLOW_RUN_ID} was not found"
+            exit 1
+          }
+          [[ "$(jq -r '.path' <<<"${RC_RUN}")" == ".github/workflows/prepare-rc.yml" \
+            && "$(jq -r '.event' <<<"${RC_RUN}")" == "workflow_dispatch" \
+            && "$(jq -r '.head_branch' <<<"${RC_RUN}")" == "development" \
+            && "$(jq -r '.status' <<<"${RC_RUN}")" == "completed" \
+            && "$(jq -r '.conclusion' <<<"${RC_RUN}")" == "success" ]] || {
+            echo "::error::RC workflow run ${RC_WORKFLOW_RUN_ID} is not a successful prepare-rc.yml dispatch on development"
+            exit 1
+          }
+
+          {
+            echo "tag_object_sha=${TAG_OBJECT_SHA}"
+            echo "rc_workflow_run_id=${RC_WORKFLOW_RUN_ID}"
+            echo "gate_cycle=${GATE_CYCLE}"
+            echo "image_digest=${IMAGE_DIGEST}"
+          } >> "${GITHUB_OUTPUT}"
+
+          echo "PASS: ${RC_TAG} seals ${SOURCE_COMMIT}, ${IMAGE_DIGEST}, Development run ${DEVELOPMENT_RUN_ID} and manifest ${DOCUMENTATION_MANIFEST_SHA256}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify the immutable image digest
+        shell: bash
+        env:
+          IMAGE_DIGEST: ${{ steps.rc.outputs.image_digest }}
+        run: |
+          set -euo pipefail
+
+          IMAGE_REF="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+
+          # The digest of an image is the SHA-256 of its raw manifest.
+          ACTUAL_DIGEST="sha256:$(
+            docker buildx imagetools inspect "${IMAGE_REF}" --raw |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          [[ "${ACTUAL_DIGEST}" == "${IMAGE_DIGEST}" ]] || {
+            echo "::error::${IMAGE_REF} resolved to ${ACTUAL_DIGEST}"
+            exit 1
+          }
+
+          # The Development SHA tag binds the digest to the source commit.
+          SHA_TAG="${IMAGE_REPOSITORY}:sha-${SOURCE_COMMIT}"
+          TAG_DIGEST="sha256:$(
+            docker buildx imagetools inspect "${SHA_TAG}" --raw |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          [[ "${TAG_DIGEST}" == "${IMAGE_DIGEST}" ]] || {
+            echo "::error::${SHA_TAG} resolves to ${TAG_DIGEST}, expected ${IMAGE_DIGEST}"
+            exit 1
+          }
+
+          echo "PASS: ${IMAGE_REF} and ${SHA_TAG} agree"
 
       - name: Checkout candidate source for the full gate
         uses: actions/checkout@v7
@@ -166,13 +403,15 @@ jobs:
             exit 1
           }
 
+          echo "Promoting ${PROMOTION_IMAGE} (candidate ${RC_TAG}, request ${REQUEST_ID})"
+
           python .github/scripts/dokploy_release.py deploy \
             --application-id "${CE_STAGE_APPLICATION_ID}" \
             --image "${PROMOTION_IMAGE}" \
-            --health-url https://ce-stg-nowlert.theriark.dev/api/health \
+            --health-url "${CE_STAGE_HEALTH_URL}" \
             --expected-version "${EXPECTED_VERSION}" \
-            --title "CE Stage promotion ${{ github.run_id }}" \
-            --description "${{ inputs.change_reference }}" \
+            --title "Stage ${SOURCE_COMMIT}" \
+            --description "nowlert-ce GitHub Actions run ${GITHUB_RUN_ID}" \
             --noop-ok
 
       # Live-environment verification is read-only. Functional delivery paths
@@ -191,7 +430,7 @@ jobs:
           python .github/scripts/dokploy_release.py promotion-smoke \
             --application-id "${CE_STAGE_APPLICATION_ID}" \
             --image "${PROMOTION_IMAGE}" \
-            --health-url https://ce-stg-nowlert.theriark.dev/api/health \
+            --health-url "${CE_STAGE_HEALTH_URL}" \
             --expected-version "${EXPECTED_VERSION}" \
             --success-marker "STAGE CE SILENT PROMOTION SMOKE PASSED"
 
@@ -251,18 +490,116 @@ jobs:
 
           echo "Stage branch now references ${STAGE_SHA}"
 
+      # Completion receipt consumed by private verification. It is written only
+      # after the deployment, the passive smoke and the stage branch update all
+      # succeeded, and it restates the sealed RC evidence verified above. It has
+      # no deployment id: dokploy_release.py deploy does not expose one, and the
+      # deployment itself is proven by the exact-image and version checks above.
+      - name: Emit verified Stage completion receipt
+        id: receipt
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_DIGEST: ${{ steps.rc.outputs.image_digest }}
+          RC_TAG_OBJECT_SHA: ${{ steps.rc.outputs.tag_object_sha }}
+          RC_WORKFLOW_RUN_ID: ${{ steps.rc.outputs.rc_workflow_run_id }}
+          GATE_CYCLE: ${{ steps.rc.outputs.gate_cycle }}
+        run: |
+          set -euo pipefail
+
+          STAGE_SHA="$(
+            gh api \
+              "repos/${GITHUB_REPOSITORY}/git/ref/heads/stage" \
+              --jq '.object.sha'
+          )"
+          [[ "${STAGE_SHA}" == "${SOURCE_COMMIT}" ]] || {
+            echo "::error::stage branch is ${STAGE_SHA}, expected ${SOURCE_COMMIT}"
+            exit 1
+          }
+
+          # Never record a free-text reference with control characters.
+          SAFE_CHANGE_REFERENCE="$(printf '%s' "${CHANGE_REFERENCE}" | tr -d '\000-\037\177' | cut -c1-200)"
+
+          jq -n \
+            --arg repository "${GITHUB_REPOSITORY}" \
+            --arg requestId "${REQUEST_ID}" \
+            --arg version "${RELEASE_VERSION}" \
+            --arg rcTag "${RC_TAG}" \
+            --arg rcTagObjectSha "${RC_TAG_OBJECT_SHA}" \
+            --arg sourceCommit "${SOURCE_COMMIT}" \
+            --arg image "${PROMOTION_IMAGE}" \
+            --arg imageDigest "${IMAGE_DIGEST}" \
+            --arg manifest "${DOCUMENTATION_MANIFEST_SHA256}" \
+            --argjson developmentRunId "${DEVELOPMENT_RUN_ID}" \
+            --argjson rcWorkflowRunId "${RC_WORKFLOW_RUN_ID}" \
+            --argjson gateCycle "${GATE_CYCLE}" \
+            --argjson stagePromotionRunId "${GITHUB_RUN_ID}" \
+            --argjson runAttempt "${GITHUB_RUN_ATTEMPT}" \
+            --arg stageApplicationId "${CE_STAGE_APPLICATION_ID}" \
+            --arg stageHealthUrl "${CE_STAGE_HEALTH_URL}" \
+            --arg stageBranchSha "${STAGE_SHA}" \
+            --arg changeReference "${SAFE_CHANGE_REFERENCE}" \
+            --arg completedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              schemaVersion: 1,
+              kind: "nowlert-ce-stage-promotion",
+              repository: $repository,
+              requestId: $requestId,
+              version: $version,
+              rcTag: $rcTag,
+              rcTagObjectSha: $rcTagObjectSha,
+              sourceCommit: $sourceCommit,
+              image: $image,
+              imageDigest: $imageDigest,
+              documentationManifestSha256: $manifest,
+              developmentRunId: $developmentRunId,
+              rcWorkflowRunId: $rcWorkflowRunId,
+              gateCycle: $gateCycle,
+              stagePromotionRunId: $stagePromotionRunId,
+              runAttempt: $runAttempt,
+              stageApplicationId: $stageApplicationId,
+              stageHealthUrl: $stageHealthUrl,
+              stageBranchSha: $stageBranchSha,
+              changeReference: $changeReference,
+              rebuilt: false,
+              completedAt: $completedAt
+            }' > stage-promotion-receipt.json
+
+          echo "STAGE_PROMOTION_RECEIPT $(jq -c . stage-promotion-receipt.json)"
+          echo "receipt_path=stage-promotion-receipt.json" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload Stage completion receipt
+        uses: actions/upload-artifact@v7
+        with:
+          name: nowlert-ce-stage-promotion-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 90
+          path: stage-promotion-receipt.json
+
       - name: Record successful CE Stage promotion
         shell: bash
+        env:
+          IMAGE_DIGEST: ${{ steps.rc.outputs.image_digest }}
+          RC_WORKFLOW_RUN_ID: ${{ steps.rc.outputs.rc_workflow_run_id }}
         run: |
+          SAFE_CHANGE_REFERENCE="$(printf '%s' "${CHANGE_REFERENCE}" | tr -cd 'A-Za-z0-9._:/# @-' | cut -c1-200)"
           {
             echo "## CE Stage promotion passed"
             echo
+            echo "- Request: \`${REQUEST_ID}\`"
+            echo "- Release candidate: \`${RC_TAG}\` (version \`${RELEASE_VERSION}\`)"
             echo "- CE image: \`${PROMOTION_IMAGE}\`"
+            echo "- Image digest: \`${IMAGE_DIGEST}\`"
             echo "- Source commit: \`${SOURCE_COMMIT}\`"
-            echo "- Change reference: ${{ inputs.change_reference }}"
+            echo "- Development run: \`${DEVELOPMENT_RUN_ID}\`"
+            echo "- RC workflow run: \`${RC_WORKFLOW_RUN_ID}\`"
+            echo "- Documentation manifest SHA-256: \`${DOCUMENTATION_MANIFEST_SHA256}\`"
+            echo "- Stage promotion run: \`${GITHUB_RUN_ID}\`"
+            echo "- Change reference: ${SAFE_CHANGE_REFERENCE}"
             echo "- Full notification-silent gate: passed"
             echo "- Gate network: isolated namespace, no default route or global address"
             echo "- Live Stage verification: read-only passive smoke passed"
+            echo "- Completion receipt: \`stage-promotion-receipt.json\` (artifact nowlert-ce-stage-promotion-${GITHUB_RUN_ID})"
             echo "- External notification delivery during promotion: disabled"
             echo "- Rebuild performed: no"
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -271,12 +608,14 @@ jobs:
         if: ${{ (steps.deploy.outcome == 'failure' || steps.silent_smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
         continue-on-error: true
         shell: bash
+        env:
+          PREVIOUS_IMAGE: ${{ steps.deploy.outputs.previous_image }}
         run: |
           python .github/scripts/dokploy_release.py deploy \
             --application-id "${CE_STAGE_APPLICATION_ID}" \
-            --image "${{ steps.deploy.outputs.previous_image }}" \
-            --health-url https://ce-stg-nowlert.theriark.dev/api/health \
-            --title "Automatic CE Stage rollback ${{ github.run_id }}" \
+            --image "${PREVIOUS_IMAGE}" \
+            --health-url "${CE_STAGE_HEALTH_URL}" \
+            --title "Automatic CE Stage rollback ${GITHUB_RUN_ID}" \
             --description "The CE Stage promotion or silent smoke gate failed" \
             --allow-mutable \
             --noop-ok
