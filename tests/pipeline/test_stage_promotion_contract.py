@@ -1,7 +1,7 @@
 """Input and completion-receipt contract of the Stage promotion workflow.
 
 The tests only read workflow text: they open no network connection, so they stay
-silent inside the network-isolated Stage gate. The source-ancestry tests run the
+silent inside the network-isolated Stage gate. The source-binding tests run the
 workflow's own git commands against throwaway local repositories only.
 """
 
@@ -311,15 +311,15 @@ def test_stage_keeps_the_silent_gate_and_markers() -> None:
     assert "Promoting ${PROMOTION_IMAGE}" in text
 
 
-# --- Source binding: the sealed source must be part of development's history ---
-# --- and must never move Stage backwards ---
+# --- Source binding: the sealed source must be part of development's history, ---
+# --- differ from it only by pipeline files, and never move Stage backwards ---
 
 
 def configuration_script() -> str:
     return step("Verify CE Stage configuration")["run"]
 
 
-def ancestry_gate_script() -> str:
+def source_binding_script() -> str:
     """The workflow's own fetch + source-binding commands, unmodified."""
     script = configuration_script()
     return "set -euo pipefail\n" + script[script.index("git fetch origin") :]
@@ -345,27 +345,34 @@ def git(cwd: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def commit(cwd: Path, name: str) -> str:
-    (cwd / name).write_text(name, encoding="utf-8")
-    git(cwd, "add", name)
-    git(cwd, "commit", "-q", "-m", name)
+def commit(cwd: Path, path: str) -> str:
+    target = cwd / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(path, encoding="utf-8")
+    git(cwd, "add", path)
+    git(cwd, "commit", "-q", "-m", path)
     return git(cwd, "rev-parse", "HEAD")
 
 
-def history(tmp_path: Path) -> dict[str, str]:
-    """Local `origin`: development c1 -> c2 -> c3, stage at c1, plus side commits."""
+def history(tmp_path: Path, head_path: str | None = None) -> dict[str, str]:
+    """Local `origin` with development c1 -> c2 -> c3 [-> c4], stage at c1.
+
+    c2 changes a flat pipeline test and c3 a workflow, so c1 and c2 trail c3 by
+    pipeline files only. `head_path` adds a c4 that changes that one path.
+    """
     origin = tmp_path / "origin"
     origin.mkdir()
     git(origin, "init", "-q", "--initial-branch=development")
-    c1 = commit(origin, "c1")
-    c2 = commit(origin, "c2")
-    c3 = commit(origin, "c3")
+    c1 = commit(origin, "README.md")
+    c2 = commit(origin, "tests/pipeline/test_one.py")
+    c3 = commit(origin, ".github/workflows/one.yml")
+    c4 = commit(origin, head_path) if head_path else c3
     git(origin, "branch", "stage", c1)
 
     # A commit on a line that left development at c1: it can sit on Stage but is
     # neither ahead of nor behind c2 and c3.
     git(origin, "checkout", "-q", "-b", "diverged", c1)
-    d1 = commit(origin, "d1")
+    d1 = commit(origin, "diverged.txt")
     git(origin, "checkout", "-q", "development")
 
     work = tmp_path / "work"
@@ -376,11 +383,12 @@ def history(tmp_path: Path) -> dict[str, str]:
 
     # A commit that exists locally but is not part of development's history.
     git(work, "checkout", "-q", "-b", "side", c1)
-    side = commit(work, "side")
+    side = commit(work, "side.txt")
     return {
         "c1": c1,
         "c2": c2,
         "c3": c3,
+        "c4": c4,
         "d1": d1,
         "side": side,
         "origin": str(origin),
@@ -394,7 +402,7 @@ def set_stage(commits: dict[str, str], sha: str) -> None:
 
 def run_gate(commits: dict[str, str], source_commit: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["bash", "-c", ancestry_gate_script()],
+        ["bash", "-c", source_binding_script()],
         cwd=commits["work"],
         capture_output=True,
         text=True,
@@ -468,6 +476,45 @@ def test_stage_behind_or_equal_to_source_is_accepted(tmp_path: Path) -> None:
     assert equal.returncode == 0, equal.stdout + equal.stderr
 
 
+def test_stage_source_trailing_by_pipeline_files_only_is_accepted(tmp_path: Path) -> None:
+    for index, head_path in enumerate(
+        (".github/workflows/two.yaml", "tests/pipeline/test_two.py")
+    ):
+        commits = history(tmp_path / str(index), head_path)
+
+        # c3 trails the development head c4 by one workflow or pipeline test.
+        result = run_gate(commits, commits["c3"])
+        assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_stage_source_trailing_by_application_paths_is_rejected(tmp_path: Path) -> None:
+    rejected = (
+        "src/app.py",
+        "requirements.txt",
+        "docs/guide.md",
+        ".github/scripts/helper.py",
+        "tests/pipeline/nested/test_nested.py",
+        "tests/unit/test_app.py",
+        ".github/workflows/notes.md",
+    )
+    for index, head_path in enumerate(rejected):
+        commits = history(tmp_path / str(index), head_path)
+
+        # c3 trails the development head c4 by a path outside the pipeline files.
+        result = run_gate(commits, commits["c3"])
+        assert result.returncode != 0, head_path
+        assert (
+            f"::error::Stage source {commits['c3']} differs from current development "
+            f"{commits['c4']} outside the pipeline-only paths: {head_path}"
+        ) in result.stdout, head_path
+
+    # A source that equals the development head has no drift, so it is accepted
+    # even when that head changed application code.
+    commits = history(tmp_path / "head", "src/app.py")
+    result = run_gate(commits, commits["c4"])
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_stage_source_check_is_ancestry_not_head_equality() -> None:
     script = configuration_script()
 
@@ -476,12 +523,31 @@ def test_stage_source_check_is_ancestry_not_head_equality() -> None:
         "refs/remotes/origin/development"
     ) in script
     assert '"${SOURCE_COMMIT}" == "${DEVELOPMENT_SHA}"' not in script
+    # The workflow's own commit is deliberately not required to be the
+    # development head: that check recreates the race that failed run 40032320625.
+    assert "${GITHUB_SHA}" not in script
 
     # The check reads the freshly fetched development, after the launch-branch guard.
     assert script.index('"${GITHUB_REF}" == "refs/heads/development"') < script.index(
         "git fetch origin"
     )
     assert script.index("git fetch origin") < script.index("git merge-base --is-ancestor")
+
+
+def test_stage_pipeline_only_restriction_is_checked_before_any_deploy() -> None:
+    script = configuration_script()
+
+    assert (
+        "PIPELINE_ONLY_PATTERN='^(\\.github/workflows/[A-Za-z0-9._-]+\\.ya?ml|"
+        "tests/pipeline/[A-Za-z0-9._-]+\\.py)$'"
+    ) in script
+    assert 'git diff --no-renames --name-only \\\n              "${SOURCE_COMMIT}" "${DEVELOPMENT_SHA}"' in script
+    # It runs in the guard step, after the development ancestry check, which
+    # precedes every step that writes (image deploy and the stage branch update).
+    assert script.index(
+        'git merge-base --is-ancestor "${SOURCE_COMMIT}" refs/remotes/origin/development'
+    ) < script.index("PIPELINE_ONLY_PATTERN=")
+    assert step_index("Verify CE Stage configuration") < step_index("Promote CE to Stage")
 
 
 def test_stage_guard_rejects_a_stage_ahead_of_the_source_before_any_deploy() -> None:
