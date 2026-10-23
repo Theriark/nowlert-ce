@@ -87,7 +87,7 @@ See [SMTP security](../smtp-security.md) for the full secure rollout procedure.
 
 ## 3. Create destinations in the WebUI
 
-Open **Destinations**, select **Add destination** and create the collaboration
+Open **Destinations**, select **New destination** and create the collaboration
 targets you actually use. The destination editor offers these types:
 
 - Discord;
@@ -110,9 +110,9 @@ Select the built-in integration SMTP routes, choose **Done**, then save the
 destination with **Save changes** (or **Add destination**). For example:
 
 ```text
-Xen Orchestra (SMTP) -> Infrastructure Discord
-QNAP (SMTP)           -> Storage Teams
-TrueNAS (SMTP)        -> Infrastructure Discord
+Xen Orchestra SMTP     -> Infrastructure Discord
+QNAP SMTP              -> Storage Teams
+TrueNAS SMTP           -> Infrastructure Discord
 ```
 
 Use **Filtering** for destination-specific noise rules. Dedicated integration

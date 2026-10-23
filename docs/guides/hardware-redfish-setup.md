@@ -70,12 +70,14 @@ for the controller configuration examples.
 ## 1. Issue a hardware token
 
 1. Open **Profile menu → Security → API tokens**.
-2. Under **Event API tokens**, choose **New token**.
+2. Under **Event API tokens**, choose **New token**. The **Issue Event API
+   token** dialog opens.
 3. Name it `Hardware Redfish controllers`.
 4. Select **Supermicro**, **HPE iLO**, and **Dell iDRAC**. A separate token per
    controller is also possible and allows independent rotation.
 5. Set an appropriate request limit; the example uses 60 requests per minute.
-6. Choose **Issue token** and save the one-time value privately.
+6. In the **Issue Event API token** dialog, choose **Issue token** and save the
+   one-time value privately.
 
 ![Select only the hardware integration scopes](../images/hardware-setup/nowlert-token-scope.png)
 
@@ -208,8 +210,8 @@ the token was absent from the submitted configuration.
 Both records (and their source files under `images/hardware-setup/records/`)
 date from 2 October, when end-to-end delivery to the original TLS listener was
 not verified. The Dell and Supermicro native deliveries described later in this
-guide were observed on 3 October through the separate compatibility listener
-and the isolated HTTP relay; TLS delivery to the original listener remains
+guide were observed on 3 October through the separate compatibility listener and
+the isolated HTTP relay; TLS delivery to the original listener remains
 unverified for both controllers. The records use RFC 5737 documentation
 addresses and synthetic subscription identifiers.
 

@@ -153,16 +153,20 @@ webhooks**. MQTT and ntfy are no longer offered by the destination editor.
 
 ![Destinations (development, administrator, 1440 px)](images/v27.0.0-rc.1/destinations-list-admin-1440.png)
 
-**Add destination** opens the editor with the destination name, type, enabled
-and shared switches, a **Connection and presentation** section and the
+**+ New destination** opens the editor, titled **Add destination**, with the
+destination name, type, enabled and shared switches, a **Connection and presentation** section and the
 write-only credential fields for the chosen type:
 
-- **Channel / destination** is a display label for Discord, Teams, Slack and
-  webhooks.
+- The display label is a text field whose name depends on the type:
+  **Channel** for Discord and Slack, **Channel / workflow** for Microsoft
+  Teams and **Destination label** for generic webhooks. Nowlert Mobile has no
+  label field. Email has no label field either; it offers **SMTP server**,
+  **Port**, **Security**, **Username**, **From**, **To**, **CC** and
+  **Reply-To** (**To** is required, **CC** and **Reply-To** are optional).
 - **Message style** selects **Modern Card** or **Classic Card** for Microsoft
   Teams, Slack, Nowlert Mobile and generic webhooks (Slack defaults to Classic
-  Card, the others to Modern Card). Discord keeps its **Use Components v2**
-  option.
+  Card, the others to Modern Card). Discord offers **Modern Card** or
+  **Classic Embed** in the same **Message style** selector.
 - **Webhook URL** is the write-only secret for Discord, Teams and Slack.
 - **Nowlert Mobile** connects through **Connect Nowlert Mobile** and a
   temporary code approved in the mobile app; see
@@ -183,7 +187,11 @@ destination type. **Manage routes** in the dialog opens the same assigned
 routes drawer as the editor: each route row shows its checkbox, integration
 icon, name and an **Active** or **Disabled** badge in its own column, and the
 **Done** button at the bottom of the drawer closes it. The generated payload
-follows the message style saved on the destination.
+follows the message style saved on the destination; the **Message style**
+selector in the dialog is only selectable for Discord and generic webhook
+destinations and reads **Native** (disabled) for the other types. Preview builds
+one sample for every selected route that supports the chosen severity, so with
+several routes the output lists one entry per route.
 
 ![Preview dialog with the Manage routes drawer open (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-preview-routes-drawer-admin-1440.png)
 
@@ -224,8 +232,8 @@ destination. Done updates the form; **Save changes** (or **Add destination**)
 persists the assignments. There is no separate Sources or Routes page.
 
 Built-in integrations are packaged application capabilities. Routes are named
-after the integration and its input, for example **Xen Orchestra (SMTP)** or
-**Zabbix (HTTP)**. The normalized input badges are **SMTP**, **HTTP**, and
+after the integration and its input, for example **Xen Orchestra SMTP** or
+**Zabbix HTTP**. The normalized input badges are **SMTP**, **HTTP**, and
 **Redfish**. Dedicated matching routes are evaluated before wildcard
 **Fallback** routes.
 
@@ -285,7 +293,7 @@ event and appear in Delivery history. See the
 
 ### Event API tokens
 
-Open **Profile menu → Security → API tokens** to issue, rotate or revoke an Event API token.
+Open **Profile menu → Security → API tokens** to issue, rotate or revoke an Event API token. **New token** opens the **Issue Event API token** dialog, whose **Issue token** button creates the token.
 
 Event API tokens authorize external applications to submit
 `POST /api/v2/events`. They are not required for SMTP, dedicated vendor webhook

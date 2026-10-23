@@ -140,7 +140,7 @@ Xen Orchestra
   -> SMTP listener
   -> Xen Orchestra parser
   -> normalised event
-  -> Xen Orchestra (SMTP) route
+  -> Xen Orchestra SMTP route
   -> Discord adapter
   -> Discord
 ```
