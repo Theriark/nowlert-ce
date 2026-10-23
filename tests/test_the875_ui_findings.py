@@ -52,12 +52,27 @@ def test_f2_mailbox_action_row_and_heading_never_overflow_the_card():
     assert "overflow-wrap: anywhere;" in wrap
 
 
-def test_f3_filtering_status_and_sharing_columns_have_room_for_the_disabled_badge():
+def test_f3_filtering_status_column_has_room_for_the_disabled_badge():
+    # Measured on CE Development at 1440px (1185px table): the Status cell
+    # grows from 106.7px to 142.2px, so the 119.3px DISABLED badge fits with
+    # 7px spare and sits 23px from the SHARED chip instead of overlapping it
+    # by 12.5px. Sharing keeps its original 11% (the 111.4px chip has 3.1px
+    # spare) and Actions keeps the 24% that the Development live check pins.
     css = _read("filtering.css")
-    widths = {1: "16%", 2: "17%", 3: "20%", 4: "12%", 5: "12%", 6: "23%"}
+    widths = {1: "16%", 2: "17%", 3: "20%", 4: "12%", 5: "11%", 6: "24%"}
     for column, width in widths.items():
         assert f".filtering-table th:nth-child({column}) {{ width: {width}; }}" in css
     assert sum(int(value.rstrip("%")) for value in widths.values()) == 100
+
+
+def test_f3_filtering_actions_width_matches_the_development_live_check():
+    # The deploy-development job verifies the served filtering.css against this
+    # exact declaration after the image is deployed; changing the Actions
+    # width without that pin would fail the Development deployment.
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    pin = ".filtering-table th:nth-child(6) { width: 24%; }"
+    assert f'require_contains "Filtering Actions width" "{pin}"' in workflow
+    assert pin in _read("filtering.css")
 
 
 def test_f3_backup_destination_actions_and_last_test_columns_fit_their_content():

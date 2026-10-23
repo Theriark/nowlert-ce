@@ -22,7 +22,7 @@ def test_filtering_live_table_owns_name_sharing_and_six_column_geometry():
     assert 'const nameHeading = headerRow.children[1];' in ownership
     assert 'nameHeading.textContent !== "Name"' in ownership
     assert "syncFilteringTableHeading" not in management
-    assert ".filtering-table th:nth-child(6) { width: 23%; }" in styles
+    assert ".filtering-table th:nth-child(6) { width: 24%; }" in styles
     assert ".filtering-table th:nth-child(6) { width: 17%; }" not in ownership_styles
 
 

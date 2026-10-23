@@ -29,8 +29,8 @@
 .filtering-table th:nth-child(2) { width: 17%; }
 .filtering-table th:nth-child(3) { width: 20%; }
 .filtering-table th:nth-child(4) { width: 12%; }
-.filtering-table th:nth-child(5) { width: 12%; }
-.filtering-table th:nth-child(6) { width: 23%; }
+.filtering-table th:nth-child(5) { width: 11%; }
+.filtering-table th:nth-child(6) { width: 24%; }
 .filtering-table td { vertical-align: middle; }
 .filtering-table tbody td:first-child,
 .filtering-table tbody td:nth-child(3),
