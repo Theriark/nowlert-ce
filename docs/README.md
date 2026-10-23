@@ -107,7 +107,10 @@ used to illustrate current behavior:
   `v2.5.2-discord-zabbix.png`, `v2.5.2-inputs.png`, `v2.5.2-overview.png`,
   `v2.5.2-routing-flow.png`, `v2.5.2-settings.png`, `v2.5.2-sources.png`,
   `v2.5.2-teams.png`
-- `discord-xen-orchestra-v1.9.6.png`, `teams-xen-orchestra-v1.9.6.png`
+- `discord-xen-orchestra-v1.9.6.png`
+
+The v1.9.6 Teams Xen Orchestra card was withdrawn on 23 October 2026 (see the
+[screenshot privacy review](guides/screenshot-privacy.md)).
 
 Only the Dell iDRAC Redfish guide still embeds one of them
 (`v2.5.2-discord-idrac.png`), explicitly labeled as outdated pending recapture.

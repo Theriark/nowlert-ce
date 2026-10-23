@@ -320,12 +320,19 @@ Pagination behavior is shared with Audit log:
 - page size persists; and
 - the header **Bottom** shortcut and page-change scroll behavior remain.
 
-![Delivery history filtered to the Zabbix source (development, administrator, 1440 px)](images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png)
+![Delivery history filtered to the Synology source, newest first, first event selected (development, administrator, 1440 px)](images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png)
+
+The capture shows the synthetic Synology sample events of the Development
+deployment (device `synthetic-dsm-01`) with the **Last 30 days** range and the
+first event selected, so the detail pane on the right shows its message,
+outcome, transport information and timeline.
 
 The historical v3.1.0 Delivery History capture was withdrawn on 22 October
-2026 because a history row still showed a device-name prefix (see the
-[screenshot privacy review](guides/screenshot-privacy.md)); the Development
-capture above is the packaged reference for this page.
+2026 because a history row still showed a device-name prefix, and the
+Zabbix-filtered Development capture of 21 October 2026 was withdrawn on
+23 October 2026 because its sample rows carried VM-numbered host and database
+labels (see the [screenshot privacy review](guides/screenshot-privacy.md));
+the Development capture above is the packaged reference for this page.
 
 ### Audit log
 

@@ -36,10 +36,37 @@ never as "verified".
   being added. The Edit mailbox capture shows the fixture address
   `qa@ce-qa-fixture.invalid` and the loopback host `127.0.0.1`; the list
   behind the dialog is hidden by the backdrop.
+- 23 October 2026 (Jira TOPS-351, P1 privacy re-check of the packaged
+  Development set): all 31 rasters under `images/v27.0.0-rc.1/` were
+  downloaded from `development` at commit `82c8470a` and opened at full size.
+  Thirty show only the synthetic crew accounts, synthetic fixture values,
+  the role-named owner label and the crew's test channel labels already
+  described in the folder index. One, the Zabbix-filtered Delivery history
+  capture, showed VM-numbered host and database labels taken from the
+  repository's test fixture (`VM-08 | Zabbix Server`, `DB-01`, `DB-REPLICA`)
+  that read like internal infrastructure names; it was withdrawn and replaced
+  by a Synology-filtered capture whose rows name only the synthetic device
+  `synthetic-dsm-01`. The same check confirmed live on Development that the
+  Mailboxes tab, the Activity tab and the unfiltered Delivery history still
+  show real connected-mailbox labels, sender addresses and message subjects;
+  those pages remain uncaptured and are described in writing.
+- 23 October 2026, same re-check, rest of the inventory: every other retained
+  raster in the checkout was opened at full size except the three token
+  captures, which the crew's tooling still cannot open (see "Validation
+  records"). No readable private address, mailbox, sender, token or hostname
+  was found; the existing masks cover the labels they were meant to cover.
+  One unembedded historical card, the v1.9.6 Teams Xen Orchestra card, showed
+  its repository and VM names (`NAS-01 / Critical Backups`, `APP-01`)
+  unmasked; it was withdrawn on the same grounds as the v3.1.0 Discord Xen
+  Orchestra card of 22 October. The rows below that previously read
+  "unreviewed" now record this inspection; the other rows keep their earlier
+  record date, but each was also opened on 23 October 2026.
 
-Sixteen captures are now excluded from current documentation. On 22 October
-2026, after these changes, the inventory held 105 retained rows and current
-documents linked 90 of them; counts in this page are dated
+Eighteen captures are now excluded from current documentation. On 22 October
+2026, after that day's changes, the inventory held 105 retained rows and current
+documents linked 90 of them. On 23 October 2026 two rows were withdrawn and one
+added, leaving 104 retained rows; the linked count is unchanged because the
+withdrawn v1.9.6 card was not embedded. Counts in this page are dated
 observations and the guard test, not this prose, is the authority.
 
 ## Withdrawn captures
@@ -79,8 +106,20 @@ The crew's repository tools can create and overwrite files but cannot delete
 them, so on 22 October 2026 these three files were overwritten with empty
 content to remove their pixels from the branch. A person with delete access
 should remove the three empty placeholders; until then the guard accepts them
-only while they stay empty. Git history before that date still contains the
-images, as it does for the 15 October withdrawals.
+only while they stay empty.
+
+Withdrawn on 23 October 2026, after the P1 privacy re-check (Jira TOPS-351).
+The first was embedded by the WebUI guide and is now replaced there by the
+Synology-filtered capture listed in the inventory; the second was not
+embedded anywhere:
+
+- `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` — VM-numbered host and database labels (`VM-08 | Zabbix Server`, `DB-01`, `DB-REPLICA`) in the sample rows and message.
+- `images/teams-xen-orchestra-v1.9.6.png` — unmasked backup repository and VM names (`NAS-01 / Critical Backups`, `APP-01`).
+
+They were overwritten with empty content the same way; a person with delete
+access should remove the empty placeholders. Git history before each
+withdrawal date still contains the images, as it does for the 15 October
+withdrawals.
 
 The retained captures are listed in the inventory below with the date of their
 last recorded inspection. Their dated validation results are historical
@@ -172,20 +211,19 @@ raster under `docs/images/` needs a row.
 |---|---|---|
 | `images/logo.png` | retained | product logo, not a capture |
 | `images/discord-xen-orchestra-v1.9.6.png` | retained | historical card with the retired product name; not embedded; opened 22 Oct 2026, open point above |
-| `images/teams-xen-orchestra-v1.9.6.png` | retained | historical card with the retired product name; not embedded; unreviewed |
-| `images/v2.5.2-destinations.png` | retained | historical v2.5.2 capture; not embedded; unreviewed |
+| `images/v2.5.2-destinations.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v2.5.2-discord-idrac.png` | retained | historical v2.5.2 capture embedded by the Dell iDRAC guide as outdated; reviewed 15 Oct 2026 |
-| `images/v2.5.2-discord-zabbix.png` | retained | historical v2.5.2 capture; not embedded; unreviewed |
-| `images/v2.5.2-inputs.png` | retained | historical v2.5.2 capture; not embedded; unreviewed |
-| `images/v2.5.2-overview.png` | retained | historical v2.5.2 capture; not embedded; unreviewed |
-| `images/v2.5.2-routing-flow.png` | retained | historical v2.5.2 capture; not embedded; unreviewed |
-| `images/v2.5.2-settings.png` | retained | historical v2.5.2 capture; not embedded; unreviewed |
-| `images/v2.5.2-sources.png` | retained | historical v2.5.2 capture; not embedded; unreviewed |
-| `images/v2.5.2-teams.png` | retained | historical v2.5.2 capture; not embedded; unreviewed |
+| `images/v2.5.2-discord-zabbix.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
+| `images/v2.5.2-inputs.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026; bind address `0.0.0.0` only |
+| `images/v2.5.2-overview.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
+| `images/v2.5.2-routing-flow.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
+| `images/v2.5.2-settings.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026; open point above |
+| `images/v2.5.2-sources.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
+| `images/v2.5.2-teams.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v3.1.0-dashboard.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026 |
 | `images/v3.1.0-destinations.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026 |
-| `images/v3.1.0-discord-idrac.png` | retained | historical v3.1.0 capture; not embedded; unreviewed |
-| `images/v3.1.0-discord-unifi.png` | retained | historical v3.1.0 capture; not embedded; unreviewed |
+| `images/v3.1.0-discord-idrac.png` | retained | historical v3.1.0 capture; not embedded; opened 23 Oct 2026 |
+| `images/v3.1.0-discord-unifi.png` | retained | historical v3.1.0 capture; not embedded; opened 23 Oct 2026 |
 | `images/v3.1.0-routing-flow.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026; open point above |
 | `images/application-setup/checkmk-all-events.jpg` | retained | reviewed 15 Oct 2026 |
 | `images/application-setup/checkmk-sending-conditions.jpg` | retained | reviewed 15 Oct 2026 |
@@ -249,7 +287,7 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | synthetic Development capture, 23 Oct 2026; device `synthetic-dsm-01` only |
 | `images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
