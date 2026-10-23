@@ -135,7 +135,7 @@ def test_preview_scenario_uses_integration_severities_and_temporary_style_overri
     api = PLATFORM_API.read_text(encoding="utf-8")
     output_service = OUTPUT_SERVICE.read_text(encoding="utf-8")
 
-    assert "function previewSeverityValues(route)" in script
+    assert "function previewDeclaredSeverities(route)" in script
     assert 'routeFilterValuesForSource(route.source, "severities")' in script
     assert "function refreshPreviewSeverityOptions()" in script
     assert "function previewRouteSupportsSeverity(route, severity)" in script
