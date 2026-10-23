@@ -24,7 +24,6 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `destinations-list-admin-1440.png` | Destinations list | administrator | 1440 | 15:48 |
 | `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | 15:49 |
 | `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | 15:49 |
-| `audit-log-overview-admin-1440.png` | Audit log | administrator | 1440 | 15:49 |
 | `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | 15:50 |
 | `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens) | administrator | 1440 | 15:50 |
 | `users-search-admin-1440.png` | Users, filtered to the crew accounts | administrator | 1440 | 15:51 |
@@ -44,8 +43,9 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 
 The two preview captures were replaced on 21 October 2026 at the times shown.
 The Zabbix-filtered Delivery history capture of 21 October 2026 (15:53) was
-withdrawn on 23 October 2026 and is no longer listed; see "Replaced on
-23 October 2026" below. The other 23 files of this set are unchanged.
+withdrawn on 23 October 2026 and is no longer listed, and so is the Audit log
+capture; see "Withdrawn and replaced on 23 October 2026" below. The other 22
+files of this table are unchanged.
 
 ## Added on 22 October 2026 (commit 8dc1b2ca)
 
@@ -81,7 +81,15 @@ Notes on these five files:
 - The 390 px rules capture is scrolled so that one complete rule card is
   visible; the page header stays fixed at the top.
 
-## Replaced on 23 October 2026 (commit 82c8470a)
+## Withdrawn and replaced on 23 October 2026 (capture base commit 82c8470a)
+
+The Audit log capture of 21 October 2026 (15:49) was also withdrawn on
+23 October 2026 (Jira TOPS-356): its audit rows show the user name of the
+Development deployment's administrator account, which is not one of the
+synthetic crew accounts, together with truncated internal record identifiers.
+It is not replaced; the [WebUI guide](../../webui.md) describes the Audit log
+page in writing. Like the Zabbix file below, it remains in the folder as an
+empty placeholder until a person with delete access removes it.
 
 The Zabbix-filtered Delivery history capture of 21 October 2026 was withdrawn
 on 23 October 2026 (Jira TOPS-351): its sample rows, although taken from the
@@ -151,6 +159,8 @@ mailbox addresses.
 - Email Alerts Mailboxes tab: a personal mailbox label (only the Edit mailbox
   dialog of the synthetic IMAP mailbox is captured, with the list hidden
   behind the dialog backdrop).
+- Audit log: audit rows show the user name of the Development deployment's
+  administrator account and internal record identifiers.
 - Users without a search filter: personal names of other accounts.
 - Backups: a private storage address.
 
