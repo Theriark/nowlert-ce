@@ -341,7 +341,11 @@ see activity allowed by the ownership model; administrators can inspect all
 retained audit events. Filters, date range and sort are applied on the server
 before paging, and it uses the same pagination contract as Delivery history.
 
-![Audit log with health checks, event list and event details (development, administrator, 1440 px)](images/v27.0.0-rc.1/audit-log-overview-admin-1440.png)
+The page shows the health checks, the filterable event list and the details
+of the selected event. It is described here in writing instead of captured:
+its rows name the signed-in accounts and carry internal record identifiers, and
+the capture taken on 21 October 2026 was withdrawn on 23 October 2026 (see the
+[screenshot privacy review](guides/screenshot-privacy.md)).
 
 ### Users
 

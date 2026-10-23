@@ -61,13 +61,26 @@ never as "verified".
   Orchestra card of 22 October. The rows below that previously read
   "unreviewed" now record this inspection; the other rows keep their earlier
   record date, but each was also opened on 23 October 2026.
+- 23 October 2026, independent test of that change (Jira TOPS-356): the Audit
+  log capture of the Development set showed, in its audit rows, the user name
+  of the Development deployment's administrator account together with
+  truncated internal record identifiers. That account is not one of the
+  synthetic crew accounts, the folder index did not list it among the names
+  shown, and nothing in the repository establishes it as synthetic, so the
+  capture was withdrawn rather than described as synthetic. The statement above
+  that the other thirty captures of the folder show only synthetic values no
+  longer covers it. The Audit log page is described in writing instead.
 
-Eighteen captures are now excluded from current documentation. On 22 October
-2026, after that day's changes, the inventory held 105 retained rows and current
-documents linked 90 of them. On 23 October 2026 two rows were withdrawn and one
-added, leaving 104 retained rows; the linked count is unchanged because the
-withdrawn v1.9.6 card was not embedded. Counts in this page are dated
-observations and the guard test, not this prose, is the authority.
+Nineteen captures are now excluded from current documentation. On 22 October
+2026 the inventory held 105 retained rows, 90 of them linked from current
+documents; the five synthetic captures added later that day brought it to 110
+retained rows and 95 linked. On 23 October 2026 the Zabbix row was replaced by
+the Synology row (still 110), the unembedded v1.9.6 Teams card was withdrawn
+(109 retained rows, 95 linked) and the audit log capture was withdrawn (108
+retained rows, 94 linked). An earlier version of this paragraph gave 105 and
+104 retained rows for those states; those numbers were wrong. Counts in this
+page are dated observations and the guard test, not this prose, is the
+authority.
 
 ## Withdrawn captures
 
@@ -120,6 +133,15 @@ They were overwritten with empty content the same way; a person with delete
 access should remove the empty placeholders. Git history before each
 withdrawal date still contains the images, as it does for the 15 October
 withdrawals.
+
+Withdrawn on 23 October 2026, after the independent test of that change (Jira
+TOPS-356). It was embedded by the WebUI guide, which now describes the page in
+writing:
+
+- `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` — user name of the Development deployment's administrator account, which is not a synthetic crew account, and truncated internal record identifiers in the audit rows.
+
+It was overwritten with empty content the same way, so the number of empty
+placeholders awaiting deletion by a person is now six.
 
 The retained captures are listed in the inventory below with the date of their
 last recorded inspection. Their dated validation results are historical
@@ -191,7 +213,10 @@ confirmed exposures.
   reads like a real role name, internal destination and channel names, the
   names of the synthetic test accounts and a timezone. The folder index
   describes them as synthetic Development values; whether they belong in
-  public documentation is a policy decision.
+  public documentation is a policy decision. The account name also appears as
+  the owner label of the shared destinations in the destination captures that
+  remain; only the Audit log capture, where it appeared in the audit rows with
+  internal record identifiers, was withdrawn on 23 October 2026.
 - Token captures `images/hardware-setup/nowlert-token-list.png`,
   `images/hardware-setup/nowlert-token-scope.png` and
   `images/portainer-setup/token-scope.png`: not viewable by the crew (see
@@ -282,7 +307,6 @@ raster under `docs/images/` needs a row.
 | `images/unifi-setup/network-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-noise-filter.png` | retained | reviewed 15 Oct 2026 |
-| `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
