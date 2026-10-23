@@ -169,10 +169,39 @@ jobs:
 
           DEVELOPMENT_SHA="$(git rev-parse refs/remotes/origin/development)"
 
-          [[ "${SOURCE_COMMIT}" == "${DEVELOPMENT_SHA}" ]] || {
-            echo "::error::Stage source ${SOURCE_COMMIT} is not current development ${DEVELOPMENT_SHA}"
+          # The pipeline that runs must be the current development head.
+          [[ "${GITHUB_SHA}" == "${DEVELOPMENT_SHA}" ]] || {
+            echo "::error::Stage promotion must run the current development pipeline ${DEVELOPMENT_SHA}, not ${GITHUB_SHA}"
             exit 1
           }
+
+          if [[ "${SOURCE_COMMIT}" != "${DEVELOPMENT_SHA}" ]]; then
+            # Unchanged candidate with a pipeline-only repair: the approved
+            # source may trail development, but only when it is an ancestor
+            # and every path that changed since is workflow or pipeline-test
+            # code. Application source, scripts, docs and dependencies must
+            # equal the candidate; the sealed digest, RC tag, manifest and
+            # Development run are verified against SOURCE_COMMIT below.
+            git merge-base --is-ancestor "${SOURCE_COMMIT}" "${DEVELOPMENT_SHA}" || {
+              echo "::error::Stage source ${SOURCE_COMMIT} is not current development ${DEVELOPMENT_SHA} and is not its ancestor"
+              exit 1
+            }
+
+            PIPELINE_ONLY_PATTERN='^(\.github/workflows/[A-Za-z0-9._-]+\.ya?ml|tests/pipeline/[A-Za-z0-9._-]+\.py)$'
+            CHANGED_PATHS="$(
+              git diff --no-renames --name-only \
+                "${SOURCE_COMMIT}" "${DEVELOPMENT_SHA}"
+            )"
+            while IFS= read -r CHANGED_PATH; do
+              [[ -n "${CHANGED_PATH}" ]] || continue
+              [[ "${CHANGED_PATH}" =~ ${PIPELINE_ONLY_PATTERN} ]] || {
+                echo "::error::Stage source ${SOURCE_COMMIT} is not current development ${DEVELOPMENT_SHA}: ${CHANGED_PATH} changed outside the pipeline-only paths"
+                exit 1
+              }
+            done <<<"${CHANGED_PATHS}"
+
+            echo "PASS: ${SOURCE_COMMIT} is an ancestor of development ${DEVELOPMENT_SHA} that differs only in workflow and pipeline-test files"
+          fi
 
       - name: Verify the release candidate tag, prerelease and Development run
         id: rc
