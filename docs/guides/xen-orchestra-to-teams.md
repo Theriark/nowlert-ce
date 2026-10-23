@@ -99,20 +99,41 @@ Xen Orchestra SMTP message
 
 ## 6. Verify the result
 
-Before any real mail arrives, check what Nowlert will build for this
-destination. In **Destinations**, choose **Preview** on the Teams destination.
-The source comes from the routes assigned to the destination, so there is no
-source field to set. Under **Routing**, confirm that **Xen Orchestra SMTP** is
-selected; if it is not, choose **Manage routes** and assign it (section 4).
-Pick a **Severity** and choose **Generate preview**. The generated Teams payload
-appears under **Preview output**, in the message style saved on the destination,
-and the severity you picked is visible in it. **Message style** is shown but
-cannot be changed in this dialog; change it on the destination itself. If no
-route is selected, Preview shows an error message instead of a payload, so fix
-the route assignment before you continue. Preview never sends data; **Send test
-delivery** in the same dialog does contact Teams.
+Before any real mail arrives, check the Teams card Nowlert will build. In
+**Destinations**, choose **Preview** on the Teams destination. The dialog shows
+a **Severity** selector, a **Message style** selector, a **Routing** summary
+with **Manage routes**, an editable **Message** text and the **Preview output**
+area with **Copy**, **Send test delivery** and **Generate preview** buttons.
+There are no visible Source or Title fields: Preview builds one sample event
+for each route selected under **Routing**, using that route's own source.
 
-Then check **Delivery history** in Nowlert and confirm:
+1. Under **Routing**, check which routes are selected. To preview only Xen
+   Orchestra, choose **Manage routes**, keep only **Xen Orchestra SMTP**
+   selected and choose **Done**. The assignment itself is changed in the
+   destination editor (section 4), not here.
+2. Pick a **Severity**. The list contains the severities declared by the
+   selected routes. A route is only previewed when the chosen severity is in its
+   declared list, and a skipped route is simply absent from the output. If
+   **Xen Orchestra SMTP** does not appear in **Preview output**, do not read
+   that as a routing fault; use the **Delivery history** check below instead.
+3. Choose **Generate preview**. With one route the output is that route's
+   Teams payload; with several routes it is a JSON object with a `severity`
+   value, a `message_style` value and an `outputs` list holding one entry per
+   route. **Message style** is only selectable for Discord and generic webhook
+   destinations; for Teams it reads **Native** and is disabled, and the payload
+   follows the style saved on the destination (section 3).
+4. If no route is selected, or none of the selected routes supports the chosen
+   severity, the output stays empty and an error message names the reason.
+
+Preview never sends data. **Send test delivery** in the same dialog does contact
+Teams, one delivery per previewed route.
+
+Preview is a rendering check, not proof that mail reaches the destination. To
+verify the real path, send one synthetic Xen Orchestra test message (for
+example the Xen Orchestra test email to the Nowlert SMTP listener) and look for
+it in **Delivery history**.
+
+Then check **Delivery history** in Nowlert for that test message and confirm:
 
 - source/integration is Xen Orchestra;
 - the expected route and Teams destination were selected;
