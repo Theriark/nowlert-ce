@@ -95,7 +95,7 @@ def test_f5_audit_log_outcome_column_is_not_clipped_at_1440():
     # in audit_log_refinement.css; with four 10px gaps and 28px padding they
     # fit the 744px list panel that the 1.3fr share yields at 1440px.
     audit = _read("audit_log_refinement.css")
-    final_rule = audit[audit.rindex("#view-audit .audit-log-columns,\\n#view-audit .audit-log-row {\\n  gap: 10px !important;"):]
+    final_rule = audit[audit.rindex("#view-audit .audit-log-columns,\n#view-audit .audit-log-row {\n  gap: 10px !important;"):]
     for minimum in ("minmax(104px, 0.78fr)", "minmax(170px, 1.28fr)", "minmax(136px, 1fr)", "minmax(78px, 0.58fr)"):
         assert minimum in final_rule
     assert 104 + 170 + 104 + 136 + 78 + 4 * 10 + 28 <= 744
@@ -104,7 +104,7 @@ def test_f5_audit_log_outcome_column_is_not_clipped_at_1440():
 def test_f6_update_status_copy_matches_the_check_result():
     script = _read("enhancements.js")
     message = script[script.index("function updateStatusMessage(version) {"):]
-    message = message[: message.index("\\n  }") + 4]
+    message = message[: message.index("\n  }") + 4]
     assert "if (version.check_error) {" in message
     assert "could not be completed" in message
     assert "if (version.update_available) {" in message
@@ -113,7 +113,7 @@ def test_f6_update_status_copy_matches_the_check_result():
     assert "Nowlert is up to date with the advertised version." in message
 
     render = script[script.index("renderUpdates = function enhancedRenderUpdates() {"):]
-    render = render[: render.index("\\n  };") + 5]
+    render = render[: render.index("\n  };") + 5]
     assert "originalRenderUpdates();" in render
     assert 'if (status) status.textContent = updateStatusMessage(state.versionStatus || {});' in render
     assert "updateCheckMetadata();" in render
@@ -144,14 +144,14 @@ def test_f7_buttons_use_ascii_or_inline_svg_instead_of_symbol_glyphs():
     assert 'button.textContent = "Check for updates";' in reference
     assert 'restart.append("Restart Nowlert");' in reference
     assert 'if (!restart.querySelector(".button-glyph")) {' in reference
-    for glyph in ("\\uff0b", "\\u27f3", "\\u23fb"):
+    for glyph in ("＋", "⟳", "⏻"):
         assert glyph not in markup
         assert glyph not in filtering
         assert glyph not in reference
     # The Restart dialog button and the header Restart button draw the glyph
     # with an inline SVG that inherits the button colour.
     assert '<button class="button danger" value="default"><svg class="button-glyph"' in markup
-    assert 'restart.insertAdjacentHTML("afterbegin", \\'<svg class="button-glyph"' in reference
+    assert 'restart.insertAdjacentHTML("afterbegin", \'<svg class="button-glyph"' in reference
 
 
 def test_f7_security_posture_follows_the_mfa_state():
@@ -172,4 +172,4 @@ def test_f7_email_alert_destructive_actions_use_the_app_confirm_dialog():
         '"Delete mailbox"',
     ):
         assert f"await confirmAction({title}," in script
-    assert 'await confirmAction(\\n          "Force replay",' in script
+    assert 'await confirmAction(\n          "Force replay",' in script

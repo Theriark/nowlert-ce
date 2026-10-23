@@ -13,7 +13,7 @@ def test_round24_routing_flow_animates_filtered_and_delivered_branches():
     storage = read("src/storage/routing_flow.py")
 
     assert '"outcome": "filtered"' in storage
-    assert 'f"filtered:{row[\\'id\\']}"' in storage
+    assert 'f"filtered:{row[\'id\']}"' in storage
     assert "recent_filtered = connection.execute(" in storage
     assert 'const filtered = item.outcome === "filtered";' in script
     assert "p.filtered && filterPaths?.length ? filterPaths.slice(0, 1) : paths" in script
