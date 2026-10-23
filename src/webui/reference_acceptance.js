@@ -4,6 +4,7 @@
 (() => {
   const USER_PAGE_SIZE = 6;
   const TOKEN_PAGE_SIZE = 6;
+  const PREVIEW_DEFAULT_SEVERITIES = ["critical", "warning", "info"];
   let userFilter = "all";
   let userQuery = "";
   let userPage = 1;
@@ -71,8 +72,7 @@
     return (state.routes || []).filter((route) => previewRouteSelection.has(route.id));
   }
 
-  function previewSeverityValues(route) {
-    if (!route) return [];
+  function previewDeclaredSeverities(route) {
     if (typeof routeFilterValuesForSource === "function") {
       return routeFilterValuesForSource(route.source, "severities")
         .map((value) => String(value || "").trim())
@@ -85,6 +85,12 @@
     return Array.isArray(values)
       ? values.map((value) => String(value || "").trim()).filter(Boolean)
       : [];
+  }
+
+  function previewSeverityValues(route) {
+    if (!route) return [];
+    const declared = previewDeclaredSeverities(route);
+    return declared.length ? declared : PREVIEW_DEFAULT_SEVERITIES.slice();
   }
 
   function previewAvailableSeverities() {
