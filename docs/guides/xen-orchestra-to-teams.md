@@ -13,7 +13,7 @@ Xen Orchestra
     v
 Nowlert CE
     |
-    | Xen Orchestra (SMTP) route
+    | Xen Orchestra SMTP route
     v
 Microsoft Teams
 ```
@@ -56,14 +56,14 @@ an artificial failure.
 
 In **Destinations** in the Nowlert WebUI:
 
-1. select **Add destination**;
+1. select **New destination** (the editor opens titled **Add destination**);
 2. choose the type **Microsoft Teams** (workflow or incoming webhook delivery);
 3. give it a clear name such as `Infrastructure - Teams`;
 4. enter the Teams workflow or incoming webhook URL in the write-only
    **Webhook URL** field;
 5. under **Connection and presentation**, keep **Message style** on
    **Modern Card** or choose **Classic Card**, and optionally fill
-   **Channel / destination** for display;
+   **Channel / workflow** for display;
 6. save it; and
 7. use the destination test action before attaching production routes. The
    test sends a Nowlert-owned notification rendered in the selected style.
@@ -73,7 +73,7 @@ The credential is not returned by normal read APIs after it is stored.
 ## 4. Assign the Xen Orchestra route
 
 In **Destinations**, edit the Teams destination and open **Manage routes**.
-Select **Xen Orchestra (SMTP)**, choose **Done**, then **Save changes**. Keep the
+Select **Xen Orchestra SMTP**, choose **Done**, then **Save changes**. Keep the
 destination and route enabled. No extra route needs to be created.
 
 Use **Filtering** to narrow destination-specific events when needed. If Xen
@@ -92,14 +92,23 @@ Xen Orchestra SMTP message
   -> SMTP input
   -> Xen Orchestra detection/parser
   -> normalised event
-  -> Xen Orchestra (SMTP) route
+  -> Xen Orchestra SMTP route
   -> Teams destination
   -> Modern Card or Classic Card
 ```
 
 ## 6. Verify the result
 
-Check **Delivery history** in Nowlert and confirm:
+Before any real mail arrives, check what Nowlert will build for this
+destination. In **Destinations**, choose **Preview** on the Teams destination,
+set **Source** to `xen_orchestra`, pick a **Severity**, and choose **Generate
+preview**. The generated Teams payload appears below the form, in the message
+style saved on the destination, and the severity you picked is visible in it.
+An empty result means the route or destination needs attention before you
+continue. Preview never sends data; **Send test delivery** in the same dialog
+does contact Teams.
+
+Then check **Delivery history** in Nowlert and confirm:
 
 - source/integration is Xen Orchestra;
 - the expected route and Teams destination were selected;
