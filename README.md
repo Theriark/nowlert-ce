@@ -135,35 +135,32 @@ See [v3.1.6 release notes](docs/releases/v3.1.6.md) and the
 
 # 📸 Preview
 
-The current WebUI of the v27.0.0 release-candidate line. The captures were
-taken on 21 to 23 October 2026 from the Development deployment of the
-`development` branch with synthetic test accounts, destinations and events;
-they are the reviewed screenshot set of the `v27.0.0-rc.7` documentation
-package, and the Development build `66d50b00` runs the same application source
-(`9823244c`), against which the pages were compared live on 24 October 2026.
-The [capture index](docs/images/v27.0.0-rc.1/README.md) lists every file with
-its page, role, viewport and capture time.
+The current WebUI of the v27.0.0 release-candidate line, captured on 21 October
+2026 from the Development deployment of the `development` branch with
+synthetic test data. These are part of the reviewed screenshot set of the
+`v27.0.0-rc.7` documentation package; the Development build `66d50b00` runs
+the same application source (`9823244c`); its Dashboard, Routing Flow and
+Destinations pages were compared live with these captures on 24 October 2026.
 
-| Dashboard | Routing Flow |
-|---|---|
-| ![Nowlert Dashboard with delivery performance and recent activity](docs/images/v27.0.0-rc.1/dashboard-live-admin-1440.png) | ![Nowlert Routing Flow from integrations through filters to destinations](docs/images/v27.0.0-rc.1/routing-flow-live-admin-1440.png) |
+| Sign in | Dashboard | Routing Flow |
+|---|---|---|
+| ![Nowlert sign-in page on a 390 px phone screen](docs/images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png) | ![Nowlert Dashboard on a 390 px phone screen with integration, destination and route counts](docs/images/v27.0.0-rc.1/dashboard-live-admin-390.png) | ![Nowlert Routing Flow on a 390 px phone screen with delivery counters and integration cards](docs/images/v27.0.0-rc.1/routing-flow-live-admin-390.png) |
 
-| Destinations | Delivery history |
-|---|---|
-| ![Nowlert Destinations with shared test destinations](docs/images/v27.0.0-rc.1/destinations-list-admin-1440.png) | ![Nowlert Delivery history filtered to synthetic Synology events](docs/images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png) |
-
-| Email Alerts rules | Filtering |
-|---|---|
-| ![Nowlert Email Alerts classification rules](docs/images/v27.0.0-rc.1/email-alerts-rules-admin-1440.png) | ![Nowlert Filtering with Integration behavior](docs/images/v27.0.0-rc.1/filtering-list-admin-1440.png) |
+The Preview shows only captures in which no account name, owner label,
+destination or channel name of the Development test data is visible. The
+desktop captures of the same set show those synthetic names, so they appear
+only in the [WebUI guide](docs/webui.md) and the
+[capture index](docs/images/v27.0.0-rc.1/README.md); whether they belong on
+this front page is an open point of the
+[screenshot privacy review](docs/guides/screenshot-privacy.md#open-points-for-a-person).
 
 Older captures of earlier interfaces (v3.1.0 and v2.5.2) are kept only as
 history; the [documentation index](docs/README.md#historical-screenshots)
-lists them, and the
-[screenshot privacy review](docs/guides/screenshot-privacy.md) records every
-image and the captures that were withdrawn.
+lists them, and the screenshot privacy review records every image and the
+captures that were withdrawn.
 
-More UI behavior, with captures of every page, is documented in the
-[WebUI guide](docs/webui.md).
+The [WebUI guide](docs/webui.md) describes every page; it shows captures of
+all pages except those left out for privacy.
 
 ---
 
@@ -332,6 +329,7 @@ used to receive the event.
 | Zabbix | `zabbix` | SMTP, HTTP | Monitoring |
 | Grafana | `grafana` | HTTP | Monitoring |
 | Prometheus | `prometheus` | HTTP | Monitoring |
+| Checkmk | `checkmk` | HTTP | Monitoring |
 | Portainer | `portainer` | HTTP | Containers |
 | Semaphore | `semaphore` | SMTP, HTTP | Automation |
 | Sonarr | `sonarr` | HTTP | Automation |
@@ -350,7 +348,8 @@ used to receive the event.
 | Dell iDRAC | `dell_idrac` | Redfish | Hardware |
 | Home Assistant | `home_assistant` | HTTP | Automation |
 
-Detailed setup guides are under [`docs/integrations/`](docs/integrations/).
+Detailed setup guides are under [`docs/integrations/`](docs/integrations/);
+Checkmk is described in [Checkmk notifications](docs/checkmk.md).
 
 ---
 
@@ -727,5 +726,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 Nowlert CE is released under the MIT License. See [LICENSE](LICENSE).
 
 Powered by **Theriark**.
-
-[Checkmk notifications](docs/checkmk.md): native notification script, host/service states, recovery, acknowledgement, downtime and flapping events.

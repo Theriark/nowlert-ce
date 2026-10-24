@@ -94,7 +94,9 @@ material.
   from the Development deployment with synthetic accounts and synthetic data, at
   1440, 768 and 390 pixel widths, listed in
   [the folder index](../images/v27.0.0-rc.1/README.md) and embedded in the
-  repository README, the Docker Hub README and the [WebUI guide](../webui.md).
+  [WebUI guide](../webui.md). The repository README and the Docker Hub README
+  Preview use only the three phone-width sign-in, Dashboard and Routing Flow
+  captures, which show no account, owner, destination or channel name.
   They are the reviewed screenshot set of the `v27.0.0-rc.7` documentation
   package. The v3.1.0 set is historical; the v2.5.2 and v1.9.6 captures show
   the retired product name and remain outdated.

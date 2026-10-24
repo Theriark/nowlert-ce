@@ -21,9 +21,9 @@ theriark/nowlert-ce:3.1.6
 ```
 
 The next version, v27.0.0, is in release-candidate testing (`v27.0.0-rc.N`
-pre-release tags). Release candidates are not stable releases and are not
-published as Docker Hub version tags; development builds still report version
-3.1.6 until v27.0.0 is released.
+pre-release tags in the source repository). Release candidates are
+not stable releases; use the `3.1.6` tag above for a stable deployment.
+Development builds still report version 3.1.6 until v27.0.0 is released.
 
 ## v3.1.6 highlights
 
@@ -46,18 +46,18 @@ images; this does not claim that development changes have been published.
 
 ## Preview
 
-The current WebUI of the v27.0.0 release-candidate line, captured on 21 to
-23 October 2026 from the Development deployment with synthetic test accounts,
-destinations and events (the reviewed screenshot set of the `v27.0.0-rc.7`
+The current WebUI of the v27.0.0 release-candidate line on a phone screen,
+captured on 21 October 2026 from the Development deployment with synthetic
+test data (part of the reviewed screenshot set of the `v27.0.0-rc.7`
 documentation package):
 
-![Nowlert Dashboard with delivery performance and recent activity](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/dashboard-live-admin-1440.png)
+| Sign in | Dashboard | Routing Flow |
+|---|---|---|
+| ![Nowlert sign-in page on a 390 px phone screen](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png) | ![Nowlert Dashboard on a 390 px phone screen with integration, destination and route counts](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/dashboard-live-admin-390.png) | ![Nowlert Routing Flow on a 390 px phone screen with delivery counters and integration cards](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/routing-flow-live-admin-390.png) |
 
-![Nowlert Routing Flow from integrations through filters to destinations](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/routing-flow-live-admin-1440.png)
-
-![Nowlert Destinations with shared test destinations](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/destinations-list-admin-1440.png)
-
-The repository's WebUI guide shows every page, and its documentation index
+The Preview shows only captures in which no account name, owner label,
+destination or channel name of the Development test data is visible. The
+repository's WebUI guide shows the desktop pages, and its documentation index
 lists the older captures that are kept only as history.
 
 ## Quick start

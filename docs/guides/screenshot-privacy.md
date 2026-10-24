@@ -78,6 +78,23 @@ never as "verified".
   references files nobody in the crew has inspected. The three files stay in
   the checkout as retained rows until a person opens them; they must not be
   embedded again before that inspection is recorded.
+- 24 October 2026 (Jira TOPS-422 and TOPS-439, review of pull request 635):
+  that day the Preview of the README (six captures) and of the Docker Hub
+  README (three captures) had been switched to desktop captures of the
+  `images/v27.0.0-rc.1/` set. The independent code review found that they
+  show the names of the open point below: the administrator account name
+  (`ai-crew-admin-…`), the owner labels `ITMANAGER`, `USER` and
+  `CE-QA-20261015` and the channel label `#ce-nowlert-development`. All 30
+  non-empty captures of the set were opened at full size again. Every desktop
+  capture of a signed-in page shows the account name in the sidebar; the
+  dialog captures show it only blurred behind the dialog, and blur is not a
+  masking method this page accepts. Both Previews now embed only the three
+  phone-width captures `sign-in-empty-signed-out-390.png`,
+  `dashboard-live-admin-390.png` and `routing-flow-live-admin-390.png`, which
+  show none of those names, no destination or channel name and no blurred
+  text. The other captures of the set remain embedded by the WebUI guide only.
+  No image was edited, masked or recaptured, and the policy question below is
+  still open.
 
 Nineteen captures are now excluded from current documentation. On 22 October
 2026 the inventory held 105 retained rows, 90 of them linked from current
@@ -219,15 +236,21 @@ confirmed exposures.
   `images/zabbix-setup/recipient-media.png`: parts are blurred and the blurred
   text is unreadable, but blur is not a masking method this page accepts (see
   "Adding or replacing an image"). Decide whether to recapture.
-- The `images/v27.0.0-rc.1/` set (embedded by the README and the Docker Hub
-  README since 24 October 2026): shows an administrator account name that
-  reads like a real role name, internal destination and channel names, the
-  names of the synthetic test accounts and a timezone. The folder index
+- The `images/v27.0.0-rc.1/` set (embedded by the WebUI guide; the README and
+  Docker Hub README Preview embed only its three phone-width captures of the
+  sign-in, Dashboard and Routing Flow pages, which show none of the names
+  below): the other captures show an administrator account name that reads
+  like a real role name, internal destination and channel names, the names of
+  the synthetic test accounts and a timezone. The folder index
   describes them as synthetic Development values; whether they belong in
   public documentation is a policy decision. The account name also appears as
   the owner label of the shared destinations in the destination captures that
   remain; only the Audit log capture, where it appeared in the audit rows with
   internal record identifiers, was withdrawn on 23 October 2026.
+  Until a person decides, no capture that shows these names is embedded by
+  the README or the Docker Hub README; `tools/validate_current_documentation.py`
+  and `tests/test_current_documentation_contract.py` enforce the list of
+  captures the Preview may use.
 - Token captures `images/hardware-setup/nowlert-token-list.png`,
   `images/hardware-setup/nowlert-token-scope.png` and
   `images/portainer-setup/token-scope.png`: not viewable by the crew (see
@@ -320,7 +343,7 @@ raster under `docs/images/` needs a row.
 | `images/unifi-setup/protect-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-noise-filter.png` | retained | reviewed 15 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | synthetic Development capture, 23 Oct 2026; device `synthetic-dsm-01` only |
@@ -340,19 +363,19 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png` | retained | synthetic Development capture, 22 Oct 2026; fixture address and loopback host only |
 | `images/v27.0.0-rc.1/filtering-list-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/settings-regional-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png` | retained | synthetic Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png` | retained | synthetic Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/users-search-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
 | `images/zabbix-setup/action-operations.png` | retained | reviewed 15 Oct 2026 |
 | `images/zabbix-setup/media-enabled.png` | retained | reviewed 15 Oct 2026 |
-| `images/zabbix-setup/native-problem-accepted.png` | retained | reviewed 15 Oct 2026 |
 | `images/zabbix-setup/native-recovery-accepted.png` | retained | reviewed 15 Oct 2026 |
+| `images/zabbix-setup/native-problem-accepted.png` | retained | reviewed 15 Oct 2026 |
 | `images/zabbix-setup/recipient-media.png` | retained | reviewed 15 Oct 2026 |
 
 ## Validation records

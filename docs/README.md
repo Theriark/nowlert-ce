@@ -83,8 +83,11 @@ test accounts, synthetic destinations and synthetic events, at 1440, 768 and
 follow `<page>-<state>-<role>-<width>.png`; the folder index lists every file
 with its page, role, viewport and capture time, and names the pages that were
 left out because they would show a mailbox identity, personal names or a
-private address. The repository README, the Docker Hub README and the
-[WebUI guide](webui.md) embed these captures.
+private address. The [WebUI guide](webui.md) embeds these captures. The
+Preview of the repository README and the Docker Hub README embeds only the
+three phone-width captures of the sign-in, Dashboard and Routing Flow pages,
+which show no account, owner, destination or channel name (see the
+[screenshot privacy review](guides/screenshot-privacy.md)).
 
 Every other raster under `images/` that shows the Nowlert WebUI or a delivered
 card is an older capture and is labeled as such where it is used.

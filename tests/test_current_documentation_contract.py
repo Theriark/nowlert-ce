@@ -82,6 +82,27 @@ def test_preview_shows_current_captures_and_history_stays_separate():
         assert "remains the current visual baseline" not in text
 
 
+# While the disclosure of the Development test-data names (account, owner,
+# destination and channel names) is an open point of
+# docs/guides/screenshot-privacy.md, the front-page Preview may use only
+# captures that show none of them. Each was opened at full size on
+# 24 October 2026; extend this list only after the same check.
+PREVIEW_CAPTURES = (
+    "sign-in-empty-signed-out-390.png",
+    "dashboard-live-admin-390.png",
+    "routing-flow-live-admin-390.png",
+)
+
+
+@pytest.mark.parametrize("relative", ("README.md", "DOCKERHUB_README.md"))
+def test_front_page_preview_uses_only_captures_without_test_data_names(relative):
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    embedded = set(re.findall(r"images/v27\.0\.0-rc\.1/([\w.-]+\.png)", text))
+    assert embedded == set(PREVIEW_CAPTURES), relative
+    for name in PREVIEW_CAPTURES:
+        assert (ROOT / "docs" / CURRENT_CAPTURE_DIR / name).stat().st_size > 0, name
+
+
 def test_current_captures_have_index_and_embeds_resolve():
     folder = ROOT / "docs" / CURRENT_CAPTURE_DIR
     index = (folder / "README.md").read_text(encoding="utf-8")
