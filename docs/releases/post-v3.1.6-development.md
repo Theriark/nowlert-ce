@@ -1,12 +1,15 @@
 # Nowlert CE development after v3.1.6
 
-**Release candidate version: not yet assigned.** `src/version.py` still reports
-`3.1.6`, the current stable release remains v3.1.6, and this note claims no new
-version number, tag, image alias or Stage promotion. It records what the
-`development` branch contains beyond v3.1.6 so that operators, testers and
-documentation reviewers can tell current development behavior from the released
-line. When a release candidate is cut, its numbered release note and QA
-checklist replace this note as the current release material.
+**Release candidate line: v27.0.0.** The `development` branch is tested as
+`v27.0.0-rc.N` pre-release tags (`v27.0.0-rc.7` at commit `9823244c` is the
+latest at the time of writing). A release candidate is not a stable release:
+`src/version.py` still reports `3.1.6`, the current stable release remains
+v3.1.6, and no stable v27.0.0 tag or image alias exists. This
+note records what the `development` branch contains beyond v3.1.6 so that
+operators, testers and documentation reviewers can tell current development
+behavior from the released line. When v27.0.0 is released, its numbered
+release note and QA checklist replace this note as the current release
+material.
 
 ## Compatibility
 
@@ -87,12 +90,14 @@ checklist replace this note as the current release material.
 ## Documentation state
 
 - Live captures of this development interface are packaged under
-  `docs/images/v27.0.0-rc.1/`: 31 screenshots taken on 21 and 22 October 2026
+  `docs/images/v27.0.0-rc.1/`: 30 screenshots taken on 21 to 23 October 2026
   from the Development deployment with synthetic accounts and synthetic data, at
   1440, 768 and 390 pixel widths, listed in
   [the folder index](../images/v27.0.0-rc.1/README.md) and embedded in the
-  [WebUI guide](../webui.md). The v3.1.0 set is historical; the v2.5.2 and
-  v1.9.6 captures show the retired product name and remain outdated.
+  repository README, the Docker Hub README and the [WebUI guide](../webui.md).
+  They are the reviewed screenshot set of the `v27.0.0-rc.7` documentation
+  package. The v3.1.0 set is historical; the v2.5.2 and v1.9.6 captures show
+  the retired product name and remain outdated.
 - A release candidate still needs: a version bump with a numbered release note
   and QA checklist, independent visual review of those captures, and the normal
   Development -> Stage -> Finalize CE Release path described in

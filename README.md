@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/Theriark/nowlert-ce/releases"><img src="https://img.shields.io/badge/stable-v3.1.6-F4C542" alt="Stable release v3.1.6"></a>
+  <a href="https://github.com/Theriark/nowlert-ce/releases"><img src="https://img.shields.io/badge/pre--release-v27.0.0_candidates-8A8F98" alt="Pre-release line: v27.0.0 release candidates"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.13-blue" alt="Python 3.13"></a>
   <img src="https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker ready">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
@@ -95,8 +96,10 @@ for the exact secret filenames and redirect URI requirements.
 
 | Property | Value |
 |---|---|
-| **Status** | Stable · Production Ready |
+| **Status** | v3.1.6 stable · v27.0.0 in release-candidate testing |
 | **Current Stable Release** | **v3.1.6** |
+| **Development line** | v27.0.0 release candidates (`v27.0.0-rc.N` pre-release tags); not a stable release |
+| **Version reported by development builds** | 3.1.6 (the version number changes only when v27.0.0 is released) |
 | **License** | MIT |
 | **Python** | 3.13 |
 | **Current development database schema** | 18 |
@@ -132,30 +135,35 @@ See [v3.1.6 release notes](docs/releases/v3.1.6.md) and the
 
 # 📸 Preview
 
-Historical v3.1.0 screenshots below illustrate the older interface and card
-formats. They are retained as versioned examples and do not represent the
-current development UI. Use the [WebUI guide](docs/webui.md) for current steps.
-
-## Historical WebUI examples
+The current WebUI of the v27.0.0 release-candidate line. The captures were
+taken on 21 to 23 October 2026 from the Development deployment of the
+`development` branch with synthetic test accounts, destinations and events;
+they are the reviewed screenshot set of the `v27.0.0-rc.7` documentation
+package, and the Development build `66d50b00` runs the same application source
+(`9823244c`), against which the pages were compared live on 24 October 2026.
+The [capture index](docs/images/v27.0.0-rc.1/README.md) lists every file with
+its page, role, viewport and capture time.
 
 | Dashboard | Routing Flow |
 |---|---|
-| ![Nowlert Dashboard](docs/images/v3.1.0-dashboard.png) | ![Nowlert Routing Flow](docs/images/v3.1.0-routing-flow.png) |
+| ![Nowlert Dashboard with delivery performance and recent activity](docs/images/v27.0.0-rc.1/dashboard-live-admin-1440.png) | ![Nowlert Routing Flow from integrations through filters to destinations](docs/images/v27.0.0-rc.1/routing-flow-live-admin-1440.png) |
 
-| Destinations |
-|---|
-| ![Nowlert Destinations](docs/images/v3.1.0-destinations.png) |
+| Destinations | Delivery history |
+|---|---|
+| ![Nowlert Destinations with shared test destinations](docs/images/v27.0.0-rc.1/destinations-list-admin-1440.png) | ![Nowlert Delivery history filtered to synthetic Synology events](docs/images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png) |
 
-The historical v3.1.0 Delivery History capture and the v3.1.0 Discord and
-Microsoft Teams Xen Orchestra card captures were withdrawn on 22 October 2026
-because they still showed deployment labels; the
-[screenshot privacy review](docs/guides/screenshot-privacy.md) records the
-withdrawal. The [Xen Orchestra to Discord](docs/guides/xen-orchestra-to-discord.md)
-and [Xen Orchestra to Teams](docs/guides/xen-orchestra-to-teams.md) guides
-describe the delivered cards in words, and the
-[WebUI guide](docs/webui.md) shows the current Delivery history page.
+| Email Alerts rules | Filtering |
+|---|---|
+| ![Nowlert Email Alerts classification rules](docs/images/v27.0.0-rc.1/email-alerts-rules-admin-1440.png) | ![Nowlert Filtering with Integration behavior](docs/images/v27.0.0-rc.1/filtering-list-admin-1440.png) |
 
-More UI behavior is documented in the [WebUI guide](docs/webui.md).
+Older captures of earlier interfaces (v3.1.0 and v2.5.2) are kept only as
+history; the [documentation index](docs/README.md#historical-screenshots)
+lists them, and the
+[screenshot privacy review](docs/guides/screenshot-privacy.md) records every
+image and the captures that were withdrawn.
+
+More UI behavior, with captures of every page, is documented in the
+[WebUI guide](docs/webui.md).
 
 ---
 
@@ -513,8 +521,8 @@ transport security, state location, and WebUI publication settings.
 
 Do **not** recreate legacy WebUI-managed YAML sections such as `outputs`,
 `routing`, `api.tokens`, `notifications`, `presentation`, `home_assistant`,
-`redfish`, `platform.backups`, or `webui.language` in a fresh v3.1.6
-configuration.
+`redfish`, `platform.backups`, or `webui.language` in a fresh configuration,
+whether for the v3.1.6 release or a current development build.
 
 See [Current configuration model](docs/current-configuration-model.md).
 

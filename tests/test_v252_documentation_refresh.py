@@ -16,14 +16,18 @@ def test_stable_documentation_uses_v316_and_preserves_v252_assets():
     assert "v3.1.6" in readme
     assert "v3.1.6" in dockerhub
 
-    current_visual_baseline = (
+    # Historical v3.1.0 captures stay packaged but are no longer the preview;
+    # the current captures live under docs/images/v27.0.0-rc.1/.
+    historical_v310 = (
         "v3.1.0-dashboard.png",
         "v3.1.0-routing-flow.png",
         "v3.1.0-destinations.png",
     )
-    for name in current_visual_baseline:
+    for name in historical_v310:
         assert (ROOT / "docs" / "images" / name).is_file(), name
-        assert name in readme or name in webui
+        assert name not in readme and name not in dockerhub and name not in webui, name
+    assert "docs/images/v27.0.0-rc.1/" in readme
+    assert "images/v27.0.0-rc.1/" in webui
 
     # Withdrawn on 22 October 2026 (screenshot privacy review): no current
     # document may embed them and only an empty placeholder may remain.

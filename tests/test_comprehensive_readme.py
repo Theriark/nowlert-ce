@@ -36,9 +36,11 @@ def test_readme_remains_comprehensive_and_current():
     for value in (
         "stable-v3.1.6-F4C542",
         "| **Current Stable Release** | **v3.1.6** |",
-        "v3.1.0-dashboard.png",
-        "v3.1.0-routing-flow.png",
-        "v3.1.0-destinations.png",
+        "v27.0.0 release candidates",
+        "docs/images/v27.0.0-rc.1/dashboard-live-admin-1440.png",
+        "docs/images/v27.0.0-rc.1/routing-flow-live-admin-1440.png",
+        "docs/images/v27.0.0-rc.1/destinations-list-admin-1440.png",
+        "docs/images/v27.0.0-rc.1/README.md",
         "platform_database_v1",
         "/nowlert/state",
         "Dedicated integration routes",
@@ -66,6 +68,11 @@ def test_readme_remains_comprehensive_and_current():
     assert "v3.1.0-delivery-history.png" not in readme
     assert "v3.1.0-discord-xen-orchestra.png" not in readme
     assert "v3.1.0-teams-xen-orchestra.png" not in readme
+    # The Preview shows the current candidate UI; older captures are history
+    # listed in docs/README.md, never the front-page preview.
+    assert "images/v3.1.0-" not in readme
+    assert "Historical WebUI examples" not in readme
+    assert "fresh v3.1.6\nconfiguration" not in readme
     assert "mounted `config.yaml` is the single configuration authority" not in readme
     assert "\noutputs:\n" not in readme
     assert "\nrouting:\n" not in readme

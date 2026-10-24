@@ -20,6 +20,11 @@ The current stable release is **v3.1.6**. The versioned Docker Hub image is:
 theriark/nowlert-ce:3.1.6
 ```
 
+The next version, v27.0.0, is in release-candidate testing (`v27.0.0-rc.N`
+pre-release tags). Release candidates are not stable releases and are not
+published as Docker Hub version tags; development builds still report version
+3.1.6 until v27.0.0 is released.
+
 ## v3.1.6 highlights
 
 - Stage remains the final runtime acceptance gate for CE releases.
@@ -41,16 +46,19 @@ images; this does not claim that development changes have been published.
 
 ## Preview
 
-Historical v3.1.0 screenshots below show an older interface. They are versioned
-examples, not captures of the current development UI.
+The current WebUI of the v27.0.0 release-candidate line, captured on 21 to
+23 October 2026 from the Development deployment with synthetic test accounts,
+destinations and events (the reviewed screenshot set of the `v27.0.0-rc.7`
+documentation package):
 
-![Nowlert Dashboard](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-dashboard.png)
+![Nowlert Dashboard with delivery performance and recent activity](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/dashboard-live-admin-1440.png)
 
-![Nowlert Routing Flow](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-routing-flow.png)
+![Nowlert Routing Flow from integrations through filters to destinations](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/routing-flow-live-admin-1440.png)
 
-The historical v3.1.0 Delivery History capture was withdrawn on 22 October
-2026 because it showed a deployment label; the WebUI guide in the repository
-shows the current Delivery history page.
+![Nowlert Destinations with shared test destinations](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/destinations-list-admin-1440.png)
+
+The repository's WebUI guide shows every page, and its documentation index
+lists the older captures that are kept only as history.
 
 ## Quick start
 
@@ -107,8 +115,8 @@ history are database-authoritative in private platform state.
 
 Do not add the legacy WebUI-managed `outputs`, `routing`, `api.tokens`,
 `notifications`, `presentation`, `home_assistant`, `redfish`,
-`platform.backups`, or `webui.language` sections to a fresh v3.1.6
-configuration.
+`platform.backups`, or `webui.language` sections to a fresh configuration,
+whether for the v3.1.6 release or a current development build.
 
 ## Built-in integrations
 

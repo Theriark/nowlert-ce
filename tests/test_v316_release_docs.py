@@ -6,10 +6,15 @@ from version import VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CURRENT_SCREENSHOTS = (
+HISTORICAL_SCREENSHOTS = (
     "v3.1.0-dashboard.png",
     "v3.1.0-routing-flow.png",
     "v3.1.0-destinations.png",
+)
+CURRENT_PREVIEW = (
+    "v27.0.0-rc.1/dashboard-live-admin-1440.png",
+    "v27.0.0-rc.1/routing-flow-live-admin-1440.png",
+    "v27.0.0-rc.1/destinations-list-admin-1440.png",
 )
 # Withdrawn on 22 October 2026 (docs/guides/screenshot-privacy.md).
 WITHDRAWN_SCREENSHOTS = (
@@ -46,14 +51,22 @@ def test_v316_release_identity_is_consistent():
 
 def test_v316_historical_visual_examples_are_packaged_and_referenced():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    dockerhub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
     webui = (ROOT / "docs" / "webui.md").read_text(encoding="utf-8")
     docs_index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
-    for filename in CURRENT_SCREENSHOTS:
+    for filename in HISTORICAL_SCREENSHOTS:
         path = ROOT / "docs" / "images" / filename
         assert path.is_file(), filename
         assert path.stat().st_size > 0, filename
-        assert filename in readme or filename in webui
         assert filename in docs_index
+        # history stays out of the current presentation
+        assert filename not in readme and filename not in dockerhub and filename not in webui
+    for relative in CURRENT_PREVIEW:
+        path = ROOT / "docs" / "images" / relative
+        assert path.is_file(), relative
+        assert path.stat().st_size > 0, relative
+        assert f"docs/images/{relative}" in readme
+        assert f"docs/images/{relative}" in dockerhub
     for filename in WITHDRAWN_SCREENSHOTS:
         path = ROOT / "docs" / "images" / filename
         assert not path.exists() or path.stat().st_size == 0, filename

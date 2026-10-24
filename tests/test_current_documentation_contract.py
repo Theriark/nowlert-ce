@@ -64,11 +64,47 @@ def test_exposed_captures_are_withdrawn_from_current_checkout(relative):
             assert relative not in path.read_text(encoding="utf-8"), path
 
 
-def test_old_preview_is_identified_as_historical():
-    for relative in ("README.md", "DOCKERHUB_README.md", "docs/README.md", "docs/webui.md"):
+# The folder keeps the name of the first release candidate; its contents are
+# the reviewed screenshot set of the v27.0.0-rc.7 documentation package.
+CURRENT_CAPTURE_DIR = "images/v27.0.0-rc.1/"
+
+
+def test_preview_shows_current_captures_and_history_stays_separate():
+    docs_index = (ROOT / "docs/README.md").read_text(encoding="utf-8")
+    assert "## Historical screenshots" in docs_index
+    assert "Historical v3.1.0" in docs_index
+    assert CURRENT_CAPTURE_DIR in docs_index
+    for relative in ("README.md", "DOCKERHUB_README.md", "docs/webui.md"):
         text = (ROOT / relative).read_text(encoding="utf-8")
-        assert "Historical v3.1.0" in text
+        assert CURRENT_CAPTURE_DIR in text, relative
+        assert "images/v3.1.0-" not in text, relative
+        assert "images/v27.0.0-rc.8/" not in text, relative
         assert "remains the current visual baseline" not in text
+
+
+def test_current_captures_have_index_and_embeds_resolve():
+    folder = ROOT / "docs" / CURRENT_CAPTURE_DIR
+    index = (folder / "README.md").read_text(encoding="utf-8")
+    embedded = set()
+    for relative in ("README.md", "docs/webui.md"):
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        embedded.update(re.findall(r"images/v27\.0\.0-rc\.1/([\w.-]+\.png)", text))
+    assert embedded
+    for name in sorted(embedded):
+        assert (folder / name).is_file(), name
+        assert f"`{name}`" in index, name
+
+
+def test_version_wording_distinguishes_stable_from_candidates():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    dockerhub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
+    for text in (readme, dockerhub):
+        assert "v3.1.6" in text
+        assert "v27.0.0" in text
+        assert "fresh v3.1.6\nconfiguration" not in text
+        assert "v27.0.0 is the current stable" not in text.casefold()
+    assert "not a stable release" in readme
+    assert "not stable releases" in dockerhub
 
 
 def test_current_guides_follow_destination_route_navigation():

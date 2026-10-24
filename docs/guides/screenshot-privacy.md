@@ -204,9 +204,10 @@ calls. The crew has not decided them; they need a person who can open the
 images and apply the project's privacy policy. They are review items, not
 confirmed exposures.
 
-- Routing flow capture `images/v3.1.0-routing-flow.png` (embedded by the README and the Docker Hub
-  README): a Zabbix route filter subtitle may carry a residual host-name
-  fragment. Decide whether to mask, recapture or withdraw.
+- Routing flow capture `images/v3.1.0-routing-flow.png` (no longer embedded by
+  the README or the Docker Hub README since 24 October 2026; historical only):
+  a Zabbix route filter subtitle may carry a residual host-name fragment.
+  Decide whether to mask, recapture or withdraw.
 - Delivery capture `images/hardware-setup/xen-orchestra-delivery.png` (embedded by the Xen
   Orchestra to Discord guide): shows a backup job label that may be a real job
   name. Decide whether it is acceptable.
@@ -218,7 +219,8 @@ confirmed exposures.
   `images/zabbix-setup/recipient-media.png`: parts are blurred and the blurred
   text is unreadable, but blur is not a masking method this page accepts (see
   "Adding or replacing an image"). Decide whether to recapture.
-- The `images/v27.0.0-rc.1/` set: shows an administrator account name that
+- The `images/v27.0.0-rc.1/` set (embedded by the README and the Docker Hub
+  README since 24 October 2026): shows an administrator account name that
   reads like a real role name, internal destination and channel names, the
   names of the synthetic test accounts and a timezone. The folder index
   describes them as synthetic Development values; whether they belong in

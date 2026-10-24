@@ -62,6 +62,14 @@ HISTORICAL_SCREENSHOTS = (
     "v3.1.0-destinations.png",
 )
 
+# The README and Docker Hub preview show captures of the current candidate UI;
+# historical captures are listed only in docs/README.md.
+CURRENT_PREVIEW = (
+    "v27.0.0-rc.1/dashboard-live-admin-1440.png",
+    "v27.0.0-rc.1/routing-flow-live-admin-1440.png",
+    "v27.0.0-rc.1/destinations-list-admin-1440.png",
+)
+
 RASTER_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
@@ -85,7 +93,7 @@ for document in FILES:
         if not resolved.exists():
             missing.append(f"{document.relative_to(ROOT)} -> {raw}")
 
-for filename in HISTORICAL_SCREENSHOTS:
+for filename in (*HISTORICAL_SCREENSHOTS, *CURRENT_PREVIEW):
     path = ROOT / "docs" / "images" / filename
     if not path.is_file() or path.stat().st_size == 0:
         missing.append(str(path.relative_to(ROOT)))
@@ -142,6 +150,13 @@ for document, required in required_pairs:
 
 if "gh workflow run docker-release.yml" in deployment:
     raise SystemExit("ERROR: obsolete standalone Docker Release Aliases step remains")
+
+for label, document in (("README.md", readme), ("DOCKERHUB_README.md", dockerhub)):
+    for relative in CURRENT_PREVIEW:
+        if f"docs/images/{relative}" not in document:
+            raise SystemExit(f"ERROR: {label} preview does not show current capture {relative}")
+    if "images/v3.1.0-" in document:
+        raise SystemExit(f"ERROR: {label} preview still embeds a historical capture")
 
 for document in UNCHANGED_RUNTIME_GUIDES:
     text = document.read_text(encoding="utf-8")
