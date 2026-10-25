@@ -166,3 +166,98 @@ def test_front_page_integration_lists_match_catalogue():
     assert f"includes {len(catalogue) - len(ADDED_AFTER_V316)} of them" in stable
     for name in ADDED_AFTER_V316:
         assert name in stable, name
+
+
+def _flat(text):
+    return " ".join(text.split())
+
+
+def test_integrations_and_inputs_table_matches_catalogue():
+    text = (ROOT / "docs/integrations-and-inputs.md").read_text(encoding="utf-8")
+    rows = re.findall(r"^\| ([^|]+?) \| `([a-z_]+)` \| ([^|]+?) \| ([^|]+?) \|$", text, re.M)
+    expected = [
+        (
+            item["name"],
+            item["source"],
+            ", ".join(value["name"] for value in item["inputs"]),
+            item["category"].capitalize(),
+        )
+        for item in integrations()
+    ]
+    assert sorted(rows) == sorted(expected)
+    flat = _flat(text)
+    assert "Nowlert v3.1.2" not in text
+    assert f"includes {len(expected) - 1 - len(ADDED_AFTER_V316)} of the {len(expected) - 1}" in flat
+    for name in ADDED_AFTER_V316:
+        assert name in flat.split("The stable `3.1.6` image", 1)[1], name
+
+
+def test_current_input_lists_name_every_catalogue_input():
+    names = {value["name"] for item in integrations() for value in item["inputs"]}
+    assert names == {"SMTP", "HTTP", "Redfish", "Email Alerts"}
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    passages = {
+        "README.md": readme.split("## Input\n", 1)[1].split("\n## ", 1)[0],
+        "DOCKERHUB_README.md": (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
+        .split("Normalized inputs are", 1)[1].split("\n\n", 1)[0],
+        "docs/integrations-and-inputs.md": (ROOT / "docs/integrations-and-inputs.md")
+        .read_text(encoding="utf-8").split("Inputs are the normalized", 1)[1].split("\n\n", 1)[0],
+    }
+    for relative, passage in passages.items():
+        for name in names:
+            assert name in passage, (relative, name)
+        assert "3.1.6" in passage or "listener" in passage, relative
+
+
+# Destination display names of src/outputs/service.py for the current types.
+DESTINATION_NAMES = {
+    "discord": "Discord", "teams": "Microsoft Teams", "slack": "Slack",
+    "webhook": "webhooks", "email": "Email", "nowlert_mobile": "Nowlert Mobile",
+}
+# Destination types of the v3.1.6 tag (src/outputs/settings.py OUTPUT_TYPES).
+V316_ONLY_DESTINATIONS = ("MQTT", "ntfy")
+
+
+def test_front_page_destinations_match_current_output_types():
+    from outputs.settings import OUTPUT_TYPES
+
+    assert set(DESTINATION_NAMES) == OUTPUT_TYPES
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    dockerhub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
+    current = {
+        "README.md destinations": readme.split("## Destinations\n", 1)[1].split("The stable `3.1.6` image", 1)[0],
+        "README.md tagline": readme.split("**Self-hosted", 1)[1].split("**", 1)[0],
+        "DOCKERHUB_README.md intro": _flat(dockerhub.split("Current development and the v27.0.0 release candidates also", 1)[1]
+                                           .split("The stable `3.1.6` image", 1)[0]).split("deliver to", 1)[1],
+    }
+    for label, passage in current.items():
+        for name in DESTINATION_NAMES.values():
+            # The README tagline shortens Microsoft Teams to Teams.
+            assert name.removeprefix("Microsoft ") in passage, (label, name)
+        for removed in V316_ONLY_DESTINATIONS:
+            assert removed not in passage, (label, removed)
+    # MQTT and ntfy may appear only in the sentence that qualifies the 3.1.6 image.
+    for relative, text in (("README.md", readme), ("DOCKERHUB_README.md", dockerhub),
+                           ("docs/platform-outputs.md", (ROOT / "docs/platform-outputs.md").read_text(encoding="utf-8"))):
+        for paragraph in text.split("\n\n"):
+            if any(name in paragraph for name in V316_ONLY_DESTINATIONS):
+                assert "3.1.6" in paragraph and "no longer offered" in paragraph, (relative, paragraph[:80])
+
+
+def test_readme_integration_table_states_the_316_subset():
+    readme = _flat((ROOT / "README.md").read_text(encoding="utf-8").split("# 🔌 Supported Integrations", 1)[1].split("| Integration |", 1)[0])
+    catalogue = [item for item in integrations() if item["source"] != "email"]
+    assert f"lists the {len(catalogue)} integrations" in readme
+    stable = readme.split("The stable `3.1.6` image", 1)[1]
+    assert f"includes {len(catalogue) - len(ADDED_AFTER_V316)} of them" in stable
+    for name in ADDED_AFTER_V316:
+        assert name in stable, name
+
+
+def test_routing_guide_lists_current_destination_types_and_examples_use_stable_image():
+    routing = (ROOT / "docs/platform-routing.md").read_text(encoding="utf-8")
+    listed = routing.split("Supported platform destination types are:", 1)[1].split("\n\n", 2)[1]
+    for name in DESTINATION_NAMES.values():
+        assert name.rstrip("s") in listed, name
+    smtp = (ROOT / "docs/smtp-security.md").read_text(encoding="utf-8")
+    assert set(re.findall(r"theriark/nowlert-ce:([\w.-]+)", smtp)) == {"3.1.6"}
