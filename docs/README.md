@@ -74,19 +74,22 @@ they do not enable integrations or change runtime behavior.
 Current captures of the development WebUI live under
 [`images/v27.0.0-rc.1/`](images/v27.0.0-rc.1/README.md) (the folder keeps the
 name of the first release candidate; its contents are the reviewed screenshot
-set of the `v27.0.0-rc.7` documentation package). They were taken on 21 to
-23 October 2026 from the Development deployment of the `development` branch
-(application version 3.1.6 plus the development changes; the Development build
-`66d50b00` runs the same application source as `v27.0.0-rc.7`) with synthetic
-test accounts, synthetic destinations and synthetic events, at 1440, 768 and
-390 pixel widths, for an administrator and for a regular user. File names
+set reused unchanged since the `v27.0.0-rc.7` documentation package). They
+were taken on 21 to 23 October 2026 from the Development deployment of the
+`development` branch (application version 3.1.6 plus the development changes;
+the later commits up to `7a82fd8c`, the source of `v27.0.0-rc.10`, changed no
+application file) with the crew's Development test accounts, test
+destinations and test events, at 1440, 768 and 390 pixel widths, for an
+administrator and for a regular user. File names
 follow `<page>-<state>-<role>-<width>.png`; the folder index lists every file
 with its page, role, viewport and capture time, and names the pages that were
 left out because they would show a mailbox identity, personal names or a
-private address. The [WebUI guide](webui.md) embeds these captures. The
-Preview of the repository README and the Docker Hub README embeds only the
-three phone-width captures of the sign-in, Dashboard and Routing Flow pages,
-which show no account, owner, destination or channel name (see the
+private address. The [WebUI guide](webui.md) embeds these captures. Nowlert
+CE is a desktop web application, so the Preview of the repository README and
+the Docker Hub README shows the 1440 px Dashboard, Routing Flow, Destinations
+and sign-in captures at full width. The 768 and 390 px captures are secondary
+examples of the responsive layout in a narrow browser window; they do not
+show the Nowlert Mobile app, which is a separate product (see the
 [screenshot privacy review](guides/screenshot-privacy.md)).
 
 Every other raster under `images/` that shows the Nowlert WebUI or a delivered
@@ -143,7 +146,8 @@ private details were withdrawn from the checkout and are listed there.
 `tests/test_screenshot_privacy_inventory.py` fails when a raster is missing
 from that inventory or carries EXIF or author metadata.
 
-Capture replacement images from synthetic data in the current development UI.
+Capture replacement images from test accounts and test data in the current
+development UI.
 Never publish captures that show passwords, destination
 URLs, API tokens, setup tokens, private hostnames, email addresses, or other
 secret/personal material. See the

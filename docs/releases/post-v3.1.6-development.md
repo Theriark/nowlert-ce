@@ -1,7 +1,7 @@
 # Nowlert CE development after v3.1.6
 
 **Release candidate line: v27.0.0.** The `development` branch is tested as
-`v27.0.0-rc.N` pre-release tags (`v27.0.0-rc.7` at commit `9823244c` is the
+`v27.0.0-rc.N` pre-release tags (`v27.0.0-rc.10` at commit `7a82fd8c` is the
 latest at the time of writing). A release candidate is not a stable release:
 `src/version.py` still reports `3.1.6`, the current stable release remains
 v3.1.6, and no stable v27.0.0 tag or image alias exists. This
@@ -91,13 +91,15 @@ material.
 
 - Live captures of this development interface are packaged under
   `docs/images/v27.0.0-rc.1/`: 30 screenshots taken on 21 to 23 October 2026
-  from the Development deployment with synthetic accounts and synthetic data, at
-  1440, 768 and 390 pixel widths, listed in
+  from the Development deployment with the crew's Development test accounts
+  and test data, at 1440, 768 and 390 pixel widths, listed in
   [the folder index](../images/v27.0.0-rc.1/README.md) and embedded in the
-  [WebUI guide](../webui.md). The repository README and the Docker Hub README
-  Preview use only the three phone-width sign-in, Dashboard and Routing Flow
-  captures, which show no account, owner, destination or channel name.
-  They are the reviewed screenshot set of the `v27.0.0-rc.7` documentation
+  [WebUI guide](../webui.md). Nowlert CE is a desktop web application: the
+  repository README and the Docker Hub README Preview show the 1440 px
+  Dashboard, Routing Flow, Destinations and sign-in captures, and the 768 and
+  390 px captures are secondary examples of the responsive layout in a narrow
+  browser window, not the separate Nowlert Mobile app. They are the reviewed
+  screenshot set reused unchanged since the `v27.0.0-rc.7` documentation
   package. The v3.1.0 set is historical; the v2.5.2 and v1.9.6 captures show
   the retired product name and remain outdated.
 - A release candidate still needs: a version bump with a numbered release note

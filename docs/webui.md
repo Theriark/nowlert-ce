@@ -11,9 +11,14 @@ changes. v3.1.6 is the last stable release; the development build is the
 v27.0.0 release-candidate line and still reports application version 3.1.6.
 The screenshots under `images/v27.0.0-rc.1/` were captured on 21 to
 23 October 2026 from the Development deployment of the `development` branch
-with synthetic test accounts and synthetic data; they are the reviewed
-screenshot set of the `v27.0.0-rc.7` documentation package, and the
-Development build `66d50b00` runs the same application source. Each file name
+with the crew's Development test accounts and test data; they are the
+reviewed screenshot set reused unchanged since the `v27.0.0-rc.7`
+documentation package, and the application source has not changed since: the
+later commits up to `7a82fd8c`, the source of the `v27.0.0-rc.10` candidate,
+changed only documentation, tests and a workflow file. The desktop (1440 px)
+captures are the reference views of each page; the
+[narrow browser windows](#narrow-browser-windows) section shows the
+responsive layout at 768 and 390 px. Each file name
 ends with the account role and the viewport width in pixels, and
 [the folder index](images/v27.0.0-rc.1/README.md) lists every capture with
 the live observations of those days. Older captures are listed as history in
@@ -74,31 +79,6 @@ confirmation.
 
 There is no separate Sources, Routes, Inputs, API access, Updates or Data tools
 page: those functions live inside the pages described below.
-
-### Layout at tablet and phone widths
-
-The stylesheets switch layout at fixed widths. At 780 px and narrower the
-sidebar leaves the page and slides in from the left over the content when the
-menu button (☰) in the page header is pressed; above that width it stays a
-column on the left, and the owl mark at its top collapses it to icons. The
-Dashboard metric cards sit in five columns above 1180 px, in three columns at
-1180 px and narrower and in one column at 840 px and narrower. Destination
-cards fill one full-width column at 1100 px and narrower. Both captured widths
-below therefore show the sidebar behind the menu button, the Dashboard with one
-metric card per row and full-width destination cards. The Routing Flow metric
-cards use their own grid: the captures show them in three columns at 768 px
-and in two columns at 390 px. At 900 px and narrower the Email Alerts rules
-table becomes a list of stacked rule cards (rule name and status first, then
-classification and group, match and priority, the conditions, and the three
-actions in a row) instead of a sideways-scrolling table. The same pages,
-captured with an administrator account at 768 px and 390 px:
-
-| Page | 768 px | 390 px |
-|---|---|---|
-| Dashboard | ![Dashboard at 768 px](images/v27.0.0-rc.1/dashboard-live-admin-768.png) | ![Dashboard at 390 px](images/v27.0.0-rc.1/dashboard-live-admin-390.png) |
-| Routing Flow | ![Routing Flow at 768 px](images/v27.0.0-rc.1/routing-flow-live-admin-768.png) | ![Routing Flow at 390 px](images/v27.0.0-rc.1/routing-flow-live-admin-390.png) |
-| Destinations | ![Destinations at 768 px](images/v27.0.0-rc.1/destinations-list-admin-768.png) | ![Destinations at 390 px](images/v27.0.0-rc.1/destinations-list-admin-390.png) |
-| Email Alerts rules | ![Email Alerts rules as stacked cards at 768 px](images/v27.0.0-rc.1/email-alerts-rules-admin-768.png) | ![Email Alerts rules as stacked cards at 390 px, scrolled to the first full card](images/v27.0.0-rc.1/email-alerts-rules-admin-390.png) |
 
 ### Dashboard
 
@@ -287,7 +267,7 @@ values are kept. A changed host, port, security, username, password or folder
 is still verified against the server before it is saved, so a mailbox whose
 server is unreachable can be renamed or shared but not repointed.
 
-![Edit mailbox dialog of the synthetic IMAP mailbox (development, administrator, 1440 px)](images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png)
+![Edit mailbox dialog of the IMAP test mailbox of the QA fixture (development, administrator, 1440 px)](images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png)
 
 Matching messages are routed through the Email Alerts route like any other
 event and appear in Delivery history. See the
@@ -372,7 +352,7 @@ The sidebar profile chip uses the same authoritative account role as access
 control, so administrator accounts display **Admin** and regular accounts
 display **User**.
 
-![Users filtered by search to the two synthetic test accounts (development, administrator, 1440 px)](images/v27.0.0-rc.1/users-search-admin-1440.png)
+![Users filtered by search to the two crew test accounts (development, administrator, 1440 px)](images/v27.0.0-rc.1/users-search-admin-1440.png)
 
 ### Settings
 
@@ -433,6 +413,40 @@ history and Audit log. Housekeeping controls local history retention separately.
 
 The Backups page shows the configured backup target addresses, so it is not
 captured; follow the written steps above.
+
+## Narrow browser windows
+
+Nowlert CE is a desktop web application: the sections above describe it at
+desktop width, and the 1440 px captures are the reference views. The same
+WebUI also adapts to a narrow browser window, for example a tablet or a phone
+browser. The captures in this section are secondary compatibility examples of
+that responsive layout. They are not the Nowlert Mobile app, which is a
+separate product that Nowlert CE delivers notifications to (see
+[Nowlert Mobile](integrations/nowlert-mobile.md)).
+
+
+The stylesheets switch layout at fixed widths. At 780 px and narrower the
+sidebar leaves the page and slides in from the left over the content when the
+menu button (☰) in the page header is pressed; above that width it stays a
+column on the left, and the owl mark at its top collapses it to icons. The
+Dashboard metric cards sit in five columns above 1180 px, in three columns at
+1180 px and narrower and in one column at 840 px and narrower. Destination
+cards fill one full-width column at 1100 px and narrower. Both captured widths
+below therefore show the sidebar behind the menu button, the Dashboard with one
+metric card per row and full-width destination cards. The Routing Flow metric
+cards use their own grid: the captures show them in three columns at 768 px
+and in two columns at 390 px. At 900 px and narrower the Email Alerts rules
+table becomes a list of stacked rule cards (rule name and status first, then
+classification and group, match and priority, the conditions, and the three
+actions in a row) instead of a sideways-scrolling table. The same pages,
+captured with an administrator account at 768 px and 390 px:
+
+| Page | 768 px | 390 px |
+|---|---|---|
+| Dashboard | ![Dashboard at 768 px](images/v27.0.0-rc.1/dashboard-live-admin-768.png) | ![Dashboard at 390 px](images/v27.0.0-rc.1/dashboard-live-admin-390.png) |
+| Routing Flow | ![Routing Flow at 768 px](images/v27.0.0-rc.1/routing-flow-live-admin-768.png) | ![Routing Flow at 390 px](images/v27.0.0-rc.1/routing-flow-live-admin-390.png) |
+| Destinations | ![Destinations at 768 px](images/v27.0.0-rc.1/destinations-list-admin-768.png) | ![Destinations at 390 px](images/v27.0.0-rc.1/destinations-list-admin-390.png) |
+| Email Alerts rules | ![Email Alerts rules as stacked cards at 768 px](images/v27.0.0-rc.1/email-alerts-rules-admin-768.png) | ![Email Alerts rules as stacked cards at 390 px, scrolled to the first full card](images/v27.0.0-rc.1/email-alerts-rules-admin-390.png) |
 
 ## Browser security
 

@@ -62,14 +62,15 @@ HISTORICAL_SCREENSHOTS = (
     "v3.1.0-destinations.png",
 )
 
-# The README and Docker Hub preview show captures of the current candidate UI;
-# historical captures are listed only in docs/README.md. Only captures that show
-# no account, owner, destination or channel name may appear there while that
-# disclosure question is open (docs/guides/screenshot-privacy.md).
+# The README and Docker Hub preview show the desktop (1440 px) captures of the
+# current candidate UI; Nowlert CE is a desktop web application. Historical
+# captures are listed only in docs/README.md and narrow-window captures stay
+# secondary examples in docs/webui.md (docs/guides/screenshot-privacy.md).
 CURRENT_PREVIEW = (
-    "v27.0.0-rc.1/sign-in-empty-signed-out-390.png",
-    "v27.0.0-rc.1/dashboard-live-admin-390.png",
-    "v27.0.0-rc.1/routing-flow-live-admin-390.png",
+    "v27.0.0-rc.1/dashboard-live-admin-1440.png",
+    "v27.0.0-rc.1/routing-flow-live-admin-1440.png",
+    "v27.0.0-rc.1/destinations-list-admin-1440.png",
+    "v27.0.0-rc.1/sign-in-empty-signed-out-1440.png",
 )
 CURRENT_CAPTURE_RE = re.compile(r"images/(v27\.0\.0-rc\.1/[\w.-]+\.png)")
 
@@ -162,7 +163,7 @@ for label, document in (("README.md", readme), ("DOCKERHUB_README.md", dockerhub
         raise SystemExit(f"ERROR: {label} preview still embeds a historical capture")
     unreviewed = sorted(set(CURRENT_CAPTURE_RE.findall(document)) - set(CURRENT_PREVIEW))
     if unreviewed:
-        raise SystemExit(f"ERROR: {label} preview embeds captures with test-data names: {unreviewed}")
+        raise SystemExit(f"ERROR: {label} preview embeds captures outside the desktop preview list: {unreviewed}")
 
 for document in UNCHANGED_RUNTIME_GUIDES:
     text = document.read_text(encoding="utf-8")

@@ -21,7 +21,7 @@ never as "verified".
   captures retained after the first pass found one further Protect capture
   with custom camera/location labels. It was withdrawn as well, leaving 69
   linked rasters at that date.
-- 21 October 2026: the synthetic Development WebUI set under
+- 21 October 2026: the Development WebUI set under
   `images/v27.0.0-rc.1/` was added, with its own folder index.
 - 22 October 2026: the NCE-109 re-check (below) confirmed the 15 October
   withdrawals on `development` and `stage`, and an independent review of the
@@ -29,23 +29,24 @@ never as "verified".
   further exposures in captures embedded by the README and guides. Those
   three were withdrawn the same day. The three files that review could not
   open are listed under "Validation records".
-- 22 October 2026, later the same day: five further synthetic Development
-  captures were added to `images/v27.0.0-rc.1/` (Preview dialog routes drawer,
-  Discord Debug preview, Email Alerts rules at 768 and 390 px, Edit mailbox
-  dialog of the synthetic IMAP mailbox) and inspected at full size before
+- 22 October 2026, later the same day: five further Development captures
+  were added to `images/v27.0.0-rc.1/` (Preview dialog routes drawer, Discord
+  Debug preview, Email Alerts rules at 768 and 390 px, Edit mailbox dialog of
+  the QA fixture's IMAP test mailbox) and inspected at full size before
   being added. The Edit mailbox capture shows the fixture address
   `qa@ce-qa-fixture.invalid` and the loopback host `127.0.0.1`; the list
   behind the dialog is hidden by the backdrop.
 - 23 October 2026 (Jira TOPS-351, P1 privacy re-check of the packaged
   Development set): all 31 rasters under `images/v27.0.0-rc.1/` were
   downloaded from `development` at commit `82c8470a` and opened at full size.
-  Thirty show only the synthetic crew accounts, synthetic fixture values,
-  the role-named owner label and the crew's test channel labels already
-  described in the folder index. One, the Zabbix-filtered Delivery history
+  Thirty show only the crew test accounts, test fixture values, the typed
+  generic owner label `ITMANAGER` (then wrongly described as a role name; see
+  25 October 2026 below) and the crew's test channel labels already described
+  in the folder index. One, the Zabbix-filtered Delivery history
   capture, showed VM-numbered host and database labels taken from the
   repository's test fixture (`VM-08 | Zabbix Server`, `DB-01`, `DB-REPLICA`)
   that read like internal infrastructure names; it was withdrawn and replaced
-  by a Synology-filtered capture whose rows name only the synthetic device
+  by a Synology-filtered capture whose rows name only the test fixture device
   `synthetic-dsm-01`. The same check confirmed live on Development that the
   Mailboxes tab, the Activity tab and the unfiltered Delivery history still
   show real connected-mailbox labels, sender addresses and message subjects;
@@ -65,11 +66,10 @@ never as "verified".
   log capture of the Development set showed, in its audit rows, the user name
   of the Development deployment's administrator account together with
   truncated internal record identifiers. That account is not one of the
-  synthetic crew accounts, the folder index did not list it among the names
-  shown, and nothing in the repository establishes it as synthetic, so the
-  capture was withdrawn rather than described as synthetic. The statement above
-  that the other thirty captures of the folder show only synthetic values no
-  longer covers it. The Audit log page is described in writing instead.
+  crew test accounts, the folder index did not list it among the names
+  shown, and nothing in the repository establishes it as a test account, so
+  the capture was withdrawn rather than described as one. The statement above
+  about the other thirty captures of the folder no longer covers it. The Audit log page is described in writing instead.
 - 23 October 2026 (Jira TOPS-374): the three token captures that the crew
   cannot open were unlinked from current documentation. The hardware Redfish
   guide, the Portainer guide and the infrastructure tutorials index now
@@ -93,12 +93,29 @@ never as "verified".
   `dashboard-live-admin-390.png` and `routing-flow-live-admin-390.png`, which
   show none of those names, no destination or channel name and no blurred
   text. The other captures of the set remain embedded by the WebUI guide only.
-  No image was edited, masked or recaptured, and the policy question below is
-  still open.
+  No image was edited, masked or recaptured, and the policy question below was
+  still open that day.
+- 25 October 2026 (Jira TOPS-422 and TOPS-509, product owner correction):
+  Nowlert CE is a desktop web application, and the phone-width captures had
+  been chosen only because they hide the test-data labels. The product owner
+  decided that generic test labels are no reason to replace the desktop
+  presentation. Both Previews now show the 1440 px Dashboard, Routing Flow,
+  Destinations and sign-in captures at full width; the four were opened at
+  full size again that day. The 768 and 390 px captures remain secondary
+  examples of the responsive layout in the WebUI guide and do not represent
+  the separate Nowlert Mobile app. The same correction removed two
+  unsupported statements. The owner label `ITMANAGER` is the typed username of
+  the Development administrator account, not a role name: the owner chip
+  renders the owner's username, usernames are free text, and the only account
+  roles are administrator and user. The crew's accounts, destinations and
+  labels are described as Development test data rather than as synthetic,
+  because no record shows how each name was chosen. No image was edited,
+  masked or recaptured. Credentials, tokens, private addresses and personal
+  data stay excluded under the rules of this page.
 
 Nineteen captures are now excluded from current documentation. On 22 October
 2026 the inventory held 105 retained rows, 90 of them linked from current
-documents; the five synthetic captures added later that day brought it to 110
+documents; the five Development captures added later that day brought it to 110
 retained rows and 95 linked. On 23 October 2026 the Zabbix row was replaced by
 the Synology row (still 110), the unembedded v1.9.6 Teams card was withdrawn
 (109 retained rows, 95 linked) and the audit log capture was withdrawn (108
@@ -164,7 +181,7 @@ Withdrawn on 23 October 2026, after the independent test of that change (Jira
 TOPS-356). It was embedded by the WebUI guide, which now describes the page in
 writing:
 
-- `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` — user name of the Development deployment's administrator account, which is not a synthetic crew account, and truncated internal record identifiers in the audit rows.
+- `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` — user name of the Development deployment's administrator account, which is not one of the crew test accounts, and truncated internal record identifiers in the audit rows.
 
 It was overwritten with empty content the same way, so the number of empty
 placeholders awaiting deletion by a person is now six.
@@ -236,21 +253,21 @@ confirmed exposures.
   `images/zabbix-setup/recipient-media.png`: parts are blurred and the blurred
   text is unreadable, but blur is not a masking method this page accepts (see
   "Adding or replacing an image"). Decide whether to recapture.
-- The `images/v27.0.0-rc.1/` set (embedded by the WebUI guide; the README and
-  Docker Hub README Preview embed only its three phone-width captures of the
-  sign-in, Dashboard and Routing Flow pages, which show none of the names
-  below): the other captures show an administrator account name that reads
-  like a real role name, internal destination and channel names, the names of
-  the synthetic test accounts and a timezone. The folder index
-  describes them as synthetic Development values; whether they belong in
-  public documentation is a policy decision. The account name also appears as
-  the owner label of the shared destinations in the destination captures that
-  remain; only the Audit log capture, where it appeared in the audit rows with
-  internal record identifiers, was withdrawn on 23 October 2026.
-  Until a person decides, no capture that shows these names is embedded by
-  the README or the Docker Hub README; `tools/validate_current_documentation.py`
-  and `tests/test_current_documentation_contract.py` enforce the list of
-  captures the Preview may use.
+- Decided on 25 October 2026 by the product owner (Jira TOPS-422): the
+  `images/v27.0.0-rc.1/` set (embedded by the WebUI guide; since that day the
+  README and Docker Hub README Preview embed its 1440 px Dashboard, Routing
+  Flow, Destinations and sign-in captures). Its signed-in captures show the
+  crew administrator account name, the typed generic owner labels
+  `ITMANAGER`, `USER` and `CE-QA-20261015`, test destination and channel
+  labels and a timezone. These generic test labels may appear in public
+  documentation and are no reason to keep the desktop captures out of the
+  Preview. The administrator username also appeared in the audit rows of the
+  Audit log capture together with internal record identifiers; that capture
+  stays withdrawn. Any capture that shows a credential, token, private
+  address or personal data stays excluded.
+  `tools/validate_current_documentation.py` and
+  `tests/test_current_documentation_contract.py` enforce the list of captures
+  the Preview may use.
 - Token captures `images/hardware-setup/nowlert-token-list.png`,
   `images/hardware-setup/nowlert-token-scope.png` and
   `images/portainer-setup/token-scope.png`: not viewable by the crew (see
@@ -342,36 +359,36 @@ raster under `docs/images/` needs a row.
 | `images/unifi-setup/network-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-noise-filter.png` | retained | reviewed 15 Oct 2026 |
-| `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; README and Docker Hub Preview |
-| `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | synthetic Development capture, 23 Oct 2026; device `synthetic-dsm-01` only |
-| `images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/destination-preview-routes-drawer-admin-1440.png` | retained | synthetic Development capture, 22 Oct 2026 |
-| `images/v27.0.0-rc.1/destination-preview-discord-debug-admin-1440.png` | retained | synthetic Development capture, 22 Oct 2026 |
-| `images/v27.0.0-rc.1/destinations-list-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/destinations-list-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/destinations-list-admin-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/destinations-list-user-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/email-alerts-groups-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/email-alerts-rules-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/email-alerts-rules-admin-768.png` | retained | synthetic Development capture, 22 Oct 2026 |
-| `images/v27.0.0-rc.1/email-alerts-rules-admin-390.png` | retained | synthetic Development capture, 22 Oct 2026 |
-| `images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png` | retained | synthetic Development capture, 22 Oct 2026; fixture address and loopback host only |
-| `images/v27.0.0-rc.1/filtering-list-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | synthetic Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; README and Docker Hub Preview |
-| `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/settings-regional-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png` | retained | synthetic Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; README and Docker Hub Preview |
-| `images/v27.0.0-rc.1/sign-in-empty-signed-out-768.png` | retained | synthetic Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/users-search-admin-1440.png` | retained | synthetic Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
+| `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
+| `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | Development capture, 23 Oct 2026; test fixture device `synthetic-dsm-01` only |
+| `images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/destination-preview-routes-drawer-admin-1440.png` | retained | Development capture, 22 Oct 2026 |
+| `images/v27.0.0-rc.1/destination-preview-discord-debug-admin-1440.png` | retained | Development capture, 22 Oct 2026 |
+| `images/v27.0.0-rc.1/destinations-list-admin-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
+| `images/v27.0.0-rc.1/destinations-list-admin-390.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/destinations-list-admin-768.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/destinations-list-user-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/email-alerts-groups-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/email-alerts-rules-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/email-alerts-rules-admin-768.png` | retained | Development capture, 22 Oct 2026 |
+| `images/v27.0.0-rc.1/email-alerts-rules-admin-390.png` | retained | Development capture, 22 Oct 2026 |
+| `images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png` | retained | Development capture, 22 Oct 2026; fixture address and loopback host only |
+| `images/v27.0.0-rc.1/filtering-list-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
+| `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
+| `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/settings-regional-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
+| `images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; not embedded since 25 Oct 2026 |
+| `images/v27.0.0-rc.1/sign-in-empty-signed-out-768.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/users-search-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/zabbix-setup/action-operations.png` | retained | reviewed 15 Oct 2026 |
 | `images/zabbix-setup/media-enabled.png` | retained | reviewed 15 Oct 2026 |
 | `images/zabbix-setup/native-recovery-accepted.png` | retained | reviewed 15 Oct 2026 |
