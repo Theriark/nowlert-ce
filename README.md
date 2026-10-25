@@ -11,12 +11,13 @@
 
 <p align="center">
   <a href="https://github.com/Theriark/nowlert-ce/releases"><img src="https://img.shields.io/badge/stable-v3.1.6-F4C542" alt="Stable release v3.1.6"></a>
+  <a href="https://github.com/Theriark/nowlert-ce/releases"><img src="https://img.shields.io/badge/pre--release-v27.0.0_candidates-8A8F98" alt="Pre-release line: v27.0.0 release candidates"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.13-blue" alt="Python 3.13"></a>
   <img src="https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker ready">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
 </p>
 
-**Self-hosted infrastructure notifications from SMTP, HTTP, Redfish, and Email Alerts to Teams, Slack, Discord, Email, and webhooks.**
+**Self-hosted infrastructure notifications from SMTP, HTTP, Redfish, and Email Alerts to Teams, Slack, Discord, Email, Nowlert Mobile, and webhooks.**
 
 Nowlert CE is the free, open-source, self-hosted edition of Nowlert. It receives
 infrastructure signals, normalizes vendor-specific events, applies deterministic
@@ -95,8 +96,10 @@ for the exact secret filenames and redirect URI requirements.
 
 | Property | Value |
 |---|---|
-| **Status** | Stable · Production Ready |
+| **Status** | v3.1.6 stable · v27.0.0 in release-candidate testing |
 | **Current Stable Release** | **v3.1.6** |
+| **Development line** | v27.0.0 release candidates (`v27.0.0-rc.N` pre-release tags); not a stable release |
+| **Version reported by development builds** | 3.1.6 (the version number changes only when v27.0.0 is released) |
 | **License** | MIT |
 | **Python** | 3.13 |
 | **Current development database schema** | 18 |
@@ -132,30 +135,32 @@ See [v3.1.6 release notes](docs/releases/v3.1.6.md) and the
 
 # 📸 Preview
 
-Historical v3.1.0 screenshots below illustrate the older interface and card
-formats. They are retained as versioned examples and do not represent the
-current development UI. Use the [WebUI guide](docs/webui.md) for current steps.
+The current WebUI of the v27.0.0 release-candidate line, captured on 21 October
+2026 from the Development deployment of the `development` branch with
+synthetic test data. These are part of the reviewed screenshot set of the
+`v27.0.0-rc.7` documentation package; the Development build `66d50b00` runs
+the same application source (`9823244c`); its Dashboard, Routing Flow and
+Destinations pages were compared live with these captures on 24 October 2026.
 
-## Historical WebUI examples
+| Sign in | Dashboard | Routing Flow |
+|---|---|---|
+| ![Nowlert sign-in page on a 390 px phone screen](docs/images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png) | ![Nowlert Dashboard on a 390 px phone screen with integration, destination and route counts](docs/images/v27.0.0-rc.1/dashboard-live-admin-390.png) | ![Nowlert Routing Flow on a 390 px phone screen with delivery counters and integration cards](docs/images/v27.0.0-rc.1/routing-flow-live-admin-390.png) |
 
-| Dashboard | Routing Flow |
-|---|---|
-| ![Nowlert Dashboard](docs/images/v3.1.0-dashboard.png) | ![Nowlert Routing Flow](docs/images/v3.1.0-routing-flow.png) |
+The Preview shows only captures in which no account name, owner label,
+destination or channel name of the Development test data is visible. The
+desktop captures of the same set show those synthetic names, so they appear
+only in the [WebUI guide](docs/webui.md) and the
+[capture index](docs/images/v27.0.0-rc.1/README.md); whether they belong on
+this front page is an open point of the
+[screenshot privacy review](docs/guides/screenshot-privacy.md#open-points-for-a-person).
 
-| Destinations |
-|---|
-| ![Nowlert Destinations](docs/images/v3.1.0-destinations.png) |
+Older captures of earlier interfaces (v3.1.0 and v2.5.2) are kept only as
+history; the [documentation index](docs/README.md#historical-screenshots)
+lists them, and the screenshot privacy review records every image and the
+captures that were withdrawn.
 
-The historical v3.1.0 Delivery History capture and the v3.1.0 Discord and
-Microsoft Teams Xen Orchestra card captures were withdrawn on 22 October 2026
-because they still showed deployment labels; the
-[screenshot privacy review](docs/guides/screenshot-privacy.md) records the
-withdrawal. The [Xen Orchestra to Discord](docs/guides/xen-orchestra-to-discord.md)
-and [Xen Orchestra to Teams](docs/guides/xen-orchestra-to-teams.md) guides
-describe the delivered cards in words, and the
-[WebUI guide](docs/webui.md) shows the current Delivery history page.
-
-More UI behavior is documented in the [WebUI guide](docs/webui.md).
+The [WebUI guide](docs/webui.md) describes every page; it shows captures of
+all pages except those left out for privacy.
 
 ---
 
@@ -200,7 +205,7 @@ Nowlert gives those events a consistent operational path.
 |---|---|
 | Vendor-specific email or JSON | Normalized event model |
 | Important fields buried in payloads | Structured source-aware presentation |
-| Separate SMTP/HTTP/hardware workflows | One routing model |
+| Separate SMTP/HTTP/hardware/mailbox workflows | One routing model |
 | Repeated formatting per destination | Shared parser and destination adapters |
 | Credentials mixed into application config | Write-only owner-scoped secrets |
 | Ad-hoc forwarding rules | Deterministic priority and fallback routing |
@@ -216,6 +221,7 @@ Nowlert gives those events a consistent operational path.
 - authenticated HTTP Event API;
 - dedicated vendor HTTP webhook endpoints;
 - Redfish Event Service ingestion;
+- Email Alerts from connected mailboxes (not in the `3.1.6` image);
 - optional SMTP STARTTLS and SMTP AUTH;
 - bounded request and payload handling;
 - parser-based source detection and normalization.
@@ -245,13 +251,18 @@ path.
 
 ## Destinations
 
-The platform supports:
+Current development and the v27.0.0 release candidates support:
 
 - Discord;
 - Microsoft Teams;
 - Slack;
-- Email over SMTP; and
+- Email over SMTP;
+- Nowlert Mobile; and
 - generic webhooks.
+
+The stable `3.1.6` image delivers to Discord, Microsoft Teams, Slack, generic
+webhooks, MQTT, and ntfy. Email and Nowlert Mobile destinations were added after
+v3.1.6; MQTT and ntfy are no longer offered.
 
 Destination credentials are write-only. Read APIs expose only safe metadata
 such as whether a secret is configured. Private destinations are owner-scoped;
@@ -316,7 +327,13 @@ setup token so the operator chooses the first administrator credentials.
 # 🔌 Supported Integrations
 
 Integrations are packaged with the image. Inputs are the normalized transport
-used to receive the event.
+used to receive the event. The table lists the 22 integrations of current
+development and the v27.0.0 release candidates; the generic Email Alerts source
+is described under [Email Alerts](docs/integrations/README.md#email-alerts).
+
+The stable `3.1.6` image includes 15 of them. Prometheus, Checkmk, Semaphore,
+Sonarr, Radarr, Metabase, and GitHub Actions were added after v3.1.6 and are
+not in the `3.1.6` image.
 
 | Integration | Source key | Inputs | Default category |
 |---|---|---|---|
@@ -324,6 +341,7 @@ used to receive the event.
 | Zabbix | `zabbix` | SMTP, HTTP | Monitoring |
 | Grafana | `grafana` | HTTP | Monitoring |
 | Prometheus | `prometheus` | HTTP | Monitoring |
+| Checkmk | `checkmk` | HTTP | Monitoring |
 | Portainer | `portainer` | HTTP | Containers |
 | Semaphore | `semaphore` | SMTP, HTTP | Automation |
 | Sonarr | `sonarr` | HTTP | Automation |
@@ -342,7 +360,8 @@ used to receive the event.
 | Dell iDRAC | `dell_idrac` | Redfish | Hardware |
 | Home Assistant | `home_assistant` | HTTP | Automation |
 
-Detailed setup guides are under [`docs/integrations/`](docs/integrations/).
+Detailed setup guides are under [`docs/integrations/`](docs/integrations/);
+Checkmk is described in [Checkmk notifications](docs/checkmk.md).
 
 ---
 
@@ -370,7 +389,8 @@ A built-in source family such as Xen Orchestra, Zabbix, or Dell iDRAC.
 
 ## Input
 
-The normalized transport: **SMTP**, **HTTP**, or **Redfish**.
+The normalized transport: **SMTP**, **HTTP**, **Redfish**, or **Email Alerts**
+(mailbox connections; not in the `3.1.6` image).
 
 ## Normalized event
 
@@ -404,7 +424,7 @@ login credential and cannot manage platform resources.
 ```text
 Infrastructure product
         |
-        | SMTP / HTTP / Redfish
+        | SMTP / HTTP / Redfish / Email Alerts mailbox
         v
 +-----------------------------+
 | Input adapters              |
@@ -430,7 +450,7 @@ Infrastructure product
 +-----------------------------+
 | Destination adapters        |
 | Discord / Teams / Slack /   |
-| Email / Webhook             |
+| Email / Mobile / Webhook    |
 +-----------------------------+
         |
         v
@@ -513,8 +533,8 @@ transport security, state location, and WebUI publication settings.
 
 Do **not** recreate legacy WebUI-managed YAML sections such as `outputs`,
 `routing`, `api.tokens`, `notifications`, `presentation`, `home_assistant`,
-`redfish`, `platform.backups`, or `webui.language` in a fresh v3.1.6
-configuration.
+`redfish`, `platform.backups`, or `webui.language` in a fresh configuration,
+whether for the v3.1.6 release or a current development build.
 
 See [Current configuration model](docs/current-configuration-model.md).
 
@@ -550,7 +570,8 @@ Zabbix
 If no dedicated Zabbix route matches, Nowlert may then evaluate an enabled
 Fallback HTTP route.
 
-The same routing model is used for SMTP and Redfish events.
+The same routing model is used for SMTP and Redfish events, and for Email
+Alerts messages that match a classification rule.
 
 ---
 
@@ -719,5 +740,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 Nowlert CE is released under the MIT License. See [LICENSE](LICENSE).
 
 Powered by **Theriark**.
-
-[Checkmk notifications](docs/checkmk.md): native notification script, host/service states, recovery, acknowledgement, downtime and flapping events.

@@ -7,14 +7,18 @@ the application image. The browser uses the authenticated same-origin
 This guide describes the current development interface, which already differs
 from the released v3.1.6 WebUI; see
 [development after v3.1.6](releases/post-v3.1.6-development.md) for the list of
-changes without a version number yet. The screenshots under
-`images/v27.0.0-rc.1/` were captured on 21 and 22 October 2026 from the
-Development deployment of the `development` branch (application version 3.1.6
-plus the development changes) with synthetic test accounts and synthetic data; each file
-name ends with the account role and the viewport width in pixels, and
-[the folder index](images/v27.0.0-rc.1/README.md) lists every capture.
-Historical v3.1.0 screenshots remain in this guide, labelled as such, to
-illustrate older layouts only.
+changes. v3.1.6 is the last stable release; the development build is the
+v27.0.0 release-candidate line and still reports application version 3.1.6.
+The screenshots under `images/v27.0.0-rc.1/` were captured on 21 to
+23 October 2026 from the Development deployment of the `development` branch
+with synthetic test accounts and synthetic data; they are the reviewed
+screenshot set of the `v27.0.0-rc.7` documentation package, and the
+Development build `66d50b00` runs the same application source. Each file name
+ends with the account role and the viewport width in pixels, and
+[the folder index](images/v27.0.0-rc.1/README.md) lists every capture with
+the live observations of those days. Older captures are listed as history in
+the [documentation index](README.md#historical-screenshots); this guide no
+longer embeds them.
 
 ## Activation
 
@@ -63,8 +67,8 @@ The sidebar offers **Dashboard**, **Routing Flow**, **Destinations**,
 **Filtering**, **Email Alerts** (expanding to **Rules**, **Groups**,
 **Mailboxes** and **Activity**), **Delivery history** and **Settings** to every
 signed-in user. **Audit log**, **Backups** and **Users** are shown to
-administrators only. The profile chip at the bottom of the sidebar opens
-**Profile** (the **Security** page) and **Sign out**. Administrators also see a
+administrators only. The profile chip at the bottom of the sidebar opens the
+profile menu with **Security** and **Sign out**. Administrators also see a
 **Restart** control in the header that opens the **Restart Nowlert**
 confirmation.
 
@@ -114,8 +118,8 @@ administration:
 - **Top Integrations** and **Top Destinations**;
 - **System Health** with the Nowlert health checks and a **Details** link;
   and
-- a **Configuration** summary (API tokens, active filters, shared
-  destinations, audit issues) below the panels.
+- a **Workspace Summary** (API tokens, active filters, shared destinations,
+  audit issues) below the panels.
 
 The Integration → Route → Destination topology is no longer drawn on the
 Dashboard; it lives on the Routing Flow page.
@@ -132,8 +136,6 @@ A regular account sees the same Dashboard with the shorter sidebar (no Audit
 log, Backups or Users entries) and the **User** role label on the profile chip:
 
 ![Dashboard (development, regular user, 1440 px)](images/v27.0.0-rc.1/dashboard-live-user-1440.png)
-
-![Historical v3.1.0 Dashboard](images/v3.1.0-dashboard.png)
 
 ### Routing Flow
 
@@ -183,15 +185,17 @@ message style.
 
 **Preview** opens a dialog with the severity and message style selectors, the
 route summary, an editable sample message and the generated payload for the
-destination type. **Manage routes** in the dialog opens the same assigned
-routes drawer as the editor: each route row shows its checkbox, integration
-icon, name and an **Active** or **Disabled** badge in its own column, and the
-**Done** button at the bottom of the drawer closes it. The generated payload
-follows the message style saved on the destination; the **Message style**
-selector in the dialog is only selectable for Discord and generic webhook
-destinations and reads **Native** (disabled) for the other types. Preview builds
-one sample for every selected route that supports the chosen severity, so with
-several routes the output lists one entry per route.
+destination type. **Generate preview** renders the payload without sending
+anything; **Send test delivery** is the separate action that delivers.
+**Manage routes** in the dialog opens the same assigned routes drawer as the
+editor: each route row shows its checkbox, integration icon, name and an
+**Active** or **Disabled** badge in its own column, and the **Done** button at
+the bottom of the drawer closes it. The **Message style** selector opens on
+the style saved on the destination (for example **Modern Card** for a
+Microsoft Teams destination saved as Modern Card), and the generated payload
+follows that saved style. Preview builds one sample for every selected route
+that supports the chosen severity, so with several routes the output lists
+one entry per route.
 
 ![Preview dialog with the Manage routes drawer open (development, administrator, 1440 px)](images/v27.0.0-rc.1/destination-preview-routes-drawer-admin-1440.png)
 
@@ -233,9 +237,9 @@ persists the assignments. There is no separate Sources or Routes page.
 
 Built-in integrations are packaged application capabilities. Routes are named
 after the integration and its input, for example **Xen Orchestra SMTP** or
-**Zabbix HTTP**. The normalized input badges are **SMTP**, **HTTP**, and
-**Redfish**. Dedicated matching routes are evaluated before wildcard
-**Fallback** routes.
+**Zabbix HTTP**. The normalized input badges are **SMTP**, **HTTP**,
+**Redfish**, and **Email Alerts**. Dedicated matching routes are evaluated
+before wildcard **Fallback** routes.
 
 ### Filtering
 
@@ -391,7 +395,7 @@ not make unrelated settings or pages unavailable.
 
 ### Security
 
-**Profile** in the profile menu opens the **Security** page for the signed-in
+**Security** in the profile menu opens the **Security** page for the signed-in
 account:
 
 - account details and profile picture;
@@ -453,7 +457,9 @@ The WebUI relies on server-enforced security boundaries:
 
 SMTP, HTTP and Redfish listeners are configured through bootstrap settings.
 Binding, TLS, authentication and process-level enablement changes require a
-Nowlert restart. There is no separate Inputs navigation page.
+Nowlert restart. Email Alerts is not a listener: its mailboxes are connected in
+the WebUI (see [Email Alerts](#email-alerts)). There is no separate Inputs
+navigation page.
 
 WebUI-managed resources are database-authoritative under `/nowlert/state`.
 `config.yaml` is limited to process/bootstrap concerns such as listeners,

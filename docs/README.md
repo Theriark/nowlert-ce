@@ -6,20 +6,23 @@ release records.
 ## Current documentation
 
 Use these guides for the current v3.1.6 release line and for the development
-build that follows it. Development already differs from v3.1.6 (database
-schema 18, Email Alerts, Nowlert Mobile, multi-factor authentication and more);
+build that follows it. v3.1.6 is the last stable release. The development
+build is the v27.0.0 release-candidate line (`v27.0.0-rc.N` pre-release tags,
+not a stable release); it still reports application version 3.1.6 and already
+differs from the v3.1.6 release (database schema 18, Email Alerts, Nowlert
+Mobile, multi-factor authentication and more).
 [Development after v3.1.6](releases/post-v3.1.6-development.md) lists those
-differences without claiming a new version number.
+differences.
 
 | Guide | Purpose |
 |---|---|
 | [Current configuration model](current-configuration-model.md) | What belongs in `config.yaml` versus database-authoritative platform state |
 | [Deployment](deployment.md) | Docker/Compose operation, immutable promotion flow, upgrade and rollback |
 | [WebUI](webui.md) | Current pages, permissions, route assignment, Email Alerts, history, security, users and backups |
-| [Integrations and inputs](integrations-and-inputs.md) | Built-in integration catalogue and SMTP/HTTP/Redfish input model |
+| [Integrations and inputs](integrations-and-inputs.md) | Built-in integration catalogue and SMTP/HTTP/Redfish/Email Alerts input model |
 | [Integration setup index](integrations/README.md) | Stable index for product-specific setup notes, including Email Alerts and Nowlert Mobile |
 | [Nowlert Mobile](integrations/nowlert-mobile.md) | Connecting the mobile app as a destination |
-| [Technical use-case guides](guides/README.md) | Practical end-to-end SMTP/HTTP/Redfish/mailbox flows to real destinations |
+| [Technical use-case guides](guides/README.md) | Practical end-to-end SMTP/HTTP/Redfish/Email Alerts flows to real destinations |
 | [Platform routing](platform-routing.md) | Tokens, destinations, routes, fallback behavior, delivery and audit rules |
 | [Platform outputs](platform-outputs.md) | Destination adapters and safe output contracts |
 | [Platform API](platform-api.md) | `/api/v2` authentication, endpoints, CSRF and event ingestion |
@@ -55,8 +58,8 @@ Current release material:
 - [v3.1.6 release notes](releases/v3.1.6.md)
 - [v3.1.6 QA checklist](releases/validation/v3.1.6-qa-checklist.md)
 - [Development after v3.1.6](releases/post-v3.1.6-development.md): what the
-  `development` branch adds beyond v3.1.6; the next version number is not yet
-  assigned.
+  `development` branch adds beyond v3.1.6 as the v27.0.0 release-candidate
+  line; no stable v27.0.0 release exists yet.
 
 Historical notes under `releases/` and historical acceptance/QA checklists are
 version snapshots. They are intentionally preserved even when a newer release
@@ -69,23 +72,34 @@ they do not enable integrations or change runtime behavior.
 ## Screenshots
 
 Current captures of the development WebUI live under
-[`images/v27.0.0-rc.1/`](images/v27.0.0-rc.1/README.md). They were taken on
-21 and 22 October 2026 from the Development deployment of the `development` branch
-(application version 3.1.6 plus the development changes) with synthetic test
-accounts, synthetic destinations and synthetic events, at 1440, 768 and 390
-pixel widths, for an administrator and for a regular user. File names follow
-`<page>-<state>-<role>-<width>.png`; the folder index lists every file with its
-page, role, viewport and capture time, and names the pages that were left out
-because they would show a mailbox identity, personal names or a private
-address. The [WebUI guide](webui.md) embeds these captures.
+[`images/v27.0.0-rc.1/`](images/v27.0.0-rc.1/README.md) (the folder keeps the
+name of the first release candidate; its contents are the reviewed screenshot
+set of the `v27.0.0-rc.7` documentation package). They were taken on 21 to
+23 October 2026 from the Development deployment of the `development` branch
+(application version 3.1.6 plus the development changes; the Development build
+`66d50b00` runs the same application source as `v27.0.0-rc.7`) with synthetic
+test accounts, synthetic destinations and synthetic events, at 1440, 768 and
+390 pixel widths, for an administrator and for a regular user. File names
+follow `<page>-<state>-<role>-<width>.png`; the folder index lists every file
+with its page, role, viewport and capture time, and names the pages that were
+left out because they would show a mailbox identity, personal names or a
+private address. The [WebUI guide](webui.md) embeds these captures. The
+Preview of the repository README and the Docker Hub README embeds only the
+three phone-width captures of the sign-in, Dashboard and Routing Flow pages,
+which show no account, owner, destination or channel name (see the
+[screenshot privacy review](guides/screenshot-privacy.md)).
 
 Every other raster under `images/` that shows the Nowlert WebUI or a delivered
 card is an older capture and is labeled as such where it is used.
 
-Historical v3.1.0 screenshots live under `images/` as versioned examples of
-the older interface. They do not describe the current development UI.
+## Historical screenshots
 
-The README and WebUI guide label these images as historical:
+The captures below show earlier interfaces. They are kept as history only;
+no current document uses them to illustrate the current WebUI.
+
+Historical v3.1.0 screenshots live under `images/` as versioned examples of
+the v3.1.0 interface. They do not describe the current development UI and are
+no longer embedded by the README or the WebUI guide:
 
 - `v3.1.0-dashboard.png`
 - `v3.1.0-routing-flow.png`
@@ -114,6 +128,8 @@ The v1.9.6 Teams Xen Orchestra card was withdrawn on 23 October 2026 (see the
 
 Only the Dell iDRAC Redfish guide still embeds one of them
 (`v2.5.2-discord-idrac.png`), explicitly labeled as outdated pending recapture.
+
+## Screenshot rules
 
 Additional packaged screenshots may be referenced by individual practical
 guides when they accurately demonstrate an existing integration/destination

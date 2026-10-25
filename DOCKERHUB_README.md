@@ -11,14 +11,25 @@
 
 Nowlert CE receives infrastructure signals over **SMTP**, **HTTP**, and
 **Redfish**, normalizes vendor-specific events, applies deterministic routing,
-and delivers clear operational notifications to Discord, Microsoft Teams,
-Slack, generic webhooks, MQTT, and ntfy.
+and delivers clear operational notifications.
+
+Current development and the v27.0.0 release candidates also read **Email
+Alerts** from connected mailboxes, and deliver to Discord, Microsoft Teams,
+Slack, Email, Nowlert Mobile, and generic webhooks. The stable `3.1.6` image
+has no Email Alerts input and delivers to Discord, Microsoft Teams, Slack,
+generic webhooks, MQTT, and ntfy; MQTT and ntfy are no longer offered after
+v3.1.6.
 
 The current stable release is **v3.1.6**. The versioned Docker Hub image is:
 
 ```text
 theriark/nowlert-ce:3.1.6
 ```
+
+The next version, v27.0.0, is in release-candidate testing (`v27.0.0-rc.N`
+pre-release tags in the source repository). Release candidates are
+not stable releases; use the `3.1.6` tag above for a stable deployment.
+Development builds still report version 3.1.6 until v27.0.0 is released.
 
 ## v3.1.6 highlights
 
@@ -41,16 +52,19 @@ images; this does not claim that development changes have been published.
 
 ## Preview
 
-Historical v3.1.0 screenshots below show an older interface. They are versioned
-examples, not captures of the current development UI.
+The current WebUI of the v27.0.0 release-candidate line on a phone screen,
+captured on 21 October 2026 from the Development deployment with synthetic
+test data (part of the reviewed screenshot set of the `v27.0.0-rc.7`
+documentation package):
 
-![Nowlert Dashboard](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-dashboard.png)
+| Sign in | Dashboard | Routing Flow |
+|---|---|---|
+| ![Nowlert sign-in page on a 390 px phone screen](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png) | ![Nowlert Dashboard on a 390 px phone screen with integration, destination and route counts](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/dashboard-live-admin-390.png) | ![Nowlert Routing Flow on a 390 px phone screen with delivery counters and integration cards](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/routing-flow-live-admin-390.png) |
 
-![Nowlert Routing Flow](https://raw.githubusercontent.com/Theriark/nowlert-ce/main/docs/images/v3.1.0-routing-flow.png)
-
-The historical v3.1.0 Delivery History capture was withdrawn on 22 October
-2026 because it showed a deployment label; the WebUI guide in the repository
-shows the current Delivery history page.
+The Preview shows only captures in which no account name, owner label,
+destination or channel name of the Development test data is visible. The
+repository's WebUI guide shows the desktop pages, and its documentation index
+lists the older captures that are kept only as history.
 
 ## Quick start
 
@@ -107,17 +121,26 @@ history are database-authoritative in private platform state.
 
 Do not add the legacy WebUI-managed `outputs`, `routing`, `api.tokens`,
 `notifications`, `presentation`, `home_assistant`, `redfish`,
-`platform.backups`, or `webui.language` sections to a fresh v3.1.6
-configuration.
+`platform.backups`, or `webui.language` sections to a fresh configuration,
+whether for the v3.1.6 release or a current development build.
 
 ## Built-in integrations
 
-Xen Orchestra, Zabbix, Grafana, Prometheus, Portainer, Proxmox, QNAP, Synology, TrueNAS,
+Current development and the v27.0.0 release candidates include the same 22
+integrations as the repository README:
+
+Xen Orchestra, Zabbix, Grafana, Prometheus, Checkmk, Portainer, Semaphore,
+Sonarr, Radarr, Metabase, GitHub Actions, Proxmox, QNAP, Synology, TrueNAS,
 UniFi Network, UniFi Protect, UniFi Drive, Supermicro, HPE iLO, Dell iDRAC, and
 Home Assistant.
 
-Normalized inputs are SMTP, HTTP, and Redfish. The built-in catalogue defines
-which input(s) and route criteria apply to each integration.
+The stable `3.1.6` image includes 15 of them. Prometheus, Checkmk, Semaphore,
+Sonarr, Radarr, Metabase, and GitHub Actions were added after v3.1.6 and are
+not in the `3.1.6` image.
+
+Normalized inputs are SMTP, HTTP, Redfish, and Email Alerts (mailbox
+connections; not in the `3.1.6` image). The built-in catalogue defines which
+input(s) and route criteria apply to each integration.
 
 ## Routing model
 

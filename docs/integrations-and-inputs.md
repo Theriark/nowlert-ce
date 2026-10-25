@@ -1,11 +1,17 @@
 # Integrations and inputs
 
-Nowlert v3.1.2 distinguishes an **integration** from the **input** that receives
-an event.
+Nowlert distinguishes an **integration** from the **input** that receives an
+event.
 
 Integrations are packaged with the image and provide source detection, parsing,
 presentation metadata, and supported route criteria. Inputs are the normalized
-transport types: **SMTP**, **HTTP**, and **Redfish**.
+transport types: **SMTP**, **HTTP**, **Redfish**, and **Email Alerts** (messages
+read from connected mailboxes, not an SMTP listener).
+
+The table follows the built-in catalogue of current development and the v27.0.0
+release candidates. The stable `3.1.6` image includes 15 of the 22 vendor
+integrations and has no Email Alerts input: Prometheus, Checkmk, Semaphore,
+Sonarr, Radarr, Metabase, and GitHub Actions were added after v3.1.6.
 
 | Integration | Source key | Inputs | Default category |
 |---|---|---|---|
@@ -13,6 +19,7 @@ transport types: **SMTP**, **HTTP**, and **Redfish**.
 | Zabbix | `zabbix` | SMTP, HTTP | Monitoring |
 | Grafana | `grafana` | HTTP | Monitoring |
 | Prometheus | `prometheus` | HTTP | Monitoring |
+| Checkmk | `checkmk` | HTTP | Monitoring |
 | Portainer | `portainer` | HTTP | Containers |
 | Semaphore | `semaphore` | SMTP, HTTP | Automation |
 | Sonarr | `sonarr` | HTTP | Automation |
@@ -21,7 +28,7 @@ transport types: **SMTP**, **HTTP**, and **Redfish**.
 | GitHub Actions | `github_actions` | HTTP | Automation |
 | Proxmox | `proxmox` | HTTP | Virtualization |
 | QNAP | `qnap` | SMTP | Storage |
-| Synology | `synology` | HTTP | Storage |
+| Synology | `synology` | SMTP, HTTP | Storage |
 | TrueNAS | `truenas` | SMTP | Storage |
 | UniFi Network | `unifi_network` | HTTP | Networking |
 | UniFi Protect | `unifi_protect` | HTTP | Security |
@@ -30,6 +37,7 @@ transport types: **SMTP**, **HTTP**, and **Redfish**.
 | HPE iLO | `hpe_ilo` | Redfish | Hardware |
 | Dell iDRAC | `dell_idrac` | Redfish | Hardware |
 | Home Assistant | `home_assistant` | HTTP | Automation |
+| Email Alerts | `email` | Email Alerts | Generic |
 
 The WebUI uses display names; operators do not need to type parser identifiers.
 
@@ -41,13 +49,15 @@ Route forms combine integration and input, for example:
 Zabbix (SMTP)
 Zabbix (HTTP)
 Dell iDRAC (Redfish)
+Email Alerts (Email Alerts)
+Fallback (SMTP)
 Fallback (HTTP)
 Fallback (Redfish)
 ```
 
 A route persists both source/integration identity and input type.
 
-The v3.1.2 route editor scopes severity/status choices to the selected
+The route editor scopes severity/status choices to the selected
 integration/input contract. This avoids showing irrelevant criteria and makes
 the saved route representation match what the integration can emit.
 

@@ -1,8 +1,11 @@
 # Platform output adapters and previews
 
 The platform output layer introduced in Nowlert v3.1.2 exposes database-authoritative
-destinations through a shared output-adapter layer for Discord, Microsoft Teams, Slack,
-Email over SMTP, Nowlert Mobile, and generic outbound webhooks.
+destinations through a shared output-adapter layer. In current development and the
+v27.0.0 release candidates it covers Discord, Microsoft Teams, Slack, Email over SMTP,
+Nowlert Mobile, and generic outbound webhooks. The stable `3.1.6` image covers Discord,
+Microsoft Teams, Slack, generic outbound webhooks, MQTT, and ntfy; Email and Nowlert
+Mobile were added after v3.1.6, and MQTT and ntfy are no longer offered.
 
 Adapters receive safe public destination metadata, an internally resolved
 owner-scoped secret, and the normalized `Notification` model.

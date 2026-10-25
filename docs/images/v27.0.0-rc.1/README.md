@@ -1,5 +1,18 @@
 # Development interface captures, v27.0.0-rc.1
 
+**Current set.** The folder keeps the name of the first release candidate; its
+contents are the reviewed screenshot set of the `v27.0.0-rc.7` documentation
+package. Since 24 October 2026 the Preview of the repository README and the
+Docker Hub README uses three of its files, `sign-in-empty-signed-out-390.png`,
+`dashboard-live-admin-390.png` and `routing-flow-live-admin-390.png`, which
+show no account, owner, destination or channel name; the other captures are
+embedded by the WebUI guide only (see "Names shown in the captures" below and
+the open point of the screenshot privacy review). The Development build
+`66d50b00` runs the same application source as `v27.0.0-rc.7` (`9823244c`);
+on 24 October 2026 the Dashboard, Routing Flow and Destinations pages were
+compared with it live and show the same layout and controls, differing only
+in live counters and the selected time range.
+
 Live screenshots of the Nowlert CE development WebUI, taken on 21 October 2026
 (Europe/Lisbon) from the Development deployment of the `development` branch at
 commit `342698c67fe000a11b02994ed289f0cf45b22166` (running application version
@@ -127,6 +140,11 @@ mailbox addresses.
   subtitles (`#ce-nowlert-development`, `#Dev`, `#test`,
   `ce-nowlert-development`) are the labels typed into the destination editor
   for the crew's development test channels, not webhook addresses.
+- The owner labels `USER` (on `test 2`) and `CE-QA-20261015` (on the `CE QA …`
+  destinations) in the destination captures are, in the same way, the
+  usernames of the Development accounts that created those destinations: a
+  generic account name and the identity of the 15 October 2026 QA fixture.
+  Neither is a personal name.
 - The device name `synthetic-dsm-01` and the storage-pool and backup texts in
   `delivery-history-synology-admin-1440.png` are the synthetic Synology sample
   events delivered to the Development deployment on 15 October 2026; they are
