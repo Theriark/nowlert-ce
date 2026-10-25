@@ -5,6 +5,7 @@ import re
 
 import pytest
 
+from integrations.catalog import integrations
 from storage.migrations import LATEST_SCHEMA_VERSION
 
 
@@ -142,3 +143,26 @@ def test_current_guides_follow_destination_route_navigation():
     readme = (ROOT / "README.md").read_text(encoding="utf-8").split("## WebUI", 1)[1].split("## ", 1)[0]
     for retired in ("Sources/integration catalogue", "- Routes;", "- Inputs;"):
         assert retired not in readme
+
+
+# Absent from the catalogue of the v3.1.6 tag. The Docker Hub page names them
+# because its versioned image is 3.1.6 while its list follows current source.
+ADDED_AFTER_V316 = (
+    "Prometheus", "Checkmk", "Semaphore", "Sonarr", "Radarr", "Metabase", "GitHub Actions",
+)
+
+
+def test_front_page_integration_lists_match_catalogue():
+    catalogue = {item["name"] for item in integrations() if item["source"] != "email"}
+    readme = (ROOT / "README.md").read_text(encoding="utf-8").split("# 🔌 Supported Integrations", 1)[1]
+    table = set(re.findall(r"^\| ([^|]+?) \| `[a-z_]+` \|", readme.split("\n---", 1)[0], re.M))
+    assert table == catalogue
+    dockerhub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
+    section = " ".join(dockerhub.split("## Built-in integrations", 1)[1].split("\n## ", 1)[0].split())
+    for name in sorted(catalogue):
+        assert name in section, name
+    assert f"same {len(catalogue)} integrations" in section
+    stable = section.split("The stable `3.1.6` image", 1)[1]
+    assert f"includes {len(catalogue) - len(ADDED_AFTER_V316)} of them" in stable
+    for name in ADDED_AFTER_V316:
+        assert name in stable, name

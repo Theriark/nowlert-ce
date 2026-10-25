@@ -120,9 +120,17 @@ whether for the v3.1.6 release or a current development build.
 
 ## Built-in integrations
 
-Xen Orchestra, Zabbix, Grafana, Prometheus, Portainer, Proxmox, QNAP, Synology, TrueNAS,
+Current development and the v27.0.0 release candidates include the same 22
+integrations as the repository README:
+
+Xen Orchestra, Zabbix, Grafana, Prometheus, Checkmk, Portainer, Semaphore,
+Sonarr, Radarr, Metabase, GitHub Actions, Proxmox, QNAP, Synology, TrueNAS,
 UniFi Network, UniFi Protect, UniFi Drive, Supermicro, HPE iLO, Dell iDRAC, and
 Home Assistant.
+
+The stable `3.1.6` image includes 15 of them. Prometheus, Checkmk, Semaphore,
+Sonarr, Radarr, Metabase, and GitHub Actions were added after v3.1.6 and are
+not in the `3.1.6` image.
 
 Normalized inputs are SMTP, HTTP, and Redfish. The built-in catalogue defines
 which input(s) and route criteria apply to each integration.
