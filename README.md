@@ -34,6 +34,23 @@ workflows teams already use.
 
 # 🚀 Quick Start
 
+These steps install the current stable release, **v3.1.6**, with the image
+`theriark/nowlert-ce:3.1.6`. That image does not contain the newer features
+this README marks as development or v27.0.0 release-candidate changes (for
+example Email Alerts, the Email and Nowlert Mobile destinations and the
+WebUI shown in the Preview).
+
+v27.0.0 is not released yet. Its release candidates are GitHub pre-release
+tags (`v27.0.0-rc.N`), each bound to one immutable image built by Continuous
+Integration from the tagged `development` commit; when this page was written
+the latest was `v27.0.0-rc.10` (source commit `7a82fd8c`, image digest
+`sha256:226043dd403ea3281cd7228eaa0d7b7cd21b8b4f6bdd963a1ca8f6895167b0ca`).
+Candidates are for testing and inspection, not stable releases. The release
+workflow publishes Docker Hub tags only for a stable release, so there is no
+`theriark/nowlert-ce` tag for a candidate; see
+[Releases](https://github.com/Theriark/nowlert-ce/releases) for the current
+candidate.
+
 ## 1. Clone and prepare configuration
 
 ```bash
@@ -65,7 +82,8 @@ docker compose -f compose.production.yaml ps
 docker logs -f nowlert-ce
 ```
 
-The default production image is:
+The supplied Compose file defaults to the stable release image (set
+`NOWLERT_IMAGE` in `.env` to change it):
 
 ```text
 theriark/nowlert-ce:3.1.6
@@ -135,32 +153,60 @@ See [v3.1.6 release notes](docs/releases/v3.1.6.md) and the
 
 # 📸 Preview
 
-The current WebUI of the v27.0.0 release-candidate line, captured on 21 October
-2026 from the Development deployment of the `development` branch with
-synthetic test data. These are part of the reviewed screenshot set of the
-`v27.0.0-rc.7` documentation package; the Development build `66d50b00` runs
-the same application source (`9823244c`); its Dashboard, Routing Flow and
-Destinations pages were compared live with these captures on 24 October 2026.
+Nowlert CE is a desktop web application. The captures below show its current
+WebUI at desktop width (1440 × 900 px) as it looks on the v27.0.0
+release-candidate line. They were taken on 21 October 2026 from the
+Development deployment of the `development` branch with the crew's
+Development test accounts and test data, and they belong to the reviewed
+screenshot set reused unchanged since the `v27.0.0-rc.7` documentation
+package. The application source has not changed since `v27.0.0-rc.7`: the
+later commits up to `7a82fd8c`, the source of the `v27.0.0-rc.10` candidate,
+changed only documentation, tests and a workflow file.
 
-| Sign in | Dashboard | Routing Flow |
-|---|---|---|
-| ![Nowlert sign-in page on a 390 px phone screen](docs/images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png) | ![Nowlert Dashboard on a 390 px phone screen with integration, destination and route counts](docs/images/v27.0.0-rc.1/dashboard-live-admin-390.png) | ![Nowlert Routing Flow on a 390 px phone screen with delivery counters and integration cards](docs/images/v27.0.0-rc.1/routing-flow-live-admin-390.png) |
+## Dashboard
 
-The Preview shows only captures in which no account name, owner label,
-destination or channel name of the Development test data is visible. The
-desktop captures of the same set show those synthetic names, so they appear
-only in the [WebUI guide](docs/webui.md) and the
-[capture index](docs/images/v27.0.0-rc.1/README.md); whether they belong on
-this front page is an open point of the
-[screenshot privacy review](docs/guides/screenshot-privacy.md#open-points-for-a-person).
+Delivery counters, delivery performance, recent activity and system health in
+one view.
 
-Older captures of earlier interfaces (v3.1.0 and v2.5.2) are kept only as
-history; the [documentation index](docs/README.md#historical-screenshots)
-lists them, and the screenshot privacy review records every image and the
-captures that were withdrawn.
+![Nowlert CE Dashboard at 1440 px with integration, destination and route counts, delivery performance chart and recent activity](docs/images/v27.0.0-rc.1/dashboard-live-admin-1440.png)
 
-The [WebUI guide](docs/webui.md) describes every page; it shows captures of
-all pages except those left out for privacy.
+## Routing Flow
+
+The live path from each integration through its filters to each destination.
+
+![Nowlert CE Routing Flow at 1440 px with received, delivered and failed counters and integration, filter and destination cards](docs/images/v27.0.0-rc.1/routing-flow-live-admin-1440.png)
+
+## Destinations
+
+Discord, Microsoft Teams, Slack, Email, Nowlert Mobile and webhook
+destinations with their status, sharing, owner and last test result.
+
+![Nowlert CE Destinations at 1440 px with Discord, webhook, Slack and Teams destination cards](docs/images/v27.0.0-rc.1/destinations-list-admin-1440.png)
+
+## Sign in
+
+![Nowlert CE sign-in page at 1440 px](docs/images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png)
+
+The sidebar shows the Development administrator account (`ai-crew-admin-…`).
+The owner chips on the destination cards (`ITMANAGER`, `USER`,
+`CE-QA-20261015`) show the username of the account that created each
+destination; usernames are free text typed when an account is created, and
+the only account roles are administrator and user. No credential, token,
+private address or personal data is shown. The
+[screenshot privacy review](docs/guides/screenshot-privacy.md) records every
+image.
+
+The same WebUI also adapts to a narrow browser window; the
+[WebUI guide](docs/webui.md#narrow-browser-windows) shows that responsive
+layout at 768 and 390 px as a secondary compatibility example. Those captures
+are not the Nowlert Mobile app, which is a separate product that Nowlert CE
+delivers notifications to.
+
+The [WebUI guide](docs/webui.md) describes every page, and the
+[capture index](docs/images/v27.0.0-rc.1/README.md) lists every current
+capture. Older captures of earlier interfaces (v3.1.0 and v2.5.2) are kept
+only as history; the [documentation index](docs/README.md#historical-screenshots)
+lists them.
 
 ---
 

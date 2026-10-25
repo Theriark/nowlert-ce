@@ -83,25 +83,54 @@ def test_preview_shows_current_captures_and_history_stays_separate():
         assert "remains the current visual baseline" not in text
 
 
-# While the disclosure of the Development test-data names (account, owner,
-# destination and channel names) is an open point of
-# docs/guides/screenshot-privacy.md, the front-page Preview may use only
-# captures that show none of them. Each was opened at full size on
-# 24 October 2026; extend this list only after the same check.
+# Nowlert CE is a desktop web application: the front-page Preview shows the
+# full desktop (1440 px) captures. The product owner decided on 25 October 2026
+# (docs/guides/screenshot-privacy.md) that their generic Development test
+# labels may appear; each was opened at full size that day. Narrow-window
+# captures are secondary examples in docs/webui.md, never the Preview.
 PREVIEW_CAPTURES = (
-    "sign-in-empty-signed-out-390.png",
-    "dashboard-live-admin-390.png",
-    "routing-flow-live-admin-390.png",
+    "dashboard-live-admin-1440.png",
+    "routing-flow-live-admin-1440.png",
+    "destinations-list-admin-1440.png",
+    "sign-in-empty-signed-out-1440.png",
 )
 
 
 @pytest.mark.parametrize("relative", ("README.md", "DOCKERHUB_README.md"))
-def test_front_page_preview_uses_only_captures_without_test_data_names(relative):
+def test_front_page_preview_uses_only_desktop_captures(relative):
     text = (ROOT / relative).read_text(encoding="utf-8")
     embedded = set(re.findall(r"images/v27\.0\.0-rc\.1/([\w.-]+\.png)", text))
     assert embedded == set(PREVIEW_CAPTURES), relative
     for name in PREVIEW_CAPTURES:
         assert (ROOT / "docs" / CURRENT_CAPTURE_DIR / name).stat().st_size > 0, name
+    assert not any(name.endswith(("-390.png", "-768.png")) for name in embedded), relative
+    # Each desktop capture stands on its own line at full width, not in a
+    # table row of squeezed columns.
+    for line in text.splitlines():
+        if re.search(r"images/v27\.0\.0-rc\.1/[\w.-]+\.png", line):
+            assert line.startswith("![") and line.count("](") == 1, line
+
+
+def test_narrow_window_captures_are_secondary_and_not_mobile():
+    webui = (ROOT / "docs/webui.md").read_text(encoding="utf-8")
+    responsive = webui.split("## Narrow browser windows\n", 1)[1].split("\n## ", 1)[0]
+    assert "secondary compatibility examples" in responsive
+    assert "not the Nowlert Mobile app" in responsive
+    before = webui.split("## Narrow browser windows\n", 1)[0]
+    assert "-390.png" not in before and "-768.png" not in before
+
+
+def test_owner_labels_are_described_as_typed_usernames():
+    for relative in (
+        "README.md",
+        "docs/images/v27.0.0-rc.1/README.md",
+        "docs/guides/screenshot-privacy.md",
+    ):
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        assert "it is a role name" not in text, relative
+        assert "role-named owner label" not in text, relative
+        assert "synthetic crew" not in text, relative
+        assert "synthetic test accounts" not in text, relative
 
 
 def test_current_captures_have_index_and_embeds_resolve():

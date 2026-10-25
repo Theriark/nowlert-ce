@@ -1,17 +1,20 @@
 # Development interface captures, v27.0.0-rc.1
 
 **Current set.** The folder keeps the name of the first release candidate; its
-contents are the reviewed screenshot set of the `v27.0.0-rc.7` documentation
-package. Since 24 October 2026 the Preview of the repository README and the
-Docker Hub README uses three of its files, `sign-in-empty-signed-out-390.png`,
-`dashboard-live-admin-390.png` and `routing-flow-live-admin-390.png`, which
-show no account, owner, destination or channel name; the other captures are
-embedded by the WebUI guide only (see "Names shown in the captures" below and
-the open point of the screenshot privacy review). The Development build
-`66d50b00` runs the same application source as `v27.0.0-rc.7` (`9823244c`);
+contents are the reviewed screenshot set reused unchanged since the
+`v27.0.0-rc.7` documentation package. Nowlert CE is a desktop web
+application: since 25 October 2026 the Preview of the repository README and
+the Docker Hub README shows four of its desktop captures at full width,
+`dashboard-live-admin-1440.png`, `routing-flow-live-admin-1440.png`,
+`destinations-list-admin-1440.png` and `sign-in-empty-signed-out-1440.png`.
+The 768 and 390 px captures are secondary examples of the responsive layout
+in a narrow browser window, embedded by the WebUI guide only; they do not show
+the Nowlert Mobile app, which is a separate product. The Development build
+`66d50b00` ran the same application source as `v27.0.0-rc.7` (`9823244c`);
 on 24 October 2026 the Dashboard, Routing Flow and Destinations pages were
-compared with it live and show the same layout and controls, differing only
-in live counters and the selected time range.
+compared with it live and showed the same layout and controls, differing only
+in live counters and the selected time range. The later commits up to
+`7a82fd8c`, the source of `v27.0.0-rc.10`, changed no application file.
 
 Live screenshots of the Nowlert CE development WebUI, taken on 21 October 2026
 (Europe/Lisbon) from the Development deployment of the `development` branch at
@@ -19,8 +22,9 @@ commit `342698c67fe000a11b02994ed289f0cf45b22166` (running application version
 3.1.6 plus the development changes listed in
 [Development after v3.1.6](../../releases/post-v3.1.6-development.md)).
 
-Every capture uses the synthetic AI-crew test accounts (`ai-crew-admin-…`,
-`ai-crew-user-…`), synthetic destinations and synthetic events. No credential,
+Every capture uses the crew's Development test accounts (`ai-crew-admin-…`,
+`ai-crew-user-…`), the Development test destinations described under "Names
+shown in the captures" below and test events. No credential,
 token, private address, personal name or customer data is shown; pages that
 would have exposed such data were left out (see the end of this file).
 
@@ -69,7 +73,7 @@ the `development` branch at commit `8dc1b2cabdbfbbb3f9ec1539ec6fbeb854ab4461`
 the Users list refresh, the IMAP mailbox edit form and the narrow Email Alerts
 rules table. The stylesheets and scripts served by that deployment were
 compared byte for byte with the sources of that commit before capturing. Same
-synthetic administrator account, same viewports.
+crew administrator account, same viewports.
 
 | File | Page / state | Role | Width | Captured (Lisbon) |
 |---|---|---|---|---|
@@ -77,7 +81,7 @@ synthetic administrator account, same viewports.
 | `destination-preview-discord-debug-admin-1440.png` | Preview dialog, Discord destination, severity **Debug**, generic sample source, output scrolled to the context line that reads **Debug** | administrator | 1440 | 22:49 |
 | `email-alerts-rules-admin-768.png` | Email Alerts, Rules tab as stacked rule cards | administrator | 768 | 22:49 |
 | `email-alerts-rules-admin-390.png` | Email Alerts, Rules tab as stacked rule cards, scrolled to the first full card | administrator | 390 | 22:50 |
-| `email-alerts-mailbox-edit-imap-admin-1440.png` | Edit mailbox dialog of the synthetic IMAP mailbox (username and password optional, folder scan unavailable) | administrator | 1440 | 22:51 |
+| `email-alerts-mailbox-edit-imap-admin-1440.png` | Edit mailbox dialog of the IMAP test mailbox of the QA fixture (username and password optional, folder scan unavailable) | administrator | 1440 | 22:51 |
 
 Notes on these five files:
 
@@ -86,7 +90,7 @@ Notes on these five files:
   capture the preview form's source value was set to the generic Nowlert
   source so that the generic Discord card is shown; an integration with its
   own state label (for example Home Assistant) keeps that label in the header.
-- The Edit mailbox capture shows the synthetic mailbox
+- The Edit mailbox capture shows the QA fixture mailbox
   `qa@ce-qa-fixture.invalid` with the loopback host `127.0.0.1` and port
   `19993`, which the QA fixture uses because no IMAP server exists in
   Development. The Mailboxes list behind the dialog is hidden by the dialog
@@ -99,7 +103,7 @@ Notes on these five files:
 The Audit log capture of 21 October 2026 (15:49) was also withdrawn on
 23 October 2026 (Jira TOPS-356): its audit rows show the user name of the
 Development deployment's administrator account, which is not one of the
-synthetic crew accounts, together with truncated internal record identifiers.
+crew test accounts, together with truncated internal record identifiers.
 It is not replaced; the [WebUI guide](../../webui.md) describes the Audit log
 page in writing. Like the Zabbix file below, it remains in the folder as an
 empty placeholder until a person with delete access removes it.
@@ -114,16 +118,17 @@ until a person with delete access removes it. It was replaced by one capture
 from the Development deployment of the `development` branch at commit
 `82c8470af473570a87690e76f9ea0431f49e3013` (application version 3.1.6 plus the
 development changes, after the merge of pull requests 622 to 626), same
-synthetic administrator account, same viewport, opened at full size before
+crew administrator account, same viewport, opened at full size before
 being added.
 
 | File | Page / state | Role | Width | Captured (Lisbon) |
 |---|---|---|---|---|
 | `delivery-history-synology-admin-1440.png` | Delivery history, **Synology** source filter, **Last 30 days**, newest first, first event selected with its detail pane | administrator | 1440 | 10:48 |
 
-Note on this file: every value shown is synthetic. The rows are the Synology
-sample events of 15 October 2026 for the device `synthetic-dsm-01` (storage
-pool degraded, recovered, synthetic Hyper Backup failure); the detail pane
+Note on this file: the rows are the Synology sample events of 15 October 2026
+for the device `synthetic-dsm-01`, the device name of the repository's
+Synology test fixture (storage pool degraded, recovered, Hyper Backup
+failure); the detail pane
 shows the message, the outcome badges, the transport information (input,
 destination `CE Development - Discord`, destination type, response code) and
 the timeline. No mailbox, sender, address or token appears. The Email Alerts
@@ -132,22 +137,27 @@ mailbox addresses.
 
 ## Names shown in the captures
 
-- The accounts `ai-crew-admin-…` and `ai-crew-user-…` are the synthetic crew
-  test accounts.
+- The accounts `ai-crew-admin-…` and `ai-crew-user-…` are the crew's
+  Development test accounts.
+- The owner chip on a destination card shows the username of the account that
+  owns the destination (`owner_username` in `src/webui/app.js`). Usernames are
+  free text typed when an account is created; the only account roles are
+  administrator and user, so an owner chip never shows a role.
 - The owner label `ITMANAGER` on the shared `CE Development - …` destinations
-  is the username of the administrator account of the Development deployment
-  that created them; it is a role name, not a personal name. The destination
+  is the typed username of the administrator account of the Development
+  deployment that created them. It is a generic label, not a role and not a
+  personal name; the repository does not record who chose it. The destination
   subtitles (`#ce-nowlert-development`, `#Dev`, `#test`,
   `ce-nowlert-development`) are the labels typed into the destination editor
   for the crew's development test channels, not webhook addresses.
 - The owner labels `USER` (on `test 2`) and `CE-QA-20261015` (on the `CE QA …`
-  destinations) in the destination captures are, in the same way, the
+  destinations) in the destination captures are, in the same way, the typed
   usernames of the Development accounts that created those destinations: a
-  generic account name and the identity of the 15 October 2026 QA fixture.
+  generic account name and the account of the 15 October 2026 QA fixture.
   Neither is a personal name.
 - The device name `synthetic-dsm-01` and the storage-pool and backup texts in
-  `delivery-history-synology-admin-1440.png` are the synthetic Synology sample
-  events delivered to the Development deployment on 15 October 2026; they are
+  `delivery-history-synology-admin-1440.png` are the Synology sample events
+  delivered to the Development deployment on 15 October 2026; they are
   not real infrastructure and no address is shown. The destination column of
   the detail pane names the shared crew destination `CE Development - Discord`
   described above.
@@ -175,7 +185,7 @@ mailbox addresses.
   message subtitles and bodies contain real mailbox addresses and real
   message subjects (re-confirmed live on 23 October 2026).
 - Email Alerts Mailboxes tab: a personal mailbox label (only the Edit mailbox
-  dialog of the synthetic IMAP mailbox is captured, with the list hidden
+  dialog of the QA fixture's IMAP test mailbox is captured, with the list hidden
   behind the dialog backdrop).
 - Audit log: audit rows show the user name of the Development deployment's
   administrator account and internal record identifiers.

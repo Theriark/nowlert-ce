@@ -52,21 +52,43 @@ images; this does not claim that development changes have been published.
 
 ## Preview
 
-The current WebUI of the v27.0.0 release-candidate line on a phone screen,
-captured on 21 October 2026 from the Development deployment with synthetic
-test data (part of the reviewed screenshot set of the `v27.0.0-rc.7`
-documentation package):
+Nowlert CE is a desktop web application. These captures show the WebUI of the
+v27.0.0 release-candidate line at desktop width (1440 × 900 px), taken on
+21 October 2026 from the Development deployment with the crew's Development
+test accounts and test data (the reviewed screenshot set reused unchanged
+since the `v27.0.0-rc.7` documentation package). The stable `3.1.6` image has
+an older WebUI.
 
-| Sign in | Dashboard | Routing Flow |
-|---|---|---|
-| ![Nowlert sign-in page on a 390 px phone screen](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png) | ![Nowlert Dashboard on a 390 px phone screen with integration, destination and route counts](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/dashboard-live-admin-390.png) | ![Nowlert Routing Flow on a 390 px phone screen with delivery counters and integration cards](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/routing-flow-live-admin-390.png) |
+### Dashboard
 
-The Preview shows only captures in which no account name, owner label,
-destination or channel name of the Development test data is visible. The
-repository's WebUI guide shows the desktop pages, and its documentation index
-lists the older captures that are kept only as history.
+![Nowlert CE Dashboard at 1440 px with integration, destination and route counts, delivery performance chart and recent activity](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/dashboard-live-admin-1440.png)
+
+### Routing Flow
+
+![Nowlert CE Routing Flow at 1440 px with received, delivered and failed counters and integration, filter and destination cards](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/routing-flow-live-admin-1440.png)
+
+### Destinations
+
+![Nowlert CE Destinations at 1440 px with Discord, webhook, Slack and Teams destination cards](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/destinations-list-admin-1440.png)
+
+### Sign in
+
+![Nowlert CE sign-in page at 1440 px](https://raw.githubusercontent.com/Theriark/nowlert-ce/development/docs/images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png)
+
+The owner chips on the destination cards (`ITMANAGER`, `USER`,
+`CE-QA-20261015`) show the username of the account that created each
+destination; usernames are free text and the only account roles are
+administrator and user. No credential, token, private address or personal
+data is shown. The repository's WebUI guide describes every page and shows
+the responsive layout in a narrow browser window as a secondary example; that
+is not the Nowlert Mobile app, a separate product that Nowlert CE delivers
+notifications to.
 
 ## Quick start
+
+These steps install the stable `3.1.6` image (the default of the supplied
+Compose file). Release candidates of v27.0.0 are GitHub pre-release tags of
+the source repository and have no Docker Hub tag.
 
 ```bash
 git clone https://github.com/Theriark/nowlert-ce.git

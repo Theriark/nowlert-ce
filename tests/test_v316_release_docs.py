@@ -12,9 +12,10 @@ HISTORICAL_SCREENSHOTS = (
     "v3.1.0-destinations.png",
 )
 CURRENT_PREVIEW = (
-    "v27.0.0-rc.1/sign-in-empty-signed-out-390.png",
-    "v27.0.0-rc.1/dashboard-live-admin-390.png",
-    "v27.0.0-rc.1/routing-flow-live-admin-390.png",
+    "v27.0.0-rc.1/dashboard-live-admin-1440.png",
+    "v27.0.0-rc.1/routing-flow-live-admin-1440.png",
+    "v27.0.0-rc.1/destinations-list-admin-1440.png",
+    "v27.0.0-rc.1/sign-in-empty-signed-out-1440.png",
 )
 # Withdrawn on 22 October 2026 (docs/guides/screenshot-privacy.md).
 WITHDRAWN_SCREENSHOTS = (
