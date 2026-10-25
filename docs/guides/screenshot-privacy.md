@@ -186,6 +186,12 @@ writing:
 It was overwritten with empty content the same way, so the number of empty
 placeholders awaiting deletion by a person is now six.
 
+The two empty placeholders in `images/v27.0.0-rc.1/`,
+`audit-log-overview-admin-1440.png` and
+`delivery-history-zabbix-admin-1440.png`, are zero-byte files: no current
+document links them, and they are not part of the published documentation
+packages.
+
 The retained captures are listed in the inventory below with the date of their
 last recorded inspection. Their dated validation results are historical
 observations, not new acceptance or release claims. The v3.1.0 preview set is
@@ -420,8 +426,10 @@ not, by itself, evidence of a leak; inspect the image.
 
 ## Adding or replacing an image
 
-1. Prefer a fresh capture with synthetic account/device names and documentation
-   addresses such as `192.0.2.0/24`; keep raw captures outside the repository.
+1. Prefer a fresh capture made with the Development test accounts, whose names
+   are typed usernames rather than personal names, test device names and
+   documentation addresses such as `192.0.2.0/24`; keep raw captures outside
+   the repository.
 2. Inspect the full image at readable size, including account chrome, sidebars,
    message previews, URLs, logs, personal folders and profile pictures.
 3. If private information remains, omit the image and supply written steps.

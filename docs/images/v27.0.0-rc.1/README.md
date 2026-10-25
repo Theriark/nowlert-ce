@@ -121,6 +121,11 @@ development changes, after the merge of pull requests 622 to 626), same
 crew administrator account, same viewport, opened at full size before
 being added.
 
+The two withdrawn files, `audit-log-overview-admin-1440.png` and
+`delivery-history-zabbix-admin-1440.png`, are zero-byte placeholders. No
+current document links them, and they are not part of the published
+documentation packages.
+
 | File | Page / state | Role | Width | Captured (Lisbon) |
 |---|---|---|---|---|
 | `delivery-history-synology-admin-1440.png` | Delivery history, **Synology** source filter, **Last 30 days**, newest first, first event selected with its detail pane | administrator | 1440 | 10:48 |
