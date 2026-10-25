@@ -237,9 +237,9 @@ persists the assignments. There is no separate Sources or Routes page.
 
 Built-in integrations are packaged application capabilities. Routes are named
 after the integration and its input, for example **Xen Orchestra SMTP** or
-**Zabbix HTTP**. The normalized input badges are **SMTP**, **HTTP**, and
-**Redfish**. Dedicated matching routes are evaluated before wildcard
-**Fallback** routes.
+**Zabbix HTTP**. The normalized input badges are **SMTP**, **HTTP**,
+**Redfish**, and **Email Alerts**. Dedicated matching routes are evaluated
+before wildcard **Fallback** routes.
 
 ### Filtering
 
@@ -457,7 +457,9 @@ The WebUI relies on server-enforced security boundaries:
 
 SMTP, HTTP and Redfish listeners are configured through bootstrap settings.
 Binding, TLS, authentication and process-level enablement changes require a
-Nowlert restart. There is no separate Inputs navigation page.
+Nowlert restart. Email Alerts is not a listener: its mailboxes are connected in
+the WebUI (see [Email Alerts](#email-alerts)). There is no separate Inputs
+navigation page.
 
 WebUI-managed resources are database-authoritative under `/nowlert/state`.
 `config.yaml` is limited to process/bootstrap concerns such as listeners,

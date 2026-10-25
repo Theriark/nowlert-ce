@@ -214,6 +214,10 @@ def test_current_input_lists_name_every_catalogue_input():
         for name in names:
             assert name in passage, (relative, name)
         assert "3.1.6" in passage or "listener" in passage, relative
+    badges = _flat((ROOT / "docs/webui.md").read_text(encoding="utf-8")
+                   .split("The normalized input badges are", 1)[1].split(".", 1)[0])
+    for name in names:
+        assert f"**{name}**" in badges, ("docs/webui.md badges", name)
     index = (ROOT / "docs/README.md").read_text(encoding="utf-8")
     for row in ("[Integrations and inputs]", "[Technical use-case guides]"):
         line = next(line for line in index.splitlines() if line.startswith(f"| {row}"))

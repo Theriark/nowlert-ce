@@ -205,7 +205,7 @@ Nowlert gives those events a consistent operational path.
 |---|---|
 | Vendor-specific email or JSON | Normalized event model |
 | Important fields buried in payloads | Structured source-aware presentation |
-| Separate SMTP/HTTP/hardware workflows | One routing model |
+| Separate SMTP/HTTP/hardware/mailbox workflows | One routing model |
 | Repeated formatting per destination | Shared parser and destination adapters |
 | Credentials mixed into application config | Write-only owner-scoped secrets |
 | Ad-hoc forwarding rules | Deterministic priority and fallback routing |
@@ -570,7 +570,8 @@ Zabbix
 If no dedicated Zabbix route matches, Nowlert may then evaluate an enabled
 Fallback HTTP route.
 
-The same routing model is used for SMTP and Redfish events.
+The same routing model is used for SMTP and Redfish events, and for Email
+Alerts messages that match a classification rule.
 
 ---
 
