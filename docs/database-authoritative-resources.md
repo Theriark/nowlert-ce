@@ -1,6 +1,6 @@
 # Database-authoritative resources
 
-Nowlert v3.1.2 uses `platform_database_v1` to separate process bootstrap from
+Nowlert uses `platform_database_v1` to separate process bootstrap from
 WebUI-managed resources.
 
 ## Bootstrap configuration

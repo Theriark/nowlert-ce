@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
 </p>
 
-**Self-hosted infrastructure notifications from SMTP, HTTP, Redfish, and Email Alerts to Teams, Slack, Discord, Email, and webhooks.**
+**Self-hosted infrastructure notifications from SMTP, HTTP, Redfish, and Email Alerts to Teams, Slack, Discord, Email, Nowlert Mobile, and webhooks.**
 
 Nowlert CE is the free, open-source, self-hosted edition of Nowlert. It receives
 infrastructure signals, normalizes vendor-specific events, applies deterministic
@@ -221,6 +221,7 @@ Nowlert gives those events a consistent operational path.
 - authenticated HTTP Event API;
 - dedicated vendor HTTP webhook endpoints;
 - Redfish Event Service ingestion;
+- Email Alerts from connected mailboxes (not in the `3.1.6` image);
 - optional SMTP STARTTLS and SMTP AUTH;
 - bounded request and payload handling;
 - parser-based source detection and normalization.
@@ -250,13 +251,18 @@ path.
 
 ## Destinations
 
-The platform supports:
+Current development and the v27.0.0 release candidates support:
 
 - Discord;
 - Microsoft Teams;
 - Slack;
-- Email over SMTP; and
+- Email over SMTP;
+- Nowlert Mobile; and
 - generic webhooks.
+
+The stable `3.1.6` image delivers to Discord, Microsoft Teams, Slack, generic
+webhooks, MQTT, and ntfy. Email and Nowlert Mobile destinations were added after
+v3.1.6; MQTT and ntfy are no longer offered.
 
 Destination credentials are write-only. Read APIs expose only safe metadata
 such as whether a secret is configured. Private destinations are owner-scoped;
@@ -321,7 +327,13 @@ setup token so the operator chooses the first administrator credentials.
 # 🔌 Supported Integrations
 
 Integrations are packaged with the image. Inputs are the normalized transport
-used to receive the event.
+used to receive the event. The table lists the 22 integrations of current
+development and the v27.0.0 release candidates; the generic Email Alerts source
+is described under [Email Alerts](docs/integrations/README.md#email-alerts).
+
+The stable `3.1.6` image includes 15 of them. Prometheus, Checkmk, Semaphore,
+Sonarr, Radarr, Metabase, and GitHub Actions were added after v3.1.6 and are
+not in the `3.1.6` image.
 
 | Integration | Source key | Inputs | Default category |
 |---|---|---|---|
@@ -377,7 +389,8 @@ A built-in source family such as Xen Orchestra, Zabbix, or Dell iDRAC.
 
 ## Input
 
-The normalized transport: **SMTP**, **HTTP**, or **Redfish**.
+The normalized transport: **SMTP**, **HTTP**, **Redfish**, or **Email Alerts**
+(mailbox connections; not in the `3.1.6` image).
 
 ## Normalized event
 
@@ -411,7 +424,7 @@ login credential and cannot manage platform resources.
 ```text
 Infrastructure product
         |
-        | SMTP / HTTP / Redfish
+        | SMTP / HTTP / Redfish / Email Alerts mailbox
         v
 +-----------------------------+
 | Input adapters              |
@@ -437,7 +450,7 @@ Infrastructure product
 +-----------------------------+
 | Destination adapters        |
 | Discord / Teams / Slack /   |
-| Email / Webhook             |
+| Email / Mobile / Webhook    |
 +-----------------------------+
         |
         v

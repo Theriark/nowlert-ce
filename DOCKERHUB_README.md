@@ -11,8 +11,14 @@
 
 Nowlert CE receives infrastructure signals over **SMTP**, **HTTP**, and
 **Redfish**, normalizes vendor-specific events, applies deterministic routing,
-and delivers clear operational notifications to Discord, Microsoft Teams,
-Slack, generic webhooks, MQTT, and ntfy.
+and delivers clear operational notifications.
+
+Current development and the v27.0.0 release candidates also read **Email
+Alerts** from connected mailboxes, and deliver to Discord, Microsoft Teams,
+Slack, Email, Nowlert Mobile, and generic webhooks. The stable `3.1.6` image
+has no Email Alerts input and delivers to Discord, Microsoft Teams, Slack,
+generic webhooks, MQTT, and ntfy; MQTT and ntfy are no longer offered after
+v3.1.6.
 
 The current stable release is **v3.1.6**. The versioned Docker Hub image is:
 
@@ -132,8 +138,9 @@ The stable `3.1.6` image includes 15 of them. Prometheus, Checkmk, Semaphore,
 Sonarr, Radarr, Metabase, and GitHub Actions were added after v3.1.6 and are
 not in the `3.1.6` image.
 
-Normalized inputs are SMTP, HTTP, and Redfish. The built-in catalogue defines
-which input(s) and route criteria apply to each integration.
+Normalized inputs are SMTP, HTTP, Redfish, and Email Alerts (mailbox
+connections; not in the `3.1.6` image). The built-in catalogue defines which
+input(s) and route criteria apply to each integration.
 
 ## Routing model
 

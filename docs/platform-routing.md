@@ -1,6 +1,6 @@
 # Platform routing and delivery
 
-Nowlert v3.1.2 uses database-authoritative Event API tokens, destinations,
+Nowlert uses database-authoritative Event API tokens, destinations,
 routes, delivery history, and audit state. `config.yaml` is not the normal
 editing surface for these resources.
 
@@ -34,7 +34,8 @@ Supported platform destination types are:
 - Discord;
 - Microsoft Teams;
 - Slack;
-- Email over SMTP; and
+- Email over SMTP;
+- Nowlert Mobile; and
 - generic webhook.
 
 Credential-like keys are rejected from public settings. Webhook URLs,
@@ -52,7 +53,7 @@ owner's credential.
 
 CE treats Routes as reusable integration/input traffic definitions. Destinations
 own their assignments, so the same managed Route can feed Discord, Teams, Slack,
-Email, or Generic Webhook destinations without duplicating source logic.
+Email, Nowlert Mobile, or Generic Webhook destinations without duplicating source logic.
 
 The built-in catalogue includes an **Email Alerts** managed Route with the
 **Email Alerts** input. Existing full route matrices automatically reconcile that
@@ -84,7 +85,7 @@ tie-breaking.
 
 ## Route filters
 
-The v3.1.2 WebUI presents four meaningful filter groups:
+The WebUI presents four meaningful filter groups:
 
 - host patterns;
 - event patterns;
@@ -126,7 +127,7 @@ choices are scoped to the selected integration/input contract.
 
 ## Full-list criteria
 
-Selecting the full list is still meaningful configuration. v3.1.2 preserves and
+Selecting the full list is still meaningful configuration. Nowlert preserves and
 displays full-list severity/status criteria on the Routes page even when the
 other criterion is a partial selection. This prevents a saved route from
 appearing less constrained or differently configured than it really is.
@@ -212,7 +213,7 @@ Current installations use `platform_database_v1`:
 
 Legacy migration/compatibility code exists so older installations can be
 upgraded safely. It is not a reason to reintroduce removed WebUI-managed YAML
-sections into a healthy v3.1.2 deployment.
+sections into a healthy current deployment.
 
 See [current-configuration-model.md](current-configuration-model.md),
 [platform-api.md](platform-api.md), and [platform-state.md](platform-state.md).
