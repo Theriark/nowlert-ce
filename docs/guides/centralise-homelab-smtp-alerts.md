@@ -39,7 +39,8 @@ The current built-in integration catalogue includes SMTP input for:
 - Synology (SMTP or HTTP); and
 - TrueNAS.
 
-Other integrations use HTTP or Redfish instead. Nowlert keeps those transports
+Other integrations use HTTP or Redfish instead, and Email Alerts reads
+connected mailboxes. Nowlert keeps those inputs
 inside the same routing and destination model after ingestion. The
 [integration catalogue](../integrations-and-inputs.md) is authoritative.
 

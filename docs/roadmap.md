@@ -9,7 +9,10 @@ tracked release scope.
 ### v2.4.0 — Integrations and inputs
 
 - built-in integration catalogue;
-- normalized SMTP, HTTP, and Redfish input model;
+- normalized SMTP, HTTP, and Redfish input model (the fourth input, Email
+  Alerts from connected mailboxes, was added after v3.1.6 on the v27.0.0
+  release-candidate line; see
+  [Development after v3.1.6](releases/post-v3.1.6-development.md));
 - input-aware routes; and
 - integration category state.
 

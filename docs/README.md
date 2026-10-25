@@ -19,10 +19,10 @@ differences.
 | [Current configuration model](current-configuration-model.md) | What belongs in `config.yaml` versus database-authoritative platform state |
 | [Deployment](deployment.md) | Docker/Compose operation, immutable promotion flow, upgrade and rollback |
 | [WebUI](webui.md) | Current pages, permissions, route assignment, Email Alerts, history, security, users and backups |
-| [Integrations and inputs](integrations-and-inputs.md) | Built-in integration catalogue and SMTP/HTTP/Redfish input model |
+| [Integrations and inputs](integrations-and-inputs.md) | Built-in integration catalogue and SMTP/HTTP/Redfish/Email Alerts input model |
 | [Integration setup index](integrations/README.md) | Stable index for product-specific setup notes, including Email Alerts and Nowlert Mobile |
 | [Nowlert Mobile](integrations/nowlert-mobile.md) | Connecting the mobile app as a destination |
-| [Technical use-case guides](guides/README.md) | Practical end-to-end SMTP/HTTP/Redfish/mailbox flows to real destinations |
+| [Technical use-case guides](guides/README.md) | Practical end-to-end SMTP/HTTP/Redfish/Email Alerts flows to real destinations |
 | [Platform routing](platform-routing.md) | Tokens, destinations, routes, fallback behavior, delivery and audit rules |
 | [Platform outputs](platform-outputs.md) | Destination adapters and safe output contracts |
 | [Platform API](platform-api.md) | `/api/v2` authentication, endpoints, CSRF and event ingestion |

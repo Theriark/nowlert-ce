@@ -172,6 +172,13 @@ def _flat(text):
     return " ".join(text.split())
 
 
+def _names_destination(passage, name):
+    # "Email" must name the destination itself, not the Email Alerts input.
+    if name == "Email":
+        return re.search(rf"\b{name}\b(?! Alerts)", passage) is not None
+    return name in passage
+
+
 def test_integrations_and_inputs_table_matches_catalogue():
     text = (ROOT / "docs/integrations-and-inputs.md").read_text(encoding="utf-8")
     rows = re.findall(r"^\| ([^|]+?) \| `([a-z_]+)` \| ([^|]+?) \| ([^|]+?) \|$", text, re.M)
@@ -207,6 +214,14 @@ def test_current_input_lists_name_every_catalogue_input():
         for name in names:
             assert name in passage, (relative, name)
         assert "3.1.6" in passage or "listener" in passage, relative
+    index = (ROOT / "docs/README.md").read_text(encoding="utf-8")
+    for row in ("[Integrations and inputs]", "[Technical use-case guides]"):
+        line = next(line for line in index.splitlines() if line.startswith(f"| {row}"))
+        for name in names:
+            assert name in line, (row, name)
+    roadmap = _flat((ROOT / "docs/roadmap.md").read_text(encoding="utf-8"))
+    milestone = roadmap.split("normalized SMTP, HTTP, and Redfish input model", 1)[1].split(";", 1)[0]
+    assert "Email Alerts" in milestone and "after v3.1.6" in milestone
 
 
 # Destination display names of src/outputs/service.py for the current types.
@@ -233,7 +248,7 @@ def test_front_page_destinations_match_current_output_types():
     for label, passage in current.items():
         for name in DESTINATION_NAMES.values():
             # The README tagline shortens Microsoft Teams to Teams.
-            assert name.removeprefix("Microsoft ") in passage, (label, name)
+            assert _names_destination(passage, name.removeprefix("Microsoft ")), (label, name)
         for removed in V316_ONLY_DESTINATIONS:
             assert removed not in passage, (label, removed)
     # MQTT and ntfy may appear only in the sentence that qualifies the 3.1.6 image.
@@ -258,6 +273,6 @@ def test_routing_guide_lists_current_destination_types_and_examples_use_stable_i
     routing = (ROOT / "docs/platform-routing.md").read_text(encoding="utf-8")
     listed = routing.split("Supported platform destination types are:", 1)[1].split("\n\n", 2)[1]
     for name in DESTINATION_NAMES.values():
-        assert name.rstrip("s") in listed, name
+        assert _names_destination(listed, name.rstrip("s")), name
     smtp = (ROOT / "docs/smtp-security.md").read_text(encoding="utf-8")
     assert set(re.findall(r"theriark/nowlert-ce:([\w.-]+)", smtp)) == {"3.1.6"}

@@ -189,6 +189,7 @@ second delivery when a dedicated Xen Orchestra route matched.
 ## Next step
 
 Run Nowlert CE from the public repository and use the same model for the other
-infrastructure systems that already report by SMTP, HTTP or Redfish:
+infrastructure systems that already report by SMTP, HTTP, Redfish or, through
+Email Alerts, to a connected mailbox:
 
 - <https://github.com/Theriark/nowlert-ce>
