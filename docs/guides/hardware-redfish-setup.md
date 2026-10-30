@@ -341,6 +341,8 @@ This is a controller-originated informational event, not a hardware failure or
 recovery test. Other severity/lifecycle combinations still need their own native
 validation before being advertised as tested.
 
+![Native Dell iDRAC User Login event delivered to Criticals through the Dell iDRAC Redfish route, HTTP 200; the controller address in the message is masked](../images/monitoring-setup/dell-native-delivery-sanitized.png)
+
 In Delivery history, select the Dell native test and verify its input, route, destination and Delivered outcome without publishing controller addresses.
 
 ## Supermicro native validation: 3 October 2026

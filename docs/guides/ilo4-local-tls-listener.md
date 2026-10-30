@@ -106,6 +106,8 @@ iDRAC8 or the older Supermicro controller; their callback tests remain unresolve
 
 ![Portainer stack with the Nowlert and TLS listener containers running](../images/hardware-setup/portainer-stack-running.png)
 
+![Saved Portainer stack editor showing the redfish-tls service; the bind address, the default SNI and the site address are masked](../images/hardware-setup/portainer-tls-config-sanitized.png)
+
 Review the written Compose example above, substituting your own bind address and callback configuration before saving.
 
 ![RSA certificate, controller allowlist, and direct Nowlert upstream](../images/hardware-setup/portainer-tls-forwarding.png)

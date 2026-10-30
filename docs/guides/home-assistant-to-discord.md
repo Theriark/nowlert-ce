@@ -211,6 +211,8 @@ helper. That deployment-specific helper is not required by these automations.
   max: 10
 ```
 
+![Home Assistant Tools, States tab filtered by nowlert: the six local automations are on; the personal dashboard label in the sidebar is masked](../images/home-assistant-setup/enabled-automations-sanitized.png)
+
 In Home Assistant, filter automation entities by nowlert and confirm the required alert automations are enabled.
 
 Use **Settings → Tools → YAML → Check configuration**. Reload **RESTful Command**
@@ -235,6 +237,8 @@ data:
   notification_id: nowlert_tutorial_validation
 ```
 
+![Home Assistant Tools, Actions tab in YAML mode with the persistent_notification.create test action; the personal dashboard label in the sidebar is masked](../images/home-assistant-setup/native-test-sanitized.png)
+
 Run the YAML action above in Home Assistant and then verify its corresponding delivery in Nowlert.
 
 Open Nowlert **Delivery history**, filter Home Assistant, and select the event.
@@ -245,6 +249,8 @@ Confirm Input **HTTP**, destination **Security** (or yours), route
 
 A direct `rest_command.nowlert_event` test also returns HTTP 204 when the receiver
 accepts the payload. This is receiver acceptance, separate from destination delivery.
+
+![Home Assistant rest_command.nowlert_event test action with the HTTP 204 response and its headers; the personal dashboard label in the sidebar is masked](../images/home-assistant-setup/transport-response-sanitized.png)
 
 Verify the action response reports HTTP 204 for receiver acceptance; this is separate from destination delivery.
 

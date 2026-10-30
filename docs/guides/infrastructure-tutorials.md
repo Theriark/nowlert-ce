@@ -56,11 +56,11 @@ problem, recovery and success behavior of each integration and its source limits
 | Metabase hourly failure alert and native delivery proof | [Hourly alert procedure](metabase-to-nowlert.md), [native question test](../images/application-setup/metabase-native-question-delivered.png) |
 | Gmail API enabled | [API status, account header omitted](../images/email-setup/gmail-api-enabled.jpg) |
 | Microsoft delegated mailbox permission | [Mail.Read, address concealed](../images/email-setup/microsoft-mail-read-redacted.png) |
-| Both mailbox connections healthy | Check each mailbox for Healthy, Credentials configured, and a recent Last sync; use your own account labels. |
-| Real No-IP warning classification | In Email Alerts → Activity, verify the intended mailbox, matched rule and Warning classification; then check destination delivery separately. |
-| Home Assistant enabled alert automations | In Home Assistant, filter automation entities by nowlert and confirm the required alert automations are enabled. |
-| Home Assistant native notification test | [Native action procedure](home-assistant-to-discord.md), [delivery proof](../images/home-assistant-setup/native-delivery-proof.png) |
-| Home Assistant authenticated receiver acceptance | Verify the action response reports HTTP 204 for receiver acceptance; this is separate from destination delivery. |
+| Both mailbox connections healthy | [Mailboxes, account labels masked](../images/email-setup/mailboxes-healthy-sanitized.png); check each mailbox for Healthy, Credentials configured, and a recent Last sync |
+| Real No-IP warning classification | [Activity, search text, hostname, sender and mailbox label masked](../images/email-setup/noip-warning-activity-sanitized.png); then check destination delivery separately |
+| Home Assistant enabled alert automations | [Automation entities, sidebar label masked](../images/home-assistant-setup/enabled-automations-sanitized.png) |
+| Home Assistant native notification test | [Action, sidebar label masked](../images/home-assistant-setup/native-test-sanitized.png), [delivery proof](../images/home-assistant-setup/native-delivery-proof.png) |
+| Home Assistant authenticated receiver acceptance | [HTTP 204 response, sidebar label masked](../images/home-assistant-setup/transport-response-sanitized.png) |
 | TrueNAS saved Info Email service | Save an enabled Email alert service at Info level with your intended recipient, then send its native test. |
 | TrueNAS native alert delivery | [Delivery proof](../images/truenas-setup/delivery-proof.png) |
 | iLO resource noise suppressed centrally | [Rule](../images/hardware-setup/ilo-resource-filter.png), [filtered outcomes](../images/hardware-setup/ilo-resource-filter-proof.png) |
@@ -73,7 +73,8 @@ problem, recovery and success behavior of each integration and its source limits
 | Dell event subscription | [Redacted API readback](../images/hardware-setup/dell-subscription-record.png) |
 | Supermicro event subscription | [Redacted API readback](../images/hardware-setup/supermicro-subscription-record.png) |
 | Local Portainer stack | [Running services](../images/hardware-setup/portainer-stack-running.png) |
-| TLS listener configuration | [Compose configuration procedure](ilo4-local-tls-listener.md), [forwarding and allowlist](../images/hardware-setup/portainer-tls-forwarding.png) |
+| TLS listener configuration | [Listener, bind address and SNI masked](../images/hardware-setup/portainer-tls-config-sanitized.png), [forwarding and allowlist](../images/hardware-setup/portainer-tls-forwarding.png) |
+| Native Dell iDRAC event delivered | [Delivery history, controller address masked](../images/monitoring-setup/dell-native-delivery-sanitized.png) |
 | Actual iLO callback acknowledgement | [Access log](../images/hardware-setup/portainer-hpe-callback.png) |
 | Synthetic hardware receiver checks | [Receiver delivery history](../images/hardware-setup/hpe-native-image-delivery.png); native iLO emission is evidenced by the callback log above |
 | Xen Orchestra Discord edit form | [Operational destination](../images/hardware-setup/nowlert-xen-destination.png) |
@@ -96,7 +97,10 @@ Both local mailbox connections and background synchronization were verified on
 4 October 2026. Real No-IP notices matched the warning rule. Gmail remains in
 Google Testing mode; production authorization is outstanding. Native OpenAI
 incident/resolution and email-to-destination delivery proof are not yet captured.
-Unsafe mailbox and activity captures were withdrawn; use the written connection and classification checks.
+The mailbox and activity captures are sanitized copies with every account
+label, search text, sender line and hostname covered by solid masks; the
+originals were withdrawn on 15 October 2026 and stay out of the repository.
+Use the written connection and classification checks with your own account data.
 
 The native iLO fix was verified in a development image. Before advertising it as
 a stable-release feature, promote and test a release containing that fix and
