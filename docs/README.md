@@ -77,7 +77,7 @@ name of the first release candidate; its contents are the reviewed screenshot
 set reused unchanged since the `v27.0.0-rc.7` documentation package). They
 were taken on 21 to 23 October 2026 from the Development deployment of the
 `development` branch (application version 3.1.6 plus the development changes;
-the later commits up to `48ce8d3d`, the application source of `v27.0.0-rc.12`,
+the later commits up to `48ce8d3d`, the application source of `v27.0.0-rc.13`,
 changed no application file) with the crew's Development test accounts, test
 destinations and test events, at 1440, 768 and 390 pixel widths, for an
 administrator and for a regular user. File names
