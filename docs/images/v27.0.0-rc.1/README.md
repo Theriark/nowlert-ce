@@ -14,7 +14,8 @@ the Nowlert Mobile app, which is a separate product. The Development build
 on 24 October 2026 the Dashboard, Routing Flow and Destinations pages were
 compared with it live and showed the same layout and controls, differing only
 in live counters and the selected time range. The later commits up to
-`7a82fd8c`, the source of `v27.0.0-rc.10`, changed no application file.
+`48ce8d3d`, the application source of `v27.0.0-rc.12`, changed no application
+file.
 
 Live screenshots of the Nowlert CE development WebUI, taken on 21 October 2026
 (Europe/Lisbon) from the Development deployment of the `development` branch at
