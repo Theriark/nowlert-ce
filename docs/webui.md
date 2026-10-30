@@ -14,7 +14,7 @@ The screenshots under `images/v27.0.0-rc.1/` were captured on 21 to
 with the crew's Development test accounts and test data; they are the
 reviewed screenshot set reused unchanged since the `v27.0.0-rc.7`
 documentation package, and the application source has not changed since: the
-later commits up to `48ce8d3d`, the application source of the `v27.0.0-rc.12`
+later `development` commits, up to the source of the `v27.0.0-rc.13`
 candidate, changed only documentation, tests, a workflow file and the
 documentation checks. The desktop (1440 px)
 captures are the reference views of each page; the
