@@ -88,6 +88,8 @@ do not replace its persistent database. See [deployment configuration](../deploy
 6. Use the mailbox's **Edit** control to select the labels/folders to monitor.
    Choose a scope that includes the real No-IP notices.
 
+![Gmail and Microsoft 365 mailboxes both Healthy with Credentials configured and a recent Last sync; both account labels masked](../images/email-setup/mailboxes-healthy-sanitized.png)
+
 Check each mailbox for Healthy, Credentials configured, and a recent Last sync; use your own account labels.
 
 ## 4. Create rules and assign a destination
@@ -106,6 +108,8 @@ Open **Email Alerts → Activity** and search for a relevant hostname notice.
 Confirm the mailbox, sender domain, matched rule and resulting classification.
 Then check **Delivery history** for the same event and a successful destination
 response. A rule preview validates matching, not end-to-end delivery.
+
+![Email Alerts Activity: a real No-IP expiry notice matched the No-IP hostname expiring rule as Warning; the search text, the hostname in the subject, the sender line and the mailbox label are masked](../images/email-setup/noip-warning-activity-sanitized.png)
 
 In Email Alerts → Activity, verify the intended mailbox, matched rule and Warning classification; then check destination delivery separately.
 

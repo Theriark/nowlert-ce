@@ -112,6 +112,27 @@ never as "verified".
   because no record shows how each name was chosen. No image was edited,
   masked or recaptured. Credentials, tokens, private addresses and personal
   data stay excluded under the rules of this page.
+- 30 October 2026 (Jira TOPS-659, cycle 3 correction after the rejected Stage
+  QA of 30 October): the Stage QA finding named three remaining gap classes in
+  the tutorial captures, mailbox labels and search text, private addresses in
+  configuration and delivery messages, and Home Assistant device and sidebar
+  labels. Every raster linked from a current document (88 files) was opened
+  again at full size on this date and checked against those three classes;
+  none of the retained captures showed one. The seven captures withdrawn on
+  15 October 2026 for exactly those classes were the only images that had
+  illustrated the mailbox list, the No-IP activity match, the Portainer TLS
+  Compose editor, the native Dell delivery and the three Home Assistant
+  steps. Their originals were taken from Git history before the withdrawal
+  (they are not in the checkout, and stay out of the repository), and a
+  sanitized copy of each was made by painting solid rectangles over the
+  exposed pixels: the Gmail account label; the activity search text and the
+  activity mailbox label; the Compose bind address; the controller address in
+  the Dell message, in the list row and in the detail pane; and the personal
+  dashboard label in the Home Assistant sidebar. The earlier partial masks in
+  those captures were kept. Nothing else in the images was changed, and the
+  copies are re-encoded with IHDR, IDAT and IEND chunks only. Each copy was
+  opened at full size after masking and is listed below with the suffix
+  `-sanitized`; the withdrawn paths remain withdrawn.
 
 Nineteen captures are now excluded from current documentation. On 22 October
 2026 the inventory held 105 retained rows, 90 of them linked from current
@@ -121,9 +142,10 @@ the Synology row (still 110), the unembedded v1.9.6 Teams card was withdrawn
 (109 retained rows, 95 linked) and the audit log capture was withdrawn (108
 retained rows, 94 linked), and the three token captures were unlinked (108
 retained rows, 91 linked). An earlier version of this paragraph gave 105 and
-104 retained rows for those states; those numbers were wrong. Counts in this
-page are dated observations and the guard test, not this prose, is the
-authority.
+104 retained rows for those states; those numbers were wrong. On 30 October
+2026 the seven sanitized copies were added (115 retained rows, 95 linked).
+Counts in this page are dated observations and the guard test, not this
+prose, is the authority.
 
 ## Withdrawn captures
 
@@ -149,6 +171,11 @@ Withdrawn on 15 October 2026:
 - `images/truenas-setup/info-alert-service.png` — appliance hostname in the sidebar.
 - `images/portainer-setup/xen-backup-report-coverage.png` — deployment job labels and schedules.
 - `images/monitoring-setup/portainer-native-delivery-lifecycle.png` — visible profile portrait.
+
+Seven of these (the two mailbox captures, the Portainer TLS Compose editor,
+the Dell delivery message and the three Home Assistant captures) have a
+sanitized copy since 30 October 2026, listed as retained rows with the suffix
+`-sanitized`; the original paths above stay withdrawn.
 
 Withdrawn on 22 October 2026, after the independent review of the inventory
 (each had a row recording an inspection on 15 October 2026 and was embedded by
@@ -315,8 +342,10 @@ raster under `docs/images/` needs a row.
 | `images/application-setup/radarr-all-events.jpg` | retained | reviewed 15 Oct 2026 |
 | `images/application-setup/semaphore-native-test.png` | retained | reviewed 15 Oct 2026 |
 | `images/application-setup/sonarr-all-events.png` | retained | reviewed 15 Oct 2026 |
-| `images/email-setup/gmail-api-enabled.jpg` | retained | reviewed 15 Oct 2026; account header excluded |
-| `images/email-setup/microsoft-mail-read-redacted.png` | retained | reviewed 15 Oct 2026; signed-in address concealed |
+| `images/email-setup/gmail-api-enabled.jpg` | retained | reviewed 15 Oct 2026; opened 30 Oct 2026; account header excluded |
+| `images/email-setup/mailboxes-healthy-sanitized.png` | retained | sanitized copy made and opened 30 Oct 2026; both account labels masked |
+| `images/email-setup/microsoft-mail-read-redacted.png` | retained | reviewed 15 Oct 2026; opened 30 Oct 2026; signed-in address concealed |
+| `images/email-setup/noip-warning-activity-sanitized.png` | retained | sanitized copy made and opened 30 Oct 2026; search text, hostname, sender line and mailbox label masked |
 | `images/hardware-setup/dell-subscription-record.png` | retained | rendered token-free API readback with RFC 5737 addresses; reviewed 15 and 21 Oct 2026 |
 | `images/hardware-setup/hpe-native-image-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/hpe-subscription-record.png` | retained | rendered token-free API readback with RFC 5737 addresses; reviewed 15 and 21 Oct 2026 |
@@ -330,16 +359,21 @@ raster under `docs/images/` needs a row.
 | `images/hardware-setup/nowlert-xen-destination.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/nowlert-xen-routes.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/portainer-hpe-callback.png` | retained | reviewed 15 Oct 2026 |
-| `images/hardware-setup/portainer-stack-running.png` | retained | reviewed 15 Oct 2026 |
-| `images/hardware-setup/portainer-tls-forwarding.png` | retained | reviewed 15 Oct 2026 |
+| `images/hardware-setup/portainer-stack-running.png` | retained | reviewed 15 Oct 2026; opened 30 Oct 2026 |
+| `images/hardware-setup/portainer-tls-config-sanitized.png` | retained | sanitized copy made and opened 30 Oct 2026; bind address, default SNI and site address masked |
+| `images/hardware-setup/portainer-tls-forwarding.png` | retained | reviewed 15 Oct 2026; opened 30 Oct 2026 |
 | `images/hardware-setup/supermicro-subscription-record.png` | retained | rendered token-free API readback with RFC 5737 addresses; reviewed 15 and 21 Oct 2026 |
 | `images/hardware-setup/xen-orchestra-backup-reports.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/xen-orchestra-backup-test.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/xen-orchestra-delivery.png` | retained | reviewed 15 Oct 2026; open point above |
 | `images/hardware-setup/xen-orchestra-transport-auth.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/xen-orchestra-transport-email.png` | retained | reviewed 15 Oct 2026 |
-| `images/home-assistant-setup/native-delivery-proof.png` | retained | reviewed 15 Oct 2026 |
-| `images/monitoring-setup/drive-backup-trigger-catalogue.png` | retained | reviewed 15 Oct 2026; console details concealed |
+| `images/home-assistant-setup/enabled-automations-sanitized.png` | retained | sanitized copy made and opened 30 Oct 2026; personal dashboard label in the sidebar masked |
+| `images/home-assistant-setup/native-delivery-proof.png` | retained | reviewed 15 Oct 2026; opened 30 Oct 2026 |
+| `images/home-assistant-setup/native-test-sanitized.png` | retained | sanitized copy made and opened 30 Oct 2026; personal dashboard label in the sidebar masked |
+| `images/home-assistant-setup/transport-response-sanitized.png` | retained | sanitized copy made and opened 30 Oct 2026; personal dashboard label in the sidebar masked |
+| `images/monitoring-setup/dell-native-delivery-sanitized.png` | retained | sanitized copy made and opened 30 Oct 2026; controller address masked in the message, list row and detail pane |
+| `images/monitoring-setup/drive-backup-trigger-catalogue.png` | retained | reviewed 15 Oct 2026; opened 30 Oct 2026; console details concealed |
 | `images/monitoring-setup/drive-native-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/monitoring-setup/drive-native-test-share.png` | retained | reviewed 15 Oct 2026 |
 | `images/monitoring-setup/grafana-contact.png` | retained | reviewed 15 Oct 2026 |

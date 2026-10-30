@@ -69,6 +69,8 @@ attachments are not used for matching.
    Alerts**, click **Done**, and **Save changes**. Review destination filters so
    the desired classifications are permitted.
 
+![Email Alerts Activity: a real No-IP expiry notice matched the No-IP hostname expiring rule as Warning; the search text, the hostname in the subject, the sender line and the mailbox label are masked](../images/email-setup/noip-warning-activity-sanitized.png)
+
 In Email Alerts → Activity, verify the intended mailbox, matched rule and Warning classification; then check destination delivery separately.
 
 ## Verify the complete path
@@ -104,13 +106,18 @@ remain separate acceptance items. Do not advertise them as verified from these
 screenshots. The local certificate-support build is a development candidate;
 verify the feature in your chosen release image before deploying.
 
+![Both provider connections Healthy with Credentials configured and a recent Last sync; both account labels masked](../images/email-setup/mailboxes-healthy-sanitized.png)
+
 Check each mailbox for Healthy, Credentials configured, and a recent Last sync; use your own account labels.
 
-Mailbox and activity captures with remaining private labels were withdrawn.
-Use the written connection, rule and delivery checks above with your own
-account data. The retained provider setup images illustrate API permissions;
-they do not establish end-to-end delivery. See the
-[screenshot privacy review](screenshot-privacy.md) for the exclusion record.
+The mailbox and activity captures above are sanitized copies of the
+4 October 2026 captures: every account label, the search text, the sender
+line and the hostname in the subject are covered by solid masks, and nothing
+else in the image was changed. The originals that still showed those labels
+were withdrawn on 15 October 2026 and stay out of the repository. The
+retained provider setup images illustrate API permissions; neither set
+establishes end-to-end delivery. See the
+[screenshot privacy review](screenshot-privacy.md) for the record.
 
 For environment variables and secret mounts, see
 [deployment OAuth configuration](../deployment.md#email-alerts-oauth-applications).
