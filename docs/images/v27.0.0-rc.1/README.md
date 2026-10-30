@@ -13,9 +13,8 @@ the Nowlert Mobile app, which is a separate product. The Development build
 `66d50b00` ran the same application source as `v27.0.0-rc.7` (`9823244c`);
 on 24 October 2026 the Dashboard, Routing Flow and Destinations pages were
 compared with it live and showed the same layout and controls, differing only
-in live counters and the selected time range. The later commits up to
-`48ce8d3d`, the application source of `v27.0.0-rc.13`, changed no application
-file.
+in live counters and the selected time range. The later commits, up to the
+source of `v27.0.0-rc.13`, changed no application file.
 
 Live screenshots of the Nowlert CE development WebUI, taken on 21 October 2026
 (Europe/Lisbon) from the Development deployment of the `development` branch at
