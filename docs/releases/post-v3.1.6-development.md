@@ -1,15 +1,15 @@
 # Nowlert CE development after v3.1.6
 
 **Release candidate line: v27.0.0.** The `development` branch is tested as
-`v27.0.0-rc.N` pre-release tags (`v27.0.0-rc.10` at commit `7a82fd8c` is the
-latest at the time of writing). A release candidate is not a stable release:
-`src/version.py` still reports `3.1.6`, the current stable release remains
-v3.1.6, and no stable v27.0.0 tag or image alias exists. This
-note records what the `development` branch contains beyond v3.1.6 so that
-operators, testers and documentation reviewers can tell current development
-behavior from the released line. When v27.0.0 is released, its numbered
-release note and QA checklist replace this note as the current release
-material.
+`v27.0.0-rc.N` pre-release tags (`v27.0.0-rc.12`, built from application
+source commit `48ce8d3d`, is the latest at the time of writing). A release
+candidate is not a stable release: `src/version.py` still reports `3.1.6`,
+the current stable release remains v3.1.6, and no stable v27.0.0 tag or image
+alias exists. This note records what the `development` branch contains beyond
+v3.1.6 so that operators, testers and documentation reviewers can tell current
+development behavior from the released line. When v27.0.0 is released, its
+numbered release note and QA checklist replace this note as the current
+release material.
 
 ## Compatibility
 

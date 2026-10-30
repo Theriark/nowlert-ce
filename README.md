@@ -43,8 +43,9 @@ WebUI shown in the Preview).
 v27.0.0 is not released yet. Its release candidates are GitHub pre-release
 tags (`v27.0.0-rc.N`), each bound to one immutable image built by Continuous
 Integration from the tagged `development` commit; when this page was written
-the latest was `v27.0.0-rc.10` (source commit `7a82fd8c`, image digest
-`sha256:226043dd403ea3281cd7228eaa0d7b7cd21b8b4f6bdd963a1ca8f6895167b0ca`).
+the latest was `v27.0.0-rc.12`, built from application source commit
+`48ce8d3d`; the exact image digest of each candidate is recorded in its
+GitHub pre-release and in its documentation package, not in this page.
 Candidates are for testing and inspection, not stable releases. The release
 workflow publishes Docker Hub tags only for a stable release, so there is no
 `theriark/nowlert-ce` tag for a candidate; see
@@ -160,8 +161,9 @@ Development deployment of the `development` branch with the crew's
 Development test accounts and test data, and they belong to the reviewed
 screenshot set reused unchanged since the `v27.0.0-rc.7` documentation
 package. The application source has not changed since `v27.0.0-rc.7`: the
-later commits up to `7a82fd8c`, the source of the `v27.0.0-rc.10` candidate,
-changed only documentation, tests and a workflow file.
+later commits up to `48ce8d3d`, the application source of the `v27.0.0-rc.12`
+candidate, changed only documentation, tests, a workflow file and the
+documentation checks.
 
 ## Dashboard
 
