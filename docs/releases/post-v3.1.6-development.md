@@ -1,9 +1,10 @@
 # Nowlert CE development after v3.1.6
 
 **Release candidate line: v27.0.0.** The `development` branch is tested as
-`v27.0.0-rc.N` pre-release tags (release candidate `v27.0.0-rc.14` is the
-latest at the time of writing; its exact source commit and image digest are
-recorded in its GitHub pre-release and documentation package). A release
+`v27.0.0-rc.N` pre-release tags. The current release candidate is the latest
+GitHub pre-release of `Theriark/nowlert-ce`; its exact version, source commit
+and image digest are recorded in that pre-release and in the matching
+documentation package, not in this note. A release
 candidate is not a stable release: `src/version.py` still reports `3.1.6`,
 the current stable release remains v3.1.6, and no stable v27.0.0 tag or image
 alias exists. This note records what the `development` branch contains beyond
