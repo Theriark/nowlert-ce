@@ -13,10 +13,12 @@ The screenshots under `images/v27.0.0-rc.1/` were captured on 21 to
 23 October 2026 from the Development deployment of the `development` branch
 with the crew's Development test accounts and test data; they are the
 reviewed screenshot set reused unchanged since the `v27.0.0-rc.7`
-documentation package, and the application source has not changed since: the
-later `development` commits, up to the source of the `v27.0.0-rc.13`
-candidate, changed only documentation, tests, a workflow file and the
-documentation checks. The desktop (1440 px)
+documentation package. Since then the only application change in the later
+`development` commits, up to the source of the `v27.0.0-rc.14` candidate, is
+the Destinations empty-state fix in `src/webui/app.js` and
+`src/webui/professional.css` (THE-1654, PR 641); every other change is to
+documentation, tests, a workflow file and the documentation checks. The
+desktop (1440 px)
 captures are the reference views of each page; the
 [narrow browser windows](#narrow-browser-windows) section shows the
 responsive layout at 768 and 390 px. Each file name

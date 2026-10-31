@@ -43,7 +43,7 @@ WebUI shown in the Preview).
 v27.0.0 is not released yet. Its release candidates are GitHub pre-release
 tags (`v27.0.0-rc.N`), each bound to one immutable image built by Continuous
 Integration from the tagged `development` commit; when this page was written
-the latest was release candidate `v27.0.0-rc.13`. The exact source commit and
+the latest was release candidate `v27.0.0-rc.14`. The exact source commit and
 image digest of each candidate are recorded in its GitHub pre-release and in
 its documentation package, not in this page.
 Candidates are for testing and inspection, not stable releases. The release
@@ -160,10 +160,11 @@ release-candidate line. They were taken on 21 October 2026 from the
 Development deployment of the `development` branch with the crew's
 Development test accounts and test data, and they belong to the reviewed
 screenshot set reused unchanged since the `v27.0.0-rc.7` documentation
-package. The application source has not changed since `v27.0.0-rc.7`: the
-later `development` commits, up to the source of the `v27.0.0-rc.13`
-candidate, changed only documentation, tests, a workflow file and the
-documentation checks.
+package. Since `v27.0.0-rc.7` the only application change in the later
+`development` commits, up to the source of the `v27.0.0-rc.14` candidate, is
+the Destinations empty-state fix in `src/webui/app.js` and
+`src/webui/professional.css` (THE-1654, PR 641); every other change is to
+documentation, tests, a workflow file and the documentation checks.
 
 ## Dashboard
 
