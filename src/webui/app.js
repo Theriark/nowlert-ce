@@ -2278,6 +2278,12 @@ function renderDestinations() {
     empty(container, "No destinations", "Add an output to preview payloads and receive routed events.");
     return;
   }
+  // The card reconciliation below only tracks destination cards, so a placeholder
+  // painted while the workspace was still loading (or after a failed first
+  // /destinations request) has to go before the cards are placed; otherwise it
+  // survives between the cards and the admin private metadata cards and the
+  // stylesheet collapses the grid to one column (THE-1654).
+  for (const placeholder of container.querySelectorAll(":scope > .empty-state")) placeholder.remove();
   for (const item of state.destinations) {
     const editable = ownResource(item);
     const canTest = editable || isAdmin() || item.shared;

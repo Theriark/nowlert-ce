@@ -4,6 +4,12 @@
 
 ### Fixed
 
+- Destinations: a "No destinations" placeholder painted before the workspace
+  had loaded (direct load of the page, or a failed first request) stayed in
+  the list once the cards arrived, and the stylesheet then stacked every card
+  full width in one column for administrators. The placeholder is now removed
+  when cards render, and the block layout applies only to a list without
+  destination cards.
 - Preview dialog: the assigned routes drawer shows its Done button with the
   editor's accent colours, and route rows with an Active/Disabled badge keep
   the badge in a third column instead of wrapping under the checkbox.

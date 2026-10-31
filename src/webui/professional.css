@@ -648,7 +648,9 @@
 }
 
 /* Nowlert 3.1.0 Destinations card-grid empty state */
-#view-destinations #destination-list:has(> .empty-state) {
+/* Only a list without any destination card leaves the grid; a placeholder next
+   to cards must never collapse them to one column (THE-1654). */
+#view-destinations #destination-list:has(> .empty-state):not(:has(> .resource-card[data-destination-id])) {
   display: block;
 }
 
