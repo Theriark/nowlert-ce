@@ -77,9 +77,12 @@ name of the first release candidate; its contents are the reviewed screenshot
 set reused unchanged since the `v27.0.0-rc.7` documentation package). They
 were taken on 21 to 23 October 2026 from the Development deployment of the
 `development` branch (application version 3.1.6 plus the development changes;
-the later commits, up to the source of `v27.0.0-rc.13`, changed no
-application file) with the crew's Development test accounts, test
-destinations and test events, at 1440, 768 and 390 pixel widths, for an
+the only application change in the later commits, up to the source of
+`v27.0.0-rc.14`, is the Destinations empty-state fix in `src/webui/app.js`
+and `src/webui/professional.css` from THE-1654, PR 641; all other later
+changes are to documentation, CI and tests) with the crew's Development test
+accounts, test destinations and test events, at 1440, 768 and 390 pixel
+widths, for an
 administrator and for a regular user. File names
 follow `<page>-<state>-<role>-<width>.png`; the folder index lists every file
 with its page, role, viewport and capture time, and names the pages that were
