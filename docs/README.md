@@ -74,9 +74,10 @@ they do not enable integrations or change runtime behavior.
 Current captures of the development WebUI live under
 [`images/v27.0.0-rc.1/`](images/v27.0.0-rc.1/README.md) (the folder keeps the
 name of the first release candidate; its contents are the reviewed screenshot
-set reused since the `v27.0.0-rc.7` documentation package, with the Settings
-and the two Security captures replaced on 31 October 2026). They
-were taken on 21 to 23 October 2026 (the three replaced captures on
+set reused since the `v27.0.0-rc.7` documentation package, with the Settings,
+the two Security captures and the Filtering capture replaced on
+31 October 2026). They
+were taken on 21 to 23 October 2026 (the four replaced captures on
 31 October 2026) from the Development deployment of the
 `development` branch (application version 3.1.6 plus the development changes;
 the only application change in the later commits, up to the source of

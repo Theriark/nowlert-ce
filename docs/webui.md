@@ -10,11 +10,11 @@ from the released v3.1.6 WebUI; see
 changes. v3.1.6 is the last stable release; the development build is the
 v27.0.0 release-candidate line and still reports application version 3.1.6.
 The screenshots under `images/v27.0.0-rc.1/` were captured on 21 to
-23 October 2026 (the Settings and the two Security captures on 31 October
-2026) from the Development deployment of the `development` branch
+23 October 2026 (the Settings, the two Security and the Filtering captures on
+31 October 2026) from the Development deployment of the `development` branch
 with the crew's Development test accounts and test data; they are the
 reviewed screenshot set reused since the `v27.0.0-rc.7` documentation
-package, with those three captures replaced on 31 October 2026 (see the
+package, with those four captures replaced on 31 October 2026 (see the
 [folder index](images/v27.0.0-rc.1/README.md)). Since then the only application change in the later
 `development` commits, up to the source of the `v27.0.0-rc.14` candidate, is
 the Destinations empty-state fix in `src/webui/app.js` and
