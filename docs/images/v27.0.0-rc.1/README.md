@@ -19,7 +19,8 @@ the Nowlert Mobile app, which is a separate product. The Development build
 on 24 October 2026 the Dashboard, Routing Flow and Destinations pages were
 compared with it live and showed the same layout and controls, differing only
 in live counters and the selected time range. The only application change in
-the later commits, up to the source of `v27.0.0-rc.14`, is the Destinations
+the later commits, up to the source of the current release candidate (the
+latest GitHub pre-release of `Theriark/nowlert-ce`), is the Destinations
 empty-state fix in `src/webui/app.js` and `src/webui/professional.css`
 (THE-1654, PR 641); every other later change is to documentation, CI and
 tests.

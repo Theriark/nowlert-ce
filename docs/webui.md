@@ -16,7 +16,7 @@ with the crew's Development test accounts and test data; they are the
 reviewed screenshot set reused since the `v27.0.0-rc.7` documentation
 package, with those four captures replaced on 31 October 2026 (see the
 [folder index](images/v27.0.0-rc.1/README.md)). Since then the only application change in the later
-`development` commits, up to the source of the `v27.0.0-rc.14` candidate, is
+`development` commits, up to the source of the current release candidate, is
 the Destinations empty-state fix in `src/webui/app.js` and
 `src/webui/professional.css` (THE-1654, PR 641); every other change is to
 documentation, tests, a workflow file and the documentation checks. The
