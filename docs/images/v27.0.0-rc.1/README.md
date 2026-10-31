@@ -2,9 +2,11 @@
 
 **Current set.** The folder keeps the name of the first release candidate; its
 contents are the reviewed screenshot set reused since the `v27.0.0-rc.7`
-documentation package, with three captures (Settings, Security as
-administrator, Security as regular user) replaced on 31 October 2026 from the
-Development build `179cbc02`; see "Replaced on 31 October 2026" below.
+documentation package, with four captures replaced on 31 October 2026: the
+Settings and the two Security captures from the Development build `179cbc02`
+and the Filtering capture from the Development build `0c14583c`; see
+"Replaced on 31 October 2026" and "Filtering capture replaced on 31 October
+2026" below.
 Nowlert CE is a desktop web
 application: since 25 October 2026 the Preview of the repository README and
 the Docker Hub README shows four of its desktop captures at full width,
@@ -45,7 +47,7 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `dashboard-live-admin-1440.png` | Dashboard, Live, last hour | administrator | 1440 | 15:48 |
 | `routing-flow-live-admin-1440.png` | Routing Flow, Live, last 24 hours | administrator | 1440 | 15:48 |
 | `destinations-list-admin-1440.png` | Destinations list | administrator | 1440 | 15:48 |
-| `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | 15:49 |
+| `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | replaced 31 Oct 2026, 07:48 |
 | `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | 15:49 |
 | `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | replaced 31 Oct 2026, 05:21 |
 | `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens) | administrator | 1440 | replaced 31 Oct 2026, 05:20 |
@@ -68,8 +70,9 @@ The two preview captures were replaced on 21 October 2026 at the times shown.
 The Zabbix-filtered Delivery history capture of 21 October 2026 (15:53) was
 withdrawn on 23 October 2026 and is no longer listed, and so is the Audit log
 capture; see "Withdrawn and replaced on 23 October 2026" below. The Settings
-capture and the two Security captures were replaced on 31 October 2026; see
-"Replaced on 31 October 2026" below. The other 19 files of this table are
+capture, the two Security captures and the Filtering capture were replaced on
+31 October 2026; see "Replaced on 31 October 2026" and "Filtering capture
+replaced on 31 October 2026" below. The other 18 files of this table are
 unchanged since 21 October 2026.
 
 ## Added on 22 October 2026 (commit 8dc1b2ca)
@@ -197,6 +200,60 @@ Notes on these three files:
   browser has no colour emoji font, so a recapture would not change the
   pixels. The two files are kept as they are and this is recorded under
   "Known limits". The remaining 25 captures show no missing glyph.
+
+## Filtering capture replaced on 31 October 2026 (capture base commit 0c14583c)
+
+The independent review of the `v27.0.0-rc.14` documentation package (Jira
+TOPS-670) found that `filtering-list-admin-1440.png` of 21 October 2026 no
+longer matched the application: in that capture the **Disabled** status badge
+of three rows ran into the **Shared** badge of the **Sharing** column, while
+the live page keeps the two columns apart (the Filtering table columns were
+rebalanced on 23 October 2026 by the THE-912 fix in `src/webui/filtering.css`,
+commit `9573338`, which is part of every build since `v27.0.0-rc.7`). The file
+was replaced on 31 October 2026 (Jira TOPS-682) by a capture of the
+Development deployment of the `development` branch at commit
+`0c14583ca5428822d0afb15f39daad14f9e6ba6b` (image
+`sha256:fd9183deb371c4cf1dbc7ff2a1a43208e49a10353311aa83185b4290de733b6e`,
+CI run 41177126681), application version 3.1.6 plus the development changes.
+Same crew administrator account, same 1440 × 900 viewport (window width read
+back as 1440 CSS pixels), top of the page, `/api/v2/filters` answered 200 and
+no workspace-data banner was shown; the file was opened at full size before
+being added.
+
+| File | Page / state | Role | Width | Captured (Lisbon) |
+|---|---|---|---|---|
+| `filtering-list-admin-1440.png` | Filtering with Integration behavior: the four shared `CE Development - …` destination filters with their **Active** or **Disabled** status badge and **Shared** badge in separate columns, and the three Integration behavior cards | administrator | 1440 | 07:48 |
+
+On the same day ten further captures of this folder that had not yet been
+compared with the current application were checked against the live
+Development deployment at commit `0c14583c`, at the viewport of each file,
+by opening the same page or dialog and comparing the two images pixel by
+pixel. None of them was replaced:
+
+- `destination-editor-teams-admin-1440.png`,
+  `destination-preview-routes-drawer-admin-1440.png`,
+  `email-alerts-mailbox-edit-imap-admin-1440.png` and
+  `sign-in-empty-signed-out-768.png` are identical to the live page or differ
+  only by a focus ring or hover state (0 to 506 of 1 296 000 pixels).
+- `destination-preview-teams-modern-admin-1440.png` and
+  `destination-preview-teams-classic-admin-1440.png` show the same dialog,
+  selectors, routing block and generated payload; they differ only in the
+  scroll position of the output pane (one line) and in the colour state of
+  the **Generate preview** button after the preview was generated.
+- `email-alerts-rules-admin-768.png`, `routing-flow-live-admin-768.png` and
+  `routing-flow-live-admin-390.png` show the same layout and controls; they
+  differ only in live values (the rule counts per classification, the event
+  counters of the selected window and the integration cards highlighted by
+  those counters).
+- `destination-preview-discord-debug-admin-1440.png`: the destination used on
+  22 October 2026 (`CE Full Verify 20261015 Discord Modern`) has no assigned
+  route any more, so the same state was reproduced on the shared Discord
+  destination `test 2` with one Fallback route selected, severity **Debug**
+  and Modern Card. The dialog, its controls, the routing block and the output
+  pane match the capture, and the generated header line still reads
+  **Debug**; only the wording of the generated text differs (`Nowlert`
+  instead of `nowlert`, and the category label), which is payload content,
+  not the interface. The capture is kept.
 
 ## Names shown in the captures
 

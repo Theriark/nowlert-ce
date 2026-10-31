@@ -148,6 +148,21 @@ never as "verified".
   (an empty box) inside the generated payload text of the Preview dialog;
   that is a capture-browser font limit recorded in the folder index, not a
   privacy finding. The row counts are unchanged (115 retained, 95 linked).
+- 31 October 2026 (Jira TOPS-682, cycle 3): the Filtering capture under
+  `images/v27.0.0-rc.1/` was replaced by a capture of the Development
+  deployment at commit `0c14583c`, taken with the crew administrator account
+  at 1440 × 900 px and opened at full size before being added, after the
+  review of the `v27.0.0-rc.14` package found that its status badges no
+  longer matched the application. It shows the four shared
+  `CE Development - …` test destinations, their filter names
+  (`CE - Discord Filter 1` and the like), status and sharing badges and the
+  three Integration behavior cards with zero aliases; no address, mailbox,
+  token, hostname or personal name appears. Ten further captures of that
+  folder (the destination editor, the four Preview dialog captures, the Edit
+  mailbox dialog, the 768 px Email Alerts rules, the 768 and 390 px Routing
+  Flow and the 768 px sign-in page) were compared with the live deployment
+  the same day and kept unchanged; see the folder index. The row counts are
+  unchanged (115 retained, 95 linked).
 
 Nineteen captures are now excluded from current documentation. On 22 October
 2026 the inventory held 105 retained rows, 90 of them linked from current
@@ -433,7 +448,7 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/email-alerts-rules-admin-768.png` | retained | Development capture, 22 Oct 2026 |
 | `images/v27.0.0-rc.1/email-alerts-rules-admin-390.png` | retained | Development capture, 22 Oct 2026 |
 | `images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png` | retained | Development capture, 22 Oct 2026; fixture address and loopback host only |
-| `images/v27.0.0-rc.1/filtering-list-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/filtering-list-admin-1440.png` | retained | Development capture, 31 Oct 2026 (replaces the capture of 21 Oct 2026); shared crew test destinations, their filter names and badges, Integration behavior cards with zero aliases |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
