@@ -2381,7 +2381,17 @@ function renderDestinations() {
       testFailure,
       actions,
     ]);
-    const signature = JSON.stringify({ item, testResult, editable, canTest, ownerUsername });
+    // The icon row above comes from state.routes, so the signature has to follow the
+    // assigned sources too: a card painted before /routes answered (or after it
+    // failed) otherwise keeps an empty row through every later render (THE-1676).
+    const signature = JSON.stringify({
+      item,
+      testResult,
+      editable,
+      canTest,
+      ownerUsername,
+      assignedSources: assignedSources.map(({ key }) => key),
+    });
     const existing = existingCards.get(item.id);
     if (existing) {
       if (destinationCardSignatures.get(existing) !== signature) {
