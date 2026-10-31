@@ -10,6 +10,9 @@
   full width in one column for administrators. The placeholder is now removed
   when cards render, and the block layout applies only to a list without
   destination cards.
+- Destinations: the assigned-integration icon row of a card is repainted when
+  the routes change. A card painted before the routes request had answered
+  (or after it failed) kept an empty icon row until the next full page reload.
 - Preview dialog: the assigned routes drawer shows its Done button with the
   editor's accent colours, and route rows with an Active/Disabled badge keep
   the badge in a third column instead of wrapping under the checkbox.
