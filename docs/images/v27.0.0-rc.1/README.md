@@ -1,8 +1,11 @@
 # Development interface captures, v27.0.0-rc.1
 
 **Current set.** The folder keeps the name of the first release candidate; its
-contents are the reviewed screenshot set reused unchanged since the
-`v27.0.0-rc.7` documentation package. Nowlert CE is a desktop web
+contents are the reviewed screenshot set reused since the `v27.0.0-rc.7`
+documentation package, with three captures (Settings, Security as
+administrator, Security as regular user) replaced on 31 October 2026 from the
+Development build `179cbc02`; see "Replaced on 31 October 2026" below.
+Nowlert CE is a desktop web
 application: since 25 October 2026 the Preview of the repository README and
 the Docker Hub README shows four of its desktop captures at full width,
 `dashboard-live-admin-1440.png`, `routing-flow-live-admin-1440.png`,
@@ -44,8 +47,8 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `destinations-list-admin-1440.png` | Destinations list | administrator | 1440 | 15:48 |
 | `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | 15:49 |
 | `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | 15:49 |
-| `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | 15:50 |
-| `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens) | administrator | 1440 | 15:50 |
+| `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | replaced 31 Oct 2026, 05:21 |
+| `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens) | administrator | 1440 | replaced 31 Oct 2026, 05:20 |
 | `users-search-admin-1440.png` | Users, filtered to the crew accounts | administrator | 1440 | 15:51 |
 | `email-alerts-groups-admin-1440.png` | Email Alerts, Groups tab | administrator | 1440 | 15:53 |
 | `destination-editor-teams-admin-1440.png` | Add destination, Microsoft Teams, Message style | administrator | 1440 | 15:54 |
@@ -59,13 +62,15 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `destinations-list-admin-390.png` | Destinations list | administrator | 390 | 18:05 |
 | `dashboard-live-user-1440.png` | Dashboard, Live | regular user | 1440 | 18:06 |
 | `destinations-list-user-1440.png` | Destinations list (shared destinations of other owners, all view only) | regular user | 1440 | 18:06 |
-| `security-profile-user-1440.png` | Security (Profile, MFA, password, API tokens) | regular user | 1440 | 18:07 |
+| `security-profile-user-1440.png` | Security (Profile, MFA, password, API tokens) | regular user | 1440 | replaced 31 Oct 2026, 05:22 |
 
 The two preview captures were replaced on 21 October 2026 at the times shown.
 The Zabbix-filtered Delivery history capture of 21 October 2026 (15:53) was
 withdrawn on 23 October 2026 and is no longer listed, and so is the Audit log
-capture; see "Withdrawn and replaced on 23 October 2026" below. The other 22
-files of this table are unchanged.
+capture; see "Withdrawn and replaced on 23 October 2026" below. The Settings
+capture and the two Security captures were replaced on 31 October 2026; see
+"Replaced on 31 October 2026" below. The other 19 files of this table are
+unchanged since 21 October 2026.
 
 ## Added on 22 October 2026 (commit 8dc1b2ca)
 
@@ -143,6 +148,56 @@ the timeline. No mailbox, sender, address or token appears. The Email Alerts
 rows of this page are still not captured: their subtitles name the connected
 mailbox addresses.
 
+## Replaced on 31 October 2026 (capture base commit 179cbc02)
+
+The live walk of 30 October 2026 (Jira TOPS-658, cycle 3) found that three
+captures of 21 October 2026 no longer matched the application: the two
+Security captures showed missing-glyph boxes in place of the icons of the
+**Restart Nowlert** and **New token** buttons and a security posture of
+"Good", and the Settings capture showed a different update-status text, a
+much larger **Housekeeping** heading and an icon on **Check for updates** that
+the application no longer renders. The three files were replaced on
+31 October 2026 (Jira TOPS-677) by captures of the Development deployment of
+the `development` branch at commit `179cbc02b2fd2d7788799afe71fc58492c53d825`
+(image `sha256:1b952eafbd0cf8b0c0acfc81818d252c994d958d09f21631183fe248318bc639`,
+CI run 41170265508), application version 3.1.6 plus the development changes.
+Same crew accounts (`ai-crew-admin-…` for the Settings and administrator
+captures, `ai-crew-user-…` for the regular-user capture), same 1440 × 900
+viewport, same position at the top of each page, each opened at full size
+before being added.
+
+| File | Page / state | Role | Width | Captured (Lisbon) |
+|---|---|---|---|---|
+| `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens): power icon on **Restart Nowlert**, `+` on **New token**, security posture **Fair**, section heading **API tokens**, empty token list below the fold | administrator | 1440 | 05:20 |
+| `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping): update status "Update status unavailable" with the explanation that the last check could not be completed, running version 3.1.6, **Housekeeping** heading at the same size as the other section headings, **Check for updates** without an icon | administrator | 1440 | 05:21 |
+| `security-profile-user-1440.png` | Security (Profile, MFA, password, API tokens) for the regular user: no **Restart Nowlert** button, `+` on **New token**, security posture **Fair** | regular user | 1440 | 05:22 |
+
+Notes on these three files:
+
+- The page texts were read live from the same deployment after the captures:
+  the Security page headings are **Security**, **Profile**, **Password &
+  sessions** and **API tokens**, the only top-bar action is **Restart
+  Nowlert** (administrator only), the token section shows **+ New token** and
+  "No Event API tokens"; the Settings page headings **Regional settings**,
+  **Updates** and **Housekeeping** share one size, and the update card reads
+  "Update status unavailable: the last update check could not be completed, so
+  Nowlert cannot confirm whether a newer version exists".
+- No token value is shown: the crew accounts hold no Event API token, and the
+  token list is below the captured viewport in any case. The Settings values
+  (English, Europe/London, 24-hour clock, housekeeping at 03:15, 90-day
+  retention) are the stored preferences of the Development deployment.
+- The 27 other non-empty captures of this folder were opened at full size on
+  the same day and checked for missing-glyph boxes. Two show one inside the
+  generated payload text of the Preview dialog, not in the interface itself:
+  `destination-preview-teams-classic-admin-1440.png` (the house emoji
+  `U+1F3E0` before "Home Assistant" in the Classic Card header line) and
+  `destination-preview-discord-debug-admin-1440.png` (the emoji before "Event"
+  in the Discord context line). The same preview, generated live on
+  31 October 2026 on commit `179cbc02`, rendered the same box: the capture
+  browser has no colour emoji font, so a recapture would not change the
+  pixels. The two files are kept as they are and this is recorded under
+  "Known limits". The remaining 25 captures show no missing glyph.
+
 ## Names shown in the captures
 
 - The accounts `ai-crew-admin-…` and `ai-crew-user-…` are the crew's
@@ -186,6 +241,13 @@ mailbox addresses.
   request in `src/webui/app.js`). The preview pair therefore uses two
   destinations saved with different styles, and the selector in each capture
   was set to the style saved on that destination.
+- The generated payloads shown in `destination-preview-teams-classic-admin-1440.png`
+  and `destination-preview-discord-debug-admin-1440.png` contain emoji
+  characters (the Home Assistant house emoji and the event emoji) that the
+  capture browser renders as an empty box because it has no colour emoji font.
+  The box is in the JSON text of the preview, not in a Nowlert control, and
+  the same box appeared when the preview was generated again live on
+  31 October 2026. A browser with an emoji font shows the emoji instead.
 
 ## Not captured on purpose
 

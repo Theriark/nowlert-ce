@@ -133,6 +133,21 @@ never as "verified".
   copies are re-encoded with IHDR, IDAT and IEND chunks only. Each copy was
   opened at full size after masking and is listed below with the suffix
   `-sanitized`; the withdrawn paths remain withdrawn.
+- 31 October 2026 (Jira TOPS-677, cycle 3): three Development captures under
+  `images/v27.0.0-rc.1/` (Settings, Security as administrator and Security as
+  regular user) no longer matched the application and were replaced by new
+  captures of the Development deployment at commit `179cbc02`, taken with the
+  crew test accounts at 1440 × 900 px and opened at full size before being
+  added. They show only the crew account names and roles, dates, the empty
+  token list ("No Event API tokens"; the token rows are below the captured
+  viewport in any case) and the Development settings values (English,
+  Europe/London, 24-hour clock, housekeeping time and retention). No token
+  value, address, mailbox, hostname or personal name appears. The other 27
+  non-empty captures of that folder were opened again at full size the same
+  day; no private detail was found. Two of them show an unrendered emoji
+  (an empty box) inside the generated payload text of the Preview dialog;
+  that is a capture-browser font limit recorded in the folder index, not a
+  privacy finding. The row counts are unchanged (115 retained, 95 linked).
 
 Nineteen captures are now excluded from current documentation. On 22 October
 2026 the inventory held 105 retained rows, 90 of them linked from current
@@ -422,9 +437,9 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/settings-regional-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 31 Oct 2026 (replaces the capture of 21 Oct 2026); crew administrator account, empty token list, no token value |
+| `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | Development capture, 31 Oct 2026 (replaces the capture of 21 Oct 2026); crew user account, empty token list, no token value |
+| `images/v27.0.0-rc.1/settings-regional-admin-1440.png` | retained | Development capture, 31 Oct 2026 (replaces the capture of 21 Oct 2026); Development settings values only |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; not embedded since 25 Oct 2026 |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-768.png` | retained | Development capture, 21 Oct 2026 |
