@@ -461,7 +461,7 @@ raster under `docs/images/` needs a row.
 | `images/unifi-setup/drive-receiver-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/network-alarms.png` | retained | reviewed 15 Oct 2026; labelled outdated pending recapture |
 | `images/unifi-setup/network-delivery.png` | retained | reviewed 15 Oct 2026 |
-| `images/unifi-setup/protect-alarms.png` | retained | restored from Git history and masked 2 Nov 2026 (the three alarm names that carried a location label); still shows the Nowlert and Notifinho alarm rows, categories, actions, hit counts and the detail panel |
+| `images/unifi-setup/protect-alarms.png` | retained | restored from Git history and masked 2 Nov 2026 (the three alarm names that carried a location label); still shows the Nowlert alarm rows and the rows named after the retired product, categories, actions, hit counts and the detail panel |
 | `images/unifi-setup/protect-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-noise-filter.png` | retained | reviewed 15 Oct 2026 |
 | `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the user column of the event list and the record identifier under each resource); still shows the health checks, counters, action and resource names, the selected event and the crew administrator account in the sidebar; embedded by the WebUI guide |
