@@ -67,8 +67,9 @@ delivery. Arbitrary notification parameters, contact credentials and the full
 process environment are never forwarded.
 
 Check `~/var/log/notify.log` and `~/var/log/mknotifyd.log` for script results.
-Exit 0 means accepted; 1 requests retry for temporary connection/429/5xx errors;
-2 signals a final configuration/authentication/invalid-payload error. The script
+Exit 0 means accepted; 1 requests retry for temporary connection/408/429/5xx
+errors; 2 signals a final configuration/authentication/invalid-payload error
+(a rate-limited token currently returns HTTP 401, which is final). The script
 uses a ten-second connection timeout and verifies TLS certificates.
 
 Source: [Checkmk notification scripts and environment variables](https://docs.checkmk.com/latest/en/notifications.html#scripts).

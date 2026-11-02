@@ -33,7 +33,7 @@ guides if the sending product can only reach a mailbox.
 The current built-in integration catalogue includes SMTP input for:
 
 - Xen Orchestra;
-- Zabbix (SMTP or HTTP);
+- Zabbix (SMTP, or HTTP through the event API);
 - Semaphore (SMTP or HTTP);
 - QNAP;
 - Synology (SMTP or HTTP); and
@@ -55,6 +55,10 @@ smtp:
   host: 0.0.0.0
   port: 8025
 ```
+
+`smtp.enabled` is kept for compatibility but is not read: the SMTP listener
+always starts with the process. Control exposure with the port mapping and
+firewall instead.
 
 Expose the configured port only to the systems that need to send events. Host
 and network firewall allowlists remain important even when TLS/authentication
@@ -80,6 +84,11 @@ smtp:
     certfile: "/nowlert/config/tls/cert.pem"
     keyfile: "/nowlert/config/tls/key.pem"
 ```
+
+With `tls.enabled: true`, STARTTLS is required by default: plain-SMTP
+appliances are rejected until they issue STARTTLS. To offer STARTTLS while still
+accepting plain SMTP from a trusted LAN, add `require_starttls: false` under
+`tls`.
 
 Do not place SMTP passwords directly in tracked configuration. Use an
 environment variable or mounted secret.

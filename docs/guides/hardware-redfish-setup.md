@@ -61,6 +61,7 @@ For this older iLO, the working callback was a dedicated, controller-restricted
 HTTPS listener on the local Docker host, port 18443. It accepts TLS connections
 without SNI. The development image at commit `d1daf765b4c98a40f884610d75c97b1f4dfb7b51`
 accepts chunked HTTP bodies natively and acknowledges `/redfish/hpe` with HTTP 200.
+Later images, including the current release candidate, keep both behaviours.
 The test used the TLS listener forwarding directly to Nowlert; no buffering
 adapter was involved. TLS certificates and the no-SNI listener are still an
 instance-specific configuration. The main
@@ -281,7 +282,7 @@ check waited more than three minutes and confirmed that the subscription remaine
 | No common TLS cipher suite | Compare receiver and controller TLS capabilities. The verified iDRAC8 callback uses the separate compatibility listener described below. |
 | TLS handshake times out | Check the controller network, trust, firmware, and server handshake logs. The local Supermicro cause is still unresolved. |
 | iLO subscription disappears after a test | Inspect retries and acknowledgement status; use an image containing the native HTTP 200 fix. |
-| HTTP 401/403/429 | Check token scope, owner status, revocation, expiry, and rate limit. |
+| HTTP 401 | Check token scope, owner status, revocation, expiry, and rate limit. A rate-limited token currently returns 401, not 429. |
 | HTTP 400/413 | Check JSON/framing and body size. Current development images accept bounded chunked bodies natively. |
 | Callback succeeds but output is missing | Check the destination route, filters, enablement, and Delivery history. |
 
