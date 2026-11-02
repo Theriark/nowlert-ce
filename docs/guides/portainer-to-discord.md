@@ -145,6 +145,8 @@ After restoration, Portainer emitted the matching `resolved` callback. Nowlert
 delivered it with HTTP **200** at Unix timestamp `1790995291`. Both native
 lifecycle deliveries are present in the record above.
 
+![Native firing and recovery in Nowlert; the account corner of the sidebar is masked](../images/monitoring-setup/portainer-native-delivery-lifecycle.png)
+
 In Delivery history, verify distinct Portainer firing and resolved attempts with successful destination responses; consult the dated validation record below.
 
 ## Troubleshooting

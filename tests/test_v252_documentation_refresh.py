@@ -29,16 +29,17 @@ def test_stable_documentation_uses_v316_and_preserves_v252_assets():
     assert "docs/images/v27.0.0-rc.1/" in readme
     assert "images/v27.0.0-rc.1/" in webui
 
-    # Withdrawn on 22 October 2026 (screenshot privacy review): no current
-    # document may embed them and only an empty placeholder may remain.
-    withdrawn_v310 = (
+    # Withdrawn on 22 October 2026 and restored with masked labels on
+    # 2 November 2026 (screenshot privacy review): history only, so the
+    # README, Docker Hub README and WebUI guide still do not embed them.
+    restored_v310 = (
         "v3.1.0-delivery-history.png",
         "v3.1.0-discord-xen-orchestra.png",
         "v3.1.0-teams-xen-orchestra.png",
     )
-    for name in withdrawn_v310:
+    for name in restored_v310:
         path = ROOT / "docs" / "images" / name
-        assert not path.exists() or path.stat().st_size == 0, name
+        assert path.is_file() and path.stat().st_size > 0, name
         assert name not in readme and name not in dockerhub and name not in webui, name
 
     historical = (

@@ -159,17 +159,21 @@ Check three places:
 3. **Destination → Manage routes** — confirm the dedicated Xen Orchestra route
    is assigned. Use the delivery details to establish which route matched.
 
-This guide no longer embeds the historical v3.1.0 Discord card example: it
-was withdrawn on 22 October 2026 because it showed a backup job name and only
-partially masked repository and VM names (see the
+This historical v3.1.0 example illustrates the older Xen Orchestra Discord
+card format; it is not a capture of current development, and its backup job
+name, repository and VM names are masked (see the
 [screenshot privacy review](screenshot-privacy.md)). The card delivered by
 your own test is the reference for the current format.
 
+![Historical v3.1.0 Discord Xen Orchestra notification; job, repository and VM names masked](../images/v3.1.0-discord-xen-orchestra.png)
+
 The following real deployment capture shows a successfully delivered backup
 report: SMTP input, the Operational Discord destination, HTTP 200, and no error.
-This verifies an actual report, beyond the plugin's success indication.
+This verifies an actual report, beyond the plugin's success indication. The
+backup job label in the Message body is masked; the job name shown by your own
+deployment is the one you configured in Xen Orchestra.
 
-![Real Xen Orchestra SMTP report delivered by Nowlert](../images/hardware-setup/xen-orchestra-delivery.png)
+![Real Xen Orchestra SMTP report delivered by Nowlert; the backup job label is masked](../images/hardware-setup/xen-orchestra-delivery.png)
 
 The configuration captures above were taken from the saved plugin forms on
 2 October 2026; no configuration was changed to take them. Their SMTP password

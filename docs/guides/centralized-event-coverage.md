@@ -38,6 +38,8 @@ Enabling every rule does not turn native Alerting into a raw Docker-event feed.
 
 ![Newly included iLO resource events delivered](../images/portainer-setup/ilo-expanded-event-delivery.png)
 
+![All six Xen Orchestra jobs report Always; the job names are masked](../images/portainer-setup/xen-backup-report-coverage.png)
+
 Inspect each intended Xen Orchestra job and set Report when to Always; preserve its existing schedule.
 
 ## Reproduce and verify

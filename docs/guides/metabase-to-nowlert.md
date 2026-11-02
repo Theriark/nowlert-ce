@@ -67,6 +67,8 @@ Save as **Nowlert — failed destination deliveries (last hour)**. Create an ale
 is essential: an unconditional COUNT returns a row even at zero and would alert
 while healthy. Excluding Metabase avoids a recursive failure-alert loop.
 
+![Saved hourly operational delivery-failure alert; the collection label is masked](../images/application-setup/metabase-delivery-alert.jpg)
+
 Save an hourly alert on the failed-delivery question and suppress notifications when the query returns no rows.
 
 The first native scheduled evaluation and Send now evaluation returned no rows

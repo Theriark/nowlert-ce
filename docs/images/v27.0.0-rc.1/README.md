@@ -50,9 +50,11 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `destinations-list-admin-1440.png` | Destinations list | administrator | 1440 | 15:48 |
 | `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | replaced 31 Oct 2026, 07:48 |
 | `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | 15:49 |
+| `audit-log-overview-admin-1440.png` | Audit log (user column, record identifiers and sidebar account name masked on 2 Nov 2026) | administrator | 1440 | 15:49 |
 | `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | replaced 31 Oct 2026, 05:21 |
 | `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens) | administrator | 1440 | replaced 31 Oct 2026, 05:20 |
 | `users-search-admin-1440.png` | Users, filtered to the crew accounts | administrator | 1440 | 15:51 |
+| `delivery-history-zabbix-admin-1440.png` | Delivery history, Zabbix source filter (host and database labels and sidebar account name masked on 2 Nov 2026; not embedded) | administrator | 1440 | 15:53 |
 | `email-alerts-groups-admin-1440.png` | Email Alerts, Groups tab | administrator | 1440 | 15:53 |
 | `destination-editor-teams-admin-1440.png` | Add destination, Microsoft Teams, Message style | administrator | 1440 | 15:54 |
 | `destination-preview-teams-modern-admin-1440.png` | Preview dialog, Teams destination saved as Modern Card, output scrolled to the card body | administrator | 1440 | 20:44 |
@@ -68,9 +70,10 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `security-profile-user-1440.png` | Security (Profile, MFA, password, API tokens) | regular user | 1440 | replaced 31 Oct 2026, 05:22 |
 
 The two preview captures were replaced on 21 October 2026 at the times shown.
-The Zabbix-filtered Delivery history capture of 21 October 2026 (15:53) was
-withdrawn on 23 October 2026 and is no longer listed, and so is the Audit log
-capture; see "Withdrawn and replaced on 23 October 2026" below. The Settings
+The Zabbix-filtered Delivery history capture of 21 October 2026 (15:53) and
+the Audit log capture (15:49) were withdrawn on 23 October 2026 and restored
+on 2 November 2026 with their exposed labels masked; see "Withdrawn on
+23 October 2026, restored masked on 2 November 2026" below. The Settings
 capture, the two Security captures and the Filtering capture were replaced on
 31 October 2026; see "Replaced on 31 October 2026" and "Filtering capture
 replaced on 31 October 2026" below. The other 18 files of this table are
@@ -110,33 +113,39 @@ Notes on these five files:
 - The 390 px rules capture is scrolled so that one complete rule card is
   visible; the page header stays fixed at the top.
 
-## Withdrawn and replaced on 23 October 2026 (capture base commit 82c8470a)
+## Withdrawn on 23 October 2026, restored masked on 2 November 2026 (capture base commit 82c8470a)
 
-The Audit log capture of 21 October 2026 (15:49) was also withdrawn on
-23 October 2026 (Jira TOPS-356): its audit rows show the user name of the
+The Audit log capture of 21 October 2026 (15:49) was withdrawn on
+23 October 2026 (Jira TOPS-356): its audit rows showed the user name of the
 Development deployment's administrator account, which is not one of the
-crew test accounts, together with truncated internal record identifiers.
-It is not replaced; the [WebUI guide](../../webui.md) describes the Audit log
-page in writing. Like the Zabbix file below, it remains in the folder as an
-empty placeholder until a person with delete access removes it.
+crew test accounts, together with truncated internal record identifiers. On
+2 November 2026 (Jira NCE-109) it was restored from Git history with the whole
+user column of the event list, the record identifier under each resource and
+(after the independent review of the same day) the account name in the
+sidebar corner painted over with solid black rectangles, opened at full size
+afterwards, and embedded again by the [WebUI guide](../../webui.md). It still
+shows the health checks, the event counters, the action names, the resource
+names and the details of the selected event.
 
 The Zabbix-filtered Delivery history capture of 21 October 2026 was withdrawn
 on 23 October 2026 (Jira TOPS-351): its sample rows, although taken from the
 repository's own test fixture, carried VM-numbered host and database labels
-(`VM-08 | Zabbix Server`, `DB-01`, `DB-REPLICA`) that read like internal
-infrastructure names. The crew's repository tools overwrite but cannot delete
-files, so the withdrawn file remains in the folder as an empty placeholder
-until a person with delete access removes it. It was replaced by one capture
-from the Development deployment of the `development` branch at commit
-`82c8470af473570a87690e76f9ea0431f49e3013` (application version 3.1.6 plus the
-development changes, after the merge of pull requests 622 to 626), same
-crew administrator account, same viewport, opened at full size before
-being added.
+that read like internal infrastructure names. On 2 November 2026 it was
+restored from Git history with the row title, the detail header, the whole
+message body and (after the independent review of the same day) the account
+name in the sidebar corner painted over with solid black rectangles and opened
+at full size afterwards; it still shows the Zabbix source filter, the severity and outcome
+badges, the transport information (SMTP input, the shared crew destination,
+HTTP 200) and the timeline. It is listed above but not embedded: the
+Synology-filtered capture below, taken from the Development deployment of the
+`development` branch at commit `82c8470af473570a87690e76f9ea0431f49e3013`
+(application version 3.1.6 plus the development changes, after the merge of
+pull requests 622 to 626), same crew administrator account, same viewport,
+opened at full size before being added, remains the embedded reference for the
+page.
 
-The two withdrawn files, `audit-log-overview-admin-1440.png` and
-`delivery-history-zabbix-admin-1440.png`, are zero-byte placeholders. No
-current document links them, and they are not part of the published
-documentation packages.
+Neither file is an empty placeholder any longer; both have a retained row in
+the [screenshot privacy review](../../guides/screenshot-privacy.md).
 
 | File | Page / state | Role | Width | Captured (Lisbon) |
 |---|---|---|---|---|
