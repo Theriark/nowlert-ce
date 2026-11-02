@@ -72,9 +72,12 @@ avoid intentionally breaking a production service. Check `~/var/log/notify.log`
 and `~/var/log/mknotifyd.log`, then match the event in Nowlert Delivery history
 and confirm it arrived at the destination.
 
-The script returns 0 for receiver acceptance, 1 for retryable transport/429/5xx
-errors, and 2 for final configuration/authentication/payload errors. Receiver
-acceptance is separate from destination delivery.
+The script returns 0 for receiver acceptance, 1 for retryable
+transport/408/429/5xx errors, and 2 for final configuration/authentication/
+payload errors. Nowlert currently answers a rate-limited token with HTTP 401,
+not 429, so the script exits 2 without a spooler retry: check the token's rate
+limit before rotating it. Receiver acceptance is separate from destination
+delivery.
 
 Filter centrally by host, service, check state or notification type. Problem,
 recovery, acknowledgement, downtime, flapping and custom notification contexts

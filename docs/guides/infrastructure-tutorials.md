@@ -102,10 +102,13 @@ label, search text, sender line and hostname covered by solid masks; the
 originals were withdrawn on 15 October 2026 and stay out of the repository.
 Use the written connection and classification checks with your own account data.
 
-The native iLO fix was verified in a development image. Before advertising it as
-a stable-release feature, promote and test a release containing that fix and
-update the version references in the guides. The separate TLS listener remains
-deployment configuration; mounting the Nowlert image does not create it.
+The native iLO fix (commit `d1daf765`) and the Portainer URL-credential fix
+(commit `f6e69534`) were verified on development images and are in the
+`development` history behind the current release candidate (the latest GitHub
+pre-release of Theriark/nowlert-ce). The development images named in the guides
+are the exact images those tests used, not a stable release. The separate TLS
+listener remains deployment configuration; mounting the Nowlert image does not
+create it.
 
 Verified claims supported by these captures are **Xen Orchestra SMTP to Discord**
 and **iLO4 Redfish to Discord on the documented listener and image**. Do not label

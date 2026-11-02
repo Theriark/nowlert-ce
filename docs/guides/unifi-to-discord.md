@@ -214,8 +214,9 @@ emitted. Review event coverage again after a UniFi upgrade or hardware change.
 
 - **No intake:** check console DNS, TLS trust and the saved HTTPS URL. A browser
   opening the site does not establish console connectivity.
-- **401/403:** verify the header spelling and token source scope.
-- **429:** inspect the source token's rate limit and expected event volume.
+- **401:** verify the header spelling and token source scope. A source token
+  over its rate limit also returns 401 (not 429): inspect the token's rate
+  limit and expected event volume before rotating it.
 - **Cannot save Protect alarm:** expand each device selector; every selected
   trigger needs eligible devices, zones or lines.
 - **Drive messages lack event detail:** use one event per descriptively named

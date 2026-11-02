@@ -61,7 +61,7 @@ solely to take a tutorial screenshot.
 | Route missing | Running image version, signed-in account, completed image upgrade |
 | Test times out | DNS and HTTPS reachability from the app host/container, proxy and listener |
 | HTTP 401 | Token scope, token validity, authentication header/provider setting |
-| HTTP 429 | Token rate and application retries |
+| HTTP 401 on a token that worked before | Token rate limit: a rate-limited source credential currently returns HTTP 401, not 429. Check the token's rate limit and the application's retries before rotating it |
 | Accepted but no destination message | Saved assignment, enabled route/destination, central filter outcome, destination response |
 | Duplicate messages | Duplicate upstream notification rules, recipients, retries, or overlapping route assignments |
 

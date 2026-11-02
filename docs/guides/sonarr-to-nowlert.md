@@ -3,6 +3,8 @@
 Tested with **Sonarr 4.0.20.3014**. The saved native Webhook connection sends all
 available notification triggers to Nowlert. Two native tests were delivered to
 the Operational destination. No additional script or monitoring agent is needed.
+Nowlert requires the `instanceName` string that this version sends in every
+webhook; a payload without it is rejected with HTTP 400.
 
 Complete [Nowlert setup](application-notification-setup.md) for **Sonarr HTTP**,
 scope `sonarr`.
