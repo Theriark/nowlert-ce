@@ -33,17 +33,17 @@ def test_v310_release_documentation_and_screenshots_remain_packaged():
         assert path.stat().st_size > 0
 
     # Three v3.1.0 captures were withdrawn on 22 October 2026 because they
-    # still showed deployment labels (docs/guides/screenshot-privacy.md). The
-    # release notes and checklist keep their historical file lists; the files
-    # themselves may remain only as empty placeholders awaiting deletion.
-    withdrawn_images = (
+    # still showed deployment labels and were restored on 2 November 2026 with
+    # those labels masked (docs/guides/screenshot-privacy.md). They are real
+    # files again, not empty placeholders.
+    restored_images = (
         "v3.1.0-delivery-history.png",
         "v3.1.0-discord-xen-orchestra.png",
         "v3.1.0-teams-xen-orchestra.png",
     )
-    for filename in withdrawn_images:
+    for filename in restored_images:
         path = ROOT / "docs" / "images" / filename
-        assert not path.exists() or path.stat().st_size == 0, filename
+        assert path.is_file() and path.stat().st_size > 0, filename
 
 
 def test_current_docs_do_not_relabel_v310_as_current():

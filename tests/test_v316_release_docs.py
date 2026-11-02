@@ -17,8 +17,10 @@ CURRENT_PREVIEW = (
     "v27.0.0-rc.1/destinations-list-admin-1440.png",
     "v27.0.0-rc.1/sign-in-empty-signed-out-1440.png",
 )
-# Withdrawn on 22 October 2026 (docs/guides/screenshot-privacy.md).
-WITHDRAWN_SCREENSHOTS = (
+# Withdrawn on 22 October 2026 and restored with their deployment labels
+# masked on 2 November 2026 (docs/guides/screenshot-privacy.md). They stay
+# history: listed in docs/README.md, never in the README or WebUI guide.
+RESTORED_HISTORICAL_SCREENSHOTS = (
     "v3.1.0-delivery-history.png",
     "v3.1.0-discord-xen-orchestra.png",
     "v3.1.0-teams-xen-orchestra.png",
@@ -68,9 +70,10 @@ def test_v316_historical_visual_examples_are_packaged_and_referenced():
         assert path.stat().st_size > 0, relative
         assert f"docs/images/{relative}" in readme
         assert f"docs/images/{relative}" in dockerhub
-    for filename in WITHDRAWN_SCREENSHOTS:
+    for filename in RESTORED_HISTORICAL_SCREENSHOTS:
         path = ROOT / "docs" / "images" / filename
-        assert not path.exists() or path.stat().st_size == 0, filename
+        assert path.is_file() and path.stat().st_size > 0, filename
+        assert filename in docs_index, filename
         assert filename not in readme and filename not in webui, filename
     assert "Historical v3.1.0" in docs_index
 

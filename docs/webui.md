@@ -316,12 +316,13 @@ deployment (device `synthetic-dsm-01`) with the **Last 30 days** range and the
 first event selected, so the detail pane on the right shows its message,
 outcome, transport information and timeline.
 
-The historical v3.1.0 Delivery History capture was withdrawn on 22 October
-2026 because a history row still showed a device-name prefix, and the
-Zabbix-filtered Development capture of 21 October 2026 was withdrawn on
-23 October 2026 because its sample rows carried VM-numbered host and database
-labels (see the [screenshot privacy review](guides/screenshot-privacy.md));
-the Development capture above is the packaged reference for this page.
+The Zabbix-filtered Development capture of 21 October 2026
+(`delivery-history-zabbix-admin-1440.png` in the same folder) is kept with its
+VM-numbered host and database labels masked and is listed in the folder index;
+the Synology capture above is the packaged reference for this page. The
+historical v3.1.0 Delivery History capture is listed under
+[Historical screenshots](README.md#historical-screenshots) with its device-name
+prefix masked (see the [screenshot privacy review](guides/screenshot-privacy.md)).
 
 ### Audit log
 
@@ -331,10 +332,12 @@ retained audit events. Filters, date range and sort are applied on the server
 before paging, and it uses the same pagination contract as Delivery history.
 
 The page shows the health checks, the filterable event list and the details
-of the selected event. It is described here in writing instead of captured:
-its rows name the signed-in accounts and carry internal record identifiers, and
-the capture taken on 21 October 2026 was withdrawn on 23 October 2026 (see the
-[screenshot privacy review](guides/screenshot-privacy.md)).
+of the selected event. In the capture below the user column of the event list
+and the record identifiers under each resource are masked: the rows name the
+account that performed each action and carry internal record identifiers (see
+the [screenshot privacy review](guides/screenshot-privacy.md)).
+
+![Audit log with health checks, event list and event details (development, administrator, 1440 px); user column and record identifiers masked](images/v27.0.0-rc.1/audit-log-overview-admin-1440.png)
 
 ### Users
 

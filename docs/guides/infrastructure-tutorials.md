@@ -48,12 +48,12 @@ problem, recovery and success behavior of each integration and its source limits
 |---|---|
 | Zabbix native webhook and recipient | [Enabled media](../images/zabbix-setup/media-enabled.png), [saved recipient](../images/zabbix-setup/recipient-media.png), [problem/recovery operations](../images/zabbix-setup/action-operations.png) |
 | Zabbix native media test acceptance | [Problem](../images/zabbix-setup/native-problem-accepted.png), [recovery](../images/zabbix-setup/native-recovery-accepted.png) |
-| Checkmk saved native notification rule | [All events/method](../images/application-setup/checkmk-all-events.jpg), [single-recipient procedure](checkmk-to-nowlert.md), [conditions/save behavior](../images/application-setup/checkmk-sending-conditions.jpg) |
+| Checkmk saved native notification rule | [All events/method](../images/application-setup/checkmk-all-events.jpg), [recipient, account masked](../images/application-setup/checkmk-single-recipient.png), [conditions/save behavior](../images/application-setup/checkmk-sending-conditions.jpg) |
 | Sonarr saved connection and all native triggers | [Connections](../images/application-setup/sonarr-all-events.png) |
 | Radarr saved connection and all native triggers | [Connections](../images/application-setup/radarr-all-events.jpg) |
 | Semaphore native task success and notification log | [Task #30](../images/application-setup/semaphore-native-test.png) |
 | Metabase saved webhook, no token value | [Webhook destination](../images/application-setup/metabase-webhook.png) |
-| Metabase hourly failure alert and native delivery proof | [Hourly alert procedure](metabase-to-nowlert.md), [native question test](../images/application-setup/metabase-native-question-delivered.png) |
+| Metabase hourly failure alert and native delivery proof | [Saved alert, collection label masked](../images/application-setup/metabase-delivery-alert.jpg), [native question test](../images/application-setup/metabase-native-question-delivered.png) |
 | Gmail API enabled | [API status, account header omitted](../images/email-setup/gmail-api-enabled.jpg) |
 | Microsoft delegated mailbox permission | [Mail.Read, address concealed](../images/email-setup/microsoft-mail-read-redacted.png) |
 | Both mailbox connections healthy | [Mailboxes, account labels masked](../images/email-setup/mailboxes-healthy-sanitized.png); check each mailbox for Healthy, Credentials configured, and a recent Last sync |
@@ -61,7 +61,7 @@ problem, recovery and success behavior of each integration and its source limits
 | Home Assistant enabled alert automations | [Automation entities, sidebar label masked](../images/home-assistant-setup/enabled-automations-sanitized.png) |
 | Home Assistant native notification test | [Action, sidebar label masked](../images/home-assistant-setup/native-test-sanitized.png), [delivery proof](../images/home-assistant-setup/native-delivery-proof.png) |
 | Home Assistant authenticated receiver acceptance | [HTTP 204 response, sidebar label masked](../images/home-assistant-setup/transport-response-sanitized.png) |
-| TrueNAS saved Info Email service | Save an enabled Email alert service at Info level with your intended recipient, then send its native test. |
+| TrueNAS saved Info Email service | [Service, appliance hostname masked](../images/truenas-setup/info-alert-service.png) |
 | TrueNAS native alert delivery | [Delivery proof](../images/truenas-setup/delivery-proof.png) |
 | iLO resource noise suppressed centrally | [Rule](../images/hardware-setup/ilo-resource-filter.png), [filtered outcomes](../images/hardware-setup/ilo-resource-filter-proof.png) |
 | Hardware token scope selection | In the **Issue Event API token** dialog, confirm **Allowed integrations** holds only Supermicro, HPE iLO and Dell iDRAC before choosing **Issue token**; written steps in [the hardware guide](hardware-redfish-setup.md), no capture published. |
@@ -81,7 +81,7 @@ problem, recovery and success behavior of each integration and its source limits
 | Xen Orchestra SMTP route | [SMTP assignment](../images/hardware-setup/nowlert-xen-routes.png) |
 | Xen Orchestra transport-email | [Host, port, security](../images/hardware-setup/xen-orchestra-transport-email.png), [authentication fields](../images/hardware-setup/xen-orchestra-transport-auth.png) |
 | Xen Orchestra backup-reports | [Recipient](../images/hardware-setup/xen-orchestra-backup-reports.png), [test controls](../images/hardware-setup/xen-orchestra-backup-test.png) |
-| Actual Xen Orchestra SMTP delivery | [Delivery history](../images/hardware-setup/xen-orchestra-delivery.png) |
+| Actual Xen Orchestra SMTP delivery | [Delivery history, backup job label masked](../images/hardware-setup/xen-orchestra-delivery.png) |
 
 Controller subscriptions were configured through authenticated Redfish API
 calls, not through their SMTP WebUI forms. Their illustrated records are

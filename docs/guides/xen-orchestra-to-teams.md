@@ -147,12 +147,14 @@ Then compare the delivered Teams card with the original Xen Orchestra message.
 The useful operational fields should be visible without having to scan the full
 raw email.
 
-No capture of a delivered Teams card is packaged. The historical v3.1.0
-example that this guide used to embed was withdrawn on 22 October 2026 because
-it showed a user portrait next to the thread control (see the
+No capture of a current Teams card is packaged yet. The image below is a
+historical v3.1.0 presentation example; current Modern and Classic cards differ
+from it, and the user portrait next to the thread control is masked (see the
 [screenshot privacy review](screenshot-privacy.md)). Use the card delivered by
 your own test, or the destination preview in the Nowlert WebUI, as the
-reference for the current Modern and Classic layouts.
+reference for the current layouts.
+
+![Historical v3.1.0 Microsoft Teams Xen Orchestra notification; the user portrait is masked](../images/v3.1.0-teams-xen-orchestra.png)
 
 ## Why use Nowlert in the middle?
 

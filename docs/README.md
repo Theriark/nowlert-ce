@@ -113,11 +113,16 @@ no longer embedded by the README or the WebUI guide:
 - `v3.1.0-dashboard.png`
 - `v3.1.0-routing-flow.png`
 - `v3.1.0-destinations.png`
+- `v3.1.0-delivery-history.png`
+- `v3.1.0-discord-xen-orchestra.png`
+- `v3.1.0-teams-xen-orchestra.png`
 
-Three further v3.1.0 captures (the Delivery History page and the Discord and
-Microsoft Teams Xen Orchestra cards) were withdrawn on 22 October 2026 because
-they still showed deployment labels; the
-[screenshot privacy review](guides/screenshot-privacy.md) records them.
+The last three (the Delivery History page and the Discord and Microsoft Teams
+Xen Orchestra cards) were withdrawn on 22 October 2026 because they still
+showed deployment labels and were restored on 2 November 2026 with those
+labels masked; the [screenshot privacy review](guides/screenshot-privacy.md)
+records what each still shows. The two Xen Orchestra cards are embedded by the
+Xen Orchestra guides as historical examples.
 
 `v3.1.0-discord-idrac.png` and `v3.1.0-discord-unifi.png` are further v3.1.0
 captures that current guides do not embed.
@@ -126,14 +131,20 @@ The following captures predate the Nowlert name (they show the retired product
 name) and are outdated. They are retained only for history and must not be
 used to illustrate current behavior:
 
-- `v2.5.2-destinations.png`, `v2.5.2-discord-idrac.png`,
-  `v2.5.2-discord-zabbix.png`, `v2.5.2-inputs.png`, `v2.5.2-overview.png`,
+- `v2.5.2-api-access.png`, `v2.5.2-destinations.png`,
+  `v2.5.2-discord-idrac.png`, `v2.5.2-discord-zabbix.png`,
+  `v2.5.2-inputs.png`, `v2.5.2-overview.png`, `v2.5.2-routes.png`,
   `v2.5.2-routing-flow.png`, `v2.5.2-settings.png`, `v2.5.2-sources.png`,
   `v2.5.2-teams.png`
-- `discord-xen-orchestra-v1.9.6.png`
+- `discord-xen-orchestra-v1.9.6.png`, `teams-xen-orchestra-v1.9.6.png`,
+  `discord-unifi-v1.9.6.png`, `teams-qnap-v1.9.6.png`, `xo-discord.png`,
+  `xo-teams.png`
 
-The v1.9.6 Teams Xen Orchestra card was withdrawn on 23 October 2026 (see the
-[screenshot privacy review](guides/screenshot-privacy.md)).
+The v1.9.6 Teams Xen Orchestra card was withdrawn on 23 October 2026 and
+restored on 2 November 2026 with its job, repository and VM names masked; the
+other v1.9.6 cards and the two further v2.5.2 captures were restored from Git
+history the same day, with their host and personal labels masked where present
+(see the [screenshot privacy review](guides/screenshot-privacy.md)).
 
 Only the Dell iDRAC Redfish guide still embeds one of them
 (`v2.5.2-discord-idrac.png`), explicitly labeled as outdated pending recapture.

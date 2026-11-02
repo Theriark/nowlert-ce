@@ -15,8 +15,9 @@ SCHEMA_GUIDES = (
     "docs/current-configuration-model.md", "docs/webui.md",
     "docs/database-authoritative-resources.md", "docs/deployment.md",
 )
+# Withdrawn on 15 October 2026 and replaced by a sanitized copy on 30 October
+# 2026 (docs/guides/screenshot-privacy.md); the original paths stay withdrawn.
 WITHDRAWN_IMAGES = (
-    "unifi-setup/protect-alarms.png",
     "email-setup/mailboxes-healthy-redacted.png",
     "email-setup/noip-warning-redacted.png",
     "hardware-setup/portainer-tls-config.png",
@@ -24,12 +25,42 @@ WITHDRAWN_IMAGES = (
     "home-assistant-setup/enabled-automations.png",
     "home-assistant-setup/native-test.png",
     "home-assistant-setup/transport-response.png",
-    "application-setup/checkmk-single-recipient.png",
-    "application-setup/metabase-delivery-alert.jpg",
-    "truenas-setup/info-alert-service.png",
-    "portainer-setup/xen-backup-report-coverage.png",
-    "monitoring-setup/portainer-native-delivery-lifecycle.png",
 )
+SANITIZED_COPIES = (
+    ("email-setup/mailboxes-healthy-sanitized.png", "docs/guides/gmail-email-alerts.md"),
+    ("email-setup/noip-warning-activity-sanitized.png", "docs/guides/gmail-email-alerts.md"),
+    ("hardware-setup/portainer-tls-config-sanitized.png", "docs/guides/ilo4-local-tls-listener.md"),
+    ("monitoring-setup/dell-native-delivery-sanitized.png", "docs/guides/hardware-redfish-setup.md"),
+    ("home-assistant-setup/enabled-automations-sanitized.png", "docs/guides/home-assistant-to-discord.md"),
+    ("home-assistant-setup/native-test-sanitized.png", "docs/guides/home-assistant-to-discord.md"),
+    ("home-assistant-setup/transport-response-sanitized.png", "docs/guides/home-assistant-to-discord.md"),
+)
+# Restored from Git history on 2 November 2026 with their private labels
+# painted over (docs/guides/screenshot-privacy.md, Jira NCE-109). Each must be
+# a real raster with a retained inventory row; the second element names the
+# current document that embeds it, or None for an unembedded historical file.
+REDACTED_IMAGES = (
+    ("application-setup/checkmk-single-recipient.png", "docs/guides/checkmk-to-nowlert.md"),
+    ("application-setup/metabase-delivery-alert.jpg", "docs/guides/metabase-to-nowlert.md"),
+    ("monitoring-setup/portainer-native-delivery-lifecycle.png", "docs/guides/portainer-to-discord.md"),
+    ("portainer-setup/xen-backup-report-coverage.png", "docs/guides/centralized-event-coverage.md"),
+    ("truenas-setup/info-alert-service.png", "docs/guides/truenas-to-discord.md"),
+    ("unifi-setup/protect-alarms.png", "docs/guides/unifi-to-discord.md"),
+    ("discord-unifi-v1.9.6.png", None),
+    ("teams-qnap-v1.9.6.png", None),
+    ("v2.5.2-api-access.png", None),
+    ("v2.5.2-routes.png", None),
+    ("teams-xen-orchestra-v1.9.6.png", None),
+    ("v27.0.0-rc.1/audit-log-overview-admin-1440.png", "docs/webui.md"),
+    ("v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png", None),
+    ("v3.1.0-delivery-history.png", None),
+    ("v3.1.0-discord-xen-orchestra.png", "docs/guides/xen-orchestra-to-discord.md"),
+    ("v3.1.0-teams-xen-orchestra.png", "docs/guides/xen-orchestra-to-teams.md"),
+    ("xo-discord.png", None),
+    ("xo-teams.png", None),
+    ("hardware-setup/xen-orchestra-delivery.png", "docs/guides/xen-orchestra-to-discord.md"),
+)
+PRIVACY_PAGE = ROOT / "docs/guides/screenshot-privacy.md"
 
 
 @pytest.mark.parametrize("relative", SCHEMA_GUIDES)
@@ -63,6 +94,24 @@ def test_exposed_captures_are_withdrawn_from_current_checkout(relative):
     for path in [ROOT / "README.md", ROOT / "DOCKERHUB_README.md", *(ROOT / "docs").rglob("*.md")]:
         if "releases" not in path.parts and path.name != "screenshot-privacy.md":
             assert relative not in path.read_text(encoding="utf-8"), path
+
+
+@pytest.mark.parametrize("relative, guide", SANITIZED_COPIES)
+def test_sanitized_copies_are_shown_instead_of_the_withdrawn_originals(relative, guide):
+    assert (ROOT / "docs/images" / relative).stat().st_size > 0, relative
+    assert f"`images/{relative}` | retained |" in PRIVACY_PAGE.read_text(encoding="utf-8"), relative
+    assert relative in (ROOT / guide).read_text(encoding="utf-8"), (relative, guide)
+
+
+@pytest.mark.parametrize("relative, guide", REDACTED_IMAGES)
+def test_redacted_captures_are_restored_recorded_and_not_withdrawn(relative, guide):
+    path = ROOT / "docs/images" / relative
+    assert path.is_file() and path.stat().st_size > 0, relative
+    privacy = PRIVACY_PAGE.read_text(encoding="utf-8")
+    assert f"| `images/{relative}` | retained |" in privacy, relative
+    assert f"- `images/{relative}`" not in privacy, f"{relative} is still listed as withdrawn"
+    if guide is not None:
+        assert relative in (ROOT / guide).read_text(encoding="utf-8"), (relative, guide)
 
 
 # The folder keeps the name of the first release candidate; its contents are

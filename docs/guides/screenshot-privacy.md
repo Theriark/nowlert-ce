@@ -163,8 +163,39 @@ never as "verified".
   Flow and the 768 px sign-in page) were compared with the live deployment
   the same day and kept unchanged; see the folder index. The row counts are
   unchanged (115 retained, 95 linked).
+- 2 November 2026 (Jira NCE-109, founder instruction after the QA return of
+  27 October 2026): removing or emptying an image breaks the tutorials and is
+  not what QA asked for; QA asked for private values to be hidden. The crew
+  now has a redaction tool that paints solid black rectangles over the given
+  pixel boxes, changes nothing else in the picture and drops every metadata
+  chunk. With it, the eighteen captures that had been removed from the
+  checkout (twelve deleted, six overwritten with empty content) were restored
+  from Git history byte for byte and masked, and the Xen Orchestra delivery
+  capture, which QA had returned because its Message body still showed a full
+  backup job label, was masked in place. Each result was opened at full size
+  before being committed. What each still shows is recorded in its retained
+  row below; in short: the Checkmk recipient account, the Metabase collection
+  label, the Portainer sidebar account corner, the three remaining Xen
+  Orchestra job names in the backup overview, the TrueNAS appliance hostname,
+  the three location-labelled Protect alarm names, the camera and device
+  labels of the v1.9.6 UniFi Discord cards, the NAS label and the personal
+  name and portrait of the v1.9.6 QNAP Teams card, the Zabbix host filter
+  text of the v2.5.2 routes page, the job, repository and VM names of the five
+  Xen Orchestra cards (v1.9.6 Teams, v3.1.0 Discord, the two early cards),
+  the user portrait of the v3.1.0 Teams card, the device-name prefix of the
+  v3.1.0 Delivery History row, the user column and record identifiers of the
+  Audit log capture and the host, database and message text of the
+  Zabbix-filtered Delivery history capture are hidden. The v2.5.2 API access
+  capture needed no mask (token names only, no values) and was restored
+  unchanged. Blur was not used anywhere. The seven captures that already had a
+  sanitized copy since 30 October 2026 were left as they are: the sanitized
+  copies stay embedded and the original paths stay withdrawn. The guides embed
+  the restored captures again where the written checks had replaced them; the
+  three v3.1.0 captures stay historical (listed in `docs/README.md`, never in
+  the README or the WebUI guide) and the Zabbix-filtered Delivery history
+  capture stays unembedded behind its Synology replacement.
 
-Nineteen captures are now excluded from current documentation. On 22 October
+Seven captures are now excluded from current documentation. On 22 October
 2026 the inventory held 105 retained rows, 90 of them linked from current
 documents; the five Development captures added later that day brought it to 110
 retained rows and 95 linked. On 23 October 2026 the Zabbix row was replaced by
@@ -173,9 +204,10 @@ the Synology row (still 110), the unembedded v1.9.6 Teams card was withdrawn
 retained rows, 94 linked), and the three token captures were unlinked (108
 retained rows, 91 linked). An earlier version of this paragraph gave 105 and
 104 retained rows for those states; those numbers were wrong. On 30 October
-2026 the seven sanitized copies were added (115 retained rows, 95 linked).
-Counts in this page are dated observations and the guard test, not this
-prose, is the authority.
+2026 the seven sanitized copies were added (115 retained rows, 95 linked). On
+2 November 2026 the eighteen restored captures were added back as retained
+rows (133 retained rows, 104 linked). Counts in this page are dated
+observations and the guard test, not this prose, is the authority.
 
 ## Withdrawn captures
 
@@ -186,9 +218,11 @@ delete it. `tests/test_screenshot_privacy_inventory.py` and
 `tools/validate_current_documentation.py` fail on a withdrawn path with any
 content and on any reference to a withdrawn path from a current document.
 
-Withdrawn on 15 October 2026:
+Withdrawn on 15 October 2026 and replaced by a sanitized copy on 30 October
+2026 (the original pixels were never masked in place, so the original paths
+stay withdrawn and the copies with the suffix `-sanitized` are the retained,
+embedded files):
 
-- `images/unifi-setup/protect-alarms.png` — private camera/location labels.
 - `images/email-setup/mailboxes-healthy-redacted.png` — mailbox account label.
 - `images/email-setup/noip-warning-redacted.png` — mailbox account label in activity.
 - `images/hardware-setup/portainer-tls-config.png` — private bind address in Compose.
@@ -196,58 +230,38 @@ Withdrawn on 15 October 2026:
 - `images/home-assistant-setup/enabled-automations.png` — personal device label in the sidebar.
 - `images/home-assistant-setup/native-test.png` — personal device label in the sidebar.
 - `images/home-assistant-setup/transport-response.png` — personal device label in the sidebar.
-- `images/application-setup/checkmk-single-recipient.png` — local recipient account name.
-- `images/application-setup/metabase-delivery-alert.jpg` — personal collection/account label.
-- `images/truenas-setup/info-alert-service.png` — appliance hostname in the sidebar.
-- `images/portainer-setup/xen-backup-report-coverage.png` — deployment job labels and schedules.
-- `images/monitoring-setup/portainer-native-delivery-lifecycle.png` — visible profile portrait.
 
-Seven of these (the two mailbox captures, the Portainer TLS Compose editor,
-the Dell delivery message and the three Home Assistant captures) have a
-sanitized copy since 30 October 2026, listed as retained rows with the suffix
-`-sanitized`; the original paths above stay withdrawn.
+### Restored with masks on 2 November 2026
 
-Withdrawn on 22 October 2026, after the independent review of the inventory
-(each had a row recording an inspection on 15 October 2026 and was embedded by
-the README or a guide; none is embedded any longer):
+The eighteen other captures that had been withdrawn between 15 and 23 October
+2026 were put back at their original paths on 2 November 2026 (Jira NCE-109),
+restored from Git history byte for byte and then masked with solid black
+rectangles where a private value remained; the exposure that had caused each
+withdrawal is hidden. They are retained rows again, listed in the inventory
+below with the date and a description of the mask. For the record, the
+withdrawals they reverse were:
 
-- `images/v3.1.0-teams-xen-orchestra.png` — user portrait beside the thread control.
-- `images/v3.1.0-discord-xen-orchestra.png` — backup job name, and repository and VM names only partially masked.
-- `images/v3.1.0-delivery-history.png` — device-name prefix in a history row title.
+- 15 October 2026: the Protect alarm list (private camera/location labels),
+  the Checkmk recipient (local recipient account name), the Metabase alert
+  (personal collection label), the TrueNAS alert service (appliance hostname
+  in the sidebar), the Xen Orchestra backup overview (deployment job labels)
+  and the Portainer delivery lifecycle (visible profile portrait).
+- 22 October 2026: the three v3.1.0 captures (user portrait beside the thread
+  control; backup job name and partially masked repository and VM names;
+  device-name prefix in a history row title). They had been overwritten with
+  empty content because the crew's tools could not delete files.
+- 23 October 2026: the Zabbix-filtered Delivery history capture (VM-numbered
+  host and database labels), the v1.9.6 Teams Xen Orchestra card (unmasked
+  repository and VM names) and the Audit log capture (user name of the
+  Development administrator account and internal record identifiers). They
+  had been overwritten with empty content the same way.
+- 4 October 2026, earlier cleanup: six historical cards and pages that no
+  guide embedded (the v1.9.6 UniFi Discord cards, the v1.9.6 QNAP Teams card,
+  the two early Xen Orchestra cards and the v2.5.2 API access and routes
+  pages) had been deleted outright; they are restored as unembedded history.
 
-The crew's repository tools can create and overwrite files but cannot delete
-them, so on 22 October 2026 these three files were overwritten with empty
-content to remove their pixels from the branch. A person with delete access
-should remove the three empty placeholders; until then the guard accepts them
-only while they stay empty.
-
-Withdrawn on 23 October 2026, after the P1 privacy re-check (Jira TOPS-351).
-The first was embedded by the WebUI guide and is now replaced there by the
-Synology-filtered capture listed in the inventory; the second was not
-embedded anywhere:
-
-- `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` — VM-numbered host and database labels (`VM-08 | Zabbix Server`, `DB-01`, `DB-REPLICA`) in the sample rows and message.
-- `images/teams-xen-orchestra-v1.9.6.png` — unmasked backup repository and VM names (`NAS-01 / Critical Backups`, `APP-01`).
-
-They were overwritten with empty content the same way; a person with delete
-access should remove the empty placeholders. Git history before each
-withdrawal date still contains the images, as it does for the 15 October
-withdrawals.
-
-Withdrawn on 23 October 2026, after the independent test of that change (Jira
-TOPS-356). It was embedded by the WebUI guide, which now describes the page in
-writing:
-
-- `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` — user name of the Development deployment's administrator account, which is not one of the crew test accounts, and truncated internal record identifiers in the audit rows.
-
-It was overwritten with empty content the same way, so the number of empty
-placeholders awaiting deletion by a person is now six.
-
-The two empty placeholders in `images/v27.0.0-rc.1/`,
-`audit-log-overview-admin-1440.png` and
-`delivery-history-zabbix-admin-1440.png`, are zero-byte files: no current
-document links them, and they are not part of the published documentation
-packages.
+No empty placeholder remains in `docs/images/`. Git history before each
+withdrawal date still contains the unmasked images; history was not rewritten.
 
 The retained captures are listed in the inventory below with the date of their
 last recorded inspection. Their dated validation results are historical
@@ -264,9 +278,12 @@ private addresses or a device label. Those are five of the thirteen captures
 withdrawn on 15 October. The re-check confirmed on the `development` branch at
 commit `eba8c95d39402639270e36153d13f8ff86ce7544`, and on `stage`, that none of
 the thirteen files exists under `docs/images/` and that no current guide links
-them; `tests/test_current_documentation_contract.py` enforces both. The
-`v3.1.6` tag and `main` predate the tutorial image folders and do not contain
-them either.
+them; `tests/test_current_documentation_contract.py` enforced both at that
+date. Since 2 November 2026 six of the thirteen exist again at their original
+paths as masked copies (see "Restored with masks on 2 November 2026"); the
+seven that have a sanitized copy stay withdrawn and the test still enforces
+their absence. The `v3.1.6` tag and `main` predate the tutorial image folders
+and do not contain them either.
 
 The withdrawn files remain in Git history before their withdrawal date and in
 any local checkout, fork or cached page made before that date. History was not
@@ -305,9 +322,11 @@ confirmed exposures.
   the README or the Docker Hub README since 24 October 2026; historical only):
   a Zabbix route filter subtitle may carry a residual host-name fragment.
   Decide whether to mask, recapture or withdraw.
-- Delivery capture `images/hardware-setup/xen-orchestra-delivery.png` (embedded by the Xen
-  Orchestra to Discord guide): shows a backup job label that may be a real job
-  name. Decide whether it is acceptable.
+- Decided on 2 November 2026: the delivery capture
+  `images/hardware-setup/xen-orchestra-delivery.png` (embedded by the Xen
+  Orchestra to Discord guide) showed a real backup job label in the Message
+  body, which QA returned on 27 October 2026 (Jira NCE-109). The label is now
+  masked; the capture stays embedded.
 - Old card `images/discord-xen-orchestra-v1.9.6.png` (not embedded): the card footer
   shows a bot name and an organisation fragment. Decide whether to keep it as
   unembedded history or withdraw it.
@@ -351,22 +370,34 @@ raster under `docs/images/` needs a row.
 |---|---|---|
 | `images/logo.png` | retained | product logo, not a capture |
 | `images/discord-xen-orchestra-v1.9.6.png` | retained | historical card with the retired product name; not embedded; opened 22 Oct 2026, open point above |
+| `images/discord-unifi-v1.9.6.png` | retained | historical cards with the retired product name; not embedded; restored from Git history and masked 2 Nov 2026 (camera label in the title, message and trigger device, drive label in the title and system line); still shows event types, severities, times and the labs footer |
+| `images/teams-qnap-v1.9.6.png` | retained | historical card with the retired product name; not embedded; restored from Git history and masked 2 Nov 2026 (NAS label in the title, the sender name line and the avatar); still shows the firmware versions and the labs footer |
+| `images/teams-xen-orchestra-v1.9.6.png` | retained | historical card with the retired product name; not embedded; restored from Git history and masked 2 Nov 2026 (job name in the title, repository and the VM name; the earlier partial masks kept); still shows the result count, times and the labs footer |
+| `images/xo-discord.png` | retained | historical card with the retired product name; not embedded; restored from Git history and masked 2 Nov 2026 (job name, repository and the three VM names); still shows the bot name, mode, duration, sizes, speeds and the labs footer |
+| `images/xo-teams.png` | retained | historical card with the retired product name; not embedded; restored from Git history and masked 2 Nov 2026 (job name, repository and the two VM names); still shows mode, duration, sizes, speeds, times and the labs footer |
+| `images/v2.5.2-api-access.png` | retained | historical v2.5.2 capture; not embedded; restored from Git history unchanged 2 Nov 2026 (token names and rate limits only, no token value) |
 | `images/v2.5.2-destinations.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v2.5.2-discord-idrac.png` | retained | historical v2.5.2 capture embedded by the Dell iDRAC guide as outdated; reviewed 15 Oct 2026 |
 | `images/v2.5.2-discord-zabbix.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v2.5.2-inputs.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026; bind address `0.0.0.0` only |
 | `images/v2.5.2-overview.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
+| `images/v2.5.2-routes.png` | retained | historical v2.5.2 capture; not embedded; restored from Git history and masked 2 Nov 2026 (host filter text of one route); still shows route names, integrations, inputs and status |
 | `images/v2.5.2-routing-flow.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v2.5.2-settings.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026; open point above |
 | `images/v2.5.2-sources.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v2.5.2-teams.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v3.1.0-dashboard.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026 |
 | `images/v3.1.0-destinations.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026 |
+| `images/v3.1.0-delivery-history.png` | retained | historical v3.1.0 capture; not embedded; restored from Git history and masked 2 Nov 2026 (device-name prefix of one row title; the earlier large mask kept); still shows the page header, row sources, outcomes and times |
 | `images/v3.1.0-discord-idrac.png` | retained | historical v3.1.0 capture; not embedded; opened 23 Oct 2026 |
 | `images/v3.1.0-discord-unifi.png` | retained | historical v3.1.0 capture; not embedded; opened 23 Oct 2026 |
+| `images/v3.1.0-discord-xen-orchestra.png` | retained | historical v3.1.0 card embedded by the Xen Orchestra to Discord guide as historical; restored from Git history and masked 2 Nov 2026 (job name in the title and message, repository and the two VM names; the earlier partial masks kept); still shows mode, duration, sizes, speeds, times and the product footer |
 | `images/v3.1.0-routing-flow.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026; open point above |
+| `images/v3.1.0-teams-xen-orchestra.png` | retained | historical v3.1.0 card embedded by the Xen Orchestra to Teams guide as historical; restored from Git history and masked 2 Nov 2026 (user portrait beside the thread control; the earlier sender-name mask kept); still shows the test alert text, severity, category and the product footer |
 | `images/application-setup/checkmk-all-events.jpg` | retained | reviewed 15 Oct 2026 |
 | `images/application-setup/checkmk-sending-conditions.jpg` | retained | reviewed 15 Oct 2026 |
+| `images/application-setup/checkmk-single-recipient.png` | retained | restored from Git history and masked 2 Nov 2026 (the recipient account selector); still shows the rule editor, the Nowlert method and the auto-generated parameter label |
+| `images/application-setup/metabase-delivery-alert.jpg` | retained | restored from Git history and masked 2 Nov 2026 (the collection label in the header); still shows the question title, the database label, the SQL text and the Edit alerts dialog |
 | `images/application-setup/metabase-native-question-delivered.png` | retained | reviewed 15 Oct 2026 |
 | `images/application-setup/metabase-webhook.png` | retained | reviewed 15 Oct 2026; no token value |
 | `images/application-setup/radarr-all-events.jpg` | retained | reviewed 15 Oct 2026 |
@@ -395,7 +426,7 @@ raster under `docs/images/` needs a row.
 | `images/hardware-setup/supermicro-subscription-record.png` | retained | rendered token-free API readback with RFC 5737 addresses; reviewed 15 and 21 Oct 2026 |
 | `images/hardware-setup/xen-orchestra-backup-reports.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/xen-orchestra-backup-test.png` | retained | reviewed 15 Oct 2026 |
-| `images/hardware-setup/xen-orchestra-delivery.png` | retained | reviewed 15 Oct 2026; open point above |
+| `images/hardware-setup/xen-orchestra-delivery.png` | retained | reviewed 15 Oct 2026; masked 2 Nov 2026 after the QA return of 27 Oct 2026 (the backup job label line of the Message body); still shows the truncated row titles, the SMTP input, the Operational destination, HTTP 200 and the timeline |
 | `images/hardware-setup/xen-orchestra-transport-auth.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/xen-orchestra-transport-email.png` | retained | reviewed 15 Oct 2026 |
 | `images/home-assistant-setup/enabled-automations-sanitized.png` | retained | sanitized copy made and opened 30 Oct 2026; personal dashboard label in the sidebar masked |
@@ -410,6 +441,7 @@ raster under `docs/images/` needs a row.
 | `images/monitoring-setup/grafana-native-test.png` | retained | reviewed 15 Oct 2026 |
 | `images/monitoring-setup/native-rule-delivery-readback.png` | retained | reviewed 15 Oct 2026 |
 | `images/monitoring-setup/portainer-native-active-alert.png` | retained | reviewed 15 Oct 2026 |
+| `images/monitoring-setup/portainer-native-delivery-lifecycle.png` | retained | restored from Git history and masked 2 Nov 2026 (the account corner of the sidebar with the profile portrait); still shows the Portainer rows with the loopback address, the simulated callbacks and the detail pane |
 | `images/monitoring-setup/portainer-threshold-restored-new.png` | retained | reviewed 15 Oct 2026 |
 | `images/monitoring-setup/supermicro-native-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/monitoring-setup/supermicro-native-test-pair.png` | retained | reviewed 15 Oct 2026 |
@@ -421,19 +453,24 @@ raster under `docs/images/` needs a row.
 | `images/portainer-setup/route-assignment.png` | retained | reviewed 15 Oct 2026 |
 | `images/portainer-setup/token-scope.png` | retained | reviewed 15 and 21 Oct 2026 (pre-issuance scope form); not viewable by the crew on 22 Oct 2026, needs a person; unlinked 23 Oct 2026 |
 | `images/portainer-setup/webhook-channel.png` | retained | reviewed 15 Oct 2026 |
+| `images/portainer-setup/xen-backup-report-coverage.png` | retained | restored from Git history and masked 2 Nov 2026 (the three job names and identifiers that the earlier large mask left visible); still shows modes, schedule names, states and Report when values |
 | `images/truenas-setup/delivery-proof.png` | retained | reviewed 15 Oct 2026 |
+| `images/truenas-setup/info-alert-service.png` | retained | restored from Git history and masked 2 Nov 2026 (the appliance hostname above the edition label in the sidebar; the earlier masks of the recipient field and header kept); still shows the alert service list and the Edit Alert Service form |
 | `images/unifi-setup/camera-names.png` | retained | reviewed 15 Oct 2026; aliases confirmed fully masked 22 Oct 2026 |
 | `images/unifi-setup/drive-alarms.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/drive-receiver-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/network-alarms.png` | retained | reviewed 15 Oct 2026; labelled outdated pending recapture |
 | `images/unifi-setup/network-delivery.png` | retained | reviewed 15 Oct 2026 |
+| `images/unifi-setup/protect-alarms.png` | retained | restored from Git history and masked 2 Nov 2026 (the three alarm names that carried a location label); still shows the Nowlert and Notifinho alarm rows, categories, actions, hit counts and the detail panel |
 | `images/unifi-setup/protect-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-noise-filter.png` | retained | reviewed 15 Oct 2026 |
+| `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the user column of the event list and the record identifier under each resource); still shows the health checks, counters, action and resource names, the selected event and the crew administrator account in the sidebar; embedded by the WebUI guide |
 | `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
 | `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | Development capture, 23 Oct 2026; test fixture device `synthetic-dsm-01` only |
+| `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the row title, the detail header and the whole message body); still shows the Zabbix filter, badges, transport information and timeline; not embedded, the Synology capture is the reference |
 | `images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png` | retained | Development capture, 21 Oct 2026 |

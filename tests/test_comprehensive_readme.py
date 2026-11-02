@@ -65,7 +65,7 @@ def test_readme_remains_comprehensive_and_current():
     assert "| **Current Stable Release** | **v3.1.1** |" not in readme
     assert "teams-xen-orchestra-v1.9.6.png" not in readme
     assert "discord-xen-orchestra-v1.9.6.png" not in readme
-    # withdrawn on 22 October 2026 (docs/guides/screenshot-privacy.md)
+    # historical since 22 October 2026 (docs/guides/screenshot-privacy.md)
     assert "v3.1.0-delivery-history.png" not in readme
     assert "v3.1.0-discord-xen-orchestra.png" not in readme
     assert "v3.1.0-teams-xen-orchestra.png" not in readme

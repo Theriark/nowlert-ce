@@ -6,8 +6,9 @@ rather than for historical release compatibility.
 
 Every packaged screenshot has a row in the
 [screenshot privacy review](screenshot-privacy.md), which records when it was
-last inspected; captures that still showed private account or deployment
-details were withdrawn and replaced with written checks. Addresses and site
+last inspected; captures that showed private account or deployment details
+carry solid black masks over those details, and the seven that could not be
+masked in place have sanitized copies. Addresses and site
 names in the examples and validation records are anonymized (validation records
 use RFC 5737 documentation addresses); substitute your own values.
 
