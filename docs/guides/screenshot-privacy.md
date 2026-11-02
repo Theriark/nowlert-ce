@@ -204,6 +204,16 @@ never as "verified".
   opened again at full size; the v3.1.0 Teams Xen Orchestra card was reopened
   at full size and needed no further mask. The rows below record the added
   masks.
+- 2 November 2026, cycle 3 (Jira NCE-109): the independent privacy check of
+  the 19 restored captures found no readable private value; it noted one
+  trailing title glyph beside the mask of the v3.1.0 Discord Xen Orchestra
+  card, which is now hidden as well. The follow-up review asked for the open
+  point of the unembedded v1.9.6 Discord Xen Orchestra card to be decided: its
+  bot name, backup job label and footer are hidden and the card stays as
+  history. Both captures were opened at full size after masking. Two wording
+  errors of this page were corrected: the Audit log capture is restored, not
+  withdrawn, and a capture that still shows private information is masked
+  with solid black boxes, never removed. No row was added or removed.
 
 Seven captures are now excluded from current documentation. On 22 October
 2026 the inventory held 105 retained rows, 90 of them linked from current
@@ -337,9 +347,11 @@ confirmed exposures.
   Orchestra to Discord guide) showed a real backup job label in the Message
   body, which QA returned on 27 October 2026 (Jira NCE-109). The label is now
   masked; the capture stays embedded.
-- Old card `images/discord-xen-orchestra-v1.9.6.png` (not embedded): the card footer
-  shows a bot name and an organisation fragment. Decide whether to keep it as
-  unembedded history or withdraw it.
+- Decided on 2 November 2026 (Jira NCE-109, cycle 3): the old card
+  `images/discord-xen-orchestra-v1.9.6.png` (not embedded) showed a bot name,
+  the backup job label in the title and the footer with the retired product
+  name and an organisation fragment. Those three are now hidden by solid black
+  boxes like the sibling cards; the card stays as unembedded history.
 - Blurred captures `images/v2.5.2-settings.png`, `images/zabbix-setup/action-operations.png`,
   `images/zabbix-setup/media-enabled.png` and
   `images/zabbix-setup/recipient-media.png`: parts are blurred and the blurred
@@ -355,8 +367,11 @@ confirmed exposures.
   documentation and are no reason to keep the desktop captures out of the
   Preview. The administrator username also appeared in the audit rows of the
   Audit log capture together with internal record identifiers; that capture
-  stays withdrawn. Any capture that shows a credential, token, private
-  address or personal data stays excluded.
+  was withdrawn then and was restored on 2 November 2026 with the user
+  column, the record identifiers and the sidebar account name hidden by solid
+  black boxes (see the inventory row). Any capture that shows a credential,
+  token, private address or personal data stays excluded unless those values
+  are hidden the same way.
   `tools/validate_current_documentation.py` and
   `tests/test_current_documentation_contract.py` enforce the list of captures
   the Preview may use.
@@ -379,7 +394,7 @@ raster under `docs/images/` needs a row.
 | Capture | Status | Record |
 |---|---|---|
 | `images/logo.png` | retained | product logo, not a capture |
-| `images/discord-xen-orchestra-v1.9.6.png` | retained | historical card with the retired product name; not embedded; opened 22 Oct 2026, open point above |
+| `images/discord-xen-orchestra-v1.9.6.png` | retained | historical card; not embedded; opened 22 Oct 2026; masked 2 Nov 2026, cycle 3 (the bot name in the header, the backup job label in the title and the footer that named the retired product and an organisation; the earlier masks of the repository and VM names kept); still shows the event type, severity, mode, duration, sizes, speeds, times and the version fragment of the footer |
 | `images/discord-unifi-v1.9.6.png` | retained | historical cards; not embedded; restored from Git history and masked 2 Nov 2026 (camera label in the title, message and trigger device, drive label in the title and system line; after the independent review the same day also the alarm rule name and both footers that named the retired product and its lab); still shows event types, severities and times |
 | `images/teams-qnap-v1.9.6.png` | retained | historical card; not embedded; restored from Git history and masked 2 Nov 2026 (NAS label in the title, the sender name line and the avatar; after the independent review also the footer that named the retired product and its lab); still shows the firmware versions |
 | `images/teams-xen-orchestra-v1.9.6.png` | retained | historical card; not embedded; restored from Git history and masked 2 Nov 2026 (job name in the title, repository and the VM name; the earlier partial masks kept; after the independent review also the footer fragment that named the retired product); still shows the result count and times |
@@ -401,7 +416,7 @@ raster under `docs/images/` needs a row.
 | `images/v3.1.0-delivery-history.png` | retained | historical v3.1.0 capture; not embedded; restored from Git history and masked 2 Nov 2026 (device-name prefix of one row title; the earlier large mask kept); still shows the page header, row sources, outcomes and times |
 | `images/v3.1.0-discord-idrac.png` | retained | historical v3.1.0 capture; not embedded; opened 23 Oct 2026 |
 | `images/v3.1.0-discord-unifi.png` | retained | historical v3.1.0 capture; not embedded; opened 23 Oct 2026 |
-| `images/v3.1.0-discord-xen-orchestra.png` | retained | historical v3.1.0 card embedded by the Xen Orchestra to Discord guide as historical; restored from Git history and masked 2 Nov 2026 (job name in the title and message, repository and the two VM names; the earlier partial masks kept); still shows mode, duration, sizes, speeds, times and the product footer |
+| `images/v3.1.0-discord-xen-orchestra.png` | retained | historical v3.1.0 card embedded by the Xen Orchestra to Discord guide as historical; restored from Git history and masked 2 Nov 2026 (job name in the title and message, repository and the two VM names; the earlier partial masks kept; on 2 Nov 2026, cycle 3, also the trailing title glyph that was left beside the title mask); still shows mode, duration, sizes, speeds, times and the product footer |
 | `images/v3.1.0-routing-flow.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026; open point above |
 | `images/v3.1.0-teams-xen-orchestra.png` | retained | historical v3.1.0 card embedded by the Xen Orchestra to Teams guide as historical; restored from Git history and masked 2 Nov 2026 (user portrait beside the thread control; the earlier sender-name mask kept); still shows the test alert text, severity, category and the product footer |
 | `images/application-setup/checkmk-all-events.jpg` | retained | reviewed 15 Oct 2026 |
@@ -543,8 +558,12 @@ not, by itself, evidence of a leak; inspect the image.
    the repository.
 2. Inspect the full image at readable size, including account chrome, sidebars,
    message previews, URLs, logs, personal folders and profile pictures.
-3. If private information remains, omit the image and supply written steps.
-   Do not rely on blur, partial masks or a hidden password input.
+3. If private information remains, hide it with solid black boxes (the crew's
+   redaction tool paints them and changes nothing else) and keep the image;
+   never remove or empty it, because the tutorials depend on it. Reopen the
+   result at full size and confirm that no value is still readable. Do not
+   rely on blur, on a partial mask that leaves part of a value readable or on
+   a hidden password input. Say in the inventory row what the boxes hide.
 4. Label synthetic receiver tests, native source tests and API readbacks
    accurately. An image does not establish an untested lifecycle or release.
 5. Export without metadata: no EXIF segment, no XMP packet and no author,
