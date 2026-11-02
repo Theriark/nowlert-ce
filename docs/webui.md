@@ -332,12 +332,13 @@ retained audit events. Filters, date range and sort are applied on the server
 before paging, and it uses the same pagination contract as Delivery history.
 
 The page shows the health checks, the filterable event list and the details
-of the selected event. In the capture below the user column of the event list
-and the record identifiers under each resource are masked: the rows name the
-account that performed each action and carry internal record identifiers (see
-the [screenshot privacy review](guides/screenshot-privacy.md)).
+of the selected event. In the capture below the user column of the event list,
+the record identifiers under each resource and the account name in the sidebar
+corner are masked: the rows name the account that performed each action and
+carry internal record identifiers (see the
+[screenshot privacy review](guides/screenshot-privacy.md)).
 
-![Audit log with health checks, event list and event details (development, administrator, 1440 px); user column and record identifiers masked](images/v27.0.0-rc.1/audit-log-overview-admin-1440.png)
+![Audit log with health checks, event list and event details (development, administrator, 1440 px); user column, record identifiers and sidebar account name masked](images/v27.0.0-rc.1/audit-log-overview-admin-1440.png)
 
 ### Users
 

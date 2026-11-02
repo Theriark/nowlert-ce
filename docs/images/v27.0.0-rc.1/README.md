@@ -50,11 +50,11 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `destinations-list-admin-1440.png` | Destinations list | administrator | 1440 | 15:48 |
 | `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | replaced 31 Oct 2026, 07:48 |
 | `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | 15:49 |
-| `audit-log-overview-admin-1440.png` | Audit log (user column and record identifiers masked on 2 Nov 2026) | administrator | 1440 | 15:49 |
+| `audit-log-overview-admin-1440.png` | Audit log (user column, record identifiers and sidebar account name masked on 2 Nov 2026) | administrator | 1440 | 15:49 |
 | `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | replaced 31 Oct 2026, 05:21 |
 | `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens) | administrator | 1440 | replaced 31 Oct 2026, 05:20 |
 | `users-search-admin-1440.png` | Users, filtered to the crew accounts | administrator | 1440 | 15:51 |
-| `delivery-history-zabbix-admin-1440.png` | Delivery history, Zabbix source filter (host and database labels masked on 2 Nov 2026; not embedded) | administrator | 1440 | 15:53 |
+| `delivery-history-zabbix-admin-1440.png` | Delivery history, Zabbix source filter (host and database labels and sidebar account name masked on 2 Nov 2026; not embedded) | administrator | 1440 | 15:53 |
 | `email-alerts-groups-admin-1440.png` | Email Alerts, Groups tab | administrator | 1440 | 15:53 |
 | `destination-editor-teams-admin-1440.png` | Add destination, Microsoft Teams, Message style | administrator | 1440 | 15:54 |
 | `destination-preview-teams-modern-admin-1440.png` | Preview dialog, Teams destination saved as Modern Card, output scrolled to the card body | administrator | 1440 | 20:44 |
@@ -120,20 +120,21 @@ The Audit log capture of 21 October 2026 (15:49) was withdrawn on
 Development deployment's administrator account, which is not one of the
 crew test accounts, together with truncated internal record identifiers. On
 2 November 2026 (Jira NCE-109) it was restored from Git history with the whole
-user column of the event list and the record identifier under each resource
-painted over with solid black rectangles, opened at full size afterwards, and
-embedded again by the [WebUI guide](../../webui.md). It still shows the health
-checks, the event counters, the action names, the resource names and the
-details of the selected event, and the crew administrator account in the
-sidebar.
+user column of the event list, the record identifier under each resource and
+(after the independent review of the same day) the account name in the
+sidebar corner painted over with solid black rectangles, opened at full size
+afterwards, and embedded again by the [WebUI guide](../../webui.md). It still
+shows the health checks, the event counters, the action names, the resource
+names and the details of the selected event.
 
 The Zabbix-filtered Delivery history capture of 21 October 2026 was withdrawn
 on 23 October 2026 (Jira TOPS-351): its sample rows, although taken from the
 repository's own test fixture, carried VM-numbered host and database labels
 that read like internal infrastructure names. On 2 November 2026 it was
-restored from Git history with the row title, the detail header and the whole
-message body painted over with solid black rectangles and opened at full size
-afterwards; it still shows the Zabbix source filter, the severity and outcome
+restored from Git history with the row title, the detail header, the whole
+message body and (after the independent review of the same day) the account
+name in the sidebar corner painted over with solid black rectangles and opened
+at full size afterwards; it still shows the Zabbix source filter, the severity and outcome
 badges, the transport information (SMTP input, the shared crew destination,
 HTTP 200) and the timeline. It is listed above but not embedded: the
 Synology-filtered capture below, taken from the Development deployment of the

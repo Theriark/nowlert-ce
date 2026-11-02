@@ -194,6 +194,16 @@ never as "verified".
   three v3.1.0 captures stay historical (listed in `docs/README.md`, never in
   the README or the WebUI guide) and the Zabbix-filtered Delivery history
   capture stays unembedded behind its Synology replacement.
+- 2 November 2026, independent review of that change (Jira NCE-109): the
+  reviewers found the retired product name, its lab name or its bot name
+  still readable in six of the restored cards and captures (the two UniFi
+  Discord cards, the QNAP Teams card, the v1.9.6 Teams Xen Orchestra card,
+  the two early Xen Orchestra cards and the Protect alarm list) and the crew
+  administrator account name in the sidebar corner of the two restored
+  Development captures. Those were masked the same day with the same tool and
+  opened again at full size; the v3.1.0 Teams Xen Orchestra card was reopened
+  at full size and needed no further mask. The rows below record the added
+  masks.
 
 Seven captures are now excluded from current documentation. On 22 October
 2026 the inventory held 105 retained rows, 90 of them linked from current
@@ -370,11 +380,11 @@ raster under `docs/images/` needs a row.
 |---|---|---|
 | `images/logo.png` | retained | product logo, not a capture |
 | `images/discord-xen-orchestra-v1.9.6.png` | retained | historical card with the retired product name; not embedded; opened 22 Oct 2026, open point above |
-| `images/discord-unifi-v1.9.6.png` | retained | historical cards with the retired product name; not embedded; restored from Git history and masked 2 Nov 2026 (camera label in the title, message and trigger device, drive label in the title and system line); still shows event types, severities, times and the labs footer |
-| `images/teams-qnap-v1.9.6.png` | retained | historical card with the retired product name; not embedded; restored from Git history and masked 2 Nov 2026 (NAS label in the title, the sender name line and the avatar); still shows the firmware versions and the labs footer |
-| `images/teams-xen-orchestra-v1.9.6.png` | retained | historical card with the retired product name; not embedded; restored from Git history and masked 2 Nov 2026 (job name in the title, repository and the VM name; the earlier partial masks kept); still shows the result count, times and the labs footer |
-| `images/xo-discord.png` | retained | historical card with the retired product name; not embedded; restored from Git history and masked 2 Nov 2026 (job name, repository and the three VM names); still shows the bot name, mode, duration, sizes, speeds and the labs footer |
-| `images/xo-teams.png` | retained | historical card with the retired product name; not embedded; restored from Git history and masked 2 Nov 2026 (job name, repository and the two VM names); still shows mode, duration, sizes, speeds, times and the labs footer |
+| `images/discord-unifi-v1.9.6.png` | retained | historical cards; not embedded; restored from Git history and masked 2 Nov 2026 (camera label in the title, message and trigger device, drive label in the title and system line; after the independent review the same day also the alarm rule name and both footers that named the retired product and its lab); still shows event types, severities and times |
+| `images/teams-qnap-v1.9.6.png` | retained | historical card; not embedded; restored from Git history and masked 2 Nov 2026 (NAS label in the title, the sender name line and the avatar; after the independent review also the footer that named the retired product and its lab); still shows the firmware versions |
+| `images/teams-xen-orchestra-v1.9.6.png` | retained | historical card; not embedded; restored from Git history and masked 2 Nov 2026 (job name in the title, repository and the VM name; the earlier partial masks kept; after the independent review also the footer fragment that named the retired product); still shows the result count and times |
+| `images/xo-discord.png` | retained | historical card; not embedded; restored from Git history and masked 2 Nov 2026 (job name, repository and the three VM names; after the independent review also the bot name in the header and the footer that named the retired product and its lab); still shows mode, duration, sizes and speeds |
+| `images/xo-teams.png` | retained | historical card; not embedded; restored from Git history and masked 2 Nov 2026 (job name, repository and the two VM names; after the independent review also the footer that named the retired product and its lab); still shows mode, duration, sizes, speeds and times |
 | `images/v2.5.2-api-access.png` | retained | historical v2.5.2 capture; not embedded; restored from Git history unchanged 2 Nov 2026 (token names and rate limits only, no token value) |
 | `images/v2.5.2-destinations.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v2.5.2-discord-idrac.png` | retained | historical v2.5.2 capture embedded by the Dell iDRAC guide as outdated; reviewed 15 Oct 2026 |
@@ -461,16 +471,16 @@ raster under `docs/images/` needs a row.
 | `images/unifi-setup/drive-receiver-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/network-alarms.png` | retained | reviewed 15 Oct 2026; labelled outdated pending recapture |
 | `images/unifi-setup/network-delivery.png` | retained | reviewed 15 Oct 2026 |
-| `images/unifi-setup/protect-alarms.png` | retained | restored from Git history and masked 2 Nov 2026 (the three alarm names that carried a location label); still shows the Nowlert alarm rows and the rows named after the retired product, categories, actions, hit counts and the detail panel |
+| `images/unifi-setup/protect-alarms.png` | retained | restored from Git history and masked 2 Nov 2026 (the three alarm names that carried a location label; after the independent review the same day also the four alarm names that carried the retired product name); still shows the Nowlert alarm rows, categories, actions, hit counts and the detail panel |
 | `images/unifi-setup/protect-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-noise-filter.png` | retained | reviewed 15 Oct 2026 |
-| `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the user column of the event list and the record identifier under each resource); still shows the health checks, counters, action and resource names, the selected event and the crew administrator account in the sidebar; embedded by the WebUI guide |
+| `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the user column of the event list, the record identifier under each resource and, after the independent review the same day, the account name in the sidebar corner); still shows the health checks, counters, action and resource names and the selected event; embedded by the WebUI guide |
 | `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
 | `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | Development capture, 23 Oct 2026; test fixture device `synthetic-dsm-01` only |
-| `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the row title, the detail header and the whole message body); still shows the Zabbix filter, badges, transport information and timeline; not embedded, the Synology capture is the reference |
+| `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the row title, the detail header, the whole message body and, after the independent review the same day, the account name in the sidebar corner); still shows the Zabbix filter, badges, transport information and timeline; not embedded, the Synology capture is the reference |
 | `images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
