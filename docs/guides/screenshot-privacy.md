@@ -413,7 +413,7 @@ raster under `docs/images/` needs a row.
 | `images/v2.5.2-teams.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v3.1.0-dashboard.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026 |
 | `images/v3.1.0-destinations.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026 |
-| `images/v3.1.0-delivery-history.png` | retained | historical v3.1.0 capture; not embedded; restored from Git history and masked 2 Nov 2026 (device-name prefix of one row title; the earlier large mask kept); still shows the page header, row sources, outcomes and times |
+| `images/v3.1.0-delivery-history.png` | retained | historical v3.1.0 capture; not embedded; restored from Git history and masked 3 Nov 2026 with five small black boxes over the private values only (the camera name in two row messages, the gateway name in one row title and its location line, and a device and person name in one row message; the earlier large mask was removed); still shows the page header, titles, sources, outcome chips, attempt and transport chips and times |
 | `images/v3.1.0-discord-idrac.png` | retained | historical v3.1.0 capture; not embedded; opened 23 Oct 2026 |
 | `images/v3.1.0-discord-unifi.png` | retained | historical v3.1.0 capture; not embedded; opened 23 Oct 2026 |
 | `images/v3.1.0-discord-xen-orchestra.png` | retained | historical v3.1.0 card embedded by the Xen Orchestra to Discord guide as historical; restored from Git history and masked 2 Nov 2026 (job name in the title and message, repository and the two VM names; the earlier partial masks kept; on 2 Nov 2026, cycle 3, also the trailing title glyph that was left beside the title mask); still shows mode, duration, sizes, speeds, times and the product footer |
