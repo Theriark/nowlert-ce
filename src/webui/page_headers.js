@@ -634,7 +634,7 @@
     };
     for (const [id, value] of Object.entries(values)) {
       const node = byId(id);
-      if (node) node.textContent = String(value);
+      if (node) node.textContent = Number(value || 0).toLocaleString();
     }
   }
 
@@ -859,7 +859,7 @@
     if (!item) {
       panel.append(element("div", { className: "audit-log-detail-empty" }, [
         element("strong", { text: "Select an audit event" }),
-        element("span", { text: "Choose an event on the left to inspect the recorded security and operational context." }),
+        element("span", { text: "Choose an event in the list to inspect the recorded security and operational context." }),
       ]));
       return;
     }

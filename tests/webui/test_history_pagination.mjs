@@ -64,10 +64,10 @@ for (const id of ['delivery-pagination', 'audit-pagination']) {
     }
     context.qaPager(id, {page: 2, page_size: 25, total: 90, total_pages: 4}, page => visited.push(page));
     const status = descendants(pager).find(node => node.className === 'qa-page-status');
-    assert.ok(status, 'current page must be embedded in Page [n] of N - X items');
+    assert.ok(status, 'current page must be embedded in Page [n] of N · X items');
     const input = status.children.find(node => node.tag === 'input');
     assert.equal(input.value, 2);
-    assert.equal(status.children.at(-1), ' of 4 - 90 items');
+    assert.equal(status.children.at(-1), ' of 4 · 90 items');
     input.value = '3';
     input.events.keydown({key: 'Enter', preventDefault() {}});
     await Promise.resolve();

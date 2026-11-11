@@ -1082,12 +1082,13 @@ function emailRenderActivityItems() {
       element("strong", { className: "email-activity-subject", text: message.subject || "(No subject)" }),
       element("div", { className: "email-activity-context" }, [
         emailClassificationBadge(classification),
-        element("span", { className: "email-activity-matched" }, [
+        // Unmatched email already says "no matching rule" below; no "Matched: Unknown group".
+        processing?.group_id ? element("span", { className: "email-activity-matched" }, [
           element("span", { text: "Matched:" }),
           element("strong", { text: processing.group_name || emailGroupName(processing.group_id) }),
           element("span", { text: "·" }),
           element("span", { text: processing.rule_name || "Alert rule" }),
-        ]),
+        ]) : null,
       ]),
       emailWhyExplanation(processing),
     ]);
@@ -1298,7 +1299,7 @@ function emailEnsureDialogs() {
       emailOption("imap", "IMAP / IMAPS"),
     ]);
     const form = element("form", { className: "stack", attributes: { id: "email-mailbox-form" } }, [
-      emailDialogHeading("Connect mailbox", "Nowlert synchronizes message metadata first and keeps credentials in the encrypted platform secret boundary.", "email-mailbox-dialog"),
+      emailDialogHeading("Connect mailbox", "Nowlert reads message details (sender, subject, date) first and stores the mailbox credentials encrypted.", "email-mailbox-dialog"),
       element("div", { className: "form-grid" }, [
         emailLabel("Provider", provider),
         emailLabel("Mailbox name", element("input", { attributes: { id: "email-mailbox-name", required: "", maxlength: "160", placeholder: "Operations inbox" } })),
@@ -1346,7 +1347,7 @@ function emailEnsureDialogs() {
         attributes: { id: "email-mailbox-provider-hint" },
         text: "After saving this connection, Nowlert redirects you to Google to sign in and grant read-only Gmail access.",
       }),
-      element("p", { className: "email-mailbox-security-note", text: "For Gmail and Microsoft 365, Nowlert stores only the mailbox authorization tokens in the owner-scoped SecretStore. OAuth application credentials are configured once by the Nowlert administrator and are never requested from mailbox users. IMAP credentials are stored in the same secret boundary." }),
+      element("p", { className: "email-mailbox-security-note", text: "For Gmail and Microsoft 365, Nowlert keeps only the mailbox sign-in tokens, encrypted. The Google or Microsoft app connection is set up once by the Nowlert administrator, so mailbox users are never asked for it. IMAP passwords are stored encrypted in the same way." }),
       element("p", { className: "form-error", attributes: { id: "email-mailbox-error", role: "alert" }, hidden: true }),
       element("div", { className: "modal-actions" }, [
         element("button", { className: "button secondary", text: "Cancel", type: "button", dataset: { emailAction: "close-dialog", dialog: "email-mailbox-dialog" } }),

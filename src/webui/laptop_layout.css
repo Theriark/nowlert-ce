@@ -1,0 +1,117 @@
+/* Laptop and small-screen layout fixes (13-14" laptops at 125-150% scaling,
+   1024 px windows). Loaded last; earlier patch layers use !important, so the
+   overrides here do too. */
+
+/* Sidebar: the menu scrolls on short screens and the profile menu stays reachable. */
+/* align-content/grid-auto-rows keep short menus (normal users) from stretching their items to fill the sidebar. */
+.sidebar > #primary-nav { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; overscroll-behavior: contain; align-content: start !important; grid-auto-rows: min-content !important; }
+.sidebar > .sidebar-footer { flex: 0 0 auto !important; }
+@media (min-width: 761px) and (max-height: 780px) {
+  .sidebar > .brand.sidebar-brand > .sidebar-owl-button { width: 48px !important; height: 48px !important; }
+  .sidebar > .brand.sidebar-brand > .sidebar-owl-button img { width: 60px !important; height: 60px !important; }
+  .sidebar > .brand.sidebar-brand { padding-bottom: 6px !important; row-gap: 4px !important; }
+  .sidebar > #primary-nav .nav-item { min-height: 36px !important; padding-top: 6px !important; padding-bottom: 6px !important; }
+  .sidebar > #primary-nav { gap: 2px !important; }
+}
+
+/* Tables: the Actions column stays visible when a table is wider than the screen. */
+:is(table.filtering-table, table.email-rules-table, table.backup-destination-table, table.backup-recovery-table, table.backup-stored-table, #view-users table, #view-account table, #view-routes table) :is(th, td):last-child {
+  position: sticky !important; right: 0 !important; z-index: 2 !important;
+  background: rgb(15, 21, 28) !important;
+  box-shadow: -10px 0 12px -8px rgba(0, 0, 0, 0.75);
+}
+/* Some tables paint headers transparent with doubled-ID rules; keep the pinned
+   cells opaque so scrolled column titles do not show through them. */
+#view-filtering#view-filtering .filtering-table-panel .filtering-table :is(th, td):last-child,
+#view-email-alerts#view-email-alerts table.email-rules-table :is(th, td):last-child,
+#view-backups#view-backups :is(table.backup-destination-table, table.backup-recovery-table, table.backup-stored-table) :is(th, td):last-child,
+#view-users#view-users table :is(th, td):last-child,
+#view-account#view-account .reference-api-tokens :is(th, td):last-child,
+#view-routes#view-routes table :is(th, td):last-child { background: rgb(15, 21, 28) !important; }
+/* On phones a pinned column would take most of the width; let the whole table scroll. */
+@media (max-width: 700px) {
+  :is(table.filtering-table, table.email-rules-table, table.backup-destination-table, table.backup-recovery-table, table.backup-stored-table, #view-users table, #view-account table, #view-routes table) :is(th, td):last-child { position: static !important; box-shadow: none !important; }
+}
+@media (max-width: 1440px) {
+  table.email-rules-table { min-width: 0 !important; }
+  table.email-rules-table :is(th, td) { padding-left: 10px !important; padding-right: 10px !important; }
+  table.email-rules-table :is(th, td):nth-child(2) { min-width: 8.5rem; }
+  table.email-rules-table .email-rule-actions { flex-wrap: wrap !important; justify-content: flex-start !important; max-width: 10.5rem; }
+}
+table.filtering-table th:nth-child(4) { width: 136px !important; }
+table.filtering-table th:nth-child(5) { width: 136px !important; }
+table.filtering-table th:nth-child(6) { width: 250px !important; }
+table.filtering-table .filtering-table-actions { flex-wrap: wrap !important; justify-content: flex-start !important; row-gap: 6px; }
+
+/* Dashboard: Recent Activity and rankings switch to two lines in narrow cards. */
+.ops-activity-list { container-type: inline-size; }
+@container (max-width: 560px) {
+  .ops-activity-row { grid-template-columns: 28px auto auto minmax(0, 1fr) !important; grid-template-rows: auto auto; gap: 6px 8px !important; align-items: center; }
+  .ops-activity-row > .ops-activity-icon { grid-column: 1; grid-row: 1 / span 2; }
+  .ops-activity-row > .ops-activity-copy { grid-column: 2 / -1; grid-row: 1; width: auto !important; min-width: 0; }
+  .ops-activity-row > .ops-activity-copy > strong { width: auto !important; }
+  .ops-activity-row > .ops-severity { grid-column: 2; grid-row: 2; }
+  .ops-activity-row > .ops-attempt { grid-column: 3; grid-row: 2; }
+  .ops-activity-row > .ops-outcome { grid-column: 4; grid-row: 2; justify-self: end; }
+  .ops-activity-row > .ops-activity-time { display: none !important; }
+}
+.ops-ranking { container-type: inline-size; grid-template-columns: minmax(0, 1fr) !important; }
+@container (max-width: 420px) {
+  .ops-ranking-row { grid-template-columns: 22px 28px minmax(0, 1fr) auto auto !important; grid-template-rows: auto auto; gap: 4px 8px !important; width: auto !important; }
+  .ops-ranking-row > .ops-rank { grid-column: 1; grid-row: 1 / span 2; }
+  .ops-ranking-row > .ops-ranking-icon { grid-column: 2; grid-row: 1 / span 2; }
+  .ops-ranking-row > .ops-ranking-name { grid-column: 3; grid-row: 1; white-space: normal !important; text-overflow: clip !important; overflow-wrap: anywhere; width: auto !important; }
+  .ops-ranking-row > .ops-ranking-count { grid-column: 4; grid-row: 1; text-align: right; }
+  .ops-ranking-row > .ops-ranking-percent { grid-column: 5; grid-row: 1; text-align: right; }
+  .ops-ranking-row > .ops-ranking-track { grid-column: 3 / -1; grid-row: 2; width: auto !important; }
+}
+.ops-kpi-card .ops-kpi-copy > small, .ops-config-item small { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+.ops-kpi-card { grid-template-columns: 42px minmax(0, 1fr) !important; row-gap: 6px; }
+.ops-kpi-card > .ops-kpi-delta { grid-column: 2 !important; justify-self: start; }
+.ops-config-item { grid-template-columns: 38px minmax(0, 1fr) !important; row-gap: 6px; }
+.ops-config-item > .ops-config-status { grid-column: 2 !important; justify-self: start; }
+.ops-chart-summary { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)) !important; }
+.ops-chart-summary > * { min-width: 0; }
+
+/* Destination editor: route rows grow with their text instead of overlapping. */
+.route-assignment-options { grid-auto-rows: auto !important; align-content: start !important; }
+.route-assignment-option { height: auto !important; min-height: 40px !important; align-items: center !important; }
+.route-assignment-option-copy { min-width: 0; }
+.route-assignment-option-copy > strong { height: auto !important; min-height: 0 !important; white-space: normal !important; overflow-wrap: anywhere; }
+
+/* Dialogs taller than the screen keep Save/Cancel visible while the form scrolls. */
+dialog:not(#destination-dialog) form > .modal-actions {
+  position: sticky !important; bottom: -22.4px; z-index: 3;
+  background: rgb(32, 35, 39) !important;
+  margin-bottom: -22.4px !important; padding-bottom: 22.4px !important;
+}
+
+/* Backups: cards stack below 1180 px; the schedule fields wrap instead of truncating. */
+@media (max-width: 1180px) {
+  #view-backups .backup-dashboard-grid > .backup-dashboard-panel { grid-column: 1 / -1 !important; }
+}
+#view-backups .backup-schedule-form { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important; }
+
+/* Destinations: action rows line up across cards in the same row. */
+#view-destinations .resource-grid { align-items: stretch !important; }
+#view-destinations .resource-card.destination-reference-card { display: flex !important; flex-direction: column !important; }
+#view-destinations .resource-card.destination-reference-card > .resource-meta { margin-top: auto !important; }
+
+/* Delivery history: filters fill a clean grid on laptop widths. */
+@media (min-width: 901px) and (max-width: 1440px) {
+  #view-deliveries .delivery-history-filters { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  #view-deliveries .delivery-history-filters > * { grid-column-start: auto !important; }
+  #view-deliveries .delivery-history-filters > .search-field { grid-column: 1 / span 2 !important; }
+}
+
+/* Filtering: the integration-behaviour icon is hidden elsewhere, so drop the space kept for it. */
+#view-filtering #filtering-deterministic-processing .settings-resource-card > .resource-card-heading { padding-left: 0 !important; }
+
+/* Mailboxes: action rows line up at the bottom of each card. */
+#view-email-alerts .email-resource-card:has(> .email-mailbox-card-actions) { display: flex !important; flex-direction: column !important; }
+#view-email-alerts .email-resource-card > .email-mailbox-card-actions { margin-top: auto !important; }
+
+/* Tablet: dashboard tiles two per row instead of one. */
+@media (min-width: 560px) and (max-width: 900px) {
+  .ops-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}

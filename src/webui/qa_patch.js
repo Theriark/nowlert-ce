@@ -428,7 +428,7 @@ function qaPager(containerId, pagination, onPage) {
   // Routes retain the compact pager.
   if (!directNavigation) {
     const status = element("span", {
-      text: `Page ${page} of ${totalPages} - ${total} item${total === 1 ? "" : "s"}`,
+      text: `Page ${page} of ${totalPages} · ${Number(total).toLocaleString()} item${total === 1 ? "" : "s"}`,
     });
     container.append(previous, status, next);
     return container;
@@ -468,7 +468,7 @@ function qaPager(containerId, pagination, onPage) {
     [
       "Page ",
       pageInput,
-      ` of ${totalPages} - ${total} item${total === 1 ? "" : "s"}`,
+      ` of ${totalPages} · ${Number(total).toLocaleString()} item${total === 1 ? "" : "s"}`,
     ],
   );
 

@@ -546,7 +546,7 @@
     if (!item) {
       panel.append(element("div", { className: "delivery-history-detail-empty" }, [
         element("strong", { text: "Select a delivery event" }),
-        element("span", { text: "Choose an event on the left to inspect its message and transport outcome." }),
+        element("span", { text: "Choose an event in the list to inspect its message and transport outcome." }),
       ]));
       return;
     }
