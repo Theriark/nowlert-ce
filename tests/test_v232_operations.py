@@ -159,7 +159,8 @@ def test_v232_webui_uses_vendor_icons_safe_removal_and_header_restart():
     )
     service = WebUIService(Configuration({}), root=ROOT)
 
-    assert 'id="restart-header-button"' in markup
+    # Restart lives in the profile menu only; the Security page has no second button.
+    assert 'id="restart-header-button"' not in markup
     settings = markup[
         markup.index('id="view-settings"'):
         markup.index('id="view-updates"')

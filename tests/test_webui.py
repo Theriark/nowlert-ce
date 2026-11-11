@@ -805,8 +805,7 @@ def test_20260918_webui_polish_regressions():
     assert "reference-users-page-size" not in reference
     assert 'textContent = `Showing ${start}–${end} of ${matching.length} users`' in reference
     assert ".reference-settings-grid > *" in reference_css
-    assert 'restart.hidden = !show;' in reference
-    assert "#restart-header-button.reference-account-restart" in reference_css
+    assert "restart-header-button" not in reference_css
 
     assert 'account: "Security",' in app
     assert "<h2>Security</h2>" in markup
@@ -836,15 +835,10 @@ def test_20260918_round_two_screenshot_regressions():
     assert "function restartEnvironmentLabel()" in app
     assert "function updateRestartDialogContext()" in app
 
-    # Security owns the accepted topbar restart button, not the menu-created one.
+    # Restart lives in the profile menu only; Security has no second restart button.
     assert 'if (view === "account") return "Security";' in headers
-    assert 'nodes.push(document.getElementById("restart-header-button"));' in headers
-    account_actions = headers[
-        headers.index('} else if (view === "account")'):
-        headers.index("return nodes.filter(Boolean);")
-    ]
-    assert 'platform-restart' not in account_actions
-    assert 'restart.hidden = !show;' in reference
+    assert 'restart-header-button' not in headers
+    assert 'restart-header-button' not in reference
 
     # Delivery/Audit separators share the same full-height four-track grid.
     assert "grid-template-columns: 20% 46% 18% 16% !important;" in styles

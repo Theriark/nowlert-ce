@@ -198,8 +198,6 @@
       nodes.push(section?.querySelector('[data-action="run-health-checks"]'));
     } else if (view === "tokens") {
       nodes.push(section?.querySelector('[data-action="new-token"]'));
-    } else if (view === "account") {
-      nodes.push(document.getElementById("restart-header-button"));
     }
     if (view === "deliveries" || view === "audit") {
       const pagerId = view === "deliveries" ? "delivery-pagination" : "audit-pagination";
