@@ -945,7 +945,6 @@ function showApp(session) {
   if (byId("data-nav")) byId("data-nav").hidden = !isAdmin();
   byId("add-destination-button").hidden = !isAdmin();
   syncRouteControls();
-  byId("restart-header-button").hidden = !isAdmin();
   const name = state.user.username;
   const admin = isAdmin();
   for (const id of ["profile-avatar", "account-avatar"]) applyAvatar(id, state.user);

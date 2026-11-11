@@ -42,7 +42,7 @@ def test_reference_acceptance_runtime_contract():
     assert "Password & sessions" in script
     assert "Security posture" in script
     assert 'title.textContent = "API tokens"' in script
-    assert 'restart.append("Restart Nowlert");' in script
+    assert 'restart-header-button' not in script
     assert 'restart.textContent = "⏻ Restart Nowlert"' not in script
 
 
@@ -60,7 +60,7 @@ def test_reference_acceptance_styles_contract():
     assert ".reference-users-metrics" in styles
     assert ".reference-settings-grid" in styles
     assert ".reference-account-grid" in styles
-    assert "#restart-header-button.reference-account-restart" in styles
+    assert "restart-header-button" not in styles
 
 
 def test_settings_grids_stack_at_the_existing_narrow_breakpoint():

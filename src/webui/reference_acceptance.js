@@ -1236,19 +1236,6 @@ function ensurePreviewReferenceLayout() {
     if (byId("reference-active-sessions")) {
       byId("reference-active-sessions").textContent = Number(user.active_sessions || 1);
     }
-    const restart = byId("restart-header-button");
-    if (restart) {
-      const show = state.currentView === "account" && typeof isAdmin === "function" && isAdmin();
-      if (!restart.querySelector(".button-glyph")) {
-        restart.replaceChildren();
-        restart.insertAdjacentHTML("afterbegin", '<svg class="button-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v8"></path><path d="M6.6 6.6a8 8 0 1 0 10.8 0"></path></svg>');
-        restart.append("Restart Nowlert");
-      }
-      restart.hidden = !show;
-      restart.classList.toggle("reference-account-restart", show);
-      if (show) restart.removeAttribute("aria-hidden");
-      else restart.setAttribute("aria-hidden", "true");
-    }
   }
 
   function syncAll() {

@@ -25,7 +25,7 @@ def test_webui_service_serves_v233_runtime_assets():
 
     stylesheet = service.response("/ui/enhancements.css")
     assert stylesheet is not None and stylesheet.status == 200
-    assert b"#restart-header-button" in stylesheet.body
+    assert b"#restart-header-button" not in stylesheet.body
     assert b"background: transparent !important" in stylesheet.body
 
 

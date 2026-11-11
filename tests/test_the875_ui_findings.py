@@ -174,16 +174,14 @@ def test_f7_buttons_use_ascii_or_inline_svg_instead_of_symbol_glyphs():
     assert "+ New filter</button>" in filtering
     assert 'add.textContent = "+ New token";' in reference
     assert 'button.textContent = "Check for updates";' in reference
-    assert 'restart.append("Restart Nowlert");' in reference
-    assert 'if (!restart.querySelector(".button-glyph")) {' in reference
     for glyph in ("＋", "⟳", "⏻"):
         assert glyph not in markup
         assert glyph not in filtering
         assert glyph not in reference
-    # The Restart dialog button and the header Restart button draw the glyph
-    # with an inline SVG that inherits the button colour.
+    # The Restart dialog button draws the glyph with an inline SVG that
+    # inherits the button colour (the Security-header duplicate was removed).
     assert '<button class="button danger" value="default"><svg class="button-glyph"' in markup
-    assert 'restart.insertAdjacentHTML("afterbegin", \'<svg class="button-glyph"' in reference
+    assert "restart-header-button" not in reference
 
 
 def test_f7_security_posture_follows_the_mfa_state():

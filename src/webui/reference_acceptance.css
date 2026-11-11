@@ -459,7 +459,6 @@ button.reference-preview-route-more:focus-visible {
 .reference-api-tokens { margin-top: 18px; }
 .reference-api-tokens > .section-toolbar { align-items: end; margin-bottom: 8px; }
 .reference-api-tokens > .section-toolbar h2 { font-size: 1.7rem; }
-#restart-header-button.reference-account-restart { display: inline-flex !important; }
 
 @media (max-width: 1180px) {
   #view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"],#view-audit .qa-pagination-row[data-qa-pager="audit-pagination"] { grid-template-columns: minmax(130px,.7fr) minmax(280px,1.5fr) 108px 102px !important; }
@@ -582,7 +581,6 @@ button.reference-preview-route-more:focus-visible {
 .reference-posture-block strong { font-size: 1.25rem; }
 .reference-api-tokens { margin-top: 14px; }
 .reference-api-tokens > .section-toolbar h2 { font-size: 1.4rem; }
-#restart-header-button { display: none !important; }
 
 @media (max-width: 1180px) {
   .reference-account-grid,
@@ -601,11 +599,6 @@ button.reference-preview-route-more:focus-visible {
 }
 
 
-/* The topbar restart is the retired duplicate; keep only the Security-card control. */
-#restart-header-button.reference-account-restart,
-#restart-header-button {
-  display: none !important;
-}
 
 
 /* 2026-09-18 round-two screenshot corrections. */
@@ -839,10 +832,6 @@ button.reference-preview-route-more:focus-visible {
 
 /* Security: the legacy header button is the retained, accepted Restart control.
    The menu-created platform button goes back to its hidden menu home. */
-#restart-header-button.reference-account-restart {
-  align-items: center !important;
-  display: inline-flex !important;
-}
 .topbar[data-page-view="account"] #platform-restart {
   display: none !important;
 }
