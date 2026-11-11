@@ -292,3 +292,28 @@ def test_csrf_token_is_bound_to_session(accounts):
     assert sessions.authenticate(
         first.session_token, csrf_token=second.csrf_token, require_csrf=True,
     ) is None
+
+
+def test_read_only_session_check_does_not_wait_for_the_write_lock(tmp_path):
+    import sqlite3
+
+    database = Database(tmp_path / "state" / "nowlert.db", timeout_seconds=0.2)
+    database.migrate()
+    clock = Clock()
+    user = UserStore(database, clock=clock, password_hasher=fast_hash).bootstrap_admin(
+        "administrator", "correct horse battery staple"
+    )
+    sessions = SessionStore(database, clock=clock)
+    credentials = sessions.create(user.id)
+
+    writer = sqlite3.connect(database.path, isolation_level=None)
+    writer.execute("BEGIN IMMEDIATE")
+    try:
+        principal = sessions.authenticate(credentials.session_token, touch=False)
+        assert principal is not None and principal.user_id == user.id
+        with pytest.raises(sqlite3.OperationalError, match="locked"):
+            sessions.authenticate(credentials.session_token, touch=True)
+    finally:
+        writer.execute("ROLLBACK")
+        writer.close()
+    assert sessions.authenticate(credentials.session_token, touch=True) is not None

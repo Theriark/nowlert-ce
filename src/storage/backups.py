@@ -82,19 +82,40 @@ class StateBackupStore:
         self.clock = clock
         self.retention = max(1, min(100, int(retention)))
         self._lock = threading.RLock()
+        self._verified: dict[str, tuple[tuple, StateBackup]] = {}
         self._prepare_directory(self.backup_directory)
 
     def list(self, actor: Actor) -> list[StateBackup]:
         self._require_admin(actor)
         backups = []
         with self._lock:
+            verified = {}
             for path in sorted(self.backup_directory.iterdir(), reverse=True):
                 if path.is_dir() and _BACKUP_ID.fullmatch(path.name):
                     try:
-                        backups.append(self._validate(path))
+                        signature = self._file_signature(path)
+                        cached = self._verified.get(path.name)
+                        if cached and cached[0] == signature:
+                            backup = cached[1]
+                        else:
+                            backup = self._validate(path)
+                        verified[path.name] = (signature, backup)
+                        backups.append(backup)
                     except (OSError, RuntimeError, TypeError, ValueError):
                         continue
+            self._verified = verified
         return backups
+
+    @staticmethod
+    def _file_signature(directory: Path) -> tuple:
+        # Snapshots never change after creation, so a full hash and integrity
+        # check is repeated only when a file's size or modification time does.
+        return tuple(sorted(
+            (str(path.relative_to(directory)), stat.st_size, stat.st_mtime_ns)
+            for path in directory.rglob("*")
+            if path.is_file()
+            for stat in (path.stat(),)
+        ))
 
     def create(
         self,

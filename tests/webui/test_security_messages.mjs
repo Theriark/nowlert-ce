@@ -71,10 +71,10 @@ test('showError preserves public validation feedback and hides internal errors',
 
 test('API request rejects untrusted error bodies without exposing them and keeps auth codes', async () => {
   for (const status of [400, 500]) {
-    const ctx = context({SAFE_METHODS: new Set(['GET']), state: {}, fetch: async () => ({
+    const ctx = context({SAFE_METHODS: new Set(['GET']), state: {}, structuredClone, fetch: async () => ({
       status, ok: false, text: async () => JSON.stringify({error: status === 400 ? 'Choose a destination.' : 'password=secret', code: 'mfa_required'}),
     })});
-    const message = await evaluate(ctx, `${fn('app.js', 'request')}\nrequest('/destinations').catch(error => { if(error.code !== 'mfa_required') throw Error('auth code lost'); return uiErrorMessage(error, 'Request failed.'); });`);
+    const message = await evaluate(ctx, `${fn('app.js', 'request')}\n${fn('app.js', 'sendRequest')}\nrequest('/destinations').catch(error => { if(error.code !== 'mfa_required') throw Error('auth code lost'); return uiErrorMessage(error, 'Request failed.'); });`);
     assert.equal(message, status === 400 ? 'Choose a destination.' : 'Request failed.');
   }
 });
