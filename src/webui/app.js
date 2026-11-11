@@ -436,7 +436,24 @@ function resourceErrorMessage(error) {
   return `${label}${name} could not be loaded.`;
 }
 
+const inflightGets = new Map();
+
 async function request(path, options = {}) {
+  // Several panels load the same data when a page opens; plain GETs that are
+  // already in flight share one call and each caller gets its own copy.
+  const plainGet = Object.keys(options).every((key) => key === "method")
+    && String(options.method || "GET").toUpperCase() === "GET";
+  if (!plainGet) return sendRequest(path, options);
+  let pending = inflightGets.get(path);
+  if (!pending) {
+    pending = sendRequest(path, options).finally(() => inflightGets.delete(path));
+    inflightGets.set(path, pending);
+  }
+  const payload = await pending;
+  return payload === null ? null : structuredClone(payload);
+}
+
+async function sendRequest(path, options = {}) {
   const method = String(options.method || "GET").toUpperCase();
   const headers = { Accept: "application/json" };
   let body;

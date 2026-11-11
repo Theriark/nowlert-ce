@@ -249,6 +249,7 @@ class _HTTPProvider:
         params=None,
         data=None,
         cursor_request: bool = False,
+        token_request: bool = False,
     ) -> dict:
         try:
             response = getattr(self.http, method)(
@@ -274,6 +275,13 @@ class _HTTPProvider:
                 "sync_cursor_expired",
                 "mailbox synchronization checkpoint expired",
             )
+        if token_request and status == 400 and _oauth_error(response) == "invalid_grant":
+            # A revoked or expired refresh token: retrying cannot fix it, the
+            # mailbox has to be reconnected.
+            raise MailboxConnectionError(
+                "authentication_required",
+                "mailbox authorization expired; reconnect the mailbox",
+            )
         if status < 200 or status >= 300:
             raise MailboxConnectionError(
                 "provider_request_failed",
@@ -294,7 +302,15 @@ class _HTTPProvider:
         return value
 
     def _form(self, url: str, data: dict) -> dict:
-        return self._json("post", url, data=data)
+        return self._json("post", url, data=data, token_request=True)
+
+
+def _oauth_error(response) -> str:
+    try:
+        payload = response.json()
+    except (TypeError, ValueError):
+        return ""
+    return str(payload.get("error") or "") if isinstance(payload, dict) else ""
 
 
 class GmailMailboxProvider(_HTTPProvider):
@@ -1655,6 +1671,8 @@ class MailboxConnectionService:
         self,
         actor: Actor,
         mailbox_id: str,
+        *,
+        audit_empty: bool = True,
     ) -> MailboxSyncSummary:
         mailbox = self.store.get_mailbox(actor, mailbox_id)
         if not mailbox.enabled:
@@ -1740,7 +1758,9 @@ class MailboxConnectionService:
                     except Exception:
                         pass
         except Exception as error:
-            self._connection_failure(actor, mailbox, error)
+            self._connection_failure(
+                actor, mailbox, error, audit_repeat=audit_empty
+            )
             raise
 
         summary = MailboxSyncSummary(
@@ -1752,14 +1772,17 @@ class MailboxConnectionService:
             cursor_changed=batch.cursor != old_cursor,
             last_sync_at=synced_at,
         )
-        self.audit.write(
-            actor,
-            "email.mailbox.sync",
-            "email_mailbox",
-            mailbox.id,
-            "success",
-            summary.public(),
-        )
+        # Background polls run every few seconds; a row for every poll that
+        # brought no new mail buried the audit log (1.6M rows on Development).
+        if summary.created or audit_empty:
+            self.audit.write(
+                actor,
+                "email.mailbox.sync",
+                "email_mailbox",
+                mailbox.id,
+                "success",
+                summary.public(),
+            )
         return summary
 
     def fetch_raw_content(
@@ -1880,7 +1903,9 @@ class MailboxConnectionService:
         for row in rows:
             actor = Actor(str(row["owner_user_id"]), "user")
             try:
-                results.append(self.sync_mailbox(actor, str(row["id"])))
+                results.append(
+                    self.sync_mailbox(actor, str(row["id"]), audit_empty=False)
+                )
             except Exception:
                 continue
         return results
@@ -2088,6 +2113,7 @@ class MailboxConnectionService:
         error: Exception,
         *,
         degraded: bool = False,
+        audit_repeat: bool = True,
     ) -> None:
         if isinstance(error, MailboxConnectionError):
             code = error.code
@@ -2109,14 +2135,19 @@ class MailboxConnectionService:
                 error_code=code,
                 safe_error=message,
             )
-            self.audit.write(
-                actor,
-                "email.mailbox.sync",
-                "email_mailbox",
-                mailbox.id,
-                "failed",
-                {"provider": mailbox.provider, "code": code},
+            repeated = (
+                mailbox.connection_state == connection_state
+                and mailbox.last_error_code == code
             )
+            if audit_repeat or not repeated:
+                self.audit.write(
+                    actor,
+                    "email.mailbox.sync",
+                    "email_mailbox",
+                    mailbox.id,
+                    "failed",
+                    {"provider": mailbox.provider, "code": code},
+                )
         except Exception:
             pass
 

@@ -132,7 +132,10 @@ class SessionStore:
         if not session_token:
             return None
         now = int(self.clock())
-        with self.database.transaction() as connection:
+        # Reads must not queue for the write lock: a page load fires many
+        # requests at once and each one checks the session.
+        context = self.database.transaction() if touch else self.database.connect()
+        with context as connection:
             row = connection.execute(
                 """
                 SELECT sessions.id, sessions.csrf_hash, sessions.expires_at,

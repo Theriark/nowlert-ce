@@ -978,7 +978,7 @@ def test_background_sync_retries_existing_transient_error_but_not_auth_error(tmp
 
     attempted = []
 
-    def fake_sync(sync_actor, mailbox_id):
+    def fake_sync(sync_actor, mailbox_id, **_options):
         attempted.append((sync_actor.user_id, mailbox_id))
         return MailboxSyncSummary(
             mailbox_id=mailbox_id,
@@ -1266,3 +1266,94 @@ def test_gmail_sync_limit_does_not_skip_history_records(tmp_path):
     assert summary.observed == 2
     # Only records 101 and 102 were consumed, so record 103 is read next time.
     assert service.store.get_mailbox(actor, mailbox.id).sync_cursor == "102"
+
+
+
+def test_background_sync_audits_new_mail_and_error_changes_not_every_poll(tmp_path):
+    class ScriptedHTTP(RacingGmailHTTP):
+        mode = "empty"
+
+        def get(self, url, **kwargs):
+            if url.endswith("/history"):
+                self.calls.append(("get", url, kwargs))
+                if self.mode == "empty":
+                    return Response(payload={"historyId": "150", "history": []})
+                if self.mode == "failing":
+                    return Response(status_code=500, payload={})
+            return super().get(url, **kwargs)
+
+    def sync_audit_rows(service):
+        with service.store.database.connect() as connection:
+            return connection.execute(
+                "SELECT outcome FROM audit_events WHERE action = 'email.mailbox.sync' ORDER BY id"
+            ).fetchall()
+
+    http = ScriptedHTTP()
+    service, actor, mailbox = _gmail_service(tmp_path, http)
+    service.store.update_mailbox_connection(
+        actor, mailbox.id, connection_state="healthy", sync_cursor="100"
+    )
+    before = len(sync_audit_rows(service))
+
+    service.sync_ready_mailboxes()
+    service.sync_ready_mailboxes()
+    assert len(sync_audit_rows(service)) == before  # empty polls: no rows
+
+    service.sync_mailbox(actor, mailbox.id)
+    assert len(sync_audit_rows(service)) == before + 1  # manual sync: always
+
+    http.mode = "failing"
+    service.sync_ready_mailboxes()
+    service.sync_ready_mailboxes()
+    service.sync_ready_mailboxes()
+    rows = sync_audit_rows(service)
+    assert [row[0] for row in rows[before + 1:]] == ["failed"]  # first failure only
+
+    http.mode = "mail"
+    service.sync_ready_mailboxes()
+    rows = sync_audit_rows(service)
+    assert [row[0] for row in rows[before + 1:]] == ["failed", "success"]  # new mail
+
+
+
+@pytest.mark.parametrize(
+    ("payload", "code"),
+    [
+        ({"error": "invalid_grant"}, "authentication_required"),
+        ({"error": "invalid_request"}, "provider_request_failed"),
+    ],
+)
+def test_revoked_refresh_token_needs_reconnect_instead_of_endless_retries(
+    tmp_path, payload, code
+):
+    class RevokedTokenHTTP(RacingGmailHTTP):
+        def post(self, url, **kwargs):
+            if (kwargs.get("data") or {}).get("grant_type") == "refresh_token":
+                self.calls.append(("post", url, kwargs))
+                return Response(status_code=400, payload=payload)
+            return super().post(url, **kwargs)
+
+    service, actor, _unused = _gmail_service(tmp_path, RevokedTokenHTTP())
+    mailbox = service.create_mailbox(
+        actor,
+        actor.user_id,
+        "gmail",
+        "expired@example.com",
+        credential={"access_token": "old", "refresh_token": "revoked", "expires_at": 0},
+    )
+    service.store.update_mailbox_connection(
+        actor, _unused.id, connection_state="error", error_code="authentication_required"
+    )
+    service.store.update_mailbox_connection(
+        actor, mailbox.id, connection_state="healthy", sync_cursor="100"
+    )
+
+    with pytest.raises(MailboxConnectionError) as raised:
+        service.sync_mailbox(actor, mailbox.id)
+    assert raised.value.code == code
+    state = service.store.get_mailbox(actor, mailbox.id).connection_state
+    if code == "authentication_required":
+        assert state == "error"
+        assert service.sync_ready_mailboxes() == []  # not retried every poll
+    else:
+        assert state == "degraded"

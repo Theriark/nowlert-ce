@@ -794,3 +794,28 @@ def test_state_backup_rejects_invalid_mobile_connection_lock(platform_state, kin
     with pytest.raises(ValueError, match="invalid file"):
         backups.create(state["admin"].actor)
     assert backups.list(state["admin"].actor) == []
+
+
+def test_state_backup_list_verifies_each_snapshot_once_until_a_file_changes(
+    platform_state,
+    monkeypatch,
+):
+    state = platform_state
+    seed_destination(state)
+    backups = StateBackupStore(state["database"], audit=state["audit"])
+    backup = backups.create(state["admin"].actor)
+    assert [item.id for item in backups.list(state["admin"].actor)] == [backup.id]
+
+    def no_rehash(_path):
+        raise AssertionError("unchanged snapshot was hashed again")
+
+    monkeypatch.setattr(backups, "_digest", no_rehash)
+    assert [item.id for item in backups.list(state["admin"].actor)] == [backup.id]
+
+    monkeypatch.undo()
+    manifest_path = backups.backup_directory / backup.id / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"]["nowlert.db"] = "0" * 64
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    os.utime(manifest_path, ns=(1, 1))
+    assert backups.list(state["admin"].actor) == []
