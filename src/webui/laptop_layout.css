@@ -28,6 +28,10 @@
 #view-users#view-users table :is(th, td):last-child,
 #view-account#view-account .reference-api-tokens :is(th, td):last-child,
 #view-routes#view-routes table :is(th, td):last-child { background: rgb(15, 21, 28) !important; }
+/* On phones a pinned column would take most of the width; let the whole table scroll. */
+@media (max-width: 700px) {
+  :is(table.filtering-table, table.email-rules-table, table.backup-destination-table, table.backup-recovery-table, table.backup-stored-table, #view-users table, #view-account table, #view-routes table) :is(th, td):last-child { position: static !important; box-shadow: none !important; }
+}
 @media (max-width: 1440px) {
   table.email-rules-table { min-width: 0 !important; }
   table.email-rules-table :is(th, td) { padding-left: 10px !important; padding-right: 10px !important; }
