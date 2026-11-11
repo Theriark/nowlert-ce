@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 TEAMS_MODERN_CARD_ROUTE_PREFIX = "/ui/teams-modern-cards/"
 
 
-UI_BUILD = "20260929-r78"
+UI_BUILD = "20260929-r79"
 ROUTING_FLOW_CSS_BUILD = f"{UI_BUILD}-routing-flow-6"
 ROUTING_FLOW_JS_BUILD = f"{UI_BUILD}-routing-flow-6"
 EMAIL_ALERTS_JS_BUILD = f"{UI_BUILD}-email-alerts-1"
@@ -277,6 +277,11 @@ class WebUIService:
                 "text/css; charset=utf-8",
                 "no-cache",
             ),
+            "/ui/laptop_layout.css": (
+                "src/webui/laptop_layout.css",
+                "text/css; charset=utf-8",
+                "no-cache",
+            ),
             "/ui/icon.png": (
                 "assets/icons/nowlert.png",
                 "image/png",
@@ -426,6 +431,7 @@ class WebUIService:
                 f'  <link rel="stylesheet" href="/ui/reference_acceptance.css{version}">\n'
                 f'  <link rel="stylesheet" href="/ui/visual_refinement.css?v={VISUAL_REFINEMENT_CSS_BUILD}">\n'
                 f'  <link rel="stylesheet" href="/ui/bootstrap_onboarding.css?v={BOOTSTRAP_ONBOARDING_CSS_BUILD}">\n'
+                f'  <link rel="stylesheet" href="/ui/laptop_layout.css{version}">\n'
                 f'  <script src="/ui/filtering.js{version}" defer></script>\n'
                 f'  <script src="/ui/email_alerts.js?v={EMAIL_ALERTS_JS_BUILD}" defer></script>\n'
                 f'  <script src="/ui/source_ui_retirement.js{version}" defer></script>\n'

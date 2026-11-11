@@ -391,7 +391,7 @@
         ? Number(qaAuditPagination.total || 0)
         : 0;
       const total = document.getElementById("audit-log-total-count");
-      if (total && knownTotal) total.textContent = String(knownTotal);
+      if (total && knownTotal) total.textContent = knownTotal.toLocaleString();
     }
   }
 
@@ -483,7 +483,7 @@
     for (const [key, value] of Object.entries(values)) {
       const id = key === "failed" ? "audit-log-failed-count" : `audit-log-${key}-count`;
       const node = document.getElementById(id);
-      if (node) node.textContent = String(value);
+      if (node) node.textContent = Number(value || 0).toLocaleString();
     }
     for (const key of ["success", "warning", "failed"]) {
       const card = summaryCards()[key];
@@ -535,7 +535,7 @@
       return auditAnalytics;
     })().catch((_error) => {
       const totalNode = document.getElementById("audit-log-total-count");
-      if (totalNode && knownTotal) totalNode.textContent = String(knownTotal);
+      if (totalNode && knownTotal) totalNode.textContent = knownTotal.toLocaleString();
       return null;
     }).finally(() => {
       analyticsPromise = null;

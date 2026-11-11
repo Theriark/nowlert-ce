@@ -532,7 +532,7 @@ def test_email_alerts_mailbox_connect_ux_exposes_provider_login_paths():
     assert "email-oauth-redirect" not in script
     assert "client_id:" not in script
     assert "client_secret:" not in script
-    assert "OAuth application credentials are configured once" in script
+    assert "app connection is set up once by the Nowlert administrator" in script
     assert ".email-mailbox-connect-actions" in styles
     assert ".email-mailbox-connect-empty" in styles
 

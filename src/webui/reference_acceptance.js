@@ -909,7 +909,7 @@ function ensurePreviewReferenceLayout() {
       const help = { "preference-language": "Select the language used in Nowlert.", "preference-timezone": "Set your local timezone for timestamps.", "preference-time-format": "Choose how timestamps are displayed." };
       Object.entries(help).forEach(([id, text]) => { const label = byId(id)?.closest("label"); if (label && !label.querySelector(".reference-preference-help")) label.querySelector(":scope > span")?.after(ref("small", "reference-preference-help", text)); });
       const submit = form.querySelector('button[type="submit"]');
-      if (submit) { submit.textContent = "▣  Save settings"; submit.parentElement?.append(ref("span", "reference-preference-save-note", "Your preferences will be saved immediately.")); }
+      if (submit) { submit.textContent = "▣  Save settings"; submit.parentElement?.append(ref("span", "reference-preference-save-note", "Changes take effect as soon as you save.")); }
     }
     updates.classList.add("reference-updates-card");
     const toolbar = updates.querySelector(":scope > .section-toolbar"); const panel = updates.querySelector(":scope > .update-panel");
