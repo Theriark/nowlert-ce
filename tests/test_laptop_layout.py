@@ -40,5 +40,7 @@ def test_laptop_layout_keeps_navigation_actions_and_dialog_buttons_reachable():
     # Wide tables keep their Actions column on screen.
     assert "table.email-rules-table" in compact and ":is(th, td):last-child" in compact
     assert "position: sticky !important; right: 0 !important;" in compact
+    # Pinned cells stay opaque even where a table paints its headers transparent.
+    assert "#view-filtering#view-filtering .filtering-table-panel .filtering-table :is(th, td):last-child" in compact
     # Tall dialogs keep Save/Cancel visible while the form scrolls.
     assert "form > .modal-actions" in compact and "position: sticky !important; bottom:" in compact

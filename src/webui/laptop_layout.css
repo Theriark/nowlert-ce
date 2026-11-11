@@ -19,6 +19,14 @@
   background: rgb(15, 21, 28) !important;
   box-shadow: -10px 0 12px -8px rgba(0, 0, 0, 0.75);
 }
+/* Some tables paint headers transparent with doubled-ID rules; keep the pinned
+   cells opaque so scrolled column titles do not show through them. */
+#view-filtering#view-filtering .filtering-table-panel .filtering-table :is(th, td):last-child,
+#view-email-alerts#view-email-alerts table.email-rules-table :is(th, td):last-child,
+#view-backups#view-backups :is(table.backup-destination-table, table.backup-recovery-table, table.backup-stored-table) :is(th, td):last-child,
+#view-users#view-users table :is(th, td):last-child,
+#view-account#view-account .reference-api-tokens :is(th, td):last-child,
+#view-routes#view-routes table :is(th, td):last-child { background: rgb(15, 21, 28) !important; }
 @media (max-width: 1440px) {
   table.email-rules-table { min-width: 0 !important; }
   table.email-rules-table :is(th, td) { padding-left: 10px !important; padding-right: 10px !important; }
