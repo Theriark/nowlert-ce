@@ -37,6 +37,8 @@ def test_laptop_layout_keeps_navigation_actions_and_dialog_buttons_reachable():
     # Short screens: the menu scrolls and the profile menu below it stays visible.
     assert ".sidebar > #primary-nav { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important;" in compact
     assert ".sidebar > .sidebar-footer { flex: 0 0 auto !important; }" in compact
+    # A short menu (normal users) must not stretch its items to fill the sidebar.
+    assert "align-content: start !important; grid-auto-rows: min-content !important;" in compact
     # Wide tables keep their Actions column on screen.
     assert "table.email-rules-table" in compact and ":is(th, td):last-child" in compact
     assert "position: sticky !important; right: 0 !important;" in compact

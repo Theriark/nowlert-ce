@@ -3,14 +3,15 @@
    overrides here do too. */
 
 /* Sidebar: the menu scrolls on short screens and the profile menu stays reachable. */
-.sidebar > #primary-nav { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; overscroll-behavior: contain; }
+/* align-content/grid-auto-rows keep short menus (normal users) from stretching their items to fill the sidebar. */
+.sidebar > #primary-nav { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; overscroll-behavior: contain; align-content: start !important; grid-auto-rows: min-content !important; }
 .sidebar > .sidebar-footer { flex: 0 0 auto !important; }
 @media (min-width: 761px) and (max-height: 780px) {
   .sidebar > .brand.sidebar-brand > .sidebar-owl-button { width: 48px !important; height: 48px !important; }
   .sidebar > .brand.sidebar-brand > .sidebar-owl-button img { width: 60px !important; height: 60px !important; }
   .sidebar > .brand.sidebar-brand { padding-bottom: 6px !important; row-gap: 4px !important; }
   .sidebar > #primary-nav .nav-item { min-height: 36px !important; padding-top: 6px !important; padding-bottom: 6px !important; }
-  .sidebar > #primary-nav { gap: 2px !important; grid-auto-rows: min-content !important; }
+  .sidebar > #primary-nav { gap: 2px !important; }
 }
 
 /* Tables: the Actions column stays visible when a table is wider than the screen. */
