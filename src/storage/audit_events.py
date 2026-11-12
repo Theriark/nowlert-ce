@@ -165,6 +165,13 @@ class AuditEventStore:
             if filters.get(field):
                 clauses.append(f"{field} = ?")
                 parameters.append(filters[field])
+        if filters.get("category") == "account":
+            # Sign-ins, sessions and user changes, so mailbox or health noise
+            # never pushes them out of the Users page activity list.
+            clauses.append(
+                "(action LIKE 'session.%' OR action LIKE 'user.%'"
+                " OR resource_type IN ('user', 'session'))"
+            )
         if filters.get("since") is not None:
             clauses.append("created_at >= ?")
             parameters.append(int(filters["since"]))

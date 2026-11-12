@@ -195,6 +195,13 @@ class PlatformAPI:
         )
 
     def handle(self, method, path, payload, headers, client) -> APIResponse:
+        if str(method or "").upper() in _SAFE_METHODS:
+            # Read requests share one database connection instead of one per query.
+            with self.database.reading():
+                return self._handle(method, path, payload, headers, client)
+        return self._handle(method, path, payload, headers, client)
+
+    def _handle(self, method, path, payload, headers, client) -> APIResponse:
         method = str(method or "").upper()
         request_url = urlsplit(path)
         path = request_url.path
@@ -2048,7 +2055,7 @@ class PlatformAPI:
         if size is not None and int(size) in self._AUDIT_PAGE_SIZES:
             page_size = int(size)
         values = parse_qs(query, keep_blank_values=True, max_num_fields=6)
-        if set(values) - {"search", "action", "outcome", "range", "sort"} or any(len(items) != 1 for items in values.values()):
+        if set(values) - {"search", "action", "outcome", "range", "sort", "category"} or any(len(items) != 1 for items in values.values()):
             raise ValueError("audit query is invalid")
         filters = {key: items[0].strip() for key, items in values.items()}
         if any(len(value) > 1000 for value in filters.values()):
@@ -2056,6 +2063,8 @@ class PlatformAPI:
         history_range = filters.pop("range", "all")
         if history_range not in {"all", "1d", "7d", "30d"} or filters.get("sort", "newest") not in {"newest", "oldest"}:
             raise ValueError("audit range or sort is invalid")
+        if filters.get("category", "account") != "account":
+            raise ValueError("audit category is invalid")
         if history_range != "all":
             filters["since"] = int(time.time()) - int(history_range[:-1]) * 86400
         audit = self._audit_read_store()

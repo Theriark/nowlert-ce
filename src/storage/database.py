@@ -27,6 +27,7 @@ class Database:
         self._maintenance_depth = 0
         self._maintenance_waiters = 0
         self._path_lock = threading.RLock()
+        self._shared = threading.local()
 
     def migrate(self) -> int:
         """Apply every pending schema migration transactionally and idempotently."""
@@ -92,9 +93,37 @@ class Database:
         return current
 
     @contextmanager
+    def reading(self):
+        """Share one connection for every connect() on this thread until exit.
+
+        A read request otherwise opens a new connection (three PRAGMAs and
+        file checks) per small query; the Filtering overview opened 280.
+        transaction() still opens its own connection.
+        """
+
+        if getattr(self._shared, "connection", None) is not None:
+            yield
+            return
+        with self._open() as connection:
+            self._shared.connection = connection
+            try:
+                yield
+            finally:
+                self._shared.connection = None
+
+    @contextmanager
     def connect(self):
         """Yield one normal connection without serializing peer connections."""
 
+        shared = getattr(self._shared, "connection", None)
+        if shared is not None and not shared.in_transaction:
+            yield shared
+            return
+        with self._open() as connection:
+            yield connection
+
+    @contextmanager
+    def _open(self):
         thread_id = self._enter_connection()
         connection = None
         try:
@@ -196,7 +225,7 @@ class Database:
     def transaction(self):
         """Yield a write transaction that commits or rolls back as one unit."""
 
-        with self.connect() as connection:
+        with self._open() as connection:
             connection.execute("BEGIN IMMEDIATE")
             try:
                 yield connection
