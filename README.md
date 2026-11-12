@@ -156,22 +156,21 @@ See [v3.1.6 release notes](docs/releases/v3.1.6.md) and the
 
 Nowlert CE is a desktop web application. The captures below show its current
 WebUI at desktop width (1440 × 900 px) as it looks on the v27.0.0
-release-candidate line. They were taken on 21 October 2026 from the
-Development deployment of the `development` branch with the crew's
-Development test accounts and test data, and they belong to the reviewed
-screenshot set reused unchanged since the `v27.0.0-rc.7` documentation
-package. Since `v27.0.0-rc.7` the only application change in the later
-`development` commits, up to the source of the current release candidate, is
-the Destinations empty-state fix in `src/webui/app.js` and
-`src/webui/professional.css` (THE-1654, PR 641); every other change is to
-documentation, tests, a workflow file and the documentation checks.
+release-candidate line. They come from the Development deployment of the
+`development` branch with the crew's Development test accounts and test data.
+The Dashboard capture was retaken on 12 November 2026, after the delivery
+chart changed from a running total to deliveries per period (pull requests
+654 and 655); the Routing Flow, Destinations and sign-in captures date from
+21 October 2026 and still match the application. The
+[capture index](docs/images/v27.0.0-rc.1/README.md) records the date and
+build of every capture.
 
 ## Dashboard
 
-Delivery counters, delivery performance, recent activity and system health in
-one view.
+Delivery counters, deliveries per period for the chosen range, recent activity
+and system health in one view.
 
-![Nowlert CE Dashboard at 1440 px with integration, destination and route counts, delivery performance chart and recent activity](docs/images/v27.0.0-rc.1/dashboard-live-admin-1440.png)
+![Nowlert CE Dashboard at 1440 px with integration, destination and route counts, deliveries per day for the last month and recent activity](docs/images/v27.0.0-rc.1/dashboard-live-admin-1440.png)
 
 ## Routing Flow
 

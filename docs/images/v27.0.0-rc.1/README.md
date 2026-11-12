@@ -7,6 +7,8 @@ Settings and the two Security captures from the Development build `179cbc02`
 and the Filtering capture from the Development build `0c14583c`; see
 "Replaced on 31 October 2026" and "Filtering capture replaced on 31 October
 2026" below.
+Eight captures were replaced on 12 November 2026 from the Development build
+`0011c903`; see "Replaced on 12 November 2026" below.
 Nowlert CE is a desktop web
 application: since 25 October 2026 the Preview of the repository README and
 the Docker Hub README shows four of its desktop captures at full width,
@@ -45,29 +47,29 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `sign-in-empty-signed-out-1440.png` | Sign in, empty form | signed out | 1440 | about 14:40 |
 | `sign-in-empty-signed-out-768.png` | Sign in, empty form | signed out | 768 | about 14:40 |
 | `sign-in-empty-signed-out-390.png` | Sign in, empty form | signed out | 390 | about 14:40 |
-| `dashboard-live-admin-1440.png` | Dashboard, Live, last hour | administrator | 1440 | 15:48 |
+| `dashboard-live-admin-1440.png` | Dashboard, Live, last month | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
 | `routing-flow-live-admin-1440.png` | Routing Flow, Live, last 24 hours | administrator | 1440 | 15:48 |
 | `destinations-list-admin-1440.png` | Destinations list | administrator | 1440 | 15:48 |
-| `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | replaced 31 Oct 2026, 07:48 |
+| `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
 | `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | 15:49 |
 | `audit-log-overview-admin-1440.png` | Audit log (user column, record identifiers and sidebar account name masked on 2 Nov 2026) | administrator | 1440 | 15:49 |
 | `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | replaced 31 Oct 2026, 05:21 |
-| `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens) | administrator | 1440 | replaced 31 Oct 2026, 05:20 |
-| `users-search-admin-1440.png` | Users, filtered to the crew accounts | administrator | 1440 | 15:51 |
+| `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens) | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
+| `users-search-admin-1440.png` | Users, filtered to the crew accounts (Recent activity account names masked) | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
 | `delivery-history-zabbix-admin-1440.png` | Delivery history, Zabbix source filter (host and database labels and sidebar account name masked on 2 Nov 2026; not embedded) | administrator | 1440 | 15:53 |
 | `email-alerts-groups-admin-1440.png` | Email Alerts, Groups tab | administrator | 1440 | 15:53 |
 | `destination-editor-teams-admin-1440.png` | Add destination, Microsoft Teams, Message style | administrator | 1440 | 15:54 |
 | `destination-preview-teams-modern-admin-1440.png` | Preview dialog, Teams destination saved as Modern Card, output scrolled to the card body | administrator | 1440 | 20:44 |
 | `destination-preview-teams-classic-admin-1440.png` | Preview dialog, Teams destination saved as Classic Card, output scrolled to the card body | administrator | 1440 | 20:41 |
 | `destinations-list-admin-768.png` | Destinations list | administrator | 768 | 17:57 |
-| `dashboard-live-admin-768.png` | Dashboard, Live | administrator | 768 | 17:57 |
+| `dashboard-live-admin-768.png` | Dashboard, Live, last month | administrator | 768 | replaced 12 Nov 2026, 19:00 |
 | `routing-flow-live-admin-768.png` | Routing Flow, Live | administrator | 768 | 18:04 |
 | `routing-flow-live-admin-390.png` | Routing Flow, Live | administrator | 390 | 18:05 |
-| `dashboard-live-admin-390.png` | Dashboard, Live | administrator | 390 | 18:05 |
+| `dashboard-live-admin-390.png` | Dashboard, Live, last month | administrator | 390 | replaced 12 Nov 2026, 19:00 |
 | `destinations-list-admin-390.png` | Destinations list | administrator | 390 | 18:05 |
-| `dashboard-live-user-1440.png` | Dashboard, Live | regular user | 1440 | 18:06 |
+| `dashboard-live-user-1440.png` | Dashboard, Live, last month | regular user | 1440 | replaced 12 Nov 2026, 19:00 |
 | `destinations-list-user-1440.png` | Destinations list (shared destinations of other owners, all view only) | regular user | 1440 | 18:06 |
-| `security-profile-user-1440.png` | Security (Profile, MFA, password, API tokens) | regular user | 1440 | replaced 31 Oct 2026, 05:22 |
+| `security-profile-user-1440.png` | Security (Profile, MFA, password, API tokens) | regular user | 1440 | replaced 12 Nov 2026, 19:00 |
 
 The two preview captures were replaced on 21 October 2026 at the times shown.
 The Zabbix-filtered Delivery history capture of 21 October 2026 (15:53) and
@@ -264,6 +266,52 @@ pixel. None of them was replaced:
   **Debug**; only the wording of the generated text differs (`Nowlert`
   instead of `nowlert`, and the category label), which is payload content,
   not the interface. The capture is kept.
+
+## Replaced on 12 November 2026 (capture base commit 0011c903)
+
+The application changes of 11 and 12 November 2026 (pull requests 651 to 658)
+changed what eight captures show: the Dashboard delivery chart now shows
+deliveries per period instead of a running total, the Security page no longer
+has its own **Restart Nowlert** button and its token section reads **Event API
+tokens**, the Users page **Recent activity** lists account events, and the
+Filtering table keeps its **Actions** column pinned without wrapping the
+destination names. The eight files were replaced by captures of the
+Development deployment of the `development` branch at commit
+`0011c903f24cf92ad16c5a0087d97e3e5301fb42` (image `sha256:31a7765173ffdd6fb4eceda9a6f91f3e0fff66b6043dedddfb0d4ae67f9ef0ed`, CI run 43283509150), taken at about 19:00 (Lisbon) on
+12 November 2026 in headless Chrome at scale 1 with the same viewports
+(1440 × 900, 768 × 1024, 390 × 844) and the same crew accounts
+(`ai-crew-admin-…`; `ai-crew-user-…` for the two regular-user captures).
+The Dashboard captures use the **Last 1 month** range, because the last hour
+had no deliveries on Development and would show only the empty-period note.
+
+| File | Page / state | Role | Width |
+|---|---|---|---|
+| `dashboard-live-admin-1440.png` | Dashboard, **Last 1 month**: **Deliveries per day** columns, Recent Activity with the synthetic test events | administrator | 1440 |
+| `dashboard-live-admin-768.png` | Dashboard, **Last 1 month**, two-column metric cards above the chart | administrator | 768 |
+| `dashboard-live-admin-390.png` | Dashboard, **Last 1 month**, top of the page (metric cards) | administrator | 390 |
+| `dashboard-live-user-1440.png` | Dashboard, **Last 1 month**, shorter sidebar and **User** chip | regular user | 1440 |
+| `users-search-admin-1440.png` | Users filtered to `ai-crew`; **Recent activity** shows two `session · login` events whose account name is hidden by solid black boxes | administrator | 1440 |
+| `security-profile-admin-1440.png` | Security: no header button, **Event API tokens** heading, **+ New token** | administrator | 1440 |
+| `security-profile-user-1440.png` | Security for the regular user, **Event API tokens** heading | regular user | 1440 |
+| `filtering-list-admin-1440.png` | Filtering: four shared crew test destinations on one line each, pinned **Actions** column, Integration behavior cards | administrator | 1440 |
+
+Notes on these eight files:
+
+- **Recent activity** on the Users page lists the newest account events of the
+  whole deployment, which were two sign-ins of the Development deployment's
+  administrator account (the account withdrawn from the Audit log capture on
+  23 October 2026). Its name is covered by two solid black boxes; nothing else
+  in the picture was changed. The crew accounts were signed in for the
+  captures through sessions created on the server, so they wrote no sign-in
+  event of their own.
+- Every file was opened at full size before being added. They show only the
+  crew accounts, the crew's shared test destinations and filters, and the
+  synthetic test events (`Synthetic chassis sensor reported a critical
+  condition`, `synthetic-http.example.invalid`); no token, password, mailbox,
+  sender or private address. No metadata chunks are written.
+- The other captures of this folder were compared with the same build on
+  12 November 2026 (Destinations, Routing Flow and Email Alerts rules at 768
+  and 390 px) and still show the same layout, so they were kept.
 
 ## Names shown in the captures
 

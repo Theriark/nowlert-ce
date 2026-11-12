@@ -229,6 +229,15 @@ retained rows, 91 linked). An earlier version of this paragraph gave 105 and
 rows (133 retained rows, 104 linked). Counts in this page are dated
 observations and the guard test, not this prose, is the authority.
 
+- 12 November 2026: eight captures of `images/v27.0.0-rc.1/` were replaced by
+  captures of the Development build `0011c903` after the delivery chart,
+  Security page, Users and layout changes of pull requests 651 to 658 (the
+  four Dashboard captures, Users, both Security captures and Filtering).
+  Each was opened at full size before being added. The Users capture shows,
+  in **Recent activity**, the account name of the Development deployment's
+  administrator; two solid black boxes hide it. See the capture index for
+  the build, viewports and accounts.
+
 ## Withdrawn captures
 
 Paths below are relative to `docs/`. They are an exclusion record, not links.
@@ -490,10 +499,10 @@ raster under `docs/images/` needs a row.
 | `images/unifi-setup/protect-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-noise-filter.png` | retained | reviewed 15 Oct 2026 |
 | `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the user column of the event list, the record identifier under each resource and, after the independent review the same day, the account name in the sidebar corner); still shows the health checks, counters, action and resource names and the selected event; embedded by the WebUI guide |
-| `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
-| `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
-| `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026; crew administrator, synthetic test events; README and Docker Hub Preview |
+| `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
+| `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026 |
+| `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026; crew user account |
 | `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | Development capture, 23 Oct 2026; test fixture device `synthetic-dsm-01` only |
 | `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the row title, the detail header, the whole message body and, after the independent review the same day, the account name in the sidebar corner); still shows the Zabbix filter, badges, transport information and timeline; not embedded, the Synology capture is the reference |
 | `images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
@@ -510,17 +519,17 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/email-alerts-rules-admin-768.png` | retained | Development capture, 22 Oct 2026 |
 | `images/v27.0.0-rc.1/email-alerts-rules-admin-390.png` | retained | Development capture, 22 Oct 2026 |
 | `images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png` | retained | Development capture, 22 Oct 2026; fixture address and loopback host only |
-| `images/v27.0.0-rc.1/filtering-list-admin-1440.png` | retained | Development capture, 31 Oct 2026 (replaces the capture of 21 Oct 2026); shared crew test destinations, their filter names and badges, Integration behavior cards with zero aliases |
+| `images/v27.0.0-rc.1/filtering-list-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 31 Oct 2026); shared crew test destinations, their filter names and badges, Integration behavior cards with zero aliases |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 31 Oct 2026 (replaces the capture of 21 Oct 2026); crew administrator account, empty token list, no token value |
-| `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | Development capture, 31 Oct 2026 (replaces the capture of 21 Oct 2026); crew user account, empty token list, no token value |
+| `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 31 Oct 2026); crew administrator account, empty token list, no token value |
+| `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 31 Oct 2026); crew user account, empty token list, no token value |
 | `images/v27.0.0-rc.1/settings-regional-admin-1440.png` | retained | Development capture, 31 Oct 2026 (replaces the capture of 21 Oct 2026); Development settings values only |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; not embedded since 25 Oct 2026 |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-768.png` | retained | Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/users-search-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
+| `images/v27.0.0-rc.1/users-search-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026; crew accounts only; two black boxes hide the Development administrator's account name in Recent activity |
 | `images/zabbix-setup/action-operations.png` | retained | reviewed 15 Oct 2026 |
 | `images/zabbix-setup/media-enabled.png` | retained | reviewed 15 Oct 2026 |
 | `images/zabbix-setup/native-recovery-accepted.png` | retained | reviewed 15 Oct 2026 |

@@ -76,9 +76,9 @@ for the controller configuration examples.
    application that posts normalized events to `/api/v2/events` and that the
    value is shown once.
 3. In **Name**, enter `Hardware Redfish controllers`.
-4. In **Allowed integrations**, a multi-select list of the configured
-   integrations, select **Supermicro**, **HPE iLO**, and **Dell iDRAC** and
-   nothing else. Administrators also see **All sources (administrator only)**;
+4. In **Allowed integrations**, the list of the configured integrations where
+   each click adds or removes one (no Ctrl needed), click **Supermicro**,
+   **HPE iLO**, and **Dell iDRAC** and nothing else. Administrators also see **All sources (administrator only)**;
    do not use it for a controller token. Leave **Custom source identifiers**
    empty. A separate token per controller is also possible and allows
    independent rotation.
