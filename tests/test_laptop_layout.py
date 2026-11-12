@@ -46,3 +46,11 @@ def test_laptop_layout_keeps_navigation_actions_and_dialog_buttons_reachable():
     assert "#view-filtering#view-filtering .filtering-table-panel .filtering-table :is(th, td):last-child" in compact
     # Tall dialogs keep Save/Cancel visible while the form scrolls.
     assert "form > .modal-actions" in compact and "position: sticky !important; bottom:" in compact
+
+
+def test_email_rule_cards_are_not_pinned_or_narrowed_below_900px():
+    css = (ROOT / "src/webui/laptop_layout.css").read_text(encoding="utf-8")
+    compact = " ".join(css.split())
+    # Below 900px the rules are stacked cards: the table-only rules must not apply there.
+    assert "@media (min-width: 901px) and (max-width: 1440px) { table.email-rules-table { min-width: 0 !important; }" in compact
+    assert "@media (max-width: 900px) { table.email-rules-table :is(th, td):last-child { position: static !important;" in compact

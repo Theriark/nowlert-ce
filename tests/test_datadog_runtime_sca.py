@@ -36,11 +36,11 @@ def test_runtime_sca_dependencies_are_exactly_pinned():
     )
 
     assert {
-        "ddtrace==4.15.1",
+        "ddtrace==4.17.0",
         "bytecode==0.19.0",
-        "ddtrace-internal==0.1.0",
+        "ddtrace-internal==0.2.0",
         "envier==0.6.1",
-        "opentelemetry-api==1.44.0",
+        "opentelemetry-api==1.45.2",
         "wrapt==2.4.1",
     } <= requirements
 
