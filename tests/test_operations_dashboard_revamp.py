@@ -126,16 +126,15 @@ def test_selected_visual_reference_layout_is_encoded_in_css():
     assert "@media (prefers-reduced-motion: reduce)" in css
 
 
-def test_dashboard_delivery_chart_is_cumulative_pulsing_and_has_no_replay_or_dots():
+def test_dashboard_delivery_chart_shows_per_slot_columns_not_a_running_total():
     script = _read("src/webui/operations_dashboard.js")
     css = _read("src/webui/operations_dashboard.css")
     assert "window.NowlertDeliveryChart" in script
-    assert "chartModel.buildCumulativeSeries(buckets, bucketSeconds)" in script
-    assert "chartModel.buildStepPath(points" in script
-    assert "ops-chart-delivery-pulse" in script
+    assert "chartModel.buildColumns(buckets)" in script
+    assert "Deliveries per ${unit}" in script
+    assert "buildCumulativeSeries" not in script
+    assert "Cumulative outcome" not in script
+    assert "preserveAspectRatio" not in script
     assert "ops-chart-replay" not in script
-    assert "ops-chart-outcome-point" not in script
-    assert "ops-chart-bar" not in script
-    assert "ops-chart-outcome-line" in css
-    assert "ops-chart-line-core 2s ease-in-out infinite" in css
+    assert ".ops-chart-col-delivered" in css
     assert "prefers-reduced-motion: reduce" in css

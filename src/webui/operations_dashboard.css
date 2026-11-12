@@ -380,8 +380,23 @@
 .ops-chart-axis {
   fill: #99a8b3;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 11px;
+  font-size: 12px;
 }
+
+/* Per-slot stacked columns: delivered at the bottom, retry, then failed on top. */
+/* color feeds the pulsing glow (drop-shadow uses currentColor). */
+.ops-chart-col { animation: ops-chart-col-pulse 2s ease-in-out infinite; }
+.ops-chart-col-delivered { fill: #44d62c; color: #44d62c; }
+.ops-chart-col-retry { fill: #f4c542; color: #f4c542; }
+.ops-chart-col-failed { fill: #f84f55; color: #f84f55; }
+.ops-chart-slot-hit { fill: transparent; }
+.ops-chart-slot:hover .ops-chart-col { animation-play-state: paused; filter: drop-shadow(0 0 9px currentColor) brightness(1.15); }
+.ops-chart-empty-note { font-size: 14px; }
+@keyframes ops-chart-col-pulse {
+  0%, 100% { filter: drop-shadow(0 0 1px currentColor); }
+  50% { filter: drop-shadow(0 0 9px currentColor) brightness(1.15); }
+}
+.ops-chart-axis-title { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 12px; font-weight: 600; }
 
 .ops-chart-time {
   fill: #9aa8b1;
@@ -452,7 +467,7 @@
   display: inline-block;
 }
 
-.ops-summary-dot.delivered { background: #55e66f; }
+.ops-summary-dot.delivered { background: #44d62c; }
 .ops-summary-dot.failed { background: #ff5e63; }
 .ops-summary-dot.retry { background: #f4c542; }
 
@@ -854,4 +869,5 @@
   .ops-chart-outcome-glow,
   .ops-chart-outcome-line { animation: none !important; }
   .ops-chart-delivery-pulse { animation: none !important; display: none; }
+  .ops-chart-col { animation: none !important; }
 }
