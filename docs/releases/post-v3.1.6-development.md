@@ -81,6 +81,17 @@ release material.
   and visibility save without a folder scan and a blank username keeps the
   stored one; the Email Alerts rules table becomes stacked cards at 900 px and
   narrower.
+- Changes of 11 and 12 November 2026 (pull requests 651 to 658): the
+  Dashboard delivery chart shows deliveries per period of the chosen range
+  (per minute to per month) as stacked Delivered/Retry/Failed columns with
+  readable axes, instead of a running total; signing in no longer stalls on
+  **Connecting…** or shows **Some workspace data could not be loaded**;
+  layout fixes for 13-inch laptops and narrow windows (scrolling sidebar,
+  pinned table actions, visible dialog buttons, no overlapping text) and
+  clearer wording; the duplicate **Restart Nowlert** button on the Security
+  page is removed (the profile menu keeps it); the Users page **Recent
+  activity** lists sign-ins and account changes; the Event API token
+  **Allowed integrations** list takes a plain click per integration.
 
 ### Operations
 
@@ -88,6 +99,14 @@ release material.
 - Backup listing of NAS targets without scanning archive contents; the Mobile
   coordination lock is excluded from backups.
 - Concurrent SMTP routing and bounded concurrent destination delivery.
+- Faster pages: read requests share one database connection and the
+  Destinations list builds its route list once; Filtering, Routing Flow and
+  Destinations open two to three times faster, backups and the Audit log in
+  well under a second. Repeated empty mailbox checks no longer fill the
+  Audit log.
+- Runtime libraries updated after the Datadog Code Security scan of
+  `development`: Pillow 13.0.0, certifi 2026.10.23, ddtrace 4.17.0 and
+  opentelemetry-api 1.45.2.
 
 ## Documentation state
 
@@ -100,9 +119,10 @@ release material.
   repository README and the Docker Hub README Preview show the 1440 px
   Dashboard, Routing Flow, Destinations and sign-in captures, and the 768 and
   390 px captures are secondary examples of the responsive layout in a narrow
-  browser window, not the separate Nowlert Mobile app. They are the reviewed
-  screenshot set reused unchanged since the `v27.0.0-rc.7` documentation
-  package. The v3.1.0 set is historical; the v2.5.2 and v1.9.6 captures show
+  browser window, not the separate Nowlert Mobile app. Eight of them (the
+  four Dashboard captures, Users, both Security captures and Filtering) were
+  replaced on 12 November 2026 after the changes above; the others are the
+  reviewed set reused since the `v27.0.0-rc.7` documentation package. The v3.1.0 set is historical; the v2.5.2 and v1.9.6 captures show
   the retired product name and remain outdated.
 - A release candidate still needs: a version bump with a numbered release note
   and QA checklist, independent visual review of those captures, and the normal

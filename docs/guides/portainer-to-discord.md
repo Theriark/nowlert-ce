@@ -33,7 +33,8 @@ Open **Profile menu → Security → API tokens → New token**. The **Issue Eve
 API token** dialog opens:
 
 1. In **Name**, enter `Portainer centralized alerts`.
-2. In **Allowed integrations**, select only **Portainer**. Do not choose
+2. In **Allowed integrations**, click only **Portainer** (each click adds or
+   removes one integration). Do not choose
    **All sources (administrator only)**, and leave **Custom source
    identifiers** empty.
 3. In **Requests per minute**, keep the default 60 or set the limit you need.

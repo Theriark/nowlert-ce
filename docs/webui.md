@@ -78,9 +78,9 @@ The sidebar offers **Dashboard**, **Routing Flow**, **Destinations**,
 **Mailboxes** and **Activity**), **Delivery history** and **Settings** to every
 signed-in user. **Audit log**, **Backups** and **Users** are shown to
 administrators only. The profile chip at the bottom of the sidebar opens the
-profile menu with **Security** and **Sign out**. Administrators also see a
-**Restart** control in the header that opens the **Restart Nowlert**
-confirmation.
+profile menu with **Security** and **Sign out**; for administrators it also
+offers **Restart Nowlert**, which opens a confirmation. There is no separate
+restart button in the page header.
 
 There is no separate Sources, Routes, Inputs, API access, Updates or Data tools
 page: those functions live inside the pages described below.
@@ -96,8 +96,9 @@ administration:
   **Destinations** (enabled destinations), **Routes** (enabled routing rules),
   **Success Rate** and **Failures** for the selected range, the last two with
   a change against the previous window;
-- **Delivery Performance**: the delivery chart for the selected range with the
-  Delivered, Failed and Retry counts, the success rate and the total attempts;
+- **Delivery Performance**: deliveries per period for the selected range,
+  with the Delivered, Failed and Retry counts, the success rate and the total
+  attempts;
 - **Recent Activity**: the latest delivery events, with **View all** leading
   to Delivery history;
 - **Top Integrations** and **Top Destinations**;
@@ -109,11 +110,17 @@ administration:
 The Integration → Route → Destination topology is no longer drawn on the
 Dashboard; it lives on the Routing Flow page.
 
-The delivery chart plots cumulative delivery outcomes with a thin pulsing yellow
-line and animated pulses at recorded events. The animation restarts when the
-Dashboard is entered or refreshed; reduced-motion preferences disable it. The
-chart shares its selected time range with the Dashboard controls and has no
-manual replay button.
+The delivery chart shows how many deliveries happened in each period of the
+range chosen in the Dashboard header, as stacked columns: Delivered (green) at
+the bottom, then Retry (yellow) and Failed (red). The period follows the range:
+per minute for the last 10 minutes, per 5 minutes for the last hour, per hour
+for the last 24 hours, per day for the last month and per month for the last
+year; the axis title says which (for example **Deliveries per hour**).
+Hovering a column shows its period and its delivered, failed and retry counts;
+a range without deliveries says **No deliveries in this period**. The columns
+pulse with a soft glow and are revealed when the Dashboard is entered or the
+data changes; reduced-motion preferences turn both off. The chart is drawn at
+the width of its card, so its labels stay readable at every window size.
 
 ![Dashboard (development, administrator, 1440 px)](images/v27.0.0-rc.1/dashboard-live-admin-1440.png)
 
@@ -288,6 +295,10 @@ Event API tokens authorize external applications to submit
 `POST /api/v2/events`. They are not required for SMTP, dedicated vendor webhook
 endpoints, Redfish subscriptions, WebUI login, or destination delivery.
 
+In **Allowed integrations**, each click adds or removes one integration, so
+several can be chosen without holding Ctrl; dragging across the list adds a
+range. Administrators can also choose **All sources (administrator only)**.
+
 Token values are displayed only at creation or successful rotation. The list
 shows safe metadata such as source scopes, rate limit, last use, and state.
 Rotate or revoke a token instead of trying to retrieve its previous value.
@@ -356,6 +367,11 @@ them.
 Deletion is protected by server-side account/ownership safety checks and is
 audited. The last enabled administrator cannot be removed through a path that
 would leave the platform without administrative access.
+
+**Recent activity** at the top of the page lists the latest account events
+(sign-ins, sign-outs and user changes) with the account name and time;
+**View all** opens the 50 most recent ones. It reads account events directly,
+so mailbox synchronisation and health checks never push them out.
 
 The sidebar profile chip uses the same authoritative account role as access
 control, so administrator accounts display **Admin** and regular accounts
