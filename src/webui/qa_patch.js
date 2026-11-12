@@ -1122,7 +1122,15 @@ document.addEventListener("DOMContentLoaded", () => {
     qaAddSelectActions(id);
     qaBindRouteChoiceList(id);
   }
+  // Same click-to-toggle list for Event API token integrations (no Ctrl+click).
+  qaBindRouteChoiceList("token-sources");
 });
+
+const qaOriginalOpenToken = openToken;
+openToken = function openTokenWithChoiceState() {
+  qaOriginalOpenToken();
+  qaRefreshRouteChoiceAccessibility(byId("token-sources"));
+};
 
 /* Nowlert 3.1.0 empty-state icon restoration */
 (() => {

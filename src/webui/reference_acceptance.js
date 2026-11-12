@@ -9,6 +9,12 @@
   let userFilter = "all";
   let userQuery = "";
   let userPage = 1;
+  // Account events come from their own audit query; the general audit list is
+  // usually all mailbox syncs and health checks.
+  let userActivity = null;
+  let userActivityOwner = null;
+  let userActivityLoadedAt = 0;
+  let userActivityLoading = false;
   let tokenQuery = "";
   let tokenPage = 1;
   let previewDestinationId = "";
@@ -777,7 +783,25 @@ function ensurePreviewReferenceLayout() {
     return rows;
   }
 
+  function loadUserActivity() {
+    if (typeof request !== "function" || userActivityLoading) return;
+    if (userActivityOwner !== state.user?.id) { userActivity = null; userActivityLoadedAt = 0; }
+    if (Date.now() - userActivityLoadedAt < 30_000) return;
+    userActivityLoading = true;
+    const owner = state.user?.id;
+    request("/audit-events/page/1/size/50?category=account")
+      .then((value) => {
+        userActivity = value?.audit_events || [];
+        userActivityOwner = owner;
+        userActivityLoadedAt = Date.now();
+        syncRecentActivity();
+      })
+      .catch(() => {})
+      .finally(() => { userActivityLoading = false; });
+  }
+
   function userActivityEvents() {
+    if (userActivity && userActivityOwner === state.user?.id) return userActivity;
     return (state.audit || []).filter((item) => /user|session|login|account/.test(`${item.action || ""} ${item.resource_type || ""} ${item.resource || ""}`.toLowerCase()));
   }
 
@@ -839,6 +863,7 @@ function ensurePreviewReferenceLayout() {
   function syncRecentActivity() {
     const list = byId("reference-users-recent-list");
     if (!list) return;
+    loadUserActivity();
     const allEvents = userActivityEvents();
     appendUserActivityRows(list, allEvents.slice(0, 2), "No recent account activity.");
     const fullList = byId("reference-users-activity-list");
