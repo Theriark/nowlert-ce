@@ -106,10 +106,17 @@ class Database:
             return
         with self._open() as connection:
             self._shared.connection = connection
+            self._shared.cache = {}
             try:
                 yield
             finally:
                 self._shared.connection = None
+                self._shared.cache = None
+
+    def read_cache(self):
+        """Per-request dict while reading() is active on this thread, else None."""
+
+        return getattr(self._shared, "cache", None)
 
     @contextmanager
     def connect(self):

@@ -698,6 +698,12 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
         return self._for_actor(actor, row)
 
     def list_visible_safe(self, actor: Actor):
+        # The Destinations list asks once per destination; build it once per read request.
+        cache = self.database.read_cache()
+        key = ("system-routes", actor.user_id, bool(actor.is_admin))
+        if cache is not None and key in cache:
+            routes, errors = cache[key]
+            return list(routes), list(errors)
         self._reconcile_catalogue_route_matrix()
         with self.database.connect() as connection:
             rows = connection.execute(
@@ -747,7 +753,10 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
                         "message": f"Route {str(row['name'])!r} could not be loaded: {error}",
                     }
                 )
-        return list(items_by_pair.values()), errors
+        routes = list(items_by_pair.values())
+        if cache is not None:
+            cache[key] = (tuple(routes), tuple(errors))
+        return routes, errors
 
     def list_actual_visible_safe(self, actor: Actor):
         with self.database.connect() as connection:
