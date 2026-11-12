@@ -48,6 +48,11 @@
   let deliveryChartSignature = "";
   let animateChartNextRender = true;
   const DELIVERY_CHART_ANIMATION_MS = 2_800;
+  // Slots per range when the metrics endpoint is unavailable; matches the server.
+  const CHART_SLOTS = { "10m": 10, "1h": 12, "1d": 24, "1m": 31, "1y": 12 };
+  let lastChartAttempts = null;
+  let chartWidthObserver = null;
+  let chartObservedWidth = 0;
 
   function node(tag, className = "", text = "") {
     const item = document.createElement(tag);
@@ -409,17 +414,32 @@
     }).format(date);
   }
 
+  function observeChartWidth(container) {
+    if (chartWidthObserver || typeof ResizeObserver !== "function") return;
+    chartObservedWidth = container.clientWidth;
+    // The chart is drawn at its real width so text keeps its shape; redraw when the card resizes.
+    chartWidthObserver = new ResizeObserver(() => {
+      const width = container.clientWidth;
+      if (!lastChartAttempts || !width || Math.abs(width - chartObservedWidth) < 24) return;
+      chartObservedWidth = width;
+      renderDeliveryChart(lastChartAttempts);
+    });
+    chartWidthObserver.observe(container);
+  }
+
   function renderDeliveryChart(attempts) {
     const container = byId("dashboard-delivery-chart");
     const summary = byId("dashboard-chart-summary");
     if (!container || !summary) return;
+    lastChartAttempts = attempts;
+    observeChartWidth(container);
     container.replaceChildren();
     summary.replaceChildren();
 
     const seconds = RANGE_SECONDS[state.historyRange] || RANGE_SECONDS["1h"];
-    const bucketCount = state.historyRange === "10m" ? 20 : state.historyRange === "1h" ? 36 : state.historyRange === "1d" ? 24 : state.historyRange === "1m" ? 31 : 24;
+    const bucketCount = state.metrics?.buckets?.length || CHART_SLOTS[state.historyRange] || 12;
     const now = Math.floor(Date.now() / 1000);
-    const start = now - seconds;
+    const start = Number(state.metrics?.buckets?.[0]?.start ?? now - seconds);
     const bucketSeconds = seconds / bucketCount;
     const buckets = state.metrics?.buckets || Array.from({ length: bucketCount }, (_, index) => ({
       start: start + index * bucketSeconds,
@@ -442,66 +462,29 @@
     deliveryChartSignature = chartSignature;
     animateChartNextRender = false;
 
-    const width = 980, height = 330;
-    const padding = { top: 22, right: 18, bottom: 48, left: 54 };
+    // Drawn at the card's real width: a fixed viewBox stretched to fit distorted the text.
+    const width = Math.max(320, Math.round(container.clientWidth || 980));
+    const height = 330;
+    const padding = { top: 40, right: 16, bottom: 38, left: 48 };
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
-    // The headline figures show outcomes over the whole range, so plot those
-    // same totals cumulatively. Per-bucket columns made four deliveries look
-    // like four unrelated one-event spikes beside a total of four.
+    const { columns, peak } = chartModel.buildColumns(buckets);
+    const axis = chartModel.niceAxis(peak);
+    const unit = chartModel.slotLabel(bucketSeconds);
     let deliveredTotal = 0, failedTotal = 0, retryTotal = 0;
-    for (const bucket of buckets) {
-      deliveredTotal += bucket.delivered;
-      failedTotal += bucket.failed;
-      retryTotal += bucket.retry;
-      bucket.cumulative = { delivered: deliveredTotal, failed: failedTotal, retry: retryTotal };
+    for (const column of columns) {
+      deliveredTotal += column.delivered;
+      failedTotal += column.failed;
+      retryTotal += column.retry;
     }
-    const { points, total } = chartModel.buildCumulativeSeries(buckets, bucketSeconds);
-    const peakCount = total;
-    const rawTick = Math.max(1, peakCount / 4);
-    const scale = 10 ** Math.floor(Math.log10(rawTick));
-    const normalizedTick = rawTick / scale;
-    const tickStep = (normalizedTick <= 1 ? 1 : normalizedTick <= 2 ? 2 : normalizedTick <= 5 ? 5 : 10) * scale;
-    let maximum = Math.ceil(peakCount / tickStep) * tickStep;
-    if (maximum <= peakCount) maximum += tickStep;
-    maximum = Math.max(tickStep, maximum);
-    const axisIntervals = Math.round(maximum / tickStep);
+
     const svg = document.createElementNS(SVG_NS, "svg");
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    svg.setAttribute("preserveAspectRatio", "none");
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", `Cumulative outcome during the selected ${state.historyRange} window: ${total} total attempts, ${deliveredTotal} delivered, ${failedTotal} failed, ${retryTotal} retry.`);
+    svg.setAttribute("aria-label", `Deliveries per ${unit} during the selected ${RANGE_LABELS[state.historyRange] || state.historyRange} window: ${deliveredTotal} delivered, ${failedTotal} failed, ${retryTotal} retry, busiest ${unit} ${peak}.`);
     svg.dataset.animation = shouldAnimate ? "play" : "static";
 
     const defs = document.createElementNS(SVG_NS, "defs");
-    const plotGradient = document.createElementNS(SVG_NS, "linearGradient");
-    plotGradient.id = "ops-chart-plot-fill";
-    plotGradient.setAttribute("x1", "0"); plotGradient.setAttribute("y1", "0");
-    plotGradient.setAttribute("x2", "0"); plotGradient.setAttribute("y2", "1");
-    for (const [offset, color] of [["0%", "#0c0f12"], ["100%", "#0c0f12"]]) {
-      const stop = document.createElementNS(SVG_NS, "stop");
-      stop.setAttribute("offset", offset); stop.setAttribute("stop-color", color);
-      plotGradient.append(stop);
-    }
-    const deliveredGradient = document.createElementNS(SVG_NS, "linearGradient");
-    deliveredGradient.id = "ops-delivery-area-gradient";
-    deliveredGradient.setAttribute("x1", "0"); deliveredGradient.setAttribute("y1", "0");
-    deliveredGradient.setAttribute("x2", "0"); deliveredGradient.setAttribute("y2", "1");
-    for (const [offset, opacity] of [["0%", ".24"], ["100%", ".015"]]) {
-      const stop = document.createElementNS(SVG_NS, "stop");
-      stop.setAttribute("offset", offset); stop.setAttribute("stop-color", "#ffda32"); stop.setAttribute("stop-opacity", opacity);
-      deliveredGradient.append(stop);
-    }
-    const neonGlow = document.createElementNS(SVG_NS, "filter");
-    neonGlow.id = "ops-delivery-neon-glow";
-    neonGlow.setAttribute("x", "-60%"); neonGlow.setAttribute("y", "-80%");
-    neonGlow.setAttribute("width", "220%"); neonGlow.setAttribute("height", "260%");
-    const glowBlur = document.createElementNS(SVG_NS, "feGaussianBlur");
-    glowBlur.setAttribute("stdDeviation", "2.7"); glowBlur.setAttribute("result", "glow");
-    const glowMerge = document.createElementNS(SVG_NS, "feMerge");
-    const glowNode = document.createElementNS(SVG_NS, "feMergeNode"); glowNode.setAttribute("in", "glow");
-    const sourceNode = document.createElementNS(SVG_NS, "feMergeNode"); sourceNode.setAttribute("in", "SourceGraphic");
-    glowMerge.append(glowNode, sourceNode); neonGlow.append(glowBlur, glowMerge);
     const revealClip = document.createElementNS(SVG_NS, "clipPath");
     revealClip.id = "ops-delivery-reveal-clip";
     const revealRect = document.createElementNS(SVG_NS, "rect");
@@ -509,7 +492,7 @@
     revealRect.setAttribute("width", shouldAnimate ? 0 : plotWidth); revealRect.setAttribute("height", plotHeight);
     revealRect.setAttribute("class", "ops-chart-reveal-mask");
     revealClip.append(revealRect);
-    defs.append(plotGradient, deliveredGradient, neonGlow, revealClip);
+    defs.append(revealClip);
     svg.append(defs);
 
     const plot = document.createElementNS(SVG_NS, "rect");
@@ -518,59 +501,76 @@
     plot.setAttribute("rx", "8"); plot.setAttribute("class", "ops-chart-plot");
     svg.append(plot);
 
-    for (let line = 0; line <= axisIntervals; line += 1) {
-      const y = padding.top + (plotHeight * line) / axisIntervals;
+    const yAt = (value) => padding.top + plotHeight - (value / axis.maximum) * plotHeight;
+    for (let line = 0; line <= axis.intervals; line += 1) {
+      const value = axis.maximum - line * axis.tickStep;
+      const y = yAt(value);
       const grid = document.createElementNS(SVG_NS, "line");
       grid.setAttribute("x1", padding.left); grid.setAttribute("x2", width - padding.right);
       grid.setAttribute("y1", y); grid.setAttribute("y2", y); grid.setAttribute("class", "ops-chart-grid");
       svg.append(grid);
       const label = document.createElementNS(SVG_NS, "text");
-      label.setAttribute("x", padding.left - 14); label.setAttribute("y", y + 4); label.setAttribute("text-anchor", "end"); label.setAttribute("class", "ops-chart-axis");
-      const value = maximum - line * tickStep;
-      label.textContent = Number.isInteger(value) ? String(value) : value.toFixed(1);
+      label.setAttribute("x", padding.left - 10); label.setAttribute("y", y + 4); label.setAttribute("text-anchor", "end"); label.setAttribute("class", "ops-chart-axis");
+      label.textContent = value.toLocaleString();
       svg.append(label);
     }
 
     const axisTitle = document.createElementNS(SVG_NS, "text");
-    const axisMid = padding.top + plotHeight / 2;
-    axisTitle.setAttribute("x", 15); axisTitle.setAttribute("y", axisMid);
-    axisTitle.setAttribute("text-anchor", "middle"); axisTitle.setAttribute("class", "ops-chart-axis-title");
-    axisTitle.setAttribute("transform", `rotate(-90 15 ${axisMid})`);
-    axisTitle.textContent = "Cumulative outcome";
+    axisTitle.setAttribute("x", padding.left); axisTitle.setAttribute("y", 18);
+    axisTitle.setAttribute("text-anchor", "start"); axisTitle.setAttribute("class", "ops-chart-axis-title");
+    axisTitle.textContent = `Deliveries per ${unit}`;
     svg.append(axisTitle);
+    if (!peak) {
+      const emptyNote = document.createElementNS(SVG_NS, "text");
+      emptyNote.setAttribute("x", padding.left + plotWidth / 2); emptyNote.setAttribute("y", padding.top + plotHeight / 2);
+      emptyNote.setAttribute("text-anchor", "middle"); emptyNote.setAttribute("class", "ops-chart-axis ops-chart-empty-note");
+      emptyNote.textContent = "No deliveries in this period";
+      svg.append(emptyNote);
+    }
 
-    const xAt = (time) => padding.left + Math.max(0, Math.min(1, (time - start) / seconds)) * plotWidth;
-    const yAt = (value) => padding.top + plotHeight - (value / maximum) * plotHeight;
-    const stepLine = chartModel.buildStepPath(points, xAt, yAt, padding.left, width - padding.right);
-    const areaPath = document.createElementNS(SVG_NS, "path");
-    areaPath.setAttribute("d", `${stepLine} L ${width - padding.right} ${yAt(0)} L ${padding.left} ${yAt(0)} Z`);
-    areaPath.setAttribute("class", "ops-chart-outcome-area");
-    areaPath.setAttribute("fill", "url(#ops-delivery-area-gradient)");
-    const glowPath = document.createElementNS(SVG_NS, "path");
-    glowPath.setAttribute("d", stepLine); glowPath.setAttribute("class", "ops-chart-outcome-glow");
-    const outcomePath = document.createElementNS(SVG_NS, "path");
-    outcomePath.setAttribute("d", stepLine); outcomePath.setAttribute("class", "ops-chart-outcome-line");
-    outcomePath.setAttribute("data-tooltip", `Cumulative outcomes reach ${total} total attempt${total === 1 ? "" : "s"}.`);
+    const slotWidth = plotWidth / bucketCount;
+    const barWidth = Math.max(3, Math.min(34, slotWidth * 0.68));
     const chartDrawing = document.createElementNS(SVG_NS, "g");
     chartDrawing.setAttribute("clip-path", "url(#ops-delivery-reveal-clip)");
-    chartDrawing.append(areaPath, glowPath, outcomePath);
-    for (const point of points) {
-      const x = xAt(point.time), y = yAt(point.value);
-      if (!shouldAnimate) continue;
-      const pulse = document.createElementNS(SVG_NS, "circle");
-      pulse.setAttribute("cx", x); pulse.setAttribute("cy", y); pulse.setAttribute("r", "6");
-      pulse.setAttribute("class", "ops-chart-delivery-pulse"); pulse.setAttribute("aria-hidden", "true");
-      pulse.style.animationDelay = `${chartModel.pulseDelay(point.time, start, seconds, DELIVERY_CHART_ANIMATION_MS)}ms`;
-      chartDrawing.append(pulse);
-    }
+    columns.forEach((column, index) => {
+      if (!column.total) return;
+      const slot = document.createElementNS(SVG_NS, "g");
+      slot.setAttribute("class", "ops-chart-slot");
+      const description = `${bucketLabel(column.start)}–${bucketLabel(column.start + bucketSeconds)}: ${column.delivered} delivered, ${column.failed} failed, ${column.retry} retry`;
+      slot.setAttribute("data-tooltip", description);
+      const title = document.createElementNS(SVG_NS, "title");
+      title.textContent = description;
+      slot.append(title);
+      const hit = document.createElementNS(SVG_NS, "rect");
+      hit.setAttribute("x", padding.left + index * slotWidth); hit.setAttribute("y", padding.top);
+      hit.setAttribute("width", slotWidth); hit.setAttribute("height", plotHeight);
+      hit.setAttribute("class", "ops-chart-slot-hit");
+      slot.append(hit);
+      const x = padding.left + index * slotWidth + (slotWidth - barWidth) / 2;
+      let stacked = 0;
+      for (const kind of ["delivered", "retry", "failed"]) {
+        const value = column[kind];
+        if (!value) continue;
+        const bar = document.createElementNS(SVG_NS, "rect");
+        const top = yAt(stacked + value);
+        bar.setAttribute("x", x); bar.setAttribute("y", top);
+        bar.setAttribute("width", barWidth); bar.setAttribute("height", Math.max(1, yAt(stacked) - top));
+        bar.setAttribute("class", `ops-chart-col ops-chart-col-${kind}`);
+        slot.append(bar);
+        stacked += value;
+      }
+      chartDrawing.append(slot);
+    });
     svg.append(chartDrawing);
-    for (let index = 0; index <= 6; index += 1) {
-      const x = padding.left + (plotWidth * index) / 6;
+
+    const timeTicks = width < 560 ? 3 : 6;
+    for (let index = 0; index <= timeTicks; index += 1) {
+      const x = padding.left + (plotWidth * index) / timeTicks;
       const label = document.createElementNS(SVG_NS, "text");
-      label.setAttribute("x", x); label.setAttribute("y", height - 14);
-      label.setAttribute("text-anchor", index === 0 ? "start" : index === 6 ? "end" : "middle");
+      label.setAttribute("x", x); label.setAttribute("y", height - 12);
+      label.setAttribute("text-anchor", index === 0 ? "start" : index === timeTicks ? "end" : "middle");
       label.setAttribute("class", "ops-chart-axis ops-chart-time");
-      label.textContent = bucketLabel(start + seconds * index / 6);
+      label.textContent = bucketLabel(start + seconds * index / timeTicks);
       svg.append(label);
     }
     container.append(svg);
@@ -583,7 +583,6 @@
       );
     } else {
       revealRect.setAttribute("width", plotWidth);
-      chartDrawing.querySelectorAll(".ops-chart-delivery-pulse").forEach((pulse) => pulse.remove());
     }
 
     const stats = successStats(attempts);

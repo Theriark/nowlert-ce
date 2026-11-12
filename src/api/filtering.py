@@ -692,7 +692,7 @@ class PlatformAPI(BasePlatformAPI):
         until = int(time.time()) + 1
         since = until - windows[history_range]
         delivery = self.history.metrics(actor, since)
-        dashboard = self.history.dashboard(actor, since, until, {"10m": 20, "1h": 36, "1d": 24, "1m": 31, "1y": 24}[history_range])
+        dashboard = self.history.dashboard(actor, since, until, {"10m": 10, "1h": 12, "1d": 24, "1m": 31, "1y": 12}[history_range])
         with self.database.connect() as connection:
             route_row = connection.execute(
                 """
