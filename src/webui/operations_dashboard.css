@@ -318,6 +318,9 @@
   display: block;
 }
 
+/* qa_patch.css caps every dashboard svg at 230px, which shrank the chart to 70%. */
+#view-dashboard .ops-delivery-chart svg { max-height: none; }
+
 .ops-chart-plot { fill: #0c0f12; }
 
 .ops-chart-outcome-area { pointer-events: none; }
