@@ -68,3 +68,28 @@ def test_token_integrations_toggle_with_a_plain_click():
     assert 'qaBindRouteChoiceList("token-sources");' in script
     assert "openToken = function openTokenWithChoiceState()" in script
     assert "Click to add or remove each integration" in markup
+
+
+def test_destinations_build_the_route_list_once_per_read_request(platform_api, monkeypatch):  # noqa: F811
+    from storage.destination_access import SystemRoutingRouteStore
+
+    platform = platform_api
+    headers = login(platform)
+    api = platform["service"].platform
+    for index in range(3):
+        api.destinations.create(platform["admin"].actor, platform["admin"].id, f"Hook {index}", "webhook")
+    calls = []
+    original = SystemRoutingRouteStore._reconcile_catalogue_route_matrix
+    monkeypatch.setattr(
+        SystemRoutingRouteStore,
+        "_reconcile_catalogue_route_matrix",
+        lambda self: calls.append(1) or original(self),
+    )
+    listed = call(platform, "GET", "/api/v2/destinations", headers=headers)
+    assert listed.status == 200 and len(listed.payload["destinations"]) >= 3
+    assert len(calls) == 1
+    # Outside a read request nothing is cached.
+    store = SystemRoutingRouteStore(platform["database"])
+    store.list_visible_safe(platform["admin"].actor)
+    store.list_visible_safe(platform["admin"].actor)
+    assert len(calls) == 3
