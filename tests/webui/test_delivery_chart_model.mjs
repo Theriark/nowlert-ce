@@ -59,6 +59,8 @@ test("dashboard draws per-slot stacked columns at the card's real width", () => 
   assert.doesNotMatch(dashboardSource, /preserveAspectRatio/);
   assert.match(dashboardSource, /new ResizeObserver/);
   assert.match(dashboardSource, /No deliveries in this period/);
+  // The chart is drawn 330px tall; a blanket 230px svg cap would shrink it to fit.
+  assert.match(dashboardCss, /#view-dashboard \.ops-delivery-chart svg \{ max-height: none; \}/);
   assert.match(dashboardCss, /\.ops-chart-col\s*\{\s*animation:\s*ops-chart-col-pulse/);
   assert.match(dashboardCss, /\.ops-chart-col-delivered\s*\{/);
   assert.match(dashboardCss, /\.ops-chart-col-failed\s*\{/);

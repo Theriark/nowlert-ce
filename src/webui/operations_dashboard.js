@@ -420,7 +420,7 @@
     // The chart is drawn at its real width so text keeps its shape; redraw when the card resizes.
     chartWidthObserver = new ResizeObserver(() => {
       const width = container.clientWidth;
-      if (!lastChartAttempts || !width || Math.abs(width - chartObservedWidth) < 24) return;
+      if (!lastChartAttempts || !width || Math.abs(width - chartObservedWidth) < 2) return;
       chartObservedWidth = width;
       renderDeliveryChart(lastChartAttempts);
     });
@@ -463,7 +463,7 @@
     animateChartNextRender = false;
 
     // Drawn at the card's real width: a fixed viewBox stretched to fit distorted the text.
-    const width = Math.max(320, Math.round(container.clientWidth || 980));
+    const width = Math.max(240, Math.round(container.clientWidth || 980));
     const height = 330;
     const padding = { top: 40, right: 16, bottom: 38, left: 48 };
     const plotWidth = width - padding.left - padding.right;
@@ -563,7 +563,8 @@
     });
     svg.append(chartDrawing);
 
-    const timeTicks = width < 560 ? 3 : 6;
+    // 10 minutes splits into round 2-minute ticks; other ranges into 6 (3 when narrow).
+    const timeTicks = state.historyRange === "10m" ? 5 : width < 560 ? 3 : 6;
     for (let index = 0; index <= timeTicks; index += 1) {
       const x = padding.left + (plotWidth * index) / timeTicks;
       const label = document.createElementNS(SVG_NS, "text");
