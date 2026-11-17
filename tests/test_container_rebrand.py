@@ -26,16 +26,16 @@ def test_production_image_uses_nowlert_icon_argument():
 
 def test_development_build_supplies_nowlert_icon_argument():
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    finalization = (
-        ROOT / ".github" / "workflows" / "finalize-release.yml"
-    ).read_text(encoding="utf-8")
+    release = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
 
     assert ci.count("NOWLERT_TEAMS_ICON_BASE_URL=") == 1
     assert "${{ env.SOURCE_SHA }}/assets/icons" in ci
 
     # Stable aliases reuse the already-built immutable image.
-    assert "NOWLERT_TEAMS_ICON_BASE_URL=" not in finalization
-    assert "docker/build-push-action" not in finalization
+    assert "NOWLERT_TEAMS_ICON_BASE_URL=" not in release
+    assert "docker/build-push-action" not in release
 
 
 def test_internal_root_uses_nowlert():

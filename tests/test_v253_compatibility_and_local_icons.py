@@ -114,7 +114,7 @@ def test_release_build_pins_teams_icons_while_discord_stays_packaged():
     presentation = (ROOT / "src" / "formatters" / "presentation.py").read_text(encoding="utf-8")
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    finalization = (ROOT / ".github" / "workflows" / "finalize-release.yml").read_text(encoding="utf-8")
+    finalization = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     assert "NOWLERT_ICON_DIR" in presentation
     assert "NOWLERT_TEAMS_ICON_BASE_URL" in presentation
     assert "nowlert-asset://" in presentation

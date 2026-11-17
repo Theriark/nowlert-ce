@@ -48,7 +48,7 @@ def test_official_release_build_uses_packaged_notification_icons():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     finalization = (
-        ROOT / ".github" / "workflows" / "finalize-release.yml"
+        ROOT / ".github" / "workflows" / "release.yml"
     ).read_text(encoding="utf-8")
     presentation = (
         ROOT / "src" / "formatters" / "presentation.py"

@@ -1,68 +1,41 @@
 name: Promote CE to Stage
 
-run-name: "publishing:${{ inputs.request_id }}"
+run-name: "Promote CE to Stage${{ inputs.dry_run && ' (dry run)' || '' }}"
 
-# Promotes ONE already prepared release candidate to the VM-09 Stage
-# application. It is dispatched only by the private publisher, which reads every
-# input from signed controller state after the separate Stage-promotion
-# approval. It never rebuilds, never mints or moves a tag, and never publishes a
-# stable release: the immutable digest recorded in the annotated RC tag is the
-# only image that can reach Stage.
+# One button, run from development (Gate 2 approval runs it with no inputs).
+# It promotes exactly the commit and image the CE Development application runs:
+# full test suite, next annotated v<version>-rc.N tag, registry candidate tag on
+# the same digest, Stage deployment of that digest, health and version check,
+# then stage fast-forwards to that commit. It never rebuilds. dry_run performs
+# every read and check, including the test suite, and changes nothing.
 on:
   workflow_dispatch:
     inputs:
-      ce_image:
-        description: "Immutable CE image including @sha256 digest"
-        required: true
-        type: string
-      source_commit:
-        description: "Original full source commit SHA for the image"
-        required: true
-        type: string
-      change_reference:
-        description: "PR, issue, or release reference (evidence only)"
-        required: true
-        type: string
-      version:
-        description: "Release version of the candidate, for example v27.0.0"
-        required: true
-        type: string
-      development_run_id:
-        description: "Successful Development Continuous Integration run ID that built the image"
-        required: true
-        type: string
-      request_id:
-        description: "Publisher request identifier (run name and evidence)"
-        required: true
-        type: string
-      documentation_manifest_sha256:
-        description: "SHA-256 of the reviewed documentation manifest sealed in the RC"
-        required: true
-        type: string
-      rc_tag:
-        description: "Existing annotated release candidate tag, for example v27.0.0-rc.4"
-        required: true
-        type: string
+      dry_run:
+        description: "Check everything and change nothing"
+        required: false
+        default: false
+        type: boolean
 
-# contents: write advances the stage branch. actions: read verifies the
-# Development and RC runs and packages: read verifies the image in GHCR; both
-# are read-only.
+# contents: write creates the candidate tag and advances stage. packages: write
+# adds the candidate tag to the existing image. actions: read finds the
+# Development CI run.
 permissions:
   contents: write
   actions: read
-  packages: read
+  packages: write
 
-# Shared with prepare-rc.yml so the repository never runs two promotion jobs at
-# once. A live deployment is never cancelled.
+# Shared with release.yml so the repository never runs two promotion or release
+# jobs at once. A live deployment is never cancelled.
 concurrency:
   group: nowlert-ce-stage-promotion
   cancel-in-progress: false
 
 jobs:
   promote:
-    name: Promote CE immutable image to Stage
+    name: Promote CE Development to Stage
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     environment: stage
 
     # GH_TOKEN is deliberately not set here: only the steps that call gh get it.
@@ -71,15 +44,10 @@ jobs:
       DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
       CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
       CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
       IMAGE_REPOSITORY: ghcr.io/theriark/nowlert-ce
-      PROMOTION_IMAGE: ${{ inputs.ce_image }}
-      SOURCE_COMMIT: ${{ inputs.source_commit }}
-      CHANGE_REFERENCE: ${{ inputs.change_reference }}
-      RELEASE_VERSION: ${{ inputs.version }}
-      DEVELOPMENT_RUN_ID: ${{ inputs.development_run_id }}
-      REQUEST_ID: ${{ inputs.request_id }}
-      DOCUMENTATION_MANIFEST_SHA256: ${{ inputs.documentation_manifest_sha256 }}
-      RC_TAG: ${{ inputs.rc_tag }}
+      CE_DEVELOPMENT_APPLICATION_ID: ivj7Ixgw2cP29g6riR2AH
+      CE_DEVELOPMENT_HEALTH_URL: https://ce-dev-nowlert.theriark.dev/api/health
       CE_STAGE_APPLICATION_ID: x9zOew6dmrn-jmcnFbllk
       CE_STAGE_HEALTH_URL: https://ce-stg-nowlert.theriark.dev/api/health
 
@@ -89,236 +57,103 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify CE Stage configuration
+      - name: Verify launch branch and Stage configuration
         shell: bash
         run: |
           set -euo pipefail
 
-          [[ -n "${DOKPLOY_URL}" ]] || {
-            echo "::error::DOKPLOY_URL is missing"
-            exit 1
-          }
-
-          [[ -n "${DOKPLOY_API_KEY}" ]] || {
-            echo "::error::DOKPLOY_API_KEY is missing"
-            exit 1
-          }
-
-          [[ "${PROMOTION_IMAGE}" =~ ^ghcr\.io/theriark/nowlert-ce@sha256:[0-9a-f]{64}$ ]] || {
-            echo "::error::CE image must be an immutable nowlert-ce digest"
-            exit 1
-          }
-
-          [[ "${SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]] || {
-            echo "::error::Source commit must be a full lowercase 40-character SHA"
-            exit 1
-          }
-
-          [[ "${REQUEST_ID}" =~ ^[A-Za-z0-9._:-]{1,128}$ ]] || {
-            echo "::error::request_id is missing or contains unsupported characters"
-            exit 1
-          }
-
-          [[ "${DEVELOPMENT_RUN_ID}" =~ ^[1-9][0-9]*$ ]] || {
-            echo "::error::development_run_id must be a positive integer"
-            exit 1
-          }
-
-          [[ "${DOCUMENTATION_MANIFEST_SHA256}" =~ ^[0-9a-f]{64}$ ]] || {
-            echo "::error::documentation_manifest_sha256 must be 64 lowercase hex characters"
-            exit 1
-          }
-
-          RC_TAG_PATTERN='^v27\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-rc\.[1-9][0-9]*$'
-          [[ "${RC_TAG}" =~ ${RC_TAG_PATTERN} ]] || {
-            echo "::error::rc_tag must look like v27.<minor>.<patch>-rc.<number>"
-            exit 1
-          }
-
-          # The version is the stable form of the candidate (v27.M.P); the
-          # candidate form (v27.M.P-rc.N) is accepted when it is the same tag.
-          VERSION_PATTERN='^v?27\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-rc\.[1-9][0-9]*)?$'
-          [[ "${RELEASE_VERSION}" =~ ${VERSION_PATTERN} ]] || {
-            echo "::error::version must look like v27.<minor>.<patch>"
-            exit 1
-          }
-          VERSION_BASE="v${RELEASE_VERSION#v}"
-          if [[ "${VERSION_BASE}" == *-rc.* ]]; then
-            [[ "${VERSION_BASE}" == "${RC_TAG}" ]] || {
-              echo "::error::version ${RELEASE_VERSION} is not the candidate ${RC_TAG}"
-              exit 1
-            }
-          fi
-          [[ "${VERSION_BASE%-rc.*}" == "${RC_TAG%-rc.*}" ]] || {
-            echo "::error::version ${RELEASE_VERSION} does not belong to ${RC_TAG}"
-            exit 1
-          }
-
-          git cat-file -e "${SOURCE_COMMIT}^{commit}" || {
-            echo "::error::Source commit does not exist in this repository"
-            exit 1
-          }
-
           [[ "${GITHUB_REF}" == "refs/heads/development" ]] || {
-            echo "::error::Stage promotion must be launched from development"
+            echo "::error::Stage promotion must be launched from development; received ${GITHUB_REF}"
             exit 1
           }
-
-          git fetch origin \
-            +refs/heads/development:refs/remotes/origin/development
-
-          DEVELOPMENT_SHA="$(git rev-parse refs/remotes/origin/development)"
-
-          # The sealed release candidate may predate later development merges,
-          # so the source only has to be part of development's history. The RC
-          # tag, digest and Development run checks below bind it exactly.
-          git merge-base --is-ancestor "${SOURCE_COMMIT}" refs/remotes/origin/development || {
-            echo "::error::Stage source ${SOURCE_COMMIT} is not an ancestor of current development ${DEVELOPMENT_SHA}"
-            exit 1
-          }
-
-          # An unchanged candidate may trail development only by a pipeline
-          # repair: every path changed since the source must be a workflow file
-          # or a flat pipeline test. Application source, scripts, docs and
-          # dependencies must equal the candidate. Checked before any deploy.
-          PIPELINE_ONLY_PATTERN='^(\.github/workflows/[A-Za-z0-9._-]+\.ya?ml|tests/pipeline/[A-Za-z0-9._-]+\.py)$'
-          CHANGED_PATHS="$(
-            git diff --no-renames --name-only \
-              "${SOURCE_COMMIT}" "${DEVELOPMENT_SHA}"
-          )"
-          while IFS= read -r CHANGED_PATH; do
-            [[ -n "${CHANGED_PATH}" ]] || continue
-            [[ "${CHANGED_PATH}" =~ ${PIPELINE_ONLY_PATTERN} ]] || {
-              echo "::error::Stage source ${SOURCE_COMMIT} differs from current development ${DEVELOPMENT_SHA} outside the pipeline-only paths: ${CHANGED_PATH}"
+          for name in DOKPLOY_URL DOKPLOY_API_KEY CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET; do
+            [[ -n "${!name}" ]] || {
+              echo "::error::${name} is missing"
               exit 1
             }
-          done <<<"${CHANGED_PATHS}"
+          done
+          echo "Dry run: ${DRY_RUN}"
 
-          # Accepting any ancestor of development must never downgrade Stage:
-          # Stage has to be the source itself or behind it, so a Stage that is
-          # already ahead of, or diverged from, this candidate is rejected
-          # before anything is deployed.
-          git fetch origin \
-            +refs/heads/stage:refs/remotes/origin/stage
-
-          CURRENT_STAGE_SHA="$(git rev-parse refs/remotes/origin/stage)"
-
-          git merge-base --is-ancestor refs/remotes/origin/stage "${SOURCE_COMMIT}" || {
-            echo "::error::Stage branch ${CURRENT_STAGE_SHA} is not an ancestor of source ${SOURCE_COMMIT}; Stage is already ahead of or diverged from this candidate"
-            exit 1
-          }
-
-      - name: Verify the release candidate tag, prerelease and Development run
-        id: rc
+      - name: Read the commit Development runs
+        id: source
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          IMAGE_DIGEST="${PROMOTION_IMAGE##*@}"
+          DEVELOPMENT_IMAGE="$(
+            python .github/scripts/dokploy_release.py current-image \
+              --application-id "${CE_DEVELOPMENT_APPLICATION_ID}"
+          )"
+          SHA_TAG_PATTERN='^ghcr\.io/theriark/nowlert-ce:sha-([0-9a-f]{40})$'
+          [[ "${DEVELOPMENT_IMAGE}" =~ ${SHA_TAG_PATTERN} ]] || {
+            echo "::error::Development runs ${DEVELOPMENT_IMAGE}, not an immutable sha-<commit> image"
+            exit 1
+          }
+          SOURCE_COMMIT="${BASH_REMATCH[1]}"
+          echo "Development runs ${DEVELOPMENT_IMAGE} (commit ${SOURCE_COMMIT})"
 
-          # The RC tag is annotated, points at the source commit and carries
-          # the JSON the RC workflow sealed (publishing contract).
-          REF_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RC_TAG}")" || {
-            echo "::error::Release candidate tag ${RC_TAG} does not exist"
+          git fetch --force --tags origin \
+            +refs/heads/development:refs/remotes/origin/development \
+            +refs/heads/stage:refs/remotes/origin/stage
+          DEVELOPMENT_SHA="$(git rev-parse refs/remotes/origin/development)"
+          STAGE_BEFORE="$(git rev-parse refs/remotes/origin/stage)"
+
+          git cat-file -e "${SOURCE_COMMIT}^{commit}" || {
+            echo "::error::Commit ${SOURCE_COMMIT} does not exist in this repository"
             exit 1
           }
-          [[ "$(jq -r '.object.type' <<<"${REF_JSON}")" == "tag" ]] || {
-            echo "::error::${RC_TAG} is not an annotated tag"
+          git merge-base --is-ancestor "${SOURCE_COMMIT}" refs/remotes/origin/development || {
+            echo "::error::Development commit ${SOURCE_COMMIT} is not part of development ${DEVELOPMENT_SHA}"
             exit 1
           }
-          TAG_OBJECT_SHA="$(jq -r '.object.sha' <<<"${REF_JSON}")"
-          TAG_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${TAG_OBJECT_SHA}")"
-          TAG_TARGET="$(jq -r '.object.sha' <<<"${TAG_JSON}")"
-          [[ "${TAG_TARGET}" == "${SOURCE_COMMIT}" ]] || {
-            echo "::error::${RC_TAG} points at ${TAG_TARGET}, expected ${SOURCE_COMMIT}"
+          # Stage only moves forward: it must be the source itself or behind it.
+          git merge-base --is-ancestor refs/remotes/origin/stage "${SOURCE_COMMIT}" || {
+            echo "::error::Stage branch ${STAGE_BEFORE} is not an ancestor of source ${SOURCE_COMMIT}; Stage is already ahead of or diverged from Development"
             exit 1
           }
 
-          jq -r '.message' <<<"${TAG_JSON}" > rc-tag-message.json
-          jq -e 'type == "object"' rc-tag-message.json >/dev/null || {
-            echo "::error::${RC_TAG} message is not the sealed JSON object"
+          EXPECTED_VERSION="$(
+            git show "${SOURCE_COMMIT}:src/version.py" |
+              sed -n 's/^VERSION = "\([^"[:space:]]*\)"$/\1/p'
+          )"
+          [[ -n "${EXPECTED_VERSION}" ]] || {
+            echo "::error::Could not determine the application version of ${SOURCE_COMMIT}"
             exit 1
           }
-          jq -e \
-            --arg sourceCommit "${SOURCE_COMMIT}" \
-            --arg imageDigest "${IMAGE_DIGEST}" \
-            --argjson developmentRunId "${DEVELOPMENT_RUN_ID}" \
-            --arg manifest "${DOCUMENTATION_MANIFEST_SHA256}" \
-            '.sourceCommit == $sourceCommit
-             and .imageDigest == $imageDigest
-             and .developmentRunId == $developmentRunId
-             and .documentationManifestSha256 == $manifest
-             and ((.workflowRunId | type) == "number" and .workflowRunId > 0)
-             and ((.gateCycle | type) == "number" and .gateCycle > 0)' \
-            rc-tag-message.json >/dev/null || {
-              echo "::error::${RC_TAG} sealed metadata does not match the requested source, digest, Development run and documentation manifest"
-              exit 1
-            }
-          RC_WORKFLOW_RUN_ID="$(jq -r '.workflowRunId' rc-tag-message.json)"
-          GATE_CYCLE="$(jq -r '.gateCycle' rc-tag-message.json)"
+          python .github/scripts/dokploy_release.py health \
+            --health-url "${CE_DEVELOPMENT_HEALTH_URL}" \
+            --expected-version "${EXPECTED_VERSION}"
 
-          # The GitHub prerelease for the tag is non-draft and records the
-          # same source, image and manifest.
-          RELEASE_JSON="$(gh release view "${RC_TAG}" --repo "${GITHUB_REPOSITORY}" --json isDraft,isPrerelease,tagName,body)" || {
-            echo "::error::GitHub prerelease ${RC_TAG} does not exist"
+          # The image was built and deployed by a successful push CI run of
+          # exactly this commit on development.
+          DEVELOPMENT_RUN_ID="$(
+            gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=development&event=push&status=success&head_sha=${SOURCE_COMMIT}&per_page=1" \
+              --jq '.workflow_runs[0].id // empty'
+          )"
+          [[ "${DEVELOPMENT_RUN_ID}" =~ ^[1-9][0-9]*$ ]] || {
+            echo "::error::No successful push CI run of ${SOURCE_COMMIT} on development"
             exit 1
           }
-          [[ "$(jq -r '.isDraft' <<<"${RELEASE_JSON}")" == "false" && "$(jq -r '.isPrerelease' <<<"${RELEASE_JSON}")" == "true" ]] || {
-            echo "::error::Release ${RC_TAG} must be a non-draft prerelease"
-            exit 1
-          }
-          RELEASE_BODY="$(jq -r '.body' <<<"${RELEASE_JSON}")"
-          for needle in \
-            "${SOURCE_COMMIT}" \
-            "${IMAGE_REPOSITORY}@${IMAGE_DIGEST}" \
-            "${DOCUMENTATION_MANIFEST_SHA256}"
-          do
-            grep -Fq -- "${needle}" <<<"${RELEASE_BODY}" || {
-              echo "::error::Prerelease ${RC_TAG} body does not record ${needle}"
-              exit 1
-            }
-          done
-
-          # The Development run built exactly this source.
-          RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${DEVELOPMENT_RUN_ID}")" || {
-            echo "::error::Development run ${DEVELOPMENT_RUN_ID} was not found"
-            exit 1
-          }
+          RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${DEVELOPMENT_RUN_ID}")"
           [[ "$(jq -r '.path' <<<"${RUN}")" == ".github/workflows/ci.yml" \
             && "$(jq -r '.event' <<<"${RUN}")" == "push" \
             && "$(jq -r '.head_branch' <<<"${RUN}")" == "development" \
-            && "$(jq -r '.status' <<<"${RUN}")" == "completed" \
             && "$(jq -r '.conclusion' <<<"${RUN}")" == "success" \
             && "$(jq -r '.head_sha' <<<"${RUN}")" == "${SOURCE_COMMIT}" ]] || {
             echo "::error::Run ${DEVELOPMENT_RUN_ID} is not a successful push CI run of ${SOURCE_COMMIT} on development"
             exit 1
           }
 
-          # The run that sealed the RC is a successful prepare-rc.yml dispatch
-          # on development, not an arbitrary run id copied from the tag message.
-          RC_RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RC_WORKFLOW_RUN_ID}")" || {
-            echo "::error::RC workflow run ${RC_WORKFLOW_RUN_ID} was not found"
-            exit 1
-          }
-          [[ "$(jq -r '.path' <<<"${RC_RUN}")" == ".github/workflows/prepare-rc.yml" \
-            && "$(jq -r '.event' <<<"${RC_RUN}")" == "workflow_dispatch" \
-            && "$(jq -r '.head_branch' <<<"${RC_RUN}")" == "development" \
-            && "$(jq -r '.status' <<<"${RC_RUN}")" == "completed" \
-            && "$(jq -r '.conclusion' <<<"${RC_RUN}")" == "success" ]] || {
-            echo "::error::RC workflow run ${RC_WORKFLOW_RUN_ID} is not a successful prepare-rc.yml dispatch on development"
-            exit 1
-          }
-
           {
-            echo "tag_object_sha=${TAG_OBJECT_SHA}"
-            echo "rc_workflow_run_id=${RC_WORKFLOW_RUN_ID}"
-            echo "gate_cycle=${GATE_CYCLE}"
-            echo "image_digest=${IMAGE_DIGEST}"
+            echo "source_commit=${SOURCE_COMMIT}"
+            echo "development_sha=${DEVELOPMENT_SHA}"
+            echo "stage_before=${STAGE_BEFORE}"
+            echo "expected_version=${EXPECTED_VERSION}"
+            echo "development_run_id=${DEVELOPMENT_RUN_ID}"
           } >> "${GITHUB_OUTPUT}"
-
-          echo "PASS: ${RC_TAG} seals ${SOURCE_COMMIT}, ${IMAGE_DIGEST}, Development run ${DEVELOPMENT_RUN_ID} and manifest ${DOCUMENTATION_MANIFEST_SHA256}"
+          echo "PASS: Development runs ${SOURCE_COMMIT} (version ${EXPECTED_VERSION}, CI run ${DEVELOPMENT_RUN_ID})"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
@@ -327,45 +162,83 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify the immutable image digest
+      - name: Resolve the immutable image digest
+        id: image
         shell: bash
         env:
-          IMAGE_DIGEST: ${{ steps.rc.outputs.image_digest }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.source_commit }}
         run: |
           set -euo pipefail
 
-          IMAGE_REF="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
-
           # The digest of an image is the SHA-256 of its raw manifest.
-          ACTUAL_DIGEST="sha256:$(
-            docker buildx imagetools inspect "${IMAGE_REF}" --raw |
-              sha256sum |
-              awk '{print $1}'
-          )"
-          [[ "${ACTUAL_DIGEST}" == "${IMAGE_DIGEST}" ]] || {
-            echo "::error::${IMAGE_REF} resolved to ${ACTUAL_DIGEST}"
-            exit 1
-          }
-
-          # The Development SHA tag binds the digest to the source commit.
           SHA_TAG="${IMAGE_REPOSITORY}:sha-${SOURCE_COMMIT}"
-          TAG_DIGEST="sha256:$(
+          IMAGE_DIGEST="sha256:$(
             docker buildx imagetools inspect "${SHA_TAG}" --raw |
               sha256sum |
               awk '{print $1}'
           )"
-          [[ "${TAG_DIGEST}" == "${IMAGE_DIGEST}" ]] || {
-            echo "::error::${SHA_TAG} resolves to ${TAG_DIGEST}, expected ${IMAGE_DIGEST}"
+          BY_DIGEST="sha256:$(
+            docker buildx imagetools inspect "${IMAGE_REPOSITORY}@${IMAGE_DIGEST}" --raw |
+              sha256sum |
+              awk '{print $1}'
+          )"
+          [[ "${BY_DIGEST}" == "${IMAGE_DIGEST}" ]] || {
+            echo "::error::${IMAGE_REPOSITORY}@${IMAGE_DIGEST} resolved to ${BY_DIGEST}"
             exit 1
           }
 
-          echo "PASS: ${IMAGE_REF} and ${SHA_TAG} agree"
+          {
+            echo "image_digest=${IMAGE_DIGEST}"
+            echo "promotion_image=${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+          } >> "${GITHUB_OUTPUT}"
+          echo "PASS: ${SHA_TAG} is ${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+
+      - name: Compute the release candidate tag
+        id: rc
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.source_commit }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}
+        run: |
+          set -euo pipefail
+
+          CHOICE="$(
+            python .github/scripts/release_tags.py next-rc \
+              --commit "${SOURCE_COMMIT}" \
+              --digest "${IMAGE_DIGEST}"
+          )"
+          RC_TAG="$(jq -r '.rcTag' <<<"${CHOICE}")"
+          RC_REUSE="$(jq -r '.reuse' <<<"${CHOICE}")"
+          RC_TAG_PATTERN='^v27\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-rc\.[1-9][0-9]*$'
+          [[ "${RC_TAG}" =~ ${RC_TAG_PATTERN} ]] || {
+            echo "::error::Computed candidate tag ${RC_TAG} is not v27.<minor>.<patch>-rc.<number>"
+            exit 1
+          }
+
+          # A new tag name must be free on GitHub, not only in this checkout.
+          if [[ "${RC_REUSE}" == "false" ]] &&
+            gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RC_TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag ${RC_TAG} already exists on GitHub; re-run after the checkout sees it"
+            exit 1
+          fi
+
+          {
+            echo "rc_tag=${RC_TAG}"
+            echo "rc_reuse=${RC_REUSE}"
+          } >> "${GITHUB_OUTPUT}"
+          if [[ "${RC_REUSE}" == "true" ]]; then
+            echo "PASS: candidate ${RC_TAG} already seals ${SOURCE_COMMIT} and ${IMAGE_DIGEST}; it is reused"
+          else
+            echo "PASS: next candidate tag is ${RC_TAG}"
+          fi
 
       - name: Checkout candidate source for the full gate
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.source_commit }}
+          ref: ${{ steps.source.outputs.source_commit }}
           path: candidate
+          persist-credentials: false
 
       - name: Set up Python for the full gate
         uses: actions/setup-python@v7
@@ -422,23 +295,131 @@ jobs:
               echo "STAGE CE SILENT FULL GATE PASSED"
             '
 
-      - name: Promote CE to Stage
-        id: deploy
+      - name: Tag the release candidate
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.source_commit }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}
+          DEVELOPMENT_RUN_ID: ${{ steps.source.outputs.development_run_id }}
+          RC_TAG: ${{ steps.rc.outputs.rc_tag }}
+          RC_REUSE: ${{ steps.rc.outputs.rc_reuse }}
         run: |
           set -euo pipefail
 
-          EXPECTED_VERSION="$(
-            git show "${SOURCE_COMMIT}:src/version.py" |
-              sed -n 's/^VERSION = "\([^"[:space:]]*\)"$/\1/p'
+          if [[ "${RC_REUSE}" == "true" ]]; then
+            echo "Candidate ${RC_TAG} already exists for this commit and digest; nothing to tag"
+            exit 0
+          fi
+
+          # The tag message is exactly this JSON object; release.yml reads it.
+          TAG_MESSAGE="$(
+            jq -cn \
+              --arg sourceCommit "${SOURCE_COMMIT}" \
+              --arg imageDigest "${IMAGE_DIGEST}" \
+              --argjson developmentRunId "${DEVELOPMENT_RUN_ID}" \
+              --argjson workflowRunId "${GITHUB_RUN_ID}" \
+              '{sourceCommit: $sourceCommit, imageDigest: $imageDigest, developmentRunId: $developmentRunId, workflowRunId: $workflowRunId}'
           )"
-          [[ -n "${EXPECTED_VERSION}" ]] || {
-            echo "::error::Could not determine version for ${SOURCE_COMMIT}"
+
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            echo "DRY RUN: would create annotated tag ${RC_TAG} on ${SOURCE_COMMIT} with message ${TAG_MESSAGE}"
+            exit 0
+          fi
+
+          TAG_OBJECT_SHA="$(
+            gh api --method POST \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/git/tags" \
+              -f tag="${RC_TAG}" \
+              -f message="${TAG_MESSAGE}" \
+              -f object="${SOURCE_COMMIT}" \
+              -f type="commit" \
+              -f 'tagger[name]=github-actions[bot]' \
+              -f 'tagger[email]=41898282+github-actions[bot]@users.noreply.github.com' \
+              --jq '.sha'
+          )"
+          [[ "${TAG_OBJECT_SHA}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::GitHub did not return a valid annotated tag object SHA"
+            exit 1
+          }
+          gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${RC_TAG}" \
+            -f sha="${TAG_OBJECT_SHA}" \
+            >/dev/null
+
+          TAG_TARGET="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${TAG_OBJECT_SHA}" --jq '.object.sha')"
+          [[ "${TAG_TARGET}" == "${SOURCE_COMMIT}" ]] || {
+            echo "::error::${RC_TAG} points at ${TAG_TARGET}, expected ${SOURCE_COMMIT}"
+            exit 1
+          }
+          echo "PASS: annotated tag ${RC_TAG} seals ${SOURCE_COMMIT} and ${IMAGE_DIGEST}"
+
+      - name: Push the immutable candidate image tag
+        shell: bash
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}
+          RC_TAG: ${{ steps.rc.outputs.rc_tag }}
+        run: |
+          set -euo pipefail
+
+          command -v skopeo >/dev/null || {
+            sudo apt-get update
+            sudo apt-get install -y skopeo
+          }
+          SOURCE_IMAGE="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+          RC_IMAGE="${IMAGE_REPOSITORY}:${RC_TAG#v}"
+
+          CURRENT="$(skopeo inspect --format '{{.Digest}}' "docker://${RC_IMAGE}" 2>/dev/null || true)"
+          if [[ "${CURRENT}" == "${IMAGE_DIGEST}" ]]; then
+            echo "PASS: ${RC_IMAGE} already is ${IMAGE_DIGEST}"
+            exit 0
+          fi
+          [[ -z "${CURRENT}" ]] || {
+            echo "::error::${RC_IMAGE} already points at ${CURRENT}; a candidate tag is never moved"
             exit 1
           }
 
-          echo "Promoting ${PROMOTION_IMAGE} (candidate ${RC_TAG}, request ${REQUEST_ID})"
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            skopeo inspect --format '{{.Digest}}' "docker://${SOURCE_IMAGE}" >/dev/null
+            echo "DRY RUN: would copy ${SOURCE_IMAGE} to ${RC_IMAGE} without rebuilding"
+            exit 0
+          fi
 
+          skopeo copy --all --preserve-digests "docker://${SOURCE_IMAGE}" "docker://${RC_IMAGE}"
+          ACTUAL="$(skopeo inspect --format '{{.Digest}}' "docker://${RC_IMAGE}")"
+          [[ "${ACTUAL}" == "${IMAGE_DIGEST}" ]] || {
+            echo "::error::${RC_IMAGE} resolved to ${ACTUAL}, expected ${IMAGE_DIGEST}"
+            exit 1
+          }
+          echo "PASS: ${RC_IMAGE} -> ${IMAGE_DIGEST}"
+
+      - name: Promote CE to Stage
+        id: deploy
+        shell: bash
+        env:
+          SOURCE_COMMIT: ${{ steps.source.outputs.source_commit }}
+          PROMOTION_IMAGE: ${{ steps.image.outputs.promotion_image }}
+          EXPECTED_VERSION: ${{ steps.source.outputs.expected_version }}
+          RC_TAG: ${{ steps.rc.outputs.rc_tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            STAGE_IMAGE="$(
+              python .github/scripts/dokploy_release.py current-image \
+                --application-id "${CE_STAGE_APPLICATION_ID}"
+            )"
+            python .github/scripts/dokploy_release.py health \
+              --health-url "${CE_STAGE_HEALTH_URL}" \
+              --expected-version ""
+            echo "DRY RUN: Stage runs ${STAGE_IMAGE}; would deploy ${PROMOTION_IMAGE} (candidate ${RC_TAG}) and wait for version ${EXPECTED_VERSION}"
+            exit 0
+          fi
+
+          echo "Promoting ${PROMOTION_IMAGE} (candidate ${RC_TAG})"
           python .github/scripts/dokploy_release.py deploy \
             --application-id "${CE_STAGE_APPLICATION_ID}" \
             --image "${PROMOTION_IMAGE}" \
@@ -452,14 +433,13 @@ jobs:
       # were already exercised inside the network-isolated full gate above.
       - name: Run notification-silent CE Stage promotion smoke
         id: silent_smoke
+        if: ${{ !inputs.dry_run }}
         shell: bash
+        env:
+          PROMOTION_IMAGE: ${{ steps.image.outputs.promotion_image }}
+          EXPECTED_VERSION: ${{ steps.source.outputs.expected_version }}
         run: |
           set -euo pipefail
-
-          EXPECTED_VERSION="$(
-            git show "${SOURCE_COMMIT}:src/version.py" |
-              sed -n 's/^VERSION = "\([^"[:space:]]*\)"$/\1/p'
-          )"
 
           python .github/scripts/dokploy_release.py promotion-smoke \
             --application-id "${CE_STAGE_APPLICATION_ID}" \
@@ -472,174 +452,85 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.source_commit }}
         run: |
           set -euo pipefail
 
           CURRENT_STAGE_SHA="$(
-            gh api \
-              "repos/${GITHUB_REPOSITORY}/git/ref/heads/stage" \
-              --jq '.object.sha'
+            gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/stage" --jq '.object.sha'
           )"
 
-          if [[ "${CURRENT_STAGE_SHA}" != "${SOURCE_COMMIT}" ]]; then
-            COMPARE="$(
-              gh api \
-                "repos/${GITHUB_REPOSITORY}/compare/${CURRENT_STAGE_SHA}...${SOURCE_COMMIT}"
-            )"
-            STATUS="$(jq -r '.status' <<<"${COMPARE}")"
-            BEHIND_BY="$(jq -r '.behind_by' <<<"${COMPARE}")"
-
-            [[ "${BEHIND_BY}" == "0" && "${STATUS}" == "ahead" ]] || {
-              echo "::error::stage cannot fast-forward from ${CURRENT_STAGE_SHA} to ${SOURCE_COMMIT} (status=${STATUS}, behind_by=${BEHIND_BY})"
-              exit 1
-            }
-
-            gh api --method PATCH \
-              "repos/${GITHUB_REPOSITORY}/git/refs/heads/stage" \
-              -f sha="${SOURCE_COMMIT}" \
-              -F force=false \
-              >/dev/null
+          if [[ "${CURRENT_STAGE_SHA}" == "${SOURCE_COMMIT}" ]]; then
+            echo "PASS: stage already references ${SOURCE_COMMIT}"
+            exit 0
           fi
+
+          COMPARE="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${CURRENT_STAGE_SHA}...${SOURCE_COMMIT}")"
+          STATUS="$(jq -r '.status' <<<"${COMPARE}")"
+          BEHIND_BY="$(jq -r '.behind_by' <<<"${COMPARE}")"
+          [[ "${BEHIND_BY}" == "0" && "${STATUS}" == "ahead" ]] || {
+            echo "::error::stage cannot fast-forward from ${CURRENT_STAGE_SHA} to ${SOURCE_COMMIT} (status=${STATUS}, behind_by=${BEHIND_BY})"
+            exit 1
+          }
+
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            echo "DRY RUN: would fast-forward stage from ${CURRENT_STAGE_SHA} to ${SOURCE_COMMIT}"
+            exit 0
+          fi
+
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/git/refs/heads/stage" \
+            -f sha="${SOURCE_COMMIT}" \
+            -F force=false \
+            >/dev/null
 
           STAGE_SHA=""
           for attempt in {1..15}; do
-            STAGE_SHA="$(
-              gh api \
-                "repos/${GITHUB_REPOSITORY}/git/ref/heads/stage" \
-                --jq '.object.sha'
-            )"
-
-            if [[ "${STAGE_SHA}" == "${SOURCE_COMMIT}" ]]; then
-              break
-            fi
-
+            STAGE_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/stage" --jq '.object.sha')"
+            [[ "${STAGE_SHA}" == "${SOURCE_COMMIT}" ]] && break
             echo "Waiting for stage ref propagation (${attempt}/15): ${STAGE_SHA}"
             sleep 2
           done
-
           [[ "${STAGE_SHA}" == "${SOURCE_COMMIT}" ]] || {
             echo "::error::stage branch is ${STAGE_SHA}, expected ${SOURCE_COMMIT}"
             exit 1
           }
-
           echo "Stage branch now references ${STAGE_SHA}"
 
-      # Completion receipt consumed by private verification. It is written only
-      # after the deployment, the passive smoke and the stage branch update all
-      # succeeded, and it restates the sealed RC evidence verified above. It has
-      # no deployment id: dokploy_release.py deploy does not expose one, and the
-      # deployment itself is proven by the exact-image and version checks above.
-      - name: Emit verified Stage completion receipt
-        id: receipt
+      - name: Record CE Stage promotion
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
-          IMAGE_DIGEST: ${{ steps.rc.outputs.image_digest }}
-          RC_TAG_OBJECT_SHA: ${{ steps.rc.outputs.tag_object_sha }}
-          RC_WORKFLOW_RUN_ID: ${{ steps.rc.outputs.rc_workflow_run_id }}
-          GATE_CYCLE: ${{ steps.rc.outputs.gate_cycle }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.source_commit }}
+          STAGE_BEFORE: ${{ steps.source.outputs.stage_before }}
+          PROMOTION_IMAGE: ${{ steps.image.outputs.promotion_image }}
+          EXPECTED_VERSION: ${{ steps.source.outputs.expected_version }}
+          DEVELOPMENT_RUN_ID: ${{ steps.source.outputs.development_run_id }}
+          RC_TAG: ${{ steps.rc.outputs.rc_tag }}
+          RC_REUSE: ${{ steps.rc.outputs.rc_reuse }}
         run: |
-          set -euo pipefail
-
-          STAGE_SHA="$(
-            gh api \
-              "repos/${GITHUB_REPOSITORY}/git/ref/heads/stage" \
-              --jq '.object.sha'
-          )"
-          [[ "${STAGE_SHA}" == "${SOURCE_COMMIT}" ]] || {
-            echo "::error::stage branch is ${STAGE_SHA}, expected ${SOURCE_COMMIT}"
-            exit 1
-          }
-
-          # Never record a free-text reference with control characters.
-          SAFE_CHANGE_REFERENCE="$(printf '%s' "${CHANGE_REFERENCE}" | tr -d '\000-\037\177' | cut -c1-200)"
-
-          jq -n \
-            --arg repository "${GITHUB_REPOSITORY}" \
-            --arg requestId "${REQUEST_ID}" \
-            --arg version "${RELEASE_VERSION}" \
-            --arg rcTag "${RC_TAG}" \
-            --arg rcTagObjectSha "${RC_TAG_OBJECT_SHA}" \
-            --arg sourceCommit "${SOURCE_COMMIT}" \
-            --arg image "${PROMOTION_IMAGE}" \
-            --arg imageDigest "${IMAGE_DIGEST}" \
-            --arg manifest "${DOCUMENTATION_MANIFEST_SHA256}" \
-            --argjson developmentRunId "${DEVELOPMENT_RUN_ID}" \
-            --argjson rcWorkflowRunId "${RC_WORKFLOW_RUN_ID}" \
-            --argjson gateCycle "${GATE_CYCLE}" \
-            --argjson stagePromotionRunId "${GITHUB_RUN_ID}" \
-            --argjson runAttempt "${GITHUB_RUN_ATTEMPT}" \
-            --arg stageApplicationId "${CE_STAGE_APPLICATION_ID}" \
-            --arg stageHealthUrl "${CE_STAGE_HEALTH_URL}" \
-            --arg stageBranchSha "${STAGE_SHA}" \
-            --arg changeReference "${SAFE_CHANGE_REFERENCE}" \
-            --arg completedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{
-              schemaVersion: 1,
-              kind: "nowlert-ce-stage-promotion",
-              repository: $repository,
-              requestId: $requestId,
-              version: $version,
-              rcTag: $rcTag,
-              rcTagObjectSha: $rcTagObjectSha,
-              sourceCommit: $sourceCommit,
-              image: $image,
-              imageDigest: $imageDigest,
-              documentationManifestSha256: $manifest,
-              developmentRunId: $developmentRunId,
-              rcWorkflowRunId: $rcWorkflowRunId,
-              gateCycle: $gateCycle,
-              stagePromotionRunId: $stagePromotionRunId,
-              runAttempt: $runAttempt,
-              stageApplicationId: $stageApplicationId,
-              stageHealthUrl: $stageHealthUrl,
-              stageBranchSha: $stageBranchSha,
-              changeReference: $changeReference,
-              rebuilt: false,
-              completedAt: $completedAt
-            }' > stage-promotion-receipt.json
-
-          echo "STAGE_PROMOTION_RECEIPT $(jq -c . stage-promotion-receipt.json)"
-          echo "receipt_path=stage-promotion-receipt.json" >> "${GITHUB_OUTPUT}"
-
-      - name: Upload Stage completion receipt
-        uses: actions/upload-artifact@v7
-        with:
-          name: nowlert-ce-stage-promotion-${{ github.run_id }}
-          if-no-files-found: error
-          retention-days: 90
-          path: stage-promotion-receipt.json
-
-      - name: Record successful CE Stage promotion
-        shell: bash
-        env:
-          IMAGE_DIGEST: ${{ steps.rc.outputs.image_digest }}
-          RC_WORKFLOW_RUN_ID: ${{ steps.rc.outputs.rc_workflow_run_id }}
-        run: |
-          SAFE_CHANGE_REFERENCE="$(printf '%s' "${CHANGE_REFERENCE}" | tr -cd 'A-Za-z0-9._:/# @-' | cut -c1-200)"
           {
-            echo "## CE Stage promotion passed"
+            if [[ "${DRY_RUN}" == "true" ]]; then
+              echo "## CE Stage promotion dry run passed (nothing changed)"
+            else
+              echo "## CE Stage promotion passed"
+            fi
             echo
-            echo "- Request: \`${REQUEST_ID}\`"
-            echo "- Release candidate: \`${RC_TAG}\` (version \`${RELEASE_VERSION}\`)"
+            echo "- Source commit (what Development runs): \`${SOURCE_COMMIT}\`"
+            echo "- Application version: \`${EXPECTED_VERSION}\`"
+            echo "- Development CI run: \`${DEVELOPMENT_RUN_ID}\`"
             echo "- CE image: \`${PROMOTION_IMAGE}\`"
-            echo "- Image digest: \`${IMAGE_DIGEST}\`"
-            echo "- Source commit: \`${SOURCE_COMMIT}\`"
-            echo "- Development run: \`${DEVELOPMENT_RUN_ID}\`"
-            echo "- RC workflow run: \`${RC_WORKFLOW_RUN_ID}\`"
-            echo "- Documentation manifest SHA-256: \`${DOCUMENTATION_MANIFEST_SHA256}\`"
-            echo "- Stage promotion run: \`${GITHUB_RUN_ID}\`"
-            echo "- Change reference: ${SAFE_CHANGE_REFERENCE}"
+            echo "- Release candidate: \`${RC_TAG}\` (reused: ${RC_REUSE})"
+            echo "- Stage branch before: \`${STAGE_BEFORE}\`"
             echo "- Full notification-silent gate: passed"
             echo "- Gate network: isolated namespace, no default route or global address"
-            echo "- Live Stage verification: read-only passive smoke passed"
-            echo "- Completion receipt: \`stage-promotion-receipt.json\` (artifact nowlert-ce-stage-promotion-${GITHUB_RUN_ID})"
             echo "- External notification delivery during promotion: disabled"
             echo "- Rebuild performed: no"
           } >> "${GITHUB_STEP_SUMMARY}"
 
+      # failure() is required: without a status function GitHub adds an
+      # implicit success() and the rollback would never run after a failure.
       - name: Roll back CE after a failed Stage gate
-        if: ${{ (steps.deploy.outcome == 'failure' || steps.silent_smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
+        if: ${{ failure() && (steps.deploy.outcome == 'failure' || steps.silent_smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
         continue-on-error: true
         shell: bash
         env:

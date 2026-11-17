@@ -26,7 +26,7 @@ def load_helper():
 def test_release_workflow_yaml_is_valid() -> None:
     for relative in (
         ".github/workflows/promote-stage.yml",
-        ".github/workflows/finalize-release.yml",
+        ".github/workflows/release.yml",
     ):
         payload = yaml.safe_load((ROOT / relative).read_text(encoding="utf-8"))
         assert isinstance(payload, dict), relative
@@ -115,39 +115,39 @@ def test_promotion_smoke_function_is_passive_and_read_only() -> None:
     assert '"post"' not in image_lookup
 
 
-def test_release_finalization_requires_stage_silent_gate_only() -> None:
-    finalizer = (
-        ROOT / ".github" / "scripts" / "finalize_release.py"
-    ).read_text(encoding="utf-8")
-    workflow = (
-        ROOT / ".github" / "workflows" / "finalize-release.yml"
-    ).read_text(encoding="utf-8")
+def test_release_trusts_only_the_candidate_the_silent_gate_sealed() -> None:
+    stage = (ROOT / ".github" / "workflows" / "promote-stage.yml").read_text(
+        encoding="utf-8"
+    )
+    workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
 
-    assert "STAGE CE SILENT PROMOTION SMOKE PASSED" in finalizer
-    assert "SILENT_PROMOTION_FORBIDDEN_LOG_FRAGMENTS" in finalizer
-    assert "PRODUCTION REFERENCE CE SILENT PROMOTION SMOKE PASSED" not in finalizer
-    assert "production_reference" not in finalizer.casefold()
+    # promote-stage.yml seals the candidate only after the silent full gate.
+    assert stage.index("STAGE CE SILENT FULL GATE PASSED") < stage.index(
+        "- name: Tag the release candidate"
+    )
+    # release.yml releases the stage head only when Stage runs the digest that
+    # candidate sealed, and never deploys or runs delivery tests itself.
+    assert "release_tags.py stage-candidate" in workflow
+    assert "dokploy_release.py current-image" in workflow
+    assert "dokploy_release.py deploy" not in workflow
+    assert "promotion-smoke" not in workflow
+    assert "run-schedule" not in workflow
     assert "production_reference_run_id" not in workflow
     assert "CE_PRODREF_APPLICATION_ID" not in workflow
-    assert "actions: read" in workflow
-    assert "Validate Development and Stage promotion chain" in workflow
-    assert "python .github/scripts/finalize_release.py" in workflow
-    assert "--development-run" in workflow
-    assert "--stage-run" in workflow
-    assert "--final-image" in workflow
-    assert "--source-commit" in workflow
     assert "aws-actions/configure-aws-credentials" not in workflow
     assert "GitHubActions-NowlertCE-LedgerWriter" not in workflow
     assert "ledger.py" not in workflow
     assert "id-token: write" not in workflow
-    assert "Notification delivery tests during Stage promotion: disabled" in workflow
+    assert "Production deployment: none (CE)" in workflow
 
 
 def test_release_pipeline_has_no_aws_ledger_dependency() -> None:
     stage = (ROOT / ".github" / "workflows" / "promote-stage.yml").read_text(
         encoding="utf-8"
     )
-    release = (ROOT / ".github" / "workflows" / "finalize-release.yml").read_text(
+    release = (ROOT / ".github" / "workflows" / "release.yml").read_text(
         encoding="utf-8"
     )
 

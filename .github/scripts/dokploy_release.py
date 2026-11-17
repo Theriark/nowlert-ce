@@ -300,6 +300,16 @@ def assert_image(args: argparse.Namespace) -> None:
     print(f"PASS: {args.application_id} runs {observed}")
 
 
+def show_image(args: argparse.Namespace) -> None:
+    """Read-only: print the image a Dokploy application is configured to run."""
+    print(current_image(args.application_id))
+
+
+def health(args: argparse.Namespace) -> None:
+    """Read-only: wait for a healthy response reporting the expected version."""
+    wait_health(args.health_url, args.timeout, expected_version=args.expected_version)
+
+
 def promotion_smoke(args: argparse.Namespace) -> None:
     """Passively verify a promoted image without submitting notification events."""
     validate_image(args.image)
@@ -434,6 +444,16 @@ def build_parser() -> argparse.ArgumentParser:
     assert_parser.add_argument("--application-id", required=True)
     assert_parser.add_argument("--image", required=True)
     assert_parser.set_defaults(func=assert_image)
+
+    image_parser = subparsers.add_parser("current-image")
+    image_parser.add_argument("--application-id", required=True)
+    image_parser.set_defaults(func=show_image)
+
+    health_parser = subparsers.add_parser("health")
+    health_parser.add_argument("--health-url", required=True)
+    health_parser.add_argument("--expected-version", required=True)
+    health_parser.add_argument("--timeout", type=int, default=120)
+    health_parser.set_defaults(func=health)
 
     smoke_parser = subparsers.add_parser("promotion-smoke")
     smoke_parser.add_argument("--application-id", required=True)
