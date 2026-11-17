@@ -192,60 +192,55 @@ def test_release_notes_cover_v316_compatibility_and_rollback():
 
 
 def test_release_workflow_is_guarded_and_reuses_approved_image():
-    finalization = (
-        ROOT / ".github" / "workflows" / "finalize-release.yml"
-    ).read_text(encoding="utf-8")
+    release = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
     stage = (ROOT / ".github" / "workflows" / "promote-stage.yml").read_text(
         encoding="utf-8"
     )
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 
-    assert "final_image:" in finalization
-    assert "skopeo copy --all --preserve-digests" in finalization
-    assert 'docker://ghcr.io/theriark/nowlert-ce:${RELEASE_VERSION}' in finalization
-    assert 'docker://docker.io/theriark/nowlert-ce:${RELEASE_VERSION}' in finalization
-    assert "docker/build-push-action" not in finalization
+    # The release reads the digest Stage runs; it takes no image input.
+    assert "dokploy_release.py current-image" in release
+    assert "skopeo copy --all --preserve-digests" in release
+    assert '"${IMAGE_REPOSITORY}:${VERSION}"' in release
+    assert '"${DOCKERHUB_REPOSITORY}:${VERSION}"' in release
+    assert "docker/build-push-action" not in release
 
-    assert '--title "Nowlert CE ${VERSION}"' in finalization
-    assert 'gh release create "${VERSION}"' in finalization
-    assert "Release finalization must be launched from stage" in finalization
-    assert '[[ "${VERSION}" == "v${SOURCE_VERSION}" ]]' in finalization
-    assert "Release tag ${VERSION} does not match source version" in finalization
-    assert 'docs/releases/${VERSION}.md' in finalization
-    assert 'docs/${VERSION}-qa-checklist.md' in finalization
-    assert "refs/remotes/origin/stage" in finalization
-    assert '[[ "${SOURCE_COMMIT}" == "${STAGE_SHA}" ]]' in finalization
-    assert "Advance main to Stage-approved source" in finalization
-    assert "git/refs/heads/main" in finalization
-    assert "-F force=false" in finalization
-    assert "-F force=true" not in finalization
-    assert "Waiting for main ref propagation" in finalization
-    assert "production_reference_run_id" not in finalization
+    assert '--title "Nowlert CE ${STABLE_TAG}"' in release
+    assert 'gh release create "${STABLE_TAG}"' in release
+    assert "releases/generate-notes" in release
+    assert "The release must be launched from development" in release
+    assert "refs/remotes/origin/stage" in release
+    assert "git/refs/heads/main" in release
+    assert "-F force=false" in release
+    assert "force=true" not in release
+    assert "production_reference_run_id" not in release
 
     assert "      - main\n" not in ci
     assert "-F force=false" in stage
     assert "-F force=true" not in stage
     assert "Waiting for stage ref propagation" in stage
 
-    assert "fortpt/nowlert:" not in finalization
-    assert "ghcr.io/fortpt/nowlert:" not in finalization
+    assert "fortpt/nowlert:" not in release
+    assert "ghcr.io/fortpt/nowlert:" not in release
 
 
 def test_release_workflows_use_current_action_majors():
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    finalization = (
-        ROOT / ".github" / "workflows" / "finalize-release.yml"
-    ).read_text(encoding="utf-8")
+    release = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
 
     assert "actions/checkout@v7" in ci
     assert "actions/setup-python@v7" in ci
     assert "actions/setup-node@v7" in ci
 
-    assert "actions/checkout@v7" in finalization
-    assert "docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4" in finalization
-    assert "docker/setup-buildx-action" not in finalization
-    assert "docker/build-push-action" not in finalization
-    assert "skopeo copy --all --preserve-digests" in finalization
+    assert "actions/checkout@v7" in release
+    assert "docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4" in release
+    assert "docker/setup-buildx-action" not in release
+    assert "docker/build-push-action" not in release
+    assert "skopeo copy --all --preserve-digests" in release
 
 
 def test_development_ci_targets_only_ce():

@@ -15,10 +15,7 @@ def workflow(name):
 def test_environment_branch_and_immutable_promotion_contract():
     ci = workflow("ci.yml")
     stage = workflow("promote-stage.yml")
-    finalization = workflow("finalize-release.yml")
-    finalizer = (
-        ROOT / ".github" / "scripts" / "finalize_release.py"
-    ).read_text(encoding="utf-8")
+    release = workflow("release.yml")
 
     assert "- development" in ci
     assert "- main" not in ci
@@ -37,11 +34,10 @@ def test_environment_branch_and_immutable_promotion_contract():
     assert "Development immutable image:" in ci
     assert not (ROOT / ".github" / "workflows" / "docker-development.yml").exists()
 
-    # Finalization must validate the successful development CI push run, not a
-    # removed standalone Development Image workflow.
-    assert '"development": "Continuous Integration"' in finalizer
-    assert '"development": {"push"}' in finalizer
-    assert '"development": "Development Image"' not in finalizer
+    # Stage promotion proves the Development image came from a successful
+    # development CI push run, not a removed standalone Development workflow.
+    assert "actions/workflows/ci.yml/runs?branch=development&event=push" in stage
+    assert '"$(jq -r \'.event\' <<<"${RUN}")" == "push"' in stage
 
     # Stage promotion owns only the Stage branch. It must never write main.
     assert "contents: write" in stage
@@ -55,40 +51,43 @@ def test_environment_branch_and_immutable_promotion_contract():
     assert "cannot fast-forward" in stage
 
     assert not (ROOT / ".github" / "workflows" / "promote-production-reference.yml").exists()
+    # The release and candidate workflows are folded into the two buttons.
+    for removed in ("finalize-release.yml", "prepare-rc.yml"):
+        assert not (ROOT / ".github" / "workflows" / removed).exists(), removed
+    assert not (ROOT / ".github" / "scripts" / "finalize_release.py").exists()
 
-    # Finalize runs from the Stage-approved source, proves main can fast-forward,
-    # and owns the only Stage -> main branch update.
-    assert "environment: stage" in finalization
-    assert "contents: write" in finalization
-    assert "packages: write" in finalization
-    assert '[[ "${GITHUB_REF}" == "refs/heads/stage" ]]' in finalization
-    assert "Release finalization must be launched from stage" in finalization
-    assert "refs/remotes/origin/main" in finalization
-    assert "refs/remotes/origin/stage" in finalization
-    assert '[[ "${SOURCE_COMMIT}" == "${STAGE_SHA}" ]]' in finalization
-    assert 'git merge-base --is-ancestor "${MAIN_SHA}" "${SOURCE_COMMIT}"' in finalization
-    assert "Advance main to Stage-approved source" in finalization
-    assert "git/refs/heads/main" in finalization
-    assert "Waiting for main ref propagation" in finalization
-    assert "-F force=false" in finalization
-    assert "-F force=true" not in finalization
-    assert "production_reference_run_id" not in finalization
-    assert "CE_PRODREF_APPLICATION_ID" not in finalization
-    assert "CE_RELEASE_TOKEN" not in finalization
-    assert "GH_TOKEN: ${{ github.token }}" in finalization
+    # The release runs from development, releases the stage head and owns the
+    # only Stage -> main update: a merge commit, never a force push, and never
+    # main into development.
+    assert "environment: stage" in release
+    assert "contents: write" in release
+    assert "packages: write" in release
+    assert '[[ "${GITHUB_REF}" == "refs/heads/development" ]]' in release
+    assert 'STAGE_SHA="$(git rev-parse refs/remotes/origin/stage)"' in release
+    assert 'git merge-base --is-ancestor "${STAGE_SHA}" "${MAIN_SHA}"' in release
+    assert '-f "parents[]=${MAIN_SHA}"' in release
+    assert '-f "parents[]=${STAGE_SHA}"' in release
+    assert "git/refs/heads/main" in release
+    assert "git/refs/heads/development" not in release
+    assert "-F force=false" in release
+    assert "force=true" not in release
+    assert "production_reference_run_id" not in release
+    assert "CE_PRODREF_APPLICATION_ID" not in release
+    assert "CE_RELEASE_TOKEN" not in release
+    assert "GH_TOKEN: ${{ github.token }}" in release
 
-    # Finalize CE Release is the only stable publication workflow. It must
-    # reuse the Stage-approved digest, publish both registries, and verify all
-    # aliases without rebuilding the image.
+    # release.yml is the only stable publication workflow. It reuses the
+    # digest Stage runs, publishes both registries and verifies every alias
+    # without rebuilding the image.
     assert not (ROOT / ".github" / "workflows" / "docker-release.yml").exists()
-    assert "docker/build-push-action" not in finalization
-    assert "docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4" in finalization
-    assert "DOCKERHUB_USERNAME" in finalization
-    assert "DOCKERHUB_TOKEN" in finalization
-    assert "skopeo copy --all --preserve-digests" in finalization
-    assert 'ghcr.io/theriark/nowlert-ce:${RELEASE_VERSION}' in finalization
-    assert "ghcr.io/theriark/nowlert-ce:latest" in finalization
-    assert 'docker.io/theriark/nowlert-ce:${RELEASE_VERSION}' in finalization
-    assert "docker.io/theriark/nowlert-ce:latest" in finalization
-    assert "Verify all stable aliases use the approved digest" in finalization
-    assert "Image rebuild performed: no" in finalization
+    assert "docker/build-push-action" not in release
+    assert "docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4" in release
+    assert "DOCKERHUB_USERNAME" in release
+    assert "DOCKERHUB_TOKEN" in release
+    assert "skopeo copy --all --preserve-digests" in release
+    assert '"${IMAGE_REPOSITORY}:${VERSION}"' in release
+    assert '"${IMAGE_REPOSITORY}:latest"' in release
+    assert '"${DOCKERHUB_REPOSITORY}:${VERSION}"' in release
+    assert '"${DOCKERHUB_REPOSITORY}:latest"' in release
+    assert "DOCKERHUB_REPOSITORY: docker.io/theriark/nowlert-ce" in release
+    assert "Rebuild performed: no" in release

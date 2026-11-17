@@ -83,7 +83,7 @@ jobs:
               "compose.production.yaml",
               ".github/workflows/ci.yml",
               ".github/workflows/promote-stage.yml",
-              ".github/workflows/finalize-release.yml",
+              ".github/workflows/release.yml",
           ):
               value = yaml.safe_load(Path(name).read_text(encoding="utf-8"))
               if not isinstance(value, dict):

@@ -92,24 +92,19 @@ def test_v316_consolidated_guide_batch_is_packaged():
 
 
 def test_v316_release_safety_contract():
-    finalizer = (ROOT / ".github" / "workflows" / "finalize-release.yml").read_text(encoding="utf-8")
+    release = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     stage = (ROOT / ".github" / "workflows" / "promote-stage.yml").read_text(encoding="utf-8")
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    assert '[[ "${VERSION}" == "v${SOURCE_VERSION}" ]]' in finalizer
-    assert "Release tag ${VERSION} does not match source version" in finalizer
-    assert 'docs/releases/${VERSION}.md' in finalizer
-    assert 'docs/${VERSION}-qa-checklist.md' in finalizer
-    assert "Release finalization must be launched from stage" in finalizer
-    assert "refs/remotes/origin/stage" in finalizer
-    assert '[[ "${SOURCE_COMMIT}" == "${STAGE_SHA}" ]]' in finalizer
-    assert "Advance main to Stage-approved source" in finalizer
-    assert "git/refs/heads/main" in finalizer
-    assert "-F force=false" in finalizer
-    assert "-F force=true" not in finalizer
-    assert "Waiting for main ref propagation" in finalizer
-    assert "production_reference_run_id" not in finalizer
-    assert "skopeo copy --all --preserve-digests" in finalizer
-    assert "Verify all stable aliases use the approved digest" in finalizer
+    assert not (ROOT / ".github" / "workflows" / "finalize-release.yml").exists()
+    assert '[[ "${GITHUB_REF}" == "refs/heads/development" ]]' in release
+    assert "refs/remotes/origin/stage" in release
+    assert "release_tags.py stage-candidate" in release
+    assert "git/refs/heads/main" in release
+    assert "-F force=false" in release
+    assert "force=true" not in release
+    assert "production_reference_run_id" not in release
+    assert "skopeo copy --all --preserve-digests" in release
+    assert "a version tag is never moved" in release
     assert "      - main\n" not in ci
     assert "refs/heads/main" not in stage
     assert "-F force=true" not in stage
@@ -124,7 +119,6 @@ def test_v316_documentation_validator_tracks_current_release():
     assert 'ROOT / "docs" / "releases" / "validation" / "v3.1.6-qa-checklist.md"' in validator
     assert "stable-v3.1.6-F4C542" in validator
     assert 'VERSION = "3.1.6"' in validator
-    assert 'version="v3.1.6"' in validator
     assert "promote-production-reference.yml" not in validator
 
 
@@ -134,16 +128,17 @@ def test_v316_deployment_docs_contain_stage_final_promotion_chain():
     checklist = (ROOT / "docs" / "releases" / "validation" / "v3.1.6-qa-checklist.md").read_text(encoding="utf-8")
     normalized = " ".join(deployment.split()).casefold()
     assert "gh workflow run promote-stage.yml" in deployment
-    assert "gh workflow run finalize-release.yml" in deployment
+    assert "gh workflow run release.yml" in deployment
+    assert "gh workflow run finalize-release.yml" not in deployment
     assert "gh workflow run docker-release.yml" not in deployment
     assert "promote-production-reference.yml" not in deployment
     assert "production reference" not in release.casefold()
     assert "production reference" not in checklist.casefold()
-    assert "development -> stage -> finalize ce release" in normalized
+    assert "development -> stage -> release ce" in normalized
     assert "stage promotion never updates `main`" in normalized
-    assert "finalize ce release owns the only stage -> `main` promotion" in normalized
-    assert '--ref stage' in deployment
-    assert 'version="v3.1.6"' in deployment
+    assert "release ce owns the only stage -> `main` merge" in normalized
+    assert "--ref stage" not in deployment
+    assert deployment.count("--ref development") == 2
     assert "ghcr.io/theriark/nowlert-ce:3.1.6" in deployment
     assert "docker.io/theriark/nowlert-ce:3.1.6" in deployment
     assert "no image rebuild" in normalized

@@ -11,7 +11,7 @@ DOKPLOY_RELEASE = ROOT / ".github" / "scripts" / "dokploy_release.py"
 WORKFLOWS = {
     "development": ROOT / ".github" / "workflows" / "ci.yml",
     "stage": ROOT / ".github" / "workflows" / "promote-stage.yml",
-    "finalize": ROOT / ".github" / "workflows" / "finalize-release.yml",
+    "release": ROOT / ".github" / "workflows" / "release.yml",
 }
 
 
