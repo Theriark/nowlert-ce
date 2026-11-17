@@ -39,16 +39,15 @@ def test_environment_branch_and_immutable_promotion_contract():
     assert "actions/workflows/ci.yml/runs?branch=development&event=push" in stage
     assert '"$(jq -r \'.event\' <<<"${RUN}")" == "push"' in stage
 
-    # Stage promotion owns only the Stage branch. It must never write main.
+    # The gate script moves stage and main; Stage promotion only reads stage.
     assert "contents: write" in stage
     assert "refs/heads/development" in stage
-    assert "refs/heads/stage" in stage
+    assert "+refs/heads/stage:refs/remotes/origin/stage" in stage
     assert "refs/heads/main" not in stage
-    assert "git/refs/heads/main" not in stage
-    assert "force=false" in stage
-    assert "force=true" not in stage
-    assert "Waiting for stage ref propagation" in stage
-    assert "cannot fast-forward" in stage
+    assert "git/refs/heads/" not in stage
+    assert "git/ref/heads/" not in stage
+    assert "--method PATCH" not in stage
+    assert "force=" not in stage
 
     assert not (ROOT / ".github" / "workflows" / "promote-production-reference.yml").exists()
     # The release and candidate workflows are folded into the two buttons.
@@ -56,21 +55,21 @@ def test_environment_branch_and_immutable_promotion_contract():
         assert not (ROOT / ".github" / "workflows" / removed).exists(), removed
     assert not (ROOT / ".github" / "scripts" / "finalize_release.py").exists()
 
-    # The release runs from development, releases the stage head and owns the
-    # only Stage -> main update: a merge commit, never a force push, and never
-    # main into development.
+    # The release runs from development and releases the stage head. The gate
+    # script merges stage into main before it runs, so the release never reads
+    # or writes main and never merges main into development.
     assert "environment: stage" in release
     assert "contents: write" in release
     assert "packages: write" in release
     assert '[[ "${GITHUB_REF}" == "refs/heads/development" ]]' in release
     assert 'STAGE_SHA="$(git rev-parse refs/remotes/origin/stage)"' in release
-    assert 'git merge-base --is-ancestor "${STAGE_SHA}" "${MAIN_SHA}"' in release
-    assert '-f "parents[]=${MAIN_SHA}"' in release
-    assert '-f "parents[]=${STAGE_SHA}"' in release
-    assert "git/refs/heads/main" in release
-    assert "git/refs/heads/development" not in release
-    assert "-F force=false" in release
-    assert "force=true" not in release
+    assert "refs/heads/main" not in release
+    assert "MAIN_SHA" not in release
+    assert "parents[]" not in release
+    assert "git/refs/heads/" not in release
+    assert "git/ref/heads/" not in release
+    assert "--method PATCH" not in release
+    assert "force=" not in release
     assert "production_reference_run_id" not in release
     assert "CE_PRODREF_APPLICATION_ID" not in release
     assert "CE_RELEASE_TOKEN" not in release

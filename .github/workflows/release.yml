@@ -6,12 +6,11 @@ run-name: "Release CE${{ inputs.dry_run && ' (dry run)' || '' }}"
 # It releases exactly what Stage runs and never rebuilds: it reads the stage
 # branch head, the digest the Stage application runs and the candidate tag that
 # seals both, then creates the stable tag, the registry version tags on the
-# same digest, a GitHub Release with notes from the pull requests since the last
-# release, and merges stage into main with a merge commit whose files are
-# Stage's. CE has no Production deployment. Every step skips what already
-# exists, so a re-run after a complete release changes nothing. main is never
-# merged into development. dry_run performs every read and check and changes
-# nothing.
+# same digest and a GitHub Release with notes from the pull requests since the
+# last release. CE has no Production deployment. It never moves a branch: the
+# gate script merges stage into main right before it runs this workflow. Every
+# step skips what already exists, so a re-run after a complete release changes
+# nothing. dry_run performs every read and check and changes nothing.
 on:
   workflow_dispatch:
     inputs:
@@ -21,7 +20,7 @@ on:
         default: false
         type: boolean
 
-# contents: write creates the stable tag and release and updates main.
+# contents: write creates the stable tag and the release.
 # packages: write adds the version tags to the existing image.
 permissions:
   contents: write
@@ -83,14 +82,16 @@ jobs:
 
           git fetch --force --tags origin \
             +refs/heads/development:refs/remotes/origin/development \
-            +refs/heads/stage:refs/remotes/origin/stage \
-            +refs/heads/main:refs/remotes/origin/main
+            +refs/heads/stage:refs/remotes/origin/stage
           STAGE_SHA="$(git rev-parse refs/remotes/origin/stage)"
 
-          git merge-base --is-ancestor "${STAGE_SHA}" refs/remotes/origin/development || {
-            echo "::error::Stage ${STAGE_SHA} is not part of development's history"
-            exit 1
-          }
+          # The gate moves the branches, so their position is only reported.
+          # The candidate tag below binds the stage commit to Stage's digest.
+          if git merge-base --is-ancestor "${STAGE_SHA}" refs/remotes/origin/development; then
+            echo "Stage ${STAGE_SHA} is part of development's history"
+          else
+            echo "::notice::Stage ${STAGE_SHA} is not part of development's history"
+          fi
 
           STAGE_IMAGE="$(
             python .github/scripts/dokploy_release.py current-image \
@@ -328,61 +329,6 @@ jobs:
             --notes-file release-notes.md
           echo "PASS: GitHub Release ${STABLE_TAG} created"
 
-      - name: Merge stage into main
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          STAGE_SHA: ${{ steps.stage.outputs.stage_sha }}
-          STABLE_TAG: ${{ steps.stage.outputs.stable_tag }}
-        run: |
-          set -euo pipefail
-
-          MAIN_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
-          git fetch --force origin "+refs/heads/main:refs/remotes/origin/main"
-          [[ "$(git rev-parse refs/remotes/origin/main)" == "${MAIN_SHA}" ]] || {
-            echo "::error::main moved while it was being read; re-run the release"
-            exit 1
-          }
-
-          if git merge-base --is-ancestor "${STAGE_SHA}" "${MAIN_SHA}"; then
-            echo "PASS: main ${MAIN_SHA} already contains stage ${STAGE_SHA}"
-            exit 0
-          fi
-
-          # A merge commit with main and stage as parents and Stage's tree:
-          # main ends with exactly the files Stage runs.
-          STAGE_TREE="$(git rev-parse "${STAGE_SHA}^{tree}")"
-          CHANGED="$(git diff --name-only "${MAIN_SHA}" "${STAGE_SHA}" | wc -l)"
-          if [[ "${DRY_RUN}" == "true" ]]; then
-            echo "DRY RUN: would create merge commit of stage ${STAGE_SHA} into main ${MAIN_SHA} with tree ${STAGE_TREE} (${CHANGED} files change on main)"
-            exit 0
-          fi
-
-          MERGE_SHA="$(
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/commits" \
-              -f message="Release ${STABLE_TAG}: merge stage ${STAGE_SHA} into main" \
-              -f tree="${STAGE_TREE}" \
-              -f "parents[]=${MAIN_SHA}" \
-              -f "parents[]=${STAGE_SHA}" \
-              --jq '.sha'
-          )"
-          [[ "${MERGE_SHA}" =~ ^[0-9a-f]{40}$ ]] || {
-            echo "::error::GitHub did not return a valid merge commit SHA"
-            exit 1
-          }
-          gh api --method PATCH \
-            "repos/${GITHUB_REPOSITORY}/git/refs/heads/main" \
-            -f sha="${MERGE_SHA}" \
-            -F force=false \
-            >/dev/null
-
-          MAIN_TREE="$(gh api "repos/${GITHUB_REPOSITORY}/git/commits/$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')" --jq '.tree.sha')"
-          [[ "${MAIN_TREE}" == "${STAGE_TREE}" ]] || {
-            echo "::error::main tree is ${MAIN_TREE}, expected Stage tree ${STAGE_TREE}"
-            exit 1
-          }
-          echo "PASS: main is merge commit ${MERGE_SHA} with Stage's files"
-
       - name: Record CE release
         shell: bash
         env:
@@ -402,7 +348,7 @@ jobs:
             echo "- Source commit (stage head): \`${STAGE_SHA}\`"
             echo "- Image: \`${IMAGE_REPOSITORY}@${IMAGE_DIGEST}\`"
             echo "- Registry tags: \`${STABLE_TAG#v}\` and \`latest\` on GHCR and Docker Hub"
-            echo "- main: merge commit of stage, Stage's files"
+            echo "- Branches: unchanged (the gate moves stage and main)"
             echo "- Rebuild performed: no"
             echo "- Production deployment: none (CE)"
           } >> "${GITHUB_STEP_SUMMARY}"

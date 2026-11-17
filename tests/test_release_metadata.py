@@ -212,15 +212,14 @@ def test_release_workflow_is_guarded_and_reuses_approved_image():
     assert "releases/generate-notes" in release
     assert "The release must be launched from development" in release
     assert "refs/remotes/origin/stage" in release
-    assert "git/refs/heads/main" in release
-    assert "-F force=false" in release
-    assert "force=true" not in release
+    # The gate script moves stage and main; neither workflow writes a branch.
+    assert "refs/heads/main" not in release
+    assert "--method PATCH" not in release
     assert "production_reference_run_id" not in release
 
     assert "      - main\n" not in ci
-    assert "-F force=false" in stage
-    assert "-F force=true" not in stage
-    assert "Waiting for stage ref propagation" in stage
+    assert "--method PATCH" not in stage
+    assert "Waiting for stage ref propagation" not in stage
 
     assert "fortpt/nowlert:" not in release
     assert "ghcr.io/fortpt/nowlert:" not in release

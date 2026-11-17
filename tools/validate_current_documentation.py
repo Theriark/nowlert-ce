@@ -136,6 +136,9 @@ required_pairs = (
     (deployment, "Development -> Stage -> Release CE"),
     (deployment, "gh workflow run promote-stage.yml"),
     (deployment, "gh workflow run release.yml"),
+    (deployment, "neither workflow moves a branch"),
+    (deployment, "the gate script fast-forwards `stage` to the"),
+    (deployment, "the gate script merges `stage` into"),
     (deployment, "no second Docker-alias workflow"),
     (api, "DELETE | `/api/v2/users/{id}`"),
     (api, "DELETE | `/api/v2/backups/{id}`"),
@@ -155,6 +158,17 @@ for document, required in required_pairs:
 
 if "gh workflow run docker-release.yml" in deployment:
     raise SystemExit("ERROR: obsolete standalone Docker Release Aliases step remains")
+
+# The gate script moves stage and main; the workflows never do.
+for stale in (
+    "Release CE owns the only Stage -> `main`",
+    "fast-forwards `stage` to the commit with `force=false`",
+    "updating `main` with `force=false`",
+    "only `promote-stage.yml` moves it",
+    "only `release.yml` changes it",
+):
+    if stale in deployment:
+        raise SystemExit(f"ERROR: deployment guide still says a workflow moves a branch: {stale}")
 
 for label, document in (("README.md", readme), ("DOCKERHUB_README.md", dockerhub)):
     for relative in CURRENT_PREVIEW:
