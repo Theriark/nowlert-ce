@@ -5,9 +5,10 @@ run-name: "Promote CE to Stage${{ inputs.dry_run && ' (dry run)' || '' }}"
 # One button, run from development (Gate 2 approval runs it with no inputs).
 # It promotes exactly the commit and image the CE Development application runs:
 # full test suite, next annotated v<version>-rc.N tag, registry candidate tag on
-# the same digest, Stage deployment of that digest, health and version check,
-# then stage fast-forwards to that commit. It never rebuilds. dry_run performs
-# every read and check, including the test suite, and changes nothing.
+# the same digest, Stage deployment of that digest, health and version check.
+# It never rebuilds and never moves a branch: after a successful run the gate
+# script fast-forwards stage to the new candidate tag. dry_run performs every
+# read and check, including the test suite, and changes nothing.
 on:
   workflow_dispatch:
     inputs:
@@ -17,9 +18,9 @@ on:
         default: false
         type: boolean
 
-# contents: write creates the candidate tag and advances stage. packages: write
-# adds the candidate tag to the existing image. actions: read finds the
-# Development CI run.
+# contents: write creates the candidate tag. packages: write adds the
+# candidate tag to the existing image. actions: read finds the Development CI
+# run.
 permissions:
   contents: write
   actions: read
@@ -108,11 +109,12 @@ jobs:
             echo "::error::Development commit ${SOURCE_COMMIT} is not part of development ${DEVELOPMENT_SHA}"
             exit 1
           }
-          # Stage only moves forward: it must be the source itself or behind it.
-          git merge-base --is-ancestor refs/remotes/origin/stage "${SOURCE_COMMIT}" || {
-            echo "::error::Stage branch ${STAGE_BEFORE} is not an ancestor of source ${SOURCE_COMMIT}; Stage is already ahead of or diverged from Development"
-            exit 1
-          }
+          # The gate moves stage, so its position is only reported here.
+          if git merge-base --is-ancestor refs/remotes/origin/stage "${SOURCE_COMMIT}"; then
+            echo "Stage branch ${STAGE_BEFORE} is an ancestor of source ${SOURCE_COMMIT}"
+          else
+            echo "::notice::Stage branch ${STAGE_BEFORE} is not an ancestor of source ${SOURCE_COMMIT}"
+          fi
 
           EXPECTED_VERSION="$(
             git show "${SOURCE_COMMIT}:src/version.py" |
@@ -448,55 +450,6 @@ jobs:
             --expected-version "${EXPECTED_VERSION}" \
             --success-marker "STAGE CE SILENT PROMOTION SMOKE PASSED"
 
-      - name: Advance Stage source branch
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_COMMIT: ${{ steps.source.outputs.source_commit }}
-        run: |
-          set -euo pipefail
-
-          CURRENT_STAGE_SHA="$(
-            gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/stage" --jq '.object.sha'
-          )"
-
-          if [[ "${CURRENT_STAGE_SHA}" == "${SOURCE_COMMIT}" ]]; then
-            echo "PASS: stage already references ${SOURCE_COMMIT}"
-            exit 0
-          fi
-
-          COMPARE="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${CURRENT_STAGE_SHA}...${SOURCE_COMMIT}")"
-          STATUS="$(jq -r '.status' <<<"${COMPARE}")"
-          BEHIND_BY="$(jq -r '.behind_by' <<<"${COMPARE}")"
-          [[ "${BEHIND_BY}" == "0" && "${STATUS}" == "ahead" ]] || {
-            echo "::error::stage cannot fast-forward from ${CURRENT_STAGE_SHA} to ${SOURCE_COMMIT} (status=${STATUS}, behind_by=${BEHIND_BY})"
-            exit 1
-          }
-
-          if [[ "${DRY_RUN}" == "true" ]]; then
-            echo "DRY RUN: would fast-forward stage from ${CURRENT_STAGE_SHA} to ${SOURCE_COMMIT}"
-            exit 0
-          fi
-
-          gh api --method PATCH \
-            "repos/${GITHUB_REPOSITORY}/git/refs/heads/stage" \
-            -f sha="${SOURCE_COMMIT}" \
-            -F force=false \
-            >/dev/null
-
-          STAGE_SHA=""
-          for attempt in {1..15}; do
-            STAGE_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/stage" --jq '.object.sha')"
-            [[ "${STAGE_SHA}" == "${SOURCE_COMMIT}" ]] && break
-            echo "Waiting for stage ref propagation (${attempt}/15): ${STAGE_SHA}"
-            sleep 2
-          done
-          [[ "${STAGE_SHA}" == "${SOURCE_COMMIT}" ]] || {
-            echo "::error::stage branch is ${STAGE_SHA}, expected ${SOURCE_COMMIT}"
-            exit 1
-          }
-          echo "Stage branch now references ${STAGE_SHA}"
-
       - name: Record CE Stage promotion
         shell: bash
         env:
@@ -520,7 +473,7 @@ jobs:
             echo "- Development CI run: \`${DEVELOPMENT_RUN_ID}\`"
             echo "- CE image: \`${PROMOTION_IMAGE}\`"
             echo "- Release candidate: \`${RC_TAG}\` (reused: ${RC_REUSE})"
-            echo "- Stage branch before: \`${STAGE_BEFORE}\`"
+            echo "- Stage branch before: \`${STAGE_BEFORE}\` (the gate moves it)"
             echo "- Full notification-silent gate: passed"
             echo "- Gate network: isolated namespace, no default route or global address"
             echo "- External notification delivery during promotion: disabled"

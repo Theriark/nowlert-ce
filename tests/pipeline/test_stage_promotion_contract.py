@@ -163,7 +163,9 @@ def test_every_write_is_skipped_by_dry_run(name: str) -> None:
         assert "exit 0" in script[guard : min(positions)] or "continue" in script[
             guard : min(positions)
         ], title
-    assert writers >= 4, name
+    # promote-stage: tag, image tag, deployment, rollback. release: image tags,
+    # stable tag, GitHub Release.
+    assert writers >= {"promote-stage.yml": 4, "release.yml": 3}[name], name
 
 
 def test_stage_rollback_runs_after_a_failed_deploy_or_smoke() -> None:
@@ -192,7 +194,6 @@ def test_stage_promotion_order_matches_the_release_standard() -> None:
             "Push the immutable candidate image tag",
             "Promote CE to Stage",
             "Run notification-silent CE Stage promotion smoke",
-            "Advance Stage source branch",
         )
     ]
     assert order == sorted(order)
@@ -206,7 +207,9 @@ def test_stage_promotes_what_development_runs_without_rebuilding() -> None:
     assert "dokploy_release.py current-image" in source
     assert "SHA_TAG_PATTERN='^ghcr\\.io/theriark/nowlert-ce:sha-([0-9a-f]{40})$'" in source
     assert 'git merge-base --is-ancestor "${SOURCE_COMMIT}" refs/remotes/origin/development' in source
-    assert 'git merge-base --is-ancestor refs/remotes/origin/stage "${SOURCE_COMMIT}"' in source
+    # Where stage stands is only reported: the gate moves it.
+    assert 'if git merge-base --is-ancestor refs/remotes/origin/stage "${SOURCE_COMMIT}"; then' in source
+    assert "::error::Stage branch" not in source
     assert "actions/workflows/ci.yml/runs?branch=development&event=push&status=success" in source
 
     assert "docker/build-push-action" not in text
@@ -230,10 +233,6 @@ def test_stage_keeps_the_silent_gate_and_markers() -> None:
     ):
         assert marker in text, marker
 
-    advance = step("promote-stage.yml", "Advance Stage source branch")["run"]
-    assert '[[ "${BEHIND_BY}" == "0" && "${STATUS}" == "ahead" ]]' in advance
-    assert "-F force=false" in advance
-
 
 def test_release_releases_what_stage_runs_and_is_idempotent() -> None:
     text, _ = load("release.yml")
@@ -249,23 +248,54 @@ def test_release_releases_what_stage_runs_and_is_idempotent() -> None:
     assert "already is ${IMAGE_DIGEST}" in text
     assert "already tags ${STAGE_SHA}" in text
     assert "already exists:" in text
-    assert "already contains stage" in text
     assert "a version tag is never moved" in text
 
 
-def test_release_merges_stage_into_main_with_stage_files() -> None:
-    merge = step("release.yml", "Merge stage into main")["run"]
+def called_scripts(name: str) -> list[Path]:
+    text, _ = load(name)
+    found = sorted(set(re.findall(r"\.github/scripts/[\w-]+\.py", text)))
+    assert found, name
+    return [ROOT / relative for relative in found]
 
-    assert 'git merge-base --is-ancestor "${STAGE_SHA}" "${MAIN_SHA}"' in merge
-    assert 'STAGE_TREE="$(git rev-parse "${STAGE_SHA}^{tree}")"' in merge
-    assert '-f tree="${STAGE_TREE}"' in merge
-    assert '-f "parents[]=${MAIN_SHA}"' in merge
-    assert '-f "parents[]=${STAGE_SHA}"' in merge
-    assert "git/refs/heads/main" in merge
-    assert "-F force=false" in merge
-    assert '[[ "${MAIN_TREE}" == "${STAGE_TREE}" ]]' in merge
 
-    text, _ = load("release.yml")
+# Writes to a branch through git, the git data API or the merges API.
+BRANCH_WRITE = re.compile(
+    r"\bgit\s+(push|merge(?!-base)|update-ref|commit|rebase|reset)\b"
+    r"|[\"']git[\"'],\s*[\"'](push|merge|update-ref|commit|rebase|reset)[\"']"
+    r"|git/refs?/heads/"
+    r"|git/commits\b"
+    r"|/merges\b"
+    r"|/pulls/[^\s/]+/merge\b"
+    r"|--method\s+PATCH"
+)
+# A branch ref may only be named as the source of a fetch refspec.
+FETCH_REFSPEC = re.compile(r"\+refs/heads/(stage|main):refs/remotes/origin/\1\b")
+
+
+@pytest.mark.parametrize("name", sorted(BUTTONS))
+def test_workflow_never_moves_stage_or_main(name: str) -> None:
+    """The gate script moves stage and main with the operator token.
+
+    GitHub's Actions token may not move a branch to a commit that changes
+    workflow files, so neither button nor any script it calls writes a branch,
+    not even as a dry-run line.
+    """
+    text, _ = load(name)
+    for path in (WORKFLOWS / name, *called_scripts(name)):
+        source = path.read_text(encoding="utf-8")
+        assert not BRANCH_WRITE.search(source), (path.name, BRANCH_WRITE.search(source))
+        reads_removed = FETCH_REFSPEC.sub("", source)
+        for branch in ("refs/heads/stage", "refs/heads/main", "heads/stage", "heads/main"):
+            assert branch not in reads_removed, (path.name, branch)
+
+    # No step moves a branch or announces it would (the header comment may
+    # describe what the gate does).
+    for item in steps(name):
+        body = f"{item.get('name', '')}\n{item.get('run', '')}"
+        for phrase in ("fast-forward", "into main", "Advance Stage", "ref propagation"):
+            assert phrase not in body, (name, item.get("name"), phrase)
+    # main is never even read: the gate has merged it, or a dry run sees it unmerged.
+    assert "origin/main" not in text, name
     # main is never merged into development.
     assert "git/refs/heads/development" not in text
 

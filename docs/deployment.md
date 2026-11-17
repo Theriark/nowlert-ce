@@ -4,19 +4,26 @@ Nowlert CE uses one source commit and one immutable image digest through its
 release chain. Development builds the image once; `promote-stage.yml` tags the
 candidate and deploys that image to Stage, the final runtime acceptance gate;
 `release.yml` publishes what Stage runs as the stable GHCR/Docker Hub tags, the
-annotated tag and the GitHub Release, and merges `stage` into `main`. No image
-rebuild occurs during promotion or release.
+annotated tag and the GitHub Release. No image rebuild occurs during promotion
+or release.
 
 The release chain is:
 
 ```text
 Development -> Stage -> Release CE
-                           |-> stage merged into main
                            `-> stable registry tags + tag + GitHub Release
 ```
 
-Stage promotion never updates `main`. Release CE owns the only Stage -> `main`
-merge.
+The workflows deploy, tag and publish; neither workflow moves a branch.
+GitHub's Actions token may not move a branch to a commit that changes workflow
+files, so the gate script moves `stage` and `main` with the operator token:
+
+- after a successful Stage run, the gate script fast-forwards `stage` to the
+  new candidate tag;
+- right before it runs `release.yml`, the gate script merges `stage` into
+  `main` (a merge commit with Stage's files).
+
+`main` is never merged into `development`.
 
 ## Local development checkout
 
@@ -237,8 +244,8 @@ The release branches represent approved source state:
 | Branch | Meaning |
 |---|---|
 | `development` | cumulative active work; CI builds/deploys the Development candidate |
-| `stage` | exact source commit Stage runs; only `promote-stage.yml` moves it |
-| `main` | what was last released; only `release.yml` changes it |
+| `stage` | exact source commit Stage runs; the gate script fast-forwards it after a successful Stage run |
+| `main` | what was last released; the gate script merges `stage` into it right before `release.yml` |
 
 The release path is Development -> Stage -> Release CE. Both buttons run from
 `development`, take no required inputs and accept an optional `dry_run`
@@ -294,9 +301,9 @@ transport contract.
 `promote-stage.yml` promotes exactly what CE Development runs. It:
 
 1. reads the image the Development application runs (`sha-<commit>`), checks
-   that commit is part of `development`, that `stage` is that commit or behind
-   it, that Development reports the commit's version and that a successful push
-   CI run built it;
+   that commit is part of `development`, that Development reports the commit's
+   version and that a successful push CI run built it, and logs whether `stage`
+   is an ancestor of the commit (information only, never a failure);
 2. resolves the immutable digest of that image;
 3. computes the candidate tag: an unreleased candidate that already seals this
    commit and digest is reused, otherwise the next `v<version>-rc.N`;
@@ -305,12 +312,11 @@ transport contract.
    digest and both run ids) and the registry tag `<version>-rc.N` on the same
    digest;
 6. deploys the digest to Stage, waits for the commit's version and runs a
-   passive notification-silent live smoke; and
-7. fast-forwards `stage` to the commit with `force=false`.
+   passive notification-silent live smoke.
 
-Stage promotion never reads, advances, or otherwise modifies `main`. No rebuild
-is performed. A failed deployment or smoke rolls Stage back to its previous
-image.
+Stage promotion never moves `stage` or `main`; the gate script fast-forwards
+`stage` after the run succeeds. No rebuild is performed. A failed deployment or
+smoke rolls Stage back to its previous image.
 
 ```bash
 gh workflow run promote-stage.yml \
@@ -338,12 +344,12 @@ tag that seals both, then:
 2. creates the annotated stable tag (the candidate tag without `-rc.N`) on the
    stage commit;
 3. creates the GitHub Release with notes generated from the pull requests since
-   the last release; and
-4. merges `stage` into `main` with a merge commit whose files are exactly
-   Stage's, updating `main` with `force=false`.
+   the last release.
 
-Every step skips what already exists, so re-running after a complete release
-changes nothing. There is **no image rebuild** and
+The release never reads or moves `main` or `stage`: the gate script has already
+merged `stage` into `main` when it runs, and a dry run passes whether or not
+`main` is merged. Every step skips what already exists, so re-running after a
+complete release changes nothing. There is **no image rebuild** and
 no second Docker-alias workflow to run.
 
 ```bash
@@ -390,7 +396,8 @@ If Stage fails, stop the release. Do not move `main` and do not run
 `release.yml`. The Stage promotion workflow contains bounded rollback handling
 for failed live gates where a previous image is available.
 
-Until `release.yml` runs, `main` remains on the previous release by design.
+Until the gate merges `stage` into it for a release, `main` remains on the
+previous release by design.
 
 ### After stable publication
 

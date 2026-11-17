@@ -99,18 +99,15 @@ def test_v316_release_safety_contract():
     assert '[[ "${GITHUB_REF}" == "refs/heads/development" ]]' in release
     assert "refs/remotes/origin/stage" in release
     assert "release_tags.py stage-candidate" in release
-    assert "git/refs/heads/main" in release
-    assert "-F force=false" in release
-    assert "force=true" not in release
+    assert "refs/heads/main" not in release
+    assert "--method PATCH" not in release
     assert "production_reference_run_id" not in release
     assert "skopeo copy --all --preserve-digests" in release
     assert "a version tag is never moved" in release
     assert "      - main\n" not in ci
     assert "refs/heads/main" not in stage
-    assert "-F force=true" not in stage
-    assert "-F force=false" in stage
-    assert "Waiting for stage ref propagation" in stage
-    assert "cannot fast-forward" in stage
+    assert "--method PATCH" not in stage
+    assert "Waiting for stage ref propagation" not in stage
 
 
 def test_v316_documentation_validator_tracks_current_release():
@@ -135,8 +132,10 @@ def test_v316_deployment_docs_contain_stage_final_promotion_chain():
     assert "production reference" not in release.casefold()
     assert "production reference" not in checklist.casefold()
     assert "development -> stage -> release ce" in normalized
-    assert "stage promotion never updates `main`" in normalized
-    assert "release ce owns the only stage -> `main` merge" in normalized
+    assert "neither workflow moves a branch" in normalized
+    assert "the gate script fast-forwards `stage` to the new candidate tag" in normalized
+    assert "the gate script merges `stage` into `main`" in normalized
+    assert "release ce owns the only stage -> `main` merge" not in normalized
     assert "--ref stage" not in deployment
     assert deployment.count("--ref development") == 2
     assert "ghcr.io/theriark/nowlert-ce:3.1.6" in deployment
