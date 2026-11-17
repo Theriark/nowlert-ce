@@ -31,6 +31,11 @@ WRITES = (
     "dokploy_release.py deploy",
 )
 DRY_RUN_GUARD = 'if [[ "${DRY_RUN}" == "true" ]]; then'
+ROLLBACK_CONDITION = (
+    "${{ failure() && (steps.deploy.outcome == 'failure' || "
+    "steps.silent_smoke.outcome == 'failure') && "
+    "steps.deploy.outputs.previous_image != '' }}"
+)
 
 
 def load(name: str) -> tuple[str, dict]:
@@ -147,9 +152,8 @@ def test_every_write_is_skipped_by_dry_run(name: str) -> None:
             continue
         writers += 1
         title = item["name"]
-        if item.get("if", "").startswith("${{ (steps.deploy.outcome == 'failure'"):
+        if item.get("if") == ROLLBACK_CONDITION:
             # The rollback only runs after a real deployment wrote previous_image.
-            assert "steps.deploy.outputs.previous_image != ''" in item["if"], title
             continue
         if item.get("if") == "${{ !inputs.dry_run }}":
             continue
@@ -160,6 +164,19 @@ def test_every_write_is_skipped_by_dry_run(name: str) -> None:
             guard : min(positions)
         ], title
     assert writers >= 4, name
+
+
+def test_stage_rollback_runs_after_a_failed_deploy_or_smoke() -> None:
+    rollback = step("promote-stage.yml", "Roll back CE after a failed Stage gate")
+
+    # Without failure() GitHub adds an implicit success(), so the step would be
+    # skipped exactly when the deployment or the smoke failed.
+    assert rollback["if"] == ROLLBACK_CONDITION
+    assert rollback["continue-on-error"] is True
+    assert '--image "${PREVIOUS_IMAGE}"' in rollback["run"]
+    assert step_index("promote-stage.yml", "Roll back CE after a failed Stage gate") == (
+        len(steps("promote-stage.yml")) - 1
+    )
 
 
 def test_stage_promotion_order_matches_the_release_standard() -> None:

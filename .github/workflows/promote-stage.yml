@@ -527,8 +527,10 @@ jobs:
             echo "- Rebuild performed: no"
           } >> "${GITHUB_STEP_SUMMARY}"
 
+      # failure() is required: without a status function GitHub adds an
+      # implicit success() and the rollback would never run after a failure.
       - name: Roll back CE after a failed Stage gate
-        if: ${{ (steps.deploy.outcome == 'failure' || steps.silent_smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
+        if: ${{ failure() && (steps.deploy.outcome == 'failure' || steps.silent_smoke.outcome == 'failure') && steps.deploy.outputs.previous_image != '' }}
         continue-on-error: true
         shell: bash
         env:
