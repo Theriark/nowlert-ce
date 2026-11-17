@@ -1,0 +1,408 @@
+name: Release CE
+
+run-name: "Release CE${{ inputs.dry_run && ' (dry run)' || '' }}"
+
+# One button, run from development (Gate 3 approval runs it with no inputs).
+# It releases exactly what Stage runs and never rebuilds: it reads the stage
+# branch head, the digest the Stage application runs and the candidate tag that
+# seals both, then creates the stable tag, the registry version tags on the
+# same digest, a GitHub Release with notes from the pull requests since the last
+# release, and merges stage into main with a merge commit whose files are
+# Stage's. CE has no Production deployment. Every step skips what already
+# exists, so a re-run after a complete release changes nothing. main is never
+# merged into development. dry_run performs every read and check and changes
+# nothing.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Check everything and change nothing"
+        required: false
+        default: false
+        type: boolean
+
+# contents: write creates the stable tag and release and updates main.
+# packages: write adds the version tags to the existing image.
+permissions:
+  contents: write
+  packages: write
+
+# Shared with promote-stage.yml: Stage cannot move while it is being released.
+concurrency:
+  group: nowlert-ce-stage-promotion
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release what CE Stage runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: stage
+
+    # GH_TOKEN is deliberately not set here: only the steps that call gh get it.
+    env:
+      DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+      IMAGE_REPOSITORY: ghcr.io/theriark/nowlert-ce
+      DOCKERHUB_REPOSITORY: docker.io/theriark/nowlert-ce
+      CE_STAGE_APPLICATION_ID: x9zOew6dmrn-jmcnFbllk
+      CE_STAGE_HEALTH_URL: https://ce-stg-nowlert.theriark.dev/api/health
+
+    steps:
+      - name: Checkout release workflow code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify launch branch and release configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [[ "${GITHUB_REF}" == "refs/heads/development" ]] || {
+            echo "::error::The release must be launched from development; received ${GITHUB_REF}"
+            exit 1
+          }
+          for name in DOKPLOY_URL DOKPLOY_API_KEY CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET; do
+            [[ -n "${!name}" ]] || {
+              echo "::error::${name} is missing"
+              exit 1
+            }
+          done
+          echo "Dry run: ${DRY_RUN}"
+
+      - name: Read what Stage runs
+        id: stage
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --force --tags origin \
+            +refs/heads/development:refs/remotes/origin/development \
+            +refs/heads/stage:refs/remotes/origin/stage \
+            +refs/heads/main:refs/remotes/origin/main
+          STAGE_SHA="$(git rev-parse refs/remotes/origin/stage)"
+
+          git merge-base --is-ancestor "${STAGE_SHA}" refs/remotes/origin/development || {
+            echo "::error::Stage ${STAGE_SHA} is not part of development's history"
+            exit 1
+          }
+
+          STAGE_IMAGE="$(
+            python .github/scripts/dokploy_release.py current-image \
+              --application-id "${CE_STAGE_APPLICATION_ID}"
+          )"
+          DIGEST_PATTERN='^ghcr\.io/theriark/nowlert-ce@(sha256:[0-9a-f]{64})$'
+          [[ "${STAGE_IMAGE}" =~ ${DIGEST_PATTERN} ]] || {
+            echo "::error::Stage runs ${STAGE_IMAGE}, not an immutable nowlert-ce digest"
+            exit 1
+          }
+          IMAGE_DIGEST="${BASH_REMATCH[1]}"
+
+          EXPECTED_VERSION="$(
+            git show "${STAGE_SHA}:src/version.py" |
+              sed -n 's/^VERSION = "\([^"[:space:]]*\)"$/\1/p'
+          )"
+          [[ -n "${EXPECTED_VERSION}" ]] || {
+            echo "::error::Could not determine the application version of ${STAGE_SHA}"
+            exit 1
+          }
+          python .github/scripts/dokploy_release.py health \
+            --health-url "${CE_STAGE_HEALTH_URL}" \
+            --expected-version "${EXPECTED_VERSION}"
+
+          CHOICE="$(
+            python .github/scripts/release_tags.py stage-candidate \
+              --commit "${STAGE_SHA}" \
+              --digest "${IMAGE_DIGEST}"
+          )"
+          RC_TAG="$(jq -r '.rcTag' <<<"${CHOICE}")"
+          STABLE_TAG="$(jq -r '.stableTag' <<<"${CHOICE}")"
+          [[ "${STABLE_TAG}" =~ ^v27\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
+            echo "::error::Stable tag ${STABLE_TAG} is not v27.<minor>.<patch>"
+            exit 1
+          }
+
+          {
+            echo "stage_sha=${STAGE_SHA}"
+            echo "image_digest=${IMAGE_DIGEST}"
+            echo "expected_version=${EXPECTED_VERSION}"
+            echo "rc_tag=${RC_TAG}"
+            echo "stable_tag=${STABLE_TAG}"
+          } >> "${GITHUB_OUTPUT}"
+          echo "PASS: Stage runs ${STAGE_SHA} as ${IMAGE_REPOSITORY}@${IMAGE_DIGEST}, sealed by ${RC_TAG}; release ${STABLE_TAG}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Verify the Stage image belongs to the stage commit
+        shell: bash
+        env:
+          STAGE_SHA: ${{ steps.stage.outputs.stage_sha }}
+          IMAGE_DIGEST: ${{ steps.stage.outputs.image_digest }}
+        run: |
+          set -euo pipefail
+
+          command -v skopeo >/dev/null || {
+            sudo apt-get update
+            sudo apt-get install -y skopeo
+          }
+          # ci.yml tagged the image it built from this commit sha-<commit>.
+          SHA_DIGEST="$(skopeo inspect --format '{{.Digest}}' "docker://${IMAGE_REPOSITORY}:sha-${STAGE_SHA}")"
+          [[ "${SHA_DIGEST}" == "${IMAGE_DIGEST}" ]] || {
+            echo "::error::${IMAGE_REPOSITORY}:sha-${STAGE_SHA} is ${SHA_DIGEST}, but Stage runs ${IMAGE_DIGEST}"
+            exit 1
+          }
+          echo "PASS: ${IMAGE_REPOSITORY}:sha-${STAGE_SHA} -> ${IMAGE_DIGEST}"
+
+      - name: Publish registry version tags without rebuilding
+        shell: bash
+        env:
+          IMAGE_DIGEST: ${{ steps.stage.outputs.image_digest }}
+          STABLE_TAG: ${{ steps.stage.outputs.stable_tag }}
+        run: |
+          set -euo pipefail
+
+          SOURCE_IMAGE="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
+          VERSION="${STABLE_TAG#v}"
+
+          # A version tag is never moved; latest follows the newest release.
+          for target in \
+            "${IMAGE_REPOSITORY}:${VERSION}" \
+            "${DOCKERHUB_REPOSITORY}:${VERSION}" \
+            "${IMAGE_REPOSITORY}:latest" \
+            "${DOCKERHUB_REPOSITORY}:latest"
+          do
+            CURRENT="$(skopeo inspect --format '{{.Digest}}' "docker://${target}" 2>/dev/null || true)"
+            if [[ "${CURRENT}" == "${IMAGE_DIGEST}" ]]; then
+              echo "PASS: ${target} already is ${IMAGE_DIGEST}"
+              continue
+            fi
+            if [[ -n "${CURRENT}" && "${target}" != *:latest ]]; then
+              echo "::error::${target} already points at ${CURRENT}; a version tag is never moved"
+              exit 1
+            fi
+            if [[ "${DRY_RUN}" == "true" ]]; then
+              echo "DRY RUN: would copy ${SOURCE_IMAGE} to ${target} (now ${CURRENT:-absent})"
+              continue
+            fi
+            skopeo copy --all --preserve-digests "docker://${SOURCE_IMAGE}" "docker://${target}"
+            ACTUAL="$(skopeo inspect --format '{{.Digest}}' "docker://${target}")"
+            [[ "${ACTUAL}" == "${IMAGE_DIGEST}" ]] || {
+              echo "::error::${target} resolved to ${ACTUAL}, expected ${IMAGE_DIGEST}"
+              exit 1
+            }
+            echo "PASS: ${target} -> ${IMAGE_DIGEST}"
+          done
+
+      - name: Create the stable tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGE_SHA: ${{ steps.stage.outputs.stage_sha }}
+          IMAGE_DIGEST: ${{ steps.stage.outputs.image_digest }}
+          RC_TAG: ${{ steps.stage.outputs.rc_tag }}
+          STABLE_TAG: ${{ steps.stage.outputs.stable_tag }}
+        run: |
+          set -euo pipefail
+
+          if REF_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${STABLE_TAG}" 2>/dev/null)"; then
+            [[ "$(jq -r '.object.type' <<<"${REF_JSON}")" == "tag" ]] || {
+              echo "::error::${STABLE_TAG} exists but is not an annotated tag"
+              exit 1
+            }
+            TARGET="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/$(jq -r '.object.sha' <<<"${REF_JSON}")" --jq '.object.sha')"
+            [[ "${TARGET}" == "${STAGE_SHA}" ]] || {
+              echo "::error::${STABLE_TAG} already points at ${TARGET}, not Stage ${STAGE_SHA}"
+              exit 1
+            }
+            echo "PASS: ${STABLE_TAG} already tags ${STAGE_SHA}"
+            exit 0
+          fi
+
+          TAG_MESSAGE="$(
+            jq -cn \
+              --arg sourceCommit "${STAGE_SHA}" \
+              --arg imageDigest "${IMAGE_DIGEST}" \
+              --arg rcTag "${RC_TAG}" \
+              --argjson workflowRunId "${GITHUB_RUN_ID}" \
+              '{sourceCommit: $sourceCommit, imageDigest: $imageDigest, rcTag: $rcTag, workflowRunId: $workflowRunId}'
+          )"
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            echo "DRY RUN: would create annotated tag ${STABLE_TAG} on ${STAGE_SHA} with message ${TAG_MESSAGE}"
+            exit 0
+          fi
+
+          TAG_OBJECT_SHA="$(
+            gh api --method POST \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/git/tags" \
+              -f tag="${STABLE_TAG}" \
+              -f message="${TAG_MESSAGE}" \
+              -f object="${STAGE_SHA}" \
+              -f type="commit" \
+              -f 'tagger[name]=github-actions[bot]' \
+              -f 'tagger[email]=41898282+github-actions[bot]@users.noreply.github.com' \
+              --jq '.sha'
+          )"
+          [[ "${TAG_OBJECT_SHA}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::GitHub did not return a valid annotated tag object SHA"
+            exit 1
+          }
+          gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${STABLE_TAG}" \
+            -f sha="${TAG_OBJECT_SHA}" \
+            >/dev/null
+          echo "PASS: annotated tag ${STABLE_TAG} created on ${STAGE_SHA}"
+
+      - name: Create the GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGE_SHA: ${{ steps.stage.outputs.stage_sha }}
+          IMAGE_DIGEST: ${{ steps.stage.outputs.image_digest }}
+          EXPECTED_VERSION: ${{ steps.stage.outputs.expected_version }}
+          RC_TAG: ${{ steps.stage.outputs.rc_tag }}
+          STABLE_TAG: ${{ steps.stage.outputs.stable_tag }}
+        run: |
+          set -euo pipefail
+
+          if RELEASE_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${STABLE_TAG}" 2>/dev/null)"; then
+            [[ "$(jq -r '.draft' <<<"${RELEASE_JSON}")" == "false" && "$(jq -r '.prerelease' <<<"${RELEASE_JSON}")" == "false" ]] || {
+              echo "::error::Release ${STABLE_TAG} exists but is a draft or prerelease"
+              exit 1
+            }
+            echo "PASS: GitHub Release ${STABLE_TAG} already exists: $(jq -r '.html_url' <<<"${RELEASE_JSON}")"
+            exit 0
+          fi
+
+          # Notes list the pull requests since the last published release.
+          PREVIOUS_TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
+          NOTES_ARGS=(-f tag_name="${STABLE_TAG}" -f target_commitish="${STAGE_SHA}")
+          if [[ -n "${PREVIOUS_TAG}" && "${PREVIOUS_TAG}" != "${STABLE_TAG}" ]]; then
+            NOTES_ARGS+=(-f previous_tag_name="${PREVIOUS_TAG}")
+          fi
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            "${NOTES_ARGS[@]}" --jq '.body' > generated-notes.md
+
+          {
+            echo "Nowlert CE ${STABLE_TAG}, released from what Stage ran and QA accepted."
+            echo
+            echo "- Source commit: \`${STAGE_SHA}\`"
+            echo "- Image: \`${IMAGE_REPOSITORY}@${IMAGE_DIGEST}\`"
+            echo "- Registry tags: \`${IMAGE_REPOSITORY}:${STABLE_TAG#v}\`, \`${DOCKERHUB_REPOSITORY}:${STABLE_TAG#v}\` and \`latest\` on the same digest"
+            echo "- Release candidate: \`${RC_TAG}\`"
+            echo "- Application version reported by /api/health: \`${EXPECTED_VERSION}\`"
+            echo "- Rebuild performed: no"
+            echo
+            cat generated-notes.md
+          } > release-notes.md
+
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            echo "DRY RUN: would create GitHub Release ${STABLE_TAG} (notes since ${PREVIOUS_TAG:-the first commit}):"
+            cat release-notes.md
+            exit 0
+          fi
+
+          gh release create "${STABLE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
+            --latest \
+            --title "Nowlert CE ${STABLE_TAG}" \
+            --notes-file release-notes.md
+          echo "PASS: GitHub Release ${STABLE_TAG} created"
+
+      - name: Merge stage into main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGE_SHA: ${{ steps.stage.outputs.stage_sha }}
+          STABLE_TAG: ${{ steps.stage.outputs.stable_tag }}
+        run: |
+          set -euo pipefail
+
+          MAIN_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          git fetch --force origin "+refs/heads/main:refs/remotes/origin/main"
+          [[ "$(git rev-parse refs/remotes/origin/main)" == "${MAIN_SHA}" ]] || {
+            echo "::error::main moved while it was being read; re-run the release"
+            exit 1
+          }
+
+          if git merge-base --is-ancestor "${STAGE_SHA}" "${MAIN_SHA}"; then
+            echo "PASS: main ${MAIN_SHA} already contains stage ${STAGE_SHA}"
+            exit 0
+          fi
+
+          # A merge commit with main and stage as parents and Stage's tree:
+          # main ends with exactly the files Stage runs.
+          STAGE_TREE="$(git rev-parse "${STAGE_SHA}^{tree}")"
+          CHANGED="$(git diff --name-only "${MAIN_SHA}" "${STAGE_SHA}" | wc -l)"
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            echo "DRY RUN: would create merge commit of stage ${STAGE_SHA} into main ${MAIN_SHA} with tree ${STAGE_TREE} (${CHANGED} files change on main)"
+            exit 0
+          fi
+
+          MERGE_SHA="$(
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/commits" \
+              -f message="Release ${STABLE_TAG}: merge stage ${STAGE_SHA} into main" \
+              -f tree="${STAGE_TREE}" \
+              -f "parents[]=${MAIN_SHA}" \
+              -f "parents[]=${STAGE_SHA}" \
+              --jq '.sha'
+          )"
+          [[ "${MERGE_SHA}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::GitHub did not return a valid merge commit SHA"
+            exit 1
+          }
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/git/refs/heads/main" \
+            -f sha="${MERGE_SHA}" \
+            -F force=false \
+            >/dev/null
+
+          MAIN_TREE="$(gh api "repos/${GITHUB_REPOSITORY}/git/commits/$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')" --jq '.tree.sha')"
+          [[ "${MAIN_TREE}" == "${STAGE_TREE}" ]] || {
+            echo "::error::main tree is ${MAIN_TREE}, expected Stage tree ${STAGE_TREE}"
+            exit 1
+          }
+          echo "PASS: main is merge commit ${MERGE_SHA} with Stage's files"
+
+      - name: Record CE release
+        shell: bash
+        env:
+          STAGE_SHA: ${{ steps.stage.outputs.stage_sha }}
+          IMAGE_DIGEST: ${{ steps.stage.outputs.image_digest }}
+          RC_TAG: ${{ steps.stage.outputs.rc_tag }}
+          STABLE_TAG: ${{ steps.stage.outputs.stable_tag }}
+        run: |
+          {
+            if [[ "${DRY_RUN}" == "true" ]]; then
+              echo "## CE release dry run passed (nothing changed)"
+            else
+              echo "## CE release published"
+            fi
+            echo
+            echo "- Version: \`${STABLE_TAG}\` (from candidate \`${RC_TAG}\`)"
+            echo "- Source commit (stage head): \`${STAGE_SHA}\`"
+            echo "- Image: \`${IMAGE_REPOSITORY}@${IMAGE_DIGEST}\`"
+            echo "- Registry tags: \`${STABLE_TAG#v}\` and \`latest\` on GHCR and Docker Hub"
+            echo "- main: merge commit of stage, Stage's files"
+            echo "- Rebuild performed: no"
+            echo "- Production deployment: none (CE)"
+          } >> "${GITHUB_STEP_SUMMARY}"
