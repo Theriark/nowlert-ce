@@ -72,7 +72,23 @@ table.filtering-table .filtering-table-actions { flex-wrap: wrap !important; jus
 }
 .ops-kpi-card .ops-kpi-copy > small, .ops-config-item small { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
 .ops-kpi-card { grid-template-columns: 42px minmax(0, 1fr) !important; row-gap: 6px; }
-.ops-kpi-card > .ops-kpi-delta { grid-column: 2 !important; justify-self: start; }
+/* NCE-127: at 1280 wide the "vs. previous window" badge was wider than the card's
+   text column (120 px in a 105 px column) and the card (overflow: hidden) cut it
+   to "windo". Cap the badge at the column width and let its note wrap instead of
+   overflowing. The 10 px left margin an earlier layer gives the badge was meant
+   for a badge beside the value; under the value it only indents the badge and
+   takes width from the column, so it goes. (No flex-wrap here: a wrapping flex
+   container sizes itself to its widest part and still broke the note.) */
+.ops-kpi-card > .ops-kpi-delta { grid-column: 2 !important; justify-self: start; max-width: 100% !important; min-width: 0 !important; margin-left: 0 !important; box-sizing: border-box; }
+.ops-kpi-card > .ops-kpi-delta > small { white-space: normal !important; }
+/* Between 1181 and 1450 px five cards share a row and the text column is 105 to
+   138 px wide, while the one-line badge needs 120 px plus the width of the delta
+   value ("▲ +12.5%"), so it cannot be relied on to fit. Stack the note under the
+   value there, as the base design does above 1450 px. At 1180 px and below the
+   grid drops to three cards per row and the one-line badge fits. */
+@media (min-width: 1181px) and (max-width: 1450px) {
+  .ops-kpi-card > .ops-kpi-delta { flex-direction: column !important; align-items: flex-start !important; gap: 2px !important; }
+}
 .ops-config-item { grid-template-columns: 38px minmax(0, 1fr) !important; row-gap: 6px; }
 .ops-config-item > .ops-config-status { grid-column: 2 !important; justify-self: start; }
 .ops-chart-summary { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)) !important; }
@@ -89,6 +105,23 @@ dialog:not(#destination-dialog) form > .modal-actions {
   position: sticky !important; bottom: -22.4px; z-index: 3;
   background: rgb(32, 35, 39) !important;
   margin-bottom: -22.4px !important; padding-bottom: 22.4px !important;
+}
+
+/* NCE-127: the Filtering dialog (New filter, Configure filter, View filter) is
+   not a form; its steps are plain sections, so the rule above never reached it
+   and the whole dialog scrolled with Close at the end of the content. The open
+   dialog is a column: the heading is pinned, the visible step is the only
+   scroll container, and the step footer (Close, Cancel, Save filter) sticks to
+   the bottom of that step. Only [open] is styled so a closed <dialog> keeps
+   its display: none. */
+#filtering-dialog[open] { display: flex !important; flex-direction: column !important; overflow: hidden !important; }
+#filtering-dialog > .modal-heading { flex: 0 0 auto !important; }
+#filtering-dialog > section { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; overscroll-behavior: contain; }
+#filtering-dialog > section > .modal-actions {
+  position: sticky !important; bottom: 0 !important; z-index: 3;
+  background: var(--surface-solid, rgb(32, 35, 39)) !important;
+  /* The footer keeps its 19.2px top margin; this flat shadow paints that gap so scrolled content does not show through it. */
+  box-shadow: 0 -19.2px 0 0 var(--surface-solid, rgb(32, 35, 39));
 }
 
 /* Backups: cards stack below 1180 px; the schedule fields wrap instead of truncating. */

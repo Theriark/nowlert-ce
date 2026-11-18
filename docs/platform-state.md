@@ -18,6 +18,7 @@ A production state mount is organized below `/nowlert/state`:
 |- secrets/
 |  `- generated-identifier.v1
 |- backups/
+|  |- .verified.json
 |  `- state-YYYYMMDDTHHMMSSZ-identifier/
 `- schema-backups/
    `- nowlert-schema-N-before-M-TIMESTAMP.db
@@ -26,6 +27,13 @@ A production state mount is organized below `/nowlert/state`:
 Directories containing private state are mode `0700`; database, manifest, and
 managed secret files are mode `0600`. Secret filenames are generated rather
 than based on user input.
+
+`backups/.verified.json` (mode `0600`) records which snapshots passed a full
+SHA-256 and SQLite integrity check, with each file's size, modification time
+and change time. The Backups list trusts an entry only while those still match,
+so it does not re-hash every snapshot after a restart. A missing or damaged
+record only costs one full check. Restore, mirror and delete always verify the
+snapshot in full.
 
 Normal metadata operations do not return secret values or secret filesystem
 paths.
