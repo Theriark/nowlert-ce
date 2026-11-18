@@ -54,3 +54,43 @@ def test_email_rule_cards_are_not_pinned_or_narrowed_below_900px():
     # Below 900px the rules are stacked cards: the table-only rules must not apply there.
     assert "@media (min-width: 901px) and (max-width: 1440px) { table.email-rules-table { min-width: 0 !important; }" in compact
     assert "@media (max-width: 900px) { table.email-rules-table :is(th, td):last-child { position: static !important;" in compact
+
+
+def test_filtering_dialog_pins_its_heading_and_footer_while_the_step_body_scrolls():
+    """NCE-127 F1: the View/New filter dialog is not a form, so the generic sticky
+    footer rule misses it. The open dialog becomes a column: heading pinned, the
+    visible step scrolls, and the step footer (Close / Cancel / Save) sticks to
+    the bottom of that scrolling step."""
+    css = (ROOT / "src/webui/laptop_layout.css").read_text(encoding="utf-8")
+    compact = " ".join(css.split())
+
+    # Only the open dialog is a flex column: a closed <dialog> must stay display: none.
+    assert "#filtering-dialog[open] { display: flex !important; flex-direction: column !important; overflow: hidden !important;" in compact
+    assert "#filtering-dialog > .modal-heading { flex: 0 0 auto !important;" in compact
+    # The step body is the only scroll container.
+    assert "#filtering-dialog > section { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important;" in compact
+    # The step footer sticks to the bottom of the scrolling step, with an opaque background.
+    assert "#filtering-dialog > section > .modal-actions { position: sticky !important; bottom: 0 !important;" in compact
+    footer = compact[compact.index("#filtering-dialog > section > .modal-actions {"):]
+    footer = footer[: footer.index("}")]
+    assert "background:" in footer and "z-index:" in footer
+
+
+def test_dashboard_kpi_delta_badge_wraps_inside_its_card_instead_of_being_clipped():
+    """NCE-127 F2: at 1280 wide the Failures "vs. previous window" badge was wider
+    than its grid column and the card (overflow: hidden) cut it to "windo". The
+    badge is capped at the column width and its items and text may wrap."""
+    css = (ROOT / "src/webui/laptop_layout.css").read_text(encoding="utf-8")
+    compact = " ".join(css.split())
+
+    badge = compact[compact.index(".ops-kpi-card > .ops-kpi-delta {"):]
+    badge = badge[: badge.index("}")]
+    assert "max-width: 100% !important;" in badge
+    assert "min-width: 0 !important;" in badge
+    assert "margin-left: 0 !important;" in badge
+    assert "box-sizing: border-box" in badge
+    # A wrapping flex container sizes itself to its widest part and broke the note at 1366.
+    assert "flex-wrap" not in badge
+    assert ".ops-kpi-card > .ops-kpi-delta > small { white-space: normal !important;" in compact
+    # Between 1181 and 1450 px (five cards per row) the note stacks under the value.
+    assert "@media (min-width: 1181px) and (max-width: 1450px) { .ops-kpi-card > .ops-kpi-delta { flex-direction: column !important; align-items: flex-start !important;" in compact
