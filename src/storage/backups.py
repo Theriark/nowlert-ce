@@ -32,6 +32,9 @@ _SECRET_FILE = re.compile(r"^[0-9a-f]{32}\.v[1-9][0-9]*$")
 _MAXIMUM_SECRET_FILES = 5000
 _MAXIMUM_SECRET_BYTES = 64 * 1024
 _MAXIMUM_CONFIG_BYTES = 2 * 1024 * 1024
+_VERIFICATION_RECORD = ".verified.json"
+_VERIFICATION_SCHEMA = "nowlert.state-backup-verification.v1"
+_MAXIMUM_VERIFICATION_RECORD_BYTES = 4 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -83,6 +86,7 @@ class StateBackupStore:
         self.retention = max(1, min(100, int(retention)))
         self._lock = threading.RLock()
         self._verified: dict[str, tuple[tuple, StateBackup]] = {}
+        self._recorded: dict[str, tuple] | None = None
         self._prepare_directory(self.backup_directory)
 
     def list(self, actor: Actor) -> list[StateBackup]:
@@ -90,6 +94,7 @@ class StateBackupStore:
         backups = []
         with self._lock:
             verified = {}
+            recorded = None
             for path in sorted(self.backup_directory.iterdir(), reverse=True):
                 if path.is_dir() and _BACKUP_ID.fullmatch(path.name):
                     try:
@@ -98,24 +103,141 @@ class StateBackupStore:
                         if cached and cached[0] == signature:
                             backup = cached[1]
                         else:
-                            backup = self._validate(path)
+                            if recorded is None:
+                                recorded = self._read_verification_record()
+                            # A full check recorded by an earlier process still
+                            # holds while no file changed; the manifest is re-read.
+                            backup = self._validate(
+                                path,
+                                verify_contents=recorded.get(path.name) != signature,
+                            )
                         verified[path.name] = (signature, backup)
                         backups.append(backup)
                     except (OSError, RuntimeError, TypeError, ValueError):
                         continue
             self._verified = verified
+            if recorded is not None:
+                self._recorded = recorded
+            self._write_verification_record(
+                {name: signature for name, (signature, _backup) in verified.items()}
+            )
         return backups
 
     @staticmethod
     def _file_signature(directory: Path) -> tuple:
         # Snapshots never change after creation, so a full hash and integrity
-        # check is repeated only when a file's size or modification time does.
+        # check is repeated only when a file's size, modification time or
+        # inode change time does. The change time cannot be set back by hand.
         return tuple(sorted(
-            (str(path.relative_to(directory)), stat.st_size, stat.st_mtime_ns)
+            (
+                str(path.relative_to(directory)),
+                stat.st_size,
+                stat.st_mtime_ns,
+                stat.st_ctime_ns,
+            )
             for path in directory.rglob("*")
             if path.is_file()
             for stat in (path.stat(),)
         ))
+
+    def _read_verification_record(self) -> dict[str, tuple]:
+        """Return signatures of snapshots fully verified by any earlier process.
+
+        A missing, unreadable or malformed record trusts nothing; a malformed
+        entry is dropped on its own.
+        """
+
+        path = self.backup_directory / _VERIFICATION_RECORD
+        try:
+            descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        except OSError:
+            return {}
+        try:
+            with os.fdopen(descriptor, "rb") as stream:
+                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                    return {}
+                payload = stream.read(_MAXIMUM_VERIFICATION_RECORD_BYTES + 1)
+            if len(payload) > _MAXIMUM_VERIFICATION_RECORD_BYTES:
+                return {}
+            record = json.loads(payload.decode("utf-8"))
+        except (OSError, UnicodeDecodeError, ValueError):
+            return {}
+        if (
+            not isinstance(record, dict)
+            or record.get("schema") != _VERIFICATION_SCHEMA
+            or not isinstance(record.get("snapshots"), dict)
+        ):
+            return {}
+        signatures = {}
+        for backup_id, files in record["snapshots"].items():
+            if not _BACKUP_ID.fullmatch(backup_id) or not isinstance(files, list):
+                continue
+            entries = []
+            for entry in files:
+                if (
+                    not isinstance(entry, list)
+                    or len(entry) != 4
+                    or not isinstance(entry[0], str)
+                    or not all(
+                        type(value) is int and value >= 0 for value in entry[1:]
+                    )
+                ):
+                    break
+                entries.append(tuple(entry))
+            else:
+                signatures[backup_id] = tuple(entries)
+        return signatures
+
+    def _write_verification_record(self, signatures: dict[str, tuple]) -> None:
+        if signatures == self._recorded:
+            return
+        path = self.backup_directory / _VERIFICATION_RECORD
+        temporary = self.backup_directory / f".verified-{uuid.uuid4().hex}.tmp"
+        record = {
+            "schema": _VERIFICATION_SCHEMA,
+            "snapshots": {
+                backup_id: [list(entry) for entry in signature]
+                for backup_id, signature in sorted(signatures.items())
+            },
+        }
+        try:
+            self._write_manifest(temporary, record)
+            os.replace(temporary, path)
+        except OSError:
+            # The record only saves work; without it the next process
+            # verifies every snapshot in full again.
+            temporary.unlink(missing_ok=True)
+            return
+        self._recorded = dict(signatures)
+
+    def _record_verified(self, directory: Path, backup: StateBackup) -> None:
+        try:
+            signature = self._file_signature(directory)
+        except OSError:
+            return
+        self._verified[directory.name] = (signature, backup)
+        signatures = {
+            backup_id: recorded
+            for backup_id, recorded in self._read_verification_record().items()
+            if (self.backup_directory / backup_id).is_dir()
+        }
+        signatures[directory.name] = signature
+        self._write_verification_record(signatures)
+
+    def _validate_local(self, directory: Path) -> StateBackup:
+        """Verify a local snapshot in full and stop trusting it when that fails."""
+
+        try:
+            return self._validate(directory)
+        except Exception:
+            if directory.parent == self.backup_directory:
+                with self._lock:
+                    self._verified.pop(directory.name, None)
+                    signatures = self._read_verification_record()
+                    if signatures.pop(directory.name, None) is not None:
+                        self._recorded = None
+                        self._write_verification_record(signatures)
+            raise
 
     def create(
         self,
@@ -191,6 +313,7 @@ class StateBackupStore:
                 os.replace(temporary, final)
                 backup = self._validate(final)
                 self._trim({backup_id, *(protected or set())})
+                self._record_verified(final, backup)
             except Exception:
                 shutil.rmtree(temporary, ignore_errors=True)
                 self._audit(actor, "state.backup.create", "failed")
@@ -263,7 +386,7 @@ class StateBackupStore:
         source: Path,
         backup_id: str,
     ) -> dict:
-        backup = self._validate(source)
+        backup = self._validate_local(source)
         protected = (
             {str(backup_id)}
             if (self.backup_directory / str(backup_id)).exists()
@@ -388,7 +511,7 @@ class StateBackupStore:
             if not path.exists():
                 raise KeyError("backup not found")
 
-            backup = self._validate(path)
+            backup = self._validate_local(path)
 
             try:
                 shutil.rmtree(path)
@@ -414,7 +537,7 @@ class StateBackupStore:
 
         self._require_admin(actor)
         source = self.backup_directory / str(backup_id)
-        self._validate(source)
+        self._validate_local(source)
         managed = self._external_managed_root(external_root, create=True)
         final = managed / str(backup_id)
         temporary = managed / f".copy-{uuid.uuid4().hex}"
