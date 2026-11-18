@@ -317,15 +317,10 @@
       element("span", { text: "Check for updates" }),
     ]);
     updateButton.id = "platform-check-updates";
-    const restartButton = element("button", {
-      type: "button",
-      attributes: { role: "menuitem" },
-    }, [
-      element("span", { text: "⏻", attributes: { "aria-hidden": "true" } }),
-      element("span", { text: "Restart Nowlert" }),
-    ]);
-    restartButton.id = "platform-restart";
-    menu.append(updateButton, restartButton);
+    // NCE-128: Restart Nowlert is not created here any more. The only restart
+    // control is the admin-only item in the profile menu (index.html), see
+    // installProfileRestart below.
+    menu.append(updateButton);
     wrapper.append(menuButton, menu);
     actions.append(wrapper);
 
@@ -345,11 +340,6 @@
       closeMenu();
       await checkForUpdates({ manual: true });
     });
-    byId("platform-restart").addEventListener("click", async (event) => {
-      event.stopPropagation();
-      closeMenu();
-      await resourceAction("restart-platform", "");
-    });
     document.addEventListener("click", (event) => {
       if (!event.target.closest("#platform-menu")) closeMenu();
     });
@@ -361,8 +351,23 @@
     });
   }
 
+  // NCE-128: Restart Nowlert is one admin-only item in the profile (user icon)
+  // menu. The item is static markup in index.html (#platform-restart); the
+  // app.js click dispatcher opens the existing restart confirmation dialog
+  // through its data-action, so this binding only closes the profile menu on
+  // selection, like navigating to Profile does.
+  function installProfileRestart() {
+    const restart = byId("platform-restart");
+    if (!restart || restart.dataset.profileRestartBound === "1") return;
+    restart.dataset.profileRestartBound = "1";
+    restart.addEventListener("click", () => {
+      if (typeof closeProfileMenu === "function") closeProfileMenu();
+    });
+  }
+
   function syncHeaderMenu() {
     installHeaderMenu();
+    installProfileRestart();
     const menu = byId("platform-menu");
     if (menu) menu.hidden = !state.user;
     const restart = byId("platform-restart");
@@ -405,6 +410,7 @@
 
   restorePersistedView();
   installHeaderMenu();
+  installProfileRestart();
 
   navigate = function enhancedNavigate(view, historyMode = "push") {
     const result = originalNavigate(view, historyMode);

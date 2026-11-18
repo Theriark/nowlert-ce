@@ -830,10 +830,27 @@ button.reference-preview-route-more:focus-visible {
   width: 34px !important;
 }
 
-/* Security: the legacy header button is the retained, accepted Restart control.
-   The menu-created platform button goes back to its hidden menu home. */
-.topbar[data-page-view="account"] #platform-restart {
-  display: none !important;
+/* Security (NCE-128): Restart Nowlert is one admin-only item in the profile
+   (user icon) menu, so the Security page carries no restart control in its
+   header or body. The menu item draws the same inline glyph as the restart
+   dialog button and reads as a service action. */
+.profile-menu-popover .profile-menu-glyph {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+}
+.profile-menu-popover .profile-menu-glyph .button-glyph {
+  fill: none;
+  height: 1em;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 1em;
+}
+.profile-menu-popover #platform-restart {
+  color: #ffadb5;
 }
 
 /* Security cards: explicitly override the original identity-card flex layout.

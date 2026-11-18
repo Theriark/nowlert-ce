@@ -120,12 +120,14 @@ def test_platform_actions_are_relocated_to_contextual_pages():
 
     assert "movePlatformActionsIntoContext" in script
     assert 'document.querySelector("#view-updates .section-toolbar")' in script
-    assert 'document.querySelector("#view-account .section-toolbar")' in script
     assert 'updateButton.className = "button secondary"' in script
-    assert 'restartButton.className = "button danger"' in script
     assert 'platformMenu.style.display = "none"' in script
     assert "updateToolbar.append(updateButton)" in script
-    assert "accountToolbar.append(restartButton)" in script
+    # NCE-128: Restart Nowlert stays in the profile menu; the relocation into
+    # the hidden Security toolbar was retired with the duplicate header button.
+    assert "#view-account .section-toolbar" not in script
+    assert "restartButton" not in script
+    assert "accountToolbar" not in script
     assert 'if (restart) restart.hidden = !isAdmin();' in enhancements
 
 
