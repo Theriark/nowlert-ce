@@ -17,6 +17,13 @@
   text-align: left;
 }
 
+/* NCE-128: "Restart Nowlert" is as wide as the label column of the 178 px
+   sidebar popover at 15 px, so it stays on one line and the row keeps the
+   height of Security and Sign out instead of wrapping onto two. */
+.profile-menu-popover #platform-restart .profile-menu-label {
+  white-space: nowrap;
+}
+
 .administration-tabs {
   margin-bottom: 1rem;
 }

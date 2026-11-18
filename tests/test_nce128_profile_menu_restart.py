@@ -45,6 +45,12 @@ def test_profile_menu_carries_one_admin_only_restart_item_between_profile_and_si
     # The glyph is an inline SVG like the dialog button, never a symbol character.
     assert '<svg class="button-glyph"' in item
     assert "⏻" not in item
+    # policy_simplification.js decorates only the Security and Sign out rows at
+    # runtime, so the restart row carries the same row classes statically and
+    # lays out on the same icon/label grid as its siblings.
+    assert 'class="profile-menu-item"' in item
+    assert '<span class="profile-menu-icon profile-menu-glyph" aria-hidden="true">' in item
+    assert '<span class="profile-menu-label">Restart Nowlert</span>' in item
     assert menu.index('data-view="account"') < item_start < menu.index('data-action="logout"')
 
 
@@ -100,14 +106,20 @@ def test_reference_styles_describe_the_profile_menu_restart_and_drop_the_header_
     assert "restart-header-button" not in styles
     assert ".profile-menu-popover .profile-menu-glyph .button-glyph" in styles
     assert ".profile-menu-popover #platform-restart" in styles
+    # The row layout lives in policy_simplification.css: the label is as wide as
+    # the popover's label column at 15 px, so it stays on one line there.
+    rows = " ".join(_read("src/webui/policy_simplification.css").split())
+    assert ".profile-menu-popover #platform-restart .profile-menu-label { white-space: nowrap; }" in rows
 
 
 def test_nce128_build_versions_the_changed_webui_bundle():
+    # r85 was taken by NCE-127 on development while this fix was in review.
     build = _ui_build()
-    assert build == "20260929-r85"
+    assert build == "20260929-r86"
     markup = _read("src/webui/index.html")
     assert f'name="nowlert-ui-build" content="{build}"' in markup
     assert f"/ui/app.js?v={build}" in markup
     assert f"/ui/qa_patch.css?v={build}" in markup
     assert f"/ui/qa_patch.js?v={build}" in markup
     assert "20260929-r84" not in markup
+    assert "20260929-r85" not in markup
