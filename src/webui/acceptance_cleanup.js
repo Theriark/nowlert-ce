@@ -241,12 +241,13 @@
     dialog?.remove();
   }
 
+  // NCE-128: only "Check for updates" moves into the Updates toolbar. Restart
+  // Nowlert lives in the profile menu (index.html) and is never parked in the
+  // Security toolbar, which the unified page header hides.
   function movePlatformActionsIntoContext() {
     const platformMenu = document.getElementById("platform-menu");
     const updateButton = document.getElementById("platform-check-updates");
-    const restartButton = document.getElementById("platform-restart");
     const updateToolbar = document.querySelector("#view-updates .section-toolbar");
-    const accountToolbar = document.querySelector("#view-account .section-toolbar");
 
     if (platformMenu) {
       platformMenu.hidden = true;
@@ -257,11 +258,6 @@
       updateButton.removeAttribute("role");
       updateButton.className = "button secondary";
       updateToolbar.append(updateButton);
-    }
-    if (restartButton && accountToolbar && restartButton.parentElement !== accountToolbar) {
-      restartButton.removeAttribute("role");
-      restartButton.className = "button danger";
-      accountToolbar.append(restartButton);
     }
   }
 
