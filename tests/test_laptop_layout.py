@@ -94,3 +94,20 @@ def test_dashboard_kpi_delta_badge_wraps_inside_its_card_instead_of_being_clippe
     assert ".ops-kpi-card > .ops-kpi-delta > small { white-space: normal !important;" in compact
     # Between 1181 and 1450 px (five cards per row) the note stacks under the value.
     assert "@media (min-width: 1181px) and (max-width: 1450px) { .ops-kpi-card > .ops-kpi-delta { flex-direction: column !important; align-items: flex-start !important;" in compact
+
+
+def test_phone_menu_gets_the_sidebar_styles_that_only_desktop_media_queries_gave_it():
+    """NCE-127: at 390 px the open menu let the page show through, drew the icons filled black, put the owl in a grey
+    outset button and showed both "COMMUNITY EDITION" and "CE"."""
+    css = (ROOT / "src/webui/laptop_layout.css").read_text(encoding="utf-8")
+    compact = re.sub(r"\s+", " ", css)
+    phone = compact[compact.index("@media (max-width: 760px) {"):]
+    phone = phone[: phone.index("} }") + 3]
+
+    assert ".sidebar { background: rgb(12, 15, 18) !important; }" in phone
+    assert ".sidebar > .brand.sidebar-brand > .sidebar-owl-button { background: transparent !important; border: 0 !important;" in phone
+    assert ".sidebar .nav-icon svg { fill: none !important; stroke: currentColor !important;" in phone
+    assert ".sidebar > .brand.sidebar-brand > .sidebar-edition-collapsed { display: none !important; }" in phone
+    # The desktop rules these copy are still desktop-only, which is why the phone block is needed.
+    styles = re.sub(r"\s+", " ", (ROOT / "src/webui/styles.css").read_text(encoding="utf-8"))
+    assert re.search(r"@media \(min-width: 761px\) \{[^@]*\.nav-icon svg \{[^}]*fill: none", styles)

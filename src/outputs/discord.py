@@ -9,6 +9,7 @@ Discord output.
 from __future__ import annotations
 
 from formatters.discord_applications import ApplicationDiscordFormatter
+from formatters.discord_classic_v1 import is_xo_backup_report
 from parsers.application_alerts import NAMES as APPLICATION_NAMES
 
 import json
@@ -345,7 +346,7 @@ class DiscordOutput:
         source = str(
             notification.source or ""
         ).strip().casefold()
-        if source == "xo":
+        if source == "xo" and is_xo_backup_report(notification):
             return self.render_xo_modern_image(
                 notification
             )

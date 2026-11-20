@@ -153,3 +153,13 @@ dialog:not(#destination-dialog) form > .modal-actions {
 @media (min-width: 560px) and (max-width: 900px) {
   .ops-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
+
+/* NCE-127 phone menu (760 px and narrower). The sidebar rules for the owl button, menu icons and edition labels sit only in
+   desktop media queries, so on a phone the browser defaults showed: a grey outset button around the owl, icons filled
+   black, both "COMMUNITY EDITION" and "CE", and a 98% background that let the page show through. */
+@media (max-width: 760px) {
+  .sidebar { background: rgb(12, 15, 18) !important; }
+  .sidebar > .brand.sidebar-brand > .sidebar-owl-button { background: transparent !important; border: 0 !important; padding: 0 !important; border-radius: 12px !important; box-shadow: none !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; cursor: pointer; }
+  .sidebar .nav-icon svg { fill: none !important; stroke: currentColor !important; stroke-linecap: round !important; stroke-linejoin: round !important; stroke-width: 1.8 !important; width: 22px !important; height: 22px !important; }
+  .sidebar > .brand.sidebar-brand > .sidebar-edition-collapsed { display: none !important; }
+}
