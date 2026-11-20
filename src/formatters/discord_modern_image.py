@@ -2474,14 +2474,22 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
         status: str,
         label: str,
     ):
-        """Return the frozen badge geometry unless a source overrides it."""
+        """Frozen badge geometry, widened when the label needs more room.
 
-        return self._status_badge_box(
+        NCE-133: Proxmox "Virtualization Warning" ran past the badge outline.
+        The label starts 112 px into the badge; keep 34 px on its right.
+        """
+
+        box = self._status_badge_box(
             right,
             header_y,
             header_height,
             status=status,
         )
+        needed = int(draw.textlength(label, font=self.font_bold)) + 146
+        if needed <= box[2] - box[0]:
+            return box
+        return (box[2] - needed, box[1], box[2], box[3])
 
     def _standard_canvas_width(self, content) -> int:
         """Return the frozen canvas width unless a source needs more room."""
@@ -3476,43 +3484,6 @@ class _StandardizedSourceDiscordModernImageRenderer(
             x0,
             right,
             start_y,
-        )
-
-    def _standard_badge_box(
-        self,
-        draw,
-        right: int,
-        header_y: int,
-        header_height: int,
-        status: str,
-        label: str,
-    ):
-        """Keep long lifecycle badges horizontal at the frozen font size."""
-
-        text_width = int(
-            draw.textlength(
-                self._clean(label),
-                font=self.font_bold,
-            )
-        )
-        badge_width = max(
-            self.STATUS_BADGE_WIDTH,
-            text_width + 146,
-        )
-        shift = (
-            self.SUCCESS_BADGE_LEFT_SHIFT
-            if status == "success"
-            else 0
-        )
-        height = max(
-            self.STATUS_BADGE_HEIGHT,
-            header_height,
-        )
-        return (
-            right - badge_width - shift,
-            header_y,
-            right,
-            header_y + height,
         )
 
     def _event_time_only(self, value) -> str:

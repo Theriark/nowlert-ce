@@ -115,7 +115,7 @@ def test_reference_styles_describe_the_profile_menu_restart_and_drop_the_header_
 def test_nce128_build_versions_the_changed_webui_bundle():
     # r85 was taken by NCE-127 on development while this fix was in review.
     build = _ui_build()
-    assert build == "20260929-r86"
+    assert build == "20260929-r87"
     markup = _read("src/webui/index.html")
     assert f'name="nowlert-ui-build" content="{build}"' in markup
     assert f"/ui/app.js?v={build}" in markup

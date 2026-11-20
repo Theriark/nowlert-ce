@@ -152,6 +152,18 @@ def _lifecycle(status: object, severity: object, *, state: object = "") -> tuple
     return _BLUE, "ℹ️", "Information"
 
 
+def is_xo_backup_report(notification) -> bool:
+    """XO cards are backup-report layouts; other XO events (e.g. a Warning preview) use the generic card (NCE-133)."""
+
+    return (
+        str(getattr(notification, "category", "") or "").strip().casefold() == "backup"
+        or any(
+            getattr(notification, name, None)
+            for name in ("job_name", "vm_total", "successful_vms", "failed_vms", "skipped_vms")
+        )
+    )
+
+
 def _render_xo(notification, payload, normalized, metadata):
     """Render the compact CE Xen Orchestra Classic Card v1 geometry."""
 
@@ -2659,6 +2671,8 @@ def render_classic_embed_v1(notification, payload):
         )
 
     renderer = _RENDERERS.get(source)
+    if source == "xo" and not is_xo_backup_report(notification):
+        renderer = None
     if renderer is None:
         return _render_generic(
             notification,
@@ -2669,4 +2683,4 @@ def render_classic_embed_v1(notification, payload):
     return renderer(notification, payload, normalized, metadata)
 
 
-__all__ = ["CLASSIC_FOOTER", "render_classic_embed_v1"]
+__all__ = ["CLASSIC_FOOTER", "is_xo_backup_report", "render_classic_embed_v1"]
