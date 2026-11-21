@@ -6,6 +6,7 @@ import http.client
 import threading
 
 from html.parser import HTMLParser
+import re
 from pathlib import Path
 
 import inputs.http as http_module
@@ -1002,8 +1003,8 @@ def test_round19_served_html_cache_busts_round18_acceptance_assets():
 
     # Every runtime extension receives the same build key so a newly deployed
     # WebUI cannot keep executing an older extension bundle.
-    assert f'<script src="/ui/source_ui_retirement.js?v={UI_BUILD}" defer></script>' in markup
-    assert f'<link rel="stylesheet" href="/ui/reference_acceptance.css?v={UI_BUILD}">' in markup
+    assert re.search(rf'<script src="/ui/source_ui_retirement.js\?v={UI_BUILD}&h=[0-9a-f]{{12}}" defer></script>', markup)
+    assert re.search(rf'<link rel="stylesheet" href="/ui/reference_acceptance.css\?v={UI_BUILD}&h=[0-9a-f]{{12}}">', markup)
 
     app = service.response("/ui/app.js")
     patch = service.response("/ui/qa_patch.css")

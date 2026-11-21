@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 from pathlib import Path
+import re
 from urllib.parse import urlsplit
 
 
 TEAMS_MODERN_CARD_ROUTE_PREFIX = "/ui/teams-modern-cards/"
+ASSET_LINK = re.compile(
+    r'(?P<attr>href|src)="(?P<route>/ui/[A-Za-z0-9_./-]+\.(?:css|js))(?P<query>\?v=[A-Za-z0-9_.-]+)?"'
+)
 
 
 UI_BUILD = "20260929-r87"
@@ -53,6 +58,7 @@ class WebUIService:
     ):
         self.configuration = configuration
         self.platform_available = bool(platform_available)
+        self._asset_fingerprints: dict[str, str] = {}
         self.root = (
             Path(root).resolve()
             if root is not None
@@ -451,8 +457,27 @@ class WebUIService:
                 f'  <script src="/ui/management_consistency.js{version}" defer></script>\n'
                 f'  <script src="/ui/reference_acceptance.js{version}" defer></script>\n'
             )
-            body = text.replace("</head>", extension + "</head>", 1).encode("utf-8")
+            text = text.replace("</head>", extension + "</head>", 1)
+            body = ASSET_LINK.sub(self._fingerprinted_link, text).encode("utf-8")
         return WebUIResponse(200, body, content_type, cache_control)
+
+    def _fingerprinted_link(self, match: re.Match[str]) -> str:
+        # Proxies such as Cloudflare can replace "no-cache" with a long browser
+        # TTL, so every script and stylesheet link carries its content hash:
+        # a changed file gets a new URL and is never served from an old cache.
+        route, query = match.group("route"), match.group("query") or ""
+        fingerprint = self._asset_fingerprints.get(route)
+        if fingerprint is None and route in self.assets:
+            try:
+                data = (self.root / self.assets[route][0]).read_bytes()
+            except OSError:
+                return match.group(0)
+            fingerprint = hashlib.sha256(data).hexdigest()[:12]
+            self._asset_fingerprints[route] = fingerprint
+        if fingerprint is None:
+            return match.group(0)
+        separator = "&" if query else "?"
+        return f'{match.group("attr")}="{route}{query}{separator}h={fingerprint}"'
 
     def redirect_location(self, path: str, headers) -> str | None:
         """Return the configured HTTPS public URL for plain-HTTP UI requests."""
