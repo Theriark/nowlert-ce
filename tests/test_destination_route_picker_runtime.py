@@ -1,5 +1,6 @@
 """Destination-owned route picker runtime hardening."""
 
+import re
 from pathlib import Path
 
 from webui.service import UI_BUILD, WebUIService
@@ -18,8 +19,9 @@ def test_destination_route_runtime_assets_are_served_and_loaded():
 
     page = service.response("/")
     assert page is not None and page.status == 200
-    assert f'<link rel="stylesheet" href="/ui/destination_routes.css?v={UI_BUILD}">'.encode() in page.body
-    assert f'<script src="/ui/destination_routes.js?v={UI_BUILD}" defer></script>'.encode() in page.body
+    body = page.body.decode("utf-8")
+    assert re.search(rf'<link rel="stylesheet" href="/ui/destination_routes.css\?v={UI_BUILD}&h=[0-9a-f]{{12}}">', body)
+    assert re.search(rf'<script src="/ui/destination_routes.js\?v={UI_BUILD}&h=[0-9a-f]{{12}}" defer></script>', body)
 
     stylesheet = service.response("/ui/destination_routes.css")
     assert stylesheet is not None and stylesheet.status == 200

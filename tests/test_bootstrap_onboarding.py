@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from pathlib import Path
 
 from webui.service import WebUIService
@@ -26,7 +28,7 @@ def test_first_run_setup_serves_the_guided_layout_and_responsive_styles():
     assert "Create routes" in markup
     assert 'id="bootstrap-form"' in markup
     assert 'id="bootstrap-password-help"' in markup
-    assert 'href="/ui/bootstrap_onboarding.css?v=20260929-bootstrap-onboarding-3"' in markup
+    assert re.search(r'href="/ui/bootstrap_onboarding\.css\?v=20260929-bootstrap-onboarding-3&h=[0-9a-f]{12}"', markup)
 
     stylesheet = service.response("/ui/bootstrap_onboarding.css")
     assert stylesheet is not None and stylesheet.status == 200

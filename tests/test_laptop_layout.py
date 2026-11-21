@@ -20,10 +20,11 @@ def test_laptop_layout_stylesheet_is_served_and_loaded_after_every_other_stylesh
     page = service.response("/")
     assert page is not None and page.status == 200
     body = page.body.decode("utf-8")
-    link = f'<link rel="stylesheet" href="/ui/laptop_layout.css?v={UI_BUILD}">'
-    assert link in body
+    # The served link adds a content fingerprint after the build version.
+    link = rf'<link rel="stylesheet" href="/ui/laptop_layout.css\?v={UI_BUILD}&h=[0-9a-f]{{12}}">'
+    assert re.search(link, body)
     stylesheets = re.findall(r'<link rel="stylesheet" href="([^"]+)"', body)
-    assert stylesheets[-1] == f"/ui/laptop_layout.css?v={UI_BUILD}"
+    assert stylesheets[-1].startswith(f"/ui/laptop_layout.css?v={UI_BUILD}&h=")
 
     stylesheet = service.response("/ui/laptop_layout.css")
     assert stylesheet is not None and stylesheet.status == 200
