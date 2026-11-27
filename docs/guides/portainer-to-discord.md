@@ -45,7 +45,9 @@ API token** dialog opens:
 The token list afterwards shows the name, **Portainer** under **Allowed
 integrations**, `60/min`, **Never used** and **Active**, never the value. You
 paste the value once, as the `token` query value of the webhook URL in section
-3. No capture of the token dialog is published.
+3.
+
+![Issue Event API token dialog with only Portainer selected, before the token is issued (captured October 2026)](../images/portainer-setup/token-scope.png)
 
 The token authorizes event submission for Portainer, not administrator API access.
 The same token works on the native Portainer receiver in the fixed image.

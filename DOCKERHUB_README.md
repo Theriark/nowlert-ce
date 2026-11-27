@@ -53,11 +53,10 @@ images; this does not claim that development changes have been published.
 ## Preview
 
 Nowlert CE is a desktop web application. These captures show the WebUI of the
-v27.0.0 release-candidate line at desktop width (1440 × 900 px), taken on
-21 October 2026 from the Development deployment with the crew's Development
-test accounts and test data (the reviewed screenshot set reused unchanged
-since the `v27.0.0-rc.7` documentation package). The stable `3.1.6` image has
-an older WebUI.
+v27.0.0 release-candidate line at desktop width (1440 × 900 px), taken from the
+Development deployment with the crew's Development test accounts and test data:
+the Dashboard and Routing Flow on 27 November 2026, Destinations and Sign in on
+21 October 2026. The stable `3.1.6` image has an older WebUI.
 
 ### Dashboard
 

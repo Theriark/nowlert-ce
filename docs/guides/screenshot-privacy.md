@@ -343,14 +343,14 @@ and the `images/portainer-setup/` set, the TrueNAS delivery capture and the
 remaining Home Assistant delivery capture show no readable private label.
 
 The items below were raised by that review as lower-severity or judgement
-calls. The crew has not decided them; they need a person who can open the
-images and apply the project's privacy policy. They are review items, not
-confirmed exposures.
+calls. All of them are now decided; each item says how.
 
-- Routing flow capture `images/v3.1.0-routing-flow.png` (no longer embedded by
-  the README or the Docker Hub README since 24 October 2026; historical only):
-  a Zabbix route filter subtitle may carry a residual host-name fragment.
-  Decide whether to mask, recapture or withdraw.
+- Decided on 27 November 2026 by the product owner (Jira NCE-95): the
+  historical capture `images/v3.1.0-routing-flow.png` stays in the v3.1.0
+  record. The Zabbix route filter subtitle with its host-name fragment and the
+  two blurred destination names are now hidden by solid black boxes. The
+  current Routing Flow is the new capture of 27 November 2026,
+  `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png`.
 - Decided on 2 November 2026: the delivery capture
   `images/hardware-setup/xen-orchestra-delivery.png` (embedded by the Xen
   Orchestra to Discord guide) showed a real backup job label in the Message
@@ -361,11 +361,14 @@ confirmed exposures.
   the backup job label in the title and the footer with the retired product
   name and an organisation fragment. Those three are now hidden by solid black
   boxes like the sibling cards; the card stays as unembedded history.
-- Blurred captures `images/v2.5.2-settings.png`, `images/zabbix-setup/action-operations.png`,
+- Decided on 27 November 2026 by the product owner (Jira NCE-95): in
+  `images/v2.5.2-settings.png`, `images/zabbix-setup/action-operations.png`,
   `images/zabbix-setup/media-enabled.png` and
-  `images/zabbix-setup/recipient-media.png`: parts are blurred and the blurred
-  text is unreadable, but blur is not a masking method this page accepts (see
-  "Adding or replacing an image"). Decide whether to recapture.
+  `images/zabbix-setup/recipient-media.png` every blurred area (the top-left
+  corner of the v2.5.2 Settings page, the Zabbix account name under the logo,
+  the action name, the users and e-mail recipient fields, and the list of
+  actions using the media type) is now covered by a solid black box. The
+  captures stay where they are used.
 - Decided on 25 October 2026 by the product owner (Jira TOPS-422): the
   `images/v27.0.0-rc.1/` set (embedded by the WebUI guide; since that day the
   README and Docker Hub README Preview embed its 1440 px Dashboard, Routing
@@ -384,14 +387,19 @@ confirmed exposures.
   `tools/validate_current_documentation.py` and
   `tests/test_current_documentation_contract.py` enforce the list of captures
   the Preview may use.
-- Token captures `images/hardware-setup/nowlert-token-list.png`,
+- Decided on 27 November 2026 by the product owner (Jira NCE-95): the token
+  captures `images/hardware-setup/nowlert-token-list.png`,
   `images/hardware-setup/nowlert-token-scope.png` and
-  `images/portainer-setup/token-scope.png`: not viewable by the crew (see
-  "Validation records"); unlinked from every current document on 23 October
-  2026; a person must open them before they are linked again.
-- Every retained row shows only its last recorded inspection date. Re-open any
-  capture whose date is considered too old, at full size, and update the
-  Record column.
+  `images/portainer-setup/token-scope.png` were opened at full size. They show
+  the Issue Event API token dialog before a token is issued and the token list;
+  no token value, private address or personal data is visible. They are linked
+  again from the hardware Redfish guide, the Portainer guide and the
+  infrastructure tutorials index.
+- Decided on 27 November 2026 by the product owner (Jira NCE-95): the
+  inspection dates in the Record column are accepted as recorded. A capture is
+  re-opened and its date updated when the capture, or the page it shows,
+  changes. Wording: the guides call the Security page section "API tokens"
+  (its title) and one token an "Event API token" (the dialog's name).
 
 ## Raster inventory
 
@@ -417,7 +425,7 @@ raster under `docs/images/` needs a row.
 | `images/v2.5.2-overview.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v2.5.2-routes.png` | retained | historical v2.5.2 capture; not embedded; restored from Git history and masked 2 Nov 2026 (host filter text of one route); still shows route names, integrations, inputs and status |
 | `images/v2.5.2-routing-flow.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
-| `images/v2.5.2-settings.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026; open point above |
+| `images/v2.5.2-settings.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026; blurred top-left corner covered by a black box 27 Nov 2026 |
 | `images/v2.5.2-sources.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v2.5.2-teams.png` | retained | historical v2.5.2 capture; not embedded; opened 23 Oct 2026 |
 | `images/v3.1.0-dashboard.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026 |
@@ -425,8 +433,8 @@ raster under `docs/images/` needs a row.
 | `images/v3.1.0-delivery-history.png` | retained | historical v3.1.0 capture; not embedded; restored from Git history and masked 3 Nov 2026 with five small black boxes over the private values only (the camera name in two row messages, the gateway name in one row title and its location line, and a device and person name in one row message; the earlier large mask was removed); still shows the page header, titles, sources, outcome chips, attempt and transport chips and times |
 | `images/v3.1.0-discord-idrac.png` | retained | historical v3.1.0 capture; not embedded; opened 23 Oct 2026 |
 | `images/v3.1.0-discord-unifi.png` | retained | historical v3.1.0 capture; not embedded; opened 23 Oct 2026 |
-| `images/v3.1.0-discord-xen-orchestra.png` | retained | historical v3.1.0 card embedded by the Xen Orchestra to Discord guide as historical; restored from Git history and masked 2 Nov 2026 (job name in the title and message, repository and the two VM names; the earlier partial masks kept; on 2 Nov 2026, cycle 3, also the trailing title glyph that was left beside the title mask); still shows mode, duration, sizes, speeds, times and the product footer |
-| `images/v3.1.0-routing-flow.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026; open point above |
+| `images/v3.1.0-discord-xen-orchestra.png` | retained | historical v3.1.0 card embedded by the Xen Orchestra to Discord guide as historical; restored from Git history and masked 2 Nov 2026 (job name in the title and message, repository and the two VM names; the earlier partial masks kept; on 2 Nov 2026, cycle 3, also the trailing title glyph that was left beside the title mask); still shows mode, duration, sizes, speeds, times and the product footer; subtitle mask extended over the end of the repository label 27 Nov 2026 |
+| `images/v3.1.0-routing-flow.png` | retained | historical v3.1.0 capture; reviewed 15 Oct 2026; filter subtitle with a host-name fragment and two blurred destination names covered by black boxes 27 Nov 2026 |
 | `images/v3.1.0-teams-xen-orchestra.png` | retained | historical v3.1.0 card embedded by the Xen Orchestra to Teams guide as historical; restored from Git history and masked 2 Nov 2026 (user portrait beside the thread control; the earlier sender-name mask kept); still shows the test alert text, severity, category and the product footer |
 | `images/application-setup/checkmk-all-events.jpg` | retained | reviewed 15 Oct 2026 |
 | `images/application-setup/checkmk-sending-conditions.jpg` | retained | reviewed 15 Oct 2026 |
@@ -449,8 +457,8 @@ raster under `docs/images/` needs a row.
 | `images/hardware-setup/nowlert-destinations.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/nowlert-hardware-destination.png` | retained | reviewed 15 Oct 2026; stored webhook hidden |
 | `images/hardware-setup/nowlert-hardware-routes.png` | retained | reviewed 15 Oct 2026 |
-| `images/hardware-setup/nowlert-token-list.png` | retained | reviewed 15 and 21 Oct 2026 (token value hidden); not viewable by the crew on 22 Oct 2026, needs a person; unlinked 23 Oct 2026 |
-| `images/hardware-setup/nowlert-token-scope.png` | retained | reviewed 15 and 21 Oct 2026 (pre-issuance scope form); not viewable by the crew on 22 Oct 2026, needs a person; unlinked 23 Oct 2026 |
+| `images/hardware-setup/nowlert-token-list.png` | retained | reviewed 15 and 21 Oct 2026; opened at full size 27 Nov 2026, token list with no token value; linked again from the hardware Redfish guide 27 Nov 2026 |
+| `images/hardware-setup/nowlert-token-scope.png` | retained | reviewed 15 and 21 Oct 2026; opened at full size 27 Nov 2026, scope form before issuance with no token value; linked again from the hardware Redfish guide 27 Nov 2026 |
 | `images/hardware-setup/nowlert-xen-destination.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/nowlert-xen-routes.png` | retained | reviewed 15 Oct 2026 |
 | `images/hardware-setup/portainer-hpe-callback.png` | retained | reviewed 15 Oct 2026 |
@@ -485,7 +493,7 @@ raster under `docs/images/` needs a row.
 | `images/portainer-setup/node-rule-enabled.png` | retained | reviewed 15 Oct 2026 |
 | `images/portainer-setup/receiver-routing-proof.png` | retained | reviewed 15 Oct 2026 |
 | `images/portainer-setup/route-assignment.png` | retained | reviewed 15 Oct 2026 |
-| `images/portainer-setup/token-scope.png` | retained | reviewed 15 and 21 Oct 2026 (pre-issuance scope form); not viewable by the crew on 22 Oct 2026, needs a person; unlinked 23 Oct 2026 |
+| `images/portainer-setup/token-scope.png` | retained | reviewed 15 and 21 Oct 2026; opened at full size 27 Nov 2026, scope form before issuance with no token value; linked again from the Portainer guide 27 Nov 2026 |
 | `images/portainer-setup/webhook-channel.png` | retained | reviewed 15 Oct 2026 |
 | `images/portainer-setup/xen-backup-report-coverage.png` | retained | restored from Git history and masked 2 Nov 2026 (the three job names and identifiers that the earlier large mask left visible); still shows modes, schedule names, states and Report when values |
 | `images/truenas-setup/delivery-proof.png` | retained | reviewed 15 Oct 2026 |
@@ -499,7 +507,7 @@ raster under `docs/images/` needs a row.
 | `images/unifi-setup/protect-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-noise-filter.png` | retained | reviewed 15 Oct 2026 |
 | `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the user column of the event list, the record identifier under each resource and, after the independent review the same day, the account name in the sidebar corner); still shows the health checks, counters, action and resource names and the selected event; embedded by the WebUI guide |
-| `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026; crew administrator, synthetic test events; README and Docker Hub Preview |
+| `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | Development capture, 27 Nov 2026, Live with the month's data (replaces the capture of 12 Nov 2026, which showed the page still loading); opened at full size 27 Nov 2026; crew administrator, synthetic test events; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
 | `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026; crew user account |
@@ -520,7 +528,7 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/email-alerts-rules-admin-390.png` | retained | Development capture, 22 Oct 2026 |
 | `images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png` | retained | Development capture, 22 Oct 2026; fixture address and loopback host only |
 | `images/v27.0.0-rc.1/filtering-list-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 31 Oct 2026); shared crew test destinations, their filter names and badges, Integration behavior cards with zero aliases |
-| `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
+| `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | Development capture, 27 Nov 2026, Live, last month (replaces the capture of 21 Oct 2026); opened at full size 27 Nov 2026; crew administrator, test integrations and destinations; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 31 Oct 2026); crew administrator account, empty token list, no token value |
@@ -530,11 +538,11 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; not embedded since 25 Oct 2026 |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-768.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/users-search-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026; crew accounts only; two black boxes hide the Development administrator's account name in Recent activity |
-| `images/zabbix-setup/action-operations.png` | retained | reviewed 15 Oct 2026 |
-| `images/zabbix-setup/media-enabled.png` | retained | reviewed 15 Oct 2026 |
+| `images/zabbix-setup/action-operations.png` | retained | reviewed 15 Oct 2026; blurred account name, action name and users field covered by black boxes 27 Nov 2026 |
+| `images/zabbix-setup/media-enabled.png` | retained | reviewed 15 Oct 2026; blurred account name and action list covered by black boxes 27 Nov 2026 |
 | `images/zabbix-setup/native-recovery-accepted.png` | retained | reviewed 15 Oct 2026 |
 | `images/zabbix-setup/native-problem-accepted.png` | retained | reviewed 15 Oct 2026 |
-| `images/zabbix-setup/recipient-media.png` | retained | reviewed 15 Oct 2026 |
+| `images/zabbix-setup/recipient-media.png` | retained | reviewed 15 Oct 2026; blurred account name and e-mail recipient covered by black boxes 27 Nov 2026 |
 
 ## Validation records
 
@@ -554,9 +562,9 @@ hidden, or the pre-issuance scope form, and no token value. The independent
 review of 22 October 2026 could not open these three files: the crew's run
 refused to read them because of their file names, and that rule was not
 bypassed. The 21 October record is therefore unconfirmed by that review, and
-a person must open the three files and update their rows. Since 23 October
-2026 no current document embeds or links them; the guides describe the token
-dialog and the token list in writing. A file name that mentions a token is
+a person had to open the three files and update their rows. That was done on
+27 November 2026 (see the decided items above): no token value is visible, and
+the guides embed them again next to the written steps. A file name that mentions a token is
 not, by itself, evidence of a leak; inspect the image.
 
 ## Adding or replacing an image

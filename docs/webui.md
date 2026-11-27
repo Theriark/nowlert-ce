@@ -9,17 +9,19 @@ from the released v3.1.6 WebUI; see
 [development after v3.1.6](releases/post-v3.1.6-development.md) for the list of
 changes. v3.1.6 is the last stable release; the development build is the
 v27.0.0 release-candidate line and still reports application version 3.1.6.
-The screenshots under `images/v27.0.0-rc.1/` were captured on 21 to
-23 October 2026 (the Settings, the two Security and the Filtering captures on
-31 October 2026) from the Development deployment of the `development` branch
-with the crew's Development test accounts and test data; they are the
-reviewed screenshot set reused since the `v27.0.0-rc.7` documentation
-package, with those four captures replaced on 31 October 2026 (see the
-[folder index](images/v27.0.0-rc.1/README.md)). Since then the only application change in the later
-`development` commits, up to the source of the current release candidate, is
-the Destinations empty-state fix in `src/webui/app.js` and
-`src/webui/professional.css` (THE-1654, PR 641); every other change is to
-documentation, tests, a workflow file and the documentation checks. The
+The screenshots under `images/v27.0.0-rc.1/` were captured from the Development
+deployment of the `development` branch with the crew's Development test accounts
+and test data: most on 21 to 23 October 2026, the Settings, the two Security and
+the Filtering captures on 31 October, the November WebUI changes on 12 November
+(PR 659) and the 1440 px Dashboard and Routing Flow on 27 November 2026 (see the
+[folder index](images/v27.0.0-rc.1/README.md)). The WebUI changes merged since
+October are the Destinations empty-state fix (PR 641); sign-in, page speed and
+laptop layout, the Security page without its duplicate Restart button, the
+Delivery Performance chart, the Users activity list, the click-to-pick token
+integrations and the Email Alerts rule cards (PRs 651 to 658); Restart Nowlert in
+the administrator's profile menu, the View filter dialog footer and the phone
+menu (PRs 663 to 665); and the fingerprinted script and stylesheet links that
+keep a browser from using an old file after an update (PR 666). The
 desktop (1440 px)
 captures are the reference views of each page; the
 [narrow browser windows](#narrow-browser-windows) section shows the
@@ -313,7 +315,7 @@ the newest events after a restart.
 Pagination behavior is shared with Audit log:
 
 - **First / Previous / Next / Last** remain available;
-- the editable page number is embedded in `Page [n] of N - X items`;
+- the editable page number is embedded in `Page n of N · X items`;
 - pressing Enter in that field performs direct navigation;
 - **Top** sits on the left side of the bottom control row;
 - **Entries** sits on the right side of the same row;
@@ -437,7 +439,7 @@ Data Tools deliberately excludes users, credentials, token material, Delivery
 history and Audit log. Housekeeping controls local history retention separately.
 
 The Backups page shows the configured backup target addresses, so it is not
-captured; follow the written steps above.
+captured; the list above describes what it offers.
 
 ## Narrow browser windows
 

@@ -47,8 +47,8 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `sign-in-empty-signed-out-1440.png` | Sign in, empty form | signed out | 1440 | about 14:40 |
 | `sign-in-empty-signed-out-768.png` | Sign in, empty form | signed out | 768 | about 14:40 |
 | `sign-in-empty-signed-out-390.png` | Sign in, empty form | signed out | 390 | about 14:40 |
-| `dashboard-live-admin-1440.png` | Dashboard, Live, last month | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
-| `routing-flow-live-admin-1440.png` | Routing Flow, Live, last 24 hours | administrator | 1440 | 15:48 |
+| `dashboard-live-admin-1440.png` | Dashboard, Live, last month | administrator | 1440 | replaced 27 Nov 2026, 11:58 |
+| `routing-flow-live-admin-1440.png` | Routing Flow, Live, last month | administrator | 1440 | replaced 27 Nov 2026, 12:02 |
 | `destinations-list-admin-1440.png` | Destinations list | administrator | 1440 | 15:48 |
 | `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
 | `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | 15:49 |

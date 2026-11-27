@@ -88,6 +88,8 @@ for the controller configuration examples.
    and cannot show it again. Copy the value into your password manager, then
    choose **I saved it**.
 
+![Issue Event API token dialog with only the hardware integrations selected, before the token is issued (captured October 2026; the list now picks an integration with a plain click)](../images/hardware-setup/nowlert-token-scope.png)
+
 Although the dialog describes the normalized Event API, these source-scoped
 tokens also authenticate the corresponding vendor Redfish receivers.
 
@@ -96,7 +98,9 @@ The **Event API tokens** list then shows the new row with its name,
 `60/min`, **Never used**, and an **Active** status. The value itself is never
 listed; if it is lost, use **Rotate** to issue a new one. You paste the value
 into each controller's subscription as the `X-Nowlert-Token` header value
-(section 3); no capture of the dialog or the list is published.
+(section 3).
+
+![Event API tokens list with the hardware token; the list never shows a token value](../images/hardware-setup/nowlert-token-list.png)
 
 ## 2. Configure the destination and assign built-in routes
 
@@ -292,8 +296,7 @@ configuration is not automatically installed by the Nowlert image.
 
 ## Screenshot checklist for a completed controller test
 
-- Hardware token scope, with its value hidden (described in writing in
-  section 1; no capture of the token dialog or token list is published).
+- Hardware token scope and the token list, with no token value (section 1).
 - Controller subscription destination and status, with authentication redacted.
 - Nowlert delivery details showing the Redfish input and delivered result.
 - The resulting destination card.
