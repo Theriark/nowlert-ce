@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Documentation
+
+- Screenshot privacy review (NCE-95): new 1440 px Dashboard and Routing Flow
+  captures of Development, Live with the month's data; solid black boxes
+  replace the blur in four Zabbix and Settings captures and cover the
+  host-name fragment and blurred names in the historical v3.1.0 Routing Flow
+  and the end of the repository label in the v3.1.0 Xen Orchestra card; the
+  three token captures, opened and free of token values, are linked again;
+  the WebUI guide's pager wording, change list and Backups note and the
+  Docker Hub capture note are corrected; the open privacy points are recorded
+  as decided.
+
 ### Fixed
 
 - Destinations: a "No destinations" placeholder painted before the workspace
