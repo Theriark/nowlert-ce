@@ -171,7 +171,7 @@ def test_ci_validates_webui_compose_and_production_image():
         encoding="utf-8"
     )
 
-    assert "actions/setup-node@v7" in workflow
+    assert "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7" in workflow
     assert 'node-version: "24"' in workflow
     assert "package-manager-cache: false" in workflow
     assert "node --check src/webui/app.js" in workflow
