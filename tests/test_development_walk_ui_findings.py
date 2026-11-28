@@ -85,7 +85,7 @@ def test_f3_backup_destination_actions_and_last_test_columns_fit_their_content()
     # all seven columns, so the earlier Development walk rules before it leave Type alone.
     assert ".backup-destination-table th:nth-child(1) { width: 7%; }" in _read("qa_patch.css")
     earlier = layer[: layer.index("/* Narrow desktop widths")]
-    assert ".backup-destination-table th:nth-child(1)" not in the875
+    assert ".backup-destination-table th:nth-child(1)" not in earlier
     assert 7 + sum(int(value.rstrip("%")) for value in widths.values()) == 100
 
 

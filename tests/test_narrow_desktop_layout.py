@@ -22,14 +22,14 @@ def _narrow_desktop_block() -> str:
     return section[section.index(RANGE):]
 
 
-def test_narrow_range_follows_the_wider_the875_rules_it_overrides():
+def test_narrow_range_follows_the_wider_walk_rules_it_overrides():
     css = _read("management_consistency.css")
     # Same selectors and specificity as the 1181-1500px Development walk rules, so the
     # narrow desktop block must come later in the file to win between 1181 and 1399.
-    the875 = css.index("@media (min-width: 1181px) and (max-width: 1500px) {")
-    audit_the875 = css.rindex("@media (min-width: 1181px) and (max-width: 1500px) {")
-    assert css.index(MARKER) > the875
-    assert css.index(MARKER) > audit_the875
+    walk = css.index("@media (min-width: 1181px) and (max-width: 1500px) {")
+    audit_walk = css.rindex("@media (min-width: 1181px) and (max-width: 1500px) {")
+    assert css.index(MARKER) > walk
+    assert css.index(MARKER) > audit_walk
     assert css.count(RANGE) == 1
 
 

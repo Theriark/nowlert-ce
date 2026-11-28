@@ -547,7 +547,7 @@ def test_regional_i18n_save_boundary():
     assert request < persisted
 
 
-def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
+def test_delivery_and_audit_direct_pagination_controls():
     script = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "qa_patch.css").read_text(encoding="utf-8")
     platform = (ROOT / "src" / "api" / "platform.py").read_text(encoding="utf-8")
@@ -653,7 +653,7 @@ def test_audit_pagination_error_does_not_expose_request_details():
     assert "error.stack" not in handler
 
 
-def test_nce28_nce29_audit_context_and_explicit_health_checks():
+def test_audit_context_and_explicit_health_checks():
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
     script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
 
@@ -689,7 +689,7 @@ def test_nce28_nce29_audit_context_and_explicit_health_checks():
 
 
 
-def test_nce30_nce31_admin_delete_controls():
+def test_admin_delete_controls():
     script = (ROOT / "src" / "webui" / "app.js").read_text(
         encoding="utf-8"
     )
@@ -718,7 +718,7 @@ def test_nce30_nce31_admin_delete_controls():
 
 
 
-def test_nce31_nce33_nce34_nce35_development_followups():
+def test_development_followups():
     app = (ROOT / "src" / "webui" / "app.js").read_text(
         encoding="utf-8"
     )

@@ -453,7 +453,7 @@ def test_integration_settings_list_has_heading_spacing():
     assert "margin-top: 1.5rem" in styles
 
 
-def test_nce21_nce36_nce37_nce38_route_filter_ui():
+def test_route_filter_ui():
     script = (ROOT / "src/webui/app.js").read_text(
         encoding="utf-8"
     )
