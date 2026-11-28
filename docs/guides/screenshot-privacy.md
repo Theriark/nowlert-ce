@@ -237,6 +237,18 @@ observations and the guard test, not this prose, is the authority.
   in **Recent activity**, the account name of the Development deployment's
   administrator; two solid black boxes hide it. See the capture index for
   the build, viewports and accounts.
+- 28 November 2026: nine captures of `images/v27.0.0-rc.1/` were replaced by
+  captures of the Development build `fd6bd11f` after the readiness fixes of
+  pull requests 675 and 676 (the three Routing Flow captures, the 1440 and
+  768 px Email Alerts rules captures, both Security captures and the Synology-
+  and Zabbix-filtered Delivery history captures), signed in as the neutral
+  test administrator `nowlert-admin` and, for the regular-user Security
+  capture, a temporary regular user `nowlert-user` deleted after the capture.
+  Each was opened at full size before being added. Only the Zabbix-filtered
+  capture is masked: solid black rectangles over the row titles, the detail
+  header and the message body, the same scope as its capture of
+  2 November 2026, because those texts name the test fixture's VM-numbered
+  hosts and databases. Blur was not used.
 
 ## Withdrawn captures
 
@@ -511,8 +523,8 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
 | `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026; crew user account |
-| `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | Development capture, 23 Oct 2026; test fixture device `synthetic-dsm-01` only |
-| `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the row title, the detail header, the whole message body and, after the independent review the same day, the account name in the sidebar corner); still shows the Zabbix filter, badges, transport information and timeline; not embedded, the Synology capture is the reference |
+| `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 23 Oct 2026); test fixture device `synthetic-dsm-01` only |
+| `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the masked capture of 21 Oct 2026); the row titles, the detail header and the whole message body painted over with solid black rectangles; still shows the Zabbix filter, badges, transport information and timeline; not embedded, the Synology capture is the reference |
 | `images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
@@ -523,16 +535,16 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/destinations-list-admin-768.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destinations-list-user-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/email-alerts-groups-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/email-alerts-rules-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/email-alerts-rules-admin-768.png` | retained | Development capture, 22 Oct 2026 |
+| `images/v27.0.0-rc.1/email-alerts-rules-admin-1440.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 21 Oct 2026); CE QA test rules and groups only |
+| `images/v27.0.0-rc.1/email-alerts-rules-admin-768.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 22 Oct 2026); CE QA test rules and groups only |
 | `images/v27.0.0-rc.1/email-alerts-rules-admin-390.png` | retained | Development capture, 22 Oct 2026 |
 | `images/v27.0.0-rc.1/email-alerts-mailbox-edit-imap-admin-1440.png` | retained | Development capture, 22 Oct 2026; fixture address and loopback host only |
 | `images/v27.0.0-rc.1/filtering-list-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 31 Oct 2026); shared crew test destinations, their filter names and badges, Integration behavior cards with zero aliases |
-| `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | Development capture, 27 Nov 2026, Live, last month (replaces the capture of 21 Oct 2026); opened at full size 27 Nov 2026; crew administrator, test integrations and destinations; README and Docker Hub Preview |
-| `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
-| `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
-| `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 31 Oct 2026); crew administrator account, empty token list, no token value |
-| `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 31 Oct 2026); crew user account, empty token list, no token value |
+| `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | Development capture, 28 Nov 2026, Live, last month, as `nowlert-admin` (replaces the capture of 27 Nov 2026); test integrations and destinations; README and Docker Hub Preview |
+| `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 21 Oct 2026); no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
+| `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 21 Oct 2026); test integrations and destinations |
+| `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 12 Nov 2026); no picture, empty token list, no token value |
+| `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | Development capture, 28 Nov 2026, as the temporary regular user `nowlert-user` (replaces the capture of 12 Nov 2026); no picture, empty token list, no token value |
 | `images/v27.0.0-rc.1/settings-regional-admin-1440.png` | retained | Development capture, 28 Nov 2026 (replaces the capture of 31 Oct 2026); Development settings values only |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; not embedded since 25 Oct 2026 |
