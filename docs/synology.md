@@ -192,6 +192,7 @@ contracts.
 
 ## Rollback
 
-Disable the DSM email/custom webhook target and remove `routing.synology`. If
-the HTTP listener is still used by UniFi, Portainer, or Proxmox, keep it
-enabled. Existing sources and routes are unchanged.
+Disable the DSM email/custom webhook target, then in **Destinations** open each
+destination that receives Synology alerts, choose **Edit → Manage routes** and
+clear the Synology routes. If the HTTP listener is still used by UniFi,
+Portainer, or Proxmox, keep it enabled. Other sources and routes are unchanged.

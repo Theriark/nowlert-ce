@@ -21,7 +21,11 @@ from logger import log
 from api.security import Principal, RateLimiter
 from outputs.platform import PlatformOutputRegistry
 from outputs.service import PlatformOutputService
-from outputs.settings import normalize_output_settings, validate_mobile_publish_key
+from outputs.settings import (
+    normalize_output_settings,
+    validate_destination_secret_url,
+    validate_mobile_publish_key,
+)
 from storage.api_tokens import APITokenStore
 from storage.audit_events import AuditEventStore
 from storage.backups import StateBackupStore
@@ -1803,8 +1807,8 @@ class PlatformAPI:
             normalized_settings = normalize_output_settings(output_type, settings)
             if str(output_type or "").strip().casefold() == "nowlert_mobile":
                 self._mobile_publish_key(data.get("secret"))
-            if str(output_type or "").strip().casefold() == "webhook" and "secret" in data:
-                self._validate_webhook_secret(data.get("secret"))
+            if "secret" in data:
+                validate_destination_secret_url(output_type, data.get("secret"))
             if (
                 str(output_type or "").strip().casefold() == "email"
                 and normalized_settings.get("username")
@@ -2970,8 +2974,8 @@ class PlatformAPI:
                     self._mobile_publish_key(data.get("secret"))
                 elif not destination.secret_configured:
                     raise ValueError("Mobile topic-scoped publish key is required")
-            if next_type == "webhook" and "secret" in data:
-                self._validate_webhook_secret(data.get("secret"))
+            if "secret" in data:
+                validate_destination_secret_url(next_type, data.get("secret"))
             if (
                 next_type == "email"
                 and normalized_settings.get("username")
@@ -3263,9 +3267,11 @@ class PlatformAPI:
         """Refuse a new or changed route name that another route already uses.
 
         Routes are shared integration plumbing: every account sees one list,
-        so names must not repeat across owners, ignoring case. A route that
-        keeps its current name (older accounts each own a seeded copy of the
-        same built-in routes) is not a new duplicate.
+        so names must not repeat across owners, ignoring case. RouteStore
+        enforces the same rule for every writer and start-up renames older
+        duplicates (storage.routes.deduplicate_route_names); this early check
+        gives the API a clear 409 before any other validation runs. A route
+        that keeps its current name is not a new duplicate.
         """
 
         display, normalized = normalized_name(name, "route name")
@@ -3284,43 +3290,6 @@ class PlatformAPI:
         if duplicate is not None:
             raise ConflictError(
                 f"A route named {display} already exists. Choose another name."
-            )
-
-    @staticmethod
-    def _validate_webhook_secret(value):
-        """Refuse a webhook URL that delivery would reject.
-
-        Delivery accepts only an absolute, credential-free HTTPS URL
-        (outputs/platform_common.validate_outbound_url); checking the same
-        shape here stops a destination such as "not-a-url" being saved and
-        then failing every delivery.
-        """
-
-        candidate = value
-        if isinstance(candidate, str) and candidate.strip().startswith("{"):
-            try:
-                candidate = json.loads(candidate)
-            except json.JSONDecodeError:
-                candidate = ""
-        if isinstance(candidate, dict):
-            candidate = candidate.get("url") or candidate.get("value")
-        text = candidate.strip() if isinstance(candidate, str) else ""
-        try:
-            parsed = urlsplit(text)
-            valid = (
-                parsed.scheme.casefold() == "https"
-                and bool(parsed.hostname)
-                and parsed.username is None
-                and parsed.password is None
-                and not parsed.fragment
-                and len(text) <= 2048
-            )
-        except ValueError:
-            valid = False
-        if not valid:
-            raise ValueError(
-                "Webhook URL must be a complete https:// address, "
-                "for example https://hooks.example.com/nowlert."
             )
 
     @staticmethod

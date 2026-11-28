@@ -17,12 +17,22 @@ from pathlib import Path
 from api.schema import validate_config
 from api.security import TokenAuthenticator, hash_token
 from integrations.catalog import canonical_source, infer_input_type
-from outputs.settings import OUTPUT_TYPES, normalize_output_settings, validate_mobile_publish_key
+from outputs.settings import (
+    OUTPUT_TYPES,
+    normalize_output_settings,
+    validate_destination_secret_url,
+    validate_mobile_publish_key,
+)
 from storage.api_tokens import APITokenStore
 from storage.audit_events import AuditEventStore
 from storage.destinations import DestinationStore
 from storage.ownership import Actor
-from storage.routes import RouteStore, route_priority_name, route_priority_value
+from storage.routes import (
+    RouteStore,
+    available_route_name,
+    route_priority_name,
+    route_priority_value,
+)
 from storage.secrets import SecretStore
 from storage.integrations import IntegrationCategoryStore
 from storage.settings import (
@@ -241,6 +251,8 @@ class UnifiedConfigurationService:
         secret = data.get("secret")
         if output_type == "nowlert_mobile":
             validate_mobile_publish_key(secret)
+        if secret is not None:
+            validate_destination_secret_url(output_type, secret)
         original = self.config_service.snapshot()
         candidate = deepcopy(original)
         self._assert_destination_name_available(candidate, display)
@@ -305,6 +317,7 @@ class UnifiedConfigurationService:
         )
         if "secret" in data:
             secret = data["secret"]
+            validate_destination_secret_url(next_type, secret)
         elif next_type == output_type:
             secret = current["secret_value"]
         else:
@@ -1193,6 +1206,9 @@ class UnifiedConfigurationService:
         if row is None:
             route_id = uuid.uuid4().hex
             with self.database.transaction() as connection:
+                # Route names are unique across all accounts; a YAML name
+                # another account already uses is stored as "Name (2)".
+                display, normalized = available_route_name(connection, display)
                 connection.execute(
                     """
                     INSERT INTO routes(
@@ -1220,6 +1236,9 @@ class UnifiedConfigurationService:
         else:
             route_id = str(row["id"])
             with self.database.transaction() as connection:
+                display, normalized = available_route_name(
+                    connection, display, excluding_id=route_id
+                )
                 connection.execute(
                     """
                     UPDATE routes

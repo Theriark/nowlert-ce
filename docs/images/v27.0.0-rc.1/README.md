@@ -54,7 +54,7 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | 15:49 |
 | `audit-log-overview-admin-1440.png` | Audit log (user column, record identifiers and sidebar account name masked on 2 Nov 2026) | administrator | 1440 | 15:49 |
 | `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | replaced 31 Oct 2026, 05:21 |
-| `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens) | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
+| `security-profile-admin-1440.png` | Security (Profile, MFA, password, Event API tokens) | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
 | `users-search-admin-1440.png` | Users, filtered to the crew accounts (Recent activity account names masked) | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
 | `delivery-history-zabbix-admin-1440.png` | Delivery history, Zabbix source filter (host and database labels and sidebar account name masked on 2 Nov 2026; not embedded) | administrator | 1440 | 15:53 |
 | `email-alerts-groups-admin-1440.png` | Email Alerts, Groups tab | administrator | 1440 | 15:53 |
@@ -69,17 +69,21 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `destinations-list-admin-390.png` | Destinations list | administrator | 390 | 18:05 |
 | `dashboard-live-user-1440.png` | Dashboard, Live, last month | regular user | 1440 | replaced 12 Nov 2026, 19:00 |
 | `destinations-list-user-1440.png` | Destinations list (shared destinations of other owners, all view only) | regular user | 1440 | 18:06 |
-| `security-profile-user-1440.png` | Security (Profile, MFA, password, API tokens) | regular user | 1440 | replaced 12 Nov 2026, 19:00 |
+| `security-profile-user-1440.png` | Security (Profile, MFA, password, Event API tokens) | regular user | 1440 | replaced 12 Nov 2026, 19:00 |
 
 The two preview captures were replaced on 21 October 2026 at the times shown.
 The Zabbix-filtered Delivery history capture of 21 October 2026 (15:53) and
 the Audit log capture (15:49) were withdrawn on 23 October 2026 and restored
 on 2 November 2026 with their exposed labels masked; see "Withdrawn on
-23 October 2026, restored masked on 2 November 2026" below. The Settings
-capture, the two Security captures and the Filtering capture were replaced on
-31 October 2026; see "Replaced on 31 October 2026" and "Filtering capture
-replaced on 31 October 2026" below. The other 18 files of this table are
-unchanged since 21 October 2026.
+23 October 2026, restored masked on 2 November 2026" below. Ten files of this
+table were replaced later, as the last column shows: the Settings capture on
+31 October 2026 ("Replaced on 31 October 2026" below); the Filtering capture,
+both Security captures, the Users capture and the 768 px, 390 px and regular
+user Dashboard captures on 12 November 2026 ("Replaced on 12 November 2026"
+below; the Filtering and Security files had already been replaced once on
+31 October 2026); and the 1440 px Dashboard and Routing Flow captures on
+27 November 2026. The other 14 files of this table are unchanged since
+21 October 2026.
 
 ## Added on 22 October 2026 (commit 8dc1b2ca)
 
@@ -181,6 +185,12 @@ captures, `ai-crew-user-…` for the regular-user capture), same 1440 × 900
 viewport, same position at the top of each page, each opened at full size
 before being added.
 
+The two Security rows below describe the files as captured on 31 October
+2026. Both were replaced again on 12 November 2026: the current captures have
+no **Restart Nowlert** button on the Security page (it moved to the account
+menu) and head the token section **Event API tokens**; see "Replaced on
+12 November 2026" below. The Settings row still describes the current file.
+
 | File | Page / state | Role | Width | Captured (Lisbon) |
 |---|---|---|---|---|
 | `security-profile-admin-1440.png` | Security (Profile, MFA, password, API tokens): power icon on **Restart Nowlert**, `+` on **New token**, security posture **Fair**, section heading **API tokens**, empty token list below the fold | administrator | 1440 | 05:20 |
@@ -189,10 +199,11 @@ before being added.
 
 Notes on these three files:
 
-- The page texts were read live from the same deployment after the captures:
-  the Security page headings are **Security**, **Profile**, **Password &
-  sessions** and **API tokens**, the only top-bar action is **Restart
-  Nowlert** (administrator only), the token section shows **+ New token** and
+- The page texts were read live from the same deployment after the captures
+  (31 October 2026; superseded for the Security page on 12 November 2026):
+  the Security page headings were **Security**, **Profile**, **Password &
+  sessions** and **API tokens**, the only top-bar action was **Restart
+  Nowlert** (administrator only), the token section showed **+ New token** and
   "No Event API tokens"; the Settings page headings **Regional settings**,
   **Updates** and **Housekeeping** share one size, and the update card reads
   "Update status unavailable: the last update check could not be completed, so
@@ -293,7 +304,7 @@ had no deliveries on Development and would show only the empty-period note.
 | `users-search-admin-1440.png` | Users filtered to `ai-crew`; **Recent activity** shows two `session · login` events whose account name is hidden by solid black boxes | administrator | 1440 |
 | `security-profile-admin-1440.png` | Security: no header button, **Event API tokens** heading, **+ New token** | administrator | 1440 |
 | `security-profile-user-1440.png` | Security for the regular user, **Event API tokens** heading | regular user | 1440 |
-| `filtering-list-admin-1440.png` | Filtering: four shared crew test destinations on one line each, pinned **Actions** column, Integration behavior cards | administrator | 1440 |
+| `filtering-list-admin-1440.png` | Filtering: four shared crew test destinations, one table row each (each destination name wraps onto two lines), pinned **Actions** column, Integration behavior cards | administrator | 1440 |
 
 Notes on these eight files:
 

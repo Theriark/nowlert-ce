@@ -154,7 +154,7 @@ Check three places:
 
 1. **Discord** — confirm the Xen Orchestra card is readable and contains the
    expected task/backup information.
-2. **Delivery History** — confirm the event was delivered through the intended
+2. **Delivery history** — confirm the event was delivered through the intended
    route and destination.
 3. **Destination → Manage routes** — confirm the dedicated Xen Orchestra route
    is assigned. Use the delivery details to establish which route matched.

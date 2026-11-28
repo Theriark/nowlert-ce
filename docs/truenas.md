@@ -111,8 +111,8 @@ python3 scripts/replay_email.py \
 ```
 
 Inspect logs for `Detected TrueNAS email`, `TRUENAS PARSED`, the hostname,
-event types and count, `routing.truenas`, formatter selection, and delivery
-result. Replay does not require external network access or a webhook when
+event types and count, the `Platform routing 'truenas': matched=... delivered=...`
+line, formatter selection, and delivery result. Replay does not require external network access or a webhook when
 parser-only validation is being performed.
 
 ## Supported event areas

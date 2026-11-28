@@ -279,7 +279,7 @@ def test_system_route_choices_merge_account_copies_without_losing_assignments(ac
     relationships = platform["relationships"]
     admin, alice, bob = (platform[key] for key in ("admin", "alice", "bob"))
     first = routes.create(admin.actor, admin.id, "Sonarr HTTP", "sonarr", input_type="http")
-    duplicate = routes.create(alice.actor, alice.id, "Sonarr HTTP", "sonarr", input_type="http")
+    duplicate = routes.create(alice.actor, alice.id, "Sonarr HTTP (2)", "sonarr", input_type="http")
     smtp = routes.create(admin.actor, admin.id, "Semaphore SMTP", "semaphore", input_type="smtp")
     http = routes.create(admin.actor, admin.id, "Semaphore HTTP", "semaphore", input_type="http")
     shared = destinations.create(admin.actor, admin.id, "Company Discord", "discord", settings={}, shared=True)

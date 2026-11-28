@@ -138,6 +138,7 @@ A successful request returns HTTP `204`. Invalid authentication returns `401`,
 an unsupported path returns `404`, invalid JSON returns `400`, and an oversized
 request returns `413`.
 
-To roll back, disable or remove the Portainer notification channel and remove
-the `routing.portainer` block. Existing SMTP and UniFi webhook inputs remain
-unchanged.
+To roll back, disable or remove the Portainer notification channel, then in
+**Destinations** open each destination that receives Portainer alerts, choose
+**Edit → Manage routes** and clear the Portainer route. Existing SMTP and UniFi
+webhook inputs remain unchanged.

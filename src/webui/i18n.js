@@ -22,6 +22,22 @@
     return NCE15_TRANSLATIONS[base] || {};
   }
 
+  // en-US and pt-BR exist only so an older saved value still displays. The
+  // hidden attribute does not hide an <option> in every browser, so an alias
+  // that is not the saved value is taken out of the list (and put back before
+  // the next render) instead of showing "English" or "Português" twice.
+  const nce15DetachedLanguageAliases = new Map();
+
+  function nce15RestoreLanguageAliases() {
+    const select = byId("preference-language");
+    if (!select) return;
+    for (const [value, option] of nce15DetachedLanguageAliases) {
+      const canonical = select.querySelector(`option[value="${value === "en-US" ? "en-GB" : "pt-PT"}"]`);
+      select.insertBefore(option, canonical ? canonical.nextSibling : null);
+    }
+    nce15DetachedLanguageAliases.clear();
+  }
+
   function nce15NormalizeLanguageLabels() {
     const select = byId("preference-language");
     if (!select) return;
@@ -33,12 +49,16 @@
       "pt-BR": "Português",
     };
 
-    for (const option of select.options) {
+    for (const option of [...select.options]) {
       option.hidden = option.value === "en-US" || option.value === "pt-BR";
       if (languageLabels[option.value]) {
         option.textContent = languageLabels[option.value];
       }
       delete option.dataset.i18nSource;
+      if (option.hidden && select.value !== option.value) {
+        nce15DetachedLanguageAliases.set(option.value, option);
+        option.remove();
+      }
     }
   }
 
@@ -70,6 +90,7 @@
 
   const nce15OriginalRenderPreferences = renderPreferences;
   renderPreferences = function renderPreferencesWithLanguageLabels() {
+    nce15RestoreLanguageAliases();
     const result = nce15OriginalRenderPreferences();
     nce15NormalizeLanguageLabels();
     return result;

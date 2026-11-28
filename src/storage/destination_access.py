@@ -17,7 +17,8 @@ from storage.filtering import RoutingOnlyRouteStore
 from storage.filtering_toggle import DestinationFilterStore as ToggleDestinationFilterStore
 from storage.ownership import Actor, OwnershipPolicy
 from storage.route_destinations import RouteDestinationCandidate, RouteDestinationStore
-from storage.validation import normalized_name
+from storage.routes import route_name_taken
+from storage.validation import ConflictError, normalized_name
 
 
 _PERMISSION_NAMESPACE = "destination_user_permissions"
@@ -561,19 +562,7 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
                     continue
                 display, normalized = normalized_name(base, "route name")
                 with self.database.transaction() as connection:
-                    conflict = connection.execute(
-                        """
-                        SELECT 1 FROM routes
-                        WHERE owner_user_id = ? AND name_normalized = ? AND id != ?
-                        LIMIT 1
-                        """,
-                        (
-                            str(row["owner_user_id"]),
-                            normalized,
-                            str(row["id"]),
-                        ),
-                    ).fetchone()
-                    if conflict is not None:
+                    if route_name_taken(connection, normalized, excluding_id=row["id"]):
                         continue
                     connection.execute(
                         """
@@ -667,9 +656,8 @@ class SystemRoutingRouteStore(RoutingOnlyRouteStore):
                         enabled=True,
                     )
                     return
-                except ValueError as error:
-                    if "route name is already configured" not in str(error):
-                        raise
+                except ConflictError:
+                    continue
 
     def _visible_destination_ids(self, actor: Actor, route_id: str) -> tuple[str, ...]:
         with self.database.connect() as connection:

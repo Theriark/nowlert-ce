@@ -16,7 +16,7 @@ connection-probe fix. These tests do not establish stable-release availability.
    persists it. No extra route needs to be created.
 3. Enable the destination and selected route. Start without severity/status
    restrictions. An unassigned route must not deliver to that destination.
-4. Open **Profile menu → Security → API tokens → New token** and create an
+4. Open **Security → Event API tokens → New token** and create an
    application token scoped only to that source.
    The local setup uses 300 requests/minute per application; choose a rate that
    fits your event volume. The token needs no administrator permissions.

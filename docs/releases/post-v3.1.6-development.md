@@ -64,12 +64,13 @@ release material.
 ### WebUI
 
 - Routing Flow with pulses and live metrics; Dashboard delivery graph.
-- Filtering decoupled from routes; the **Integration behavior** panel
-  (formatter filters, device aliases, trusted management clients, Redfish
-  deduplication) is shown under **Filtering**.
+- Filtering decoupled from routes; the **Integration behavior** panel under
+  **Filtering** holds UniFi Protect device aliases, Home Assistant
+  endpoint/component aliases and Redfish deduplication; trusted Dell iDRAC
+  management clients moved into each destination's Dell iDRAC filter.
 - Delivery history and Audit log pagination restored, with Audit log filters,
   range and sort applied on the server.
-- **Security** page (Profile menu): multi-factor authentication with an
+- **Security** page (account menu at the bottom of the sidebar): multi-factor authentication with an
   authenticator app and one-time recovery codes, password change and Event API
   tokens.
 - Resilient browser sessions with in-place re-authentication; refreshed
@@ -90,7 +91,7 @@ release material.
   layout fixes for 13-inch laptops and narrow windows (scrolling sidebar,
   pinned table actions, visible dialog buttons, no overlapping text) and
   clearer wording; the duplicate **Restart Nowlert** button on the Security
-  page is removed (the profile menu keeps it); the Users page **Recent
+  page is removed (the account menu keeps it); the Users page **Recent
   activity** lists sign-ins and account changes; the Event API token
   **Allowed integrations** list takes a plain click per integration.
 - Readiness fixes of 28 November 2026: the application reports version
@@ -101,6 +102,14 @@ release material.
   ignoring case; a wrong current password says "The current password is not
   correct." on the field; the Preview dialog explains a destination without
   routes; editing a backup destination clears its old **Last test** time.
+- Readiness fixes, round 2 (28 November 2026): Discord, Microsoft Teams and
+  Slack URLs are validated like the Generic webhook URL; route names are unique
+  for every writer, built-in routes of a later account get numbered names such
+  as "Checkmk HTTP (2)" and older duplicates are renamed at start-up; a
+  `/#routing-flow` link opens Routing Flow after a full page load; the language
+  list shows English and Português once; the Updates card shows its green tick
+  only after a successful check; Audit log trends are coloured by good or bad
+  news; Scheduled backups show only the day field that applies.
 
 ### Operations
 

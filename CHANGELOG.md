@@ -16,6 +16,30 @@
 
 ### Fixed
 
+- Readiness fixes for v27.0.0 (pull request 670): the application reports
+  version 27.0.0 and never offers the running release as an update; health
+  checks warn on repeated mailbox synchronization failures and report the
+  selected backup target and schedule; a Generic webhook URL must be a
+  complete `https://` address; a new or renamed route may not reuse another
+  route's name; only a destination's owner or an administrator can send a
+  test; a wrong current password names the current-password field; regular
+  users see Regional settings and Integration behavior read-only; the
+  Preview dialog explains a destination without routes; editing a backup
+  destination clears its old Last test time.
+- Readiness fixes, round 2: Discord, Microsoft Teams and Slack destination
+  URLs are validated like the Generic webhook URL (complete, credential-free
+  `https://`), on create, update and YAML-managed writes. Route names are
+  unique across all accounts for every writer (API, storage, seeded built-in
+  routes, configuration and portability import); built-in routes seeded for a
+  later account get numbered names such as "Checkmk HTTP (2)", and start-up
+  renames older duplicates the same way, keeping the oldest name. Opening
+  `/#routing-flow` (or another later-installed page) in a full page load opens
+  that page instead of the previous one. The Preview message points to Manage
+  routes; only administrators' browsers check GitHub for updates and a failed
+  check waits for the next 6-hour check; English and Português are listed once;
+  the Updates card shows the green tick only after a successful check; Audit
+  log trends are coloured by good or bad news; Scheduled backups show Day of
+  week only for weekly and Day of month only for monthly schedules.
 - Destinations: a "No destinations" placeholder painted before the workspace
   had loaded (direct load of the page, or a failed first request) stayed in
   the list once the cards arrived, and the stylesheet then stacked every card

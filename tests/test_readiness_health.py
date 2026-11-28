@@ -244,3 +244,78 @@ def test_editing_a_backup_target_clears_its_last_test_time(state, tmp_path):
     assert edited.last_test_outcome is None
     assert edited.last_test_at is None
     assert edited.public()["last_test_at"] is None
+
+
+def local_target(database, admin, tmp_path, *, enabled=True):
+    return BackupTargetStore(database).create(
+        admin.actor,
+        {
+            "name": "Weekly archive",
+            "type": "local",
+            "local_path": str(tmp_path / "archive"),
+            "enabled": enabled,
+        },
+    )
+
+
+def test_a_removed_backup_target_is_an_error(state):
+    database, _admin = state
+
+    result = check(
+        database,
+        "external_backup",
+        FakeConfigurationSync(schedule="weekly", target_id="missing-target"),
+    )
+
+    assert result["status"] == "error"
+    assert result["name"] == "Backup target"
+    assert result["detail"] == "the selected backup target no longer exists"
+
+
+def test_a_disabled_backup_target_is_a_warning(state, tmp_path):
+    database, admin = state
+    target = local_target(database, admin, tmp_path, enabled=False)
+
+    result = check(
+        database,
+        "external_backup",
+        FakeConfigurationSync(schedule="weekly", target_id=target.id),
+    )
+
+    assert result["status"] == "warning"
+    assert result["name"] == "Local backup target"
+    assert result["detail"] == "weekly backups to Weekly archive: the target is disabled"
+
+
+def test_a_selected_target_with_the_schedule_off_says_so(state, tmp_path):
+    database, admin = state
+    target = local_target(database, admin, tmp_path)
+
+    result = check(
+        database,
+        "external_backup",
+        FakeConfigurationSync(schedule="disabled", target_id=target.id),
+    )
+
+    assert result["status"] == "healthy"
+    assert result["detail"] == "scheduled backups are disabled to Weekly archive"
+
+
+def test_unreadable_mailbox_state_is_a_warning(state):
+    import sqlite3
+    from contextlib import contextmanager
+
+    class LockedDatabase:
+        @contextmanager
+        def connect(self):
+            raise sqlite3.OperationalError("database is locked")
+            yield  # pragma: no cover - makes this a generator
+
+    result = HealthCheckService(LockedDatabase(), None, clock=lambda: NOW)._mailbox_sync()
+
+    assert result == {
+        "key": "mailbox_sync",
+        "name": "Mailbox synchronization",
+        "status": "warning",
+        "detail": "mailbox status could not be read",
+    }

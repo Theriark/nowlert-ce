@@ -18,7 +18,7 @@ from storage.audit_events import AuditEventStore
 from storage.database import Database
 from storage.ownership import Actor, OwnershipPolicy
 from storage.route_destinations import RouteDestinationStore
-from storage.validation import normalized_identifier, normalized_name
+from storage.validation import ConflictError, normalized_identifier, normalized_name
 
 
 _FILTER_KEYS = {
@@ -33,6 +33,94 @@ ROUTE_PRIORITY_VALUES = {
     "lowest": 100,
 }
 _UNSET = object()
+_ROUTE_NAME_MAXIMUM = 128
+
+
+def route_name_conflict(display: str) -> ConflictError:
+    return ConflictError(f"A route named {display} already exists. Choose another name.")
+
+
+def route_name_taken(connection, normalized: str, *, excluding_id=None) -> bool:
+    """Return whether any other route, of any owner, already uses the name.
+
+    Route names are unique across all accounts, ignoring case: routes are
+    shared integration plumbing and every route picker shows one list.
+    """
+
+    return connection.execute(
+        "SELECT 1 FROM routes WHERE name_normalized = ? AND id != ? LIMIT 1",
+        (str(normalized), str(excluding_id or "")),
+    ).fetchone() is not None
+
+
+def require_unique_route_name(connection, display: str, normalized: str, *, excluding_id=None):
+    if route_name_taken(connection, normalized, excluding_id=excluding_id):
+        raise route_name_conflict(display)
+
+
+def numbered_route_name(name: str, number: int) -> tuple[str, str]:
+    display, _normalized = normalized_name(name, "route name")
+    suffix = f" ({int(number)})"
+    base = display[: _ROUTE_NAME_MAXIMUM - len(suffix)].rstrip()
+    return normalized_name(f"{base}{suffix}", "route name")
+
+
+def available_route_name(connection, name: str, *, excluding_id=None, taken=None) -> tuple[str, str]:
+    """Return the name, or the first free "Name (2)", "Name (3)", ...
+
+    Used by writers that cannot ask a person for another name: the shipped
+    route catalogue seeded for each account, configuration synchronization
+    and the start-up clean-up of older duplicate names.
+    """
+
+    def used(normalized):
+        if taken is not None:
+            return normalized in taken
+        return route_name_taken(connection, normalized, excluding_id=excluding_id)
+
+    display, normalized = normalized_name(name, "route name")
+    number = 2
+    while used(normalized):
+        display, normalized = numbered_route_name(name, number)
+        number += 1
+    return display, normalized
+
+
+def deduplicate_route_names(database: Database, *, clock: Callable[[], float] = time.time) -> list[dict]:
+    """Rename later routes whose name repeats an earlier route's name.
+
+    Older builds checked route names per account only, and seeded every
+    account with its own copy of the shipped catalogue, so the same name
+    could appear several times. The oldest route keeps its name; each later
+    copy becomes "Name (2)", "Name (3)", ... Ownership, assignments and
+    history are untouched. Runs at start-up and is a no-op once names are
+    unique.
+    """
+
+    renamed = []
+    now = int(clock())
+    with database.transaction() as connection:
+        rows = connection.execute(
+            "SELECT id, name, name_normalized FROM routes ORDER BY created_at, id"
+        ).fetchall()
+        taken = {str(row["name_normalized"]) for row in rows}
+        kept = set()
+        for row in rows:
+            normalized = str(row["name_normalized"])
+            if normalized not in kept:
+                kept.add(normalized)
+                continue
+            display, next_normalized = available_route_name(
+                connection, str(row["name"]), taken=taken
+            )
+            taken.add(next_normalized)
+            kept.add(next_normalized)
+            connection.execute(
+                "UPDATE routes SET name = ?, name_normalized = ?, updated_at = ? WHERE id = ?",
+                (display, next_normalized, now, str(row["id"])),
+            )
+            renamed.append({"id": str(row["id"]), "from": str(row["name"]), "to": display})
+    return renamed
 
 
 def route_priority_value(value) -> int:
@@ -125,6 +213,7 @@ class RouteStore:
                     raise KeyError("route owner not found")
                 if not bool(owner["enabled"]):
                     raise PermissionError("disabled users cannot own new routes")
+                require_unique_route_name(connection, display, normalized)
                 connection.execute(
                     """
                     INSERT INTO routes(
@@ -148,7 +237,7 @@ class RouteStore:
                     ),
                 )
         except sqlite3.IntegrityError as error:
-            raise ValueError("route name is already configured for this owner") from error
+            raise route_name_conflict(display) from error
 
         if destination_id not in (None, ""):
             try:
@@ -342,6 +431,10 @@ class RouteStore:
         now = int(self.clock())
         try:
             with self.database.transaction() as connection:
+                if normalized != str(row["name_normalized"]):
+                    require_unique_route_name(
+                        connection, display, normalized, excluding_id=route_id
+                    )
                 connection.execute(
                     """
                     UPDATE routes
@@ -362,9 +455,7 @@ class RouteStore:
                     ),
                 )
         except sqlite3.IntegrityError as error:
-            raise ValueError(
-                "route name is already configured for this owner"
-            ) from error
+            raise route_name_conflict(display) from error
 
         if destination_id is not _UNSET:
             try:

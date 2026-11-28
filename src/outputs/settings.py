@@ -89,6 +89,59 @@ def validate_public_https_url(value, field: str) -> str:
     return text
 
 
+URL_SECRET_OUTPUT_TYPES = {
+    "discord": ("Discord webhook URL", "https://discord.com/api/webhooks/..."),
+    "teams": ("Teams webhook URL", "https://example.webhook.office.com/..."),
+    "slack": ("Slack webhook URL", "https://hooks.slack.com/services/..."),
+    "webhook": ("Webhook URL", "https://hooks.example.com/nowlert"),
+}
+
+
+def validate_destination_secret_url(output_type, secret) -> None:
+    """Refuse a destination URL that delivery would reject.
+
+    Discord, Teams, Slack and Generic webhook destinations keep their target
+    address in the secret (a plain string or an object with ``url``).
+    Delivery accepts only an absolute, credential-free HTTPS URL
+    (outputs/platform_common.validate_outbound_url); checking the same shape
+    when the destination is saved stops a value such as "not-a-url" being
+    stored and then failing every delivery. Other output types are ignored.
+    """
+
+    kind = str(output_type or "").strip().casefold()
+    if kind not in URL_SECRET_OUTPUT_TYPES:
+        return
+    label, example = URL_SECRET_OUTPUT_TYPES[kind]
+    candidate = secret
+    if isinstance(candidate, bytes):
+        candidate = candidate.decode("utf-8", "replace")
+    if isinstance(candidate, str) and candidate.strip().startswith("{"):
+        try:
+            candidate = json.loads(candidate)
+        except json.JSONDecodeError:
+            candidate = ""
+    if isinstance(candidate, dict):
+        candidate = candidate.get("url") or candidate.get("value")
+    text = candidate.strip() if isinstance(candidate, str) else ""
+    try:
+        parsed = urlsplit(text)
+        valid = (
+            parsed.scheme.casefold() == "https"
+            and bool(parsed.hostname)
+            and parsed.username is None
+            and parsed.password is None
+            and not parsed.fragment
+            and len(text) <= 2048
+        )
+    except ValueError:
+        valid = False
+    if not valid:
+        raise ValueError(
+            f"{label} must be a complete https:// address without a user name "
+            f"or password, for example {example}."
+        )
+
+
 def _nowlert_mobile(settings, _complete):
     _unknown(settings, {"base_url", "topic_id", "topic_name", "message_style"})
     style = str(settings.get("message_style", "classic") or "").strip().casefold()

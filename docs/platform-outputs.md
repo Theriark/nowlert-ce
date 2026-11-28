@@ -134,7 +134,7 @@ Classic delivery remains unchanged.
 ## Email (SMTP)
 
 The Email destination is independent from Email Alerts mailbox ingestion. It uses
-the same destination ownership, routing, test-send, retry, Delivery History, and
+the same destination ownership, routing, test-send, retry, Delivery history, and
 audit paths as the other outputs.
 
 Outbound SMTP is TLS-only. Choose **STARTTLS** (normally port 587) or implicit

@@ -48,8 +48,8 @@ api:
 ```
 
 `config.yaml` keeps only the listener; it refuses `redfish` and `api.tokens`
-sections. Create the hardware token in the WebUI under **Profile menu →
-Security → API tokens**, allowing only the Redfish integrations you use
+sections. Create the hardware token in the WebUI under **Security →
+Event API tokens**, allowing only the Redfish integrations you use
 (Redfish, Supermicro, HPE iLO, Dell iDRAC); its value is shown once. An
 administrator sets the duplicate-event window (for example 300 seconds) under
 **Filtering → Integration behavior → Redfish transport → Edit**. Nowlert accepts

@@ -29,6 +29,7 @@ from router import Router
 from storage.runtime import initialize_state
 from storage.bootstrap import BootstrapStore
 from storage.default_routes import seed_missing_default_routes
+from storage.routes import deduplicate_route_names
 from storage.backup_scheduler import BackupScheduler
 from storage.housekeeping_scheduler import HousekeepingScheduler
 from version import APP_NAME, VERSION
@@ -71,6 +72,13 @@ def main() -> int:
         state_database = initialize_state(config)
 
         if state_database is not None:
+
+            renamed_routes = deduplicate_route_names(state_database)
+            if renamed_routes:
+                log.info(
+                    "Renamed %d route(s) whose name repeated an older route's name.",
+                    len(renamed_routes),
+                )
 
             seed_missing_default_routes(state_database)
 

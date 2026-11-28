@@ -58,7 +58,8 @@ installation.
 ## Current platform assumptions
 
 These guides describe the current development build that follows the v3.1.6
-release (database schema 18) and use the current v3.1.x platform model:
+release (version 27.0.0, database schema 18) and use the database-authoritative
+platform model (`platform_database_v1`):
 
 - integrations are built into the image;
 - inputs are normalised as SMTP, HTTP, or Redfish, plus Email Alerts mailbox

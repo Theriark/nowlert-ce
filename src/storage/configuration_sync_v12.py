@@ -13,7 +13,7 @@ import time
 import uuid
 
 from storage.route_destinations import RouteDestinationStore
-from storage.routes import RouteStore
+from storage.routes import RouteStore, available_route_name
 from storage.validation import normalized_name
 
 
@@ -57,6 +57,9 @@ def _upsert_route(self, actor, spec):
     if row is None:
         route_id = uuid.uuid4().hex
         with self.database.transaction() as connection:
+            # Route names are unique across all accounts; a YAML name another
+            # account already uses is stored as "Name (2)" instead of failing.
+            display, normalized = available_route_name(connection, display)
             connection.execute(
                 """
                 INSERT INTO routes(
@@ -83,6 +86,9 @@ def _upsert_route(self, actor, spec):
     else:
         route_id = str(row["id"])
         with self.database.transaction() as connection:
+            display, normalized = available_route_name(
+                connection, display, excluding_id=route_id
+            )
             connection.execute(
                 """
                 UPDATE routes

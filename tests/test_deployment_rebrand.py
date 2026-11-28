@@ -37,13 +37,16 @@ def test_production_compose_uses_nowlert_host_variables():
         "NOWLERT_STATE_DIR",
         "NOWLERT_EXTERNAL_BACKUP_DIR",
         "NOWLERT_SMTP_PASSWORD",
-        "NOWLERT_ADMIN_TOKEN",
-        "NOWLERT_HARDWARE_TOKEN",
         "NOWLERT_AVAILABLE_VERSION",
     )
 
     for name in names:
         assert name in document
+
+    # Event API tokens live in platform state; no token variable is passed.
+    for retired in ("NOWLERT_ADMIN_TOKEN", "NOWLERT_HARDWARE_TOKEN"):
+        assert retired not in document
+        assert retired not in (ROOT / ".env.example").read_text(encoding="utf-8")
 
 
 def test_new_environment_example_uses_nowlert_namespace():

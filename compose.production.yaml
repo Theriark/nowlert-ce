@@ -23,10 +23,6 @@ services:
 
       NOWLERT_SMTP_PASSWORD: "${NOWLERT_SMTP_PASSWORD:-}"
 
-      NOWLERT_ADMIN_TOKEN: "${NOWLERT_ADMIN_TOKEN:-}"
-
-      NOWLERT_HARDWARE_TOKEN: "${NOWLERT_HARDWARE_TOKEN:-}"
-
       NOWLERT_AVAILABLE_VERSION: "${NOWLERT_AVAILABLE_VERSION:-}"
 
       # Instance-owned OAuth applications for Email Alerts mailbox login.

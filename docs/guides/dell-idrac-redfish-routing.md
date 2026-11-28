@@ -146,7 +146,7 @@ and availability events.
 After a test event:
 
 1. confirm the destination received a Dell iDRAC-specific notification;
-2. check **Delivery History** for the intended route and destination;
+2. check **Delivery history** for the intended route and destination;
 3. compare the event text/severity with the iDRAC event log; and
 4. confirm repeated delivery of the exact same Redfish event does not create an
    unnecessary duplicate notification within the deduplication window.
