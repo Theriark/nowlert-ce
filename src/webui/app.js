@@ -3444,13 +3444,29 @@ function renderHealthChecks() {
 }
 
 
+// Day of week applies only to a weekly schedule and Day of month only to a
+// monthly one; a field that does not apply is hidden, not just ignored.
+function syncBackupScheduleFields() {
+  const schedule = byId("backup-schedule")?.value || "";
+  const weekday = byId("backup-weekday")?.closest("label");
+  const day = byId("backup-day")?.closest("label");
+  if (weekday) weekday.hidden = schedule !== "weekly";
+  if (day) day.hidden = schedule !== "monthly";
+}
+
 function renderBackupSettings() {
   if (!isAdmin() || !state.backupSettings) return;
   const settings = state.backupSettings;
-  byId("backup-schedule").value = settings.schedule;
+  const scheduleSelect = byId("backup-schedule");
+  scheduleSelect.value = settings.schedule;
+  if (scheduleSelect.dataset.fieldSyncBound !== "1") {
+    scheduleSelect.dataset.fieldSyncBound = "1";
+    scheduleSelect.addEventListener("change", syncBackupScheduleFields);
+  }
   renderBackupTimeOptions();
   byId("backup-weekday").value = String(settings.weekday);
   byId("backup-day").value = String(settings.day);
+  syncBackupScheduleFields();
   const target = byId("backup-target");
   target.replaceChildren(element("option", { value: "", text: "Local state only" }));
   for (const item of state.backupTargets) {

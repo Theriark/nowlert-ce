@@ -1,6 +1,6 @@
 # Backend and event API
 
-Nowlert v1.9.0 introduced the YAML-token administration and event API
+Nowlert v1.9.0 introduced the token-authenticated administration and event API
 (`/api/...`). It reuses the existing dispatcher, notification model, router,
 formatters, and outputs; it is not a second delivery pipeline.
 
@@ -8,7 +8,7 @@ The API is **enabled by default**: when `config.yaml` has no `api.enabled`
 setting, Nowlert serves it, and the supplied `config/config.example.yaml` sets
 `api.enabled: true`. Set `api.enabled: false` to turn off both this API and the
 `/api/v2` platform API (the WebUI then cannot work). `GET /api/health` needs no
-token; every other endpoint below needs a configured YAML token.
+token; every other endpoint below needs an Event API token.
 
 The local-session, owned-resource, preview, and user-scoped event contract
 used by the WebUI is documented in the
@@ -16,17 +16,26 @@ used by the WebUI is documented in the
 
 ## Authentication
 
-Tokens are configured by environment-variable name, owner-only file, or
-SHA-256 digest. Plaintext YAML tokens are rejected. Send a token as
-`Authorization: Bearer TOKEN` or `X-Nowlert-Token: TOKEN`.
+Tokens are Event API tokens stored as hashes in platform state. Issue, rotate
+and revoke them in the WebUI under **Security → Event API tokens** (select your
+account name at the bottom of the sidebar, then **Security**) or through
+`/api/v2/tokens` ([platform API](platform-api.md)); the value is shown only
+once. `config.yaml` can no longer define tokens: under the current
+`platform_database_v1` model an `api.tokens` section is refused with
+"api.tokens is database-managed; edit applications in the WebUI". An older
+installation's YAML tokens are imported once, as "Legacy …" tokens, by the
+one-way migration (see
+[database-authoritative resources](database-authoritative-resources.md)).
+Send a token as `Authorization: Bearer TOKEN` or `X-Nowlert-Token: TOKEN`.
 
 Roles:
 
-- `application`: submit only sources listed in `sources`;
-- `admin`: access backend administration endpoints and any source.
+- `application`: submit only the integrations allowed for the token;
+- `admin`: access backend administration endpoints and any source; only an
+  administrator can issue an `admin` token.
 
-These YAML-backed tokens are not browser sessions and cannot manage v2
-platform resources. Do not mix them with the `/api/v2` authentication model.
+Event API tokens are not browser sessions and cannot manage v2 platform
+resources. Do not mix them with the `/api/v2` session authentication model.
 
 ## Endpoints
 
@@ -59,8 +68,9 @@ curl -sS \
   http://127.0.0.1:18080/api/events
 ```
 
-The token must include `home_lab`, and `routing.home_lab` must select at least
-one configured output target.
+The token must allow `home_lab`, and a route for `home_lab` (or a wildcard
+fallback route) must be assigned to at least one enabled destination under
+**Destinations → Edit → Manage routes**.
 
 ## Configuration safety
 
@@ -68,8 +78,9 @@ one configured output target.
 document back in `PUT /api/config` preserves the existing secret values. The
 service validates before writing, creates mode-`0600` backups, uses an atomic
 replace, reloads configuration under a lock, and retains the ten newest
-backups. Output routes and token definitions are read from the reloaded
-configuration. Listener bind address, port, maximum request size, SMTP
+backups. `config.yaml` holds only the bootstrap settings; destinations, routes
+and Event API tokens live in platform state and are not changed by
+`PUT /api/config`. Listener bind address, port, maximum request size, SMTP
 transport, and TLS settings require a controlled container restart. Audit
 records omit bodies, credentials, and query strings and are
 created mode `0600`.

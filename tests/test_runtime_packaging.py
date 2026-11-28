@@ -174,6 +174,7 @@ def test_ci_validates_webui_compose_and_production_image():
     assert "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7" in workflow
     assert 'node-version: "24"' in workflow
     assert "package-manager-cache: false" in workflow
-    assert "node --check src/webui/app.js" in workflow
+    assert "for script in src/webui/*.js; do" in workflow
+    assert "node --check \"$script\"" in workflow
     assert "docker compose -f compose.production.yaml config" in workflow
     assert "docker build --tag nowlert:ci ." in workflow

@@ -87,9 +87,11 @@
   white-space: nowrap;
 }
 
-#view-audit .audit-refine-trend.is-success strong { color: #79e28d; }
-#view-audit .audit-refine-trend.is-warning strong { color: #f0c43f; }
-#view-audit .audit-refine-trend.is-failed strong { color: #ff7474; }
+/* Colour says whether the change is good news: more successes or fewer
+   warnings/failures are green, the opposite is red, no change stays grey. */
+#view-audit .audit-refine-trend.trend-good strong { color: #79e28d; }
+#view-audit .audit-refine-trend.trend-bad strong { color: #ff7474; }
+#view-audit .audit-refine-trend.trend-neutral strong { color: #a9b3bd; }
 
 /* The health summary is always present. It renders the latest safe real check snapshot. */
 #view-audit .audit-log-health-strip.audit-health-dashboard-host {

@@ -76,7 +76,20 @@ def test_current_guides_include_security_step_for_event_tokens():
         text = path.read_text(encoding="utf-8")
         assert not re.search(r"Profile\s*→\s*API tokens", text), path
     section = (ROOT / "docs/webui.md").read_text(encoding="utf-8").split("### Event API tokens", 1)[1].split("###", 1)[0]
-    assert "Profile menu → Security → API tokens" in section
+    # The menu under the account name has no "Profile menu" label; its item is
+    # Security, and the Security page heads the token section Event API tokens.
+    assert (
+        "Select your account name at the bottom of the sidebar, then open "
+        "**Security → Event API tokens**"
+    ) in section
+
+
+def test_current_docs_do_not_name_a_profile_menu_label():
+    current = [ROOT / "README.md", ROOT / "DOCKERHUB_README.md", *(ROOT / "docs").rglob("*.md")]
+    for path in current:
+        if "releases" in path.parts and path.name != "post-v3.1.6-development.md":
+            continue
+        assert "Profile menu" not in path.read_text(encoding="utf-8"), path
 
 
 @pytest.mark.parametrize("relative", (
@@ -85,7 +98,8 @@ def test_current_guides_include_security_step_for_event_tokens():
 ))
 def test_application_setup_uses_actual_token_navigation(relative):
     text = (ROOT / "docs" / relative).read_text(encoding="utf-8")
-    assert "Profile menu → Security → API tokens → New token" in text
+    assert "**Security → Event API tokens → New token**" in text
+    assert "Profile menu" not in text
 
 
 @pytest.mark.parametrize("relative", WITHDRAWN_IMAGES)

@@ -163,9 +163,9 @@ For each selected route, the platform delivery service:
 Adapter exceptions become bounded safe error codes. Response bodies, secret
 values, token values, and raw exception text are not stored in delivery history.
 
-## Delivery History
+## Delivery history
 
-Delivery History records information needed for operational diagnosis without
+Delivery history records information needed for operational diagnosis without
 turning the history table into a credential or payload archive.
 
 Typical fields include:
@@ -180,7 +180,7 @@ Typical fields include:
 - timestamp.
 
 The current UI omits redundant visual status badges and standardizes paginated
-navigation with the Audit Log. The underlying delivery semantics are unchanged.
+navigation with the Audit log. The underlying delivery semantics are unchanged.
 
 ## Audit events
 
@@ -206,7 +206,7 @@ owners or create administrator-only wildcard authority.
 Current installations use `platform_database_v1`:
 
 - SQLite is authoritative for destinations, routes, Event API tokens,
-  preferences, backup schedules, integration behavior, aliases, users, notices,
+  preferences, backup schedules, integration behavior, aliases, users,
   history, and audit state;
 - destination credential values remain in private owner-scoped files; and
 - `config.yaml` remains the process/bootstrap document.

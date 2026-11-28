@@ -86,6 +86,94 @@ def test_webhook_url_is_validated_when_it_is_changed(platform_api):
     assert renamed.status == 200
 
 
+CHAT_URL_LABELS = {
+    "discord": "Discord webhook URL",
+    "teams": "Teams webhook URL",
+    "slack": "Slack webhook URL",
+}
+
+
+@pytest.mark.parametrize("output_type", sorted(CHAT_URL_LABELS))
+@pytest.mark.parametrize(
+    "secret",
+    [
+        "not-a-url",
+        {"url": "not-a-url"},
+        {"url": "http://hooks.example.com/nowlert"},
+        {"url": "https://user:secret@hooks.example.com/nowlert"},
+        {"url": ""},
+    ],
+)
+def test_every_url_destination_refuses_an_invalid_url(platform_api, output_type, secret):
+    headers = login(platform_api)
+
+    response = call(
+        platform_api,
+        "POST",
+        "/api/v2/destinations",
+        {"name": "Broken chat", "output_type": output_type, "settings": {}, "secret": secret},
+        headers,
+    )
+    with platform_api["database"].connect() as connection:
+        stored = connection.execute("SELECT COUNT(*) FROM destinations").fetchone()[0]
+
+    assert response.status == 400
+    assert response.payload["error"].startswith(
+        f"{CHAT_URL_LABELS[output_type]} must be a complete https:// address"
+    )
+    assert stored == 0
+
+
+@pytest.mark.parametrize("output_type", sorted(CHAT_URL_LABELS))
+def test_every_url_destination_accepts_a_valid_url(platform_api, output_type):
+    headers = login(platform_api)
+
+    response = call(
+        platform_api,
+        "POST",
+        "/api/v2/destinations",
+        {
+            "name": f"Valid {output_type}",
+            "output_type": output_type,
+            "settings": {},
+            "secret": {"url": "https://hooks.example.com/nowlert"},
+        },
+        headers,
+    )
+
+    assert response.status == 201
+    assert response.payload["destination"]["secret_configured"] is True
+
+
+def test_url_is_validated_when_a_destination_changes_to_a_chat_type(platform_api):
+    headers = login(platform_api)
+    destination = create_destination(platform_api, headers)
+
+    rejected = call(
+        platform_api,
+        "PATCH",
+        f"/api/v2/destinations/{destination['id']}",
+        {"output_type": "discord", "settings": {}, "secret": {"url": "not-a-url"}},
+        headers,
+    )
+    current = call(
+        platform_api, "GET", f"/api/v2/destinations/{destination['id']}", headers=headers
+    )
+
+    assert rejected.status == 400
+    assert rejected.payload["error"].startswith("Discord webhook URL must be")
+    assert current.payload["destination"]["output_type"] == "webhook"
+
+
+def test_url_validation_ignores_types_without_a_url():
+    from outputs.settings import validate_destination_secret_url
+
+    validate_destination_secret_url("email", {"password": "not-a-url"})
+    validate_destination_secret_url("nowlert_mobile", {"api_token": "not-a-url"})
+    with pytest.raises(ValueError, match="^Teams webhook URL must be"):
+        validate_destination_secret_url("TEAMS", b'{"url": "ftp://example.com/hook"}')
+
+
 def route(name, source="zabbix"):
     return {"name": name, "source": source, "input_type": "http", "filters": {}}
 

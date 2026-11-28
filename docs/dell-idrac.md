@@ -17,7 +17,7 @@ firmware, chassis, and availability events and retains safe operator actions.
 
 Destinations, routes and tokens are managed in the WebUI, not in
 `config.yaml`. Create a source-scoped Event API token for Dell iDRAC under
-**Profile menu → Security → API tokens**, create the destination under
+**Security → Event API tokens**, create the destination under
 **Destinations**, then edit it, open **Manage routes** and select the built-in
 **Dell iDRAC Redfish** route. The
 [Dell iDRAC Redfish routing guide](guides/dell-idrac-redfish-routing.md) walks
@@ -26,15 +26,17 @@ through each step.
 Trusted management systems can generate routine `USR0030` and `USR0032`
 login/logout audit records over REDFISH, IPMI over LAN, or another management
 transport. These successful session records can be handled without delivery
-by listing only the trusted client addresses in the Dell iDRAC integration
-settings record. The WebUI's **Integration behavior** panel does not show this
-record, so an administrator sets it through the
-[platform API](platform-api.md) with a browser session:
+for each destination: open **Filtering**, choose the destination, choose
+**Dell iDRAC**, and list the trusted client addresses, one per line, under
+**Session audit suppression → Trusted management client IPs**, then save. The
+addresses become a block rule of that destination's Dell iDRAC filter, so each
+destination keeps its own list.
 
-```text
-PUT /api/v2/integration-settings/dell_idrac
-{"suppress_ipmi_session_audit_from": ["192.0.2.10", "192.0.2.11"]}
-```
+Older versions kept one global list in the Dell iDRAC integration settings
+record (`suppress_ipmi_session_audit_from`). Nowlert moves such a list into a
+block rule on every destination that receives Dell iDRAC routes and then deletes
+the global record, so do not set it through
+`PUT /api/v2/integration-settings/dell_idrac`: the value would not stay.
 
 The filter requires all three signals: a Dell iDRAC notification, message ID
 `USR0030` or `USR0032`, and an exact configured source address. Transport text

@@ -198,8 +198,9 @@ chmod 600 config/tls/key.pem
 ```
 
 Restrict access to the private key and include certificate renewal in normal
-operations. The certificate and key under `tests/fixtures/tls` are synthetic
-test fixtures and must never be used for deployment.
+operations. Never deploy a certificate or key copied from the repository's
+tests: the test suite generates its own throwaway TLS material at run time,
+and production needs a certificate issued for your SMTP host name.
 
 ## Startup validation
 

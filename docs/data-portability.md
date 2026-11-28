@@ -59,13 +59,13 @@ the same fingerprint. Partial creation is rolled back.
 
 ## Housekeeping
 
-Delivery History and Audit Log are persisted in SQLite for administrator
+Delivery history and Audit log are persisted in SQLite for administrator
 inspection. They are not transient browser data.
 
 Default retention is:
 
-- Delivery History: **90 days**;
-- Audit Log: **365 days**; and
+- Delivery history: **90 days**;
+- Audit log: **365 days**; and
 - completed backup-run records: **180 days**.
 
 The WebUI offers recommended fixed retention choices for each category and a
@@ -87,8 +87,8 @@ Recovery snapshots live below `platform.state_dir/backups`. New snapshots use
 the `nowlert.state-backup.v2` manifest and contain:
 
 - a consistent SQLite snapshot, including users, settings, destinations,
-  reusable routes/assignments, filtering, API-token records, Delivery History,
-  Audit Log, backup settings and housekeeping settings/history;
+  reusable routes/assignments, filtering, API-token records, Delivery history,
+  Audit log, backup settings and housekeeping settings/history;
 - Nowlert-managed owner-scoped secret files;
 - the mounted bootstrap `config/config.yaml`, when available;
 - the running Nowlert version and database schema metadata; and

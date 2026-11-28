@@ -64,6 +64,13 @@ id -g
 Set `NOWLERT_UID` and `NOWLERT_GID` in `.env` to the identity that owns the
 mounted directories.
 
+`NOWLERT_AVAILABLE_VERSION` is optional. Deployment automation can set it to
+the newest version it offers (for example `27.0.1`); `GET /api/v2/version`
+then reports it as `available`, and when it is newer than the running image
+**Settings → Updates** shows it as an available update. Leave it empty
+(the default) and the Updates card shows "Not advertised"; an administrator's
+browser still checks the GitHub releases page every 6 hours.
+
 Validate and start the production Compose definition:
 
 ```bash

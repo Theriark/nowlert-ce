@@ -19,7 +19,7 @@ October are the Destinations empty-state fix (PR 641); sign-in, page speed and
 laptop layout, the Security page without its duplicate Restart button, the
 Delivery Performance chart, the Users activity list, the click-to-pick token
 integrations and the Email Alerts rule cards (PRs 651 to 658); Restart Nowlert in
-the administrator's profile menu, the View filter dialog footer and the phone
+the administrator's account menu, the View filter dialog footer and the phone
 menu (PRs 663 to 665); and the fingerprinted script and stylesheet links that
 keep a browser from using an old file after an update (PR 666). The
 desktop (1440 px)
@@ -79,8 +79,9 @@ The sidebar offers **Dashboard**, **Routing Flow**, **Destinations**,
 **Filtering**, **Email Alerts** (expanding to **Rules**, **Groups**,
 **Mailboxes** and **Activity**), **Delivery history** and **Settings** to every
 signed-in user. **Audit log**, **Backups** and **Users** are shown to
-administrators only. The profile chip at the bottom of the sidebar opens the
-profile menu with **Security** and **Sign out**; for administrators it also
+administrators only. The account chip at the bottom of the sidebar (your name
+and role) opens the account menu
+with **Security** and **Sign out**; for administrators it also
 offers **Restart Nowlert**, which opens a confirmation. There is no separate
 restart button in the page header.
 
@@ -240,7 +241,10 @@ account owns none of them:
 Credentials are write-only. The WebUI can indicate that a credential exists,
 but normal read APIs do not return the stored webhook URL, password, token, or
 secret-file path. A positive test state means a real destination test passed;
-saving a credential alone is not presented as validation.
+saving a credential alone is not presented as validation. The Webhook URL of a
+Discord, Microsoft Teams, Slack or Generic webhook destination must be a
+complete `https://` address without a user name or password; anything else is
+refused with a message that names the field.
 
 ### Route assignments
 
@@ -253,7 +257,10 @@ Built-in integrations are packaged application capabilities. Routes are named
 after the integration and its input, for example **Xen Orchestra SMTP** or
 **Zabbix HTTP**. The normalized input badges are **SMTP**, **HTTP**,
 **Redfish**, and **Email Alerts**. Dedicated matching routes are evaluated
-before wildcard **Fallback** routes.
+before wildcard **Fallback** routes. Route names are unique across all accounts: each
+account owns its own copy of the built-in routes, and an account created after
+another one gets numbered names such as **Checkmk HTTP (2)**, which its owner
+can rename.
 
 ### Filtering
 
@@ -265,11 +272,12 @@ notifications broad, then suppress unwanted events centrally.
 Administrator-only deterministic processing settings appear under **Integration
 behavior** below the filter table on this page (regular users see them
 read-only): UniFi Protect device aliases, Home Assistant endpoint/component
-aliases and Redfish deduplication. The Xen Orchestra job/run ID visibility,
-Zabbix problem ID visibility and Dell iDRAC trusted management client records
-are not shown in this panel; an administrator changes them through
-`PUT /api/v2/integration-settings/{source}` (see the
-[platform API](platform-api.md)).
+aliases and Redfish deduplication. Xen Orchestra job/run IDs and Zabbix
+problem IDs are always left out of notifications; that setting is fixed and
+not offered anywhere. Trusted Dell iDRAC management clients are set per
+destination in the filter editor: choose the destination, then **Dell iDRAC**,
+and fill **Trusted management client IPs** under **Session audit
+suppression** (see [Dell iDRAC](dell-idrac.md)).
 
 ![Filtering with Integration behavior (development, administrator, 1440 px)](images/v27.0.0-rc.1/filtering-list-admin-1440.png)
 
@@ -314,7 +322,7 @@ event and appear in Delivery history. See the
 
 ### Event API tokens
 
-Open **Profile menu → Security → API tokens** to issue, rotate or revoke an Event API token. **New token** opens the **Issue Event API token** dialog, whose **Issue token** button creates the token.
+Select your account name at the bottom of the sidebar, then open **Security → Event API tokens** to issue, rotate or revoke an Event API token. **New token** opens the **Issue Event API token** dialog, whose **Issue token** button creates the token.
 
 Event API tokens authorize external applications to submit
 `POST /api/v2/events`. They are not required for SMTP, dedicated vendor webhook
@@ -431,7 +439,8 @@ not make unrelated settings or pages unavailable.
 
 ### Security
 
-**Security** in the profile menu opens the **Security** page for the signed-in
+**Security** in the account menu (select your account name at the bottom of the
+sidebar) opens the **Security** page for the signed-in
 account:
 
 - account details and profile picture;
@@ -440,7 +449,7 @@ account:
   one-time recovery codes to store safely (**I saved these codes**), and
   **Disable MFA** after confirming the current password and an authenticator
   code; and
-- **API tokens**, as described under Event API tokens above.
+- **Event API tokens**, as described above.
 
 | Administrator | Regular user |
 |---|---|

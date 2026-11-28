@@ -70,7 +70,7 @@ for the controller configuration examples.
 
 ## 1. Issue a hardware token
 
-1. Open **Profile menu → Security → API tokens**.
+1. Open **Security → Event API tokens**.
 2. Under **Event API tokens**, choose **New token**. The **Issue Event API
    token** dialog opens. Its help text says the token is for an external
    application that posts normalized events to `/api/v2/events` and that the

@@ -20,6 +20,7 @@ from api.security import hash_token
 from dispatcher import Dispatcher
 from inputs.http import HTTPServer
 from outputs.teams_modern_image import publish_teams_modern_image
+from version import VERSION
 
 
 class Configuration:
@@ -178,7 +179,7 @@ def test_health_and_generic_event_transport(monkeypatch, tmp_path):
         accepted = request(port, "POST", "/api/events", event(), running.secret)
 
     assert health[0] == 200
-    assert health[1]["version"] == "27.0.0"
+    assert health[1]["version"] == VERSION
     assert missing[0] == 401
     assert accepted == (202, {"accepted": True, "delivered": True})
     assert [item.source for item in running.router.items] == ["home_lab"]
@@ -273,7 +274,7 @@ def test_teams_modern_media_uses_path_below_public_health_prefix(
     assert card[3].startswith(b"\x89PNG")
     assert missing[0] == 404
     assert health[0] == 200
-    assert health[1]["version"] == "27.0.0"
+    assert health[1]["version"] == VERSION
 
 
 def test_api_rate_limit_returns_429(monkeypatch, tmp_path):

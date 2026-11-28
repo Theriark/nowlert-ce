@@ -8,7 +8,7 @@ import uuid
 
 from integrations.catalog import route_options
 from storage.database import Database
-from storage.validation import normalized_name
+from storage.routes import available_route_name
 
 
 _SEED_NAMESPACE = "platform.default_routes"
@@ -28,6 +28,9 @@ def seed_default_routes(
     Default routes are definitions only. They are unassigned, enabled, and
     owned by the account so private destinations can select them safely.
     Wildcard fallbacks remain admin-only, matching normal route creation rules.
+    Route names are unique across all accounts, so an account seeded after
+    another one receives "Checkmk HTTP (2)" and so on; each account can still
+    rename or edit its own copies.
     """
 
     owner_user_id = str(owner_user_id)
@@ -70,17 +73,7 @@ def seed_default_routes(
                 integration = str(option["integration_name"])
                 input_name = str(option["input_name"])
                 name = integration if integration == input_name else f"{integration} {input_name}"
-                display, normalized = normalized_name(name, "route name")
-                if connection.execute(
-                    "SELECT 1 FROM routes WHERE owner_user_id = ? AND name_normalized = ?",
-                    (owner_user_id, normalized),
-                ).fetchone():
-                    display, normalized = normalized_name(name + " (built-in)", "route name")
-                    if connection.execute(
-                        "SELECT 1 FROM routes WHERE owner_user_id = ? AND name_normalized = ?",
-                        (owner_user_id, normalized),
-                    ).fetchone():
-                        continue
+                display, normalized = available_route_name(connection, name)
                 connection.execute(
                     """
                     INSERT INTO routes(

@@ -28,7 +28,6 @@ SQLite stores authoritative management state for:
 - regional preferences;
 - backup scheduling/targets;
 - integration behavior/categories/aliases;
-- notices;
 - audit events; and
 - delivery history.
 
@@ -45,6 +44,13 @@ are managed through SQLite/WebUI/API and removed from the normal bootstrap YAML.
 
 Do not recreate legacy `outputs`, `routing`, `api.tokens`, or other
 WebUI-managed YAML sections in a healthy current installation.
+
+A legacy `api.tokens` entry that names an environment variable
+(`token_env`) is imported only if that variable is set when the migration
+runs. The current Compose file and `.env.example` no longer pass any token
+variable, so when upgrading such an installation, add the variable to the
+container environment for that first start, confirm the imported "Legacy …"
+token under **Security → Event API tokens**, then remove it again.
 
 ## Backups and rollback
 

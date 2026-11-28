@@ -395,6 +395,11 @@
     }
   }
 
+  function trendQuality(key, tone) {
+    if (tone !== "up" && tone !== "down") return "neutral";
+    return (key === "success") === (tone === "up") ? "good" : "bad";
+  }
+
   function trendData(current, previous) {
     if (previous === 0 && current === 0) return { text: "→ 0%", tone: "neutral" };
     if (previous === 0) return { text: "↑ New", tone: "up" };
@@ -490,7 +495,7 @@
       const trend = card?.querySelector(".audit-refine-trend");
       if (!trend) continue;
       const data = trendData(auditAnalytics.current[key], auditAnalytics.previous[key]);
-      trend.className = `audit-refine-trend is-${key} direction-${data.tone}`;
+      trend.className = `audit-refine-trend is-${key} direction-${data.tone} trend-${trendQuality(key, data.tone)}`;
       const value = trend.querySelector("strong");
       if (value) value.textContent = data.text;
     }

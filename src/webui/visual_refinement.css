@@ -2270,3 +2270,24 @@ body {
   padding: 0 !important;
   width: auto !important;
 }
+
+/* Update status states: the green tick means a completed check found nothing
+   newer. A failed check is amber, an available update blue, no check yet grey. */
+#view-settings#view-settings .reference-updates-card .reference-update-status-card.is-error .reference-update-status-icon {
+  background: #b7791f !important;
+}
+#view-settings#view-settings .reference-updates-card .reference-update-status-card.is-update-available .reference-update-status-icon {
+  background: #2f6fd1 !important;
+}
+#view-settings#view-settings .reference-updates-card .reference-update-status-card.is-unchecked .reference-update-status-icon {
+  background: #6b7480 !important;
+}
+#view-settings .reference-update-status-card.is-error {
+  background: linear-gradient(105deg, rgba(214, 140, 40, 0.12), #202327 82%) !important;
+}
+#view-settings .reference-update-status-card.is-update-available {
+  background: linear-gradient(105deg, rgba(60, 130, 230, 0.12), #202327 82%) !important;
+}
+#view-settings .reference-update-status-card.is-unchecked {
+  background: #202327 !important;
+}

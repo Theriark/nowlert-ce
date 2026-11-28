@@ -13,7 +13,7 @@ Routing lives in the WebUI database; do not recreate old output/routing YAML.
 
 ## 2. Issue a scoped token
 
-In the Nowlert **Profile menu → Security → API tokens**, create an application token allowing only
+In the Nowlert **Security → Event API tokens**, create an application token allowing only
 **Home Assistant**, with 120 events/minute. Copy its one-time value privately.
 Do not use an administrator token or put the token in the URL.
 

@@ -172,11 +172,20 @@ Route filters are bounded and normalized server-side. See
 
 Validation rules worth knowing:
 
-- A webhook destination's URL must be a complete, credential-free `https://`
-  address; anything else is refused with 400 before the destination is saved.
+- The URL of a Discord, Microsoft Teams, Slack or Generic webhook destination
+  must be a complete, credential-free `https://` address; anything else is
+  refused with 400 before the destination is saved, for example "Discord
+  webhook URL must be a complete https:// address without a user name or
+  password, …".
 - Route names are unique across all accounts, ignoring case. A new or renamed
   route that reuses a name answers 409 "A route named … already exists. Choose
-  another name."
+  another name." Every writer follows the same rule: the built-in routes seeded
+  for each account, configuration import and portability import. A built-in
+  route seeded for a later account gets a numbered name such as
+  "Checkmk HTTP (2)", which its owner can rename or edit. When Nowlert starts,
+  older duplicate names left by earlier versions are renamed the same way; the
+  oldest route keeps its name and ownership, assignments and history do not
+  change.
 - Sharing a destination lets other users select and preview it; only its owner
   or an administrator can send a test delivery (403 otherwise).
 
@@ -241,6 +250,7 @@ setup.
 | GET | `/api/v2/deliveries/page/{page}` | session | paginated delivery history |
 | GET | `/api/v2/deliveries/page/{page}/size/{size}` | session | paginated history with explicit size |
 | GET | `/api/v2/audit-events` | session | compatible audit list |
+| GET | `/api/v2/audit-events/summary` | session | visible audit totals: `total` plus `current` and `previous` seven-day counts of `success`, `warning`, `failed` and `other` (the Audit log trend cards) |
 | GET | `/api/v2/audit-events/page/{page}` | session | paginated audit history |
 | GET | `/api/v2/audit-events/page/{page}/size/{size}` | session | paginated audit history with size |
 
@@ -279,11 +289,15 @@ live state is replaced.
 | POST | `/api/v2/migrations/v1/preview` | administrator + CSRF | preview legacy YAML import |
 | POST | `/api/v2/migrations/v1/import` | administrator + CSRF | apply confirmed legacy import |
 | GET | `/api/v2/configuration/inventory` | administrator | secret-free mounted-config inventory |
+| POST | `/api/v2/configuration/migration/preview` | administrator + CSRF | retired on a normal installation: answers 400 "routing-authority migration is retired by database-authoritative resources" |
+| POST | `/api/v2/configuration/migration/apply` | administrator + CSRF | retired on a normal installation: answers 400 with the same message |
+| PUT | `/api/v2/configuration/routing-authority` | administrator + CSRF | retired on a normal installation: answers 400 "routing authority is fixed to database-authoritative resources" |
 
-Compatibility/recovery endpoints for older configuration-authority transitions
-may remain present, but a normal current installation uses
-`platform_database_v1`. Do not switch a healthy current deployment back to
-legacy YAML resource authority.
+The three configuration-authority endpoints belonged to the transition from
+YAML to database resources. They still exist so an older client gets a clear
+answer, but every current installation uses `platform_database_v1` and they
+refuse to run. Do not switch a healthy current deployment back to legacy YAML
+resource authority.
 
 ## Session example
 

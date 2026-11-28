@@ -15,7 +15,7 @@ it cannot send a header, place the endpoint behind a trusted reverse proxy that
 injects the token, or use the isolated SMTP compatibility path. Never expose an
 unauthenticated Redfish endpoint to an untrusted network.
 
-Create the source-scoped token under **Profile menu → Security → API tokens**
+Create the source-scoped token under **Security → Event API tokens**
 (allowing only Supermicro). Routing is configured in the WebUI, not in
 `config.yaml`: create the destination under **Destinations**, then edit it,
 open **Manage routes** and select the built-in **Supermicro Redfish** route.

@@ -32,8 +32,9 @@ CE selects the Mobile service on the server using
 `NOWLERT_DEPLOYMENT_ENVIRONMENT`: `development`, `stage`, or `production`
 (default). If the explicit environment is unset, CE uses the existing server
 `DD_ENV` deployment setting. Recognized aliases include `dev`, `stg` and `prod`;
-unrecognized tracing environments use production. These select `https://nowlert-mb-dev.theriark.dev`,
-`https://nowlert-mb-stg.theriark.dev`, or `https://nowlert-mb.theriark.com`.
+unrecognized tracing environments use production. Each value selects the
+Nowlert Mobile service of that environment; a self-hosted installation keeps the
+default, production.
 The development Compose file selects development explicitly. Set
 `NOWLERT_MOBILE_ORIGIN` to override the origin for an installation. It must be a
 credential-free HTTPS origin. No browser input or Host header selects it.

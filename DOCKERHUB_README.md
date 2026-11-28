@@ -140,8 +140,8 @@ upgrade or rollback.
 listeners, transport security, state location, and WebUI publication.
 
 Destinations, routes, Event API tokens, preferences, backup schedules,
-integration behavior, aliases, users, notices, audit events, and delivery
-history are database-authoritative in private platform state.
+integration behavior, aliases, users, audit events, and delivery history are
+database-authoritative in private platform state.
 
 Do not add the legacy WebUI-managed `outputs`, `routing`, `api.tokens`,
 `notifications`, `presentation`, `home_assistant`, `redfish`,

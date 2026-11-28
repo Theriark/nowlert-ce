@@ -11,7 +11,7 @@ source-scoped Event API token.
 Tokens, destinations and routes are managed in the WebUI, not in
 `config.yaml` (which refuses `api.tokens` and `routing`):
 
-1. Under **Profile menu → Security → API tokens**, create an application token
+1. Under **Security → Event API tokens**, create an application token
    that allows only **Home Assistant**. The value is shown once.
 2. Under **Destinations**, create the destination, edit it, open **Manage
    routes** and select the built-in **Home Assistant HTTP** route.

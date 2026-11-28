@@ -85,7 +85,7 @@ Local account protection includes:
 
 ### Multi-factor authentication and recovery
 
-Open **Profile menu → Security → Manage multi-factor authentication** to enroll an authenticator and manage MFA.
+Open **Security → Manage multi-factor authentication** to enroll an authenticator and manage MFA.
 Administrators can require MFA for local accounts. Enrollment returns ten
 one-time recovery codes, each containing 128 bits of randomness. Save them
 privately when displayed; only their hashes are stored.
@@ -139,7 +139,7 @@ For untrusted browser access, use a TLS reverse proxy and set
 
 ## Operational history and housekeeping
 
-Delivery History and Audit Log are persisted in SQLite and are therefore
+Delivery history and Audit log are persisted in SQLite and are therefore
 available for administrator inspection until their retention boundary is
 reached.
 
@@ -167,7 +167,7 @@ python3 tools/manage_users.py --state-dir /tmp/nowlert-state list-users
 For a running production container:
 
 ```bash
-docker compose -f compose.production.yaml exec nowlert \
+docker compose -f compose.production.yaml exec nowlert-ce \
   python3 tools/manage_users.py create-admin --username administrator
 ```
 
@@ -180,7 +180,7 @@ automation.
 New application-managed snapshots use `nowlert.state-backup.v2` and capture:
 
 - the complete SQLite database, including users, configuration records,
-  filtering, retained Delivery History and Audit Log;
+  filtering, retained Delivery history and Audit log;
 - Nowlert-managed owner-scoped secret files;
 - mounted bootstrap `config/config.yaml` when available;
 - application/database version metadata; and

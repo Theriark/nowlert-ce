@@ -296,7 +296,7 @@
       renderResult([]);
       // The dialog is modal, so a toast can sit behind it; explain inside it.
       const message = !previewAssignedRouteIds.size
-        ? "This destination has no routes yet, so there is nothing to preview. Assign a route to it in Routing Flow, then try again."
+        ? "This destination has no routes yet, so there is nothing to preview. Assign one with Manage routes, then try again."
         : !selected.length
           ? "Select at least one assigned route for this preview."
           : "No selected route supports this severity.";
@@ -973,8 +973,12 @@ function ensurePreviewReferenceLayout() {
   function syncSettingsUpdateState() {
     ensureSettingsReferenceLayout();
     const status = state.versionStatus || {}; const headline = byId("reference-update-headline"); const card = document.querySelector(".reference-update-status-card");
-    if (headline) headline.textContent = status.check_error ? "Update status unavailable" : status.update_available ? "A Nowlert update is available" : "Nowlert is up to date";
-    if (card) { card.classList.toggle("is-update-available", Boolean(status.update_available)); card.classList.toggle("is-error", Boolean(status.check_error)); }
+    // Only a completed check that found nothing newer earns the green tick.
+    const unchecked = !status.check_error && !status.update_available && !status.checked_at && !status.available;
+    if (headline) headline.textContent = status.check_error ? "Update status unavailable" : status.update_available ? "A Nowlert update is available" : unchecked ? "Update status not checked yet" : "Nowlert is up to date";
+    const icon = card?.querySelector(".reference-update-status-icon");
+    if (icon) icon.textContent = status.check_error ? "!" : status.update_available ? "↑" : unchecked ? "?" : "✓";
+    if (card) { card.classList.toggle("is-update-available", Boolean(status.update_available)); card.classList.toggle("is-error", Boolean(status.check_error)); card.classList.toggle("is-unchecked", unchecked); }
     if (byId("reference-update-last-checked")) byId("reference-update-last-checked").textContent = status.checked_at ? `Last checked ${typeof formatTime === "function" ? formatTime(status.checked_at) : status.checked_at}` : "Last checked —";
     requestAnimationFrame(alignSettingsReferenceCards);
   }

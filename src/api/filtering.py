@@ -11,7 +11,7 @@ from urllib.parse import unquote
 from api.platform import PlatformAPI as BasePlatformAPI
 from api.response import APIResponse
 from integrations.catalog import canonical_source
-from outputs.settings import normalize_output_settings
+from outputs.settings import normalize_output_settings, validate_destination_secret_url
 from storage.destination_access import (
     AccessControlledAuditEventStore,
     AccessControlledDeliveryHistoryStore,
@@ -382,8 +382,8 @@ class PlatformAPI(BasePlatformAPI):
 
         next_settings = data.get("settings", destination.settings)
         normalized_settings = normalize_output_settings(next_type, next_settings)
-        if next_type == "webhook" and "secret" in data:
-            self._validate_webhook_secret(data.get("secret"))
+        if "secret" in data:
+            validate_destination_secret_url(next_type, data.get("secret"))
         if (
             next_type == "email"
             and normalized_settings.get("username")

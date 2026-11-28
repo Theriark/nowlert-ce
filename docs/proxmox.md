@@ -153,6 +153,8 @@ integration as a fixture-validated candidate.
 
 ## Rollback
 
-Disable the Proxmox notification target and remove `routing.proxmox`. If the
-HTTP listener is used only by Proxmox, it may also be disabled; otherwise keep
-it enabled for UniFi and Portainer. Existing sources and routes are unchanged.
+Disable the Proxmox notification target, then in **Destinations** open each
+destination that receives Proxmox alerts, choose **Edit → Manage routes** and
+clear the Proxmox VE routes. If the HTTP listener is used only by Proxmox, it
+may also be disabled; otherwise keep it enabled for UniFi and Portainer. Other
+sources and routes are unchanged.

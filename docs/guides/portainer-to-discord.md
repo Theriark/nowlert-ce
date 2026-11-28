@@ -29,7 +29,7 @@ the desired delivery policy; do not narrow the source subscription by severity.
 
 ## 2. Issue a scoped token
 
-Open **Profile menu → Security → API tokens → New token**. The **Issue Event
+Open **Security → Event API tokens → New token**. The **Issue Event
 API token** dialog opens:
 
 1. In **Name**, enter `Portainer centralized alerts`.

@@ -277,6 +277,9 @@
         checked_at: Date.now(),
         check_error: uiErrorMessage(error, "Update check failed"),
       };
+      // Remember a failed check too, so a browser that cannot reach GitHub
+      // waits for the next 6-hour check instead of retrying on every load.
+      saveUpdateStatus(state.versionStatus);
       renderUpdates();
       if (manual) toast(state.versionStatus.check_error, "error");
       return state.versionStatus;
@@ -390,6 +393,12 @@
   }
 
   function restorePersistedView() {
+    // This file loads before later views (Routing Flow, Filtering) register
+    // in VIEW_TITLES. A hash that names such a page must survive until
+    // showApp, where ensureRequestedView resolves it against every installed
+    // view; replacing it here with the last page of the session opened the
+    // previous page for a deep link such as /#routing-flow after a full load.
+    if (window.location.hash.slice(1)) return;
     const view = desiredView();
     if (view) persistDesiredView(view);
   }
@@ -437,7 +446,9 @@
       renderUpdates();
     }
     const checkedAt = Number((state.versionStatus || {}).checked_at || 0);
-    if (!checkedAt || Date.now() - checkedAt >= UPDATE_INTERVAL_MS) {
+    // Only administrators can act on a new version, so only their browsers
+    // ask GitHub automatically; anyone can still use Check for updates.
+    if (isAdmin() && (!checkedAt || Date.now() - checkedAt >= UPDATE_INTERVAL_MS)) {
       window.setTimeout(() => checkForUpdates(), 250);
     }
     ensureRequestedView();
@@ -461,10 +472,10 @@
   });
 
   window.setInterval(() => {
-    if (state.user && document.visibilityState !== "hidden") checkForUpdates();
+    if (state.user && isAdmin() && document.visibilityState !== "hidden") checkForUpdates();
   }, UPDATE_INTERVAL_MS);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "visible" || !state.user) return;
+    if (document.visibilityState !== "visible" || !state.user || !isAdmin()) return;
     const checkedAt = Number((state.versionStatus || {}).checked_at || 0);
     if (!checkedAt || Date.now() - checkedAt >= UPDATE_INTERVAL_MS) checkForUpdates();
   });

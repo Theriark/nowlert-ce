@@ -191,18 +191,22 @@ destinations with their status, sharing, owner and last test result.
 
 ![Nowlert CE Destinations at 1440 px with Discord, webhook, Slack and Teams destination cards](docs/images/v27.0.0-rc.1/destinations-list-admin-1440.png)
 
+In this Destinations capture, the account chip at the bottom of the sidebar
+shows the Development administrator account (`ai-crew-admin-…`). The owner
+chips on the destination cards (`ITMANAGER`, `USER`, `CE-QA-20261015`)
+show the username of the account that created each destination; usernames are
+free text typed when an account is created, and the only account roles are
+administrator and user. No credential, token, private address or personal data
+is shown. The [screenshot privacy review](docs/guides/screenshot-privacy.md)
+records every image.
+
 ## Sign in
 
 ![Nowlert CE sign-in page at 1440 px](docs/images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png)
 
-The sidebar shows the Development administrator account (`ai-crew-admin-…`).
-The owner chips on the destination cards (`ITMANAGER`, `USER`,
-`CE-QA-20261015`) show the username of the account that created each
-destination; usernames are free text typed when an account is created, and
-the only account roles are administrator and user. No credential, token,
-private address or personal data is shown. The
-[screenshot privacy review](docs/guides/screenshot-privacy.md) records every
-image.
+The sign-in page asks for a username and password; nobody is signed in yet, so
+it has no sidebar. An account with multi-factor authentication is asked for
+its authenticator code after the password.
 
 The same WebUI also adapts to a narrow browser window; the
 [WebUI guide](docs/webui.md#narrow-browser-windows) shows that responsive
@@ -339,8 +343,8 @@ The bundled same-origin WebUI provides:
 - Dashboard/Overview analytics and routing flow;
 - Destinations with built-in route assignments;
 - Filtering;
-- Profile menu → Security → API tokens;
-- Delivery History;
+- Security → Event API tokens (from the account menu: select your name at the bottom of the sidebar);
+- Delivery history;
 - Audit Log;
 - Users;
 - Backups and Data tools;

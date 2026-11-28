@@ -292,7 +292,8 @@ class PlatformPortabilityService:
         users = self._users()
         existing_destinations, existing_routes = self._existing_names()
         planned_destination_names = set(existing_destinations)
-        planned_route_names = set(existing_routes)
+        # Route names are unique across all accounts, ignoring case.
+        planned_route_names = {name for _owner, name in existing_routes}
         destination_refs: dict[str, dict] = {}
         for index, raw in enumerate(raw_destinations, start=1):
             label = f"destination {index}"
@@ -325,9 +326,9 @@ class PlatformPortabilityService:
                 item = self._portable_route(raw, users, destination_refs, index=index)
                 if item["ref"] in route_refs:
                     raise ValueError("route reference is duplicated")
-                key = (item["owner_id"], item["name_normalized"])
+                key = item["name_normalized"]
                 if key in planned_route_names:
-                    raise ValueError("route name already exists for this owner")
+                    raise ValueError(f"a route named {item['name']} already exists")
                 planned_route_names.add(key)
                 route_refs[item["ref"]] = item
                 routes.append(item)
@@ -412,7 +413,7 @@ class PlatformPortabilityService:
         admin_name = users[actor.user_id]["username"]
         existing_destinations, existing_routes = self._existing_names()
         planned_destination_names = set(existing_destinations)
-        planned_route_names = set(existing_routes)
+        planned_route_names = {name for _owner, name in existing_routes}
         errors: list[str] = []
         warnings: list[str] = []
         destinations: list[dict] = []
@@ -506,10 +507,9 @@ class PlatformPortabilityService:
                         f"Imported {source_name} to {output_type} {target} {position}",
                         "route name",
                     )
-                    key = (actor.user_id, normalized)
-                    if key in planned_route_names:
-                        raise ValueError("route name already exists")
-                    planned_route_names.add(key)
+                    if normalized in planned_route_names:
+                        raise ValueError(f"a route named {display} already exists")
+                    planned_route_names.add(normalized)
                     source_value = RouteStore._source(source_name)
                     RouteStore._filters(filters)
                     route_position += 1
