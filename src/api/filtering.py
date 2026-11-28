@@ -816,7 +816,25 @@ class PlatformAPI(BasePlatformAPI):
         data["destination_ids"] = list(item.destination_ids)
         data["destination_count"] = len(item.destination_ids)
         data["enabled"] = True
+        # Numbered built-in copies ("Checkmk HTTP (2)") belong to different
+        # accounts; the route picker names the owner so a user can tell them
+        # apart. Destination cards already show the same owner usernames.
+        data["owner_username"] = self._route_owner_username(item.owner_user_id)
         return data
+
+    def _route_owner_username(self, owner_user_id):
+        cache = self.database.read_cache()
+        key = ("route-owner-usernames",)
+        names = cache.get(key) if cache is not None else None
+        if names is None:
+            with self.database.connect() as connection:
+                names = {
+                    str(row["id"]): str(row["username"])
+                    for row in connection.execute("SELECT id, username FROM users")
+                }
+            if cache is not None:
+                cache[key] = names
+        return names.get(str(owner_user_id), "")
 
     @staticmethod
     def _serialization_actor(owner_user_id):

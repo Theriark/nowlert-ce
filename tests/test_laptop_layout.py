@@ -58,7 +58,7 @@ def test_email_rule_cards_are_not_pinned_or_narrowed_below_900px():
 
 
 def test_filtering_dialog_pins_its_heading_and_footer_while_the_step_body_scrolls():
-    """NCE-127 F1: the View/New filter dialog is not a form, so the generic sticky
+    """F1: the View/New filter dialog is not a form, so the generic sticky
     footer rule misses it. The open dialog becomes a column: heading pinned, the
     visible step scrolls, and the step footer (Close / Cancel / Save) sticks to
     the bottom of that scrolling step."""
@@ -78,7 +78,7 @@ def test_filtering_dialog_pins_its_heading_and_footer_while_the_step_body_scroll
 
 
 def test_dashboard_kpi_delta_badge_wraps_inside_its_card_instead_of_being_clipped():
-    """NCE-127 F2: at 1280 wide the Failures "vs. previous window" badge was wider
+    """F2: at 1280 wide the Failures "vs. previous window" badge was wider
     than its grid column and the card (overflow: hidden) cut it to "windo". The
     badge is capped at the column width and its items and text may wrap."""
     css = (ROOT / "src/webui/laptop_layout.css").read_text(encoding="utf-8")
@@ -98,7 +98,7 @@ def test_dashboard_kpi_delta_badge_wraps_inside_its_card_instead_of_being_clippe
 
 
 def test_phone_menu_gets_the_sidebar_styles_that_only_desktop_media_queries_gave_it():
-    """NCE-127: at 390 px the open menu let the page show through, drew the icons filled black, put the owl in a grey
+    """At 390 px the open menu let the page show through, drew the icons filled black, put the owl in a grey
     outset button and showed both "COMMUNITY EDITION" and "CE"."""
     css = (ROOT / "src/webui/laptop_layout.css").read_text(encoding="utf-8")
     compact = re.sub(r"\s+", " ", css)

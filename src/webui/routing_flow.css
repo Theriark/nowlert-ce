@@ -1010,3 +1010,15 @@
   text-overflow: clip !important;
   white-space: nowrap;
 }
+
+/* The Dell EMC artwork is dark blue and grey text on a transparent square with
+   wide margins, so on the dark Routing Flow cards it was almost invisible.
+   Show it on a light tile and, where supported, crop to the wordmark. */
+.rf-page .source-product-icon[data-source-key="dell_idrac"] {
+  background: #f5f7fa;
+  border-radius: 8px;
+  box-sizing: border-box;
+  object-fit: contain;
+  object-view-box: inset(38% 16% 38% 16%);
+  padding: 2px;
+}

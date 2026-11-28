@@ -46,7 +46,7 @@ def test_api_errors_keep_diagnostic_metadata_separate_from_public_feedback():
     assert "this.status = status" in script
     assert "this.path = path" in script
     assert "this.reference = reference" in script
-    assert "this.publicMessage = publicMessage" in script
+    assert "this.publicMessage = friendlyClientMessage(publicMessage)" in script
     assert '"code": "resource_conflict"' in platform
     assert '"reference": reference' in platform
     assert "Platform API request failed reference=%s path=%s" in platform

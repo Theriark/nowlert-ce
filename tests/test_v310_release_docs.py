@@ -15,9 +15,9 @@ def test_v310_release_documentation_and_screenshots_remain_packaged():
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
     assert release.startswith("# Nowlert v3.1.0 release notes")
-    assert "NCE-20" in release
+    assert "The detailed independent QA handoff is mirrored in" in release
     assert "1023 passed" in release
-    assert "NCE-5 through NCE-19" in checklist
+    assert "mirrors the independent v3.1.0 QA handoff" in checklist
     assert "## 3.1.0 - 2026-08-08" in changelog
 
     expected_images = (

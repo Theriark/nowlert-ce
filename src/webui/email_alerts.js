@@ -547,19 +547,46 @@ function emailRenderGroupsSection() {
   ]);
 }
 
+// The cards above the rules table count the enabled rules of each
+// classification, so they agree with the table below them.
+function emailEnabledRuleCounts(rules) {
+  const counts = {};
+  for (const rule of Array.isArray(rules) ? rules : []) {
+    if (!rule || !rule.enabled) continue;
+    counts[rule.classification] = (counts[rule.classification] || 0) + 1;
+  }
+  return counts;
+}
+
+function emailEnabledRuleCaption(count) {
+  return Number(count) === 1 ? "enabled rule" : "enabled rules";
+}
+
+function emailRefreshRuleCounts() {
+  const counts = emailEnabledRuleCounts(emailAlertsState.rules);
+  for (const card of document.querySelectorAll("[data-email-rule-count]")) {
+    const count = counts[card.dataset.emailRuleCount] || 0;
+    const value = card.querySelector("strong");
+    const caption = card.querySelector(".email-classification-caption");
+    if (value) value.textContent = count;
+    if (caption) caption.textContent = emailEnabledRuleCaption(count);
+  }
+}
+
 function emailRenderRules() {
-  const classifications = emailAlertsState.overview?.classifications || {};
+  const counts = emailEnabledRuleCounts(emailAlertsState.rules);
   const classificationRows = element("div", { className: "email-classification-grid" });
   for (const [key] of EMAIL_CLASSIFICATIONS) {
     classificationRows.append(
-      element("div", { className: "email-classification-card" }, [
+      element("div", { className: "email-classification-card", dataset: { emailRuleCount: key } }, [
         element("span", {
           className: `email-classification-indicator classification-${key}`,
           attributes: { "aria-hidden": "true" },
         }),
         element("div", { className: "email-classification-copy" }, [
-          element("strong", { text: classifications[key] || 0 }),
+          element("strong", { text: counts[key] || 0 }),
           element("span", { className: "email-classification-label", text: emailClassificationLabel(key) }),
+          element("small", { className: "email-classification-caption", text: emailEnabledRuleCaption(counts[key] || 0) }),
         ]),
       ]),
     );
@@ -2095,6 +2122,7 @@ async function emailAction(action, id, node) {
     if (action === "toggle-group") {
       const item = emailAlertsState.groups.find((group) => group.id === id);
       await request(`/email-groups/${id}`, { method: "PATCH", body: { enabled: !item.enabled } });
+      toast(`Group “${item.name}” ${item.enabled ? "disabled" : "enabled"}.`, "success");
       await emailLoad(true);
       return;
     }
@@ -2116,6 +2144,8 @@ async function emailAction(action, id, node) {
       item.enabled = response.rule?.enabled ?? !item.enabled;
       emailInvalidateOtherTabs();
       emailUpdateRuleRow(id, item.enabled);
+      emailRefreshRuleCounts();
+      toast(`Rule “${item.name}” ${item.enabled ? "enabled" : "disabled"}.`, "success");
       return;
     }
     if (action === "delete-rule") {
@@ -2178,6 +2208,7 @@ async function emailAction(action, id, node) {
     if (action === "toggle-mailbox") {
       const item = emailAlertsState.mailboxes.find((mailbox) => mailbox.id === id);
       await request(`/email-mailboxes/${id}`, { method: "PATCH", body: { enabled: !item.enabled } });
+      toast(`Mailbox “${item.name}” ${item.enabled ? "disabled" : "enabled"}.`, "success");
       await emailLoad(true);
       return;
     }

@@ -45,12 +45,20 @@ are managed through SQLite/WebUI/API and removed from the normal bootstrap YAML.
 Do not recreate legacy `outputs`, `routing`, `api.tokens`, or other
 WebUI-managed YAML sections in a healthy current installation.
 
-A legacy `api.tokens` entry that names an environment variable
-(`token_env`) is imported only if that variable is set when the migration
-runs. The current Compose file and `.env.example` no longer pass any token
-variable, so when upgrading such an installation, add the variable to the
-container environment for that first start, confirm the imported "Legacy …"
-token under **Security → Event API tokens**, then remove it again.
+Legacy `api.tokens` entries are imported as Event API tokens under their YAML
+names; a name that the same owner already uses gets "Legacy " in front
+("Legacy NAME", then "Legacy NAME 2"). The migration needs the credential of
+every enabled token: `token_sha256`, a readable `token_file`, or the
+environment variable named by `token_env`. If one is missing, the whole
+migration stops with "resource migration failed: api token NAME cannot be
+imported because its credential is unavailable", `config.yaml` keeps its
+legacy sections and Nowlert reports the error until the next synchronization
+succeeds. A disabled entry (`enabled: false`) is imported without a usable
+credential. The current Compose file and `.env.example` no longer pass any
+token variable, so when upgrading an installation whose tokens use
+`token_env`, add those variables to the container environment for that first
+start (or disable or remove the entries), confirm the imported tokens under
+**Security → Event API tokens**, then remove the variables again.
 
 ## Backups and rollback
 

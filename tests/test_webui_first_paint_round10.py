@@ -29,7 +29,7 @@ def test_round10_sidebar_final_layer_matches_supplied_reference_contract():
 
     marker = "/* 2026-09-18 sidebar reference lock."
     start = styles.index(marker)
-    end = styles.index("/* NCE-35 final unified pagination row */", start)
+    end = styles.index("/* Final unified pagination row */", start)
     sidebar = styles[start:end]
 
     assert "grid-template-columns: auto minmax(0, 1fr) !important;" in sidebar

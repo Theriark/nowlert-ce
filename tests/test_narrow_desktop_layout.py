@@ -1,9 +1,9 @@
-"""Narrow desktop widths 1181-1399px (THE-927): Delivery history Time and
+"""Narrow desktop widths 1181-1399px: Delivery history Time and
 chevron, Audit log Outcome and the Backups Delete button are not clipped."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MARKER = "/* THE-927 narrow desktop widths"
+MARKER = "/* Narrow desktop widths"
 RANGE = "@media (min-width: 1181px) and (max-width: 1399px) {"
 
 
@@ -16,26 +16,26 @@ def _block(stylesheet: str, selector: str) -> str:
     return stylesheet[start:stylesheet.index("}", start) + 1]
 
 
-def _the927() -> str:
+def _narrow_desktop_block() -> str:
     css = _read("management_consistency.css")
     section = css[css.index(MARKER):]
     return section[section.index(RANGE):]
 
 
-def test_narrow_range_follows_the_wider_the875_rules_it_overrides():
+def test_narrow_range_follows_the_wider_walk_rules_it_overrides():
     css = _read("management_consistency.css")
-    # Same selectors and specificity as the 1181-1500px THE-875 rules, so the
-    # THE-927 block must come later in the file to win between 1181 and 1399.
-    the875 = css.index("@media (min-width: 1181px) and (max-width: 1500px) {")
-    audit_the875 = css.rindex("@media (min-width: 1181px) and (max-width: 1500px) {")
-    assert css.index(MARKER) > the875
-    assert css.index(MARKER) > audit_the875
+    # Same selectors and specificity as the 1181-1500px Development walk rules, so the
+    # narrow desktop block must come later in the file to win between 1181 and 1399.
+    walk = css.index("@media (min-width: 1181px) and (max-width: 1500px) {")
+    audit_walk = css.rindex("@media (min-width: 1181px) and (max-width: 1500px) {")
+    assert css.index(MARKER) > walk
+    assert css.index(MARKER) > audit_walk
     assert css.count(RANGE) == 1
 
 
 def test_narrow_range_starts_where_the_existing_stacked_layout_ends():
     # Below 1181px the page stylesheets already stack both workbenches; the
-    # THE-927 range continues that layout up to 1399px without a gap.
+    # The narrow desktop range continues that layout up to 1399px without a gap.
     for name, selector in (
         ("destination_overview_acceptance.css", "#view-deliveries .delivery-history-workbench"),
         ("page_headers.css", "#view-audit .audit-log-workbench"),
@@ -47,7 +47,7 @@ def test_narrow_range_starts_where_the_existing_stacked_layout_ends():
 
 
 def test_delivery_and_audit_workbenches_stack_between_1181_and_1399():
-    block = _the927()
+    block = _narrow_desktop_block()
     workbench = _block(block, "#view-deliveries .delivery-history-workbench,")
     assert "#view-audit .audit-log-workbench {" in workbench
     assert "grid-template-columns: minmax(0, 1fr);" in workbench
@@ -70,7 +70,7 @@ def test_delivery_and_audit_workbenches_stack_between_1181_and_1399():
 
 
 def test_backup_destination_columns_fit_their_content_at_1181():
-    block = _the927()
+    block = _narrow_desktop_block()
     widths = {1: 10, 2: 15, 3: 11, 4: 17, 5: 12, 6: 18, 7: 17}
     for column, width in widths.items():
         assert f".backup-destination-table th:nth-child({column}) {{ width: {width}%; }}" in block
@@ -88,4 +88,4 @@ def test_backup_destination_columns_fit_their_content_at_1181():
 def test_filtering_actions_pin_is_untouched():
     pin = ".filtering-table th:nth-child(6) { width: 24%; }"
     assert pin in _read("filtering.css")
-    assert "filtering-table" not in _the927()
+    assert "filtering-table" not in _narrow_desktop_block()

@@ -1,10 +1,10 @@
-"""Backups bottom row (THE-942): the Recovery snapshots and Stored copies
+"""Backups bottom row: the Recovery snapshots and Stored copies
 tables no longer hide Restore and Delete inside a horizontal scroller at
-desktop widths. Companion to tests/test_the927_narrow_desktop_layout.py."""
+desktop widths. Companion to tests/test_narrow_desktop_layout.py."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MARKER = "/* THE-942 Backups bottom row"
+MARKER = "/* Backups bottom row"
 STACK_RANGE = "@media (min-width: 1181px) and (max-width: 1599px) {"
 ROW_RANGE = "@media (min-width: 1600px) {"
 TABLES = (".backup-recovery-table", ".backup-stored-table")
@@ -14,7 +14,7 @@ def _read(name: str) -> str:
     return (ROOT / "src" / "webui" / name).read_text(encoding="utf-8")
 
 
-def _the942() -> str:
+def _backups_bottom_block() -> str:
     css = _read("management_consistency.css")
     return css[css.index(MARKER):]
 
@@ -24,10 +24,10 @@ def _block(stylesheet: str, selector: str) -> str:
     return stylesheet[start:stylesheet.index("}", start) + 1]
 
 
-def test_block_is_the_last_layer_after_the927_and_contains_both_ranges():
+def test_block_is_the_last_layer_after_the_narrow_desktop_block_and_contains_both_ranges():
     css = _read("management_consistency.css")
-    assert css.index(MARKER) > css.index("/* THE-927 narrow desktop widths")
-    block = _the942()
+    assert css.index(MARKER) > css.index("/* Narrow desktop widths")
+    block = _backups_bottom_block()
     assert block.count(STACK_RANGE) == 1
     assert block.count(ROW_RANGE) == 1
     assert block.index(STACK_RANGE) < block.index(ROW_RANGE)
@@ -43,7 +43,7 @@ def test_every_table_has_the_760px_floor_the_fix_removes():
 
 
 def test_bottom_row_stacks_between_1181_and_1599():
-    block = _the942()
+    block = _backups_bottom_block()
     stack = block[block.index(STACK_RANGE):block.index(ROW_RANGE)]
     grid = _block(stack, "#view-backups .backup-dashboard-grid-bottom {")
     # Same !important as the qa_patch.css rule it overrides, id-scoped and in
@@ -58,7 +58,7 @@ def test_bottom_row_stacks_between_1181_and_1599():
 
 
 def test_tables_fit_their_half_panel_from_1600():
-    block = _the942()
+    block = _backups_bottom_block()
     row = block[block.index(ROW_RANGE):]
     floor = _block(row, "#view-backups .backup-recovery-table,")
     assert "#view-backups .backup-stored-table {" in floor
@@ -87,7 +87,7 @@ def test_tables_fit_their_half_panel_from_1600():
 
 
 def test_cells_do_not_wrap_and_delete_is_icon_only_from_1600():
-    row = _the942()[_the942().index(ROW_RANGE):]
+    row = _backups_bottom_block()[_backups_bottom_block().index(ROW_RANGE):]
     cells = _block(row, "#view-backups .backup-recovery-table td,")
     assert "#view-backups .backup-stored-table td {" in cells
     assert "white-space: nowrap;" in cells
@@ -108,7 +108,7 @@ def test_cells_do_not_wrap_and_delete_is_icon_only_from_1600():
 
 
 def test_destinations_table_narrow_widths_and_filtering_pin_are_untouched():
-    block = _the942()
+    block = _backups_bottom_block()
     assert "backup-destination-table" not in block
     assert "filtering-table" not in block
     assert ".filtering-table th:nth-child(6) { width: 24%; }" in _read("filtering.css")

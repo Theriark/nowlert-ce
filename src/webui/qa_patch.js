@@ -709,7 +709,7 @@ function qaArrangePaginationFooter(viewId, containerId) {
   footer.classList.add("qa-pagination-footer");
 
   // Remove the old location if this page was rendered before the
-  // NCE-35 layout was applied.
+  // unified pagination layout was applied.
   for (const shortcut of footer.querySelectorAll(".qa-top-shortcut")) {
     shortcut.remove();
   }
@@ -1174,7 +1174,7 @@ openToken = function openTokenWithChoiceState() {
 
 
 
-/* NCE-34: preserve the Stage-approved Delivery History badge cleanup. */
+/* Preserve the Stage-approved Delivery History badge cleanup. */
 function qaNormalizeDeliveryBadges() {
   for (
     const meta

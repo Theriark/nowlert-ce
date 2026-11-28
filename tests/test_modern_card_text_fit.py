@@ -1,4 +1,4 @@
-"""NCE-133: Teams/Discord Modern image cards keep their text inside its outline."""
+"""Teams/Discord Modern image cards keep their text inside its outline."""
 
 from PIL import Image, ImageDraw
 

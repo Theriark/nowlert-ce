@@ -2476,7 +2476,7 @@ class ZabbixDiscordModernImageRenderer(DiscordModernImageRenderer):
     ):
         """Frozen badge geometry, widened when the label needs more room.
 
-        NCE-133: Proxmox "Virtualization Warning" ran past the badge outline.
+        Proxmox "Virtualization Warning" ran past the badge outline.
         The label starts 112 px into the badge; keep 34 px on its right.
         """
 

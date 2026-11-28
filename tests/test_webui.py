@@ -499,7 +499,7 @@ def test_v310_menu_navigation_uses_browser_history_and_destinations_stay_a_card_
     assert "border: 0;" in final_styles
 
 
-def test_nce15_regional_i18n_save_boundary():
+def test_regional_i18n_save_boundary():
     script = (ROOT / "src" / "webui" / "i18n.js").read_text(encoding="utf-8")
     app = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
@@ -547,7 +547,7 @@ def test_nce15_regional_i18n_save_boundary():
     assert request < persisted
 
 
-def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
+def test_delivery_and_audit_direct_pagination_controls():
     script = (ROOT / "src" / "webui" / "qa_patch.js").read_text(encoding="utf-8")
     styles = (ROOT / "src" / "webui" / "qa_patch.css").read_text(encoding="utf-8")
     platform = (ROOT / "src" / "api" / "platform.py").read_text(encoding="utf-8")
@@ -616,7 +616,7 @@ def test_nce22_nce24_delivery_and_audit_direct_pagination_controls():
     assert 'currentView === "deliveries" || currentView === "audit"' in script
     assert "qaScrollPageTop();" in script
 
-    # NCE-23 Audit entries-per-page persistence remains intact.
+    # Audit entries-per-page persistence remains intact.
     assert 'const QA_AUDIT_PAGE_SIZE_KEY = "nowlert.audit.pageSize";' in script
     assert "qaReadAuditPageSize()" in script
     assert "qaWriteAuditPageSize(qaAuditPageSize);" in script
@@ -653,11 +653,11 @@ def test_audit_pagination_error_does_not_expose_request_details():
     assert "error.stack" not in handler
 
 
-def test_nce28_nce29_audit_context_and_explicit_health_checks():
+def test_audit_context_and_explicit_health_checks():
     markup = (ROOT / "src" / "webui" / "index.html").read_text(encoding="utf-8")
     script = (ROOT / "src" / "webui" / "app.js").read_text(encoding="utf-8")
 
-    # NCE-28: Audit Log exposes actor, precise action, affected resource,
+    # Audit Log exposes actor, precise action, affected resource,
     # resource identifier, outcome, and safe details.
     assert (
         "<th>Time</th><th>Action</th><th>User</th><th>Resource</th>"
@@ -677,7 +677,7 @@ def test_nce28_nce29_audit_context_and_explicit_health_checks():
     assert "item.actor_user_id," in script
     assert "item.resource_id," in script
 
-    # NCE-29: generic workspace loading must not execute a health check.
+    # Generic workspace loading must not execute a health check.
     assert (
         'health: ["Health checks", request("/health-checks")'
         not in script
@@ -689,7 +689,7 @@ def test_nce28_nce29_audit_context_and_explicit_health_checks():
 
 
 
-def test_nce30_nce31_admin_delete_controls():
+def test_admin_delete_controls():
     script = (ROOT / "src" / "webui" / "app.js").read_text(
         encoding="utf-8"
     )
@@ -718,7 +718,7 @@ def test_nce30_nce31_admin_delete_controls():
 
 
 
-def test_nce31_nce33_nce34_nce35_development_followups():
+def test_development_followups():
     app = (ROOT / "src" / "webui" / "app.js").read_text(
         encoding="utf-8"
     )
@@ -729,12 +729,12 @@ def test_nce31_nce33_nce34_nce35_development_followups():
         encoding="utf-8"
     )
 
-    # NCE-31: destructive backup action has an explicit confirmation.
+    # Destructive backup action has an explicit confirmation.
     assert "`Delete recovery snapshot ${id}?`" in app
     assert '"Delete snapshot"' in app
     assert "It cannot be restored after deletion." in app
 
-    # NCE-33: role display uses the same authority as access control and
+    # Role display uses the same authority as access control and
     # cannot be reset to the static HTML User value by the i18n layer.
     assert "const admin = isAdmin();" in app
     assert (
@@ -747,12 +747,12 @@ def test_nce31_nce33_nce34_nce35_development_followups():
         in app
     )
 
-    # NCE-34: restore the Stage-approved duplicate/empty badge cleanup.
+    # Restore the Stage-approved duplicate/empty badge cleanup.
     assert "function qaNormalizeDeliveryBadges()" in patch
     assert 'text === "—" || seen.has(key)' in patch
     assert "qaNormalizeDeliveryBadges();" in patch
 
-    # NCE-35: direct page box is embedded in Page [n] of N, Go is gone,
+    # Direct page box is embedded in Page [n] of N, Go is gone,
     # and Enter remains the explicit direct navigation action.
     assert 'className: "qa-page-status"' in patch
     assert '"Page ",' in patch

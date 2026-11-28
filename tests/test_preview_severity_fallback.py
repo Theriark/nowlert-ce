@@ -1,4 +1,4 @@
-"""THE-874 G1: destination Preview must offer severities for every route source.
+"""G1: destination Preview must offer severities for every route source.
 
 Sources whose route-filter catalog declares no severities (for example Xen
 Orchestra) previously left the Preview severity select empty, so no preview

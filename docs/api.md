@@ -23,8 +23,10 @@ account name at the bottom of the sidebar, then **Security**) or through
 once. `config.yaml` can no longer define tokens: under the current
 `platform_database_v1` model an `api.tokens` section is refused with
 "api.tokens is database-managed; edit applications in the WebUI". An older
-installation's YAML tokens are imported once, as "Legacy …" tokens, by the
-one-way migration (see
+installation's YAML tokens are imported once by the one-way migration, under
+their YAML names; only a name that the same owner already uses gets "Legacy "
+in front ("Legacy NAME", then "Legacy NAME 2"). An enabled token whose
+credential cannot be read stops the whole migration (see
 [database-authoritative resources](database-authoritative-resources.md)).
 Send a token as `Authorization: Bearer TOKEN` or `X-Nowlert-Token: TOKEN`.
 

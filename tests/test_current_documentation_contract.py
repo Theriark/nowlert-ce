@@ -36,7 +36,7 @@ SANITIZED_COPIES = (
     ("home-assistant-setup/transport-response-sanitized.png", "docs/guides/home-assistant-to-discord.md"),
 )
 # Restored from Git history on 2 November 2026 with their private labels
-# painted over (docs/guides/screenshot-privacy.md, Jira NCE-109). Each must be
+# painted over (docs/guides/screenshot-privacy.md). Each must be
 # a real raster with a retained inventory row; the second element names the
 # current document that embeds it, or None for an unembedded historical file.
 REDACTED_IMAGES = (

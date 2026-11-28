@@ -2422,6 +2422,14 @@ class PlatformAPI:
         if method == "PUT":
             self._require_admin(actor)
             data = self._object(payload, set(current["settings"][key]))
+            # Xen Orchestra job/run IDs and Zabbix problem IDs are always left
+            # out of notifications; start-up resets show_ids to false
+            # (storage/system_filtering.py), so refuse a value that would
+            # only hold until the next restart.
+            if key in {"xo", "zabbix"} and data.get("show_ids", False) is not False:
+                raise ValueError(
+                    "Xen Orchestra and Zabbix IDs are always hidden; show_ids can only be false."
+                )
             settings = self.configuration_sync.update_integration_settings(
                 actor,
                 key,

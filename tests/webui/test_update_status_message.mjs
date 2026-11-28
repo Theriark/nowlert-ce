@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
-// Development walk finding F6 (THE-875): the Settings update copy must not say
+// Development walk finding F6: the Settings update copy must not say
 // "up to date" when the GitHub check failed or no version is advertised.
 const source = readFileSync(new URL('../../src/webui/enhancements.js', import.meta.url), 'utf8');
 const start = source.indexOf('function updateStatusMessage(');

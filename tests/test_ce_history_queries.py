@@ -143,3 +143,35 @@ def test_housekeeping_accepts_eight_fields_and_preserves_email_values_for_legacy
     assert call(platform_api, "PUT", "/api/v2/housekeeping", legacy, headers).payload["settings"]["email_raw_content_days"] == 14
     settings["email_raw_content_days"] = 999
     assert call(platform_api, "PUT", "/api/v2/housekeeping", settings, headers).status == 400
+
+
+def test_history_severity_filter_groups_equivalent_words_and_keeps_stored_values(platform_api):
+    headers = login(platform_api)
+    seed_history(platform_api, headers, count=6)
+    words = {
+        "event-0": "Informational", "event-1": "info", "event-2": "Warn",
+        "event-3": "error", "event-4": "OK", "event-5": "debug",
+    }
+    with platform_api["database"].transaction() as connection:
+        for delivery_id, severity in words.items():
+            connection.execute(
+                "UPDATE delivery_attempts SET severity = ? WHERE delivery_id = ?",
+                (severity, delivery_id),
+            )
+
+    def total(severity):
+        response = call(platform_api, "GET", f"/api/v2/deliveries/page/1/size/25?severity={severity}", headers=headers)
+        assert response.status == 200
+        return response
+
+    information = total("information")
+    assert information.payload["pagination"]["total"] == 2
+    assert sorted(item["severity"] for item in information.payload["deliveries"]) == ["Informational", "info"]
+    assert total("Informational").payload["pagination"]["total"] == 2
+    assert total("warning").payload["pagination"]["total"] == 1
+    assert total("critical").payload["pagination"]["total"] == 1
+    assert total("resolved").payload["pagination"]["total"] == 1
+    assert total("debug").payload["pagination"]["total"] == 1
+    assert information.payload["filter_options"]["severities"] == [
+        "critical", "debug", "information", "resolved", "warning",
+    ]

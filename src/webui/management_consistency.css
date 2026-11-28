@@ -279,7 +279,7 @@
   }
 }
 
-/* Development walk finding F4 (THE-875): at 1440px the event list kept only
+/* Development walk finding F4: at 1440px the event list kept only
  * 658px beside the detail inspector, so Source showed "Ema..." and Time
  * wrapped. Between 1181px and 1500px the list takes the larger share (the
  * inspector keeps a 400px minimum), the inspector stacks its Transport and
@@ -631,7 +631,7 @@
 }
 
 
-/* THE-875 Development walk fixes (2026-10-23). This layer loads after the page
+/* Development walk fixes (2026-10-23). This layer loads after the page
  * stylesheets, so the rules below outrank the earlier fixed-column rules of
  * email_alerts.css and qa_patch.css at every width, media queries included. */
 
@@ -709,7 +709,7 @@
 /* F7 Security page: posture value while MFA is still disabled. */
 .reference-fair { color: #f4c542; }
 
-/* THE-927 narrow desktop widths (2026-10-23). Measured on Development with the
+/* Narrow desktop widths (2026-10-23). Measured on Development with the
  * navigation expanded: between 1181px and 1399px the side-by-side list panel
  * (524px at 1181px, 620px at 1280px) is narrower than the Delivery history
  * row (708px) and the Audit log row (590px at 1181px), so Time, the chevron
@@ -719,7 +719,7 @@
  * The Backups table is 906px at 1181px, where 14% gave Actions 127px for its
  * 145px Test, Edit and Delete buttons and Last test, Status and Type also
  * overflowed; the shares below give Actions 154px and Last test 163px. From
- * 1400px the THE-875 layout above applies unchanged. */
+ * 1400px the Development walk layout above applies unchanged. */
 @media (min-width: 1181px) and (max-width: 1399px) {
   #view-deliveries .delivery-history-workbench,
   #view-audit .audit-log-workbench {
@@ -744,7 +744,7 @@
   .backup-destination-table th:nth-child(7) { width: 17%; }
 }
 
-/* THE-942 Backups bottom row (2026-10-23). styles.css gives every table a
+/* Backups bottom row (2026-10-23). styles.css gives every table a
  * 760px minimum and qa_patch.css keeps Recovery snapshots and Stored copies
  * side by side from 901px, so inside their 430px (1181px) to 585px (1500px)
  * scrollers both tables overflowed by 175px to 330px: Restore and Delete sat

@@ -118,7 +118,7 @@ audit event.
 |---|---|---|---|
 | GET | `/api/v2/integrations` | session | built-in integration catalogue |
 | GET | `/api/v2/integration-settings` | session | integration behavior + isolated errors |
-| GET/PUT | `/api/v2/integration-settings/{source}` | session / administrator + CSRF | inspect/update one integration record |
+| GET/PUT | `/api/v2/integration-settings/{source}` | session / administrator + CSRF | inspect/update one integration record (`xo` and `zabbix` accept only `"show_ids": false`: those IDs are always hidden) |
 | GET/PUT | `/api/v2/source-categories` | session / administrator + CSRF | list/update categories |
 | DELETE | `/api/v2/source-categories/{source}` | administrator + CSRF | reset category override |
 | GET | `/api/v2/preferences` | session | regional preferences |
@@ -254,7 +254,12 @@ setup.
 | GET | `/api/v2/audit-events/page/{page}` | session | paginated audit history |
 | GET | `/api/v2/audit-events/page/{page}/size/{size}` | session | paginated audit history with size |
 
-History is owner-filtered. Administrators may inspect all retained rows. Safe
+Delivery history follows the destination: every account, administrators
+included, sees the attempts to destinations it owns and every attempt to a
+shared destination, whoever owns the route that matched; attempts to another
+account's private destination are not returned. Audit history is for
+administrators only and leaves out events about other users' private
+destinations and filters. Safe
 history does not persist destination credentials, token values, response bodies,
 or raw adapter exception text.
 

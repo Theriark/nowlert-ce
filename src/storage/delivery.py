@@ -28,6 +28,31 @@ from storage.sanitize import sanitize_text
 from storage.secrets import SecretStore
 
 
+# Delivery history keeps each event's own severity word. The filter groups the
+# words that mean the same thing, with the buckets the notification cards use
+# (formatters/discord_common.py): picking "warning" also finds "warn" and
+# "average". Words outside these groups (debug, notice, ...) stay separate.
+SEVERITY_FILTER_GROUPS = {
+    "critical": (
+        "critical", "danger", "disaster", "emergency", "error", "failed",
+        "failure", "high",
+    ),
+    "warning": ("alert", "average", "caution", "degraded", "medium", "warn", "warning"),
+    "resolved": (
+        "cleared", "normal", "ok", "recovered", "resolved", "success", "successful",
+    ),
+    "information": ("info", "information", "informational"),
+}
+_SEVERITY_FILTER_GROUP = {
+    word: group for group, words in SEVERITY_FILTER_GROUPS.items() for word in words
+}
+
+
+def severity_filter_group(value) -> str:
+    word = str(value or "").strip().casefold()
+    return _SEVERITY_FILTER_GROUP.get(word, word)
+
+
 @dataclass(frozen=True)
 class DeliveryResult:
     success: bool
@@ -372,11 +397,17 @@ class DeliveryHistoryStore:
         if not actor.is_admin:
             clauses.append("(owner_user_id = ? OR destination_id IN (SELECT id FROM destinations WHERE shared = 1))")
             parameters.append(actor.user_id)
-        for field in ("source", "severity", "outcome"):
+        for field in ("source", "outcome"):
             if filters.get(field):
-                comparison = f"{field} = ? COLLATE NOCASE" if field == "severity" else f"{field} = ?"
-                clauses.append(comparison)
+                clauses.append(f"{field} = ?")
                 parameters.append(filters[field])
+        if filters.get("severity"):
+            group = severity_filter_group(filters["severity"])
+            words = SEVERITY_FILTER_GROUPS.get(group, (group,))
+            clauses.append(
+                "lower(severity) IN (" + ", ".join("?" for _ in words) + ")"
+            )
+            parameters.extend(words)
         if filters.get("since") is not None:
             clauses.append("created_at >= ?")
             parameters.append(int(filters["since"]))
@@ -389,12 +420,16 @@ class DeliveryHistoryStore:
     def filter_options(self, actor: Actor) -> dict:
         where, parameters = self._query_where(actor, {})
         with self.database.connect() as connection:
-            return {
+            options = {
                 key: [row[0] for row in connection.execute(
                     f"SELECT DISTINCT {field} FROM delivery_attempts WHERE {where} AND {field} != '' ORDER BY {field}", parameters
                 )]
                 for key, field in (("sources", "source"), ("severities", "lower(severity)"), ("outcomes", "outcome"))
             }
+        options["severities"] = sorted(
+            {severity_filter_group(value) for value in options["severities"]}
+        )
+        return options
 
     def count_visible(self, actor: Actor, **filters) -> int:
         where, parameters = self._query_where(actor, filters)

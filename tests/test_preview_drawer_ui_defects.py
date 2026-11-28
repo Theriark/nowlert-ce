@@ -1,6 +1,6 @@
 """Regression coverage for the Development walk UI defects N1, F1, N2 and N4.
 
-THE-835: the Preview dialog's assigned-routes drawer (invisible Done button and
+The Preview dialog's assigned-routes drawer (invisible Done button and
 the Active badge wrapping under the integration icon), the Modern card header
 badge that said Information while the strip said Severity: Debug, the Users
 list that stayed stale until the whole workspace reload finished, and the

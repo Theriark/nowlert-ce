@@ -195,7 +195,7 @@
     storageWrite(window.localStorage, UPDATE_CACHE_KEY, JSON.stringify(value));
   }
 
-  // Settings "Update status" copy (Development walk finding F6, THE-875): a
+  // Settings "Update status" copy (Development walk finding F6): a
   // failed GitHub check or a missing advertised version must never read as
   // "up to date" beside the "Update status unavailable" headline.
   function updateStatusMessage(version) {
@@ -320,7 +320,7 @@
       element("span", { text: "Check for updates" }),
     ]);
     updateButton.id = "platform-check-updates";
-    // NCE-128: Restart Nowlert is not created here any more. The only restart
+    // Restart Nowlert is not created here any more. The only restart
     // control is the admin-only item in the profile menu (index.html), see
     // installProfileRestart below.
     menu.append(updateButton);
@@ -354,7 +354,7 @@
     });
   }
 
-  // NCE-128: Restart Nowlert is one admin-only item in the profile (user icon)
+  // Restart Nowlert is one admin-only item in the profile (user icon)
   // menu. The item is static markup in index.html (#platform-restart); the
   // app.js click dispatcher opens the existing restart confirmation dialog
   // through its data-action, so this binding only closes the profile menu on

@@ -1,4 +1,4 @@
-"""NCE-128 (THE-1962, THE-1965): Restart Nowlert lives in the profile menu only.
+"""Restart Nowlert lives in the profile menu only.
 
 PR 653 removed the duplicate header button from the Security page but left the
 menu-created platform restart parked in the hidden Security toolbar, so an
@@ -112,8 +112,8 @@ def test_reference_styles_describe_the_profile_menu_restart_and_drop_the_header_
     assert ".profile-menu-popover #platform-restart .profile-menu-label { white-space: nowrap; }" in rows
 
 
-def test_nce128_build_versions_the_changed_webui_bundle():
-    # r85 was taken by NCE-127 on development while this fix was in review.
+def test_profile_menu_build_versions_the_changed_webui_bundle():
+    # r85 was taken by another change on development while this fix was in review.
     build = _ui_build()
     assert build == "20260929-r87"
     markup = _read("src/webui/index.html")

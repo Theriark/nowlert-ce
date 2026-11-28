@@ -1,4 +1,4 @@
-"""The Backups list keeps full snapshot verification across a restart (NCE-126)."""
+"""The Backups list keeps full snapshot verification across a restart."""
 
 from __future__ import annotations
 

@@ -108,6 +108,11 @@ pages above but can change only their own resources:
 The server enforces the same limits: a regular user's attempt to save
 administrator-only settings is refused with 403.
 
+**Delivery history** follows the destination: a regular user sees the
+attempts to their own destinations and every attempt to a shared destination,
+including deliveries matched by routes that other accounts own (see Delivery
+history below).
+
 ### Dashboard
 
 The Dashboard combines the operational state that is most useful during normal
@@ -273,8 +278,9 @@ Administrator-only deterministic processing settings appear under **Integration
 behavior** below the filter table on this page (regular users see them
 read-only): UniFi Protect device aliases, Home Assistant endpoint/component
 aliases and Redfish deduplication. Xen Orchestra job/run IDs and Zabbix
-problem IDs are always left out of notifications; that setting is fixed and
-not offered anywhere. Trusted Dell iDRAC management clients are set per
+problem IDs are always left out of notifications; that setting is fixed: the
+WebUI does not offer it, and the API refuses `show_ids: true` for `xo` and
+`zabbix` with 400. Trusted Dell iDRAC management clients are set per
 destination in the filter editor: choose the destination, then **Dell iDRAC**,
 and fill **Trusted management client IPs** under **Session audit
 suppression** (see [Dell iDRAC](dell-idrac.md)).
@@ -292,7 +298,9 @@ listener. The page has four tabs:
   application once through deployment secrets. A mailbox can be private to its
   owner or shared.
 - **Rules**: deterministic conditions on message metadata that classify
-  matching mail.
+  matching mail. The cards above the rules table count the enabled rules of
+  each classification (Urgent, Warning, Information, Ignore); Enable and
+  Disable confirm the change with a message.
 - **Groups**: organise related classification rules and optionally suppress
   repeats for a quiet window.
 - **Activity**: what was fetched, matched, deduplicated and routed.
@@ -341,7 +349,19 @@ Rotate or revoke a token instead of trying to retrieve its previous value.
 Delivery history shows normalized event identity, source/input, destination,
 attempt, outcome, safe error state, and time without exposing response bodies or
 credentials. Severity filtering is applied before paging, and the page opens at
-the newest events after a restart.
+the newest events after a restart. The severity filter groups words that mean
+the same, with the buckets the notification cards use: **Critical** also finds
+Error, Failure and High; **Warning** finds Warn and Average; **Resolved** finds
+Ok, Success and Normal; **Information** finds Info and Informational. Each row
+keeps the severity word its event carried.
+
+Which deliveries an account sees depends on the destination, not on who owns
+the route: every account sees the attempts to destinations it owns and every
+attempt to a shared destination, whoever owns that destination or the route
+that matched. Attempts to another account's private destination are not
+shown, to administrators either. So when an administrator shares a destination,
+every user sees all of its deliveries, including those matched by routes that
+other accounts own.
 
 Pagination behavior is shared with Audit log:
 
@@ -380,10 +400,10 @@ of the selected event. The health checks cover the database, configuration,
 destination credentials, route assignments, the backup target (the selected
 target and schedule, or local-only backups), delivery failures in the last hour
 and mailbox synchronization: mailboxes that cannot synchronize, or three or
-more failed synchronizations in 24 hours, show a warning. In the capture below the user column of the event list,
-the record identifiers under each resource and the account name in the sidebar
-corner are masked: the rows name the account that performed each action and
-carry internal record identifiers (see the
+more failed synchronizations in 24 hours, show a warning. In the capture below
+only the record identifiers under each resource are masked. The User column and
+the account chip in the sidebar show `nowlert-admin`, the neutral Development
+test administrator that took the capture (see the
 [screenshot privacy review](guides/screenshot-privacy.md)).
 
 ![Audit log with health checks, event list and event details (development, administrator, 1440 px); record identifiers masked](images/v27.0.0-rc.1/audit-log-overview-admin-1440.png)

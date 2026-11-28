@@ -1,4 +1,4 @@
-"""Modern fallback cards show Severity and Category once (NCE-115).
+"""Modern fallback cards show Severity and Category once.
 
 Slack Modern Cards reuse the Discord Modern image, so these checks cover both.
 """

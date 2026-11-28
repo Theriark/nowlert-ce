@@ -30,18 +30,20 @@ def test_v311_release_notes_cover_cumulative_qa_and_immutable_release():
         encoding="utf-8"
     )
 
-    for issue in (
-        "NCE-30",
-        "NCE-31",
-        "NCE-32",
-        "NCE-33",
-        "NCE-34",
-        "NCE-35",
-        "NCE-36",
-        "NCE-37",
-        "NCE-38",
-        "NCE-39",
+    for change in (
+        "administrator user deletion",
+        "private state backup deletion",
+        "environment branch and immutable promotion alignment",
+        "authoritative administrator role display",
+        "Delivery History presentation regression correction",
+        "Delivery History/Audit Log pagination footer refinement",
+        "remove redundant excluded severity/status route controls",
+        "use native selection highlighting",
+        "normal single-click additive/subtractive route selection",
+        "accurate full-list route criteria display",
     ):
-        assert issue in release or issue in checklist
+        assert change in release
+    # Public notes carry no internal tracker keys.
+    assert "NCE-" not in release and "NCE-" not in checklist
 
     assert "without rebuild" in release.casefold()

@@ -1,4 +1,4 @@
-"""THE-874 F1: a destination's credential record must not outlive the destination."""
+"""F1: a destination's credential record must not outlive the destination."""
 
 from __future__ import annotations
 

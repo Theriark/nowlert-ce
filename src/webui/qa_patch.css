@@ -2941,7 +2941,7 @@ textarea:focus {
   }
 }
 
-/* NCE-35 final unified pagination row */
+/* Final unified pagination row */
 .qa-pagination-row {
   align-items: end;
   display: grid;
@@ -3009,7 +3009,7 @@ textarea:focus {
 
 
 
-/* NCE-37 stable native route selection highlight */
+/* Stable native route selection highlight */
 #route-severities option:checked,
 #route-statuses option:checked {
   background: Highlight !important;

@@ -1,9 +1,9 @@
-"""Development walk fix-and-recheck round (THE-875): F2 mailbox cards and the
+"""Development walk fix-and-recheck round: F2 mailbox cards and the
 trivial low UI findings F3-F7."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-LAYER_MARKER = "/* THE-875 Development walk fixes"
+LAYER_MARKER = "/* Development walk fixes"
 
 
 def _read(name: str) -> str:
@@ -80,12 +80,12 @@ def test_f3_backup_destination_actions_and_last_test_columns_fit_their_content()
     widths = {2: "20%", 3: "13%", 4: "22%", 5: "10%", 6: "14%", 7: "14%"}
     for column, width in widths.items():
         assert f".backup-destination-table th:nth-child({column}) {{ width: {width}; }}" in layer
-    # The Type column keeps the 7% declared in qa_patch.css. Only the THE-927
-    # block for 1181-1399px (tests/test_the927_narrow_desktop_layout.py) sets
-    # all seven columns, so the THE-875 rules before it leave Type alone.
+    # The Type column keeps the 7% declared in qa_patch.css. Only the narrow desktop
+    # block for 1181-1399px (tests/test_narrow_desktop_layout.py) sets
+    # all seven columns, so the earlier Development walk rules before it leave Type alone.
     assert ".backup-destination-table th:nth-child(1) { width: 7%; }" in _read("qa_patch.css")
-    the875 = layer[: layer.index("/* THE-927 narrow desktop widths")]
-    assert ".backup-destination-table th:nth-child(1)" not in the875
+    earlier = layer[: layer.index("/* Narrow desktop widths")]
+    assert ".backup-destination-table th:nth-child(1)" not in earlier
     assert 7 + sum(int(value.rstrip("%")) for value in widths.values()) == 100
 
 
