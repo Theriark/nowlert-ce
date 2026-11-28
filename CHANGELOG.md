@@ -4,6 +4,9 @@
 
 ### Documentation
 
+- Settings and Audit log captures taken again on Development `ea51fc67` as the
+  neutral test administrator `nowlert-admin`, after the update card and the
+  audit trend colours changed; only the record identifiers are masked.
 - Screenshot privacy review (NCE-95): new 1440 px Dashboard and Routing Flow
   captures of Development, Live with the month's data; solid black boxes
   replace the blur in four Zabbix and Settings captures and cover the

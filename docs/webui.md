@@ -386,7 +386,7 @@ corner are masked: the rows name the account that performed each action and
 carry internal record identifiers (see the
 [screenshot privacy review](guides/screenshot-privacy.md)).
 
-![Audit log with health checks, event list and event details (development, administrator, 1440 px); user column, record identifiers and sidebar account name masked](images/v27.0.0-rc.1/audit-log-overview-admin-1440.png)
+![Audit log with health checks, event list and event details (development, administrator, 1440 px); record identifiers masked](images/v27.0.0-rc.1/audit-log-overview-admin-1440.png)
 
 ### Users
 
