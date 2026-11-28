@@ -10,7 +10,9 @@ and the Filtering capture from the Development build `0c14583c`; see
 Eight captures were replaced on 12 November 2026 from the Development build
 `0011c903`; see "Replaced on 12 November 2026" below.
 The Settings and Audit log captures were replaced on 28 November 2026 from the
-Development build `ea51fc67`; see "Replaced on 28 November 2026" below.
+Development build `ea51fc67`; see "Replaced on 28 November 2026" below. Nine
+more were replaced later that day from the Development build `fd6bd11f`; see
+"Replaced again on 28 November 2026" below.
 Nowlert CE is a desktop web
 application: since 25 October 2026 the Preview of the repository README and
 the Docker Hub README shows four of its desktop captures at full width,
@@ -36,8 +38,9 @@ commit `342698c67fe000a11b02994ed289f0cf45b22166` (running application version
 [Development after v3.1.6](../../releases/post-v3.1.6-development.md)).
 
 The captures use the crew's Development test accounts (`ai-crew-admin-…`,
-`ai-crew-user-…`), except the two replaced on 28 November 2026, which are
-signed in as the neutral Development test administrator `nowlert-admin`; all
+`ai-crew-user-…`), except the eleven replaced on 28 November 2026, which are
+signed in as the neutral Development test administrator `nowlert-admin` (or,
+for the regular-user Security capture, the temporary user `nowlert-user`); all
 of them show the Development test destinations described under "Names shown
 in the captures" below and test events. No credential,
 token, private address, personal name or customer data is shown; pages that
@@ -52,44 +55,45 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `sign-in-empty-signed-out-768.png` | Sign in, empty form | signed out | 768 | about 14:40 |
 | `sign-in-empty-signed-out-390.png` | Sign in, empty form | signed out | 390 | about 14:40 |
 | `dashboard-live-admin-1440.png` | Dashboard, Live, last month | administrator | 1440 | replaced 27 Nov 2026, 11:58 |
-| `routing-flow-live-admin-1440.png` | Routing Flow, Live, last month | administrator | 1440 | replaced 27 Nov 2026, 12:02 |
+| `routing-flow-live-admin-1440.png` | Routing Flow, Live, last month | administrator | 1440 | replaced 28 Nov 2026, 10:06 |
 | `destinations-list-admin-1440.png` | Destinations list | administrator | 1440 | 15:48 |
 | `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
-| `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | 15:49 |
+| `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | replaced 28 Nov 2026, 10:06 |
 | `audit-log-overview-admin-1440.png` | Audit log (record identifiers masked) | administrator | 1440 | replaced 28 Nov 2026, 08:17 |
 | `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | replaced 28 Nov 2026, 08:13 |
-| `security-profile-admin-1440.png` | Security (Profile, MFA, password, Event API tokens) | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
+| `security-profile-admin-1440.png` | Security (Profile, MFA, password, Event API tokens) | administrator | 1440 | replaced 28 Nov 2026, 10:06 |
 | `users-search-admin-1440.png` | Users, filtered to the crew accounts (Recent activity account names masked) | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
-| `delivery-history-zabbix-admin-1440.png` | Delivery history, Zabbix source filter (host and database labels and sidebar account name masked on 2 Nov 2026; not embedded) | administrator | 1440 | 15:53 |
+| `delivery-history-zabbix-admin-1440.png` | Delivery history, Zabbix source filter, All dates (row titles, detail header and message body masked; not embedded) | administrator | 1440 | replaced 28 Nov 2026, 10:06 |
 | `email-alerts-groups-admin-1440.png` | Email Alerts, Groups tab | administrator | 1440 | 15:53 |
 | `destination-editor-teams-admin-1440.png` | Add destination, Microsoft Teams, Message style | administrator | 1440 | 15:54 |
 | `destination-preview-teams-modern-admin-1440.png` | Preview dialog, Teams destination saved as Modern Card, output scrolled to the card body | administrator | 1440 | 20:44 |
 | `destination-preview-teams-classic-admin-1440.png` | Preview dialog, Teams destination saved as Classic Card, output scrolled to the card body | administrator | 1440 | 20:41 |
 | `destinations-list-admin-768.png` | Destinations list | administrator | 768 | 17:57 |
 | `dashboard-live-admin-768.png` | Dashboard, Live, last month | administrator | 768 | replaced 12 Nov 2026, 19:00 |
-| `routing-flow-live-admin-768.png` | Routing Flow, Live | administrator | 768 | 18:04 |
-| `routing-flow-live-admin-390.png` | Routing Flow, Live | administrator | 390 | 18:05 |
+| `routing-flow-live-admin-768.png` | Routing Flow, Live | administrator | 768 | replaced 28 Nov 2026, 10:07 |
+| `routing-flow-live-admin-390.png` | Routing Flow, Live | administrator | 390 | replaced 28 Nov 2026, 10:07 |
 | `dashboard-live-admin-390.png` | Dashboard, Live, last month | administrator | 390 | replaced 12 Nov 2026, 19:00 |
 | `destinations-list-admin-390.png` | Destinations list | administrator | 390 | 18:05 |
 | `dashboard-live-user-1440.png` | Dashboard, Live, last month | regular user | 1440 | replaced 12 Nov 2026, 19:00 |
 | `destinations-list-user-1440.png` | Destinations list (shared destinations of other owners, all view only) | regular user | 1440 | 18:06 |
-| `security-profile-user-1440.png` | Security (Profile, MFA, password, Event API tokens) | regular user | 1440 | replaced 12 Nov 2026, 19:00 |
+| `security-profile-user-1440.png` | Security (Profile, MFA, password, Event API tokens) | regular user | 1440 | replaced 28 Nov 2026, 10:07 |
 
 The two preview captures were replaced on 21 October 2026 at the times shown.
 The Zabbix-filtered Delivery history capture of 21 October 2026 (15:53) and
 the Audit log capture (15:49) were withdrawn on 23 October 2026 and restored
 on 2 November 2026 with their exposed labels masked; see "Withdrawn on
-23 October 2026, restored masked on 2 November 2026" below. Eleven files of
+23 October 2026, restored masked on 2 November 2026" below. Fifteen files of
 this table were replaced later, as the last column shows: the Filtering
-capture, both Security captures, the Users capture and the 768 px, 390 px and
-regular user Dashboard captures on 12 November 2026 ("Replaced on 12 November
-2026" below; the Filtering and Security files had already been replaced once
-on 31 October 2026); the 1440 px Dashboard and Routing Flow captures on
-27 November 2026; and the Settings capture (first replaced on 31 October 2026)
-and the Audit log capture (restored masked on 2 November 2026) on
-28 November 2026 ("Replaced on 28 November 2026" below). Only the
-Zabbix-filtered Delivery history file is still the masked capture of
-2 November 2026, and the other 14 files of this table are unchanged since
+capture, the Users capture and the 768 px, 390 px and regular user Dashboard
+captures on 12 November 2026 ("Replaced on 12 November 2026" below; the
+Filtering file had already been replaced once on 31 October 2026); the
+1440 px Dashboard capture on 27 November 2026; the Settings capture (first
+replaced on 31 October 2026) and the Audit log capture (restored masked on
+2 November 2026) on 28 November 2026 ("Replaced on 28 November 2026" below);
+and, later the same day, the 1440, 768 and 390 px Routing Flow captures, the
+1440 px Email Alerts rules capture, both Security captures and the
+Zabbix-filtered Delivery history capture ("Replaced again on 28 November
+2026" below). The other 11 files of this table are unchanged since
 21 October 2026.
 
 ## Added on 22 October 2026 (commit 8dc1b2ca)
@@ -107,7 +111,7 @@ crew administrator account, same viewports.
 |---|---|---|---|---|
 | `destination-preview-routes-drawer-admin-1440.png` | Preview dialog with the **Manage routes** drawer open: Done button, Active badge beside each route | administrator | 1440 | 22:43 |
 | `destination-preview-discord-debug-admin-1440.png` | Preview dialog, Discord destination, severity **Debug**, generic sample source, output scrolled to the context line that reads **Debug** | administrator | 1440 | 22:49 |
-| `email-alerts-rules-admin-768.png` | Email Alerts, Rules tab as stacked rule cards | administrator | 768 | 22:49 |
+| `email-alerts-rules-admin-768.png` | Email Alerts, Rules tab as stacked rule cards | administrator | 768 | replaced 28 Nov 2026, 10:07 |
 | `email-alerts-rules-admin-390.png` | Email Alerts, Rules tab as stacked rule cards, scrolled to the first full card | administrator | 390 | 22:50 |
 | `email-alerts-mailbox-edit-imap-admin-1440.png` | Edit mailbox dialog of the IMAP test mailbox of the QA fixture (username and password optional, folder scan unavailable) | administrator | 1440 | 22:51 |
 
@@ -162,7 +166,7 @@ the [screenshot privacy review](../../guides/screenshot-privacy.md).
 
 | File | Page / state | Role | Width | Captured (Lisbon) |
 |---|---|---|---|---|
-| `delivery-history-synology-admin-1440.png` | Delivery history, **Synology** source filter, **Last 30 days**, newest first, first event selected with its detail pane | administrator | 1440 | 10:48 |
+| `delivery-history-synology-admin-1440.png` | Delivery history, **Synology** source filter, **All dates**, newest first, first event selected with its detail pane | administrator | 1440 | replaced 28 Nov 2026, 10:06 |
 
 Note on this file: the rows are the Synology sample events of 15 October 2026
 for the device `synthetic-dsm-01`, the device name of the repository's
@@ -354,14 +358,51 @@ log, after the masking). No credential, token, private address or personal
 name is shown; the Settings values are the stored preferences of the
 Development deployment.
 
+## Replaced again on 28 November 2026 (capture base commit fd6bd11f)
+
+The readiness fixes of round 3 (pull requests 675 and 676) changed what nine
+captures show: the Dell iDRAC logo in Routing Flow sits on a light tile, the
+Email Alerts cards count the enabled rules of each classification, the
+Security page offers **Remove** only when there is a profile picture and heads
+its token section **Event API tokens**, a sidebar label that does not fit
+wraps instead of being cut off ("Delivery history" when selected), and the
+Delivery history source names no longer break mid-word. The nine files were
+replaced by captures of the Development deployment of the `development`
+branch at commit `fd6bd11f869a5f9ce07edc28b9ca2d6a140bcacf` (application
+version 27.0.0), taken on 28 November 2026 between 10:06 and 10:08 (Lisbon,
++00:00) in headless Chrome at scale 1, dark theme, with the viewports
+1440 × 900, 768 × 1024 and 390 × 844. The administrator captures are signed in
+as the neutral Development test administrator `nowlert-admin`. The
+regular-user Security capture is signed in as `nowlert-user`, a regular user
+created for that capture with a random password and deleted right after it.
+
+| File | Page / state | Role | Width |
+|---|---|---|---|
+| `routing-flow-live-admin-1440.png` | Routing Flow, **Last 1 month**: counters, integration cards with the Dell iDRAC logo on a light tile, the filter card and two destinations | administrator | 1440 |
+| `routing-flow-live-admin-768.png` | Routing Flow, **Last 24 hours**, two-column layout | administrator | 768 |
+| `routing-flow-live-admin-390.png` | Routing Flow, **Last 24 hours**, top of the page | administrator | 390 |
+| `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab: enabled-rule counts per classification above the rules table | administrator | 1440 |
+| `email-alerts-rules-admin-768.png` | Email Alerts, Rules tab as stacked rule cards, below the enabled-rule counts | administrator | 768 |
+| `security-profile-admin-1440.png` | Security: **Choose picture** without **Remove**, **Event API tokens** heading, **+ New token** | administrator | 1440 |
+| `security-profile-user-1440.png` | Security for the regular user `nowlert-user`, same layout | regular user | 1440 |
+| `delivery-history-synology-admin-1440.png` | Delivery history, **Synology** source filter, **All dates**, newest first, first event selected; the selected sidebar label wraps to two lines | administrator | 1440 |
+| `delivery-history-zabbix-admin-1440.png` | Delivery history, **Zabbix** source filter, **All dates**, first event selected; the row titles, the detail header and the message body are painted over with solid black rectangles because they name the test fixture's VM-numbered hosts and databases, as on the capture of 2 November 2026; not embedded | administrator | 1440 |
+
+Every file was opened at full size after the capture (and, for the Zabbix
+capture, after the masking). No credential, token, private address or
+personal name is shown. The 390 px Email Alerts rules capture shows only rule
+cards, whose layout did not change, so it was kept.
+
 ## Names shown in the captures
 
 - The accounts `ai-crew-admin-…` and `ai-crew-user-…` are the crew's
   Development test accounts.
 - `nowlert-admin`, in the User column and the sidebar account chip of the
-  Settings and Audit log captures replaced on 28 November 2026, is the neutral
-  Development test administrator used for documentation captures. It is a
-  generic account name, not a personal name, so it is not masked.
+  captures replaced on 28 November 2026, is the neutral Development test
+  administrator used for documentation captures. It is a generic account
+  name, not a personal name, so it is not masked. `nowlert-user` in the
+  regular-user Security capture is a generic regular user created only for
+  that capture and deleted right after it.
 - `Nextcloud NFS - CE Development`, in the **NFS backup target** health check
   of `audit-log-overview-admin-1440.png`, is the name typed for the
   Development deployment's NFS backup destination. It names the kind of
