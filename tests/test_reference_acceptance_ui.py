@@ -41,7 +41,7 @@ def test_reference_acceptance_runtime_contract():
     assert "Profile" in script
     assert "Password & sessions" in script
     assert "Security posture" in script
-    assert 'title.textContent = "API tokens"' in script
+    assert 'title.textContent = "Event API tokens"' in script
     assert 'restart-header-button' not in script
     assert 'restart.textContent = "⏻ Restart Nowlert"' not in script
 

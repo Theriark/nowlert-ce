@@ -1068,7 +1068,7 @@ function ensurePreviewReferenceLayout() {
       tokens.classList.add("reference-api-tokens");
       const toolbar = tokens.querySelector(":scope > .section-toolbar");
       const title = toolbar?.querySelector("h2");
-      if (title) title.textContent = "API tokens";
+      if (title) title.textContent = "Event API tokens";
       const add = toolbar?.querySelector('[data-action="new-token"]');
       if (add) add.textContent = "+ New token";
       ensureApiTokenReferenceLayout();

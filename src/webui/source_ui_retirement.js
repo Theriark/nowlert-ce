@@ -110,7 +110,7 @@
     const panel = tokenSection.querySelector(":scope > .table-panel")
       || container.querySelector(":scope > .table-panel");
     if (toolbar) {
-      prepareEmbeddedToolbar(toolbar, "API tokens");
+      prepareEmbeddedToolbar(toolbar, "Event API tokens");
       const action = tokenSection.querySelector('[data-action="new-token"]')
         || container.querySelector('[data-action="new-token"]')
         || document.querySelector('[data-action="new-token"]');
