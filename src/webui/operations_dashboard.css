@@ -524,6 +524,8 @@
 
 .ops-severity,
 .ops-outcome {
+  /* Upper case is drawn by CSS, so the label itself can be translated. */
+  text-transform: uppercase;
   border-radius: 999px;
   padding: 4px 9px;
   font-size: .58rem;
