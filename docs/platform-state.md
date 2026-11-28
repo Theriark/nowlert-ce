@@ -86,7 +86,8 @@ Local account protection includes:
 ### Multi-factor authentication and recovery
 
 On the **Security** page, select the **MFA status** card to enroll an authenticator and manage MFA
-(the card's accessible name is "Manage multi-factor authentication").
+(screen readers announce the card as "Manage multi-factor authentication.
+Current status: Enabled" or "… Current status: Disabled").
 Administrators can require MFA for local accounts. Enrollment returns ten
 one-time recovery codes, each containing 128 bits of randomness. Save them
 privately when displayed; only their hashes are stored.

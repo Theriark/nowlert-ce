@@ -4720,8 +4720,8 @@ function setRouteSourceOptions(
     select.value = currentValue;
   }
 
-  if (select.dataset.nce39FilterBound !== "1") {
-    select.dataset.nce39FilterBound = "1";
+  if (select.dataset.routeFilterBound !== "1") {
+    select.dataset.routeFilterBound = "1";
 
     select.addEventListener("change", () => {
       const previousSource =

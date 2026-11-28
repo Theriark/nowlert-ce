@@ -47,8 +47,8 @@ function languageContext(saved) {
     renderPreferences() { select.value = context.state.preferences.language; },
   };
   const code = [
-    block('  const nce15DetachedLanguageAliases', '  applyLanguage = function'),
-    block('  const nce15OriginalRenderPreferences', '  if (document.readyState'),
+    block('  const regionalDetachedLanguageAliases', '  applyLanguage = function'),
+    block('  const regionalOriginalRenderPreferences', '  if (document.readyState'),
   ].join('\n');
   vm.runInNewContext(code, context);
   return {context, select};

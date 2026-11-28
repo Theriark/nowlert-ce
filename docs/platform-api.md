@@ -257,9 +257,11 @@ setup.
 Delivery history follows the destination: every account, administrators
 included, sees the attempts to destinations it owns and every attempt to a
 shared destination, whoever owns the route that matched; attempts to another
-account's private destination are not returned. Audit history is for
-administrators only and leaves out events about other users' private
-destinations and filters. Safe
+account's private destination are not returned. The audit endpoints answer
+200 to every signed-in account, but only administrators receive events: for a
+regular user the list is empty and the summary counts are zero. Administrators
+see every audit event except those about other users' private destinations
+and their filters. Safe
 history does not persist destination credentials, token values, response bodies,
 or raw adapter exception text.
 

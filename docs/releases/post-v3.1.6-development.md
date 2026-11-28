@@ -110,6 +110,20 @@ release material.
   list shows English and Português once; the Updates card shows its green tick
   only after a successful check; Audit log trends are coloured by good or bad
   news; Scheduled backups show only the day field that applies.
+- Readiness fixes, round 3 (28 November 2026): sign-in and account errors read
+  as sentences that say what to do; the Delivery history severity filter
+  groups equivalent words (Information also finds Info and Informational) and
+  keeps each event's own word; the Email Alerts cards count enabled rules per
+  classification and enabling or disabling a rule, group or mailbox confirms
+  it; the token dialog is titled "Event API token: NAME" and **Remove** appears
+  only with a profile picture; the Dell iDRAC logo sits on a light tile in
+  Routing Flow; a sidebar label that does not fit wraps instead of being cut
+  off; Backup destinations become cards at 900 px and narrower; leaving Email
+  Alerts drops `?emailTab=`; the destination URL error ends with one full
+  stop; the route picker names each route's owner ("Owner: you"); creating a
+  user shows a confirmation; the Security page token section is always headed
+  **Event API tokens**; `PUT /api/v2/integration-settings/{xo,zabbix}` refuses
+  `show_ids: true`.
 
 ### Operations
 
@@ -132,7 +146,7 @@ release material.
 ## Documentation state
 
 - Live captures of this development interface are packaged under
-  `docs/images/v27.0.0-rc.1/`: 30 screenshots taken on 21 to 23 October 2026
+  `docs/images/v27.0.0-rc.1/`: screenshots first taken on 21 to 23 October 2026
   from the Development deployment with the crew's Development test accounts
   and test data, at 1440, 768 and 390 pixel widths, listed in
   [the folder index](../images/v27.0.0-rc.1/README.md) and embedded in the
@@ -140,11 +154,18 @@ release material.
   repository README and the Docker Hub README Preview show the 1440 px
   Dashboard, Routing Flow, Destinations and sign-in captures, and the 768 and
   390 px captures are secondary examples of the responsive layout in a narrow
-  browser window, not the separate Nowlert Mobile app. Eight of them (the
-  four Dashboard captures, Users, both Security captures and Filtering) were
-  replaced on 12 November 2026 after the changes above; the others are the
-  reviewed set reused since the `v27.0.0-rc.7` documentation package. The v3.1.0 set is historical; the v2.5.2 and v1.9.6 captures show
-  the retired product name and remain outdated.
+  browser window, not the separate Nowlert Mobile app. Captures whose page
+  changed were replaced: eight on 12 November 2026 (the four Dashboard
+  captures, Users, both Security captures and Filtering), the 1440 px
+  Dashboard and Routing Flow captures on 27 November 2026, and on
+  28 November 2026, from Development builds of version 27.0.0 signed in as the
+  neutral test administrator `nowlert-admin`, the Settings and Audit log
+  captures and then nine more after the round-3 readiness fixes (the three
+  Routing Flow captures, the 1440 and 768 px Email Alerts rules captures,
+  both Security captures and the Synology- and Zabbix-filtered Delivery
+  history captures). The folder index records the date, build and account of
+  every file. The v3.1.0 set is historical; the v2.5.2 and v1.9.6 captures
+  show the retired product name and remain outdated.
 - A release candidate still needs: a version bump with a numbered release note
   and QA checklist, independent visual review of those captures, and the normal
   Development -> Stage -> Finalize CE Release path described in

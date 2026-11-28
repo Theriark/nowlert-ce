@@ -1196,17 +1196,17 @@ function qaNormalizeDeliveryBadges() {
   }
 }
 
-const qaNce34OriginalRenderDeliveries = renderDeliveries;
+const qaBadgeOriginalRenderDeliveries = renderDeliveries;
 renderDeliveries = function renderDeliveriesWithoutDuplicateBadges() {
-  qaNce34OriginalRenderDeliveries();
+  qaBadgeOriginalRenderDeliveries();
   qaNormalizeDeliveryBadges();
 };
 
-const qaNce34OriginalLoadDeliveryPage = qaLoadDeliveryPage;
+const qaBadgeOriginalLoadDeliveryPage = qaLoadDeliveryPage;
 qaLoadDeliveryPage = async function qaLoadDeliveryPageWithoutDuplicateBadges(
   page,
 ) {
-  await qaNce34OriginalLoadDeliveryPage(page);
+  await qaBadgeOriginalLoadDeliveryPage(page);
   qaNormalizeDeliveryBadges();
 };
 

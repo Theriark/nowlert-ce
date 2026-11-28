@@ -410,8 +410,9 @@ calls. All of them are now decided; each item says how.
 - Decided on 27 November 2026 by the product owner: the
   inspection dates in the Record column are accepted as recorded. A capture is
   re-opened and its date updated when the capture, or the page it shows,
-  changes. Wording: the guides call the Security page section "API tokens"
-  (its title) and one token an "Event API token" (the dialog's name).
+  changes. Wording: the guides call the Security page section "Event API
+  tokens" (its title since 28 November 2026; it read "API tokens" before) and
+  one token an "Event API token" (the dialog's name).
 
 ## Raster inventory
 
@@ -524,7 +525,7 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026 |
 | `images/v27.0.0-rc.1/dashboard-live-user-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026; crew user account |
 | `images/v27.0.0-rc.1/delivery-history-synology-admin-1440.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 23 Oct 2026); test fixture device `synthetic-dsm-01` only |
-| `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the masked capture of 21 Oct 2026); the row titles, the detail header and the whole message body painted over with solid black rectangles; still shows the Zabbix filter, badges, transport information and timeline; not embedded, the Synology capture is the reference |
+| `images/v27.0.0-rc.1/delivery-history-zabbix-admin-1440.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the masked capture of 21 Oct 2026); the row titles, the detail header and the whole message body painted over with solid black rectangles; still shows the Zabbix filter, badges and transport information (the timeline is below the visible area); not embedded, the Synology capture is the reference |
 | `images/v27.0.0-rc.1/destination-editor-teams-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-classic-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/destination-preview-teams-modern-admin-1440.png` | retained | Development capture, 21 Oct 2026 |
@@ -543,8 +544,8 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png` | retained | Development capture, 28 Nov 2026, Live, last month, as `nowlert-admin` (replaces the capture of 27 Nov 2026); test integrations and destinations; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-390.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 21 Oct 2026); no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
 | `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 21 Oct 2026); test integrations and destinations |
-| `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 12 Nov 2026); no picture, empty token list, no token value |
-| `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | Development capture, 28 Nov 2026, as the temporary regular user `nowlert-user` (replaces the capture of 12 Nov 2026); no picture, empty token list, no token value |
+| `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 28 Nov 2026, as `nowlert-admin` (replaces the capture of 12 Nov 2026); no picture; the token list is below the visible area, so no token name or value is shown |
+| `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | Development capture, 28 Nov 2026, as the temporary regular user `nowlert-user` (replaces the capture of 12 Nov 2026); no picture; the token list is below the visible area, so no token name or value is shown |
 | `images/v27.0.0-rc.1/settings-regional-admin-1440.png` | retained | Development capture, 28 Nov 2026 (replaces the capture of 31 Oct 2026); Development settings values only |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; not embedded since 25 Oct 2026 |

@@ -48,8 +48,11 @@ WebUI-managed YAML sections in a healthy current installation.
 Legacy `api.tokens` entries are imported as Event API tokens under their YAML
 names; a name that the same owner already uses gets "Legacy " in front
 ("Legacy NAME", then "Legacy NAME 2"). The migration needs the credential of
-every enabled token: `token_sha256`, a readable `token_file`, or the
-environment variable named by `token_env`. If one is missing, the whole
+every enabled token. `token_sha256` (64 hexadecimal characters) is used first; otherwise a
+`token_env` variable that is set; otherwise `token_file`, which must be a
+regular file (not a symbolic link) readable by Nowlert with no group or other
+permissions (mode `0600` or `0400`) and holding at most 4096 characters.
+A file that breaks any of these rules counts as unreadable. If one is missing, the whole
 migration stops with "resource migration failed: api token NAME cannot be
 imported because its credential is unavailable", `config.yaml` keeps its
 legacy sections and Nowlert reports the error until the next synchronization
