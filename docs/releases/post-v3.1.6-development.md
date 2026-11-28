@@ -5,9 +5,10 @@
 GitHub pre-release of `Theriark/nowlert-ce`; its exact version, source commit
 and image digest are recorded in that pre-release and in the matching
 documentation package, not in this note. A release
-candidate is not a stable release: `src/version.py` still reports `3.1.6`,
-the current stable release remains v3.1.6, and no stable v27.0.0 tag or image
-alias exists. This note records what the `development` branch contains beyond
+candidate is not a stable release: `src/version.py` reports `27.0.0`, the
+version the candidates are released as, while the current stable release
+remains v3.1.6 and no stable v27.0.0 tag or image alias exists. This note
+records what the `development` branch contains beyond
 v3.1.6 so that operators, testers and documentation reviewers can tell current
 development behavior from the released line. When v27.0.0 is released, its
 numbered release note and QA checklist replace this note as the current

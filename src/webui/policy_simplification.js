@@ -134,9 +134,13 @@
         ]),
         error ? badge("Needs repair", "danger") : badge("Database", "success"),
       ]),
-      element("div", { className: "resource-actions" }, [
-        actionButton("Edit", "edit-integration-settings", source),
-      ]),
+      // Only administrators may change integration behavior (the API answers
+      // 403 to everyone else), so other users get a read-only card.
+      isAdmin()
+        ? element("div", { className: "resource-actions" }, [
+          actionButton("Edit", "edit-integration-settings", source),
+        ])
+        : element("small", { className: "settings-card-admin-note", text: "Only an administrator can change this." }),
     ]);
   }
 

@@ -40,7 +40,7 @@ from storage.portability import PlatformPortabilityService
 from storage.routes import RouteStore
 from storage.routes import route_priority_name
 from storage.sanitize import sanitize_text
-from storage.validation import ConflictError
+from storage.validation import ConflictError, normalized_name
 from storage.secrets import SecretStore
 from storage.sessions import SessionStore
 from storage.users import UserStore
@@ -701,7 +701,14 @@ class PlatformAPI:
             str(data.get("current_password") or ""),
         )
         if user is None:
-            return APIResponse(403, {"error": "operation is not permitted"})
+            return APIResponse(
+                403,
+                {
+                    "error": "The current password is not correct.",
+                    "code": "password_invalid",
+                    "field": "current_password",
+                },
+            )
         self.users.reset_password(user.id, data.get("new_password"))
         self.audit.write(user.actor, "user.password", "user", user.id, "success")
         return APIResponse(204, None, self._clear_cookies())
@@ -1796,6 +1803,8 @@ class PlatformAPI:
             normalized_settings = normalize_output_settings(output_type, settings)
             if str(output_type or "").strip().casefold() == "nowlert_mobile":
                 self._mobile_publish_key(data.get("secret"))
+            if str(output_type or "").strip().casefold() == "webhook" and "secret" in data:
+                self._validate_webhook_secret(data.get("secret"))
             if (
                 str(output_type or "").strip().casefold() == "email"
                 and normalized_settings.get("username")
@@ -1899,6 +1908,7 @@ class PlatformAPI:
                     "enabled",
                 },
             )
+            self._require_unique_route_name(data.get("name"))
             route = self.routes.create(
                 actor,
                 self._owner(data, actor),
@@ -2960,6 +2970,8 @@ class PlatformAPI:
                     self._mobile_publish_key(data.get("secret"))
                 elif not destination.secret_configured:
                     raise ValueError("Mobile topic-scoped publish key is required")
+            if next_type == "webhook" and "secret" in data:
+                self._validate_webhook_secret(data.get("secret"))
             if (
                 next_type == "email"
                 and normalized_settings.get("username")
@@ -3047,6 +3059,8 @@ class PlatformAPI:
             if self.yaml_resource_authority:
                 route = self.configuration_sync.update_route(actor, route_id, data)
                 return APIResponse(200, {"route": {**self._route(route), "management": "yaml"}})
+            if "name" in data:
+                self._require_unique_route_name(data.get("name"), route_id=route_id)
             route = self.routes.update(actor, route_id, **data)
             return APIResponse(200, {"route": self._route(route)})
         if method == "DELETE":
@@ -3244,6 +3258,70 @@ class PlatformAPI:
         if not text or len(text.encode("utf-8")) > 64 * 1024:
             raise ValueError("secret is empty or too large")
         return text
+
+    def _require_unique_route_name(self, name, *, route_id=None):
+        """Refuse a new or changed route name that another route already uses.
+
+        Routes are shared integration plumbing: every account sees one list,
+        so names must not repeat across owners, ignoring case. A route that
+        keeps its current name (older accounts each own a seeded copy of the
+        same built-in routes) is not a new duplicate.
+        """
+
+        display, normalized = normalized_name(name, "route name")
+        with self.database.connect() as connection:
+            if route_id is not None:
+                current = connection.execute(
+                    "SELECT name_normalized FROM routes WHERE id = ?",
+                    (str(route_id),),
+                ).fetchone()
+                if current is None or str(current["name_normalized"]) == normalized:
+                    return
+            duplicate = connection.execute(
+                "SELECT 1 FROM routes WHERE name_normalized = ? AND id != ? LIMIT 1",
+                (normalized, str(route_id or "")),
+            ).fetchone()
+        if duplicate is not None:
+            raise ConflictError(
+                f"A route named {display} already exists. Choose another name."
+            )
+
+    @staticmethod
+    def _validate_webhook_secret(value):
+        """Refuse a webhook URL that delivery would reject.
+
+        Delivery accepts only an absolute, credential-free HTTPS URL
+        (outputs/platform_common.validate_outbound_url); checking the same
+        shape here stops a destination such as "not-a-url" being saved and
+        then failing every delivery.
+        """
+
+        candidate = value
+        if isinstance(candidate, str) and candidate.strip().startswith("{"):
+            try:
+                candidate = json.loads(candidate)
+            except json.JSONDecodeError:
+                candidate = ""
+        if isinstance(candidate, dict):
+            candidate = candidate.get("url") or candidate.get("value")
+        text = candidate.strip() if isinstance(candidate, str) else ""
+        try:
+            parsed = urlsplit(text)
+            valid = (
+                parsed.scheme.casefold() == "https"
+                and bool(parsed.hostname)
+                and parsed.username is None
+                and parsed.password is None
+                and not parsed.fragment
+                and len(text) <= 2048
+            )
+        except ValueError:
+            valid = False
+        if not valid:
+            raise ValueError(
+                "Webhook URL must be a complete https:// address, "
+                "for example https://hooks.example.com/nowlert."
+            )
 
     @staticmethod
     def _secret_name(destination_name):

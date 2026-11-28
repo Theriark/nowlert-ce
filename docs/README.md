@@ -8,7 +8,7 @@ release records.
 Use these guides for the current v3.1.6 release line and for the development
 build that follows it. v3.1.6 is the last stable release. The development
 build is the v27.0.0 release-candidate line (`v27.0.0-rc.N` pre-release tags,
-not a stable release); it still reports application version 3.1.6 and already
+not a stable release); it reports application version 27.0.0 and already
 differs from the v3.1.6 release (database schema 18, Email Alerts, Nowlert
 Mobile, multi-factor authentication and more).
 [Development after v3.1.6](releases/post-v3.1.6-development.md) lists those

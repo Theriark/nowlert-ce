@@ -34,11 +34,16 @@ workflows teams already use.
 
 # 🚀 Quick Start
 
-These steps install the current stable release, **v3.1.6**, with the image
+The current stable release is **v3.1.6**, published as the image
 `theriark/nowlert-ce:3.1.6`. That image does not contain the newer features
 this README marks as development or v27.0.0 release-candidate changes (for
 example Email Alerts, the Email and Nowlert Mobile destinations and the
 WebUI shown in the Preview).
+
+The supplied `.env.example` and Compose file already name the next release
+image, `theriark/nowlert-ce:27.0.0`, which is published only when v27.0.0 is
+released. Until then, install the stable release by setting
+`NOWLERT_IMAGE=theriark/nowlert-ce:3.1.6` in `.env` (step 1).
 
 v27.0.0 is not released yet. Its release candidates are GitHub pre-release
 tags (`v27.0.0-rc.N`), each bound to one immutable image built by Continuous
@@ -83,11 +88,12 @@ docker compose -f compose.production.yaml ps
 docker logs -f nowlert-ce
 ```
 
-The supplied Compose file defaults to the stable release image (set
-`NOWLERT_IMAGE` in `.env` to change it):
+The supplied Compose file defaults to the v27.0.0 release image (set
+`NOWLERT_IMAGE` in `.env` to change it; use `theriark/nowlert-ce:3.1.6` until
+v27.0.0 is released):
 
 ```text
-theriark/nowlert-ce:3.1.6
+theriark/nowlert-ce:27.0.0
 ```
 
 ## 3. Create the first administrator
@@ -118,7 +124,7 @@ for the exact secret filenames and redirect URI requirements.
 | **Status** | v3.1.6 stable · v27.0.0 in release-candidate testing |
 | **Current Stable Release** | **v3.1.6** |
 | **Development line** | v27.0.0 release candidates (`v27.0.0-rc.N` pre-release tags); not a stable release |
-| **Version reported by development builds** | 3.1.6 (the version number changes only when v27.0.0 is released) |
+| **Version reported by development builds** | 27.0.0 (the version the release candidates are released as) |
 | **License** | MIT |
 | **Python** | 3.13 |
 | **Current development database schema** | 18 |

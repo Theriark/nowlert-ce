@@ -294,14 +294,15 @@
 
     if (!selected.length || !severity || !applicable.length) {
       renderResult([]);
-      if (typeof toast === "function") {
-        toast(
-          !selected.length
-            ? "Select at least one assigned route for this preview."
-            : "No selected route supports this severity.",
-          "error",
-        );
-      }
+      // The dialog is modal, so a toast can sit behind it; explain inside it.
+      const message = !previewAssignedRouteIds.size
+        ? "This destination has no routes yet, so there is nothing to preview. Assign a route to it in Routing Flow, then try again."
+        : !selected.length
+          ? "Select at least one assigned route for this preview."
+          : "No selected route supports this severity.";
+      resultNode.hidden = true;
+      if (typeof showValidationError === "function") showValidationError("preview-error", message);
+      if (typeof toast === "function") toast(message, "error");
       return;
     }
 
@@ -414,7 +415,9 @@
     const chips = byId("reference-preview-route-chips");
     if (!count || !chips) return;
     const selected = selectedPreviewRoutes();
-    count.textContent = `${selected.length} of ${previewAssignedRouteIds.size} routes selected`;
+    count.textContent = previewAssignedRouteIds.size
+      ? `${selected.length} of ${previewAssignedRouteIds.size} routes selected`
+      : "No routes are assigned to this destination";
     chips.replaceChildren();
     for (const route of selected.slice(0, 3)) {
       chips.append(previewRouteSummaryChip(route));

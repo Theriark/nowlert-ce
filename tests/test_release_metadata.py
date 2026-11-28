@@ -1,4 +1,4 @@
-"""Release metadata invariants for Nowlert CE v3.1.6."""
+"""Release metadata invariants: stable v3.1.6 records and application 27.0.0."""
 
 import json
 from pathlib import Path
@@ -23,7 +23,7 @@ CURRENT_RELEASE_GUIDES = (
 
 
 def test_application_version_and_repository_are_current():
-    assert VERSION == "3.1.6"
+    assert VERSION == "27.0.0"
     assert EDITION == "Community Edition"
     assert EDITION_SLUG == "ce"
     assert REPOSITORY == "https://github.com/Theriark/nowlert-ce"
@@ -166,8 +166,8 @@ def test_production_defaults_are_versioned_and_compatible():
     environment = (ROOT / ".env.example").read_text(encoding="utf-8")
     compose = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
 
-    assert "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.6" in environment
-    assert "theriark/nowlert-ce:3.1.6" in compose
+    assert "NOWLERT_IMAGE=theriark/nowlert-ce:27.0.0" in environment
+    assert "theriark/nowlert-ce:27.0.0" in compose
     assert "NOWLERT_IMAGE" in compose
     assert "NOWLERT_EXTERNAL_BACKUP_DIR" in compose
     assert "/nowlert/external-backups" in compose

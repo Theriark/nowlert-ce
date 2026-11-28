@@ -21,7 +21,7 @@ def test_destination_cards_use_dynamic_owner_identity_and_owner_scoped_controls(
     render = app[render_start:render_end]
 
     assert "const editable = ownResource(item);" in render
-    assert "const canTest = editable || isAdmin() || item.shared;" in render
+    assert "const canTest = editable || isAdmin();" in render
     assert 'actionButton("Edit", "edit-destination", item.id)' in render
     assert 'actionButton("Send test", "test-destination-card", item.id, "primary")' in render
     assert 'className: "badge destination-owner-badge"' in render

@@ -205,6 +205,27 @@
     if (panel.previousElementSibling !== filteringTable) filteringTable.after(panel);
   }
 
+  // Regional settings apply to the whole installation and only administrators
+  // may save them (the API answers 403 to everyone else). Other users see the
+  // current values read-only instead of a Save button that always fails.
+  function syncRegionalSettingsAccess(admin) {
+    const form = document.getElementById("preferences-form");
+    if (!form) return;
+    for (const control of form.querySelectorAll("select, input")) control.disabled = !admin;
+    const submit = form.querySelector('button[type="submit"]');
+    const actions = submit?.parentElement;
+    if (actions && actions !== form) actions.hidden = !admin;
+    else if (submit) submit.hidden = !admin;
+    let note = form.querySelector(".regional-settings-admin-note");
+    if (!admin && !note) {
+      note = document.createElement("p");
+      note.className = "regional-settings-admin-note wide";
+      note.textContent = "Only an administrator can change the regional settings.";
+      form.append(note);
+    }
+    if (note) note.hidden = admin;
+  }
+
   function syncPageOwnership(view = state.currentView) {
     const admin = Boolean(isAdmin());
     const auditNav = primaryNav("audit");
@@ -230,6 +251,7 @@
     if (settingsUpdates) settingsUpdates.hidden = !admin;
     const housekeeping = document.querySelector("#view-settings .housekeeping-workspace");
     if (housekeeping) housekeeping.hidden = !admin;
+    syncRegionalSettingsAccess(admin);
 
     setNavActive(backupsNav, view === "backups");
     setNavActive(usersNav, view === "users");
