@@ -665,9 +665,10 @@
         const copy = make("span", "audit-health-card-copy");
         copy.append(
           make("strong", "", check.name),
-          make("small", "", check.detail),
+          make("small"),
           make("span", "audit-health-card-status", capitalize(check.status)),
         );
+        copy.querySelector("small").append(...uiDetailParts(check.detail));
         card.append(icon, copy);
         cards.append(card);
       }

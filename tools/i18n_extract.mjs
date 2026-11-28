@@ -147,14 +147,40 @@ const SINGLE_WORD = /^[A-Z][a-zA-Z]+$/;
 // "{0} of {1} selected"); class lists have more hyphens than words.
 const COUNT_PHRASE = /^(\d+|\{\d+\})( of (\d+|\{\d+\}))?( [a-z]+(-[a-z]+)?)+\.?$/;
 
+// Lower-case phrases of plain words are interface text ("enabled rules",
+// "this mailbox") unless every word is a CSS class of the WebUI ("button
+// small primary") or the phrase is one of these.
+const NOT_PHRASES = new Set(["use strict", "noopener noreferrer", "thead tr"]);
+const PLAIN_PHRASE = /^[a-z]+\.?( [a-z]+\.?)+$/;
+let cssClasses = null;
+function isClassList(text) {
+  if (!cssClasses) {
+    const styles = readdirSync(WEBUI).filter((name) => name.endsWith(".css"))
+      .map((name) => readFileSync(join(WEBUI, name), "utf8")).join("\n");
+    cssClasses = new Set([...styles.matchAll(/\.([a-zA-Z_][\w-]*)/g)].map((match) => match[1]));
+  }
+  return text.split(" ").every((word) => cssClasses.has(word));
+}
+
 export function isText(value) {
   const text = value.trim();
   if (text.length < 2 || text.length > 400) return false;
   if (SINGLE_WORD.test(text) || COUNT_PHRASE.test(text)) return true;
+  if (PLAIN_PHRASE.test(text)) return !NOT_PHRASES.has(text) && !isClassList(text);
   if (NOT_TEXT.some((pattern) => pattern.test(text))) return false;
   if (!/[A-Za-z]{2}/.test(text)) return false;
   // Needs a capital letter or a sentence-like space: "No routes", "Save".
   return /[A-Z]/.test(text) || / [a-z]+ /.test(` ${text} `);
+}
+
+// Text between tags and in placeholder/title/aria-label/alt is interface
+// text even in lower case ("current state"); only placeholders, numbers and
+// symbols are left out.
+function isMarkupText(value) {
+  const text = value.trim();
+  if (text.length < 2 || text.length > 400 || !/[A-Za-z]{2}/.test(text)) return false;
+  if (/^[\d\s.,:%{}()+-]+$/.test(text) || /^[/#&]/.test(text)) return false; // numbers, paths, entities
+  return !/^[\w.*-]+(, [\w.*-]+)+$/.test(text); // example lists such as "nas-*, hypervisor-01"
 }
 
 function htmlStrings(markup) {
@@ -165,6 +191,28 @@ function htmlStrings(markup) {
   return found.map((value) => value.replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/&#39;/g, "'").replace(/&quot;/g, '"'));
 }
 
+// Health check names and details that the API sends and the WebUI shows as
+// they are (src/storage/health.py). Details joined with "; " are shown as
+// separate parts, so each part is listed on its own.
+const SERVER_STRINGS = [
+  "SQLite integrity", "Configuration", "Database settings", "Core configuration",
+  "Destination credentials", "Enabled route assignments", "External backup", "Backup target",
+  "Local backup target", "{0} backup target", "Mailbox synchronization", "Recent delivery failures",
+  "check failed", "legacy mode", "synchronized", "available", "missing: {0}", "healthy",
+  "unavailable destination: {0}", "not configured", "disabled", "mounted",
+  "mounted path is unavailable", "{0} backups are kept in local state only",
+  "no external backup target is selected", "the selected backup target no longer exists",
+  "scheduled backups are disabled", "daily backups", "weekly backups", "monthly backups",
+  "{0} to {1}: the target is disabled", "{0} to {1}: mounted path is unavailable",
+  "{0} to {1}: the last scheduled backup failed", "{0} to {1}: mounted",
+  "mailbox status could not be read", "no mailboxes connected",
+  "{0} of {1} mailbox(es) cannot synchronize", "reconnect them under Email Alerts",
+  "{0} failed synchronization(s) in the last 24 hours", "{0} mailbox(es) synchronizing",
+  "{0} failed attempt(s) in the last 24 hours", "{0} failed attempt(s) in the last hour: {1}",
+  "{0} failed attempt(s) to other accounts' private destinations, which your Delivery history does not show",
+  "owners: {0}", "none in the last hour", "a deleted destination", "unknown owner", "{0} and {1} more",
+];
+
 export function extract() {
   const strings = new Set();
   for (const name of readdirSync(WEBUI).sort()) {
@@ -173,16 +221,28 @@ export function extract() {
       .replace(/\/\/ i18n-extract: skip-start[\s\S]*?\/\/ i18n-extract: skip-end/g, "");
     for (const value of literals(source)) {
       // Markup written into innerHTML: its text and attributes are interface text.
-      const parts = /<[a-z][^>]*>/i.test(value) ? htmlStrings(value) : [value];
-      for (const part of parts) {
-        const text = part.replace(/\s+/g, " ").trim();
-        if (isText(text)) strings.add(text);
+      if (/<[a-z][^>]*>/i.test(value)) {
+        for (const part of htmlStrings(value)) {
+          const text = part.replace(/\s+/g, " ").trim();
+          if (isMarkupText(text)) strings.add(text);
+        }
+        continue;
       }
+      const text = value.replace(/\s+/g, " ").trim();
+      if (isText(text)) strings.add(text);
     }
   }
   for (const value of htmlStrings(readFileSync(join(WEBUI, "index.html"), "utf8"))) {
-    if (isText(value)) strings.add(value.trim());
+    if (isMarkupText(value)) strings.add(value.trim());
   }
+  // Column labels that narrow layouts draw with CSS content: "Status".
+  for (const name of readdirSync(WEBUI).sort()) {
+    if (!name.endsWith(".css")) continue;
+    for (const match of readFileSync(join(WEBUI, name), "utf8").matchAll(/content:\s*"([^"]*[A-Za-z]{2}[^"]*)"/g)) {
+      strings.add(match[1].trim());
+    }
+  }
+  for (const text of SERVER_STRINGS) strings.add(text);
   return [...strings].sort((left, right) => left.localeCompare(right, "en"));
 }
 

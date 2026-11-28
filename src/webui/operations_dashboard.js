@@ -54,6 +54,22 @@
   let chartWidthObserver = null;
   let chartObservedWidth = 0;
 
+  // Whole titles, so each language can word the time unit its own way.
+  function deliveriesPerTitle(unit) {
+    const single = {
+      second: "Deliveries per second", minute: "Deliveries per minute", hour: "Deliveries per hour",
+      day: "Deliveries per day", week: "Deliveries per week", month: "Deliveries per month",
+    };
+    if (single[unit]) return single[unit];
+    const [count, word] = String(unit).split(" ");
+    const many = {
+      seconds: `Deliveries per ${count} seconds`, minutes: `Deliveries per ${count} minutes`,
+      hours: `Deliveries per ${count} hours`, days: `Deliveries per ${count} days`,
+      weeks: `Deliveries per ${count} weeks`, months: `Deliveries per ${count} months`,
+    };
+    return many[word] || `Deliveries per ${unit}`;
+  }
+
   function node(tag, className = "", text = "") {
     const item = document.createElement(tag);
     if (className) item.className = className;
@@ -374,7 +390,7 @@
     byId("ops-kpi-success").textContent = formatPercent(stats.successRate);
     byId("ops-kpi-success-note").textContent = stats.total ? `${stats.delivered.toLocaleString()} delivered` : "No deliveries in range";
     byId("ops-kpi-failures").textContent = stats.failed.toLocaleString();
-    byId("ops-kpi-failures-note").textContent = `${stats.failed.toLocaleString()} failed ${stats.failed === 1 ? "delivery" : "deliveries"}`;
+    byId("ops-kpi-failures-note").textContent = stats.failed === 1 ? "1 failed delivery" : `${stats.failed.toLocaleString()} failed deliveries`;
 
     const previous = state.metrics?.history_previous;
     renderDelta("ops-success-delta", stats.successRate, previous?.successRate, true);
@@ -518,7 +534,7 @@
     const axisTitle = document.createElementNS(SVG_NS, "text");
     axisTitle.setAttribute("x", padding.left); axisTitle.setAttribute("y", 18);
     axisTitle.setAttribute("text-anchor", "start"); axisTitle.setAttribute("class", "ops-chart-axis-title");
-    axisTitle.textContent = `Deliveries per ${unit}`;
+    axisTitle.textContent = deliveriesPerTitle(unit);
     svg.append(axisTitle);
     if (!peak) {
       const emptyNote = document.createElementNS(SVG_NS, "text");
@@ -729,7 +745,7 @@
     for (const item of currentHealth(attempts)) {
       const row = node("div", "ops-health-row");
       const visual = node("span", "ops-health-icon"); visual.append(svgIcon(item.icon));
-      const copy = node("div", "ops-health-copy"); copy.append(node("strong", "", item.name), node("small", "", item.detail));
+      const copy = node("div", "ops-health-copy"); const detail = node("small"); detail.append(...uiDetailParts(item.detail)); copy.append(node("strong", "", item.name), detail);
       const status = node("span", `ops-health-status ${item.status}`, item.status === "healthy" ? "Healthy" : item.status === "error" ? "Error" : item.status === "unknown" ? "Checking" : "Warning");
       status.prepend(node("i", "ops-health-dot"));
       row.append(visual, copy, status);
