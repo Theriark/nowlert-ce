@@ -26,7 +26,7 @@ def test_management_navigation_places_tools_inside_their_parent_pages():
     assert "function embedAccountApiTokens()" in script
     assert 'container.id = "account-api-tokens";' in script
     assert 'accountGrid.after(container);' in script
-    assert 'prepareEmbeddedToolbar(toolbar, "API tokens");' in script
+    assert 'prepareEmbeddedToolbar(toolbar, "Event API tokens");' in script
     assert 'if (view === "tokens") view = "account";' in script
 
     assert "function embedBackupDataTools()" in script
