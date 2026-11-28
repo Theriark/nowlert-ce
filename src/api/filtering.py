@@ -382,6 +382,8 @@ class PlatformAPI(BasePlatformAPI):
 
         next_settings = data.get("settings", destination.settings)
         normalized_settings = normalize_output_settings(next_type, next_settings)
+        if next_type == "webhook" and "secret" in data:
+            self._validate_webhook_secret(data.get("secret"))
         if (
             next_type == "email"
             and normalized_settings.get("username")

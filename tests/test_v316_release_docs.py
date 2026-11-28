@@ -115,7 +115,7 @@ def test_v316_documentation_validator_tracks_current_release():
     assert 'ROOT / "docs" / "releases" / "v3.1.6.md"' in validator
     assert 'ROOT / "docs" / "releases" / "validation" / "v3.1.6-qa-checklist.md"' in validator
     assert "stable-v3.1.6-F4C542" in validator
-    assert 'VERSION = "3.1.6"' in validator
+    assert 'VERSION = "27.0.0"' in validator
     assert "promote-production-reference.yml" not in validator
 
 
