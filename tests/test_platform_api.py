@@ -979,8 +979,11 @@ def test_destination_owner_username_is_stable_for_shared_viewers(platform_api):
     assert shared["owner_user_id"] == owner.id
     assert shared["owner_username"] == "owner-user"
     assert denied_update.status == 403
-    assert shared_test.status == 200
-    assert shared_test.payload["result"]["success"] is True
+    # Sharing lets other users select the destination, not send tests to it.
+    assert shared_test.status == 403
+    assert shared_test.payload["error"] == (
+        "Only the destination owner or an administrator can send a test."
+    )
 
 
 def test_destination_owner_mutates_while_admin_is_view_only_and_can_test(platform_api):
@@ -1133,6 +1136,13 @@ def test_destination_secrets_are_write_only_and_shared_use_keeps_owner_secret(pl
         "POST",
         f"/api/v2/destinations/{destination['id']}/test",
         {"event": event()},
+        owner_headers,
+    )
+    denied_test = call(
+        platform_api,
+        "POST",
+        f"/api/v2/destinations/{destination['id']}/test",
+        {"event": event()},
         another_headers,
     )
     denied_update = call(
@@ -1154,6 +1164,7 @@ def test_destination_secrets_are_write_only_and_shared_use_keeps_owner_secret(pl
     assert "example.invalid" not in encoded
     assert visible.payload["destinations"][0]["secret_configured"] is True
     assert delivered.payload["result"]["success"] is True
+    assert denied_test.status == 403
     assert denied_update.status == 403
     assert owner_update.status == 200
 

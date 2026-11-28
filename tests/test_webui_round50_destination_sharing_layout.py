@@ -26,7 +26,7 @@ def test_destination_owner_control_uses_authoritative_ownership_and_shared_viewe
     assert "const editable = ownResource(item);" in render
     assert 'className: "badge destination-view-only-badge"' in render
     assert 'text: "View only"' in render
-    assert "const canTest = editable || isAdmin() || item.shared;" in render
+    assert "const canTest = editable || isAdmin();" in render
 
     share_start = consistency.index("function syncDestinationSharingButton(button)")
     share_end = consistency.index("function readOnlyStatus(", share_start)

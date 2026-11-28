@@ -62,6 +62,19 @@ class PlatformAPI(AcceptancePlatformAPI):
         return super()._user_resource(method, payload, actor, user_id, action)
 
     def _destination_resource(self, method, payload, actor, destination_id, action):
+        # A test delivery really sends to the destination. Sharing lets other
+        # users select a destination, not send tests through someone else's.
+        if (
+            action == "test"
+            and not actor.is_admin
+            and not self.yaml_resource_authority
+        ):
+            row = self.destination_access.destination_row(destination_id)
+            if str(row["owner_user_id"]) != actor.user_id:
+                raise PermissionError(
+                    "Only the destination owner or an administrator can send a test."
+                )
+
         if (
             method == "DELETE"
             and action is None

@@ -29,7 +29,7 @@ theriark/nowlert-ce:3.1.6
 The next version, v27.0.0, is in release-candidate testing (`v27.0.0-rc.N`
 pre-release tags in the source repository). Release candidates are
 not stable releases; use the `3.1.6` tag above for a stable deployment.
-Development builds still report version 3.1.6 until v27.0.0 is released.
+Development builds and release candidates report version 27.0.0.
 
 ## v3.1.6 highlights
 
@@ -85,9 +85,12 @@ notifications to.
 
 ## Quick start
 
-These steps install the stable `3.1.6` image (the default of the supplied
-Compose file). Release candidates of v27.0.0 are GitHub pre-release tags of
-the source repository and have no Docker Hub tag.
+The supplied `.env.example` and Compose file name the v27.0.0 image
+(`theriark/nowlert-ce:27.0.0`), which is published only when v27.0.0 is
+released. Until then, set `NOWLERT_IMAGE=theriark/nowlert-ce:3.1.6` in `.env`
+before starting to install the stable `3.1.6` image. Release candidates of
+v27.0.0 are GitHub pre-release tags of the source repository and have no Docker
+Hub tag.
 
 ```bash
 git clone https://github.com/Theriark/nowlert-ce.git

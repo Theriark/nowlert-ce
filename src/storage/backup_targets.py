@@ -199,7 +199,8 @@ class BackupTargetStore:
                 SET name = ?, name_normalized = ?, target_type = ?, host = ?,
                     remote_path = ?, share_name = ?, local_path = ?, username = ?,
                     domain = ?, secret_id = ?, mount_options = ?, enabled = ?,
-                    mounted_at = NULL, last_test_outcome = NULL, last_error = NULL,
+                    mounted_at = NULL, last_test_at = NULL, last_test_outcome = NULL,
+                    last_error = NULL,
                     updated_at = ?
                 WHERE id = ?
                 """,

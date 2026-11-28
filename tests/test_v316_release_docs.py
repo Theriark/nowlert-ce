@@ -1,4 +1,4 @@
-"""Current Nowlert CE v3.1.6 release/documentation contract."""
+"""Stable v3.1.6 release records and the 27.0.0 application identity."""
 
 from pathlib import Path
 
@@ -35,7 +35,7 @@ CURRENT_GUIDES = (
 
 
 def test_v316_release_identity_is_consistent():
-    assert VERSION == "3.1.6"
+    assert VERSION == "27.0.0"
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     dockerhub = (ROOT / "DOCKERHUB_README.md").read_text(encoding="utf-8")
     environment = (ROOT / ".env.example").read_text(encoding="utf-8")
@@ -46,8 +46,8 @@ def test_v316_release_identity_is_consistent():
     assert "**Current Stable Release** | **v3.1.6**" in readme
     assert "current stable release is **v3.1.6**" in dockerhub.casefold()
     assert "theriark/nowlert-ce:3.1.6" in dockerhub
-    assert "NOWLERT_IMAGE=theriark/nowlert-ce:3.1.6" in environment
-    assert "${NOWLERT_IMAGE:-theriark/nowlert-ce:3.1.6}" in compose
+    assert "NOWLERT_IMAGE=theriark/nowlert-ce:27.0.0" in environment
+    assert "${NOWLERT_IMAGE:-theriark/nowlert-ce:27.0.0}" in compose
     assert release.startswith("# Nowlert CE v3.1.6 release notes")
     assert checklist.startswith("# Nowlert CE v3.1.6 QA checklist")
 
@@ -115,7 +115,7 @@ def test_v316_documentation_validator_tracks_current_release():
     assert 'ROOT / "docs" / "releases" / "v3.1.6.md"' in validator
     assert 'ROOT / "docs" / "releases" / "validation" / "v3.1.6-qa-checklist.md"' in validator
     assert "stable-v3.1.6-F4C542" in validator
-    assert 'VERSION = "3.1.6"' in validator
+    assert 'VERSION = "27.0.0"' in validator
     assert "promote-production-reference.yml" not in validator
 
 

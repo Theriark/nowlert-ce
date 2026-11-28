@@ -8,7 +8,7 @@ This guide describes the current development interface, which already differs
 from the released v3.1.6 WebUI; see
 [development after v3.1.6](releases/post-v3.1.6-development.md) for the list of
 changes. v3.1.6 is the last stable release; the development build is the
-v27.0.0 release-candidate line and still reports application version 3.1.6.
+v27.0.0 release-candidate line and reports application version 27.0.0.
 The screenshots under `images/v27.0.0-rc.1/` were captured from the Development
 deployment of the `development` branch with the crew's Development test accounts
 and test data: most on 21 to 23 October 2026, the Settings, the two Security and

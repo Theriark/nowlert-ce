@@ -360,7 +360,9 @@ function backupIconAction(action, id, label, icon, style = "secondary", iconOnly
 }
 
 function backupTargetLastTest(item) {
-  if (!item.last_test_at) {
+  // Editing a destination clears its outcome; an old time without an outcome
+  // describes the previous configuration, not this one.
+  if (!item.last_test_at || !item.last_test_outcome) {
     return element("span", { className: "backup-test-result muted", text: "Never" });
   }
   const children = [];
@@ -2033,9 +2035,11 @@ function renderIntegrationSettings() {
         ]),
         failure ? badge("Needs repair", "danger") : badge("Database", "success"),
       ]),
-      element("div", { className: "resource-actions" }, [
-        actionButton("Edit", "edit-integration-settings", source),
-      ]),
+      isAdmin()
+        ? element("div", { className: "resource-actions" }, [
+          actionButton("Edit", "edit-integration-settings", source),
+        ])
+        : element("small", { className: "settings-card-admin-note", text: "Only an administrator can change this." }),
     ]));
   }
 }
@@ -2302,7 +2306,8 @@ function renderDestinations() {
   for (const placeholder of container.querySelectorAll(":scope > .empty-state")) placeholder.remove();
   for (const item of state.destinations) {
     const editable = ownResource(item);
-    const canTest = editable || isAdmin() || item.shared;
+    // Only the owner or an administrator may send a test (the API refuses others).
+    const canTest = editable || isAdmin();
     const assignedSources = destinationRouteSourcesForItem(
       item,
       state.routes || [],
@@ -5206,7 +5211,10 @@ async function resourceAction(action, id) {
 
 async function changePassword(event) {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
+  const currentField = formElement.elements.namedItem("current_password");
+  if (currentField) currentField.setCustomValidity("");
   if (form.get("new_password") !== form.get("confirm_password")) {
     toast("New password confirmation does not match.", "error");
     return;
@@ -5218,7 +5226,15 @@ async function changePassword(event) {
     expireSession({ preserveCache: false });
     toast("Password changed. Sign in again.");
   } catch (error) {
-    toast(uiErrorMessage(error, "Password change failed."), "error");
+    const message = uiErrorMessage(error, "Password change failed.");
+    if (error instanceof APIError && error.code === "password_invalid" && currentField) {
+      // Show the reason on the field that caused it, not only in a toast.
+      currentField.setCustomValidity(message);
+      currentField.addEventListener("input", () => currentField.setCustomValidity(""), { once: true });
+      currentField.focus();
+      currentField.reportValidity();
+    }
+    toast(message, "error");
   }
 }
 

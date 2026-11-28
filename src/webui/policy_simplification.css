@@ -237,3 +237,14 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Non-administrators see regional settings read-only (no Save button). */
+#preferences-form [hidden] {
+  display: none !important;
+}
+
+#preferences-form .regional-settings-admin-note,
+.settings-resource-card .settings-card-admin-note {
+  margin: 0;
+  color: var(--muted, #667085);
+}
