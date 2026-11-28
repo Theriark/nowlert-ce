@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
-// THE-1676: the assigned-integration icon row of a destination card is built from
+// The assigned-integration icon row of a destination card is built from
 // state.routes, but the card reconciliation signature only covered the destination
 // item, its test result and the viewer's permissions. A card first painted while
 // /api/v2/routes had not answered (or had failed, as in the admin-only 500 burst

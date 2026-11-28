@@ -23,7 +23,7 @@ never as "verified".
   linked rasters at that date.
 - 21 October 2026: the Development WebUI set under
   `images/v27.0.0-rc.1/` was added, with its own folder index.
-- 22 October 2026: the NCE-109 re-check (below) confirmed the 15 October
+- 22 October 2026: the re-check below confirmed the 15 October
   withdrawals on `development` and `stage`, and an independent review of the
   whole inventory (105 of the 108 rasters opened at readable size) found three
   further exposures in captures embedded by the README and guides. Those
@@ -36,7 +36,7 @@ never as "verified".
   being added. The Edit mailbox capture shows the fixture address
   `qa@ce-qa-fixture.invalid` and the loopback host `127.0.0.1`; the list
   behind the dialog is hidden by the backdrop.
-- 23 October 2026 (Jira TOPS-351, P1 privacy re-check of the packaged
+- 23 October 2026 (P1 privacy re-check of the packaged
   Development set): all 31 rasters under `images/v27.0.0-rc.1/` were
   downloaded from `development` at commit `82c8470a` and opened at full size.
   Thirty show only the crew test accounts, test fixture values, the typed
@@ -62,7 +62,7 @@ never as "verified".
   Orchestra card of 22 October. The rows below that previously read
   "unreviewed" now record this inspection; the other rows keep their earlier
   record date, but each was also opened on 23 October 2026.
-- 23 October 2026, independent test of that change (Jira TOPS-356): the Audit
+- 23 October 2026, independent test of that change: the Audit
   log capture of the Development set showed, in its audit rows, the user name
   of the Development deployment's administrator account together with
   truncated internal record identifiers. That account is not one of the
@@ -70,7 +70,7 @@ never as "verified".
   shown, and nothing in the repository establishes it as a test account, so
   the capture was withdrawn rather than described as one. The statement above
   about the other thirty captures of the folder no longer covers it. The Audit log page is described in writing instead.
-- 23 October 2026 (Jira TOPS-374): the three token captures that the crew
+- 23 October 2026: the three token captures that the crew
   cannot open were unlinked from current documentation. The hardware Redfish
   guide, the Portainer guide and the infrastructure tutorials index now
   describe the **Issue Event API token** dialog and the token list in writing
@@ -78,7 +78,7 @@ never as "verified".
   references files nobody in the crew has inspected. The three files stay in
   the checkout as retained rows until a person opens them; they must not be
   embedded again before that inspection is recorded.
-- 24 October 2026 (Jira TOPS-422 and TOPS-439, review of pull request 635):
+- 24 October 2026 (review of pull request 635):
   that day the Preview of the README (six captures) and of the Docker Hub
   README (three captures) had been switched to desktop captures of the
   `images/v27.0.0-rc.1/` set. The independent code review found that they
@@ -95,7 +95,7 @@ never as "verified".
   text. The other captures of the set remain embedded by the WebUI guide only.
   No image was edited, masked or recaptured, and the policy question below was
   still open that day.
-- 25 October 2026 (Jira TOPS-422 and TOPS-509, product owner correction):
+- 25 October 2026 (product owner correction):
   Nowlert CE is a desktop web application, and the phone-width captures had
   been chosen only because they hide the test-data labels. The product owner
   decided that generic test labels are no reason to replace the desktop
@@ -112,7 +112,7 @@ never as "verified".
   because no record shows how each name was chosen. No image was edited,
   masked or recaptured. Credentials, tokens, private addresses and personal
   data stay excluded under the rules of this page.
-- 30 October 2026 (Jira TOPS-659, cycle 3 correction after the rejected Stage
+- 30 October 2026 (cycle 3 correction after the rejected Stage
   QA of 30 October): the Stage QA finding named three remaining gap classes in
   the tutorial captures, mailbox labels and search text, private addresses in
   configuration and delivery messages, and Home Assistant device and sidebar
@@ -133,7 +133,7 @@ never as "verified".
   copies are re-encoded with IHDR, IDAT and IEND chunks only. Each copy was
   opened at full size after masking and is listed below with the suffix
   `-sanitized`; the withdrawn paths remain withdrawn.
-- 31 October 2026 (Jira TOPS-677, cycle 3): three Development captures under
+- 31 October 2026 (cycle 3): three Development captures under
   `images/v27.0.0-rc.1/` (Settings, Security as administrator and Security as
   regular user) no longer matched the application and were replaced by new
   captures of the Development deployment at commit `179cbc02`, taken with the
@@ -148,7 +148,7 @@ never as "verified".
   (an empty box) inside the generated payload text of the Preview dialog;
   that is a capture-browser font limit recorded in the folder index, not a
   privacy finding. The row counts are unchanged (115 retained, 95 linked).
-- 31 October 2026 (Jira TOPS-682, cycle 3): the Filtering capture under
+- 31 October 2026 (cycle 3): the Filtering capture under
   `images/v27.0.0-rc.1/` was replaced by a capture of the Development
   deployment at commit `0c14583c`, taken with the crew administrator account
   at 1440 × 900 px and opened at full size before being added, after the
@@ -163,7 +163,7 @@ never as "verified".
   Flow and the 768 px sign-in page) were compared with the live deployment
   the same day and kept unchanged; see the folder index. The row counts are
   unchanged (115 retained, 95 linked).
-- 2 November 2026 (Jira NCE-109, founder instruction after the QA return of
+- 2 November 2026 (founder instruction after the QA return of
   27 October 2026): removing or emptying an image breaks the tutorials and is
   not what QA asked for; QA asked for private values to be hidden. The crew
   now has a redaction tool that paints solid black rectangles over the given
@@ -194,7 +194,7 @@ never as "verified".
   three v3.1.0 captures stay historical (listed in `docs/README.md`, never in
   the README or the WebUI guide) and the Zabbix-filtered Delivery history
   capture stays unembedded behind its Synology replacement.
-- 2 November 2026, independent review of that change (Jira NCE-109): the
+- 2 November 2026, independent review of that change: the
   reviewers found the retired product name, its lab name or its bot name
   still readable in six of the restored cards and captures (the two UniFi
   Discord cards, the QNAP Teams card, the v1.9.6 Teams Xen Orchestra card,
@@ -204,7 +204,7 @@ never as "verified".
   opened again at full size; the v3.1.0 Teams Xen Orchestra card was reopened
   at full size and needed no further mask. The rows below record the added
   masks.
-- 2 November 2026, cycle 3 (Jira NCE-109): the independent privacy check of
+- 2 November 2026, cycle 3: the independent privacy check of
   the 19 restored captures found no readable private value; it noted one
   trailing title glyph beside the mask of the v3.1.0 Discord Xen Orchestra
   card, which is now hidden as well. The follow-up review asked for the open
@@ -263,7 +263,7 @@ embedded files):
 ### Restored with masks on 2 November 2026
 
 The eighteen other captures that had been withdrawn between 15 and 23 October
-2026 were put back at their original paths on 2 November 2026 (Jira NCE-109),
+2026 were put back at their original paths on 2 November 2026,
 restored from Git history byte for byte and then masked with solid black
 rectangles where a private value remained; the exposure that had caused each
 withdrawal is hidden. They are retained rows again, listed in the inventory
@@ -298,9 +298,9 @@ observations, not new acceptance or release claims. The v3.1.0 preview set is
 explicitly historical; current written steps describe development. A filename
 containing `redacted` is never proof of privacy.
 
-## Re-check of 22 October 2026 (NCE-109)
+## Re-check of 22 October 2026
 
-A report of 22 October 2026 (Jira NCE-109) stated that the mailbox list, the
+A report of 22 October 2026 stated that the mailbox list, the
 No-IP activity, the Portainer TLS Compose editor, the Dell delivery message and
 the Home Assistant captures labelled redacted still exposed a mailbox label,
 private addresses or a device label. Those are five of the thirteen captures
@@ -345,7 +345,7 @@ remaining Home Assistant delivery capture show no readable private label.
 The items below were raised by that review as lower-severity or judgement
 calls. All of them are now decided; each item says how.
 
-- Decided on 27 November 2026 by the product owner (Jira NCE-95): the
+- Decided on 27 November 2026 by the product owner: the
   historical capture `images/v3.1.0-routing-flow.png` stays in the v3.1.0
   record. The Zabbix route filter subtitle with its host-name fragment and the
   two blurred destination names are now hidden by solid black boxes. The
@@ -354,14 +354,14 @@ calls. All of them are now decided; each item says how.
 - Decided on 2 November 2026: the delivery capture
   `images/hardware-setup/xen-orchestra-delivery.png` (embedded by the Xen
   Orchestra to Discord guide) showed a real backup job label in the Message
-  body, which QA returned on 27 October 2026 (Jira NCE-109). The label is now
+  body, which QA returned on 27 October 2026. The label is now
   masked; the capture stays embedded.
-- Decided on 2 November 2026 (Jira NCE-109, cycle 3): the old card
+- Decided on 2 November 2026 (cycle 3): the old card
   `images/discord-xen-orchestra-v1.9.6.png` (not embedded) showed a bot name,
   the backup job label in the title and the footer with the retired product
   name and an organisation fragment. Those three are now hidden by solid black
   boxes like the sibling cards; the card stays as unembedded history.
-- Decided on 27 November 2026 by the product owner (Jira NCE-95): in
+- Decided on 27 November 2026 by the product owner: in
   `images/v2.5.2-settings.png`, `images/zabbix-setup/action-operations.png`,
   `images/zabbix-setup/media-enabled.png` and
   `images/zabbix-setup/recipient-media.png` every blurred area (the top-left
@@ -369,7 +369,7 @@ calls. All of them are now decided; each item says how.
   the action name, the users and e-mail recipient fields, and the list of
   actions using the media type) is now covered by a solid black box. The
   captures stay where they are used.
-- Decided on 25 October 2026 by the product owner (Jira TOPS-422): the
+- Decided on 25 October 2026 by the product owner: the
   `images/v27.0.0-rc.1/` set (embedded by the WebUI guide; since that day the
   README and Docker Hub README Preview embed its 1440 px Dashboard, Routing
   Flow, Destinations and sign-in captures). Its signed-in captures show the
@@ -387,7 +387,7 @@ calls. All of them are now decided; each item says how.
   `tools/validate_current_documentation.py` and
   `tests/test_current_documentation_contract.py` enforce the list of captures
   the Preview may use.
-- Decided on 27 November 2026 by the product owner (Jira NCE-95): the token
+- Decided on 27 November 2026 by the product owner: the token
   captures `images/hardware-setup/nowlert-token-list.png`,
   `images/hardware-setup/nowlert-token-scope.png` and
   `images/portainer-setup/token-scope.png` were opened at full size. They show
@@ -395,7 +395,7 @@ calls. All of them are now decided; each item says how.
   no token value, private address or personal data is visible. They are linked
   again from the hardware Redfish guide, the Portainer guide and the
   infrastructure tutorials index.
-- Decided on 27 November 2026 by the product owner (Jira NCE-95): the
+- Decided on 27 November 2026 by the product owner: the
   inspection dates in the Record column are accepted as recorded. A capture is
   re-opened and its date updated when the capture, or the page it shows,
   changes. Wording: the guides call the Security page section "API tokens"

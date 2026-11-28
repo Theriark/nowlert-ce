@@ -72,7 +72,7 @@ table.filtering-table .filtering-table-actions { flex-wrap: wrap !important; jus
 }
 .ops-kpi-card .ops-kpi-copy > small, .ops-config-item small { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
 .ops-kpi-card { grid-template-columns: 42px minmax(0, 1fr) !important; row-gap: 6px; }
-/* NCE-127: at 1280 wide the "vs. previous window" badge was wider than the card's
+/* At 1280 wide the "vs. previous window" badge was wider than the card's
    text column (120 px in a 105 px column) and the card (overflow: hidden) cut it
    to "windo". Cap the badge at the column width and let its note wrap instead of
    overflowing. The 10 px left margin an earlier layer gives the badge was meant
@@ -107,7 +107,7 @@ dialog:not(#destination-dialog) form > .modal-actions {
   margin-bottom: -22.4px !important; padding-bottom: 22.4px !important;
 }
 
-/* NCE-127: the Filtering dialog (New filter, Configure filter, View filter) is
+/* The Filtering dialog (New filter, Configure filter, View filter) is
    not a form; its steps are plain sections, so the rule above never reached it
    and the whole dialog scrolled with Close at the end of the content. The open
    dialog is a column: the heading is pinned, the visible step is the only
@@ -154,7 +154,7 @@ dialog:not(#destination-dialog) form > .modal-actions {
   .ops-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 
-/* NCE-127 phone menu (760 px and narrower). The sidebar rules for the owl button, menu icons and edition labels sit only in
+/* Phone menu (760 px and narrower). The sidebar rules for the owl button, menu icons and edition labels sit only in
    desktop media queries, so on a phone the browser defaults showed: a grey outset button around the owl, icons filled
    black, both "COMMUNITY EDITION" and "CE", and a 98% background that let the page show through. */
 @media (max-width: 760px) {
@@ -162,4 +162,67 @@ dialog:not(#destination-dialog) form > .modal-actions {
   .sidebar > .brand.sidebar-brand > .sidebar-owl-button { background: transparent !important; border: 0 !important; padding: 0 !important; border-radius: 12px !important; box-shadow: none !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; cursor: pointer; }
   .sidebar .nav-icon svg { fill: none !important; stroke: currentColor !important; stroke-linecap: round !important; stroke-linejoin: round !important; stroke-width: 1.8 !important; width: 22px !important; height: 22px !important; }
   .sidebar > .brand.sidebar-brand > .sidebar-edition-collapsed { display: none !important; }
+}
+
+/* A sidebar label that does not fit on one line (for example the bold
+   "Delivery history" of the selected item with a wider system font) wraps
+   between words instead of being cut off. Labels that fit stay on one line. */
+.app-shell:not(.sidebar-collapsed) .sidebar .nav-item .nav-label {
+  line-height: 1.15 !important;
+  overflow-wrap: normal !important;
+  white-space: normal !important;
+}
+
+/* Backup destinations at 900px and narrower: one card per destination instead
+   of a seven-column table, so the backup path no longer runs under the pinned
+   Actions column and Status and Last test stay on screen. */
+@media (max-width: 900px) {
+  #view-backups#view-backups table.backup-destination-table {
+    min-width: 0 !important;
+    table-layout: auto !important;
+    width: 100% !important;
+  }
+  #view-backups#view-backups table.backup-destination-table thead { display: none !important; }
+  #view-backups#view-backups table.backup-destination-table :is(tbody, tr, td) { display: block !important; }
+  #view-backups#view-backups table.backup-destination-table tr {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+    display: grid !important;
+    gap: 10px 16px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    padding: 12px 4px !important;
+  }
+  #view-backups#view-backups table.backup-destination-table td {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+    width: auto !important;
+  }
+  #view-backups#view-backups table.backup-destination-table td[colspan] { grid-column: 1 / -1 !important; }
+  #view-backups#view-backups table.backup-destination-table td:nth-child(2) { order: -1; }
+  #view-backups#view-backups table.backup-destination-table td:nth-child(2),
+  #view-backups#view-backups table.backup-destination-table td:nth-child(4),
+  #view-backups#view-backups table.backup-destination-table td:nth-child(7) { grid-column: 1 / -1 !important; }
+  #view-backups#view-backups table.backup-destination-table td:nth-child(4) code {
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+  }
+  #view-backups#view-backups table.backup-destination-table td:not([colspan])::before {
+    color: #95a0ac;
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  #view-backups#view-backups table.backup-destination-table td:nth-child(1):not([colspan])::before { content: "Type"; }
+  #view-backups#view-backups table.backup-destination-table td:nth-child(2)::before { content: "Name"; }
+  #view-backups#view-backups table.backup-destination-table td:nth-child(3)::before { content: "Host"; }
+  #view-backups#view-backups table.backup-destination-table td:nth-child(4)::before { content: "Backup path"; }
+  #view-backups#view-backups table.backup-destination-table td:nth-child(5)::before { content: "Status"; }
+  #view-backups#view-backups table.backup-destination-table td:nth-child(6)::before { content: "Last test"; }
+  #view-backups#view-backups table.backup-destination-table td:nth-child(7)::before { content: "Actions"; }
 }

@@ -345,7 +345,7 @@ The bundled same-origin WebUI provides:
 - Filtering;
 - Security → Event API tokens (from the account menu: select your name at the bottom of the sidebar);
 - Delivery history;
-- Audit Log;
+- Audit log;
 - Users;
 - Backups and Data tools;
 - integration settings;

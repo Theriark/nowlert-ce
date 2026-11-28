@@ -153,7 +153,7 @@ def _lifecycle(status: object, severity: object, *, state: object = "") -> tuple
 
 
 def is_xo_backup_report(notification) -> bool:
-    """XO cards are backup-report layouts; other XO events (e.g. a Warning preview) use the generic card (NCE-133)."""
+    """XO cards are backup-report layouts; other XO events (e.g. a Warning preview) use the generic card."""
 
     return (
         str(getattr(notification, "category", "") or "").strip().casefold() == "backup"

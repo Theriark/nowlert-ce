@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
-// NCE-128 (THE-1962): Restart Nowlert is one admin-only item in the profile
+// Restart Nowlert is one admin-only item in the profile
 // (user icon) menu. It opens the existing restart confirmation dialog through
 // the app.js click dispatcher, closes the menu on selection, and the Security
 // page carries no restart control of its own, visible or hidden.

@@ -68,7 +68,7 @@ def test_backups_page_matches_management_dashboard_reference_structure():
 def test_sidebar_expansion_avoids_non_interpolable_grid_layout_transition():
     styles = (ROOT / "src" / "webui" / "qa_patch.css").read_text(encoding="utf-8")
     start = styles.index("/* 2026-09-18 sidebar reference lock.")
-    end = styles.index("/* NCE-35 final unified pagination row */", start)
+    end = styles.index("/* Final unified pagination row */", start)
     sidebar = styles[start:end]
 
     assert "grid-template-columns 240ms" not in sidebar

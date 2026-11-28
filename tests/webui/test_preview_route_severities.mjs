@@ -51,7 +51,7 @@ test('an XO-only destination offers the default severities and previews the XO r
   }
 });
 
-test('XO stays in the preview whatever severity other routes put first (THE-903)', () => {
+test('XO stays in the preview whatever severity other routes put first', () => {
   const api = build([zabbix, grafana, xo]);
   const severities = [...api.previewAvailableSeverities()];
   // Only declared severities are offered; the XO defaults do not add "info".

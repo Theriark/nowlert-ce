@@ -90,10 +90,10 @@ def validate_public_https_url(value, field: str) -> str:
 
 
 URL_SECRET_OUTPUT_TYPES = {
-    "discord": ("Discord webhook URL", "https://discord.com/api/webhooks/..."),
-    "teams": ("Teams webhook URL", "https://example.webhook.office.com/..."),
-    "slack": ("Slack webhook URL", "https://hooks.slack.com/services/..."),
-    "webhook": ("Webhook URL", "https://hooks.example.com/nowlert"),
+    "discord": ("Discord webhook URL", "for example one that starts with https://discord.com/api/webhooks/"),
+    "teams": ("Teams webhook URL", "for example the HTTP POST URL of the Teams workflow"),
+    "slack": ("Slack webhook URL", "for example one that starts with https://hooks.slack.com/services/"),
+    "webhook": ("Webhook URL", "for example https://hooks.example.com/nowlert"),
 }
 
 
@@ -138,7 +138,7 @@ def validate_destination_secret_url(output_type, secret) -> None:
     if not valid:
         raise ValueError(
             f"{label} must be a complete https:// address without a user name "
-            f"or password, for example {example}."
+            f"or password, {example}."
         )
 
 

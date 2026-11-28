@@ -241,7 +241,7 @@
     dialog?.remove();
   }
 
-  // NCE-128: only "Check for updates" moves into the Updates toolbar. Restart
+  // Only "Check for updates" moves into the Updates toolbar. Restart
   // Nowlert lives in the profile menu (index.html) and is never parked in the
   // Security toolbar, which the unified page header hides.
   function movePlatformActionsIntoContext() {

@@ -25,7 +25,7 @@ def test_round11_restores_requested_view_before_authenticated_shell_is_visible()
 def test_round11_sidebar_is_larger_and_collapses_with_real_transitions():
     styles = (ROOT / "src" / "webui" / "qa_patch.css").read_text(encoding="utf-8")
     start = styles.index("/* 2026-09-18 sidebar reference lock.")
-    end = styles.index("/* NCE-35 final unified pagination row */", start)
+    end = styles.index("/* Final unified pagination row */", start)
     sidebar = styles[start:end]
 
     assert "font-size: 14px !important;" in sidebar

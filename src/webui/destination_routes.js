@@ -64,6 +64,17 @@ function destinationRouteSourcesForItem(item, routes, canonicalizeSource = (sour
   return [...sources.values()];
 }
 
+// Each account owns its own copy of the built-in routes, and later copies get
+// numbered names ("Checkmk HTTP (2)"). Name the owner so a user can tell their
+// own copy from another account's.
+function routeOwnerSuffix(route, user) {
+  const ownerId = String(route?.owner_user_id || "");
+  if (!ownerId) return "";
+  if (user && ownerId === String(user.id || "")) return " · Owner: you";
+  const name = String(route?.owner_username || "").trim();
+  return name ? ` · Owner: ${name}` : "";
+}
+
 function destinationRouteSummaryModel(routes, selectedIds, limit = DESTINATION_ROUTE_SUMMARY_PILL_LIMIT) {
   const allRoutes = Array.isArray(routes) ? routes : [];
   const selectedRoutes = destinationRouteSelectedItems(allRoutes, selectedIds);
@@ -86,6 +97,7 @@ if (typeof module !== "undefined" && module.exports) {
     destinationRouteSelectionForItem,
     destinationRouteSourcesForItem,
     destinationRouteSummaryModel,
+    routeOwnerSuffix,
   };
 }
 
@@ -678,7 +690,7 @@ if (typeof module !== "undefined" && module.exports) {
     options.replaceChildren();
     if (!routes.length) {
       const emptyMessage = !(state.actualRoutes || state.routes)?.length
-        ? "No routes available. Add routes in Routing Flow, then assign them here."
+        ? "No routes are available to this account. Every account gets the built-in routes when it is created; ask an administrator if they are missing."
         : "No matching routes.";
       options.append(element("div", {
         className: "route-assignment-empty",
@@ -705,7 +717,7 @@ if (typeof module !== "undefined" && module.exports) {
         leading,
         element("span", { className: "route-assignment-option-copy" }, [
           element("strong", { text: route.name }),
-          element("small", { text: `${descriptor.integration} · ${descriptor.input} · ${capitalize(route.priority_name || "normal")}` }),
+          element("small", { text: `${descriptor.integration} · ${descriptor.input} · ${capitalize(route.priority_name || "normal")}${routeOwnerSuffix(route, state.user)}` }),
         ]),
         status,
       ]);

@@ -270,3 +270,69 @@ def test_wrong_current_password_names_the_current_password(platform_api):
         "code": "password_invalid",
         "field": "current_password",
     }
+
+
+class _FakeIntegrationSync:
+    def __init__(self):
+        self.updates = []
+
+    def integration_settings(self):
+        return {
+            "settings": {"xo": {"show_ids": False}, "zabbix": {"show_ids": False}},
+            "errors": [],
+        }
+
+    def update_integration_settings(self, actor, key, data):
+        self.updates.append((key, data))
+        return data
+
+
+@pytest.mark.parametrize("source", ["xo", "zabbix"])
+def test_xo_and_zabbix_ids_cannot_be_turned_on(source):
+    from types import SimpleNamespace
+
+    from api.platform import PlatformAPI
+    from storage.ownership import Actor
+
+    sync = _FakeIntegrationSync()
+    api = SimpleNamespace(
+        configuration_sync=sync,
+        _require_admin=PlatformAPI._require_admin,
+        _object=PlatformAPI._object,
+    )
+    admin = Actor("admin-id", "admin")
+
+    with pytest.raises(ValueError, match="show_ids can only be false"):
+        PlatformAPI._integration_settings_resource(
+            api, "PUT", {"show_ids": True}, admin, source
+        )
+    accepted = PlatformAPI._integration_settings_resource(
+        api, "PUT", {"show_ids": False}, admin, source
+    )
+
+    assert accepted.status == 200
+    assert sync.updates == [(source, {"show_ids": False})]
+
+
+@pytest.mark.parametrize("output_type", ["discord", "teams", "slack", "webhook"])
+def test_url_error_messages_end_with_one_full_stop(output_type):
+    from outputs.settings import validate_destination_secret_url
+
+    with pytest.raises(ValueError) as error:
+        validate_destination_secret_url(output_type, "not-a-url")
+
+    message = str(error.value)
+    assert message.endswith(".")
+    assert not message.endswith("..")
+    assert "..." not in message
+
+
+def test_routes_name_their_owner_for_the_route_picker(platform_api):
+    headers = login(platform_api)
+    created = call(platform_api, "POST", "/api/v2/routes", route("Owner named route"), headers)
+    assert created.status == 201
+
+    listed = call(platform_api, "GET", "/api/v2/routes", headers=headers)
+
+    mine = [item for item in listed.payload["actual_routes"] if item["name"] == "Owner named route"]
+    assert mine and mine[0]["owner_username"] == "administrator"

@@ -402,6 +402,11 @@ function applyAvatar(id, user) {
   const replacement = avatarElement(user, current.classList.contains("large"));
   replacement.id = id;
   current.replaceWith(replacement);
+  if (id === "account-avatar") {
+    // Offer Remove only when there is a picture to remove.
+    const remove = document.querySelector('[data-action="remove-avatar"]');
+    if (remove) remove.hidden = !(user && user.avatar_data);
+  }
 }
 
 class APIError extends Error {
@@ -415,12 +420,38 @@ class APIError extends Error {
         .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, "$1<redacted>@")
         .replace(/(https:\/\/(?:canary\.|ptb\.)?discord(?:app)?\.com\/api\/webhooks\/)[^\s/]+\/[^\s)\]}]+/gi, "$1<redacted>") : "";
     super(publicMessage || "Request failed");
-    this.publicMessage = publicMessage;
+    this.publicMessage = friendlyClientMessage(publicMessage);
     this.status = status;
     this.path = path;
     this.code = code;
     this.reference = reference;
   }
+}
+
+// A few server validation messages are short lower-case phrases; show them as
+// sentences that say what to do. Every other message is shown unchanged.
+const FRIENDLY_CLIENT_MESSAGES = [
+  [/^invalid credentials$/i, () => "The username or password is not correct. Check both and try again."],
+  [/^password must contain at least (\d+) characters$/i, (match) => `The password must contain at least ${match[1]} characters. Choose a longer password.`],
+  [/^username is already configured$/i, () => "That username is already in use. Choose another username."],
+  [/^(token|destination|secret|email group|email mailbox|backup target) name is already configured(?: for this owner)?$/i, (match) => `${{
+    token: "An Event API token",
+    destination: "A destination",
+    secret: "A secret",
+    "email group": "An Email Alerts group",
+    "email mailbox": "A mailbox",
+    "backup target": "A backup destination",
+  }[match[1].toLowerCase()]} with this name already exists. Choose another name.`],
+  [/^email rule name is already configured in this group$/i, () => "A rule with this name already exists in this group. Choose another name."],
+];
+
+function friendlyClientMessage(message) {
+  const text = typeof message === "string" ? message : "";
+  for (const [pattern, render] of FRIENDLY_CLIENT_MESSAGES) {
+    const match = text.match(pattern);
+    if (match) return render(match);
+  }
+  return text;
 }
 
 function uiErrorMessage(error, fallback = "The request could not be completed.") {
@@ -1619,12 +1650,15 @@ function navigate(view, historyMode = "push") {
   const targetHash = `#${view}`;
   const targetUrl = new URL(window.location.href);
   targetUrl.hash = targetHash;
+  // The Email Alerts tab belongs to that page only; drop it elsewhere.
+  if (view !== "email-alerts") targetUrl.searchParams.delete("emailTab");
+  const queryChanged = targetUrl.search !== window.location.search;
   if (
     historyMode === "replace"
-    || (historyMode === "none" && window.location.hash !== targetHash)
+    || (historyMode === "none" && (window.location.hash !== targetHash || queryChanged))
   ) {
     window.history.replaceState({ ...window.history.state, nowlertView: view }, "", targetUrl);
-  } else if (historyMode === "push" && window.location.hash !== targetHash) {
+  } else if (historyMode === "push" && (window.location.hash !== targetHash || queryChanged)) {
     window.history.pushState({ nowlertView: view }, "", targetUrl);
   }
   byId("app-shell").classList.remove("nav-open");
@@ -2302,7 +2336,7 @@ function renderDestinations() {
   // painted while the workspace was still loading (or after a failed first
   // /destinations request) has to go before the cards are placed; otherwise it
   // survives between the cards and the admin private metadata cards and the
-  // stylesheet collapses the grid to one column (THE-1654).
+  // stylesheet collapses the grid to one column.
   for (const placeholder of container.querySelectorAll(":scope > .empty-state")) placeholder.remove();
   for (const item of state.destinations) {
     const editable = ownResource(item);
@@ -2404,7 +2438,7 @@ function renderDestinations() {
     ]);
     // The icon row above comes from state.routes, so the signature has to follow the
     // assigned sources too: a card painted before /routes answered (or after it
-    // failed) otherwise keeps an empty row through every later render (THE-1676).
+    // failed) otherwise keeps an empty row through every later render.
     const signature = JSON.stringify({
       item,
       testResult,
@@ -4845,7 +4879,8 @@ async function saveToken(event) {
 }
 
 function revealSecret(value, name) {
-  byId("secret-title").textContent = `${name} token`;
+  // Token names often already say "token"; show the name as given.
+  byId("secret-title").textContent = `Event API token: ${name}`;
   byId("secret-value").textContent = value;
   byId("secret-dialog").showModal();
 }
@@ -4875,14 +4910,19 @@ async function saveUser(event) {
   clearError("user-error");
   const form = byId("user-form");
   try {
+    let message;
     if (form.dataset.mode === "reset") {
       await request(`/users/${form.dataset.id}/password`, { method: "PUT", body: { password: byId("user-password").value } });
-      toast("Password reset and active sessions revoked.");
+      message = "Password reset and active sessions revoked.";
     } else {
-      await request("/users", { method: "POST", body: { username: byId("user-name").value.trim(), password: byId("user-password").value, role: byId("user-role").value } });
-      toast("User created.");
+      const username = byId("user-name").value.trim();
+      await request("/users", { method: "POST", body: { username, password: byId("user-password").value, role: byId("user-role").value } });
+      message = `User ${username} created.`;
     }
+    // Close the dialog first: a toast shown while it is open is placed inside
+    // it and disappears with it.
     byId("user-dialog").close();
+    toast(message);
     await loadWorkspace();
   } catch (error) {
     showError("user-error", error);

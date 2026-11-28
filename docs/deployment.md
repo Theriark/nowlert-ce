@@ -66,10 +66,19 @@ mounted directories.
 
 `NOWLERT_AVAILABLE_VERSION` is optional. Deployment automation can set it to
 the newest version it offers (for example `27.0.1`); `GET /api/v2/version`
-then reports it as `available`, and when it is newer than the running image
-**Settings → Updates** shows it as an available update. Leave it empty
-(the default) and the Updates card shows "Not advertised"; an administrator's
-browser still checks the GitHub releases page every 6 hours.
+then reports it as `available` and sets `update_available` when it is newer
+than the running image. The WebUI uses that value only until an
+administrator's browser checks the latest GitHub release of Nowlert CE, which
+it does about a quarter of a second after the page loads whenever its last
+check is more than 6 hours old, and again every 6 hours. A successful check
+replaces the advertised value: **Settings → Updates** then shows the GitHub
+release as **Available version** (and as an update when it is newer), and
+that browser keeps the result for 6 hours. If the check fails, the card says
+"Update status unavailable" and keeps the previous value. Regular users'
+browsers never check and do not see the Updates card. With the variable empty
+(the default), the card shows "Not advertised" only until the first check
+succeeds. To pin the advertised version, keep administrators' browsers from
+reaching `api.github.com`.
 
 Validate and start the production Compose definition:
 

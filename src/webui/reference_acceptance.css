@@ -830,7 +830,7 @@ button.reference-preview-route-more:focus-visible {
   width: 34px !important;
 }
 
-/* Security (NCE-128): Restart Nowlert is one admin-only item in the profile
+/* Security: Restart Nowlert is one admin-only item in the profile
    (user icon) menu, so the Security page carries no restart control in its
    header or body. The menu item draws the same inline glyph as the restart
    dialog button and reads as a service action. */

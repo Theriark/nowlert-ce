@@ -1,4 +1,4 @@
-"""THE-903: destination Preview must not fail for any catalogue source.
+"""Destination Preview must not fail for any catalogue source.
 
 The Preview dialog sends one Event API sample per assigned route.  This sweep
 parses a sample of that shape for every route source through the real Event

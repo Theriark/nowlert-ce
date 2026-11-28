@@ -26,7 +26,7 @@ in live counters and the selected time range. The only application change in
 the later commits, up to the source of the current release candidate (the
 latest GitHub pre-release of `Theriark/nowlert-ce`), is the Destinations
 empty-state fix in `src/webui/app.js` and `src/webui/professional.css`
-(THE-1654, PR 641); every other later change is to documentation, CI and
+(PR 641); every other later change is to documentation, CI and
 tests.
 
 Live screenshots of the Nowlert CE development WebUI, taken on 21 October 2026
@@ -35,9 +35,11 @@ commit `342698c67fe000a11b02994ed289f0cf45b22166` (running application version
 3.1.6 plus the development changes listed in
 [Development after v3.1.6](../../releases/post-v3.1.6-development.md)).
 
-Every capture uses the crew's Development test accounts (`ai-crew-admin-…`,
-`ai-crew-user-…`), the Development test destinations described under "Names
-shown in the captures" below and test events. No credential,
+The captures use the crew's Development test accounts (`ai-crew-admin-…`,
+`ai-crew-user-…`), except the two replaced on 28 November 2026, which are
+signed in as the neutral Development test administrator `nowlert-admin`; all
+of them show the Development test destinations described under "Names shown
+in the captures" below and test events. No credential,
 token, private address, personal name or customer data is shown; pages that
 would have exposed such data were left out (see the end of this file).
 
@@ -77,14 +79,17 @@ The two preview captures were replaced on 21 October 2026 at the times shown.
 The Zabbix-filtered Delivery history capture of 21 October 2026 (15:53) and
 the Audit log capture (15:49) were withdrawn on 23 October 2026 and restored
 on 2 November 2026 with their exposed labels masked; see "Withdrawn on
-23 October 2026, restored masked on 2 November 2026" below. Ten files of this
-table were replaced later, as the last column shows: the Settings capture on
-31 October 2026 ("Replaced on 31 October 2026" below); the Filtering capture,
-both Security captures, the Users capture and the 768 px, 390 px and regular
-user Dashboard captures on 12 November 2026 ("Replaced on 12 November 2026"
-below; the Filtering and Security files had already been replaced once on
-31 October 2026); and the 1440 px Dashboard and Routing Flow captures on
-27 November 2026. The other 14 files of this table are unchanged since
+23 October 2026, restored masked on 2 November 2026" below. Eleven files of
+this table were replaced later, as the last column shows: the Filtering
+capture, both Security captures, the Users capture and the 768 px, 390 px and
+regular user Dashboard captures on 12 November 2026 ("Replaced on 12 November
+2026" below; the Filtering and Security files had already been replaced once
+on 31 October 2026); the 1440 px Dashboard and Routing Flow captures on
+27 November 2026; and the Settings capture (first replaced on 31 October 2026)
+and the Audit log capture (restored masked on 2 November 2026) on
+28 November 2026 ("Replaced on 28 November 2026" below). Only the
+Zabbix-filtered Delivery history file is still the masked capture of
+2 November 2026, and the other 14 files of this table are unchanged since
 21 October 2026.
 
 ## Added on 22 October 2026 (commit 8dc1b2ca)
@@ -124,10 +129,10 @@ Notes on these five files:
 ## Withdrawn on 23 October 2026, restored masked on 2 November 2026 (capture base commit 82c8470a)
 
 The Audit log capture of 21 October 2026 (15:49) was withdrawn on
-23 October 2026 (Jira TOPS-356): its audit rows showed the user name of the
+23 October 2026: its audit rows showed the user name of the
 Development deployment's administrator account, which is not one of the
 crew test accounts, together with truncated internal record identifiers. On
-2 November 2026 (Jira NCE-109) it was restored from Git history with the whole
+2 November 2026 it was restored from Git history with the whole
 user column of the event list, the record identifier under each resource and
 (after the independent review of the same day) the account name in the
 sidebar corner painted over with solid black rectangles, opened at full size
@@ -136,7 +141,7 @@ shows the health checks, the event counters, the action names, the resource
 names and the details of the selected event.
 
 The Zabbix-filtered Delivery history capture of 21 October 2026 was withdrawn
-on 23 October 2026 (Jira TOPS-351): its sample rows, although taken from the
+on 23 October 2026: its sample rows, although taken from the
 repository's own test fixture, carried VM-numbered host and database labels
 that read like internal infrastructure names. On 2 November 2026 it was
 restored from Git history with the row title, the detail header, the whole
@@ -171,14 +176,14 @@ mailbox addresses.
 
 ## Replaced on 31 October 2026 (capture base commit 179cbc02)
 
-The live walk of 30 October 2026 (Jira TOPS-658, cycle 3) found that three
+The live walk of 30 October 2026 (cycle 3) found that three
 captures of 21 October 2026 no longer matched the application: the two
 Security captures showed missing-glyph boxes in place of the icons of the
 **Restart Nowlert** and **New token** buttons and a security posture of
 "Good", and the Settings capture showed a different update-status text, a
 much larger **Housekeeping** heading and an icon on **Check for updates** that
 the application no longer renders. The three files were replaced on
-31 October 2026 (Jira TOPS-677) by captures of the Development deployment of
+31 October 2026 by captures of the Development deployment of
 the `development` branch at commit `179cbc02b2fd2d7788799afe71fc58492c53d825`
 (image `sha256:1b952eafbd0cf8b0c0acfc81818d252c994d958d09f21631183fe248318bc639`,
 CI run 41170265508), application version 3.1.6 plus the development changes.
@@ -229,14 +234,13 @@ Notes on these three files:
 
 ## Filtering capture replaced on 31 October 2026 (capture base commit 0c14583c)
 
-The independent review of the `v27.0.0-rc.14` documentation package (Jira
-TOPS-670) found that `filtering-list-admin-1440.png` of 21 October 2026 no
+The independent review of the `v27.0.0-rc.14` documentation package found that `filtering-list-admin-1440.png` of 21 October 2026 no
 longer matched the application: in that capture the **Disabled** status badge
 of three rows ran into the **Shared** badge of the **Sharing** column, while
 the live page keeps the two columns apart (the Filtering table columns were
-rebalanced on 23 October 2026 by the THE-912 fix in `src/webui/filtering.css`,
+rebalanced on 23 October 2026 by a fix in `src/webui/filtering.css`,
 commit `9573338`, which is part of every build since `v27.0.0-rc.7`). The file
-was replaced on 31 October 2026 (Jira TOPS-682) by a capture of the
+was replaced on 31 October 2026 by a capture of the
 Development deployment of the `development` branch at commit
 `0c14583ca5428822d0afb15f39daad14f9e6ba6b` (image
 `sha256:fd9183deb371c4cf1dbc7ff2a1a43208e49a10353311aa83185b4290de733b6e`,
@@ -354,6 +358,14 @@ Development deployment.
 
 - The accounts `ai-crew-admin-…` and `ai-crew-user-…` are the crew's
   Development test accounts.
+- `nowlert-admin`, in the User column and the sidebar account chip of the
+  Settings and Audit log captures replaced on 28 November 2026, is the neutral
+  Development test administrator used for documentation captures. It is a
+  generic account name, not a personal name, so it is not masked.
+- `Nextcloud NFS - CE Development`, in the **NFS backup target** health check
+  of `audit-log-overview-admin-1440.png`, is the name typed for the
+  Development deployment's NFS backup destination. It names the kind of
+  storage and the environment only; no host, address or path is shown.
 - The owner chip on a destination card shows the username of the account that
   owns the destination (`owner_username` in `src/webui/app.js`). Usernames are
   free text typed when an account is created; the only account roles are
@@ -409,8 +421,6 @@ Development deployment.
 - Email Alerts Mailboxes tab: a personal mailbox label (only the Edit mailbox
   dialog of the QA fixture's IMAP test mailbox is captured, with the list hidden
   behind the dialog backdrop).
-- Audit log: audit rows show the user name of the Development deployment's
-  administrator account and internal record identifiers.
 - Users without a search filter: personal names of other accounts.
 - Backups: a private storage address.
 

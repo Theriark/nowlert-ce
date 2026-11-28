@@ -1,10 +1,10 @@
-"""Backups bottom row (THE-942): the Recovery snapshots and Stored copies
+"""Backups bottom row: the Recovery snapshots and Stored copies
 tables no longer hide Restore and Delete inside a horizontal scroller at
-desktop widths. Companion to tests/test_the927_narrow_desktop_layout.py."""
+desktop widths. Companion to tests/test_narrow_desktop_layout.py."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MARKER = "/* THE-942 Backups bottom row"
+MARKER = "/* Backups bottom row"
 STACK_RANGE = "@media (min-width: 1181px) and (max-width: 1599px) {"
 ROW_RANGE = "@media (min-width: 1600px) {"
 TABLES = (".backup-recovery-table", ".backup-stored-table")
@@ -24,9 +24,9 @@ def _block(stylesheet: str, selector: str) -> str:
     return stylesheet[start:stylesheet.index("}", start) + 1]
 
 
-def test_block_is_the_last_layer_after_the927_and_contains_both_ranges():
+def test_block_is_the_last_layer_after_the_narrow_desktop_block_and_contains_both_ranges():
     css = _read("management_consistency.css")
-    assert css.index(MARKER) > css.index("/* THE-927 narrow desktop widths")
+    assert css.index(MARKER) > css.index("/* Narrow desktop widths")
     block = _the942()
     assert block.count(STACK_RANGE) == 1
     assert block.count(ROW_RANGE) == 1

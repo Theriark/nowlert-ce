@@ -85,14 +85,15 @@ Local account protection includes:
 
 ### Multi-factor authentication and recovery
 
-Open **Security → Manage multi-factor authentication** to enroll an authenticator and manage MFA.
+On the **Security** page, select the **MFA status** card to enroll an authenticator and manage MFA
+(the card's accessible name is "Manage multi-factor authentication").
 Administrators can require MFA for local accounts. Enrollment returns ten
 one-time recovery codes, each containing 128 bits of randomness. Save them
 privately when displayed; only their hashes are stored.
 
 Login, protected reauthentication and MFA disable accept an unused recovery code
 as an alternative to a TOTP code. Each recovery code can be used once.
-Existing enrolled users can choose **Manage multi-factor authentication → Regenerate recovery codes**
+Existing enrolled users can select the **MFA status** card, then **Regenerate recovery codes**,
 with their password and a current TOTP code. Regeneration invalidates the
 entire previous recovery-code set. This describes current development behavior.
 

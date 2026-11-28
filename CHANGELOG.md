@@ -7,7 +7,7 @@
 - Settings and Audit log captures taken again on Development `ea51fc67` as the
   neutral test administrator `nowlert-admin`, after the update card and the
   audit trend colours changed; only the record identifiers are masked.
-- Screenshot privacy review (NCE-95): new 1440 px Dashboard and Routing Flow
+- Screenshot privacy review: new 1440 px Dashboard and Routing Flow
   captures of Development, Live with the month's data; solid black boxes
   replace the blur in four Zabbix and Settings captures and cover the
   host-name fragment and blurred names in the historical v3.1.0 Routing Flow
@@ -43,6 +43,18 @@
   the Updates card shows the green tick only after a successful check; Audit
   log trends are coloured by good or bad news; Scheduled backups show Day of
   week only for weekly and Day of month only for monthly schedules.
+- Readiness fixes, round 3: sign-in and account errors read as sentences that
+  say what to do; the Delivery history severity filter groups equivalent words
+  (Information also finds Informational and Info, and so on) while each row
+  keeps its own word; the Email Alerts cards count the enabled rules of each
+  classification, and enabling or disabling a rule, group or mailbox confirms
+  it; the token dialog title no longer repeats "token" and Remove appears only
+  with a profile picture; the Dell iDRAC logo is visible in Routing Flow; a
+  sidebar label that does not fit wraps instead of being cut off; Backup
+  destinations become cards at 900 px and narrower; leaving Email Alerts drops
+  `?emailTab=`; the destination URL error no longer ends in four dots; the route
+  picker names the owner of each route; creating a user shows a confirmation;
+  `PUT /api/v2/integration-settings/{xo,zabbix}` refuses `show_ids: true`.
 - Delivery history: the Source column keeps a 156px minimum and breaks a source
   name only between words, so "Checkmk", "Prometheus" and "Supermicro" no
   longer break mid-word at 1440 px; two-word names such as "Home Assistant"

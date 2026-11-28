@@ -101,7 +101,7 @@ def test_first_destination_can_open_an_empty_route_manager_and_explains_first_ro
     )[1].split("const destinationEditorBaseRenderDestinationFields", 1)[0]
 
     assert "toggle.disabled = allRoutes.length === 0" not in summary
-    assert '"No routes available. Add routes in Routing Flow, then assign them here."' in render
+    assert '"No routes are available to this account. Every account gets the built-in routes when it is created; ask an administrator if they are missing."' in render
     assert "destination-create-route" not in source
     assert "+ Add route" not in source
 
@@ -117,7 +117,7 @@ def test_routes_are_created_in_routing_flow_not_from_destination_drawer():
         "\n};", 1
     )[0]
 
-    assert '"No routes available. Add routes in Routing Flow, then assign them here."' in route_source
+    assert '"No routes are available to this account. Every account gets the built-in routes when it is created; ask an administrator if they are missing."' in route_source
     assert 'toast(id ? "Route updated." : "Route added.")' in save_route
     assert "routeAssignmentPendingDestinationId" not in save_route
 

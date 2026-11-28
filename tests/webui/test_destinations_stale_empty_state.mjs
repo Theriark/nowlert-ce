@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
-// THE-1654: an admin Destinations list rendered once while state.destinations was
+// An admin Destinations list rendered once while state.destinations was
 // still empty (direct load of /#destinations before the workspace answered, or a
 // failed first /destinations request) kept its "No destinations" placeholder when
 // the cards arrived. professional.css then switched the list to display:block and

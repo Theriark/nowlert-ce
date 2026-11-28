@@ -103,7 +103,7 @@ def test_management_consistency_styles_cover_workbench_layout_regressions():
     assert "#view-deliveries .delivery-history-detail-close," in styles
     assert "#view-audit .audit-log-detail-close" in styles
     assert "grid-template-columns: minmax(0, 1fr) auto;" in styles
-    # THE-875 F4: the delivery Source column keeps a minimum wide enough for
+    # F4: the delivery Source column keeps a minimum wide enough for
     # the longest single-word source name, which wraps only between words.
     assert "minmax(156px, 0.9fr)" in styles
     assert "minmax(116px, 0.8fr)" not in styles
