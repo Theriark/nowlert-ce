@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from constants.severity import CRITICAL_WORDS, RESOLVED_WORDS, WARNING_WORDS
 from formatters.base import BaseFormatter
 from version import VERSION
 
@@ -462,18 +463,9 @@ class TeamsCardFormatter(BaseFormatter):
     def _teams_status(status: Any, severity: Any = "") -> tuple[str, str, str]:
         status_value = str(status or "").strip().casefold()
         severity_value = str(severity or "").strip().casefold()
-        resolved = {
-            "cleared", "normal", "ok", "recovered", "resolved", "success",
-            "successful",
-        }
-        critical = {
-            "critical", "danger", "disaster", "emergency", "error",
-            "failed", "failure", "high",
-        }
-        warning = {
-            "alert", "average", "caution", "degraded", "medium", "warn",
-            "warning",
-        }
+        resolved = RESOLVED_WORDS
+        critical = CRITICAL_WORDS
+        warning = WARNING_WORDS
 
         # The current event state wins over a historical severity. A recovery
         # from a disaster is green, while an informational event carrying a

@@ -21,11 +21,11 @@ class HealthCheckService:
     MAILBOX_FAILURE_WINDOW_SECONDS = 24 * 3600
     MAILBOX_FAILURE_THRESHOLD = 3
 
-    def run(self) -> list[dict]:
+    def run(self, actor=None) -> list[dict]:
         checks = [self._database(), self._configuration()]
         checks.extend(self._routing())
         checks.append(self._backup_target())
-        checks.append(self._deliveries())
+        checks.append(self._deliveries(actor))
         checks.append(self._mailbox_sync())
         return checks
 
@@ -261,22 +261,71 @@ class HealthCheckService:
             detail += f"; {failures} failed attempt(s) in the last 24 hours"
         return self._check("mailbox_sync", True, "Mailbox synchronization", detail)
 
-    def _deliveries(self):
+    RECENT_DELIVERY_LIMIT = 3
+
+    def _deliveries(self, actor=None):
+        """Recent delivery failures, named so the viewer can act on them.
+
+        Failures to destinations the viewer can see (its own and shared ones)
+        are listed by destination. An administrator also gets one line for
+        failures to other accounts' private destinations, by owner, because
+        those deliveries do not appear in the administrator's own Delivery
+        history. A regular user is not told about other accounts' private
+        destinations. Without a viewer every failure is listed by destination.
+        """
+
         since = int(self.clock()) - 3600
         with self.database.connect() as connection:
-            row = connection.execute(
+            rows = connection.execute(
                 """
-                SELECT COUNT(*) FROM delivery_attempts
-                WHERE created_at >= ? AND outcome = 'failed'
+                SELECT attempts.destination_id AS destination_id,
+                       destinations.name AS name,
+                       destinations.owner_user_id AS owner_id,
+                       destinations.shared AS shared,
+                       users.username AS owner,
+                       COUNT(*) AS failures
+                FROM delivery_attempts AS attempts
+                LEFT JOIN destinations ON destinations.id = attempts.destination_id
+                LEFT JOIN users ON users.id = destinations.owner_user_id
+                WHERE attempts.created_at >= ? AND attempts.outcome = 'failed'
+                GROUP BY attempts.destination_id
+                ORDER BY failures DESC, name
                 """,
                 (since,),
-            ).fetchone()
-        failures = int(row[0])
+            ).fetchall()
+        visible = []
+        hidden = {}
+        for row in rows:
+            count = int(row["failures"])
+            name = str(row["name"]) if row["name"] is not None else "a deleted destination"
+            owner = str(row["owner"] or "unknown owner")
+            mine = actor is not None and str(row["owner_id"] or "") == str(actor.user_id)
+            if actor is None or mine or (row["name"] is not None and bool(row["shared"])):
+                visible.append((name, count))
+            else:
+                hidden[owner] = hidden.get(owner, 0) + count
+        parts = []
+        if visible:
+            total = sum(count for _name, count in visible)
+            listed = ", ".join(
+                f"{name} ({count})" for name, count in visible[: self.RECENT_DELIVERY_LIMIT]
+            )
+            more = len(visible) - self.RECENT_DELIVERY_LIMIT
+            if more > 0:
+                listed += f" and {more} more"
+            parts.append(f"{total} failed attempt(s) in the last hour: {listed}")
+        if hidden and (actor is None or actor.is_admin):
+            total = sum(hidden.values())
+            owners = ", ".join(f"{owner} ({count})" for owner, count in sorted(hidden.items()))
+            parts.append(
+                f"{total} failed attempt(s) to other accounts' private destinations, "
+                f"which your Delivery history does not show; owners: {owners}"
+            )
         return self._check(
             "recent_delivery",
-            failures == 0,
+            not parts,
             "Recent delivery failures",
-            "none in the last hour" if failures == 0 else f"{failures} failed attempt(s) in the last hour",
+            "; ".join(parts) if parts else "none in the last hour",
             warning=True,
         )
 

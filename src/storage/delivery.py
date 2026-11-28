@@ -11,6 +11,7 @@ from collections import deque
 from dataclasses import dataclass, replace
 from typing import Callable
 
+from constants.severity import CRITICAL_WORDS, INFORMATION_WORDS, RESOLVED_WORDS, WARNING_WORDS
 from models import Notification
 from storage.database import Database
 from storage.delivery_concurrency import (
@@ -30,18 +31,13 @@ from storage.secrets import SecretStore
 
 # Delivery history keeps each event's own severity word. The filter groups the
 # words that mean the same thing, with the buckets the notification cards use
-# (formatters/discord_common.py): picking "warning" also finds "warn" and
+# (constants/severity.py): picking "warning" also finds "warn" and
 # "average". Words outside these groups (debug, notice, ...) stay separate.
 SEVERITY_FILTER_GROUPS = {
-    "critical": (
-        "critical", "danger", "disaster", "emergency", "error", "failed",
-        "failure", "high",
-    ),
-    "warning": ("alert", "average", "caution", "degraded", "medium", "warn", "warning"),
-    "resolved": (
-        "cleared", "normal", "ok", "recovered", "resolved", "success", "successful",
-    ),
-    "information": ("info", "information", "informational"),
+    "critical": tuple(sorted(CRITICAL_WORDS)),
+    "warning": tuple(sorted(WARNING_WORDS)),
+    "resolved": tuple(sorted(RESOLVED_WORDS)),
+    "information": tuple(sorted(INFORMATION_WORDS)),
 }
 _SEVERITY_FILTER_GROUP = {
     word: group for group, words in SEVERITY_FILTER_GROUPS.items() for word in words

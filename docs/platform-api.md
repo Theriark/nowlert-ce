@@ -135,6 +135,12 @@ Notices (`/api/v2/notices`) were removed; those paths answer 404.
 `GET /api/v2/health-checks` returns the database, configuration, destination
 credential, route assignment, backup target, recent delivery and mailbox
 synchronization checks, each with `status` `healthy`, `warning` or `error`.
+The recent delivery check names the destinations the caller can see (its own
+and shared ones) with their failed attempts in the last hour; for an
+administrator it adds the failed attempts to other accounts' private
+destinations, counted by owner, because those deliveries are not in the
+administrator's Delivery history. A regular user is not told about other
+accounts' private destinations.
 
 Housekeeping execution is scheduler-only. The persisted daily run key makes the
 once-per-day boundary survive container restarts and image updates.

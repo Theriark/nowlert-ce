@@ -86,30 +86,6 @@ const SOURCE_CATEGORIES = {
   security: { key: "security", label: "Security" },
   generic: { key: "generic", label: "Generic" },
 };
-const LANGUAGE_DEFAULT_TIMEZONES = {
-  "en-GB": "Europe/London",
-  "en-US": "America/New_York",
-  "pt-PT": "Europe/Lisbon",
-  "pt-BR": "America/Sao_Paulo",
-  "es-ES": "Europe/Madrid",
-  "fr-FR": "Europe/Paris",
-  "de-DE": "Europe/Berlin",
-  "it-IT": "Europe/Rome",
-  "nl-NL": "Europe/Amsterdam",
-  "pl-PL": "Europe/Warsaw",
-  "cs-CZ": "Europe/Prague",
-  "ro-RO": "Europe/Bucharest",
-  "sv-SE": "Europe/Stockholm",
-  "da-DK": "Europe/Copenhagen",
-  "nb-NO": "Europe/Oslo",
-  "fi-FI": "Europe/Helsinki",
-  "el-GR": "Europe/Athens",
-  "tr-TR": "Europe/Istanbul",
-  "ru-RU": "Europe/Moscow",
-  "uk-UA": "Europe/Kyiv",
-  "ja-JP": "Asia/Tokyo",
-  "zh-CN": "Asia/Shanghai",
-};
 const PT_TRANSLATIONS = {
   "Dashboard": "Painel",
   "Overview": "Visão geral",
@@ -3647,12 +3623,6 @@ function renderPreferences() {
   document.documentElement.lang = state.preferences.language || "en-GB";
 }
 
-function applyLanguageDefaultTimezone() {
-  const language = byId("preference-language").value;
-  const timezone = LANGUAGE_DEFAULT_TIMEZONES[language];
-  if (timezone) byId("preference-timezone").value = timezone;
-}
-
 async function savePreferences(event) {
   event.preventDefault();
   try {
@@ -5421,7 +5391,6 @@ function bindEvents() {
     renderImportIssues(state.pendingImport?.preview || {});
   });
   byId("preferences-form").addEventListener("submit", savePreferences);
-  byId("preference-language").addEventListener("change", applyLanguageDefaultTimezone);
   byId("integration-settings-form").addEventListener("submit", saveIntegrationSettings);
   byId("integration-settings-dialog").addEventListener("cancel", (event) => {
     event.preventDefault();

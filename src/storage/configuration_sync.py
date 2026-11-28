@@ -499,18 +499,20 @@ class UnifiedConfigurationService:
         for name, settings in tokens.items():
             if not isinstance(settings, dict):
                 continue
+            # Same order and rules as the authentication and the one-way
+            # migration (TokenAuthenticator._expected_hash): a token whose
+            # credential that code cannot read is listed as unavailable, so
+            # the list never shows a token the migration would refuse.
             configured_by = "not configured"
-            credential_available = False
-            if settings.get("token_env"):
+            if settings.get("token_sha256") and len(str(settings["token_sha256"]).strip()) == 64:
+                configured_by = "SHA-256"
+            elif settings.get("token_env"):
                 configured_by = "environment"
-                credential_available = bool(os.environ.get(str(settings["token_env"])))
             elif settings.get("token_file"):
                 configured_by = "secret file"
-                path = Path(str(settings["token_file"]))
-                credential_available = path.is_file() and os.access(path, os.R_OK)
             elif settings.get("token_sha256"):
                 configured_by = "SHA-256"
-                credential_available = True
+            credential_available = bool(TokenAuthenticator._expected_hash(settings))
             sources = settings.get("sources") or []
             if isinstance(sources, str):
                 sources = [sources]

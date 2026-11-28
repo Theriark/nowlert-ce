@@ -46,22 +46,26 @@ Do not recreate legacy `outputs`, `routing`, `api.tokens`, or other
 WebUI-managed YAML sections in a healthy current installation.
 
 Legacy `api.tokens` entries are imported as Event API tokens under their YAML
-names; a name that the same owner already uses gets "Legacy " in front
-("Legacy NAME", then "Legacy NAME 2"). The migration needs the credential of
-every enabled token. `token_sha256` (64 hexadecimal characters) is used first; otherwise a
-`token_env` variable that is set; otherwise `token_file`, which must be a
-regular file (not a symbolic link) readable by Nowlert with no group or other
-permissions (mode `0600` or `0400`) and holding at most 4096 characters.
-A file that breaks any of these rules counts as unreadable. If one is missing, the whole
-migration stops with "resource migration failed: api token NAME cannot be
-imported because its credential is unavailable", `config.yaml` keeps its
-legacy sections and Nowlert reports the error until the next synchronization
-succeeds. A disabled entry (`enabled: false`) is imported without a usable
-credential. The current Compose file and `.env.example` no longer pass any
-token variable, so when upgrading an installation whose tokens use
-`token_env`, add those variables to the container environment for that first
-start (or disable or remove the entries), confirm the imported tokens under
-**Security → Event API tokens**, then remove the variables again.
+names; a name that the same owner already uses gets "Legacy " in front ("Legacy
+NAME", then "Legacy NAME 2"). The migration needs the credential of every
+enabled token. The credential is read the same way as for authentication:
+`token_sha256` is used when it holds 64 hexadecimal characters; otherwise, when
+`token_env` names a variable, only that variable is used (an unset or empty
+variable means no credential, and `token_file` is then not read); otherwise
+`token_file` is read. The file must be a regular file, not a symbolic link,
+with no permission bits for the group or for others (for example mode `0600`,
+`0400` or `0700`), and hold at most 4096 characters; a file that breaks any of
+these rules gives no credential. If an enabled token has no credential, the
+whole migration stops with "resource migration failed: api token NAME cannot be
+imported because its credential is unavailable", `config.yaml` keeps its legacy
+sections and Nowlert reports the error until the next synchronization succeeds.
+A disabled entry (`enabled: false`) is imported without a usable credential.
+The current Compose file and `.env.example` no longer pass any token variable,
+so when upgrading an installation whose tokens use `token_env`, add those
+variables to the container environment for that first start (or disable or
+remove the entries), confirm the imported tokens under **Security → Event API
+tokens**, then remove the variables again.
+
 
 ## Backups and rollback
 

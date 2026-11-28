@@ -88,8 +88,8 @@ Development test administrator `nowlert-admin` (and a temporary regular user
 for the regular-user Security capture). The other captures still show the
 interface of October 2026 wherever their page has not changed since. They use
 test destinations and test events, at 1440, 768 and 390 pixel widths, for an
-administrator and for a regular user; the folder index records the date,
-build and account of every file. File names
+administrator and for a regular user; the folder index records the date of
+every file and, where it was recorded, the Development build and account. File names
 follow `<page>-<state>-<role>-<width>.png`; the folder index lists every file
 with its page, role, viewport and capture time, and names the pages that were
 left out because they would show a mailbox identity, personal names or a
