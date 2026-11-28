@@ -613,7 +613,7 @@
       sourceSummary.append(overflowWrap);
       sourceSummary.setAttribute(
         "aria-label",
-        `${configuredSources.length} configured filter source${configuredSources.length === 1 ? "" : "s"}`,
+        (configuredSources.length === 1 ? "1 configured filter source" : `${configuredSources.length} configured filter sources`),
       );
       scheduleSourceFit();
     };
@@ -1029,7 +1029,7 @@
         const n = el("span", `rf-${color}`); n.append(dot(color), document.createTextNode(`${metricText(d.metrics[k])} ${label}`)); counts.append(n);
       });
       const assigned = current.links.filter(link => link.destination_id === d.id).length;
-      node.append(top, counts, el("small", "rf-last", `Enabled · ${assigned} active route${assigned === 1 ? "" : "s"}`));
+      node.append(top, counts, el("small", "rf-last", (assigned === 1 ? "Enabled · 1 active route" : `Enabled · ${assigned} active routes`)));
     }
 
     const hasGraph = current.routes.length > 0 || current.destinations.length > 0;

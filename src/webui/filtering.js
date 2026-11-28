@@ -160,7 +160,7 @@
       const flow = byId("dashboard-flow");
       if (!flow) return;
       for (const detail of flow.querySelectorAll(".flow-route small")) {
-        if (detail.textContent !== "Routing only") detail.textContent = "Routing only";
+        if (!uiTextIs(detail.textContent, "Routing only")) detail.textContent = "Routing only";
       }
     };
     updateFlowCopy();
@@ -428,7 +428,7 @@
     byId("filter-destination-continue").disabled = false;
     for (const item of available) {
       const count = Number(item.available_integration_count || 0);
-      const option = element("option", { value: item.id, text: `${item.name} · ${count} integration${count === 1 ? "" : "s"}` });
+      const option = element("option", { value: item.id, text: (count === 1 ? `${item.name} · 1 integration` : `${item.name} · ${count} integrations`) });
       if (item.id === selectedId) option.selected = true;
       select.append(option);
     }

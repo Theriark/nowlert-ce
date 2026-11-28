@@ -35,7 +35,7 @@
   function forceSecurityTitle() {
     if (state.currentView !== "account") return;
     const title = byId("page-title");
-    if (!title || title.textContent === "Security") return;
+    if (!title || uiTextIs(title.textContent, "Security")) return;
     title.textContent = "Security";
     title.removeAttribute("data-i18n-source");
   }
@@ -378,7 +378,7 @@
       ).length;
       if (typeof toast === "function") {
         toast(
-          `Test delivery: ${successes} of ${responses.length} route template${responses.length === 1 ? "" : "s"} succeeded.`,
+          (responses.length === 1 ? `Test delivery: ${successes} of 1 route template succeeded.` : `Test delivery: ${successes} of ${responses.length} route templates succeeded.`),
           successes === responses.length ? "success" : "error",
         );
       }
@@ -1082,7 +1082,7 @@ function ensurePreviewReferenceLayout() {
     if (!tokens || !panel || !table) return;
 
     const actionHeading = table.querySelector("thead th:last-child");
-    if (actionHeading && actionHeading.textContent.trim() !== "Actions") {
+    if (actionHeading && !uiTextIs(actionHeading.textContent, "Actions")) {
       actionHeading.textContent = "Actions";
     }
 
@@ -1202,7 +1202,7 @@ function ensurePreviewReferenceLayout() {
   function forceProfileTitle() {
     if (state.currentView !== "account") return;
     const title = byId("page-title");
-    if (title && (title.textContent !== "Security" || title.dataset.i18nSource)) {
+    if (title && (!uiTextIs(title.textContent, "Security") || title.dataset.i18nSource)) {
       delete title.dataset.i18nSource;
       title.textContent = "Security";
     }

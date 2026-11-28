@@ -50,7 +50,7 @@
     if (
       button.children.length === 2
       && oldIcon?.textContent === icon
-      && oldLabel?.textContent === label
+      && uiTextIs(oldLabel?.textContent, label)
     ) return;
     const iconNode = span(icon, "profile-menu-icon");
     iconNode.setAttribute("aria-hidden", "true");

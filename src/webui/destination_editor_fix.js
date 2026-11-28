@@ -216,7 +216,7 @@
     const editing = Boolean(document.getElementById("destination-id")?.value);
     const name = document.getElementById("destination-name")?.value.trim() || "destination";
     const desired = editing ? `Edit ${name}` : "Add destination";
-    if (title.textContent !== desired) title.textContent = desired;
+    if (!uiTextIs(title.textContent, desired)) title.textContent = desired;
   }
 
   function refreshSharingStatus() {

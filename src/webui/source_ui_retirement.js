@@ -416,7 +416,7 @@
       if (identity && item.role === "user" && !identity.querySelector(".private-resource-count")) {
         const count = document.createElement("small");
         count.className = "private-resource-count";
-        count.textContent = `${Number(item.private_destination_count || 0)} private destination${Number(item.private_destination_count || 0) === 1 ? "" : "s"}`;
+        count.textContent = (Number(item.private_destination_count || 0) === 1 ? "1 private destination" : `${Number(item.private_destination_count || 0)} private destinations`);
         identity.append(count);
       }
       if (item.role !== "user") return;
@@ -486,7 +486,7 @@
       const user = payload.user || {};
       document.getElementById("destination-access-title").textContent = `Destination access — ${user.username || "User"}`;
       const count = Number(user.private_destination_count || 0);
-      document.getElementById("destination-access-private-summary").textContent = `${count} private destination${count === 1 ? "" : "s"} owned by this user. Private names, configuration, credentials, routing, filters and delivery contents are hidden from administrators.`;
+      document.getElementById("destination-access-private-summary").textContent = (count === 1 ? "1 private destination owned by this user. Private names, configuration, credentials, routing, filters and delivery contents are hidden from administrators." : `${count} private destinations owned by this user. Private names, configuration, credentials, routing, filters and delivery contents are hidden from administrators.`);
       const body = document.getElementById("destination-access-table");
       const emptyState = document.getElementById("destination-access-empty");
       body.replaceChildren();

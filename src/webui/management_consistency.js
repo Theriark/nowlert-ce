@@ -165,7 +165,7 @@
     const privateClass = "badge destination-sharing-control is-private destination-control-readonly";
     const privateLabel = "Private destination. View only.";
     let privateBadge = [...meta.children].find((candidate) => (
-      String(candidate.textContent || "").trim().toLowerCase() === "private"
+      uiTextIs(candidate.textContent, "Private", { ignoreCase: true })
     ));
     if (!privateBadge) {
       privateBadge = readOnlyStatus(
@@ -178,9 +178,9 @@
     } else {
       const privateReady = (
         privateBadge.className === privateClass
-        && privateBadge.getAttribute("aria-label") === privateLabel
+        && uiTextIs(privateBadge.getAttribute("aria-label"), privateLabel)
         && privateBadge.querySelector(".destination-share-icon")
-        && privateBadge.querySelector(".destination-sharing-label")?.textContent === "Private"
+        && uiTextIs(privateBadge.querySelector(".destination-sharing-label")?.textContent, "Private")
         && privateBadge.children.length === 2
       );
       if (!privateReady) {
@@ -208,9 +208,9 @@
     } else {
       const statusReady = (
         status.className === statusClass
-        && status.getAttribute("aria-label") === statusAria
+        && uiTextIs(status.getAttribute("aria-label"), statusAria)
         && status.querySelector(".destination-status-dot")
-        && status.querySelector(".destination-readonly-label")?.textContent === statusLabel
+        && uiTextIs(status.querySelector(".destination-readonly-label")?.textContent, statusLabel)
         && status.children.length === 2
       );
       if (!statusReady) {
@@ -290,13 +290,13 @@
     const ownerLabel = owner.querySelector(".destination-readonly-label");
     const contentReady = (
       owner.className === "badge destination-owner-badge"
-      && ownerLabel?.textContent === label
+      && uiTextIs(ownerLabel?.textContent, label)
     );
     const positionReady = !sharing || sharing.nextElementSibling === owner;
     if (contentReady && positionReady) return;
 
     owner.className = "badge destination-owner-badge";
-    if (!ownerLabel || ownerLabel.textContent !== label || owner.children.length !== 1) {
+    if (!ownerLabel || !uiTextIs(ownerLabel.textContent, label) || owner.children.length !== 1) {
       owner.replaceChildren(span("destination-readonly-label", label));
     }
 
@@ -348,7 +348,7 @@
     let channel = rawChannel;
     if (rawChannel && CHANNEL_DESTINATION_TYPES.has(type)) channel = `#${rawChannel}`;
     const desired = channel ? `${provider} - ${channel}` : provider;
-    if (subtitle.textContent !== desired) subtitle.textContent = desired;
+    if (!uiTextIs(subtitle.textContent, desired)) subtitle.textContent = desired;
   }
 
   function syncDestinationTransientFailure(card) {
@@ -368,7 +368,7 @@
     const meta = card.querySelector(".resource-meta");
     if (!meta) return;
     for (const child of [...meta.children]) {
-      if (String(child.textContent || "").trim().toLowerCase() === "last test failed") {
+      if (uiTextIs(child.textContent, "Last test failed", { ignoreCase: true })) {
         child.remove();
       }
     }
@@ -378,8 +378,7 @@
     const meta = card.querySelector(".resource-meta");
     if (!meta) return;
     for (const child of [...meta.children]) {
-      const text = String(child.textContent || "").trim().toLowerCase();
-      if (text === "last test passed" || text === "last test failed") {
+      if (uiTextIs(child.textContent, "Last test passed", { ignoreCase: true }) || uiTextIs(child.textContent, "Last test failed", { ignoreCase: true })) {
         child.classList.add("destination-test-state");
       }
     }
@@ -389,7 +388,7 @@
     const viewOnly = card?.querySelector(".destination-view-only-badge");
     if (!viewOnly) return;
     const label = viewOnly.querySelector(".destination-readonly-label");
-    if (viewOnly.querySelector(".destination-view-icon") && label?.textContent === "View only") {
+    if (viewOnly.querySelector(".destination-view-icon") && uiTextIs(label?.textContent, "View only")) {
       return;
     }
     viewOnly.className = "badge destination-view-only-badge";
@@ -455,7 +454,7 @@
 
   function syncDestinations() {
     const add = document.getElementById("add-destination-button");
-    if (add && add.textContent !== "+ New destination") {
+    if (add && !uiTextIs(add.textContent, "+ New destination")) {
       add.textContent = "+ New destination";
     }
 
@@ -572,7 +571,7 @@
     if (!toolbar || !button) return;
 
     rememberUserActionHome(button);
-    if (button.textContent !== "+ New user") button.textContent = "+ New user";
+    if (!uiTextIs(button.textContent, "+ New user")) button.textContent = "+ New user";
 
     const active = typeof state !== "undefined" && String(state.currentView || "") === "users";
     if (toolbar.hidden !== active) toolbar.hidden = active;
@@ -620,7 +619,7 @@
   function syncAssignedRoutesHelp() {
     const expected = "Select which routes send alerts to this destination.";
     document.querySelectorAll(".route-assignment-drawer-heading small").forEach((node) => {
-      if (String(node.textContent || "").trim() === expected) node.remove();
+      if (uiTextIs(node.textContent, expected)) node.remove();
     });
   }
 
@@ -646,15 +645,15 @@
 
     const count = panel.querySelectorAll(".settings-resource-card").length;
     const signature = String(count);
-    const expectedCount = `${count} integration${count === 1 ? "" : "s"}`;
+    const expectedCount = (count === 1 ? "1 integration" : `${count} integrations`);
     const currentTitle = heading.querySelector(".integration-behavior-heading-copy h3")?.textContent || "";
     const currentDescription = heading.querySelector(".integration-behavior-heading-copy p")?.textContent || "";
     const currentCount = heading.querySelector(".integration-behavior-count-label")?.textContent || "";
     if (
       heading.dataset.referenceHeading === signature
-      && currentTitle === "Integration behavior"
-      && currentDescription === "Configure how each integration handles and maps incoming data."
-      && currentCount === expectedCount
+      && uiTextIs(currentTitle, "Integration behavior")
+      && uiTextIs(currentDescription, "Configure how each integration handles and maps incoming data.")
+      && uiTextIs(currentCount, expectedCount)
     ) return;
 
     const main = document.createElement("div");
