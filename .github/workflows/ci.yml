@@ -404,7 +404,7 @@ jobs:
                 "${ACCESS_HEADERS[@]}" \
                 "${BASE_URL}/ui/filtering_ownership_sync.js?v=${UI_BUILD}"
             )" || { echo "WAIT: filtering_ownership_sync.js request failed"; return 1; }
-            require_contains "Filtering Name enforcement" 'nameHeading.textContent !== "Name"' "${filter_sync}" || return 1
+            require_contains "Filtering Name enforcement" '!uiTextIs(nameHeading.textContent, "Name")' "${filter_sync}" || return 1
             require_contains "Filtering synchronous ownership decorator" "decorate(event.detail);" "${filter_sync}" || return 1
 
             filter_sync_css="$(
