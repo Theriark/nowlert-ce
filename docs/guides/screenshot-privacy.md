@@ -506,7 +506,7 @@ raster under `docs/images/` needs a row.
 | `images/unifi-setup/protect-alarms.png` | retained | restored from Git history and masked 2 Nov 2026 (the three alarm names that carried a location label; after the independent review the same day also the four alarm names that carried the retired product name); still shows the Nowlert alarm rows, categories, actions, hit counts and the detail panel |
 | `images/unifi-setup/protect-delivery.png` | retained | reviewed 15 Oct 2026 |
 | `images/unifi-setup/protect-noise-filter.png` | retained | reviewed 15 Oct 2026 |
-| `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` | retained | Development capture, 21 Oct 2026; restored from Git history and masked 2 Nov 2026 (the user column of the event list, the record identifier under each resource and, after the independent review the same day, the account name in the sidebar corner); still shows the health checks, counters, action and resource names and the selected event; embedded by the WebUI guide |
+| `images/v27.0.0-rc.1/audit-log-overview-admin-1440.png` | retained | Development capture, 28 Nov 2026, as the neutral test administrator `nowlert-admin` (replaces the masked capture of 21 Oct 2026); the record identifiers under the user and resource of each row painted over with solid black rectangles; embedded by the WebUI guide |
 | `images/v27.0.0-rc.1/dashboard-live-admin-1440.png` | retained | Development capture, 27 Nov 2026, Live with the month's data (replaces the capture of 12 Nov 2026, which showed the page still loading); opened at full size 27 Nov 2026; crew administrator, synthetic test events; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/dashboard-live-admin-390.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026, no account, owner, destination or channel name; responsive-layout example in the WebUI guide |
 | `images/v27.0.0-rc.1/dashboard-live-admin-768.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 21 Oct 2026); opened at full size 12 Nov 2026 |
@@ -533,7 +533,7 @@ raster under `docs/images/` needs a row.
 | `images/v27.0.0-rc.1/routing-flow-live-admin-768.png` | retained | Development capture, 21 Oct 2026 |
 | `images/v27.0.0-rc.1/security-profile-admin-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 31 Oct 2026); crew administrator account, empty token list, no token value |
 | `images/v27.0.0-rc.1/security-profile-user-1440.png` | retained | Development capture, 12 Nov 2026 (replaces the capture of 31 Oct 2026); crew user account, empty token list, no token value |
-| `images/v27.0.0-rc.1/settings-regional-admin-1440.png` | retained | Development capture, 31 Oct 2026 (replaces the capture of 21 Oct 2026); Development settings values only |
+| `images/v27.0.0-rc.1/settings-regional-admin-1440.png` | retained | Development capture, 28 Nov 2026 (replaces the capture of 31 Oct 2026); Development settings values only |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-1440.png` | retained | Development capture, 21 Oct 2026; opened at full size 25 Oct 2026; README and Docker Hub Preview |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-390.png` | retained | Development capture, 21 Oct 2026; opened 24 Oct 2026, no account, owner, destination or channel name; not embedded since 25 Oct 2026 |
 | `images/v27.0.0-rc.1/sign-in-empty-signed-out-768.png` | retained | Development capture, 21 Oct 2026 |

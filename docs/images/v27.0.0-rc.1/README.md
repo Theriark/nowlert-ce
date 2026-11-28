@@ -9,6 +9,8 @@ and the Filtering capture from the Development build `0c14583c`; see
 2026" below.
 Eight captures were replaced on 12 November 2026 from the Development build
 `0011c903`; see "Replaced on 12 November 2026" below.
+The Settings and Audit log captures were replaced on 28 November 2026 from the
+Development build `ea51fc67`; see "Replaced on 28 November 2026" below.
 Nowlert CE is a desktop web
 application: since 25 October 2026 the Preview of the repository README and
 the Docker Hub README shows four of its desktop captures at full width,
@@ -52,8 +54,8 @@ pixels at scale 1: 1440×900 (desktop), 768×1024 (tablet) and 390×844 (phone).
 | `destinations-list-admin-1440.png` | Destinations list | administrator | 1440 | 15:48 |
 | `filtering-list-admin-1440.png` | Filtering with Integration behavior | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
 | `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab | administrator | 1440 | 15:49 |
-| `audit-log-overview-admin-1440.png` | Audit log (user column, record identifiers and sidebar account name masked on 2 Nov 2026) | administrator | 1440 | 15:49 |
-| `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | replaced 31 Oct 2026, 05:21 |
+| `audit-log-overview-admin-1440.png` | Audit log (record identifiers masked) | administrator | 1440 | replaced 28 Nov 2026, 08:17 |
+| `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping) | administrator | 1440 | replaced 28 Nov 2026, 08:13 |
 | `security-profile-admin-1440.png` | Security (Profile, MFA, password, Event API tokens) | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
 | `users-search-admin-1440.png` | Users, filtered to the crew accounts (Recent activity account names masked) | administrator | 1440 | replaced 12 Nov 2026, 19:00 |
 | `delivery-history-zabbix-admin-1440.png` | Delivery history, Zabbix source filter (host and database labels and sidebar account name masked on 2 Nov 2026; not embedded) | administrator | 1440 | 15:53 |
@@ -189,7 +191,8 @@ The two Security rows below describe the files as captured on 31 October
 2026. Both were replaced again on 12 November 2026: the current captures have
 no **Restart Nowlert** button on the Security page (it moved to the account
 menu) and head the token section **Event API tokens**; see "Replaced on
-12 November 2026" below. The Settings row still describes the current file.
+12 November 2026" below. The Settings capture was replaced again on 28 November
+2026; see "Replaced on 28 November 2026" below.
 
 | File | Page / state | Role | Width | Captured (Lisbon) |
 |---|---|---|---|---|
@@ -323,6 +326,29 @@ Notes on these eight files:
 - The other captures of this folder were compared with the same build on
   12 November 2026 (Destinations, Routing Flow and Email Alerts rules at 768
   and 390 px) and still show the same layout, so they were kept.
+
+## Replaced on 28 November 2026 (capture base commit ea51fc67)
+
+The readiness fixes of 28 November 2026 (pull requests 672 and 673) changed
+what two captures show: the Settings update card shows its green tick only
+after a successful update check, and the Audit log trend figures are coloured
+by whether the change is good or bad news. Both files were replaced by
+captures of the Development deployment of the `development` branch at commit
+`ea51fc675170afbf79bb8fb34fd58e4e3329919c` (application version 27.0.0), taken
+on 28 November 2026 between 08:13 and 08:17 (Lisbon, +00:00) in headless
+Chrome at scale 1, 1440 × 900, dark theme, signed in as the Development test
+administrator `nowlert-admin` (not one of the crew accounts; its name is not
+masked).
+
+| File | Page / state | Role | Width |
+|---|---|---|---|
+| `settings-regional-admin-1440.png` | Settings (Regional, Updates, Housekeeping): "Nowlert is up to date" after the check of 07:35, running version 27.0.0, available version 3.1.6 (the latest published release), housekeeping enabled with its next run | administrator | 1440 |
+| `audit-log-overview-admin-1440.png` | Audit log: event counters for the last 7 days with coloured trends, health checks, the latest health check run, and the event list with the selected session login; the record identifiers under the user and resource of each row are painted over with solid black rectangles | administrator | 1440 |
+
+Both files were opened at full size after the capture (and, for the Audit
+log, after the masking). No credential, token, private address or personal
+name is shown; the Settings values are the stored preferences of the
+Development deployment.
 
 ## Names shown in the captures
 
