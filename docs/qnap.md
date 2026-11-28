@@ -59,21 +59,11 @@ defaults are for the local development listener only.
 
 ## Routing
 
-Add a QNAP route to the public configuration shape:
-
-```yaml
-routing:
-  qnap:
-    outputs:
-      - output: discord
-        target: default
-
-      # - output: teams
-      #   target: default
-```
-
-Configure the corresponding Discord or Teams webhook under `outputs`. Keep
-real webhook URLs only in the ignored `config/config.yaml`; never add them to
+Destinations and routes are managed in the WebUI, not in `config.yaml` (which
+refuses `outputs` and `routing` sections). Create the Discord or Microsoft
+Teams destination under **Destinations**, with the webhook in the write-only
+**Webhook URL** field, then edit it, open **Manage routes** and select the
+built-in **QNAP SMTP** route. Never add real webhook URLs to
 `config/config.example.yaml` or fixture files.
 
 ## Configure QNAP Notification Center

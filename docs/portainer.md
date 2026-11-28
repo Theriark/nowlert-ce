@@ -47,27 +47,13 @@ http:
   port: 8080
   max_body_bytes: 1048576
   shared_secret: "PASTE_64_CHARACTER_HEX_SECRET"
-
-outputs:
-  discord:
-    enabled: true
-    portainer:
-      webhook: "PASTE_PORTAINER_DISCORD_WEBHOOK"
-
-  teams:
-    enabled: false
-    portainer:
-      webhook: "PASTE_PORTAINER_TEAMS_WORKFLOW_WEBHOOK"
-
-routing:
-  portainer:
-    outputs:
-      - output: discord
-        target: portainer
-
-      # - output: teams
-      #   target: portainer
 ```
+
+`config.yaml` holds only the listener and its secret; it refuses `outputs` and
+`routing` sections. Create the Discord or Microsoft Teams destination under
+**Destinations** in the WebUI (the webhook goes into the write-only **Webhook
+URL** field), then edit it, open **Manage routes** and select the built-in
+**Portainer HTTP** route.
 
 Do not commit the real secret or webhook URLs.
 

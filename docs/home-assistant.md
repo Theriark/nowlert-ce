@@ -6,25 +6,15 @@ native notification test, see [Home Assistant to Discord](guides/home-assistant-
 Home Assistant automations can submit authenticated events to
 `POST /home-assistant/events`. The request must follow the
 `nowlert.home_assistant.v1` schema and use either the global HTTP secret or a
-v1.9 source-scoped token.
+source-scoped Event API token.
 
-```yaml
-api:
-  enabled: true
-  tokens:
-    home_assistant:
-      enabled: true
-      role: application
-      sources: [home_assistant]
-      token_env: NOWLERT_HOME_ASSISTANT_TOKEN
-      rate_limit_per_minute: 120
+Tokens, destinations and routes are managed in the WebUI, not in
+`config.yaml` (which refuses `api.tokens` and `routing`):
 
-routing:
-  home_assistant:
-    outputs:
-      - output: discord
-        target: home_assistant
-```
+1. Under **Profile menu → Security → API tokens**, create an application token
+   that allows only **Home Assistant**. The value is shown once.
+2. Under **Destinations**, create the destination, edit it, open **Manage
+   routes** and select the built-in **Home Assistant HTTP** route.
 
 Store the scoped token in `secrets.yaml`:
 
@@ -64,21 +54,12 @@ rest_command:
 
 Optional aliases can identify equipment when a raw Home Assistant error only
 contains an address or integration name. Keep these deployment-specific names
-in Nowlert instead of duplicating them across automations:
-
-```yaml
-home_assistant:
-  aliases:
-    endpoints:
-      "192.0.2.10":
-        device: "Building hub"
-        # Optional when the built-in integration label is not appropriate.
-        service: "Building automation"
-    components:
-      "homeassistant.components.ipp.coordinator":
-        device: "Office printer"
-        endpoint: "192.0.2.20"
-```
+in Nowlert instead of duplicating them across automations. An administrator
+edits them under **Filtering → Integration behavior → Home Assistant → Edit**:
+for example the endpoint `192.0.2.10` as device "Building hub" (optionally with
+the service "Building automation" when the built-in integration label is not
+appropriate), and the component `homeassistant.components.ipp.coordinator` as
+device "Office printer" with endpoint `192.0.2.20`.
 
 Endpoint aliases match both a bare address and the host portion of an
 `address:port` endpoint. Component aliases use the exact component string sent

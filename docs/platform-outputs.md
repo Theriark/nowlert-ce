@@ -146,27 +146,29 @@ New SMTP destinations reject private or non-global network targets by default.
 Administrators can explicitly enable the private-network target option for an
 internal relay. TLS certificate validation remains enabled in either case.
 
-Example configuration:
+Create an Email destination under **Destinations → + New destination** in the
+WebUI (fields **SMTP server**, **Port**, **Security**, **Username**, **From**,
+**To**, **CC**, **Reply-To** and the write-only password). Destinations are not
+configured in `config.yaml`, which refuses an `outputs` section. The equivalent
+[platform API](platform-api.md) request is:
 
-```yaml
-outputs:
-  email:
-    enabled: true
-    operations:
-      name: Operations email
-      settings:
-        server: smtp.example.com
-        port: 587
-        security: starttls
-        username: alerts@example.com
-        from_address: alerts@example.com
-        to:
-          - noc@example.com
-        cc:
-          - service-owner@example.com
-        reply_to: noreply@example.com
-      secret:
-        password: "<smtp-password>"
+```json
+POST /api/v2/destinations
+{
+  "name": "Operations email",
+  "output_type": "email",
+  "settings": {
+    "server": "smtp.example.com",
+    "port": 587,
+    "security": "starttls",
+    "username": "alerts@example.com",
+    "from_address": "alerts@example.com",
+    "to": ["noc@example.com"],
+    "cc": ["service-owner@example.com"],
+    "reply_to": "noreply@example.com"
+  },
+  "secret": {"password": "<smtp-password>"}
+}
 ```
 
 The adapter sends a bounded plain-text Nowlert notification containing the event

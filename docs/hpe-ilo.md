@@ -12,15 +12,13 @@ http://nowlert.example:8080/redfish/hpe
 
 Prefer a source-scoped token sent as `X-Nowlert-Token`. Where the installed
 iLO release cannot add a header, use a protected reverse proxy or AlertMail to
-Nowlert SMTP. Configure routing independently from other hardware sources:
-
-```yaml
-routing:
-  hpe_ilo:
-    outputs:
-      - output: teams
-        target: hardware
-```
+Nowlert SMTP. Create the source-scoped token under **Profile menu → Security →
+API tokens** (allowing only HPE iLO). Routing is configured in the WebUI,
+independently from other hardware sources: create the destination under
+**Destinations**, then edit it, open **Manage routes** and select the built-in
+**HPE iLO Redfish** route. The
+[hardware Redfish setup guide](guides/hardware-redfish-setup.md) shows the
+complete flow.
 
 The adapter preserves safe registry/message identifiers, the affected origin,
 severity, category, and recommended action. It does not poll iLO or store iLO

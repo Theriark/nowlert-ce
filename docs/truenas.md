@@ -72,32 +72,17 @@ your appliance for its installed version and the `alertservice.create` method.
 
 ## Dedicated routing
 
-Only edit the deployment's private `config/config.yaml` locally. The public
-shape is:
+Destinations and routes are managed in the WebUI, not in `config.yaml` (which
+refuses `outputs` and `routing` sections):
 
-```yaml
-outputs:
-  discord:
-    truenas:
-      webhook: "PASTE_TRUENAS_DISCORD_WEBHOOK_HERE"
+1. Under **Destinations**, create a Discord and/or Microsoft Teams destination
+   with the webhook in the write-only **Webhook URL** field.
+2. Edit each destination, open **Manage routes**, select the built-in
+   **TrueNAS SMTP** route, choose **Done** and save.
 
-  teams:
-    truenas:
-      webhook: "PASTE_TRUENAS_TEAMS_WORKFLOW_WEBHOOK_HERE"
-
-routing:
-  truenas:
-    outputs:
-      - output: discord
-        target: truenas
-
-      - output: teams
-        target: truenas
-```
-
-Keep `outputs.teams.enabled: true` when enabling the Teams route. Dedicated
-targets use the existing `webhook` key. Routes can instead target `default` if
-separate TrueNAS destinations are not wanted.
+One route can be assigned to several destinations, so a separate TrueNAS
+destination is optional. The [TrueNAS to Discord guide](guides/truenas-to-discord.md)
+shows the complete flow.
 
 ## Replay synthetic fixtures
 

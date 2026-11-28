@@ -14,9 +14,9 @@ behavior aligned.
   another target.
 - `stage` is an environment approval pointer and should be advanced by the Stage
   promotion workflow, not by ordinary feature pull requests.
-- `main` represents Stage-approved release source and is fast-forwarded as part
-  of the release process. Do not use `main` as the default target for active
-  feature development.
+- `main` holds what was last released: right before a release, `stage` is
+  merged into `main`. Do not use `main` as the default target for active
+  feature development, and never merge `main` into `development`.
 
 ## Getting started
 

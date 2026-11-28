@@ -33,27 +33,14 @@ http:
   port: 8080
   max_body_bytes: 1048576
   shared_secret: "PASTE_64_CHARACTER_HEX_SECRET"
-
-outputs:
-  discord:
-    enabled: true
-    proxmox:
-      webhook: "PASTE_PROXMOX_DISCORD_WEBHOOK"
-
-  teams:
-    enabled: false
-    proxmox:
-      webhook: "PASTE_PROXMOX_TEAMS_WORKFLOW_WEBHOOK"
-
-routing:
-  proxmox:
-    outputs:
-      - output: discord
-        target: proxmox
-
-      # - output: teams
-      #   target: proxmox
 ```
+
+`config.yaml` holds only the listener and its secret; destinations and routes
+are managed in the WebUI and `config.yaml` refuses `outputs` and `routing`
+sections. Create the Discord or Microsoft Teams destination under
+**Destinations** (the webhook goes into the write-only **Webhook URL** field),
+then edit it, open **Manage routes** and select the built-in **Proxmox HTTP**
+route.
 
 Do not commit the real secret or destination URLs.
 

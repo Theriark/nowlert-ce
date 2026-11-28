@@ -15,25 +15,25 @@ a trusted token-injecting reverse proxy or the existing SMTP listener. The
 adapter recognizes storage, power, thermal, memory, network, security,
 firmware, chassis, and availability events and retains safe operator actions.
 
-```yaml
-routing:
-  dell_idrac:
-    outputs:
-      - output: discord
-        target: hardware
-```
+Destinations, routes and tokens are managed in the WebUI, not in
+`config.yaml`. Create a source-scoped Event API token for Dell iDRAC under
+**Profile menu → Security → API tokens**, create the destination under
+**Destinations**, then edit it, open **Manage routes** and select the built-in
+**Dell iDRAC Redfish** route. The
+[Dell iDRAC Redfish routing guide](guides/dell-idrac-redfish-routing.md) walks
+through each step.
 
 Trusted management systems can generate routine `USR0030` and `USR0032`
 login/logout audit records over REDFISH, IPMI over LAN, or another management
 transport. These successful session records can be handled without delivery
-by listing only the trusted client addresses:
+by listing only the trusted client addresses in the Dell iDRAC integration
+settings record. The WebUI's **Integration behavior** panel does not show this
+record, so an administrator sets it through the
+[platform API](platform-api.md) with a browser session:
 
-```yaml
-notifications:
-  dell_idrac:
-    suppress_ipmi_session_audit_from:
-      - 192.0.2.10
-      - 192.0.2.11
+```text
+PUT /api/v2/integration-settings/dell_idrac
+{"suppress_ipmi_session_audit_from": ["192.0.2.10", "192.0.2.11"]}
 ```
 
 The filter requires all three signals: a Dell iDRAC notification, message ID
