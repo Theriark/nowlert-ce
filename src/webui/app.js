@@ -86,6 +86,7 @@ const SOURCE_CATEGORIES = {
   security: { key: "security", label: "Security" },
   generic: { key: "generic", label: "Generic" },
 };
+// i18n-extract: skip-start (older Portuguese table; the catalogues in src/webui/i18n replace it)
 const PT_TRANSLATIONS = {
   "Dashboard": "Painel",
   "Overview": "Visão geral",
@@ -163,6 +164,7 @@ const PT_TRANSLATIONS = {
   "Delete": "Eliminar",
   "Reset password": "Repor palavra-passe",
 };
+// i18n-extract: skip-end
 const state = {
   sessionGeneration: 0,
   user: null,
@@ -258,6 +260,21 @@ function observeFormFieldIdentities() {
 
 document.addEventListener("DOMContentLoaded", observeFormFieldIdentities, { once: true });
 if (document.readyState !== "loading") observeFormFieldIdentities();
+
+// The interface is translated in place (i18n.js), so code that checks what a
+// node shows must accept the English text and its translation alike;
+// otherwise it would put the English back and the two would keep undoing
+// each other.
+function uiTextIs(actual, english, { ignoreCase = false } = {}) {
+  const fold = (text) => {
+    const value = String(text ?? "").replace(/\s+/g, " ").trim();
+    return ignoreCase ? value.toLowerCase() : value;
+  };
+  const shown = fold(actual);
+  if (shown === fold(english)) return true;
+  const translate = typeof window !== "undefined" ? window.nowlertTranslate : null;
+  return typeof translate === "function" && shown === fold(translate(english));
+}
 
 function element(tag, options = {}, children = []) {
   const item = document.createElement(tag);
@@ -859,7 +876,7 @@ function updateSessionWarning() {
   }
   if (remaining <= SESSION_IDLE_WARNING_MS) {
     const minutes = Math.max(1, Math.ceil(remaining / 60000));
-    byId("session-warning-copy").textContent = `Session expires in about ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+    byId("session-warning-copy").textContent = minutes === 1 ? "Session expires in about 1 minute." : `Session expires in about ${minutes} minutes.`;
     warning.hidden = false;
     return;
   }
@@ -1851,7 +1868,7 @@ function destinationFlowState(destination) {
     }
     return {
       state: "active",
-      detail: `Last destination test passed${testResult.response_status ? ` with HTTP ${testResult.response_status}` : ""}`,
+      detail: testResult.response_status ? `Last destination test passed with HTTP ${testResult.response_status}` : "Last destination test passed",
     };
   }
   return { state: "active", detail: "Destination is enabled and configured" };
@@ -3106,7 +3123,7 @@ function backupSnapshotDetail(item) {
   const legacy = item.config_included ? "Full snapshot" : "Legacy state-only";
   const parts = [
     legacy,
-    `${item.secret_files} file${Number(item.secret_files) === 1 ? "" : "s"}`,
+    (Number(item.secret_files) === 1 ? "1 file" : `${item.secret_files} files`),
     `DB schema ${item.schema_version}`,
   ];
   if (item.application_version) parts.push(`v${String(item.application_version).replace(/^v/i, "")}`);
@@ -3361,7 +3378,7 @@ async function loadExternalBackups({ silent = false } = {}) {
     if (typeof qaSaveWorkspaceCache === "function") qaSaveWorkspaceCache();
     if (!silent && errors.length) {
       toast(
-        `${errors.length} backup destination${errors.length === 1 ? "" : "s"} could not be inspected.`,
+        errors.length === 1 ? "1 backup destination could not be inspected." : `${errors.length} backup destinations could not be inspected.`,
         "error",
       );
     }
@@ -3554,11 +3571,11 @@ function renderHousekeepingSettings() {
   const emailContentStatus = status.email_raw_content || {};
   const emailProcessingStatus = status.email_processing_history || {};
   byId("housekeeping-email-metadata-count").textContent =
-    `${Number(emailMetadataStatus.rows || 0).toLocaleString()} retained metadata record${Number(emailMetadataStatus.rows || 0) === 1 ? "" : "s"}; separate from ordinary event history.`;
+    (Number(emailMetadataStatus.rows || 0) === 1 ? "1 retained metadata record; separate from ordinary event history." : `${Number(emailMetadataStatus.rows || 0).toLocaleString()} retained metadata records; separate from ordinary event history.`);
   byId("housekeeping-email-content-count").textContent =
-    `${Number(emailContentStatus.rows || 0).toLocaleString()} retained sanitized preview record${Number(emailContentStatus.rows || 0) === 1 ? "" : "s"}; attachment payloads are never retained.`;
+    (Number(emailContentStatus.rows || 0) === 1 ? "1 retained sanitized preview record; attachment payloads are never retained." : `${Number(emailContentStatus.rows || 0).toLocaleString()} retained sanitized preview records; attachment payloads are never retained.`);
   byId("housekeeping-email-processing-count").textContent =
-    `${Number(emailProcessingStatus.rows || 0).toLocaleString()} retained Email processing record${Number(emailProcessingStatus.rows || 0) === 1 ? "" : "s"}.`;
+    (Number(emailProcessingStatus.rows || 0) === 1 ? "1 retained Email processing record." : `${Number(emailProcessingStatus.rows || 0).toLocaleString()} retained Email processing records.`);
 
   const timeSelect = byId("housekeeping-time");
   timeSelect.disabled = !enabled;
@@ -4434,7 +4451,7 @@ function renderMobileConnection(settings = {}) {
   const container = byId("destination-settings");
   const item = state.destinations.find((candidate) => candidate.id === byId("destination-id").value);
   const connected = item?.output_type === "nowlert_mobile" && item.secret_configured;
-  const status = element("p", { className: "wide", text: connected ? `Connected${settings.topic_name ? ` to ${settings.topic_name}` : " to Nowlert Mobile"}` : "Connect Nowlert Mobile to receive your routed alerts.", attributes: { role: "status", "aria-live": "polite" } });
+  const status = element("p", { className: "wide", text: connected ? (settings.topic_name ? `Connected to ${settings.topic_name}` : "Connected to Nowlert Mobile") : "Connect Nowlert Mobile to receive your routed alerts.", attributes: { role: "status", "aria-live": "polite" } });
   const code = element("strong", { className: "mobile-connection-code wide" });
   const instructions = element("p", { className: "wide", text: "Open Nowlert Mobile → Integrations → Connect Nowlert CE. Enter the code and approve the connection." });
   instructions.hidden = true;

@@ -464,9 +464,9 @@
     const integrationNote = document.querySelector('[data-kpi="integrations"] .ops-kpi-copy small');
     const destinationNote = document.querySelector('[data-kpi="destinations"] .ops-kpi-copy small');
     const routeNote = document.querySelector('[data-kpi="routes"] .ops-kpi-copy small');
-    if (integrationNote && integrationNote.textContent !== "Used by active routes") integrationNote.textContent = "Used by active routes";
-    if (destinationNote && destinationNote.textContent !== "Enabled destinations") destinationNote.textContent = "Enabled destinations";
-    if (routeNote && routeNote.textContent !== "Enabled routing rules") routeNote.textContent = "Enabled routing rules";
+    if (integrationNote && !uiTextIs(integrationNote.textContent, "Used by active routes")) integrationNote.textContent = "Used by active routes";
+    if (destinationNote && !uiTextIs(destinationNote.textContent, "Enabled destinations")) destinationNote.textContent = "Enabled destinations";
+    if (routeNote && !uiTextIs(routeNote.textContent, "Enabled routing rules")) routeNote.textContent = "Enabled routing rules";
 
     polishDashboardRange();
     ensureWorkspaceSummary();

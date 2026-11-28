@@ -197,7 +197,7 @@
       "span",
       "",
       attempts.length
-        ? `${attempts.length} final delivery outcome${attempts.length === 1 ? "" : "s"} available in recent history.`
+        ? (attempts.length === 1 ? "1 final delivery outcome available in recent history." : `${attempts.length} final delivery outcomes available in recent history.`)
         : `No delivery outcomes are available for ${spec.label}.`,
     );
     summary.append(keyDelivered, keyFailed, note);
@@ -284,9 +284,9 @@
           ? "All systems operational"
           : "Health status unavailable";
     const detail = errors.length
-      ? `${errors.length} health check${errors.length === 1 ? "" : "s"} failed.`
+      ? (errors.length === 1 ? "1 health check failed." : `${errors.length} health checks failed.`)
       : warnings.length
-        ? `${warnings.length} health warning${warnings.length === 1 ? "" : "s"} detected.`
+        ? (warnings.length === 1 ? "1 health warning detected." : `${warnings.length} health warnings detected.`)
         : checks.length
           ? `${checks.length} operational checks are healthy.`
           : "Run the health checks from the Audit Log.";
@@ -334,7 +334,7 @@ function routeAssignmentEnsureDestinationPicker() {
   const form = byId("destination-form");
   if (!form) return;
   const fieldsets = form.querySelectorAll("fieldset");
-  const credentials = [...fieldsets].find((item) => item.querySelector("legend")?.textContent.trim() === "Write-only credentials");
+  const credentials = [...fieldsets].find((item) => uiTextIs(item.querySelector("legend")?.textContent, "Write-only credentials"));
   if (!credentials) return;
 
   const fieldset = element("fieldset", { className: "route-assignment-fieldset" });
@@ -557,7 +557,7 @@ function routeAssignmentInstallRouteDefinitionUi() {
   const routeForm = byId("route-form");
   if (routeForm) {
     for (const fieldset of routeForm.querySelectorAll("fieldset")) {
-      if (fieldset.querySelector("legend")?.textContent.trim() === "Optional route filters") {
+      if (uiTextIs(fieldset.querySelector("legend")?.textContent, "Optional route filters")) {
         fieldset.hidden = true;
         for (const input of fieldset.querySelectorAll("input, select, textarea")) input.disabled = true;
       }
@@ -702,7 +702,7 @@ renderFlow = function renderAssignmentFlow() {
           title: routeStatus.detail,
         }, [
           flowSignal(firstStatus, `${inputStatus.detail}; ${routeStatus.detail}`),
-          element("div", {}, [element("strong", { text: route.name }), element("small", { text: `${route.destination_count || 0} destination${Number(route.destination_count || 0) === 1 ? "" : "s"}` })]),
+          element("div", {}, [element("strong", { text: route.name }), element("small", { text: (Number(route.destination_count || 0) === 1 ? "1 destination" : `${route.destination_count || 0} destinations`) })]),
           flowSignal(destinationStatus.state, destinationStatus.detail, true),
         ]),
         element("div", {

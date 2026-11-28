@@ -1496,11 +1496,11 @@ async function emailOpenPreview(messageId) {
     frame.srcdoc = preview.html || "<p>No previewable message body.</p>";
     security.replaceChildren(
       emailBadge(
-        `${Number(preview.active_content_blocked || 0)} active-content item${Number(preview.active_content_blocked || 0) === 1 ? "" : "s"} blocked`,
+        (Number(preview.active_content_blocked || 0) === 1 ? "1 active-content item blocked" : `${Number(preview.active_content_blocked || 0)} active-content items blocked`),
         "state-healthy",
       ),
       emailBadge(
-        `${Number(preview.remote_content_blocked || 0)} remote-content item${Number(preview.remote_content_blocked || 0) === 1 ? "" : "s"} blocked`,
+        (Number(preview.remote_content_blocked || 0) === 1 ? "1 remote-content item blocked" : `${Number(preview.remote_content_blocked || 0)} remote-content items blocked`),
         "state-healthy",
       ),
       element("span", {
@@ -2244,7 +2244,7 @@ async function emailAction(action, id, node) {
       });
       const result = response.result || {};
       const summary = result.reason === "routed"
-        ? `Routed to ${result.delivered} destination${result.delivered === 1 ? "" : "s"}.`
+        ? (result.delivered === 1 ? "Routed to 1 destination." : `Routed to ${result.delivered} destinations.`)
         : result.reason === "quiet_window"
           ? "Reprocessing matched a rule but was suppressed by the group quiet window."
           : result.reason === "classification_ignore"

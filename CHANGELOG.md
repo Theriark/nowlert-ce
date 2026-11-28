@@ -62,6 +62,16 @@
   `?emailTab=`; the destination URL error no longer ends in four dots; the route
   picker names the owner of each route; creating a user shows a confirmation;
   `PUT /api/v2/integration-settings/{xo,zabbix}` refuses `show_ids: true`.
+- Readiness fixes, round 5: the interface is translated into all twenty
+  languages of the language list (page titles, Dashboard cards, Routing Flow,
+  Filtering, Email Alerts, Delivery history filters, Audit log, Backups,
+  Settings, dialogs, notifications and errors); counts use whole singular and
+  plural sentences, and a test fails when a catalogue misses a string or a
+  script or the page adds English text that is not in the catalogues.
+  Changing the language no longer changes the timezone. The delivery health
+  check names the destinations whose deliveries failed in the last hour, and
+  tells an administrator separately about failures on other accounts' private
+  destinations, which the administrator's Delivery history does not show.
 - Delivery history: the Source column keeps a 156px minimum and breaks a source
   name only between words, so "Checkmk", "Prometheus" and "Supermicro" no
   longer break mid-word at 1440 px; two-word names such as "Home Assistant"

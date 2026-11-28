@@ -47,7 +47,7 @@ def test_filtering_core_owns_name_sharing_and_final_six_column_geometry():
     assert '<th>Name</th><th>Filters</th><th>Status</th><th data-filter-sync-column="sharing">Sharing</th><th>Actions</th>' in filtering
     assert 'className: "filtering-sharing-cell"' in filtering
     assert 'const nameHeading = headerRow.children[1];' in ownership
-    assert 'nameHeading.textContent !== "Name"' in ownership
+    assert '!uiTextIs(nameHeading.textContent, "Name")' in ownership
     assert "syncFilteringTableHeading" not in management
 
     for selector, width in (

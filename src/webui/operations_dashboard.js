@@ -715,9 +715,9 @@
     }).length;
     const storageCheck = healthChecks.find(item => /storage|disk|database/i.test(`${item.key || ""} ${item.name || ""}`));
     return [
-      { icon: "api", name: "API", detail: workspaceIssues ? `${workspaceIssues} workspace request issue${workspaceIssues === 1 ? "" : "s"}` : "API service is running normally", status: workspaceIssues ? "warning" : "healthy" },
-      { icon: "delivery", name: "Deliveries", detail: failures ? `${failures} terminal failure${failures === 1 ? "" : "s"} in range` : "Alert delivery pipeline is operational", status: failures ? "warning" : "healthy" },
-      { icon: "audit", name: "Audit", detail: auditIssues ? `${auditIssues} recorded issue${auditIssues === 1 ? "" : "s"}` : "No recorded audit issues", status: auditIssues ? "warning" : "healthy" },
+      { icon: "api", name: "API", detail: workspaceIssues ? (workspaceIssues === 1 ? "1 workspace request issue" : `${workspaceIssues} workspace request issues`) : "API service is running normally", status: workspaceIssues ? "warning" : "healthy" },
+      { icon: "delivery", name: "Deliveries", detail: failures ? (failures === 1 ? "1 terminal failure in range" : `${failures} terminal failures in range`) : "Alert delivery pipeline is operational", status: failures ? "warning" : "healthy" },
+      { icon: "audit", name: "Audit", detail: auditIssues ? (auditIssues === 1 ? "1 recorded issue" : `${auditIssues} recorded issues`) : "No recorded audit issues", status: auditIssues ? "warning" : "healthy" },
       { icon: "storage", name: "Storage", detail: storageCheck?.detail || (storageCheck ? "Storage check completed" : "Waiting for the latest health check"), status: storageCheck ? normalizedHealthStatus(storageCheck.status) : "unknown" },
     ];
   }

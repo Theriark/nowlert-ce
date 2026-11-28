@@ -124,6 +124,11 @@ release material.
   user shows a confirmation; the Security page token section is always headed
   **Event API tokens**; `PUT /api/v2/integration-settings/{xo,zabbix}` refuses
   `show_ids: true`.
+- Readiness fixes, round 5 (28 November 2026): every page, dialog, message and
+  error is translated into all twenty interface languages, with whole singular
+  and plural sentences for counts; changing the language keeps the saved
+  timezone; the delivery health check names the failing destinations and
+  reports other accounts' private failures to administrators separately.
 
 ### Operations
 

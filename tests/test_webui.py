@@ -508,7 +508,12 @@ def test_regional_i18n_save_boundary():
         "pt", "es", "fr", "de", "it", "nl", "pl", "cs", "ro",
         "sv", "da", "nb", "fi", "el", "tr", "ru", "uk", "ja", "zh",
     ):
-        assert f'"{locale}": [' in script
+        # Each offered language has its own catalogue, served next to i18n.js.
+        assert f'"{locale}"' in script.split("const CATALOGUE_CODES", 1)[1].split("]);", 1)[0]
+        assert (ROOT / "src" / "webui" / "i18n" / f"{locale}.json").is_file()
+        response = WebUIService(enabled_config(), root=ROOT).response(f"/ui/i18n/{locale}.json")
+        assert response.status == 200
+        assert response.content_type.startswith("application/json")
 
     assert '"en-GB": "English"' in script
     assert '"en-US": "English"' in script

@@ -934,7 +934,7 @@
     const checks = Array.isArray(state.healthChecks) ? state.healthChecks : [];
     strip.hidden = checks.length === 0;
     const count = byId("audit-log-health-count");
-    if (count) count.textContent = `${checks.length} check${checks.length === 1 ? "" : "s"}`;
+    if (count) count.textContent = (checks.length === 1 ? "1 check" : `${checks.length} checks`);
   }
 
   function renderAuditWorkbench() {

@@ -172,14 +172,14 @@
     const headerRow = document.querySelector(".filtering-table thead tr");
     if (!headerRow) return;
     const nameHeading = headerRow.children[1];
-    if (nameHeading && nameHeading.textContent !== "Name") nameHeading.textContent = "Name";
+    if (nameHeading && !uiTextIs(nameHeading.textContent, "Name")) nameHeading.textContent = "Name";
     let heading = headerRow.querySelector('[data-filter-sync-column="sharing"]');
     if (!heading) {
       heading = node("th", "", "Sharing");
       heading.dataset.filterSyncColumn = "sharing";
       headerRow.insertBefore(heading, headerRow.lastElementChild);
     }
-    if (heading.textContent !== "Sharing") heading.textContent = "Sharing";
+    if (!uiTextIs(heading.textContent, "Sharing")) heading.textContent = "Sharing";
   }
 
   function sharingCellFor(row) {
@@ -581,7 +581,7 @@
     const headings = [...document.querySelectorAll("#rf-graph > .rf-column-heading")];
     const labels = ["Integrations", "Filters", "Destinations"];
     headings.slice(0, 3).forEach((heading, index) => {
-      if (heading.textContent !== labels[index]) heading.textContent = labels[index];
+      if (!uiTextIs(heading.textContent, labels[index])) heading.textContent = labels[index];
       heading.dataset.routingColumn = ["integration", "filter", "destination"][index];
     });
   }

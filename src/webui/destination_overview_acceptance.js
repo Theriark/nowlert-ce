@@ -686,7 +686,7 @@
       ? Number(qaDeliveryPagination.total ?? state.deliveries.length)
       : state.deliveries.length;
     const totalLabel = byId("delivery-history-total");
-    if (totalLabel) totalLabel.textContent = `${total} event${total === 1 ? "" : "s"}`;
+    if (totalLabel) totalLabel.textContent = (total === 1 ? "1 event" : `${total} events`);
 
     renderRows(items);
     renderDetail(items.find((item) => deliveryId(item) === selectedDeliveryId));

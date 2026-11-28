@@ -374,6 +374,16 @@ class WebUIService:
                 "image/png",
                 "public, max-age=86400",
             )
+        # Interface translations, one catalogue per offered language.
+        for code in (
+            "cs", "da", "de", "el", "es", "fi", "fr", "it", "ja", "nb",
+            "nl", "pl", "pt", "ro", "ru", "sv", "tr", "uk", "zh",
+        ):
+            self.assets[f"/ui/i18n/{code}.json"] = (
+                f"src/webui/i18n/{code}.json",
+                "application/json; charset=utf-8",
+                "no-cache",
+            )
 
     @property
     def enabled(self) -> bool:
