@@ -63,7 +63,10 @@ Current release material:
 
 Historical notes under `releases/` and historical acceptance/QA checklists are
 version snapshots. They are intentionally preserved even when a newer release
-changes current documentation.
+changes current documentation. The
+[v2.3.3 to v2.5.2 implementation sequence](version-history-2.3.3-to-2.5.2.md)
+records, commit by commit, how the database-authoritative model replaced the
+unified YAML model between those releases.
 
 Release checklists are grouped in the [validation archive](releases/validation/README.md)
 to keep the operator documentation easy to browse. They record release QA;

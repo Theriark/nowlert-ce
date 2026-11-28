@@ -93,10 +93,21 @@ release material.
   page is removed (the profile menu keeps it); the Users page **Recent
   activity** lists sign-ins and account changes; the Event API token
   **Allowed integrations** list takes a plain click per integration.
+- Readiness fixes of 28 November 2026: the application reports version
+  27.0.0; regular users see Regional settings and Integration behavior
+  read-only instead of Save and Edit controls that failed; **Send test** is
+  limited to a destination's owner and administrators; a webhook URL must be a
+  complete `https://` address; route names are unique across accounts,
+  ignoring case; a wrong current password says "The current password is not
+  correct." on the field; the Preview dialog explains a destination without
+  routes; editing a backup destination clears its old **Last test** time.
 
 ### Operations
 
 - Scheduled housekeeping of Delivery history, Audit log and backup-run records.
+- Health checks warn about mailboxes that cannot synchronize or repeated
+  mailbox synchronization failures, and report the selected backup target and
+  schedule instead of "External backup disabled".
 - Backup listing of NAS targets without scanning archive contents; the Mobile
   coordination lock is excluded from backups.
 - Concurrent SMTP routing and bounded concurrent destination delivery.

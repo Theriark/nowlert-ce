@@ -96,6 +96,16 @@ Tokens are:
 | GET | `/api/v2/users/{id}/routes` | administrator | list owner routes |
 | PUT | `/api/v2/account/password` | session + CSRF | change current password |
 | PUT/DELETE | `/api/v2/account/avatar` | session + CSRF | set/remove current avatar |
+| POST | `/api/v2/account/mfa/setup` | session + CSRF | start authenticator enrolment (secret and QR code) |
+| PUT | `/api/v2/account/mfa` | session + CSRF | confirm enrolment with an authenticator `code`; returns recovery codes once |
+| DELETE | `/api/v2/account/mfa` | session + CSRF | turn multi-factor authentication off (`password` and `code`) |
+| POST | `/api/v2/account/mfa/recovery-codes` | session + CSRF | replace recovery codes (`password` and `code`) |
+| GET/PUT | `/api/v2/users/{id}/destination-permissions` | administrator (+ CSRF for PUT) | list/set a user's edit and filter permissions on shared destinations |
+
+A wrong current password on `PUT /api/v2/account/password` returns 403 with
+`"code": "password_invalid"` and the message "The current password is not
+correct." The multi-factor endpoints return 403 with `password_invalid` for a
+wrong password and `mfa_invalid` for a wrong authenticator code.
 
 The current user-deletion path is server-side protected. An administrator cannot
 delete its own currently authenticated account, and storage ownership/integrity
@@ -114,13 +124,17 @@ audit event.
 | GET | `/api/v2/preferences` | session | regional preferences |
 | PUT | `/api/v2/preferences` | administrator + CSRF | update regional preferences |
 | GET | `/api/v2/version` | session | running/advertised version |
-| GET/POST | `/api/v2/notices` | session / administrator + CSRF | list/publish notices |
-| POST | `/api/v2/notices/{id}/dismiss` | session + CSRF | dismiss ordinary notice |
-| PATCH/DELETE | `/api/v2/notices/{id}` | administrator + CSRF | edit/resolve notice |
 | GET | `/api/v2/metrics/{range}` | session | Overview metrics |
 | GET | `/api/v2/health-checks` | session | safe operational checks |
 | POST | `/api/v2/reboot` | administrator + CSRF | audited restart request |
 | GET/PUT | `/api/v2/housekeeping` | administrator + CSRF for PUT | inspect/update history retention |
+| PATCH | `/api/v2/configuration/inputs/{smtp,http,redfish}` | administrator + CSRF | enable/disable an input (applies after restart) |
+
+Notices (`/api/v2/notices`) were removed; those paths answer 404.
+
+`GET /api/v2/health-checks` returns the database, configuration, destination
+credential, route assignment, backup target, recent delivery and mailbox
+synchronization checks, each with `status` `healthy`, `warning` or `error`.
 
 Housekeeping execution is scheduler-only. The persisted daily run key makes the
 once-per-day boundary survive container restarts and image updates.
@@ -140,14 +154,14 @@ once-per-day boundary survive container restarts and image updates.
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/api/v2/destinations` | session | list visible destinations + row errors |
-| POST | `/api/v2/destinations` | administrator + CSRF | create destination/write-only secret |
+| POST | `/api/v2/destinations` | session + CSRF | create an own destination with a write-only secret (an administrator may set `owner_user_id`) |
 | GET | `/api/v2/destinations/{id}` | visible session | read secret-free metadata |
-| PATCH | `/api/v2/destinations/{id}` | administrator + CSRF | update metadata/type/secret |
-| DELETE | `/api/v2/destinations/{id}` | administrator + CSRF | delete unused destination |
+| PATCH | `/api/v2/destinations/{id}` | owner + CSRF | update metadata/type/secret |
+| DELETE | `/api/v2/destinations/{id}` | owner + CSRF | delete destination |
 | POST | `/api/v2/destinations/{id}/preview` | visible session + CSRF | preview payload |
-| POST | `/api/v2/destinations/{id}/test` | administrator + CSRF | perform destination test |
+| POST | `/api/v2/destinations/{id}/test` | owner/admin + CSRF | perform destination test |
 | GET | `/api/v2/routes` | session | list visible routes + row errors |
-| POST | `/api/v2/routes` | administrator + CSRF | create route |
+| POST | `/api/v2/routes` | session + CSRF | create route |
 | GET | `/api/v2/routes/{id}` | owner/admin | return route |
 | PATCH | `/api/v2/routes/{id}` | owner/admin + CSRF | update route atomically |
 | DELETE | `/api/v2/routes/{id}` | owner/admin + CSRF | delete route |
@@ -155,6 +169,69 @@ once-per-day boundary survive container restarts and image updates.
 
 Route filters are bounded and normalized server-side. See
 [platform-routing.md](platform-routing.md) for dedicated/fallback behavior.
+
+Validation rules worth knowing:
+
+- A webhook destination's URL must be a complete, credential-free `https://`
+  address; anything else is refused with 400 before the destination is saved.
+- Route names are unique across all accounts, ignoring case. A new or renamed
+  route that reuses a name answers 409 "A route named … already exists. Choose
+  another name."
+- Sharing a destination lets other users select and preview it; only its owner
+  or an administrator can send a test delivery (403 otherwise).
+
+### Nowlert Mobile connections
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| POST | `/api/v2/mobile-connections` | session + CSRF | start pairing a Nowlert Mobile topic (`name`) |
+| POST | `/api/v2/mobile-connections/{id}` | session + CSRF | poll the pairing status |
+
+A finished pairing is saved by sending `mobile_connection_id` with a
+`nowlert_mobile` destination create (`POST /api/v2/destinations`) or with the
+owner's update (`PATCH /api/v2/destinations/{id}`). The topic publish key stays
+server-side.
+
+### Routing Flow and Filtering
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/api/v2/routing-flow/{range}` | session | Routing Flow snapshot; range `10m`, `15m`, `1h`, `3h`, `6h`, `1d`, `1m` or `1y` |
+| GET | `/api/v2/filters` | session | filtering overview of visible destinations |
+| GET/PUT/DELETE | `/api/v2/filters/destinations/{id}` | destination owner (+ CSRF for writes) | read/replace/clear a destination's filters |
+| GET/PUT | `/api/v2/filters/destinations/{id}/enabled` | destination owner (+ CSRF for PUT) | turn filtering for a destination on or off |
+| GET/PUT/DELETE | `/api/v2/filters/destinations/{id}/sources/{source}` | destination owner (+ CSRF for writes) | one integration's filter on that destination |
+
+### Email Alerts
+
+Email Alerts endpoints are owner-scoped: each account sees and changes its own
+mailboxes, groups and rules, plus mailboxes shared with it; an administrator may
+create resources for another account with `owner_user_id`.
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/api/v2/email-overview` | session | mailbox, group, rule and recent message summary |
+| GET | `/api/v2/email-activity` | session | recent messages with their processing result |
+| GET | `/api/v2/email-mailbox-providers` | session | which providers (Gmail, Microsoft 365, IMAP) are configured |
+| GET/POST | `/api/v2/email-mailboxes` | session (+ CSRF for POST) | list/add mailboxes |
+| GET/PATCH/DELETE | `/api/v2/email-mailboxes/{id}` | owner (+ CSRF for writes) | read/update/remove a mailbox |
+| POST | `/api/v2/email-mailboxes/{id}/oauth-start` | owner + CSRF | start the Google or Microsoft sign-in |
+| POST | `/api/v2/email-mailboxes/{id}/oauth-complete` | owner + CSRF | finish the sign-in for that mailbox |
+| POST | `/api/v2/email-mailboxes/oauth-complete` | session + CSRF | finish a sign-in from its OAuth `state` and `code` |
+| POST | `/api/v2/email-mailboxes/oauth-failed` | session + CSRF | record a provider sign-in error from its `state` |
+| POST | `/api/v2/email-mailboxes/{id}/sync` | owner + CSRF | synchronize the mailbox now |
+| GET/POST | `/api/v2/email-mailboxes/{id}/folders` | owner (+ CSRF for POST) | list folders/labels or choose the watched ones |
+| GET/POST | `/api/v2/email-groups` | session (+ CSRF for POST) | list/create rule groups |
+| GET/PATCH/DELETE | `/api/v2/email-groups/{id}` | owner (+ CSRF for writes) | read/update/delete a group |
+| GET/POST | `/api/v2/email-rules` | session (+ CSRF for POST) | list/create rules |
+| GET/PATCH/DELETE | `/api/v2/email-rules/{id}` | owner (+ CSRF for writes) | read/update/delete a rule |
+| POST | `/api/v2/email-rules/evaluate` | session + CSRF | test the rules against a stored message (`message_id`) |
+| GET | `/api/v2/email-messages/{id}/preview` | owner | sandboxed, body-only message preview |
+| POST | `/api/v2/email-messages/{id}/{action}` | owner + CSRF | `reprocess`, `mute-similar`, `ignore-sender` or `change-severity` |
+
+Repeated mailbox synchronization failures appear in the `mailbox_sync` health
+check; see [Integrations and inputs](integrations-and-inputs.md) for Email Alerts
+setup.
 
 ### Delivery and audit history
 

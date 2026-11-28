@@ -1,9 +1,9 @@
-# Nowlert v2.5.2 process bootstrap configuration.
+# Nowlert CE process bootstrap configuration.
 #
 # This file intentionally contains only listener, bootstrap, and security
 # settings. Destinations, routes, Event API tokens, regional preferences,
 # backup schedules, integration policies, categories, aliases, Redfish
-# deduplication, users, notices, and history are stored in private platform
+# deduplication, users, and history are stored in private platform
 # state and managed from the WebUI.
 #
 # Keep /nowlert/state on a persistent private mount. Back up config, state,

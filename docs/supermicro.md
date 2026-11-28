@@ -15,13 +15,12 @@ it cannot send a header, place the endpoint behind a trusted reverse proxy that
 injects the token, or use the isolated SMTP compatibility path. Never expose an
 unauthenticated Redfish endpoint to an untrusted network.
 
-```yaml
-routing:
-  supermicro:
-    outputs:
-      - output: discord
-        target: hardware
-```
+Create the source-scoped token under **Profile menu → Security → API tokens**
+(allowing only Supermicro). Routing is configured in the WebUI, not in
+`config.yaml`: create the destination under **Destinations**, then edit it,
+open **Manage routes** and select the built-in **Supermicro Redfish** route.
+The [hardware Redfish setup guide](guides/hardware-redfish-setup.md) shows the
+complete flow.
 
 Thermal, fan, power, memory, storage, security, firmware, network, chassis, and
 availability categories share a consistent server-hardware presentation.

@@ -537,8 +537,9 @@ they do not rebuild from a branch or release tag.
 
 - `development` is cumulative active work;
 - `stage` is the source commit approved by the Stage promotion gate; and
-- `main` is fast-forwarded to that same Stage-approved commit before release
-  finalization.
+- `main` holds what was last released: `stage` is merged into `main` right
+  before the release workflow runs, and `main` is never merged into
+  `development`.
 
 ## Configuration is split by responsibility
 
@@ -711,9 +712,9 @@ Development exact digest
    v
 stage branch == approved source SHA
    |
-   | fast-forward main to stage SHA
+   | merge stage into main (merge commit with Stage's files)
    v
-main == stage == approved source SHA
+main carries the approved Stage source
    |
    | release/finalization gates
    v

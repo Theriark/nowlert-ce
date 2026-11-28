@@ -64,8 +64,35 @@ tracked release scope.
 - production dependency refreshes;
 - fast-forward-only Stage source advancement with ref-propagation polling;
 - release tag/version equality enforced before publication;
-- current v3.1.2 release notes and QA acceptance contract; and
+- v3.1.2 release notes and QA acceptance contract; and
 - stable v3.1.2 image/tag references synchronized across deployment surfaces.
+
+### v3.1.3 — Operator guides
+
+- end-to-end use-case guides (Xen Orchestra to Discord and Microsoft Teams,
+  direct homelab SMTP, Dell iDRAC Redfish routing, Zabbix Event API to
+  Discord); and
+- a stable `docs/integrations/` index.
+
+### v3.1.4–v3.1.5 — Stage-final release chain
+
+- Stage as the final runtime acceptance gate before release; and
+- release automation cleanup around the same immutable Development digest.
+
+### v3.1.6 — Three-workflow release model
+
+- Continuous Integration builds, verifies and deploys Development;
+- Promote CE to Stage and Finalize CE Release promote the same digest without
+  rebuild; see [v3.1.6 release notes](releases/v3.1.6.md).
+
+## Next release: v27.0.0
+
+The `development` branch is the v27.0.0 release-candidate line (`v27.0.0-rc.N`
+pre-release tags). It adds Email Alerts, the Email and Nowlert Mobile
+destinations, seven new integrations, multi-factor authentication, filtering
+that is separate from routes and the current WebUI; see
+[Development after v3.1.6](releases/post-v3.1.6-development.md) for the full
+list. v3.1.6 stays the current stable release until v27.0.0 is released.
 
 ## Current maintenance priorities
 
@@ -80,7 +107,7 @@ tracked release scope.
 6. Add integrations/outputs only behind explicit contracts, tests, and
    ownership/security boundaries.
 
-## Candidate v3.x work
+## Candidate work after v27.0.0
 
 Candidates, not commitments:
 
@@ -105,9 +132,11 @@ Create one issue per independently testable outcome. A useful issue defines:
 - real-system versus fixture validation level; and
 - target release only after scope is approved.
 
-Release candidates must be cumulative on `development`. Stage approval moves the
-`stage` pointer to the exact promoted source commit. `main` is fast-forwarded to
-that same commit before release finalization.
+Release candidates must be cumulative on `development`. After a successful Stage
+promotion, `stage` is fast-forwarded to the promoted candidate commit. Right
+before a release, `stage` is merged into `main` (a merge commit with Stage's
+files), so `main` always holds what was last released. `main` is never merged
+into `development`; see [Deployment](deployment.md) for the release flow.
 
 Completed historical issues remain closed; new compatibility findings should be
 tracked as new issues referencing the original work rather than reopening old

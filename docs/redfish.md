@@ -43,21 +43,16 @@ http:
   port: 8080
   shared_secret: ""
 
-redfish:
-  deduplication_window_seconds: 300
-
 api:
   enabled: true
-  tokens:
-    hardware:
-      enabled: true
-      role: application
-      sources: [redfish, supermicro, hpe_ilo, dell_idrac]
-      token_file: /run/secrets/nowlert_hardware_token
-      rate_limit_per_minute: 120
 ```
 
-The token file must be readable only by its owner (`0600`). Nowlert accepts
+`config.yaml` keeps only the listener; it refuses `redfish` and `api.tokens`
+sections. Create the hardware token in the WebUI under **Profile menu →
+Security → API tokens**, allowing only the Redfish integrations you use
+(Redfish, Supermicro, HPE iLO, Dell iDRAC); its value is shown once. An
+administrator sets the duplicate-event window (for example 300 seconds) under
+**Filtering → Integration behavior → Redfish transport → Edit**. Nowlert accepts
 at most 64 events per envelope. Duplicate fingerprints inside the configured
 window return `204` but are not routed again. Raw payloads, credentials, event
 fingerprints, and full management URLs are not shown in cards or access logs.

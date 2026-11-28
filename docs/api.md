@@ -1,11 +1,17 @@
 # Backend and event API
 
-Nowlert v1.9.0 introduces the disabled-by-default YAML administration and
-event API. It reuses the existing dispatcher, notification model, router,
+Nowlert v1.9.0 introduced the YAML-token administration and event API
+(`/api/...`). It reuses the existing dispatcher, notification model, router,
 formatters, and outputs; it is not a second delivery pipeline.
 
-The separate opt-in local-session, owned-resource, preview, and user-scoped
-event contract is documented in the
+The API is **enabled by default**: when `config.yaml` has no `api.enabled`
+setting, Nowlert serves it, and the supplied `config/config.example.yaml` sets
+`api.enabled: true`. Set `api.enabled: false` to turn off both this API and the
+`/api/v2` platform API (the WebUI then cannot work). `GET /api/health` needs no
+token; every other endpoint below needs a configured YAML token.
+
+The local-session, owned-resource, preview, and user-scoped event contract
+used by the WebUI is documented in the
 [v2 authenticated platform API guide](platform-api.md).
 
 ## Authentication

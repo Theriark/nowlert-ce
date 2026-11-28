@@ -49,27 +49,17 @@ Grafana releases and custom contact-point templates.
 
 ## Dedicated Discord routing
 
-Keep real webhook values only in the ignored `config/config.yaml`:
+Destinations and routes are managed in the WebUI and stored in the platform
+database; `config.yaml` refuses `outputs` and `routing` sections. In the WebUI:
 
-```yaml
-outputs:
-  discord:
-    enabled: true
+1. Open **Destinations**, choose **+ New destination**, select **Discord** (or
+   **Microsoft Teams**) and paste the webhook into the write-only **Webhook
+   URL** field.
+2. Edit the destination, open **Manage routes**, select the built-in
+   **Grafana HTTP** route, choose **Done** and save.
 
-    grafana:
-      webhook: "PASTE_GRAFANA_DISCORD_WEBHOOK_HERE"
-
-routing:
-  grafana:
-    outputs:
-      - output: discord
-        target: grafana
-
-      # - output: teams
-      #   target: grafana
-```
-
-The public example uses the key `webhook`. Do not use `webhook_url`.
+The [Grafana Alerting guide](guides/grafana-to-nowlert.md) covers the contact
+point and the source-scoped token.
 
 ## Test without Grafana
 

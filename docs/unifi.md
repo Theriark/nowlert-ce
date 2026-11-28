@@ -107,30 +107,13 @@ Drive notifications require an external forwarding rule or SMTP relay.
 
 ## Routing and targets
 
-```yaml
-outputs:
-  discord:
-    enabled: true
-    unifi:
-      webhook: "PASTE_UNIFI_DISCORD_WEBHOOK_HERE"
-
-routing:
-  unifi_network:
-    outputs:
-      - output: discord
-        target: unifi
-  unifi_protect:
-    outputs:
-      - output: discord
-        target: unifi
-  unifi_drive:
-    outputs:
-      - output: discord
-        target: unifi
-```
-
-Equivalent Teams targets use `outputs.teams.<target>.webhook`. Dedicated output
-configuration always uses `webhook`, never `webhook_url`.
+Destinations and routes are managed in the WebUI, not in `config.yaml` (which
+refuses `outputs` and `routing` sections). Create the Discord or Microsoft
+Teams destination under **Destinations**, with the webhook in the write-only
+**Webhook URL** field, then edit it, open **Manage routes** and select the
+built-in **UniFi Network HTTP**, **UniFi Protect HTTP** and **UniFi Drive
+HTTP** routes you need. The [UniFi to Discord guide](guides/unifi-to-discord.md)
+shows the complete flow.
 
 ## Reverse proxy
 
