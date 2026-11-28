@@ -463,12 +463,15 @@ not make unrelated settings or pages unavailable.
 sidebar) opens the **Security** page for the signed-in
 account:
 
-- account details and profile picture;
-- **Change password**;
-- **Multi-factor authentication**: **Enable MFA** with an authenticator app,
-  one-time recovery codes to store safely (**I saved these codes**), and
-  **Disable MFA** after confirming the current password and an authenticator
-  code; and
+- **Profile**: account name, role, session times, **Choose picture** (and
+  **Remove** when a picture is set), access status, account role, member
+  since, and the **MFA status** card;
+- **Password & sessions**: current, new and confirmed password with **Update
+  password**, active sessions and the security posture;
+- multi-factor authentication, opened from the **MFA status** card: **Enable
+  MFA** with an authenticator app, one-time recovery codes to store safely
+  (**I saved these codes**), **Regenerate recovery codes**, and **Disable
+  MFA** after confirming the current password and an authenticator code; and
 - **Event API tokens**, as described above.
 
 | Administrator | Regular user |

@@ -24,12 +24,12 @@ the Nowlert Mobile app, which is a separate product. The Development build
 `66d50b00` ran the same application source as `v27.0.0-rc.7` (`9823244c`);
 on 24 October 2026 the Dashboard, Routing Flow and Destinations pages were
 compared with it live and showed the same layout and controls, differing only
-in live counters and the selected time range. The only application change in
-the later commits, up to the source of the current release candidate (the
-latest GitHub pre-release of `Theriark/nowlert-ce`), is the Destinations
-empty-state fix in `src/webui/app.js` and `src/webui/professional.css`
-(PR 641); every other later change is to documentation, CI and
-tests.
+in live counters and the selected time range. Many application changes
+followed (the Destinations empty-state fix of PR 641, the layout and Security
+changes of pull requests 651 to 658 and the readiness fixes of pull requests
+670 to 676, among others); each capture whose page they changed was replaced,
+as the sections below record, and the other files still show their page as it
+looks today.
 
 Live screenshots of the Nowlert CE development WebUI, taken on 21 October 2026
 (Europe/Lisbon) from the Development deployment of the `development` branch at
@@ -154,12 +154,13 @@ name in the sidebar corner painted over with solid black rectangles and opened
 at full size afterwards; it still shows the Zabbix source filter, the severity and outcome
 badges, the transport information (SMTP input, the shared crew destination,
 HTTP 200) and the timeline. It is listed above but not embedded: the
-Synology-filtered capture below, taken from the Development deployment of the
-`development` branch at commit `82c8470af473570a87690e76f9ea0431f49e3013`
-(application version 3.1.6 plus the development changes, after the merge of
-pull requests 622 to 626), same crew administrator account, same viewport,
-opened at full size before being added, remains the embedded reference for the
-page.
+Synology-filtered capture below is the embedded reference for the page. That
+capture was first taken from the Development deployment of the `development`
+branch at commit `82c8470af473570a87690e76f9ea0431f49e3013` (application
+version 3.1.6 plus the development changes, after the merge of pull requests
+622 to 626) with the crew administrator account. Both files were replaced on
+28 November 2026 from Development `fd6bd11f` as `nowlert-admin`; see
+"Replaced again on 28 November 2026" below.
 
 Neither file is an empty placeholder any longer; both have a retained row in
 the [screenshot privacy review](../../guides/screenshot-privacy.md).
@@ -379,7 +380,7 @@ created for that capture with a random password and deleted right after it.
 | File | Page / state | Role | Width |
 |---|---|---|---|
 | `routing-flow-live-admin-1440.png` | Routing Flow, **Last 1 month**: counters, integration cards with the Dell iDRAC logo on a light tile, the filter card and two destinations | administrator | 1440 |
-| `routing-flow-live-admin-768.png` | Routing Flow, **Last 24 hours**, two-column layout | administrator | 768 |
+| `routing-flow-live-admin-768.png` | Routing Flow, **Last 24 hours**: counters in two rows, then the integration, filter and destination columns | administrator | 768 |
 | `routing-flow-live-admin-390.png` | Routing Flow, **Last 24 hours**, top of the page | administrator | 390 |
 | `email-alerts-rules-admin-1440.png` | Email Alerts, Rules tab: enabled-rule counts per classification above the rules table | administrator | 1440 |
 | `email-alerts-rules-admin-768.png` | Email Alerts, Rules tab as stacked rule cards, below the enabled-rule counts | administrator | 768 |
@@ -437,8 +438,9 @@ cards, whose layout did not change, so it was kept.
   The 390 px capture (`routing-flow-live-admin-390.png`) shows the top of the
   page only, with the metric cards in two columns and the first integration
   cards; the filter card is further down the page and is not in the capture.
-  This is a presentation limit of the current development interface observed
-  live on 21 October 2026, not a documentation error.
+  This is a presentation limit of the current development interface, observed
+  live on 21 October 2026 and still visible in the capture of 28 November 2026
+  ("CE - Discord Filte"), not a documentation error.
 - In the Preview dialog, changing the **Message style** selector did not
   change the generated payload in this build: the preview request sends only
   the sample event, and the payload is rendered in the style saved on the

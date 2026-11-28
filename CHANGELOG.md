@@ -4,6 +4,15 @@
 
 ### Documentation
 
+- Screenshots retaken on 28 November 2026 from Development as the neutral test
+  administrator `nowlert-admin`: the Settings and Audit log captures, then
+  nine more after the round-3 readiness fixes (the 1440, 768 and 390 px
+  Routing Flow captures, the 1440 and 768 px Email Alerts rules captures, both
+  Security captures and the Synology- and Zabbix-filtered Delivery history
+  captures). The capture index and the screenshot privacy review record each
+  file; only record identifiers, and on the unembedded Zabbix capture the
+  fixture host labels, are masked with solid black rectangles.
+
 - Settings and Audit log captures taken again on Development `ea51fc67` as the
   neutral test administrator `nowlert-admin`, after the update card and the
   audit trend colours changed; only the record identifiers are masked.
