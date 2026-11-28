@@ -103,9 +103,10 @@ def test_management_consistency_styles_cover_workbench_layout_regressions():
     assert "#view-deliveries .delivery-history-detail-close," in styles
     assert "#view-audit .audit-log-detail-close" in styles
     assert "grid-template-columns: minmax(0, 1fr) auto;" in styles
-    # THE-875 F4: the delivery Source column keeps a 116px minimum and its name
-    # wraps instead of truncating beside the detail inspector at 1440px.
-    assert "minmax(116px, 0.8fr)" in styles
+    # THE-875 F4: the delivery Source column keeps a minimum wide enough for
+    # the longest single-word source name, which wraps only between words.
+    assert "minmax(156px, 0.9fr)" in styles
+    assert "minmax(116px, 0.8fr)" not in styles
     assert "minmax(126px, 0.82fr)" not in styles
     assert "overflow: visible;" in styles
     assert '#view-deliveries .qa-pagination-row[data-qa-pager="delivery-pagination"]' in styles

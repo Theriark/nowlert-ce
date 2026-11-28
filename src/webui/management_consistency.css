@@ -264,14 +264,18 @@
 @media (min-width: 821px) {
   #view-deliveries .delivery-history-columns,
   #view-deliveries .delivery-history-row {
-    grid-template-columns: minmax(116px, 0.8fr) minmax(160px, 1.5fr) minmax(100px, 0.6fr) minmax(92px, 0.6fr) minmax(132px, 0.8fr) 16px;
+    grid-template-columns: minmax(156px, 0.9fr) minmax(150px, 1.5fr) minmax(100px, 0.6fr) minmax(92px, 0.6fr) minmax(132px, 0.8fr) 16px;
   }
 
   /* The Source name (48px icon plus the bold product name) may wrap onto a
-   * second line instead of truncating; the row already has two lines. */
+   * second line between words instead of truncating; the row already has
+   * two lines. The 156px minimum leaves 100px for the name, enough for the
+   * longest single word of the catalogue ("Prometheus", "Supermicro", about
+   * 86px), so no name breaks mid-word ("Checkm / k" at the old 116px). */
   #view-deliveries .delivery-history-row .delivery-history-source strong {
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     white-space: normal;
+    word-break: normal;
   }
 }
 
@@ -280,8 +284,8 @@
  * wrapped. Between 1181px and 1500px the list takes the larger share (the
  * inspector keeps a 400px minimum), the inspector stacks its Transport and
  * Timeline cards so their values never break mid-word, and Time has a 132px
- * minimum for one line. The row minimums (116 + 160 + 100 + 92 + 132 + 16
- * plus five 12px gaps and 32px padding = 708px) fit the 764px list panel at
+ * minimum for one line. The row minimums (156 + 150 + 100 + 92 + 132 + 16
+ * plus five 12px gaps and 32px padding = 738px) fit the 764px list panel at
  * 1440px. The single-column layout below 1181px is unchanged. */
 @media (min-width: 1181px) and (max-width: 1500px) {
   #view-deliveries .delivery-history-workbench {

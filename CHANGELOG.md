@@ -40,6 +40,10 @@
   the Updates card shows the green tick only after a successful check; Audit
   log trends are coloured by good or bad news; Scheduled backups show Day of
   week only for weekly and Day of month only for monthly schedules.
+- Delivery history: the Source column keeps a 156px minimum and breaks a source
+  name only between words, so "Checkmk", "Prometheus" and "Supermicro" no
+  longer break mid-word at 1440 px; two-word names such as "Home Assistant"
+  still wrap between the words.
 - Destinations: a "No destinations" placeholder painted before the workspace
   had loaded (direct load of the page, or a failed first request) stayed in
   the list once the cards arrived, and the stylesheet then stacked every card

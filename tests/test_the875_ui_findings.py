@@ -94,18 +94,23 @@ def test_f4_delivery_history_list_keeps_source_and_time_readable_at_1440():
     desktop = css[css.index("@media (min-width: 821px) {"):]
     columns = _block(desktop, "#view-deliveries .delivery-history-columns,")
     assert (
-        "grid-template-columns: minmax(116px, 0.8fr) minmax(160px, 1.5fr) "
+        "grid-template-columns: minmax(156px, 0.9fr) minmax(150px, 1.5fr) "
         "minmax(100px, 0.6fr) minmax(92px, 0.6fr) minmax(132px, 0.8fr) 16px;"
     ) in columns
     # Row minimums plus five 12px gaps and 32px padding fit the 764px list
     # panel that the 1.3fr share yields at 1440px with the navigation expanded.
-    assert 116 + 160 + 100 + 92 + 132 + 16 + 5 * 12 + 32 <= 764
+    assert 156 + 150 + 100 + 92 + 132 + 16 + 5 * 12 + 32 <= 764
 
     # The Source name wraps onto a second line instead of truncating to
     # "Email A...": the 48px icon plus the bold name need 158px on one line.
+    # It wraps only between words: the 156px minimum leaves 100px, more than
+    # the longest single word ("Prometheus", "Supermicro", about 86px), so
+    # "Checkmk" no longer breaks as "Checkm / k".
     source = _block(desktop, "#view-deliveries .delivery-history-row .delivery-history-source strong {")
     assert "white-space: normal;" in source
-    assert "overflow-wrap: anywhere;" in source
+    assert "overflow-wrap: break-word;" in source
+    assert "word-break: normal;" in source
+    assert "overflow-wrap: anywhere;" not in source
 
     mid = css[css.index("@media (min-width: 1181px) and (max-width: 1500px) {"):]
     workbench = _block(mid, "#view-deliveries .delivery-history-workbench {")
