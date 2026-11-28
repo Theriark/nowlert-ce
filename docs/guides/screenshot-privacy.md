@@ -361,8 +361,9 @@ calls. All of them are now decided; each item says how.
   historical capture `images/v3.1.0-routing-flow.png` stays in the v3.1.0
   record. The Zabbix route filter subtitle with its host-name fragment and the
   two blurred destination names are now hidden by solid black boxes. The
-  current Routing Flow is the new capture of 27 November 2026,
-  `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png`.
+  current Routing Flow capture is
+  `images/v27.0.0-rc.1/routing-flow-live-admin-1440.png`, taken on
+  27 November 2026 and replaced again on 28 November 2026.
 - Decided on 2 November 2026: the delivery capture
   `images/hardware-setup/xen-orchestra-delivery.png` (embedded by the Xen
   Orchestra to Discord guide) showed a real backup job label in the Message
@@ -411,8 +412,11 @@ calls. All of them are now decided; each item says how.
   inspection dates in the Record column are accepted as recorded. A capture is
   re-opened and its date updated when the capture, or the page it shows,
   changes. Wording: the guides call the Security page section "Event API
-  tokens" (its title since 28 November 2026; it read "API tokens" before) and
-  one token an "Event API token" (the dialog's name).
+  tokens" and one token an "Event API token" (the dialog's name). The section
+  title already read "Event API tokens" in the captures of 12 November 2026;
+  until 28 November 2026 a newly signed-in account could still see "API
+  tokens" for a moment, and since then the title is always "Event API
+  tokens".
 
 ## Raster inventory
 

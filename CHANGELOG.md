@@ -11,11 +11,9 @@
   Security captures and the Synology- and Zabbix-filtered Delivery history
   captures). The capture index and the screenshot privacy review record each
   file; only record identifiers, and on the unembedded Zabbix capture the
-  fixture host labels, are masked with solid black rectangles.
-
-- Settings and Audit log captures taken again on Development `ea51fc67` as the
-  neutral test administrator `nowlert-admin`, after the update card and the
-  audit trend colours changed; only the record identifiers are masked.
+  fixture host labels, are masked with solid black rectangles. The Settings
+  and Audit log captures came from Development `ea51fc67`, after the update
+  card and the audit trend colours changed; the nine others from `fd6bd11f`.
 - Screenshot privacy review: new 1440 px Dashboard and Routing Flow
   captures of Development, Live with the month's data; solid black boxes
   replace the blur in four Zabbix and Settings captures and cover the

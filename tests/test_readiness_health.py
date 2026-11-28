@@ -319,3 +319,87 @@ def test_unreadable_mailbox_state_is_a_warning(state):
         "status": "warning",
         "detail": "mailbox status could not be read",
     }
+
+
+def add_failed_attempts(database, owner_id, destination_id, count):
+    with database.transaction() as connection:
+        for index in range(count):
+            connection.execute(
+                """
+                INSERT INTO delivery_attempts(
+                    id, delivery_id, owner_user_id, destination_id, source, title,
+                    severity, outcome, attempt_number, created_at, completed_at
+                ) VALUES (?, ?, ?, ?, 'grafana', 'Test', 'critical', 'failed', 1, ?, ?)
+                """,
+                (
+                    f"{destination_id}-{index}",
+                    f"{destination_id}-delivery-{index}",
+                    owner_id,
+                    destination_id,
+                    NOW - 60,
+                    NOW - 60,
+                ),
+            )
+
+
+@pytest.fixture
+def failing_destinations(state):
+    from storage.destinations import DestinationStore
+
+    database, admin = state
+    alice = UserStore(database, password_hasher=fast_hash).create("alice-user", "alice secure password")
+    destinations = DestinationStore(database)
+    shared = destinations.create(admin.actor, admin.id, "Team Discord", "discord", shared=True)
+    private = destinations.create(alice.actor, alice.id, "Alice Webhook", "webhook", shared=False)
+    add_failed_attempts(database, admin.id, shared.id, 2)
+    add_failed_attempts(database, alice.id, private.id, 16)
+    return database, admin, alice
+
+
+def delivery_check(database, actor):
+    checks = HealthCheckService(database, None, clock=lambda: NOW).run(actor)
+    return next(item for item in checks if item["key"] == "recent_delivery")
+
+
+def test_delivery_failures_are_named_for_the_administrator(failing_destinations):
+    database, admin, _alice = failing_destinations
+
+    result = delivery_check(database, admin.actor)
+
+    assert result["status"] == "warning"
+    assert result["detail"] == (
+        "2 failed attempt(s) in the last hour: Team Discord (2); "
+        "16 failed attempt(s) to other accounts' private destinations, which your "
+        "Delivery history does not show; owners: alice-user (16)"
+    )
+
+
+def test_a_regular_user_sees_only_failures_of_destinations_it_can_see(failing_destinations):
+    database, _admin, alice = failing_destinations
+
+    result = delivery_check(database, alice.actor)
+
+    assert result["status"] == "warning"
+    assert result["detail"] == (
+        "18 failed attempt(s) in the last hour: Alice Webhook (16), Team Discord (2)"
+    )
+    assert "other accounts" not in result["detail"]
+
+
+def test_failures_only_on_another_accounts_private_destination_stay_hidden_from_users(state):
+    from storage.destinations import DestinationStore
+
+    database, admin = state
+    users = UserStore(database, password_hasher=fast_hash)
+    alice = users.create("alice-user", "alice secure password")
+    bob = users.create("bob-user", "bob secure password")
+    private = DestinationStore(database).create(alice.actor, alice.id, "Alice Webhook", "webhook", shared=False)
+    add_failed_attempts(database, alice.id, private.id, 3)
+
+    assert delivery_check(database, bob.actor) == {
+        "key": "recent_delivery",
+        "name": "Recent delivery failures",
+        "status": "healthy",
+        "detail": "none in the last hour",
+    }
+    assert delivery_check(database, admin.actor)["detail"].endswith("owners: alice-user (3)")

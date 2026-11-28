@@ -8,7 +8,9 @@ and the Filtering capture from the Development build `0c14583c`; see
 "Replaced on 31 October 2026" and "Filtering capture replaced on 31 October
 2026" below.
 Eight captures were replaced on 12 November 2026 from the Development build
-`0011c903`; see "Replaced on 12 November 2026" below.
+`0011c903`; see "Replaced on 12 November 2026" below. The 1440 px Dashboard
+and Routing Flow captures were replaced on 27 November 2026; see "Replaced on
+27 November 2026" below.
 The Settings and Audit log captures were replaced on 28 November 2026 from the
 Development build `ea51fc67`; see "Replaced on 28 November 2026" below. Nine
 more were replaced later that day from the Development build `fd6bd11f`; see
@@ -151,9 +153,12 @@ that read like internal infrastructure names. On 2 November 2026 it was
 restored from Git history with the row title, the detail header, the whole
 message body and (after the independent review of the same day) the account
 name in the sidebar corner painted over with solid black rectangles and opened
-at full size afterwards; it still shows the Zabbix source filter, the severity and outcome
-badges, the transport information (SMTP input, the shared crew destination,
-HTTP 200) and the timeline. It is listed above but not embedded: the
+at full size afterwards; that file showed the Zabbix source filter, the
+severity and outcome badges, the transport information (SMTP input, the shared
+crew destination, HTTP 200) and the timeline. It was replaced on 28 November
+2026 (see "Replaced again on 28 November 2026" below); the current file shows
+the transport information but not the timeline, which is below the visible
+area. It is listed above but not embedded: the
 Synology-filtered capture below is the embedded reference for the page. That
 capture was first taken from the Development deployment of the `development`
 branch at commit `82c8470af473570a87690e76f9ea0431f49e3013` (application
@@ -335,6 +340,21 @@ Notes on these eight files:
 - The other captures of this folder were compared with the same build on
   12 November 2026 (Destinations, Routing Flow and Email Alerts rules at 768
   and 390 px) and still show the same layout, so they were kept.
+
+## Replaced on 27 November 2026
+
+The Dashboard capture of 12 November 2026 still showed the page loading, and
+the Routing Flow capture dated from 21 October 2026. Both 1440 px captures
+were replaced on 27 November 2026 by captures of the Development deployment
+with the month's data (**Last 1 month**), signed in as the crew's Development
+administrator account and opened at full size the same day. The Development
+build and the capture times other than the ones in the main table (11:58 and
+12:02) were not recorded for these two files.
+
+| File | Page / state | Role | Width |
+|---|---|---|---|
+| `dashboard-live-admin-1440.png` | Dashboard, **Last 1 month**: delivery counters, deliveries per day, Recent Activity and system health | administrator | 1440 |
+| `routing-flow-live-admin-1440.png` | Routing Flow, **Last 1 month** (replaced again on 28 November 2026; see below) | administrator | 1440 |
 
 ## Replaced on 28 November 2026 (capture base commit ea51fc67)
 

@@ -6,6 +6,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any
 
+from constants.severity import CRITICAL_WORDS, INFORMATION_WORDS, RESOLVED_WORDS, WARNING_WORDS
 from formatters.base import BaseFormatter
 from version import VERSION
 
@@ -834,18 +835,9 @@ class DiscordCardFormatter(BaseFormatter):
     def _discord_status(status: Any, severity: Any = "") -> tuple[str, int, str]:
         status_value = str(status or "").strip().casefold()
         severity_value = str(severity or "").strip().casefold()
-        resolved = {
-            "cleared", "normal", "ok", "recovered", "resolved", "success",
-            "successful",
-        }
-        critical = {
-            "critical", "danger", "disaster", "emergency", "error",
-            "failed", "failure", "high",
-        }
-        warning = {
-            "alert", "average", "caution", "degraded", "medium", "warn",
-            "warning",
-        }
+        resolved = RESOLVED_WORDS
+        critical = CRITICAL_WORDS
+        warning = WARNING_WORDS
 
         # Current state wins over historical severity on recovery cards.
         if status_value in resolved:
@@ -866,7 +858,7 @@ class DiscordCardFormatter(BaseFormatter):
     # in the catch-all bucket (debug, notice, not classified, ...) keeps its own
     # label in the header so the header badge never claims a severity the
     # event did not carry while the Severity metric prints the real value.
-    INFORMATION_SEVERITIES = frozenset({"information", "informational", "info"})
+    INFORMATION_SEVERITIES = INFORMATION_WORDS
 
     @classmethod
     def _discord_header_state(cls, default_state: str, severity: Any) -> str:

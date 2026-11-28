@@ -2108,7 +2108,7 @@ class PlatformAPI:
     def _health_endpoint(self, method, actor) -> APIResponse:
         if method != "GET":
             return self._method_not_allowed("GET")
-        checks = self.health.run()
+        checks = self.health.run(actor)
         self.audit.write(
             actor,
             "health.check",

@@ -26,12 +26,15 @@ once. `config.yaml` can no longer define tokens: under the current
 installation's YAML tokens are imported once by the one-way migration, under
 their YAML names; only a name that the same owner already uses gets "Legacy "
 in front ("Legacy NAME", then "Legacy NAME 2"). An enabled token whose
-credential cannot be read stops the whole migration. `token_sha256` (64 hexadecimal characters) is used first; otherwise a
-`token_env` variable that is set; otherwise `token_file`, which must be a
-regular file (not a symbolic link) readable by Nowlert with no group or other
-permissions (mode `0600` or `0400`) and holding at most 4096 characters.
-A file that breaks any of these rules counts as unreadable. (See
-[database-authoritative resources](database-authoritative-resources.md).)
+credential cannot be read stops the whole migration. The credential is read the
+same way as for authentication: `token_sha256` is used when it holds 64
+hexadecimal characters; otherwise, when `token_env` names a variable, only that
+variable is used (an unset or empty variable means no credential, and
+`token_file` is then not read); otherwise `token_file` is read. The file must
+be a regular file, not a symbolic link, with no permission bits for the group
+or for others (for example mode `0600`, `0400` or `0700`), and hold at most
+4096 characters; a file that breaks any of these rules gives no credential.
+(See [database-authoritative resources](database-authoritative-resources.md).)
 Send a token as `Authorization: Bearer TOKEN` or `X-Nowlert-Token: TOKEN`.
 
 Roles:

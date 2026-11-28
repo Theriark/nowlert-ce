@@ -163,8 +163,8 @@ release material.
   captures and then nine more after the round-3 readiness fixes (the three
   Routing Flow captures, the 1440 and 768 px Email Alerts rules captures,
   both Security captures and the Synology- and Zabbix-filtered Delivery
-  history captures). The folder index records the date, build and account of
-  every file. The v3.1.0 set is historical; the v2.5.2 and v1.9.6 captures
+  history captures). The folder index records the date of every file and,
+  where it was recorded, the Development build and account. The v3.1.0 set is historical; the v2.5.2 and v1.9.6 captures
   show the retired product name and remain outdated.
 - A release candidate still needs: a version bump with a numbered release note
   and QA checklist, independent visual review of those captures, and the normal
