@@ -183,6 +183,39 @@
     }
   }
 
+  // Narrow layouts label table cells with CSS content ("Status"). Those
+  // rules are repeated with the translated text in a constructed style sheet
+  // (the page's Content-Security-Policy allows no inline style element).
+  let contentSheet = null;
+  function translateStyleContent() {
+    if (typeof CSSStyleSheet !== "function" || !("adoptedStyleSheets" in document)) return;
+    const rules = [];
+    const collect = (list, wrap) => {
+      for (const rule of list || []) {
+        if (rule.cssRules && rule.media) {
+          collect(rule.cssRules, (text) => wrap(`@media ${rule.media.mediaText} { ${text} }`));
+          continue;
+        }
+        const match = rule.style?.content?.match(/^"(.*)"$/);
+        if (!match) continue;
+        const target = translateText(match[1], active);
+        if (target !== null) rules.push(wrap(`${rule.selectorText} { content: ${JSON.stringify(target)}; }`));
+      }
+    };
+    if (active) {
+      for (const sheet of document.styleSheets) {
+        let list;
+        try { list = sheet.cssRules; } catch { continue; }
+        collect(list, (text) => text);
+      }
+    }
+    if (!contentSheet) {
+      contentSheet = new CSSStyleSheet();
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, contentSheet];
+    }
+    contentSheet.replaceSync(rules.join("\n"));
+  }
+
   function observe() {
     if (observer || typeof MutationObserver !== "function") return;
     observer = new MutationObserver((records) => {
@@ -231,6 +264,7 @@
       observe();
       translateTree(document.body);
     }
+    translateStyleContent();
   }
 
   // en-US and pt-BR exist only so an older saved value still displays. The

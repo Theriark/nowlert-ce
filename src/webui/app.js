@@ -276,6 +276,14 @@ function uiTextIs(actual, english, { ignoreCase = false } = {}) {
   return typeof translate === "function" && shown === fold(translate(english));
 }
 
+// A health or status detail made of parts joined with "; " is shown as one
+// text node per part, so each part can be translated on its own.
+function uiDetailParts(detail) {
+  const parts = String(detail ?? "").split("; ");
+  return parts.flatMap((part, index) => (index ? ["; ", part] : [part]))
+    .map((text) => document.createTextNode(text));
+}
+
 function element(tag, options = {}, children = []) {
   const item = document.createElement(tag);
   if (options.className) item.className = options.className;
@@ -3061,7 +3069,7 @@ function renderUsers() {
     }
     body.append(element("tr", {}, [
       element("td", {}, element("div", { className: "user-cell" }, [avatarElement(item), element("div", {}, [element("strong", { text: item.username }), element("small", { text: self ? "Current account" : item.id.slice(0, 8) })])])),
-      element("td", { text: item.role }),
+      element("td", { text: item.role === "admin" ? "Administrator" : "User" }),
       element("td", { text: formatTime(item.last_login_at) }),
       element("td", {}, element("button", {
         className: `badge status-button ${item.enabled ? "success" : "danger"}`,
@@ -3531,10 +3539,7 @@ function renderHousekeepingRecentRuns(status) {
   for (const run of recentRuns) {
     const success = String(run.outcome || "").toLowerCase() === "success";
     const outcome = success ? "Completed successfully" : capitalize(run.outcome || "completed");
-    const removed =
-      `Removed ${Number(run.deliveries_deleted || 0).toLocaleString()} delivery records, ` +
-      `${Number(run.audit_deleted || 0).toLocaleString()} audit records, and ` +
-      `${Number(run.backup_runs_deleted || 0).toLocaleString()} backup run records.`;
+    const removed = `Removed ${Number(run.deliveries_deleted || 0).toLocaleString()} delivery records, ${Number(run.audit_deleted || 0).toLocaleString()} audit records, and ${Number(run.backup_runs_deleted || 0).toLocaleString()} backup run records.`;
     container.append(element("div", {
       className: `housekeeping-run-item ${success ? "is-success" : "is-warning"}`,
     }, [

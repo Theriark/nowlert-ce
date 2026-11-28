@@ -531,7 +531,7 @@
       className: `delivery-history-tag-pill${tone ? ` is-${tone}` : ""}`,
     });
     const copy = element("span", { className: "delivery-history-tag-copy" }, [
-      element("span", { text: `${label}:` }),
+      element("span", {}, [label, ":"]),
       element("strong", { text: String(value || "—") }),
     ]);
     tag.append(deliveryTagIcon(kind), copy);
@@ -558,7 +558,7 @@
     identity.append(sourceIcon(item.source));
     identity.append(element("div", {}, [
       element("strong", { text: deliveryTitle(item) }),
-      element("small", { text: `${friendlyName(item.source)} • ${capitalize(item.outcome || "unknown")} • ${formatTime(item.completed_at || item.created_at)}` }),
+      element("small", {}, [friendlyName(item.source), " • ", capitalize(item.outcome || "unknown"), " • ", formatTime(item.completed_at || item.created_at)]),
     ]));
     const close = element("button", {
       className: "icon-button delivery-history-detail-close",

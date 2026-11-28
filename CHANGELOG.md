@@ -65,7 +65,8 @@
 - Readiness fixes, round 5: the interface is translated into all twenty
   languages of the language list (page titles, Dashboard cards, Routing Flow,
   Filtering, Email Alerts, Delivery history filters, Audit log, Backups,
-  Settings, dialogs, notifications and errors); counts use whole singular and
+  Settings, dialogs, notifications and errors, health check names and details,
+  and the column labels of narrow layouts); counts use whole singular and
   plural sentences, and a test fails when a catalogue misses a string or a
   script or the page adds English text that is not in the catalogues.
   Changing the language no longer changes the timezone. The delivery health
