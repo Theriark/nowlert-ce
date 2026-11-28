@@ -640,7 +640,7 @@
       const severity = node("span", `ops-severity severity-${String(item.severity || "info").toLowerCase()}`, capitalize(item.severity || "Info"));
       const attempt = node("span", "ops-attempt", `Attempt ${item.attempt_number || 1}`);
       const outcomeClass = classifyAttempt(item);
-      const outcome = node("span", `ops-outcome ${outcomeClass}`, String(item.outcome || outcomeClass).toUpperCase());
+      const outcome = node("span", `ops-outcome ${outcomeClass}`, capitalize(String(item.outcome || outcomeClass).toLowerCase()));
       const time = node("small", "ops-activity-time", relativeTime(item.completed_at || item.created_at));
       row.append(visual, copy, severity, attempt, outcome, time);
       container.append(row);
