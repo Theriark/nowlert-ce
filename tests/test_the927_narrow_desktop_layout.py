@@ -60,11 +60,11 @@ def test_delivery_and_audit_workbenches_stack_between_1181_and_1399():
     assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in detail
 
     # Measured on Development (navigation expanded): side by side, the list
-    # panel was 524px at 1181px and 620px at 1280px, narrower than the 708px
-    # Delivery row (116 + 160 + 100 + 92 + 132 + 16, five 12px gaps, 32px
+    # panel was 524px at 1181px and 620px at 1280px, narrower than the 738px
+    # Delivery row (156 + 150 + 100 + 92 + 132 + 16, five 12px gaps, 32px
     # padding). Stacked, the list is 936px at 1181px.
-    delivery_row = 116 + 160 + 100 + 92 + 132 + 16 + 5 * 12 + 32
-    assert delivery_row == 708
+    delivery_row = 156 + 150 + 100 + 92 + 132 + 16 + 5 * 12 + 32
+    assert delivery_row == 738
     assert 524 < delivery_row <= 936
     assert 620 < delivery_row
 
